@@ -1,0 +1,378 @@
+#/////////////////////////////////////////////////  R o u t i n e s   t o   G e n e r a t e   P a r s e r s
+parserString = ""
+
+def parseParserSpec():
+    ParseElement = Forward()
+    fieldsName=Word(alphas+'_0123456789')
+    FieldSpec = Group(fieldsName + Optional((Literal('.') | Literal('->')).suppress() + fieldsName))
+    ValueSpec = FieldSpec | Word(nums) | (Keyword('true') | Keyword('false')) | quotedString
+    WhitespaceEL = Keyword("WS")
+    SetFieldStmt = Group(FieldSpec + '=' + ValueSpec)
+    PeekNotEL = "!" + quotedString
+    LiteralEL = quotedString
+    StructEL  = '#'+Word(alphas)
+    ListEL = Group((Literal("+") | Literal("*")) + ParseElement)
+    OptionEL = Group("<" + ParseElement + ">")
+    CoFactualEL  = "(" + Group(ParseElement + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")"
+    SequenceEL   = "{" + Word(alphas) + Group(OneOrMore(ParseElement)) + "}"
+    AlternateEl  = "[" + Word(alphas) + Group(OneOrMore(ParseElement + Optional("|").suppress())) + "]"
+    ParseElement <<= (Group(SequenceEL) | Group(AlternateEl) | Group(CoFactualEL) | ListEL | OptionEL | Group(StructEL) | LiteralEL | Group(PeekNotEL) | WhitespaceEL)
+    structParserSpec = Keyword("StructParser") + Word(alphas) + "=" + ParseElement
+    structParserSpec=structParserSpec.setDebug()
+    StartSym = StringStart() + Literal("{").suppress() + OneOrMore(Group(structParserSpec)) +Literal("}").suppress()
+    return StartSym
+
+tagModifier=1
+def TraverseParseElement(structName, parseEL, BatchParser, PulseParser, PrintFunc, indent):
+    # BatchParser[0] = text of parsing function being built.
+    # BatchParser[1] = text of functions to add to the class.
+    global tagModifier
+    indent2=indent+"    "
+    batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
+    if(type(parseEL)==type("")):
+        if(parseEL[0]=='"'):
+            batchArgs[1] += "nxtTok(cursor, "+parseEL+")"
+            printerArgs[1] ='S+='+parseEL+';'
+        elif(parseEL=='WS'):
+            batchArgs[1] += "RmvWSC(cursor)"
+
+        else:
+            batchArgs[1] +=  "<" +parseEL+ ">"
+    elif(parseEL[0]=='('):
+        #print indent, "Co-Factual"
+        actionStr=""; testStr="";
+        print "PREPING ACTION..."
+        count=0
+        for action in parseEL[1][2]:
+            print action
+            resultStrs=getActionTestStrings(structName, action)
+            actionStr+=resultStrs[1]
+            if(count>0): testStr+=" && "
+            count+=1
+            testStr+=resultStrs[2]
+
+        Item = parseEL[1][0]
+        print "=========================>",Item
+        batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
+        TraverseParseElement(structName, Item, batchArgs, pulseArgs, printerArgs, indent2)
+        batch0="    func: bool: parseCoFactual_"+str(tagModifier)+"(streamSpan* cursor, "+structName+"& ITEM){\n"
+        batch0+= indent+"if(" + batchArgs[1] + ") {"+actionStr+"} else {MARK_ERROR; return false;}\n"
+        batchArgs[0]+="\n"+batch0+"    }; END\n"
+        batchArgs[1]="parseCoFactual_"+str(tagModifier)+"(cursor, ITEM)"
+
+        printerArgs[1]=indent+"if("+testStr+"){"+printerArgs[1]+"}\n"
+        tagModifier+=1
+
+    elif(parseEL[0]=='{'):
+        #print indent, "Sequence"
+        tagModifierS=parseEL[1]
+        print1=""
+        batch1=""
+        batch0="";
+        batch0+="    func: bool: parseSequence_"+tagModifierS+"(streamSpan* cursor, "+structName+"& ITEM){\n"
+        for firstItem in parseEL[2]:
+            batch0 += indent+"if(!"
+            batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
+            TraverseParseElement(structName, firstItem, batchArgs, pulseArgs, printerArgs, indent2)
+            batch1+=batchArgs[0]
+            batch0+=batchArgs[1]
+            batch0+=") {MARK_ERROR; return false;}\n"
+
+            print1+=printerArgs[1]
+
+        batch0+=indent+"return true;\n    }; END\n\n\n"
+        batchArgs[0]=batch1+"\n"+batch0
+        batchArgs[1]="parseSequence_"+tagModifierS+"(cursor, ITEM)"
+        printerArgs[1]=print1
+
+    elif(parseEL[0]=='['):
+        #print indent, "OneOf"
+        tagModifierS=parseEL[1]
+        batch1=""
+        batch0="    func: bool: parseAltList_"+tagModifierS+"(streamSpan* cursor, "+structName+"& ITEM){\n"
+        for firstItem in parseEL[2]:
+            batch0 += indent+"if("
+            batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
+            TraverseParseElement(structName, firstItem, batchArgs, pulseArgs, printerArgs, indent2)
+            batch1+=batchArgs[0]
+            batch0+=batchArgs[1]
+            batch0+=") {return true;}\n"
+        batch0+=indent+"return false;\n    }; END\n\n\n"
+        batchArgs[0]=batch1+"\n"+batch0
+        batchArgs[1]="parseAltList_"+tagModifierS+"(cursor, ITEM)"
+    elif(parseEL[0]=='<'):   # OPTIONAL
+        batch1=""
+        batch0="";
+        batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
+        TraverseParseElement(structName, parseEL[1], batchArgs, pulseArgs, printerArgs, indent2)
+        batch1+=batchArgs[0]
+        batch0+=batchArgs[1]
+        batchArgs[1] = "(" + batch0 + "||true)"
+
+    elif(parseEL[0]=='!'):   # NOT LITERAL
+        batch1=""
+        batch0="";
+        batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
+        TraverseParseElement(structName, parseEL[1], batchArgs, pulseArgs, printerArgs, indent2)
+        batch1+=batchArgs[0]
+        batch0+=batchArgs[1]
+        batchArgs[1] = "!(" + batch0 + ")"
+    elif(parseEL[0]=='#'):   # Sub-STRUCT
+        FieldData=getFieldInfo(structName, [parseEL[1]])
+        sType=FieldData[2]
+        printCmd=""
+        if(sType==""): sType=structName
+        if(FieldData[0]=="ptr"):
+            sField="ITEM."+parseEL[1]
+            printCmd="->printToString();\n"
+        else:
+            sField = "ITEM."+parseEL[1]
+            printCmd=".printToString();\n"
+        batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
+        printerArgs[1] = indent + "S += "+parseEL[1]+printCmd
+    else:
+        print indent, parseEL
+
+    BatchParser[0]+=batchArgs[0]; BatchParser[1]+=batchArgs[1];
+    PulseParser[0]+=pulseArgs[0]; PulseParser[1]+=pulseArgs[1];
+    PrintFunc[0]+=printerArgs[0]; PrintFunc[1]+=printerArgs[1];
+
+def generateParser(parserSpec, startSymbol):
+    AST = parseParserSpec()
+    try:
+        results = AST.parseString(parserSpec, parseAll=True)
+        print parserSpec, " ==> ", results
+    except ParseException, pe:
+        print "ERROR Creating Grammar:", parserSpec, " ==> ", pe
+        exit()
+    else:
+        print "SUCCESS Creating Grammar.\n"
+        BatchParserUtils="" #// Batch Parsing utility parsing functions:
+        PulseParserUtils=""
+        BatchParser = "    func: "+startSymbol + "Ptr: BatchParse(streamSpan* cursor, "+startSymbol + "Ptr ITEM){\n    if(ITEM){reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n    return parse_"+startSymbol+"(cursor, ITEM);\n}; END\n"
+        PulseParser = "    func: "+startSymbol + "Ptr: PulseParse"+startSymbol+"(){\n    if(ITEM){reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n    }; END\n"
+
+        for STRCT in results:
+            print "struct ",STRCT[1],"="
+            batchArgs=["",""]; PulseArgs=["",""]; printArgs=["",""];
+            TraverseParseElement(STRCT[1], STRCT[3], batchArgs, PulseArgs, printArgs, "        ")
+            progSpec.CreatePointerItems([structsSpec, structNames ], STRCT[1])
+
+            BatchParserUtils+=batchArgs[0]
+            BatchParser+="\n    func: "+STRCT[1] + "Ptr: parse_"+STRCT[1]+"(streamSpan* cursor, "+STRCT[1]+"Ptr ITEM){\n        if(ITEM){reset_"+STRCT[1]+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n        if("+batchArgs[1]+") return ITEM; else return 0;;\n    }; END\n"
+            BatchParser+="\n    func: void: reset_" + STRCT[1] + "_forParsing("+STRCT[1]+"Ptr ITEM){}; END\n"
+
+
+            PrinterFunc = '    func: string: printToString(){\n        string S="";\n' + printArgs[1] + "        return S;\n    }; END\n"
+            progSpec.FillStructFromText([structsSpec, structNames ], STRCT[1], PrinterFunc)
+
+
+        BatchParserFuncs= BatchParserUtils + "\n\n" + BatchParser
+        PulseParserFuncs= PulseParserUtils + "\n\n" + PulseParser
+
+
+    global parserGlobalText; parserGlobalText = r"""
+
+const int bufmax = 32*1024;
+#define streamEnd (stream->eof() || stream->fail())
+#define ChkNEOF {if(streamEnd) {flags|=fileError; statusMesg="Unexpected End of file"; break;}}
+#define getbuf(cursor, c) {ChkNEOF; for(p=0;(c) && !streamEnd ;buf[p++]=streamGet(cursor)){if (p>=bufmax) {flags|=fileError; statusMesg="String Overflow"; break;}} buf[p]=0;}
+#define nxtTok(cursor, tok) nxtTokN(cursor, 1,tok)
+
+#define U8_IS_SINGLE(c) (((c)&0x80)==0)
+
+UErrorCode err=U_ZERO_ERROR;
+const UnicodeSet TagChars(UnicodeString("[[:XID_Continue:]']"), err);
+const UnicodeSet TagStarts(UnicodeString("[:XID_Start:]"), err);
+bool iscsymOrUni (char nTok) {return (iscsym(nTok) || (nTok&0x80));}
+bool isTagStart(char nTok) {return (iscsymOrUni(nTok)&&!isdigit(nTok)&&(nTok!='_'));}
+bool isAscStart(char nTok) {return (iscsym(nTok)&&!isdigit(nTok));}
+bool isBinDigit(char ch) {return (ch=='0' || ch=='1');}
+const icu::Normalizer2 *tagNormer=Normalizer2::getNFKCCasefoldInstance(err);
+#define MARK_ERROR "ERROR"
+
+bool tagIsBad(string tag, const char* locale) {
+    UErrorCode err=U_ZERO_ERROR;
+    if(!TagStarts.contains(tag.c_str()[0])) return 1; // First tag character is invalid
+    if((size_t)TagChars.spanUTF8(tag.c_str(), -1, USET_SPAN_SIMPLE) != tag.length()) return 1;
+    USpoofChecker *sc = uspoof_open(&err);
+    uspoof_setChecks(sc, USPOOF_SINGLE_SCRIPT|USPOOF_INVISIBLE, &err);
+    uspoof_setAllowedLocales(sc, locale, &err);
+    int result=uspoof_checkUTF8(sc, tag.c_str(), -1, 0, &err);
+    return (result!=0);
+}
+"""
+    parserFields=r"""
+        flag: fullyLoaded
+        flag: userMode
+        flag: parseError
+        flag: fileError
+        flag: isParsing
+        var:  string statusMesg;
+
+        var: char nTok;
+        var: char buf[bufmax];
+
+        var: istream *stream;
+        var: string streamName;
+        var: string streamPath;
+        var: uint line;
+        var: char prevChar;
+
+        var: string textStreamed;
+        var: posRecStore textPositions;
+        var: vector<int64_t> *punchInOut;
+        ptr: attrStore attributes
+
+        var: infonPtr ti;
+
+        func: none: ~infonParser(){delete punchInOut;};   END
+
+        func: char: streamGet(streamSpan* cursor){
+            char ch;
+            switch(flags&(fullyLoaded|userMode)){
+                case(userMode):  // !fully loaded | userMode
+                    while(cursor->offset > textStreamed.size()){
+                        ch=stream->get();
+                        textStreamed += ch;
+                        if(stream->eof()){
+                            flags|=fullyLoaded;
+                        } else if(stream->fail()){
+                            flags|=fileError;
+                            return 0;
+                        }
+                    }
+                    break;
+                case(0): // !fullyLoaded | !userMode
+                    stream->seekg(0, std::ios::end);
+                    int streamSize=stream->tellg();
+                    if(streamSize<=0) {printf("Problem with stream Stream size is %i.\n", streamSize); exit(1);}
+                    textStreamed.resize(streamSize);
+                    stream->seekg(0, std::ios::beg);
+                    stream->read((char*)textStreamed.data(), textStreamed.size());
+                    flags|=fullyLoaded;
+                    break;
+            }
+            return textStreamed[cursor->offset];
+        };  END
+
+        func: void: scanPast(streamSpan* cursor, char* str){
+            char p; char* ch=str;
+            while(*ch!='\0'){
+                p=streamGet(cursor);
+                if (streamEnd){
+                    if (strcmp(str,"<%")==0) return;
+                    throw (string("Expected String not found before end-of-file: '")+string(str)+"'").c_str();
+                }
+                if (*ch==p) ch++; else ch=str;
+                if (p=='\n') ++line;
+            }
+        };               END
+
+        func: bool: chkStr(streamSpan* cursor, const char* tok){
+            int startPos=cursor->offset;
+            if (tok==0) return 0;
+            for(const char* p=tok; *p; p++) {
+                if ((*p)==' ') RmvWSC(cursor);
+                else if ((*p) != streamGet(cursor)){
+                    cursor->offset=startPos;
+                    return false;
+                }
+            }
+            return true;
+        };           END
+
+        func: void: streamPut(int nChars){for(int n=nChars; n>0; --n){stream->putback(textStreamed[textStreamed.size()-1]); textStreamed.resize(textStreamed.size()-1);}}; END
+
+        func: const char* :nxtTokN(streamSpan* cursor, int n, ...){
+            char* tok; va_list ap; va_start(ap,n); int i,p;
+            for(i=n; i; --i){
+                tok=va_arg(ap, char*); nTok=WSPeek(cursor);
+                if(strcmp(tok,"cTok")==0) {if(iscsym(nTok)&&!isdigit(nTok)&&(nTok!='_')) {getbuf(cursor, iscsym(pPeek(cursor))); break;} else tok=0;}
+                else if(strcmp(tok,"unicodeTok")==0) {if(isTagStart(nTok)) {getbuf(cursor, iscsymOrUni(pPeek(cursor))); break;} else tok=0;}
+                else if(strcmp(tok,"<abc>")==0) {if(chkStr(cursor, "<")) {getbuf(cursor, (pPeek(cursor)!='>')); chkStr(cursor, ">"); break;} else tok=0;}
+                else if(strcmp(tok,"123")==0) {if(isdigit(nTok)) {getbuf(cursor, (isdigit(pPeek(cursor))||pPeek(cursor)=='.')); break;} else tok=0;}
+                else if(strcmp(tok,"0x#")==0) {if(isxdigit(nTok)) {getbuf(cursor, (isxdigit(pPeek(cursor))||pPeek(cursor)=='.')); break;} else tok=0;}
+                else if(strcmp(tok,"0b#")==0) {if(isBinDigit(nTok)) {getbuf(cursor, (isBinDigit(pPeek(cursor))||pPeek(cursor)=='.')); break;} else tok=0;}
+                else if (chkStr(cursor, tok)) break; else tok=0;
+            }
+            va_end(ap);
+            return tok;
+        };        END
+
+
+        func: char: pPeek(streamSpan* cursor){
+            while(textStreamed.length() < cursor->offset){
+                if(flags&fullyLoaded){return 0;}
+                char ch=stream->get();
+                if(stream->eof()){}
+                if(stream->fail()){}
+                textStreamed + ch;
+            }
+            return(textStreamed[cursor->offset]);
+        } END
+
+        func: char: WSPeek(streamSpan* cursor){RmvWSC(cursor); return pPeek(cursor);} END
+
+        func: bool: RmvWSC(streamSpan* cursor){ //, attrStorePtr attrs=0){
+            char p,p2;
+            for (p=pPeek(cursor); (p==' '||p=='/'||p=='\n'||p=='\r'||p=='\t'||p=='%'); p=pPeek(cursor)){
+                if (p=='/') {
+                    streamGet(cursor); p2=pPeek(cursor);
+                    if (p2=='/') {
+        //              punchInOut->push_back(textStreamed.size()-1);  // Record start of line comment.
+                        string comment="";
+                        for (p=pPeek(cursor); !streamEnd && p!='\n'; p=pPeek(cursor)) comment+=streamGet(cursor);
+        //                punchInOut->push_back(-textStreamed.size());  // Record end of line comment.
+                    /*    if (attrs){
+                            if     (comment.substr(1,7)=="author=") attrs->a.insert(pair<string,string>("author",comment.substr(8)));
+                            else if(comment.substr(1,6)=="image=") attrs->a.insert(pair<string,string>("image",comment.substr(7)));
+                            else if(comment.substr(1,9)=="engTitle=") attrs->a.insert(pair<string,string>("engTitle",comment.substr(10)));
+                            else if(comment.substr(1,7)=="import=") attrs->a.insert(pair<string,string>("import",comment.substr(8)));
+                            else if(comment.substr(1,8)=="summary=") attrs->a.insert(pair<string,string>("summary",comment.substr(9)));
+                            else if(comment.substr(1,5)=="link=") attrs->a.insert(pair<string,string>("link",comment.substr(6)));
+                            else if(comment.substr(1,9)=="category=") attrs->a.insert(pair<string,string>("category",comment.substr(10)));
+                            else if(comment.substr(1,7)=="posted=") attrs->a.insert(pair<string,string>("posted",comment.substr(8)));
+                            else if(comment.substr(1,8)=="updated=") attrs->a.insert(pair<string,string>("updated",comment.substr(9)));
+                        } */
+                    } else if (p2=='*') {
+                        punchInOut->push_back(textStreamed.size()-1);  // Record start of block comment.
+                        for (p=streamGet(cursor); !streamEnd && !(p=='*' && pPeek(cursor)=='/'); p=streamGet(cursor))
+                            if (p=='\n') ++line;
+                        if (streamEnd) throw "'/*' Block comment never terminated";
+                        streamGet(cursor);
+                        punchInOut->push_back(-(textStreamed.size()));  // Record end of block comment.
+                    } else {streamPut(1); return true;}
+                } else if (p=='%'){
+                    streamGet(cursor); p2=pPeek(cursor);
+                    if(p2=='>'){scanPast(cursor, (char*)"<%");} else {streamPut(1); return true;}
+                }
+                if (streamGet(cursor)=='\n') {++line; prevChar='\n';} else prevChar='\0';
+            }
+            return true;
+        };      END
+
+
+        } END
+
+
+
+        func: bool: doRule(infon* i){
+            uint64_t parsePhase = flags&InfParsePhaseMask;
+            if(parsePhase==iStartParse){
+                if(nxtTok(i->curPos, "@")){i->flags |= asDesc;}
+                if(nxtTok(i->curPos, "`")){i->flags |= toExec;}
+            } else if(parsePhase==iParseIdents){
+            } else if(parsePhase==iParseFuncArgs){
+            }
+            return 1;
+        } END
+
+    """
+
+    ParserStructsName = startSymbol+"Parser"
+    progSpec.addStruct([structsSpec, structNames ], arserStructsName)
+    progSpec.FillStructFromText([structsSpec, structNames ], ParserStructsName, BatchParserFuncs)
+    progSpec.FillStructFromText([structsSpec, structNames ], ParserStructsName, parserFields)
+    structNames.append(ParserStructsName)
+
