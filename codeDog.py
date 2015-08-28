@@ -4,7 +4,7 @@ import progSpec
 import pattern_Write_Main
 import pattern_Gen_ParsePrint
 import pattern_Gen_Eventhandler
-
+import codeDogParser
 import re
 import sys
 
@@ -123,31 +123,27 @@ if(len(sys.argv) < 2):
 
 file_name = sys.argv[1]
 f=open(file_name)
-d = f.read()
+codeDogStr = f.read()
 f.close()
 
 #### Remove comments from the string
-d=comment_remover(d)
+codeDogStr = comment_remover(codeDogStr)
 
-dataTags={}
+tagStore={}
 
 ############## Split string into var and object sections
 
 varsStructs=re.compile(r"(.*?)(object.+)", re.DOTALL)
-m1=varsStructs.match(d)
+m1=varsStructs.match(codeDogStr)
 if m1 is None:
     print"NO MATCH\n"
     exit()
 
-############## Set the variables into dataTags['varName']
-varRe=re.compile(r"\s*(\w+)\s*:\s*`(.+?)`", re.DOTALL);
-m=varRe.findall(m1.group(1))
-for keyVal in m:
-    print keyVal[0]
-    dataTags[keyVal[0]]=keyVal[1]
+############## Set the variables into tagStore['varName']
+[tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)
 
-for key in dataTags:
-    print "=> "+key+": \t"+dataTags[key]
+for key in tagStore:
+    print "TAG "+key+" = \t", tagStore[key]
 
 ##############  Split structs section into struct defs and store in StructStrs
 structsRe=re.compile(r"\s*object ", re.DOTALL);
@@ -176,7 +172,7 @@ for StrS in StructStrs:
 
 #############################################   Add structs, fields, etc for each modifier
 # modifiers can add structs, fields, etc.
-modifierCmds = re.split("\|", dataTags['modifierCmds'])
+modifierCmds = re.split("\|", tagStore['modifierCmds'])
 for modifierCmd in modifierCmds:
     strippedCmd = modifierCmd.strip()
     print "MODIFIER: ",strippedCmd
@@ -295,17 +291,17 @@ for ptrStruct in structPtrs:
 
 ################ Create Headers section
 hdrString="";
-includes = re.split("[,\s]+", dataTags['Include'])
+includes = re.split("[,\s]+", tagStore['Include'])
 for hdr in includes:
     hdrString+="\n#include "+hdr
 hdrString += "\n\nusing namespace std; \n\n"
 
 #############################################    G e n e r a t e   C o d e
-headerFile  = "// "+dataTags['Title']+hdrString
+headerFile  = "// "+tagStore['Title']+hdrString
 headerFile += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
 headerFile += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
 headerFile += structForwardDecls;
-headerFile += dataTags['global'] + parserGlobalText
+headerFile += tagStore['global'] + parserGlobalText
 
 headerFile += "\nstruct infSource{\n    uint32_t offset, length;\n};\n"
 headerFile += structEnums+"\n"+structPtrCodeTop+"\n" + structCode +"\n" + structPtrCodeEnd +"\n\n"
@@ -316,6 +312,6 @@ headerFile += '\n'
 
 #print (headerFile)
 
-fo=open(dataTags['FileName'], 'w')
+fo=open(tagStore['FileName'], 'w')
 fo.write(headerFile)
 fo.close()
