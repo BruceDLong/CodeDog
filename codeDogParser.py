@@ -1,6 +1,8 @@
+# This module parses CodeDog syntax
+
 from pyparsing import Word, alphas, nums, Literal, Keyword, Optional, OneOrMore, ZeroOrMore, delimitedList, Group, ParseException, quotedString, Forward, StringStart, StringEnd, SkipTo
 
-
+# BNF Parser Productions for CodeDog syntax
 identifier = Word(alphas + nums + "_-")
 CID = identifier
 CIDList = delimitedList(CID, ',')
@@ -70,6 +72,6 @@ def parseCodeDogString(inputString):
 	#print tagStore["BuildCmd"]
 	buildSpecs = extractBuildSpecs(results[1])
 	print buildSpecs
-	objectSpecs = extractObjectSpecs("objectSpecsPlaceHolder")
+	objectSpecs = extractObjectSpecs([])
 	#print
-	return[tagstore, buildSpecs, objectSpecs]
+	return[tagStore, buildSpecs, objectSpecs]
