@@ -167,8 +167,8 @@ for StrS in StructStrs:
         structName=structFields.group(1)
         structNames.append(structName)
         structBodyText=structFields.group(3)
-        progSpec.addStruct([structsSpec, structNames ], structName)
-        progSpec.FillStructFromText([structsSpec, structNames ], structName, structBodyText)  #  Extract each struct's attribute tags and fields.
+        progSpec.addStruct(structsSpec, structName, structNames)
+        progSpec.FillStructFromText(structsSpec, structNames, structName, structBodyText)  #  Extract each struct's attribute tags and fields.
 
 #############################################   Add structs, fields, etc for each modifier
 # modifiers can add structs, fields, etc.
