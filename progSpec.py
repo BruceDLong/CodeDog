@@ -3,6 +3,9 @@
 
 import re
 
+def addPattern(objSpecs, objectNameList, name, patternList):
+	print "ADDED PATTERN", name
+
 def addObject(objSpecs, objectNameList, name):
     objectNameList.append(name)
     if(name in objSpecs):
@@ -12,7 +15,7 @@ def addObject(objSpecs, objectNameList, name):
     print "ADDED STRUCT: ", name
 
 def addObjTags(objSpecs, objectName, objTags):
-    objSpecs[objectName]["tags"]=objtags
+    objSpecs[objectName]["tags"]=objTags
     print "    ADDED Tags to object.\t"
 
 
@@ -32,14 +35,14 @@ def addFlag(objSpecs, objectName, flagName):
 def addMode(objSpecs, objectName, modeName, enumList):
     objSpecs[objectName]["fields"].append({'kindOfField':'mode', 'fieldName':modeName, 'enumList':enumList})
     print "    ADDED MODE:\t", modeName
+    print enumList
 
 def addConst(objSpecs, objectName, constName, constValue):
     objSpecs[objectName]["fields"].append({'kindOfField':'const', 'fieldName':constName, 'fieldValue':constValue})
     print "    ADDED CONST\n"
 
-
-def addFunc(objSpecs, objectName, funcName, returnType, argList, funcBody):
-    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcText, 'returnType':returnType, 'fieldName':funcName})
+def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody):
+    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'returnType':returnType, 'fieldName':funcName})
     print "    ADDED FUNCTION:\t", funcName
 
 def addActionToSeq(objSpecs, objectName, funcName, ):

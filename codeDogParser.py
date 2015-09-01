@@ -26,11 +26,11 @@ buildSpec = Group(identifier + Literal(":").suppress() + tagDefList + ";")
 buildSpecList = Group(OneOrMore(buildSpec))
 funcType = varType
 actionSeq = Literal("actionSeq")
-argList =  Literal("argList") #+ (actionSeq | SkipTo("funcEnd"))
+argList =  Literal("argList")
 modeSpec = "mode" + ":" + CID + "[" + CIDList + "]"
 varSpec = (Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") ) + varType + ":" + CID
 constSpec = "const" + ":" + CID + "=" + value 
-funcSpec = "func" + funcType + ":" + CID + "(" + argList + ")" + Optional(":" + tagDefList)
+funcSpec = "func" + funcType + ":" + CID + "(" + argList + ")" + Optional(":" + tagDefList) + (actionSeq | SkipTo("funcEnd"))
 fieldDef = "flag" + ":" + CID + ( modeSpec | varSpec | constSpec | funcSpec )
 objectDef = Keyword("object") + CID + Optional(":" + tagDefList) + "{" + ZeroOrMore(fieldDef) + "}"
 objectList = Group(ZeroOrMore(objectDef))
@@ -57,13 +57,13 @@ def extractBuildSpecs(buildSpecResults):
 	for localBuildSpecs in buildSpecResults:
 		spec = [localBuildSpecs[0], extractTagDefs(localBuildSpecs[1])]
 		#print spec
-	#for buildSpecTag in localBuildSpecs[0]:
-		#print buildSpecTag
-		#spec[1][buildSpecTag[1] = buildSpecTag[3]
 	return localBuildSpecs
 	
 def extractObjectSpecs(objectSpecResults):
-	localObjectSpecs = objectSpecResults
+	localObjectSpecs = []
+	for localObjectSpecs in objectSpecResults:
+		spec = [localObjectSpecs[0], extractTagDefs(localObjectSpecs[1])]
+		print spec
 	return localObjectSpecs
 	
 def parseCodeDogString(inputString):
@@ -75,3 +75,5 @@ def parseCodeDogString(inputString):
 	objectSpecs = extractObjectSpecs([])
 	#print
 	return[tagStore, buildSpecs, objectSpecs]
+	
+
