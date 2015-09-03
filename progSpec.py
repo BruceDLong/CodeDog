@@ -4,7 +4,10 @@
 import re
 
 def addPattern(objSpecs, objectNameList, name, patternList):
-	print "ADDED PATTERN", name
+    patternName='!'+name
+    objectNameList.append(patternName)
+    objSpecs[name]={'name':patternName, 'parameters':patternList}
+    print "ADDED PATTERN", name
 
 def addObject(objSpecs, objectNameList, name):
     objectNameList.append(name)
