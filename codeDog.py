@@ -23,19 +23,24 @@ def ScanAndApplyPatterns(objects, tags):
             print item
 
 def GenerateProgram(objects, buildSpec, tags):
-    result='No Language Generator Found for '+tags['langToGen']
-    if(tags['langToGen']=='CPP'):
-        print 'Generating C++ Program...'
-        result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]])
-    return result
+	print tags
+	result='No Language Generator Found for '+tags['langToGen']
+	langGenTag = tags['langToGen']
+	if(langGenTag == 'CPP'):
+		print 'Generating C++ Program...'
+		result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]])
+	else:
+		print "No language generator found for ", langGenTag
+	return result
 
 def GenerateSystem(objects, buildSpecs, tags):
     ScanAndApplyPatterns(objects, tags)
 
     outStr=""
     for buildSpec in buildSpecs:
-        outStr += GenerateProgram(objects, buildSpec, tags)
-        #GenerateBuildSystem()
+		print "Generating code for build ", buildSpec[0]
+		outStr += GenerateProgram(objects, buildSpec, tags)
+		#GenerateBuildSystem()
     # GenerateTests()
     # GenerateDocuments()
     return outStr

@@ -9,7 +9,7 @@ identifier = Word(alphas + nums + "_-")
 CID = identifier
 CIDList = Group(delimitedList(CID, ','))
 objectName = CID
-cppType = (Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char"))
+cppType = (Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))
 numRange = Forward()
 value = Forward()
 varType = (objectName | cppType | numRange | "string" | "mesg")
@@ -52,11 +52,14 @@ def parseInput(inputStr):
 	return localResults
 
 def extractTagDefs(tagResults):
-	localTagStore = {}
-	for tagSpec in tagResults:
-		#print tagSpec[0], "is", tagSpec[1]
-		localTagStore[tagSpec[0]] = tagSpec[1]
-	return localTagStore
+    localTagStore = {}
+    for tagSpec in tagResults:
+        tagVal = tagSpec[1]
+        if (len(tagVal)>=2 and (tagVal[0] == '"' or tagVal[0] == "'") and (tagVal[0]==tagVal[-1])):
+            tagVal = tagVal[1:-1]
+        localTagStore[tagSpec[0]] = tagVal
+    return localTagStore
+    
 def extractFuncBody(localFuncResults):
 	print localFuncResults
 	if localFuncResults == "actionSeq":
@@ -84,28 +87,28 @@ def extractFuncDef(localFieldResults):
 	return [returnType, funcName, argList, tagList, funcBody]
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
-	for fieldResult in fieldResults:
-		fieldTag = fieldResult[0]
-		if fieldTag == 'flag':
-			progSpec.addFlag(localProgSpec, localObjectName, fieldResult)
-		elif fieldTag == 'mode':
-			progSpec.addMode(localProgSpec, localObjectName, fieldResult[2], fieldResult[4])
-		elif (fieldTag == 'var' or fieldTag == 'rPtr' or fieldTag == 'sPtr' or fieldTag == 'uPtr'):
-			fieldType = fieldResult[1]
-			fieldName = fieldResult[3]
-			progSpec.addField(localProgSpec, localObjectName, fieldTag, fieldType, fieldName)
-		elif fieldTag == 'const':
-			constName = fieldResult[2]
-			constValue = fieldResult[4]
-			progSpec.addConst(localProgSpec, localObjectName, constName, constValue)
-		elif fieldTag == 'func':
-			localFuncSpecs = extractFuncDef(fieldResult)
-			#print localFuncSpecs[4]
-			progSpec.addFunc(localProgSpec, localObjectName, localFuncSpecs[0], localFuncSpecs[1], localFuncSpecs[2], localFuncSpecs[3], localFuncSpecs[4])
-		else:
-			print "Error in extractFieldDefs"
-			print fieldResult
-			exit(1)
+    for fieldResult in fieldResults:
+        fieldTag = fieldResult[0]
+        if fieldTag == 'flag':
+            progSpec.addFlag(localProgSpec, localObjectName, fieldResult[2])
+        elif fieldTag == 'mode':
+            progSpec.addMode(localProgSpec, localObjectName, fieldResult[2], fieldResult[4])
+        elif (fieldTag == 'var' or fieldTag == 'rPtr' or fieldTag == 'sPtr' or fieldTag == 'uPtr'):
+            fieldType = fieldResult[1]
+            fieldName = fieldResult[3]
+            progSpec.addField(localProgSpec, localObjectName, fieldTag, fieldType, fieldName)
+        elif fieldTag == 'const':
+            constName = fieldResult[2]
+            constValue = fieldResult[4]
+            progSpec.addConst(localProgSpec, localObjectName, constName, constValue)
+        elif fieldTag == 'func':
+            localFuncSpecs = extractFuncDef(fieldResult)
+            #print localFuncSpecs[4]
+            progSpec.addFunc(localProgSpec, localObjectName, localFuncSpecs[0], localFuncSpecs[1], localFuncSpecs[2], localFuncSpecs[3], localFuncSpecs[4])
+        else:
+            print "Error in extractFieldDefs"
+            print fieldResult
+            exit(1)
 
 
 def extractBuildSpecs(buildSpecResults):
