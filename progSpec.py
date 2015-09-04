@@ -40,8 +40,8 @@ def addMode(objSpecs, objectName, modeName, enumList):
     print "    ADDED MODE:\t", modeName
     print enumList
 
-def addConst(objSpecs, objectName, constName, constValue):
-    objSpecs[objectName]["fields"].append({'kindOfField':'const', 'fieldName':constName, 'fieldValue':constValue})
+def addConst(objSpecs, objectName, cppType, constName, constValue):
+    objSpecs[objectName]["fields"].append({'kindOfField':'const', 'fieldType':cppType, 'fieldName':constName, 'fieldValue':constValue})
     print "    ADDED CONST\n"
 
 def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody):

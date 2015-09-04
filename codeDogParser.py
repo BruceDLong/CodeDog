@@ -31,7 +31,7 @@ actionSeq = Literal("actionSeq")
 argList =  Literal("argList")
 modeSpec = Keyword("mode") + ":" + CID + "[" + CIDList + "]"
 varSpec = (Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") ) + varType + ":" + CID
-constSpec = Keyword("const") + ":" + CID + "=" + value
+constSpec = Keyword("const") + cppType + ":" + CID + "=" + value
 flagDef = Keyword("flag") + ":" + CID
 funcBody = Group( SkipTo("FEND", include=True))
 funcSpec = Keyword("func") + returnType + ":" + CID + "(" + argList + ")" + Optional(":" + tagDefList) + (actionSeq | funcBody)
@@ -96,9 +96,11 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
             fieldName = fieldResult[3]
             progSpec.addField(localProgSpec, localObjectName, fieldTag, fieldType, fieldName)
         elif fieldTag == 'const':
-            constName = fieldResult[2]
-            constValue = fieldResult[4]
-            progSpec.addConst(localProgSpec, localObjectName, constName, constValue)
+            cppType = fieldResult[1]
+            constName = fieldResult[3]
+            constValue = fieldResult[5]
+            progSpec.addConst(localProgSpec, localObjectName, cppType, constName, constValue)
+            #exit(1)
         elif fieldTag == 'func':
             localFuncSpecs = extractFuncDef(fieldResult)
             #print localFuncSpecs[4]
@@ -181,4 +183,7 @@ def parseCodeDogString(inputString):
     objectSpecs = [localProgSpec, objNames]
     return[tagStore, buildSpecs, objectSpecs]
 
+def AddToObjectFromText(localProgSpec, objNames, inputString):
+    results = objectList.parseString(inputStr, parseAll = True)
+    extractObjectOrPattern(localProgSpec, objNames, results)
 
