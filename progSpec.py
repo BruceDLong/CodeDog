@@ -45,7 +45,7 @@ def addConst(objSpecs, objectName, constName, constValue):
     print "    ADDED CONST\n"
 
 def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody):
-    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'returnType':returnType, 'fieldName':funcName})
+    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName})
     print "    ADDED FUNCTION:\t", funcName
 
 def addActionToSeq(objSpecs, objectName, funcName, ):

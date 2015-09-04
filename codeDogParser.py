@@ -43,13 +43,13 @@ objectList = Group(ZeroOrMore(objectDef | doPattern))
 progSpecParser = tagDefList + buildSpecList + objectList
 
 def parseInput(inputStr):
-	try:
-		localResults = progSpecParser.parseString(inputStr, parseAll = True)
+    try:
+        localResults = progSpecParser.parseString(inputStr, parseAll = True)
 
-	except ParseException , pe:
-		print "error parsing: " , pe
-		exit(1)
-	return localResults
+    except ParseException , pe:
+        print "error parsing: " , pe
+        exit(1)
+    return localResults
 
 def extractTagDefs(tagResults):
     localTagStore = {}
@@ -59,32 +59,30 @@ def extractTagDefs(tagResults):
             tagVal = tagVal[1:-1]
         localTagStore[tagSpec[0]] = tagVal
     return localTagStore
-    
+
 def extractFuncBody(localFuncResults):
-	print localFuncResults
-	if localFuncResults == "actionSeq":
-		funcActSeq = localFuncResults
-		funcText = ""
-	else:
-		funcActSeq = ""
-		print "extractFuncBody$$$$$$$$$$$$$$$$$$$$$$$$"
-		for result in localFuncResults:
-			funcText = result[0]
-	return [funcActSeq, funcText]
+    print localFuncResults
+    if localFuncResults == "actionSeq":
+        funcActSeq = localFuncResults
+        funcText = ""
+    else:
+        funcActSeq = ""
+        funcText = localFuncResults
+    return [funcActSeq, funcText]
 
 def extractFuncDef(localFieldResults):
 
-	funcSpecs = []
-	returnType = localFieldResults[1]
-	funcName = localFieldResults[3]
-	argList = localFieldResults[5]
-	if localFieldResults[7] == ":":
-		tagList = localFieldResults[8]
-		funcBody = extractFuncBody(localFieldResults[9])
-	else:
-		tagList = []
-		funcBody = extractFuncBody(localFieldResults[7])
-	return [returnType, funcName, argList, tagList, funcBody]
+    funcSpecs = []
+    returnType = localFieldResults[1]
+    funcName = localFieldResults[3]
+    argList = localFieldResults[5]
+    if localFieldResults[7] == ":":
+        tagList = localFieldResults[8]
+        funcBody = extractFuncBody(localFieldResults[9])
+    else:
+        tagList = []
+        funcBody = extractFuncBody(localFieldResults[7])
+    return [returnType, funcName, argList, tagList, funcBody]
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
     for fieldResult in fieldResults:
@@ -112,12 +110,12 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
 
 
 def extractBuildSpecs(buildSpecResults):
-	resultBuildSpecs = []
-	for localBuildSpecs in buildSpecResults:
-		spec = [localBuildSpecs[0], extractTagDefs(localBuildSpecs[1])]
-		resultBuildSpecs.append(spec)
-		#print spec
-	return resultBuildSpecs
+    resultBuildSpecs = []
+    for localBuildSpecs in buildSpecResults:
+        spec = [localBuildSpecs[0], extractTagDefs(localBuildSpecs[1])]
+        resultBuildSpecs.append(spec)
+        #print spec
+    return resultBuildSpecs
 
 def extractObjectSpecs(localProgSpec, objNames, spec):
     print "extractObjectSpecs"
@@ -126,7 +124,7 @@ def extractObjectSpecs(localProgSpec, objNames, spec):
     progSpec.addObject(localProgSpec, objNames, objectName)
 
     ###########Grab optional Object Tags
-    if spec[2] == ':': 	#change so it generates an empty one if no field defs
+    if spec[2] == ':':  #change so it generates an empty one if no field defs
         objTags = extractTagDefs(spec[3])
         fieldIDX = 4
     else:
@@ -146,14 +144,14 @@ def extractPatternSpecs(localProgSpec, objNames, spec):
     return
 
 def extractObjectOrPattern(localProgSpec, objNames, objectSpecResults):
-	for spec in objectSpecResults:
-		if spec[0] == "object":
-			extractObjectSpecs(localProgSpec, objNames, spec)
-		elif spec[0] == "do":
-			extractPatternSpecs(localProgSpec, objNames, spec)
-		else:
-			print "error in extractObjectOrPattern"
-			exit(1)
+    for spec in objectSpecResults:
+        if spec[0] == "object":
+            extractObjectSpecs(localProgSpec, objNames, spec)
+        elif spec[0] == "do":
+            extractPatternSpecs(localProgSpec, objNames, spec)
+        else:
+            print "error in extractObjectOrPattern"
+            exit(1)
 
 
 def comment_remover(text):
@@ -170,17 +168,17 @@ def comment_remover(text):
     return re.sub(pattern, replacer, text)
 
 def parseCodeDogString(inputString):
-	inputString = comment_remover(inputString)
-	results = parseInput(inputString)
-	#print "parse"
-	tagStore = extractTagDefs(results[0])
-	#print tagStore["BuildCmd"]
-	buildSpecs = extractBuildSpecs(results[1])
-	#print buildSpecs[2]
-	localProgSpec = {}
-	objNames = []
-	extractObjectOrPattern(localProgSpec, objNames, results[2])
-	objectSpecs = [localProgSpec, objNames]
-	return[tagStore, buildSpecs, objectSpecs]
+    inputString = comment_remover(inputString)
+    results = parseInput(inputString)
+    #print "parse"
+    tagStore = extractTagDefs(results[0])
+    #print tagStore["BuildCmd"]
+    buildSpecs = extractBuildSpecs(results[1])
+    #print buildSpecs[2]
+    localProgSpec = {}
+    objNames = []
+    extractObjectOrPattern(localProgSpec, objNames, results[2])
+    objectSpecs = [localProgSpec, objNames]
+    return[tagStore, buildSpecs, objectSpecs]
 
 

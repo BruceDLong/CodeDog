@@ -14,7 +14,19 @@ import CodeGenerator_CPP
 #import CodeGenerator_Java
 
 import re
+import os
 import sys
+import errno
+
+def writeFile(path, fileName, outStr):
+    try:
+        os.makedirs(path)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST: raise
+
+    fo=open(path + os.sep + fileName, 'w')
+    fo.write(outStr)
+    fo.close()
 
 def ScanAndApplyPatterns(objects, tags):
     print "Applying Patterns..."
@@ -23,24 +35,24 @@ def ScanAndApplyPatterns(objects, tags):
             print item
 
 def GenerateProgram(objects, buildSpec, tags):
-	print tags
-	result='No Language Generator Found for '+tags['langToGen']
-	langGenTag = tags['langToGen']
-	if(langGenTag == 'CPP'):
-		print 'Generating C++ Program...'
-		result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]])
-	else:
-		print "No language generator found for ", langGenTag
-	return result
+    print tags
+    result='No Language Generator Found for '+tags['langToGen']
+    langGenTag = tags['langToGen']
+    if(langGenTag == 'CPP'):
+        print 'Generating C++ Program...'
+        result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]])
+    else:
+        print "No language generator found for ", langGenTag
+    return result
 
 def GenerateSystem(objects, buildSpecs, tags):
     ScanAndApplyPatterns(objects, tags)
-
-    outStr=""
     for buildSpec in buildSpecs:
-		print "Generating code for build ", buildSpec[0]
-		outStr += GenerateProgram(objects, buildSpec, tags)
-		#GenerateBuildSystem()
+        buildName=buildSpec[0]
+        print "Generating code for build ", buildName
+        outStr = GenerateProgram(objects, buildSpec, tags)
+        writeFile(buildName, tagStore['FileName'], outStr)
+        #GenerateBuildSystem()
     # GenerateTests()
     # GenerateDocuments()
     return outStr
@@ -61,7 +73,3 @@ f.close()
 [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)
 
 outputScript = GenerateSystem(objectSpecs, buildSpecs, tagStore)
-
-fo=open(tagStore['FileName'], 'w')
-fo.write(outputScript)
-fo.close()
