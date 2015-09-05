@@ -8,12 +8,6 @@ def bitsNeeded(n):
     else:
         return 1 + bitsNeeded((n + 1) / 2)
 
-def fetchTagValue(tagStoreArray, tagToFind):
-    for tagStore in reversed(tagStoreArray):
-        if(tagToFind in tagStore):
-            return tagStore[tagToFind]
-    return None
-
 
 def processFlagAndModeFields(objects, objectName, tags):
     print "Procesing flag/modes for:", objectName
@@ -106,11 +100,32 @@ def processOtherFields(objects, objectName, tags, indent):
                 objPrefix=objectName +'::'
                 funcDefCode += convertedType + objPrefix + fieldName +"()" +funcText+"\n\n"
         elif kindOfField=='const':
-            structCode += indent + 'const ' + 'CONST-TYPE ' + fieldName +" = "+'XXXX' +';\n';
+            fieldValue=field['fieldValue']
+            structCode += indent + 'const ' + fieldType +' ' + fieldName +" = "+fieldValue +';\n';
     if(objectName=='MAIN'):
         return [structCode, funcDefCode, globalFuncs]
     else:
         return [structCode, funcDefCode]
+
+def generate_constructor(objects, objectName, tags, indent):
+    print 'Generate Constructor'
+    #constructorInit=":"
+    #constructorArgs="    "+structName+"("
+    #...
+    # for each field:
+            #if(fieldType[0:3]=="int" or fieldType[0:4]=="uint" or fieldType[-3:]=="Ptr"):
+                #constructorArgs += fieldType+" _"+fieldName+"=0,"
+                #constructorInit += fieldName+"("+" _"+fieldName+"),"
+                #count=count+1
+            #elif(fieldType=="string"):
+                #constructorArgs += fieldType+" _"+fieldName+'="",'
+                #constructorInit += fieldName+"("+" _"+fieldName+"),"
+                #count=count+1
+    #if(count>0):
+        #constructorInit=constructorInit[0:-1]
+        #constructorArgs=constructorArgs[0:-1]
+    #structCode += constructorArgs+")"+constructorInit+"{};\n" +"};\n"
+
 
 def generateAllObjectsButMain(objects, tags):
     print "generateAllObjectsButMain"

@@ -32,7 +32,13 @@ def ScanAndApplyPatterns(objects, tags):
     print "Applying Patterns..."
     for item in objects[1]:
         if item[0]=='!':
-            print item
+            pattName=item[1:]
+            patternArgs=objects[0][pattName]['parameters']
+            print pattName, ':', patternArgs
+
+            if pattName=='Write_Main': pattern_Write_Main.apply(objects, tags)
+            elif pattName=='Gen_Eventhandler': pattern_Gen_Eventhandler.apply(objects, tags)
+            elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
 
 def GenerateProgram(objects, buildSpec, tags):
     print tags

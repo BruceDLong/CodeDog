@@ -67,3 +67,12 @@ def addLocalVarToFunc(objSpecs, objectName, funcName, ):
 def addCommentToFunc(objSpecs, objectName, funcName, ):
 
     print "        ADDED Comment to ", objName, ".", funcName, ".\n"
+
+
+###############
+
+def fetchTagValue(tagStoreArray, tagToFind):
+    for tagStore in reversed(tagStoreArray):
+        if(tagToFind in tagStore):
+            return tagStore[tagToFind]
+    return None

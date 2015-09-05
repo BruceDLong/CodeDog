@@ -1,3 +1,7 @@
+import re
+import progSpec
+from pyparsing import Word, alphas, nums, Literal, Keyword, Optional, OneOrMore, ZeroOrMore, delimitedList, Group, ParseException, quotedString, Forward, StringStart, StringEnd, SkipTo
+
 #/////////////////////////////////////////////////  R o u t i n e s   t o   G e n e r a t e   P a r s e r s
 parserString = ""
 
@@ -137,7 +141,8 @@ def TraverseParseElement(structName, parseEL, BatchParser, PulseParser, PrintFun
     PulseParser[0]+=pulseArgs[0]; PulseParser[1]+=pulseArgs[1];
     PrintFunc[0]+=printerArgs[0]; PrintFunc[1]+=printerArgs[1];
 
-def generateParser(parserSpec, startSymbol):
+def apply(objects, tags, parserSpecTag, startSymbol):
+    parserSpec = tags[parserSpecTag]
     AST = parseParserSpec()
     try:
         results = AST.parseString(parserSpec, parseAll=True)
@@ -156,7 +161,7 @@ def generateParser(parserSpec, startSymbol):
             print "struct ",STRCT[1],"="
             batchArgs=["",""]; PulseArgs=["",""]; printArgs=["",""];
             TraverseParseElement(STRCT[1], STRCT[3], batchArgs, PulseArgs, printArgs, "        ")
-            progSpec.CreatePointerItems([structsSpec, structNames ], STRCT[1])
+            #progSpec.CreatePointerItems([structsSpec, structNames ], STRCT[1])
 
             BatchParserUtils+=batchArgs[0]
             BatchParser+="\n    func: "+STRCT[1] + "Ptr: parse_"+STRCT[1]+"(streamSpan* cursor, "+STRCT[1]+"Ptr ITEM){\n        if(ITEM){reset_"+STRCT[1]+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n        if("+batchArgs[1]+") return ITEM; else return 0;;\n    }; END\n"
@@ -165,6 +170,7 @@ def generateParser(parserSpec, startSymbol):
 
             PrinterFunc = '    func: string: printToString(){\n        string S="";\n' + printArgs[1] + "        return S;\n    }; END\n"
             progSpec.FillStructFromText([structsSpec, structNames ], STRCT[1], PrinterFunc)
+            ### +  progSpec.AddToObjectFromText(localProgSpec, objNames, inputString)
 
 
         BatchParserFuncs= BatchParserUtils + "\n\n" + BatchParser
@@ -371,7 +377,7 @@ bool tagIsBad(string tag, const char* locale) {
     """
 
     ParserStructsName = startSymbol+"Parser"
-    progSpec.addStruct([structsSpec, structNames ], arserStructsName)
+    progSpec.addStruct([structsSpec, structNames ], parserStructsName)
     progSpec.FillStructFromText([structsSpec, structNames ], ParserStructsName, BatchParserFuncs)
     progSpec.FillStructFromText([structsSpec, structNames ], ParserStructsName, parserFields)
     structNames.append(ParserStructsName)
