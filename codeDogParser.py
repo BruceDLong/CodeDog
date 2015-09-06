@@ -152,7 +152,7 @@ def extractObjectOrPattern(localProgSpec, objNames, objectSpecResults):
         elif spec[0] == "do":
             extractPatternSpecs(localProgSpec, objNames, spec)
         else:
-            print "error in extractObjectOrPattern"
+            print "Error in extractObjectOrPattern; expected 'object' or 'do' and got '",spec[0],"'"
             exit(1)
 
 
@@ -183,7 +183,11 @@ def parseCodeDogString(inputString):
     objectSpecs = [localProgSpec, objNames]
     return[tagStore, buildSpecs, objectSpecs]
 
-def AddToObjectFromText(localProgSpec, objNames, inputString):
+def AddToObjectFromText(spec, objNames, inputStr):
+    print '####################\n',inputStr, "\n######################^\n\n\n"
+    # (map of objects, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
-    extractObjectOrPattern(localProgSpec, objNames, results)
+    print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'
+    extractObjectOrPattern(spec, objNames, results[0])
+
 
