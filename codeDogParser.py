@@ -27,17 +27,32 @@ tagDefList = Group(ZeroOrMore(tagDef))
 buildSpec = Group(identifier + Literal(":").suppress() + tagDefList + ";")
 buildSpecList = Group(OneOrMore(buildSpec))
 returnType = varType
-actionSeq = Literal("actionSeq")
 argList =  Literal("argList")
 modeSpec = Keyword("mode") + ":" + CID + "[" + CIDList + "]"
-varSpec = (Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") ) + varType + ":" + CID
+varSpec = Group((Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") ) + varType + ":" + CID)
+createVar = varSpec
 constSpec = Keyword("const") + cppType + ":" + CID + "=" + value
 flagDef = Keyword("flag") + ":" + CID
-funcBody = Group( SkipTo("FEND", include=True))
+#######################################
+lValue = Literal("lValue")
+rValue = Literal("rValue")
+rValueList = Group(delimitedList(rValue, ','))
+funcCall = Group(CID + "(" + rValueList + ")")
+assign = Group(lValue + Literal("<-") + rValue)
+swap = Group(lValue + Literal("<->") + lValue)
+expr = Literal("expr")
+#########################################
+actionSeq = Forward()
+conditionalAction = Forward()
+conditionalAction <<= Group(Keyword("if") + "(" + expr + ")" + actionSeq + Optional(Keyword("else") + ( actionSeq | conditionalAction)))
+repeatedAction = Group(Keyword("withEach") + "(" + lValue + ")" + Keyword("where") + "(" + expr + ")" + Keyword("until") + "(" + expr + ")" + actionSeq)
+action = (createVar | funcCall | assign | swap)
+actionSeq <<=  Group("{" + Group(ZeroOrMore(conditionalAction | repeatedAction | actionSeq | action)) + "}")
+###########################################
+funcBody = Group( "[" + SkipTo("FEND", include=True))
 funcSpec = Keyword("func") + returnType + ":" + CID + "(" + argList + ")" + Optional(":" + tagDefList) + (actionSeq | funcBody)
 fieldDef = Group(flagDef | modeSpec | varSpec | constSpec | funcSpec)
 objectDef = Group(Keyword("object") + CID + Optional(":" + tagDefList) + "{" + Group(ZeroOrMore(fieldDef)) + "}")
-#######################
 doPattern = Group(Keyword("do") + CID + Literal("(").suppress() + CIDList + Literal(")").suppress())
 objectList = Group(ZeroOrMore(objectDef | doPattern))
 progSpecParser = tagDefList + buildSpecList + objectList
@@ -59,19 +74,49 @@ def extractTagDefs(tagResults):
             tagVal = tagVal[1:-1]
         localTagStore[tagSpec[0]] = tagVal
     return localTagStore
+    
+def extractActSeq(localProgSpec, localObjectName, localFuncResults):
+    #print localFuncResults
+    print "************************"
+    for actionList in localFuncResults:
+        if (actionList != "{" and  actionList != "}"):
+            for actionItems in actionList:
+                print actionItems
+                if (actionItems[0] == 'var' or actionItems[0] == 'rPtr' or actionItems[0] == 'sPtr' or actionItems[0] == 'uPtr'):
+                    fieldTag = actionItems[0]
+                    fieldType = actionItems[1]
+                    fieldName = actionItems[3]
+                    print '**Create Var'
+                    progSpec.addField(localProgSpec, localObjectName, fieldTag, fieldType, fieldName) 
+                elif (actionItems[1]== '<-'):
+                    print '**Assign'
+                elif (actionItems[1]== '<->'):
+                    print '**Swap'
+                elif (actionItems[0]== 'if'):
+                    print '**Conditional Sequence'
+                elif (actionItems[0]== 'withEach'):
+                    print '**Repeated Action'
+                elif (actionItems[1]== '('):
+                    print '**Function call'
+                elif (actionItems[0]== '{'):
+                    print '**Action sequence'
+                else: 
+                    print "error in extractActSeq"
+                    exit(1)
+        
+    print "*******************"
+    return "actionSeq"
 
-def extractFuncBody(localFuncResults):
-    print localFuncResults
-    if localFuncResults == "actionSeq":
-        funcActSeq = localFuncResults
-        funcText = ""
-    else:
+def extractFuncBody(localProgSpec, localObjectName, localFuncResults):
+    if localFuncResults[0] == "[":
         funcActSeq = ""
         funcText = localFuncResults
-    return [funcActSeq, funcText]
+    else:
+        funcActSeq = extractActSeq(localProgSpec, localObjectName, localFuncResults)
+        funcText = ""
+    return [localProgSpec, localObjectName, funcActSeq, funcText]
 
-def extractFuncDef(localFieldResults):
-
+def extractFuncDef(localProgSpec, localObjectName, localFieldResults):
     funcSpecs = []
     returnType = localFieldResults[1]
     funcName = localFieldResults[3]
@@ -81,7 +126,7 @@ def extractFuncDef(localFieldResults):
         funcBody = extractFuncBody(localFieldResults[9])
     else:
         tagList = []
-        funcBody = extractFuncBody(localFieldResults[7])
+        funcBody = extractFuncBody(localProgSpec, localObjectName, localFieldResults[7])
     return [returnType, funcName, argList, tagList, funcBody]
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
@@ -102,8 +147,8 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
             progSpec.addConst(localProgSpec, localObjectName, cppType, constName, constValue)
             #exit(1)
         elif fieldTag == 'func':
-            localFuncSpecs = extractFuncDef(fieldResult)
-            #print localFuncSpecs[4]
+            localFuncSpecs = extractFuncDef(localProgSpec, localObjectName, fieldResult)
+            print localFuncSpecs[4]
             progSpec.addFunc(localProgSpec, localObjectName, localFuncSpecs[0], localFuncSpecs[1], localFuncSpecs[2], localFuncSpecs[3], localFuncSpecs[4])
         else:
             print "Error in extractFieldDefs"
