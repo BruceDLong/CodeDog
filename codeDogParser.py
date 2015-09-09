@@ -12,7 +12,7 @@ objectName = CID
 cppType = (Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))
 numRange = Forward()
 value = Forward()
-varType = (objectName | cppType | numRange | "string" | "mesg")
+varType = (objectName | cppType | numRange | "mesg")
 boolValue = (Keyword("true") | Keyword("false"))
 intNum = Word(nums)
 numRange <<= intNum + ".." + intNum
@@ -28,9 +28,9 @@ buildSpec = Group(identifier + Literal(":").suppress() + tagDefList + ";")
 buildSpecList = Group(OneOrMore(buildSpec))
 returnType = varType
 actionSeq = Literal("actionSeq")
-argList =  Literal("argList")
 modeSpec = Keyword("mode") + ":" + CID + "[" + CIDList + "]"
 varSpec = (Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") ) + varType + ":" + CID
+argList =  Group(delimitedList(varSpec, ',') | '[' + SkipTo(']', include=True))
 constSpec = Keyword("const") + cppType + ":" + CID + "=" + value
 flagDef = Keyword("flag") + ":" + CID
 funcBody = Group( SkipTo("FEND", include=True))
@@ -184,7 +184,9 @@ def parseCodeDogString(inputString):
     return[tagStore, buildSpecs, objectSpecs]
 
 def AddToObjectFromText(spec, objNames, inputStr):
+    inputStr = comment_remover(inputStr)
     print '####################\n',inputStr, "\n######################^\n\n\n"
+
     # (map of objects, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
     print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'

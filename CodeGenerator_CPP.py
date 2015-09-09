@@ -10,21 +10,23 @@ def bitsNeeded(n):
 
 
 def processFlagAndModeFields(objects, objectName, tags):
-    print "Procesing flag/modes for:", objectName
+    print "\n        Coding flags and modes for:", objectName
     flagsVarNeeded = False
     bitCursor=0
     structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
-        print field
+        #print field
         kindOfField=field['kindOfField'];
         fieldName=field['fieldName'];
-        print "FIELDNAME:", fieldName
+
         if kindOfField=='flag':
+            print "        ->:", fieldName
             flagsVarNeeded=True
             structEnums += "\nconst int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
             bitCursor += 1;
         elif kindOfField=='mode':
+            print "        ->:", fieldName, '[]'
             structEnums += "\n// For Mode "+fieldName
             flagsVarNeeded=True
             # calculate field and bit position
@@ -62,20 +64,20 @@ def convertType(fieldType):
     return cppType
 
 def processOtherFields(objects, objectName, tags, indent):
-    print "$$$$$$$$$$$$$$$processOtherFields:"
-    print objectName
+    print "        Coding fields for", objectName
     globalFuncs=''
     funcDefCode=''
     structCode=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
-        print field
+        #print field
         kindOfField=field['kindOfField']
         if(kindOfField=='flag' or kindOfField=='mode'): continue
         fieldType=field['fieldType']
         fieldName=field['fieldName']
         convertedType = convertType(fieldType)
-        print "FIELDNAME:", fieldName
+        if kindOfField != 'flags':
+            print "        ->", kindOfField, fieldName
 
         if kindOfField=='var':
             structCode += indent + convertedType + ' ' + fieldName +";\n";
@@ -128,7 +130,7 @@ def generate_constructor(objects, objectName, tags, indent):
 
 
 def generateAllObjectsButMain(objects, tags):
-    print "generateAllObjectsButMain"
+    print "    Generating Objects..."
     constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
     forwardDecls="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
@@ -151,26 +153,29 @@ def generateAllObjectsButMain(objects, tags):
 
 
 def processMain(objects, tags):
-    print "Processing MAIN"
+    print "\n    Generating MAIN..."
     if("MAIN" in objects[1]):
         [structCode, funcCode, globalFuncs]=processOtherFields(objects, "MAIN", tags, '')
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
-    return ["// No Main Globals.\n", "// No main() function.\n"]
+    return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
 def makeFileHeader(tags):
-    header = "// " + fetchTagValue(tags, 'Title') +'\n'
-    includes = re.split("[,\s]+", fetchTagValue(tags, 'Include'))
+    header = "// " + progSpec.fetchTagValue(tags, 'Title') +'\n'
+    includes = re.split("[,\s]+", progSpec.fetchTagValue(tags, 'Include'))
     for hdr in includes:
         header+="\n#include "+hdr
     header += "\n\nusing namespace std; \n\n"
+
+    header += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
+
     header += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
     header += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
     return header
 
 def generate(objects, tags):
-    print "Generating CPP code...\n"
+    print "\nGenerating CPP code...\n"
     header = makeFileHeader(tags)
     ObjectCodeStr=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)

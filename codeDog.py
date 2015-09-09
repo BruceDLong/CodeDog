@@ -36,12 +36,11 @@ def ScanAndApplyPatterns(objects, tags):
             patternArgs=objects[0][pattName]['parameters']
             print pattName, ':', patternArgs
 
-            if pattName=='Write_Main': pattern_Write_Main.apply(objects, tags)
+            if pattName=='Write_Main': pattern_Write_Main.apply(objects, tags, patternArgs[0])
             elif pattName=='Gen_Eventhandler': pattern_Gen_Eventhandler.apply(objects, tags)
             elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
 
 def GenerateProgram(objects, buildSpec, tags):
-    print tags
     result='No Language Generator Found for '+tags['langToGen']
     langGenTag = tags['langToGen']
     if(langGenTag == 'CPP'):

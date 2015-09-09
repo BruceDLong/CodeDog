@@ -77,6 +77,10 @@ def fetchTagValue(tagStoreArray, tagToFind):
             return tagStore[tagToFind]
     return None
 
+def wrapFieldListInObjectDef(objName, fieldDefStr):
+    retStr='object '+objName +' {\n' + fieldDefStr + '\n}\n'
+    return retStr
+
 ###############
 
 def getNameSegInfo(objMap, structName, fieldName):
