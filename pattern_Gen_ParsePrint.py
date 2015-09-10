@@ -61,7 +61,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         print "=========================>",Item
         batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
         TraverseParseElement(objMap, structName, Item, batchArgs, pulseArgs, printerArgs, indent2)
-        batch0="    func bool: parseCoFactual_"+str(tagModifier)+"([streamSpan*  cursor, "+structName+"& ITEM]){\n"
+        batch0="    func bool: parseCoFactual_"+str(tagModifier)+"(<%streamSpan*  cursor, "+structName+"& ITEM%>)[{\n"
         batch0+= indent+"if(" + batchArgs[1] + ") {"+actionStr+"} else {MARK_ERROR; return false;}\n"
         batchArgs[0]+="\n"+batch0+"    }; FEND\n"
         batchArgs[1]="parseCoFactual_"+str(tagModifier)+"(cursor, ITEM)"
@@ -75,7 +75,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         print1=""
         batch1=""
         batch0="";
-        batch0+="    func bool: parseSequence_"+tagModifierS+"([streamSpan*  cursor, "+structName+"& ITEM]){\n"
+        batch0+="    func bool: parseSequence_"+tagModifierS+"(<% streamSpan*  cursor, "+structName+"& ITEM %> )[{\n"
         for firstItem in parseEL[2]:
             batch0 += indent+"if(!"
             batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
@@ -95,7 +95,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         #print indent, "OneOf"
         tagModifierS=parseEL[1]
         batch1=""
-        batch0="    func bool: parseAltList_"+tagModifierS+"([rPtr streamSpan: cursor, "+structName+"& ITEM]){\n"
+        batch0="    func bool: parseAltList_"+tagModifierS+"(<% rPtr streamSpan: cursor, "+structName+"& ITEM %>)[{\n"
         for firstItem in parseEL[2]:
             batch0 += indent+"if("
             batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
@@ -156,8 +156,8 @@ def apply(objects, tags, parserSpecTag, startSymbol):
         print "SUCCESS Creating Grammar.\n"
         BatchParserUtils="" #// Batch Parsing utility parsing functions:
         PulseParserUtils=""
-        BatchParser = "    func "+startSymbol + "Ptr: BatchParse([streamSpan*  cursor, "+startSymbol + "Ptr ITEM]){\n    if(ITEM){reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n    return parse_"+startSymbol+"(cursor, ITEM);\n}; FEND\n"
-        PulseParser = "    func "+startSymbol + "Ptr: PulseParse"+startSymbol+"([ ]){\n    if(ITEM){reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n    }; FEND\n"
+        BatchParser = "    func "+startSymbol + "Ptr: BatchParse(<%streamSpan*  cursor, "+startSymbol + "Ptr ITEM %>)[{\n    if(ITEM){reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n    return parse_"+startSymbol+"(cursor, ITEM);\n}; FEND\n"
+        PulseParser = "    func "+startSymbol + "Ptr: PulseParse"+startSymbol+"()[{\n    if(ITEM)[{reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n    }; FEND\n"
 
         for STRCT in results:
             objName=STRCT[1]
@@ -167,11 +167,11 @@ def apply(objects, tags, parserSpecTag, startSymbol):
             #progSpec.CreatePointerItems([structsSpec, structNames ], objName)
 
             BatchParserUtils+=batchArgs[0]
-            BatchParser+="\n    func "+objName + "Ptr: parse_"+objName+"([streamSpan*  cursor, "+objName+"Ptr ITEM]){\n        if(ITEM){reset_"+objName+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n        if("+batchArgs[1]+") return ITEM; else return 0;;\n    }; FEND\n"
-            BatchParser+="\n    func void: reset_" + objName + "_forParsing(["+objName+"Ptr ITEM]){}; FEND\n"
+            BatchParser+="\n    func "+objName + "Ptr: parse_"+objName+"(<% streamSpan*  cursor, "+objName+"Ptr ITEM %>)[{\n        if(ITEM){reset_"+objName+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n        if("+batchArgs[1]+") return ITEM; else return 0;;\n    }; FEND\n"
+            BatchParser+="\n    func void: reset_" + objName + "_forParsing(<%"+objName+"Ptr ITEM%>)[{}; FEND\n"
 
 
-            PrinterFunc = '    func string: printToString([ ]){\n        string S="";\n' + printArgs[1] + "        return S;\n    }; FEND\n"
+            PrinterFunc = '    func string: printToString() [{\n        string S="";\n' + printArgs[1] + "        return S;\n    };] FEND\n"
             PrinterFunc=progSpec.wrapFieldListInObjectDef(objName, PrinterFunc)
             # old code: progSpec.FillStructFromText([structsSpec, structNames ], objName, PrinterFunc)
             codeDogParser.AddToObjectFromText(objects[0], objects[1], PrinterFunc)
@@ -236,9 +236,9 @@ bool tagIsBad(string tag, const char* locale) {
 
         var infonPtr: ti
 
-//        func none: ~infonParser([ ]){delete punchInOut;}   FEND
+//        func none: ~infonParser()[{delete punchInOut;}   FEND
 
-        func char: streamGet(rPtr streamSpan: cursor){
+        func char: streamGet(rPtr streamSpan: cursor)[{
             char ch;
             switch(flags&(fullyLoaded|userMode)){
                 case(userMode):  // !fully loaded | userMode
@@ -266,7 +266,7 @@ bool tagIsBad(string tag, const char* locale) {
             return textStreamed[cursor->offset];
         }  FEND
 
-        func void: scanPast(rPtr streamSpan: cursor, var string: str){
+        func void: scanPast(<%rPtr streamSpan: cursor, var string: str%>)[{
             char p; char* ch=str;
             while(*ch!='\0'){
                 p=streamGet(cursor);
@@ -279,7 +279,7 @@ bool tagIsBad(string tag, const char* locale) {
             }
         }               FEND
 
-        func bool: chkStr([streamSpan*  cursor, const char* tok]){
+        func bool: chkStr(<% streamSpan*  cursor, const char* tok %>)[{
             int startPos=cursor->offset;
             if (tok==0) return 0;
             for(const char* p=tok; *p; p++) {
@@ -292,9 +292,9 @@ bool tagIsBad(string tag, const char* locale) {
             return true;
         }           FEND
 
-        func void: streamPut(var int32: nChars){for(int n=nChars; n>0; --n){stream->putback(textStreamed[textStreamed.size()-1]); textStreamed.resize(textStreamed.size()-1);}} FEND
+        func void: streamPut(var int32: nChars)[{for(int n=nChars; n>0; --n)[{stream->putback(textStreamed[textStreamed.size()-1]); textStreamed.resize(textStreamed.size()-1);}} FEND
 /*
-        func const char* :nxtTokN([streamSpan* cursor, int n, ...]){
+        func const char* :nxtTokN(<% streamSpan* cursor, int n, ... %>)[{
             char* tok; va_list ap; va_start(ap,n); int i,p;
             for(i=n; i; --i){
                 tok=va_arg(ap, char*); nTok=WSPeek(cursor);
@@ -311,7 +311,7 @@ bool tagIsBad(string tag, const char* locale) {
         }        FEND
 
 */
-        func char: pPeek(rPtr streamSpan: cursor){
+        func char: pPeek(rPtr streamSpan: cursor)[{
             while(textStreamed.length() < cursor->offset){
                 if(flags&fullyLoaded){return 0;}
                 char ch=stream->get();
@@ -322,9 +322,9 @@ bool tagIsBad(string tag, const char* locale) {
             return(textStreamed[cursor->offset]);
         } FEND
 
-        func char: WSPeek(rPtr streamSpan: cursor){RmvWSC(cursor); return pPeek(cursor);} FEND
+        func char: WSPeek(rPtr streamSpan: cursor)[{RmvWSC(cursor); return pPeek(cursor);} FEND
 
-        func bool: RmvWSC(rPtr streamSpan: cursor){ //, attrStorePtr attrs=0){
+        func bool: RmvWSC(rPtr streamSpan: cursor)[{ //, attrStorePtr attrs=0){
             char p,p2;
             for (p=pPeek(cursor); (p==' '||p=='/'||p=='\n'||p=='\r'||p=='\t'||p=='%'); p=pPeek(cursor)){
                 if (p=='/') {
@@ -363,7 +363,7 @@ bool tagIsBad(string tag, const char* locale) {
         }      FEND
 
 
-        func bool: doRule(rPtr infon: i){
+        func bool: doRule(rPtr infon: i)[{
             uint64_t parsePhase = flags&InfParsePhaseMask;
             if(parsePhase==iStartParse){
                 if(nxtTok(i->curPos, "@")){i->flags |= asDesc;}

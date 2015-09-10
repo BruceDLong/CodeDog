@@ -90,8 +90,8 @@ def processOtherFields(objects, objectName, tags, indent):
         elif kindOfField=='func':
             if(fieldType=='none'): convertedType=''
             else: convertedType+=' '
-            funcText=field['funcText'][1][0][0]
-            print "FUNCTEXT:",funcText
+            funcText=field['funcText'][1]
+            #print "FUNCTEXT:",funcText
             if(objectName=='MAIN'):
                 if fieldName=='main':
                     funcDefCode += 'int main(int argc, char **argv)' +funcText+"\n\n"

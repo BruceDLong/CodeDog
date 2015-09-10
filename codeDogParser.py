@@ -4,12 +4,15 @@ import re
 import progSpec
 from pyparsing import Word, alphas, nums, Literal, Keyword, Optional, OneOrMore, ZeroOrMore, delimitedList, Group, ParseException, quotedString, Forward, StringStart, StringEnd, SkipTo
 
+def reportParserPlace(s, loc, toks):
+    print "    PARSING AT char",loc, toks
+
 # BNF Parser Productions for CodeDog syntax
 identifier = Word(alphas + nums + "_-")("identifier")
 CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
 objectName = CID("objectName")
-cppType = (Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
+cppType = (Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
 numRange = Forward()
 value = Forward()
 varType = (objectName | cppType | numRange | "mesg")("varType")
@@ -31,11 +34,13 @@ buildDefList = tagDefList("buildDefList")
 buildSpec = Group(buildID + Literal(":").suppress() + buildDefList + ";")("buildSpec")
 buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 #######################################
+verbatim = Literal(r"<%") + SkipTo(r"%>", include=True)
+verbatim.setParseAction( reportParserPlace)
 returnType = varType("returnType")
-argList =  Literal("argList")("argList")
 modeSpec = Keyword("mode") + ":" + CID + "[" + CIDList + "]"
 varName = CID ("varName")
 varSpec = ((Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") ) + varType + ":" + varName)("varSpec")
+argList =  Group(verbatim | ZeroOrMore(Group(varSpec)))("argList")
 createVar = varSpec("createVar")
 constName = CID("constName")
 constValue = value("constValue")
@@ -60,6 +65,7 @@ actionSeq <<=  Group("{" + Group(ZeroOrMore(conditionalAction | repeatedAction |
 #########################################
 funcBody = Group( "[" + SkipTo("FEND", include=True))("funcBody")
 funcSpec = Keyword("func") + returnType + ":" + CID + "(" + argList + ")" + Optional(":" + tagDefList) + (actionSeq | funcBody)("funcSpec")
+funcSpec.setParseAction( reportParserPlace)
 fieldDef = Group(flagDef | modeSpec | varSpec | constSpec | funcSpec)("fieldDef")
 objectName = CID("objectName")
 objectDef = Group(Keyword("object") + objectName + Optional(":" + tagDefList) + "{" + Group(ZeroOrMore(fieldDef)) + "}")("objectDef")
@@ -121,11 +127,11 @@ def extractActSeq(localProgSpec, localObjectName, localFuncResults):
 def extractFuncBody(localProgSpec, localObjectName, localFuncResults):
     if localFuncResults[0] == "[":
         funcActSeq = ""
-        funcText = localFuncResults
+        funcText = localFuncResults[1][0]
     else:
         funcActSeq = extractActSeq(localProgSpec, localObjectName, localFuncResults)
         funcText = ""
-    return [localProgSpec, localObjectName, funcActSeq, funcText]
+    return [funcActSeq, funcText]
 
 def extractFuncDef(localProgSpec, localObjectName, localFieldResults):
     funcSpecs = []
@@ -142,7 +148,7 @@ def extractFuncDef(localProgSpec, localObjectName, localFieldResults):
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
     print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-    print fieldResults
+   # print fieldResults
     print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
     for fieldResult in fieldResults:
 
