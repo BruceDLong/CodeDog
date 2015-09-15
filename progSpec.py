@@ -10,11 +10,11 @@ def addPattern(objSpecs, objectNameList, name, patternList):
     print "ADDED PATTERN", name
 
 def addObject(objSpecs, objectNameList, name):
-    objectNameList.append(name)
     if(name in objSpecs):
         print "Note: The struct '", name, "' is being added but already exists."
         return
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[]}
+    objectNameList.append(name)
     print "ADDED STRUCT: ", name
 
 def addObjTags(objSpecs, objectName, objTags):
@@ -23,6 +23,9 @@ def addObjTags(objSpecs, objectName, objTags):
 
 
 def addField(objSpecs, objectName, kindOfField, fieldType, fieldName):
+    if(fieldName in objSpecs[objectName]["fields"]):
+        print "Note: The field '", objectName, '::', fieldName, "' already exists. Not re-adding"
+        return
     if (kindOfField=="var" or kindOfField=="rPtr" or kindOfField=="sPtr" or kindOfField=="uPtr"):
         objSpecs[objectName]["fields"].append({'kindOfField':kindOfField, 'fieldType':fieldType, 'fieldName':fieldName})
     else:
@@ -31,6 +34,9 @@ def addField(objSpecs, objectName, kindOfField, fieldType, fieldName):
     print "    ADDED FIELD:\t", kindOfField, fieldName
 
 def addFlag(objSpecs, objectName, flagName):
+    if(flagName in objSpecs[objectName]["fields"]):
+        print "Note: The flag '", objectName, '::', flagName, "' already exists. Not re-adding"
+        return
     objSpecs[objectName]["fields"].append({'kindOfField':'flag', 'fieldName':flagName})
     print "    ADDED FLAG: \t", flagName
 
@@ -45,8 +51,8 @@ def addConst(objSpecs, objectName, cppType, constName, constValue):
     print "    ADDED CONST\n"
 
 def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody):
-    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName})
-    print "    ADDED FUNCTION:\t", funcName
+    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName, 'argList':argList})
+    print "    ADDED FUNCTION:\t", funcName, '(', argList, ')'
 
 def addActionToSeq(objSpecs, objectName, funcName, ):
 
@@ -83,6 +89,18 @@ def wrapFieldListInObjectDef(objName, fieldDefStr):
 
 ###############
 
+def createTypedefName(ItmType):
+    if(isinstance(ItmType, basestring)):
+        return ItmType
+    else:
+        baseType=createTypedefName(ItmType[1])
+        suffix=''
+        typeHead=ItmType[0]
+        if(typeHead=='rPtr'): suffix='Ptr'
+        elif(typeHead=='sPtr'): suffix='SPtr'
+        elif(typeHead=='uPtr'): suffix='UPtr'
+        return baseType+suffix
+
 def getNameSegInfo(objMap, structName, fieldName):
     structToSearch = objMap[structName]
     if not structToSearch: print "struct ", structName, " not found."; exit(2);
@@ -90,7 +108,7 @@ def getNameSegInfo(objMap, structName, fieldName):
     if not fieldListToSearch: print "struct's fields ", structName, " not found."; exit(2);
     for fieldRec in fieldListToSearch:
         if fieldRec['fieldName']==fieldName:
-            print "FOR ", structName, ',', fieldName, ", returning", fieldRec
+            print "FOR ", structName, '::', fieldName, ", returning", fieldRec
             return fieldRec
     return None
 
@@ -102,6 +120,7 @@ def getFieldInfo(objMap, structName, fieldNameSegments):
     referenceStr=""
     print "    Getting Field Info for:", structName, fieldNameSegments
     for fieldName in fieldNameSegments:
+        print "    Segment:",structName,'::',fieldName;
         REF=getNameSegInfo(objMap, structName, fieldName)
         if(REF):
             print "    REF:", REF
@@ -116,7 +135,7 @@ def getFieldInfo(objMap, structName, fieldNameSegments):
                 elif structKind=='var':
                     referenceStr+= joiner+fieldName
                     structType=REF['fieldType']
-                elif structKind=='ptr':
+                elif structKind=='iPtr' or structKind=='rPtr' or structKind=='sPtr' or structKind=='uPtr':
                     referenceStr+= joiner+fieldName
                     structType=REF['fieldType']
                 prevKind=structKind

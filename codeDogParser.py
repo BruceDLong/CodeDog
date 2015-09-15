@@ -13,12 +13,11 @@ CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
 objectName = CID("objectName")
 cppType = (Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
-numRange = Forward()
-value = Forward()
-varType = (objectName | cppType | numRange | "mesg")("varType")
-boolValue = (Keyword("true") | Keyword("false"))("boolValue")
 intNum = Word(nums)("intNum")
-numRange <<= intNum + ".." + intNum("numRange")
+numRange = intNum + ".." + intNum("numRange")
+value = Forward()
+varType = (objectName | cppType | numRange | Keyword("mesg"))("varType")
+boolValue = (Keyword("true") | Keyword("false"))("boolValue")
 floatNum = intNum + Optional("." + intNum)("floatNum")
 listVal = "[" + delimitedList(value, ",") + "]"
 strMapVal = Forward()
@@ -34,13 +33,14 @@ buildDefList = tagDefList("buildDefList")
 buildSpec = Group(buildID + Literal(":").suppress() + buildDefList + ";")("buildSpec")
 buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 #######################################
-verbatim = Literal(r"<%") + SkipTo(r"%>", include=True)
+verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 verbatim.setParseAction( reportParserPlace)
-returnType = varType("returnType")
 modeSpec = Keyword("mode") + ":" + CID + "[" + CIDList + "]"
 varName = CID ("varName")
-varSpec = ((Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") ) + varType + ":" + varName)("varSpec")
-argList =  Group(verbatim | ZeroOrMore(Group(varSpec)))("argList")
+typeSpec = Forward()
+typeSpec <<= Group((Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") ) + (typeSpec | varType))
+varSpec = (typeSpec + ":" + varName)("varSpec")
+argList =  verbatim | Group(ZeroOrMore(Group(varSpec)))("argList")
 createVar = varSpec("createVar")
 constName = CID("constName")
 constValue = value("constValue")
@@ -63,7 +63,8 @@ repeatedAction = Group(Keyword("withEach") + "(" + lValue + ")" + Keyword("where
 action = (createVar | funcCall | assign | swap)("action")
 actionSeq <<=  Group("{" + Group(ZeroOrMore(conditionalAction | repeatedAction | actionSeq | action)) + "}")("actionSeq")
 #########################################
-funcBody = Group( "[" + SkipTo("FEND", include=True))("funcBody")
+funcBody = Group( "<%" + SkipTo("%>", include=True))("funcBody")
+returnType = typeSpec("returnType")
 funcSpec = Keyword("func") + returnType + ":" + CID + "(" + argList + ")" + Optional(":" + tagDefList) + (actionSeq | funcBody)("funcSpec")
 funcSpec.setParseAction( reportParserPlace)
 fieldDef = Group(flagDef | modeSpec | varSpec | constSpec | funcSpec)("fieldDef")
@@ -96,36 +97,36 @@ def extractTagDefs(tagResults):
     return localTagStore
 
 def extractActSeq(localProgSpec, localObjectName, localFuncResults):
-    #print localFuncResults
+    print '<<<',localFuncResults,">>>"
     for actionList in localFuncResults:
+        print 'AL[', localObjectName, ']'
         if (actionList != "{" and  actionList != "}"):
             for actionItems in actionList:
-                print actionItems
+                print '[', actionItems, ']'
                 if (actionItems[0] == 'var' or actionItems[0] == 'rPtr' or actionItems[0] == 'sPtr' or actionItems[0] == 'uPtr'):
                     fieldTag = actionItems[0]
                     fieldType = actionItems[1]
                     fieldName = actionItems[3]
-                    print '**Create Var'
-                    progSpec.addField(localProgSpec, localObjectName, fieldTag, fieldType, fieldName)
-                elif (actionItems[1]== '<-'):
-                    print '**Assign'
-                elif (actionItems[1]== '<->'):
-                    print '**Swap'
+                    print '**Create Local Var'
                 elif (actionItems[0]== 'if'):
                     print '**Conditional Sequence'
                 elif (actionItems[0]== 'withEach'):
                     print '**Repeated Action'
-                elif (actionItems[1]== '('):
-                    print '**Function call'
                 elif (actionItems[0]== '{'):
                     print '**Action sequence'
+                elif (actionItems[1]== '<-'):
+                    print '**Assign'
+                elif (actionItems[1]== '<->'):
+                    print '**Swap'
+                elif (actionItems[1]== '('):
+                    print '**Function call'
                 else:
                     print "error in extractActSeq"
                     exit(1)
     return "actionSeq"
 
 def extractFuncBody(localProgSpec, localObjectName, localFuncResults):
-    if localFuncResults[0] == "[":
+    if localFuncResults[0] == "<%":
         funcActSeq = ""
         funcText = localFuncResults[1][0]
     else:
@@ -138,30 +139,36 @@ def extractFuncDef(localProgSpec, localObjectName, localFieldResults):
     returnType = localFieldResults[1]
     funcName = localFieldResults[3]
     argList = localFieldResults[5]
+    print "********************************************> ", argList
     if localFieldResults[7] == ":":
         tagList = localFieldResults[8]
         funcBody = extractFuncBody(localFieldResults[9])
     else:
         tagList = []
+        print "LFR:", localFieldResults
         funcBody = extractFuncBody(localProgSpec, localObjectName, localFieldResults[7])
     return [returnType, funcName, argList, tagList, funcBody]
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
     print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-   # print fieldResults
+    print "Extracting fields for", localObjectName
     print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
     for fieldResult in fieldResults:
 
         fieldTag = fieldResult[0]
-
-        #print fieldTag
+        varType =fieldResult.varType
+        if(not isinstance(fieldTag, basestring)):
+            varType=fieldTag[1]
+            fieldTag=fieldTag[0]
+        print 'fieldTag', fieldTag, varType
         if fieldTag == 'flag':
             #print fieldResult[2]
             progSpec.addFlag(localProgSpec, localObjectName, fieldResult[2])
         elif fieldTag == 'mode':
             progSpec.addMode(localProgSpec, localObjectName, fieldResult[2], fieldResult[4])
         elif (fieldTag == 'var' or fieldTag == 'rPtr' or fieldTag == 'sPtr' or fieldTag == 'uPtr'):
-            progSpec.addField(localProgSpec, localObjectName, fieldTag, fieldResult.varType, fieldResult.varName)
+            print "TYPESPEC:", fieldResult
+            progSpec.addField(localProgSpec, localObjectName, fieldTag, [fieldTag, varType], fieldResult.varName)
         elif fieldTag == 'const':
             constValue = fieldResult.constValue
             print"@@@@@"

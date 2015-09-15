@@ -56,11 +56,31 @@ def processFlagAndModeFields(objects, objectName, tags):
             bitCursor=bitCursor+numEnumBits;
     return [flagsVarNeeded, structEnums]
 
+typeDefMap={}
+ObjectsFieldTypeMap={}
+def registerType(objName, fieldName, typeOfField, typeDefTag):
+    ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
+    typeDefMap[typeOfField]=typeDefTag
+
 def convertType(fieldType):
-    if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
-        cppType=fieldType+'_t'
+    if(isinstance(fieldType, basestring)):
+        if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
+            cppType=fieldType+'_t'
+        else:
+            cppType=fieldType
     else:
-        cppType=fieldType
+        kindOfField=fieldType[0]
+        baseType=convertType(fieldType[1])
+        if kindOfField=='var':
+            cppType = baseType
+        elif kindOfField=='rPtr':
+            cppType=baseType + '* '
+        elif kindOfField=='sPtr':
+            typeStr="shared_ptr<"+baseType + '> '
+            cppType=baseType+'SPtr'
+        elif kindOfField=='uPtr':
+            typeStr="unique_ptr<"+baseType + '> '
+            cppType=baseType+'UPtr'
     return cppType
 
 def processOtherFields(objects, objectName, tags, indent):
@@ -76,31 +96,54 @@ def processOtherFields(objects, objectName, tags, indent):
         fieldType=field['fieldType']
         fieldName=field['fieldName']
         convertedType = convertType(fieldType)
+        typeDefName = progSpec.createTypedefName(fieldType)
         if kindOfField != 'flags':
             print "        ->", kindOfField, fieldName
 
         if kindOfField=='var':
+            registerType(objectName, fieldName, convertedType, "")
             structCode += indent + convertedType + ' ' + fieldName +";\n";
         elif kindOfField=='rPtr':
-            structCode += indent + convertedType + '* ' + fieldName +";\n";
+            typeStr=convertedType + '* '
+            registerType(objectName, fieldName, typeStr, "")
+            structCode += indent + typeStr + fieldName +";\n";
         elif kindOfField=='sPtr':
-            structCode += indent + "shared_ptr<"+convertedType + '> ' + fieldName +";\n";
+            typeStr="shared_ptr<"+convertedType + '> '
+            registerType(objectName, fieldName, typeStr, typeDefName)
+            structCode += indent + typeDefName +' '+ fieldName +";\n";
         elif kindOfField=='uPtr':
-            structCode += indent + "unique_ptr<"+convertedType + '> ' + fieldName +";\n";
+            typeStr="unique_ptr<"+convertedType + '> '
+            registerType(objectName, fieldName, typeStr, typeDefName)
+            structCode += indent + typeDefName +' '+ fieldName +";\n";
         elif kindOfField=='func':
             if(fieldType=='none'): convertedType=''
-            else: convertedType+=' '
+            else:
+                #print convertedType
+                convertedType+=' '
             funcText=field['funcText'][1]
             #print "FUNCTEXT:",funcText
             if(objectName=='MAIN'):
                 if fieldName=='main':
                     funcDefCode += 'int main(int argc, char **argv)' +funcText+"\n\n"
                 else:
-                    globalFuncs += "\n" + convertedType  + fieldName +"()" +funcText+"\n\n"
+                    argList=field['argList']
+                    if argList[0]=='<%':
+                        argListText=argList[1][0]
+                    else:
+                        argListText="Argument List Needs Generated"
+                    globalFuncs += "\n" + convertedType  + fieldName +"("+argListText+")" +funcText+"\n\n"
             else:
-                structCode += indent + convertedType + fieldName +"();\n";
+                argList=field['argList']
+                if len(argList)==0:
+                    argListText='void'
+                elif argList[0]=='<%':
+                    argListText=argList[1][0]
+                else:
+                    argListText="Argument List Needs Generated"
+                print "FUNCTION:",fieldName, '(', argListText, ') ', funcText
+                structCode += indent + convertedType + fieldName +"("+argListText+");\n";
                 objPrefix=objectName +'::'
-                funcDefCode += convertedType + objPrefix + fieldName +"()" +funcText+"\n\n"
+                funcDefCode += convertedType + objPrefix + fieldName +"("+argListText+")" +funcText+"\n\n"
         elif kindOfField=='const':
             fieldValue=field['fieldValue']
             structCode += indent + 'const ' + fieldType +' ' + fieldName +" = "+fieldValue +';\n';
@@ -148,7 +191,7 @@ def generateAllObjectsButMain(objects, tags):
                 [structCode, funcCode]=processOtherFields(objects, objectName, tags, '    ')
                 structCodeAcc += "\nstruct "+objectName+"{\n" + structCode + '};\n'
                 funcCodeAcc+=funcCode
-    return constsEnums + forwardDecls + structCodeAcc + funcCodeAcc
+    return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
 
 
 
@@ -160,6 +203,14 @@ def processMain(objects, tags):
         if(structCode==''): structCode="// No Main Globals.\n"
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
+
+def produceTypeDefs(typeDefMap):
+    typeDefCode="\n// Typedefs:\n"
+    for key in typeDefMap:
+        val=typeDefMap[key]
+        if(val != ''):
+            typeDefCode += 'typedef '+key+' '+val+';\n'
+    return typeDefCode
 
 def makeFileHeader(tags):
     header = "// " + progSpec.fetchTagValue(tags, 'Title') +'\n'
@@ -177,7 +228,8 @@ def makeFileHeader(tags):
 def generate(objects, tags):
     print "\nGenerating CPP code...\n"
     header = makeFileHeader(tags)
-    ObjectCodeStr=generateAllObjectsButMain(objects, tags)
+    [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)
-    outputStr = header + topBottomStrings[0] + ObjectCodeStr + topBottomStrings[1]
+    typeDefCode = produceTypeDefs(typeDefMap)
+    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + typeDefCode + structCodeAcc + funcCodeAcc + topBottomStrings[1]
     return outputStr
