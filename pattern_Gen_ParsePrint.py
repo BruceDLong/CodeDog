@@ -27,6 +27,10 @@ def parseParserSpec():
     StartSym = StringStart() + Literal("{").suppress() + OneOrMore(Group(structParserSpec)) +Literal("}").suppress()
     return StartSym
 
+def getBaseTypeStr(typeSpec):
+    if(isinstance(typeSpec, basestring)): return typeSpec
+    return getBaseTypeStr(typeSpec[1])
+
 
 tagModifier=1
 def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, PrintFunc, indent):
@@ -61,7 +65,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         print "=========================>",Item
         batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
         TraverseParseElement(objMap, structName, Item, batchArgs, pulseArgs, printerArgs, indent2)
-        batch0="    func var bool: parseCoFactual_"+str(tagModifier)+"(<%streamSpan*  cursor, "+structName+"& ITEM%>)<%{\n"
+        batch0="    func var bool: parseCoFactual_"+str(tagModifier)+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM)<%{\n"
         batch0+= indent+"if(" + batchArgs[1] + ") {"+actionStr+"} else {MARK_ERROR; return false;}\n"
         batchArgs[0]+="\n"+batch0+"    }; %>\n"
         batchArgs[1]="parseCoFactual_"+str(tagModifier)+"(cursor, ITEM)"
@@ -75,7 +79,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         print1=""
         batch1=""
         batch0="";
-        batch0+="    func var bool: parseSequence_"+tagModifierS+"(<% streamSpan*  cursor, "+structName+"& ITEM %> ) <%{\n"
+        batch0+="    func var bool: parseSequence_"+tagModifierS+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM ) <%{\n"
         for firstItem in parseEL[2]:
             batch0 += indent+"if(!"
             batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
@@ -95,7 +99,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         #print indent, "OneOf"
         tagModifierS=parseEL[1]
         batch1=""
-        batch0="    func var bool: parseAltList_"+tagModifierS+"(<% rPtr streamSpan: cursor, "+structName+"& ITEM %>)<%{\n"
+        batch0="    func var bool: parseAltList_"+tagModifierS+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM )<%{\n"
         for firstItem in parseEL[2]:
             batch0 += indent+"if("
             batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
@@ -125,16 +129,20 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         batchArgs[1] = "!(" + batch0 + ")"
     elif(parseEL[0]=='#'):   # Sub-STRUCT
         FieldData=progSpec.getFieldInfo(objMap, structName, [parseEL[1]])
-        sType=FieldData[2]
+        sType=getBaseTypeStr(FieldData[2])
         printCmd=""
         if(sType==""): sType=structName
-        if(FieldData[0]=="ptr"):
-            sField="ITEM."+parseEL[1]
-            printCmd="->printToString();\n"
+        if(FieldData[0]=="var"):
+            sField="&ITEM->"+parseEL[1]
+        elif(FieldData[0]=="rPtr"):
+            sField="ITEM->"+parseEL[1]
+ #           printCmd="->printToString();\n"
+        elif(FieldData[0]=="sPtr" or FieldData[0]=="uPtr"):
+            sField="ITEM->"+parseEL[1]+".get()"
         else:
-            sField = "ITEM."+parseEL[1]
-            printCmd=".printToString();\n"
-        print "XXXXXXXXXX", sType; sType="Fix This Type Code Gen"
+            sField = "ITEM->"+parseEL[1]
+ #           printCmd=".printToString();\n"
+        print "XXXXXXXXXX", sType, parseEL[1];
         batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
         printerArgs[1] = indent + "S += "+parseEL[1]+printCmd
     else:
@@ -158,8 +166,8 @@ def apply(objects, tags, parserSpecTag, startSymbol):
         print "SUCCESS Creating Grammar.\n"
         BatchParserUtils="" #// Batch Parsing utility parsing functions:
         PulseParserUtils=""
-        BatchParser = "    func rPtr "+startSymbol + ": BatchParse(<% rPtr streamSpan cursor, rPtr "+startSymbol + " ITEM %>) <%{\n    if(ITEM){reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n    return parse_"+startSymbol+"(cursor, ITEM);\n}; %>\n"
-        PulseParser = "    func rPtr "+startSymbol + ": PulseParse"+startSymbol+"()<%{\n    if(ITEM){reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n    }; %>\n"
+        BatchParser = "    func rPtr "+startSymbol + ": BatchParse( rPtr streamSpan: cursor, rPtr "+startSymbol + ": ITEM ) <%{\n    if(ITEM){reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=new "+startSymbol + "();}\n    return parse_"+startSymbol+"(cursor, ITEM);\n}; %>\n"
+        PulseParser = "    func rPtr "+startSymbol + ": PulseParse"+startSymbol+"()<%{\n    if(ITEM){reset_"+startSymbol+"_forParsing(ITEM);} else {ITEM=new "+startSymbol + "();}\n    }; %>\n"
 
         for STRCT in results:
             objName=STRCT[1]
@@ -169,22 +177,23 @@ def apply(objects, tags, parserSpecTag, startSymbol):
             #progSpec.CreatePointerItems([structsSpec, structNames ], objName)
 
             BatchParserUtils+=batchArgs[0]
-            BatchParser+="\n    func rPtr "+objName + ": parse_"+objName+"(<% streamSpan*  cursor, "+objName+"Ptr ITEM %>) <%{\n        if(ITEM){reset_"+objName+"_forParsing(ITEM);} else {ITEM=infonPtr(new infon());}\n        if("+batchArgs[1]+") return ITEM; else return 0;;\n    }; %>\n"
-            BatchParser+="\n    func var void: reset_" + objName + "_forParsing(<% rPtr"+objName+": ITEM%>)<%{}; %>\n"
+            BatchParser+="\n    func rPtr "+objName + ": parse_"+objName+"(rPtr streamSpan:  cursor, "+"rPtr "+objName+": ITEM ) <%{\n        if(ITEM){reset_"+objName+"_forParsing(ITEM);} else {ITEM=new "+objName+"();}\n        if("+batchArgs[1]+") return ITEM; else return 0;;\n    }; %>\n"
+            BatchParser+="\n    func var void: reset_" + objName + "_forParsing(rPtr "+objName+": ITEM)<%{}; %>\n"
 
             PrinterFunc = '    func var string: printToString() <%{\n        string S="";\n' + printArgs[1] + "        return S;\n    };%>\n"
             PrinterFunc=progSpec.wrapFieldListInObjectDef(objName, PrinterFunc)
             # old code: progSpec.FillStructFromText([structsSpec, structNames ], objName, PrinterFunc)
-            codeDogParser.AddToObjectFromText(objects[0], objects[1], PrinterFunc)
+ #           codeDogParser.AddToObjectFromText(objects[0], objects[1], PrinterFunc)
 
 
         BatchParserFuncs= BatchParserUtils + "\n\n" + BatchParser
         PulseParserFuncs= PulseParserUtils + "\n\n" + PulseParser
 
 
-    global parserGlobalText; parserGlobalText = r"""
+    CPP_GlobalText = r"""
 
 const int bufmax = 32*1024;
+typedef char bufType[bufmax];
 #define streamEnd (stream->eof() || stream->fail())
 #define ChkNEOF {if(streamEnd) {flags|=fileError; statusMesg="Unexpected End of file"; break;}}
 #define getbuf(cursor, c) {ChkNEOF; for(p=0;(c) && !streamEnd ;buf[p++]=streamGet(cursor)){if (p>=bufmax) {flags|=fileError; statusMesg="String Overflow"; break;}} buf[p]=0;}
@@ -212,6 +221,7 @@ bool tagIsBad(string tag, const char* locale) {
     int result=uspoof_checkUTF8(sc, tag.c_str(), -1, 0, &err);
     return (result!=0);
 }
+
 """
     parserFields=r"""
         flag: fullyLoaded
@@ -222,7 +232,7 @@ bool tagIsBad(string tag, const char* locale) {
         var  string: statusMesg
 
         var char: nTok
-  //      var char: buf[bufmax]
+        var bufType: buf
 
         rPtr istream: stream
         var string: streamName
@@ -267,7 +277,7 @@ bool tagIsBad(string tag, const char* locale) {
             return textStreamed[cursor->offset];
         }  %>
 
-        func var void: scanPast(<%rPtr streamSpan: cursor, var string: str%>)<%{
+        func var void: scanPast(rPtr streamSpan: cursor, rPtr char: str)<%{
             char p; char* ch=str;
             while(*ch!='\0'){
                 p=streamGet(cursor);
@@ -280,7 +290,7 @@ bool tagIsBad(string tag, const char* locale) {
             }
         } %>
 
-        func var bool: chkStr(<% streamSpan*  cursor, const char* tok %>) <%{
+        func var bool: chkStr(<% streamSpan* cursor, const char* tok %>) <%{
             int startPos=cursor->offset;
             if (tok==0) return 0;
             for(const char* p=tok; *p; p++) {
@@ -293,9 +303,9 @@ bool tagIsBad(string tag, const char* locale) {
             return true;
         } %>
 
-        func var void: streamPut(var int32: nChars)<%{for(int n=nChars; n>0; --n)[{stream->putback(textStreamed[textStreamed.size()-1]); textStreamed.resize(textStreamed.size()-1);}} %>
-/*
-        func const char* :nxtTokN(<% streamSpan* cursor, int n, ... %>) <%{
+        func var void: streamPut(var int32: nChars)<%{for(int n=nChars; n>0; --n){stream->putback(textStreamed[textStreamed.size()-1]); textStreamed.resize(textStreamed.size()-1);}} %>
+
+        func <% const char* %> :nxtTokN(<% streamSpan* cursor, int n, ... %>) <%{
             char* tok; va_list ap; va_start(ap,n); int i,p;
             for(i=n; i; --i){
                 tok=va_arg(ap, char*); nTok=WSPeek(cursor);
@@ -311,8 +321,8 @@ bool tagIsBad(string tag, const char* locale) {
             return tok;
         }%>
 
-*/
-        func var char: pPeek(rPtr streamSpan: cursor) <%{
+
+        func var char: pPeek(<% streamSpan* cursor %>) <%{
             while(textStreamed.length() < cursor->offset){
                 if(flags&fullyLoaded){return 0;}
                 char ch=stream->get();
@@ -323,9 +333,9 @@ bool tagIsBad(string tag, const char* locale) {
             return(textStreamed[cursor->offset]);
         } %>
 
-        func var char: WSPeek(rPtr streamSpan: cursor)<%{RmvWSC(cursor); return pPeek(cursor);} %>
+        func var char: WSPeek(<% streamSpan* cursor %>)<%{RmvWSC(cursor); return pPeek(cursor);} %>
 
-        func var bool: RmvWSC(rPtr streamSpan: cursor)<%{ //, attrStorePtr attrs=0){
+        func var bool: RmvWSC(<% streamSpan* cursor %>)<%{ //, attrStorePtr attrs=0){
             char p,p2;
             for (p=pPeek(cursor); (p==' '||p=='/'||p=='\n'||p=='\r'||p=='\t'||p=='%'); p=pPeek(cursor)){
                 if (p=='/') {
@@ -347,12 +357,12 @@ bool tagIsBad(string tag, const char* locale) {
                             else if(comment.substr(1,8)=="updated=") attrs->a.insert(pair<string,string>("updated",comment.substr(9)));
                         } */
                     } else if (p2=='*') {
-                        punchInOut->push_back(textStreamed.size()-1);  // Record start of block comment.
+         //               punchInOut->push_back(textStreamed.size()-1);  // Record start of block comment.
                         for (p=streamGet(cursor); !streamEnd && !(p=='*' && pPeek(cursor)=='/'); p=streamGet(cursor))
                             if (p=='\n') ++line;
                         if (streamEnd) throw "'/*' Block comment never terminated";
                         streamGet(cursor);
-                        punchInOut->push_back(-(textStreamed.size()));  // Record end of block comment.
+         //               punchInOut->push_back(-(textStreamed.size()));  // Record end of block comment.
                     } else {streamPut(1); return true;}
                 } else if (p=='%'){
                     streamGet(cursor); p2=pPeek(cursor);
@@ -364,11 +374,11 @@ bool tagIsBad(string tag, const char* locale) {
         }   %>
 
 
-        func var rPtr bool: doRule(<%rPtr infon: i%>) <%{
+        func var bool: doRule(<%infon* i%>) <%{
             uint64_t parsePhase = flags&InfParsePhaseMask;
             if(parsePhase==iStartParse){
-                if(nxtTok(i->curPos, "@")){i->flags |= asDesc;}
-                if(nxtTok(i->curPos, "`")){i->flags |= toExec;}
+          //      if(nxtTok(i->curPos, "@")){i->flags |= asDesc;}
+           //     if(nxtTok(i->curPos, "`")){i->flags |= toExec;}
             } else if(parsePhase==iParseIdents){
             } else if(parsePhase==iParseFuncArgs){
             }
@@ -377,6 +387,7 @@ bool tagIsBad(string tag, const char* locale) {
 
     """
 
+    progSpec.codeHeader['cpp']=CPP_GlobalText
     parserStructsName = startSymbol+"Parser"
     progSpec.addObject(objects[0], objects[1], parserStructsName)
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(parserStructsName, BatchParserFuncs))

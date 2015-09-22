@@ -70,18 +70,26 @@ def convertType(fieldType):
             cppType=fieldType
     else:
         kindOfField=fieldType[0]
+        if(kindOfField=='<%'): return fieldType[1][0]
         baseType=convertType(fieldType[1])
         if kindOfField=='var':
             cppType = baseType
         elif kindOfField=='rPtr':
-            cppType=baseType + '* '
+            cppType=baseType + '*'
         elif kindOfField=='sPtr':
-            typeStr="shared_ptr<"+baseType + '> '
-            cppType=baseType+'SPtr'
+            cppType="shared_ptr<"+baseType + '> '
         elif kindOfField=='uPtr':
-            typeStr="unique_ptr<"+baseType + '> '
-            cppType=baseType+'UPtr'
+            cppType="unique_ptr<"+baseType + '> '
+        else: cppType=kindOfField; print "RETURNTYPE:", fieldType
     return cppType
+
+def prepareTypeName(typeSpec):
+    typeDefName=createTypedefName(typeSpec)
+    typeDefSpec=convertType(typeSpec)
+    if(typeSpec[0]=='var'):
+        typeDefName=typeDefSpec
+    return typeDefName
+
 
 def processOtherFields(objects, objectName, tags, indent):
     print "        Coding fields for", objectName
@@ -104,22 +112,22 @@ def processOtherFields(objects, objectName, tags, indent):
             registerType(objectName, fieldName, convertedType, "")
             structCode += indent + convertedType + ' ' + fieldName +";\n";
         elif kindOfField=='rPtr':
-            typeStr=convertedType + '* '
+            typeStr=convertedType # + '*'
             registerType(objectName, fieldName, typeStr, "")
             structCode += indent + typeStr + fieldName +";\n";
         elif kindOfField=='sPtr':
-            typeStr="shared_ptr<"+convertedType + '> '
+            typeStr=convertedType
             registerType(objectName, fieldName, typeStr, typeDefName)
             structCode += indent + typeDefName +' '+ fieldName +";\n";
         elif kindOfField=='uPtr':
-            typeStr="unique_ptr<"+convertedType + '> '
+            typeStr=convertedType
             registerType(objectName, fieldName, typeStr, typeDefName)
             structCode += indent + typeDefName +' '+ fieldName +";\n";
         elif kindOfField=='func':
             if(fieldType=='none'): convertedType=''
             else:
                 #print convertedType
-                convertedType+=' '
+                convertedType+=''
             funcText=field['funcText'][1]
             #print "FUNCTEXT:",funcText
             if(objectName=='MAIN'):
@@ -131,7 +139,7 @@ def processOtherFields(objects, objectName, tags, indent):
                         argListText=argList[1][0]
                     else:
                         argListText="Argument List Needs Generated"
-                    globalFuncs += "\n" + convertedType  + fieldName +"("+argListText+")" +funcText+"\n\n"
+                    globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")" +funcText+"\n\n"
             else:
                 argList=field['argList']
                 if len(argList)==0:
@@ -139,11 +147,19 @@ def processOtherFields(objects, objectName, tags, indent):
                 elif argList[0]=='<%':
                     argListText=argList[1][0]
                 else:
-                    argListText="Argument List Needs Generated"
-                print "FUNCTION:",fieldName, '(', argListText, ') ', funcText
-                structCode += indent + convertedType + fieldName +"("+argListText+");\n";
+                    argListText=""
+                    count=0
+                    for arg in argList:
+                        if(count>0): argListText+=", "
+                        count+=1
+                        argListText+= convertType(arg[0]) +' '+ arg[2]
+                print "FUNCTION:",convertedType, fieldName, '(', argListText, ') ', funcText
+                if(fieldType[0] != '<%'):
+                    registerType(objectName, fieldName, convertedType, typeDefName)
+                else: typeDefName=convertedType
+                structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
                 objPrefix=objectName +'::'
-                funcDefCode += convertedType + objPrefix + fieldName +"("+argListText+")" +funcText+"\n\n"
+                funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")" +funcText+"\n\n"
         elif kindOfField=='const':
             fieldValue=field['fieldValue']
             structCode += indent + 'const ' + fieldType +' ' + fieldName +" = "+fieldValue +';\n';
@@ -208,7 +224,8 @@ def produceTypeDefs(typeDefMap):
     typeDefCode="\n// Typedefs:\n"
     for key in typeDefMap:
         val=typeDefMap[key]
-        if(val != ''):
+        print '['+key+']='+val+']'
+        if(val != '' and val != key):
             typeDefCode += 'typedef '+key+' '+val+';\n'
     return typeDefCode
 
@@ -231,5 +248,5 @@ def generate(objects, tags):
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)
     typeDefCode = produceTypeDefs(typeDefMap)
-    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + typeDefCode + structCodeAcc + funcCodeAcc + topBottomStrings[1]
+    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + typeDefCode + progSpec.codeHeader['cpp'] + structCodeAcc + funcCodeAcc + topBottomStrings[1]
     return outputStr

@@ -19,14 +19,14 @@ def apply(objects, tags, parserSpecTag):
     streamSpan cursor;
     infon* topInfon;
     //infonPtr topInfPtr=make_shared(topInfon);
-    parser.BatchParse(&cursor, *topInfon);
-    topInfon->printToString();
+    parser.BatchParse(&cursor, topInfon);
+    //topInfon->printToString();
     exit(0);
-        eventHandler EvH;
-        int ret=EvH.eventLoop();
+    //    eventHandler EvH;
+    //    int ret=EvH.eventLoop();
     //    EvH.shutDown();
 
-        return ret;
+        return 0;//ret;
     } %>
 
 """

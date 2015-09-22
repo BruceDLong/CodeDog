@@ -3,6 +3,8 @@
 
 import re
 
+codeHeader={} # e.g., codeHeader['cpp']="C++ header code"
+
 def addPattern(objSpecs, objectNameList, name, patternList):
     patternName='!'+name
     objectNameList.append(patternName)
@@ -115,7 +117,7 @@ def getNameSegInfo(objMap, structName, fieldName):
 def getFieldInfo(objMap, structName, fieldNameSegments):
     # return [kind-of-last-element,  reference-string, type-of-last-element]
     structKind=""
-    prevKind="ptr"
+    prevKind="xPtr"
     structType=""
     referenceStr=""
     print "    Getting Field Info for:", structName, fieldNameSegments
@@ -126,15 +128,15 @@ def getFieldInfo(objMap, structName, fieldNameSegments):
             print "    REF:", REF
             if 'kindOfField' in REF:
                 structKind=REF['kindOfField']
-                if(prevKind=="ptr"): joiner='.' #'->'
-                else: joiner='.'
+                if(prevKind[1:]=="Ptr"): joiner='->'
+                else: joiner= '.'
                 if (structKind=='flag'):
                     referenceStr+=joiner+"flags"
                 elif structKind=='mode':
                     referenceStr+=joiner+'flags'
                 elif structKind=='var':
                     referenceStr+= joiner+fieldName
-                    structType=REF['fieldType']
+                    structType=REF['fieldType'][1]
                 elif structKind=='iPtr' or structKind=='rPtr' or structKind=='sPtr' or structKind=='uPtr':
                     referenceStr+= joiner+fieldName
                     structType=REF['fieldType']
@@ -158,7 +160,7 @@ def getActionTestStrings(objMap, structName, action):
     actionStr=""; testStr="";
     if leftKind =='flag':
         print "ACTION[0]=", action[2][0]
-        actionStr="SetBits(ITEM.flags, "+action[0][-1]+", "+ action[2][0]+");"
+        actionStr="SetBits(ITEM->flags, "+action[0][-1]+", "+ action[2][0]+");"
         testStr="(flags&"+action[0][0]+")"
     elif leftKind == "mode":
         ITEM="ITEM"

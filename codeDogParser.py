@@ -40,7 +40,7 @@ varName = CID ("varName")
 typeSpec = Forward()
 typeSpec <<= Group((Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") ) + (typeSpec | varType))
 varSpec = (typeSpec + ":" + varName)("varSpec")
-argList =  verbatim | Group(ZeroOrMore(Group(varSpec)))("argList")
+argList =  verbatim | Group(Optional(delimitedList(Group(varSpec))))("argList")
 createVar = varSpec("createVar")
 constName = CID("constName")
 constValue = value("constValue")
@@ -64,7 +64,7 @@ action = (createVar | funcCall | assign | swap)("action")
 actionSeq <<=  Group("{" + Group(ZeroOrMore(conditionalAction | repeatedAction | actionSeq | action)) + "}")("actionSeq")
 #########################################
 funcBody = Group( "<%" + SkipTo("%>", include=True))("funcBody")
-returnType = typeSpec("returnType")
+returnType = verbatim | typeSpec("returnType")
 funcSpec = Keyword("func") + returnType + ":" + CID + "(" + argList + ")" + Optional(":" + tagDefList) + (actionSeq | funcBody)("funcSpec")
 funcSpec.setParseAction( reportParserPlace)
 fieldDef = Group(flagDef | modeSpec | varSpec | constSpec | funcSpec)("fieldDef")
@@ -137,6 +137,7 @@ def extractFuncBody(localProgSpec, localObjectName, localFuncResults):
 def extractFuncDef(localProgSpec, localObjectName, localFieldResults):
     funcSpecs = []
     returnType = localFieldResults[1]
+    if(returnType[0]=='<%'): print "RETURN TYPE:", returnType
     funcName = localFieldResults[3]
     argList = localFieldResults[5]
     print "********************************************> ", argList
