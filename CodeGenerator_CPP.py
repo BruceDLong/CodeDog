@@ -89,6 +89,11 @@ def prepareTypeName(typeSpec):
     if(typeSpec[0]=='var'):
         typeDefName=typeDefSpec
     return typeDefName
+    
+def processActionSeq(actSeq):
+    print "processActionSeq ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    print actSeq
+    return " "
 
 
 def processOtherFields(objects, objectName, tags, indent):
@@ -97,6 +102,7 @@ def processOtherFields(objects, objectName, tags, indent):
     funcDefCode=''
     structCode=""
     ObjectDef = objects[0][objectName]
+    print "processOtherFields%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
     for field in ObjectDef['fields']:
         #print field
         kindOfField=field['kindOfField']
@@ -123,12 +129,19 @@ def processOtherFields(objects, objectName, tags, indent):
             typeStr=convertedType
             registerType(objectName, fieldName, typeStr, typeDefName)
             structCode += indent + typeDefName +' '+ fieldName +";\n";
+        #################################################################
         elif kindOfField=='func':
+            
+            print field['funcText']
             if(fieldType=='none'): convertedType=''
             else:
                 #print convertedType
                 convertedType+=''
+            
             funcText=field['funcText'][1]
+            print funcText
+            if funcText=='':
+                funcText=processActionSeq(field['funcText'][0])
             #print "FUNCTEXT:",funcText
             if(objectName=='MAIN'):
                 if fieldName=='main':
@@ -248,5 +261,5 @@ def generate(objects, tags):
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)
     typeDefCode = produceTypeDefs(typeDefMap)
-    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + typeDefCode + progSpec.codeHeader['cpp'] + structCodeAcc + funcCodeAcc + topBottomStrings[1]
+    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + typeDefCode + structCodeAcc + funcCodeAcc + topBottomStrings[1]
     return outputStr

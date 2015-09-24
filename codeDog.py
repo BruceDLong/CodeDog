@@ -77,4 +77,4 @@ f.close()
 # objectSpecs is like: [ProgSpec, objNames]
 [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)
 
-outputScript = GenerateSystem(objectSpecs, buildSpecs, tagStore)
+#outputScript = GenerateSystem(objectSpecs, buildSpecs, tagStore)
