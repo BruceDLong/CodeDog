@@ -79,7 +79,7 @@ actionSeqIndicator = Literal("{") ("actionSeqIndicator")
 actionSeq <<=  Group(actionSeqIndicator + actionList + Literal("}")) ("actionSeq")
 #########################################
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
-returnType = verbatim | typeSpec("returnTypeSpec")("returnType")
+returnType = (verbatim("returnTypeVerbatim")| typeSpec("returnTypeSpec"))("returnType")
 optionalTag = Literal(":")("optionalTag")
 funcName = CID("funcName")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
@@ -146,7 +146,7 @@ def extractActSeq( objectName, funcName, childActSeqRef):
     #print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     for actionItem in actionList:
         # typeSpecKind: var | sPtr | uPtr | rPtr
-        if actionItem.typeSpecKind:  
+        if actionItem.typeSpecKind:
             fieldTypeSpecKind = actionItem.typeSpecKind
             fieldType = actionItem.varType
             fieldName = actionItem.varName
@@ -197,8 +197,8 @@ def extractActSeqToFunc(objectName, funcName, funcResults):
     #print "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUextractActSeqToFunc"
     childActSeq = extractActSeq( objectName, funcName, funcResults)
     return childActSeq
-    
-    
+
+
 
 def extractFuncBody(localObjectName, funcResults, funcName):
     #print "EEEEEEEEEEEEEEEEEEEEEextractFuncBody"
@@ -212,13 +212,17 @@ def extractFuncBody(localObjectName, funcResults, funcName):
     else:
         funcActSeq = extractActSeqToFunc( localObjectName, funcName, funcResults)
         funcText = ""
-    
+
 
 def extractFuncDef(localObjectName, localFieldResults):
     funcSpecs = []
     #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
     #print localObjectName, "****", localFieldResults
-    returnType = localFieldResults.returnType
+    if (localFieldResults.returnType.returnTypeSpec):
+        returnType = localFieldResults.returnType.returnTypeSpec
+    elif (localFieldResults.returnType.returnTypeVerbatim):
+        returnType = localFieldResults.returnType.returnTypeVerbatim
+    else: print 'Bad return type', localFieldResults.returnType; exit(1);
     funcName = localFieldResults.funcName
     argList = localFieldResults.argList
     funcBodyIn = localFieldResults.funcBody
@@ -228,7 +232,8 @@ def extractFuncDef(localObjectName, localFieldResults):
     #print "argList", argList
     #print "funcBody", funcBody
     #print "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-    if(returnType[0]=='<%'): print "RETURN TYPE:", returnType
+
+    #if(returnType[0]=='<%'): print "RETURN TYPE:", returnType
     if localFieldResults.optionalTag:
         tagList = localFieldResults[tagDefList]
     else:
@@ -269,14 +274,14 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
             thisFuncArgList = localFuncSpecs[2]
             thisFuncTags = localFuncSpecs[3]
             thisFuncBody = localFuncSpecs[4]
-           
+
             print thisFuncReturns
             print thisFuncName
             print thisFuncArgList
             print thisFuncTags
             print thisFuncBody
             progSpec.addFunc(localProgSpec, localObjectName, thisFuncReturns, thisFuncName, thisFuncArgList, thisFuncTags, thisFuncBody)
-        elif (fieldResult.fieldVar): 
+        elif (fieldResult.fieldVar):
             progSpec.addField(localProgSpec, localObjectName, fieldTag, [fieldTag, varType], fieldResult.varName)
         else:
             print "Error in extractFieldDefs"
