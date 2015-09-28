@@ -3,7 +3,21 @@
 
 import re
 
+storeOfBaseTypesUsed={} # Registry of all types used
 codeHeader={} # e.g., codeHeader['cpp']="C++ header code"
+
+def getTypesBase(typeSpec):
+    if isinstance(typeSpec, basestring):
+       return typeSpec
+    else: return getTypesBase(typeSpec[1])
+
+def registerBaseType(usedType, objectName):
+    baseType=getTypesBase(usedType)
+    if not (baseType in storeOfBaseTypesUsed):
+        storeOfBaseTypesUsed[baseType]={}
+    if not (objectName in storeOfBaseTypesUsed[baseType]):
+        storeOfBaseTypesUsed[baseType][objectName]=0
+    else: storeOfBaseTypesUsed[baseType][objectName] += 1
 
 def addPattern(objSpecs, objectNameList, name, patternList):
     patternName='!'+name
@@ -24,12 +38,14 @@ def addObjTags(objSpecs, objectName, objTags):
     print "    ADDED Tags to object.\t"
 
 
+
 def addField(objSpecs, objectName, kindOfField, fieldType, fieldName):
     if(fieldName in objSpecs[objectName]["fields"]):
         print "Note: The field '", objectName, '::', fieldName, "' already exists. Not re-adding"
         return
     if (kindOfField=="var" or kindOfField=="rPtr" or kindOfField=="sPtr" or kindOfField=="uPtr"):
         objSpecs[objectName]["fields"].append({'kindOfField':kindOfField, 'fieldType':fieldType, 'fieldName':fieldName})
+        registerBaseType(fieldType, objectName)
     else:
         print "When adding a Field to ", objectName, ", invalid field type: ", kindOfField,"."
         exit(1)
@@ -54,6 +70,7 @@ def addConst(objSpecs, objectName, cppType, constName, constValue):
 
 def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody):
     objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName, 'argList':argList})
+    registerBaseType(returnType, objectName)
     print "    ADDED FUNCTION:\t", funcName, '(', argList, ')'
 
 def addActionToSeq(objSpecs, objectName, funcName, ):

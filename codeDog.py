@@ -28,6 +28,22 @@ def writeFile(path, fileName, outStr):
     fo.write(outStr)
     fo.close()
 
+def stringFromFile(filename):
+    f=open(filename)
+    Str = f.read()
+    f.close()
+    return Str
+
+def processIncludedFiles(fileString):
+    pattern = re.compile(r'#include +([\w -\.\/\\]+)')
+    return pattern.sub(replaceFileName, fileString)
+
+def replaceFileName(fileMatch):
+    includedStr = stringFromFile(fileMatch.group(1))
+    includedStr = processIncludedFiles(includedStr)
+    return includedStr
+
+
 def ScanAndApplyPatterns(objects, tags):
     print "Applying Patterns..."
     for item in objects[1]:
@@ -39,6 +55,16 @@ def ScanAndApplyPatterns(objects, tags):
             if pattName=='Write_Main': pattern_Write_Main.apply(objects, tags, patternArgs[0])
             elif pattName=='Gen_Eventhandler': pattern_Gen_Eventhandler.apply(objects, tags)
             elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
+
+def setFeatureNeeded(tags, featureID, objMap):
+    tags[featureID]=objMap
+
+def ScanFuncsAndTypesThenSetTags(tags):
+    for typeName in progSpec.storeOfBaseTypesUsed:
+        if(typeName=='BigNum' or typeName=='BigFrac'):
+            print 'Need Large Numbers'
+            setFeatureNeeded(tags, 'largeNumbers', progSpec.storeOfBaseTypesUsed[typeName])
+
 
 def GenerateProgram(objects, buildSpec, tags):
     result='No Language Generator Found for '+tags['langToGen']
@@ -52,6 +78,7 @@ def GenerateProgram(objects, buildSpec, tags):
 
 def GenerateSystem(objects, buildSpecs, tags):
     ScanAndApplyPatterns(objects, tags)
+    ScanFuncsAndTypesThenSetTags(tags)
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]
         print "Generating code for build ", buildName
@@ -70,9 +97,11 @@ if(len(sys.argv) < 2):
     exit(1)
 
 file_name = sys.argv[1]
-f=open(file_name)
-codeDogStr = f.read()
-f.close()
+codeDogStr = stringFromFile(file_name)
+codeDogStr = processIncludedFiles(codeDogStr)
+print codeDogStr
+
+
 
 # objectSpecs is like: [ProgSpec, objNames]
 [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)

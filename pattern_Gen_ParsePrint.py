@@ -250,12 +250,10 @@ bool tagIsBad(string tag, const char* locale) {
 //        func var none: ~infonParser()<%{delete punchInOut;} %>
 
         func var char: streamGet(rPtr streamSpan: cursor)<%{
-            char ch;
             switch(flags&(fullyLoaded|userMode)){
                 case(userMode):  // !fully loaded | userMode
                     while(cursor->offset > textStreamed.size()){
-                        ch=stream->get();
-                        textStreamed += ch;
+                        textStreamed += stream->get();
                         if(stream->eof()){
                             flags|=fullyLoaded;
                         } else if(stream->fail()){
@@ -274,7 +272,8 @@ bool tagIsBad(string tag, const char* locale) {
                     flags|=fullyLoaded;
                     break;
             }
-            return textStreamed[cursor->offset];
+            char ch = textStreamed[cursor->offset++];
+            return ch;
         }  %>
 
         func var void: scanPast(rPtr streamSpan: cursor, rPtr char: str)<%{
@@ -303,7 +302,7 @@ bool tagIsBad(string tag, const char* locale) {
             return true;
         } %>
 
-        func var void: streamPut(var int32: nChars)<%{for(int n=nChars; n>0; --n){stream->putback(textStreamed[textStreamed.size()-1]); textStreamed.resize(textStreamed.size()-1);}} %>
+        func var void: streamPut(rPtr streamSpan: cursor, var int32: nChars)<%{cursor->offset-=nChars; for(int n=nChars; n>0; --n){stream->putback(textStreamed[textStreamed.size()-1]); textStreamed.resize(textStreamed.size()-1);}} %>
 
         func <% const char* %> :nxtTokN(<% streamSpan* cursor, int n, ... %>) <%{
             char* tok; va_list ap; va_start(ap,n); int i,p;
@@ -363,10 +362,10 @@ bool tagIsBad(string tag, const char* locale) {
                         if (streamEnd) throw "'/*' Block comment never terminated";
                         streamGet(cursor);
          //               punchInOut->push_back(-(textStreamed.size()));  // Record end of block comment.
-                    } else {streamPut(1); return true;}
+                    } else {streamPut(cursor, 1); return true;}
                 } else if (p=='%'){
                     streamGet(cursor); p2=pPeek(cursor);
-                    if(p2=='>'){scanPast(cursor, (char*)"<%");} else {streamPut(1); return true;}
+                    if(p2=='>'){scanPast(cursor, (char*)"<%");} else {streamPut(cursor, 1); return true;}
                 }
                 if (streamGet(cursor)=='\n') {++line; prevChar='\n';} else prevChar='\0';
             }

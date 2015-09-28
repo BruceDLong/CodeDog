@@ -90,6 +90,40 @@ def prepareTypeName(typeSpec):
         typeDefName=typeDefSpec
     return typeDefName
 
+def headType(typeSpec): # e.g., xPtr or if var, int, uint, etc,
+    if typeSpec[0]=='var': return typeSpec[1]
+    return typeSpec[0]
+
+
+
+def generate_constructor(objects, objectName, tags):
+    print 'Generate Constructor'
+    constructorInit=":"
+    constructorArgs="    "+objectName+"("
+    count=0
+    ObjectDef = objects[0][objectName]
+    for field in ObjectDef['fields']:
+        kindOfField=field['kindOfField']
+        if(kindOfField=='flag' or kindOfField=='mode' or kindOfField=='func'): continue
+        fieldType=field['fieldType']
+        fieldHeadType=headType(fieldType)
+        convertedType = convertType(fieldType)
+        fieldName=field['fieldName']
+        print "$$$$$$$$$$$$$$$$$$$$$$$$$ Constructing:", objectName, fieldName, fieldType, fieldHeadType, convertedType
+        if(fieldHeadType[0:3]=="int" or fieldHeadType[0:4]=="uint" or fieldHeadType[-3:]=="Ptr"):
+            constructorArgs += convertedType+" _"+fieldName+"=0,"
+            constructorInit += fieldName+"("+" _"+fieldName+"),"
+            count += 1
+        elif(fieldHeadType=="string"):
+            constructorArgs += convertedType+" _"+fieldName+'="",'
+            constructorInit += fieldName+"("+" _"+fieldName+"),"
+            count += 1
+    if(count>0):
+        constructorInit=constructorInit[0:-1]
+        constructorArgs=constructorArgs[0:-1]
+        constructCode = constructorArgs+")"+constructorInit+"{};\n"
+    else: constructCode=''
+    return constructCode
 
 def processOtherFields(objects, objectName, tags, indent):
     print "        Coding fields for", objectName
@@ -103,6 +137,7 @@ def processOtherFields(objects, objectName, tags, indent):
         if(kindOfField=='flag' or kindOfField=='mode'): continue
         fieldType=field['fieldType']
         fieldName=field['fieldName']
+        if fieldName=='opAssign': fieldName='operator='
         convertedType = convertType(fieldType)
         typeDefName = progSpec.createTypedefName(fieldType)
         if kindOfField != 'flags':
@@ -163,29 +198,13 @@ def processOtherFields(objects, objectName, tags, indent):
         elif kindOfField=='const':
             fieldValue=field['fieldValue']
             structCode += indent + 'const ' + fieldType +' ' + fieldName +" = "+fieldValue +';\n';
+
     if(objectName=='MAIN'):
         return [structCode, funcDefCode, globalFuncs]
     else:
+        constructCode=generate_constructor(objects, objectName, tags)
+        structCode+=constructCode
         return [structCode, funcDefCode]
-
-def generate_constructor(objects, objectName, tags, indent):
-    print 'Generate Constructor'
-    #constructorInit=":"
-    #constructorArgs="    "+structName+"("
-    #...
-    # for each field:
-            #if(fieldType[0:3]=="int" or fieldType[0:4]=="uint" or fieldType[-3:]=="Ptr"):
-                #constructorArgs += fieldType+" _"+fieldName+"=0,"
-                #constructorInit += fieldName+"("+" _"+fieldName+"),"
-                #count=count+1
-            #elif(fieldType=="string"):
-                #constructorArgs += fieldType+" _"+fieldName+'="",'
-                #constructorInit += fieldName+"("+" _"+fieldName+"),"
-                #count=count+1
-    #if(count>0):
-        #constructorInit=constructorInit[0:-1]
-        #constructorArgs=constructorArgs[0:-1]
-    #structCode += constructorArgs+")"+constructorInit+"{};\n" +"};\n"
 
 
 def generateAllObjectsButMain(objects, tags):
@@ -200,7 +219,7 @@ def generateAllObjectsButMain(objects, tags):
             [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags)
             constsEnums+=strOut
             if(needsFlagsVar):
-                progSpec.addField(objects[0], objectName, 'var', 'uint64', 'flags')
+                progSpec.addField(objects[0], objectName, 'var', ['var','uint64'], 'flags')
 
             if(objectName != 'MAIN'):
                 forwardDecls+="struct " + objectName + ";  \t// Forward declaration\n"
@@ -242,11 +261,21 @@ def makeFileHeader(tags):
     header += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
     return header
 
+def integrateLibrary(libID):
+    print '    ', libID
+
+def connectLibraries(objects, tags):
+    print "Choosing Libaries to link..."
+    if (progSpec.fetchTagValue(tags, 'largeNumbers') != None): integrateLibrary('gmp')
+
 def generate(objects, tags):
     print "\nGenerating CPP code...\n"
+    libInterfacesText=connectLibraries(objects, tags)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)
     typeDefCode = produceTypeDefs(typeDefMap)
-    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + typeDefCode + progSpec.codeHeader['cpp'] + structCodeAcc + funcCodeAcc + topBottomStrings[1]
+    if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
+    else: codeHeader=''
+    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + typeDefCode + codeHeader + structCodeAcc + funcCodeAcc + topBottomStrings[1]
     return outputStr

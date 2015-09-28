@@ -25,9 +25,13 @@ value <<= (boolValue | intNum | floatNum | quotedString() | listVal | strMapVal)
 strMapVal <<= "{" + delimitedList( quotedString() + ":" + value, ",")  + "}"
 backTickString = Literal("`").suppress() + SkipTo("`") + Literal("`").suppress()("backTickString")
 tagID = identifier("tagID")
-tagValue = (quotedString() | backTickString | Word(nums))("tagValue")
+tagDefList = Forward()
+tagValue = Forward()
+tagMap  = Group('{' + tagDefList + '}')
+tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ','))) + ']')
+tagValue <<= (quotedString() | backTickString | Word(alphas+nums+'-_.') | tagList | tagMap)("tagValue")
 tagDef = Group(tagID + Literal("=").suppress() + tagValue)("tagDef")
-tagDefList = Group(ZeroOrMore(tagDef))("tagDefList")
+tagDefList <<= Group(ZeroOrMore(tagDef))("tagDefList")
 buildID = identifier("buildID")
 buildDefList = tagDefList("buildDefList")
 buildSpec = Group(buildID + Literal(":").suppress() + buildDefList + ";")("buildSpec")
@@ -89,10 +93,22 @@ def extractTagDefs(tagResults):
 
     for tagSpec in tagResults:
         tagVal = tagSpec.tagValue
+        if ((not isinstance(tagVal, basestring)) and len(tagVal)>=2):
+            if(tagVal[0]=='['):
+                print "LIST OF VALUES"
+                tagValues=[]
+                for multiVal in tagVal[1]:
+                    tagValues.append(multiVal[0])
+                print tagValues
+
+            elif(tagVal[0]=='{'):
+                print "MAP OF VALUES"
+                tagValues=extractTagDefs(tagVal[1])
+            tagVal=tagValues
         # Remove quotes
-        if (len(tagVal)>=2 and (tagVal[0] == '"' or tagVal[0] == "'") and (tagVal[0]==tagVal[-1])):
+        elif (len(tagVal)>=2 and (tagVal[0] == '"' or tagVal[0] == "'") and (tagVal[0]==tagVal[-1])):
             tagVal = tagVal[1:-1]
-        #print tagSpec.tagID, " is ", tagVal
+        print tagSpec.tagID, " is ", tagVal
         localTagStore[tagSpec.tagID] = tagVal
     return localTagStore
 
