@@ -73,25 +73,37 @@ def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBo
     registerBaseType(returnType, objectName)
     print "    ADDED FUNCTION:\t", funcName, '(', argList, ')'
 
-def addActionToSeq(objSpecs, objectName, funcName, ):
+#################################################################################
 
-    print "        ADDED Action to ", objName, ".", funcName, ".\n"
+    
+def addActionSeqToActionSeq(objectName, funcName, childActSeq):
+    
+    print "        ADDED Action to ", objectName, funcName,  "\n"
 
-def addSequenceToFunc(objSpecs, objectName, funcName, ):
+def addLocalVar(objectName, funcName,  fieldTypeSpecKind, fieldType, fieldName):
+    
+    print "        ADDED LocalVar to ", objectName, ".", funcName,  fieldTypeSpecKind, fieldType, fieldName, ".\n"
+    
+def addConditional(objectName, funcName, thisExpr, thisActionSeq, thisElse):
+    
+    print "        ADDED Conditional to ", objectName, ".", funcName, thisExpr, thisActionSeq, thisElse, ".\n"
 
-    print "        ADDED Sequence to ", objName, ".", funcName, ".\n"
+def addRepetition(objectName, funcName, thisLValue, thisActionSeq, thisWhereExpr, thisUntilExpr):
 
-def addRepetitionToFunc(objSpecs, objectName, funcName, ):
+    print "        ADDED Repetition to ", objectName, ".", funcName, thisLValue, thisActionSeq, thisWhereExpr, thisUntilExpr, ".\n"
+    
+def addAssign(objectName, funcName, rightValue, leftValue):
+    
+    print "        ADDED Assign to ", objectName, ".", funcName, rightValue, leftValue, ".\n"
+    
+def addSwap(objectName, funcName, leftLValue, rightLValue):
+    
+    print "        ADDED Swap to ", objectName, ".", funcName, leftLValue, rightLValue, ".\n"
+    
+def addFuncCall(objectName, funcName, thisFuncCall):
+    
+    print "        ADDED Swap to ", objectName, ".", funcName, thisFuncCall, ".\n"
 
-    print "        ADDED Repetition to ", objName, ".", funcName, ".\n"
-
-def addLocalVarToFunc(objSpecs, objectName, funcName, ):
-
-    print "        ADDED LocalVar to ", objName, ".", funcName, ".\n"
-
-def addCommentToFunc(objSpecs, objectName, funcName, ):
-
-    print "        ADDED Comment to ", objName, ".", funcName, ".\n"
 
 
 ###############
