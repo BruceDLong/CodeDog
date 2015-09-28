@@ -218,11 +218,11 @@ def extractFuncDef(localObjectName, localFieldResults):
     funcSpecs = []
     #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
     #print localObjectName, "****", localFieldResults
-    if (localFieldResults.returnType.returnTypeSpec):
-        returnType = localFieldResults.returnType.returnTypeSpec
-    elif (localFieldResults.returnType.returnTypeVerbatim):
-        returnType = localFieldResults.returnType.returnTypeVerbatim
-    else: print 'Bad return type', localFieldResults.returnType; exit(1);
+    if (localFieldResults.returnType[0]=='<%'):
+        returnType = localFieldResults.returnType[1][0]
+    else:
+        returnType = localFieldResults.returnType
+    #else: print 'Bad return type', localFieldResults.returnType[1]; exit(1);
     funcName = localFieldResults.funcName
     argList = localFieldResults.argList
     funcBodyIn = localFieldResults.funcBody
