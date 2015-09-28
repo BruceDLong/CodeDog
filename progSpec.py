@@ -76,12 +76,15 @@ def addRepetition(objectName, funcName, thisLValue, thisActionSeq, thisWhereExpr
     print "        ADDED Repetition to ", objectName, ".", funcName, thisLValue, thisActionSeq, thisWhereExpr, thisUntilExpr, ".\n"
     
 def addAssign(objectName, funcName, rightValue, leftValue):
+    
     print "        ADDED Assign to ", objectName, ".", funcName, rightValue, leftValue, ".\n"
     
 def addSwap(objectName, funcName, leftLValue, rightLValue):
+    
     print "        ADDED Swap to ", objectName, ".", funcName, leftLValue, rightLValue, ".\n"
     
 def addFuncCall(objectName, funcName, thisFuncCall):
+    
     print "        ADDED Swap to ", objectName, ".", funcName, thisFuncCall, ".\n"
 
 

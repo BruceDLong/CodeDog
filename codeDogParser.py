@@ -35,7 +35,7 @@ buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 #######################################
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 verbatim.setParseAction( reportParserPlace)
-modeSpec = Keyword("mode") + ":" + CID + "[" + CIDList + "]"
+modeSpec = (Keyword("mode")("modeIndicator") + ":" + CID ("modeName")+ "[" + CIDList("modeList") + "]")("modeSpec")
 varName = CID ("varName")
 typeSpec = Forward()
 typeSpecKind = (Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr"))("typeSpecKind")
@@ -45,9 +45,9 @@ argList =  verbatim | Group(Optional(delimitedList(Group(varSpec))))("argList")
 createVar = varSpec("createVar")
 constName = CID("constName")
 constValue = value("constValue")
-constSpec = Keyword("const") + cppType + ":" + constName + "=" + constValue("constSpec")
+constSpec = Keyword("const")("constIndicator") + cppType + ":" + constName + "=" + constValue("constSpec")
 flagName = CID("flagName")
-flagDef = Keyword("flag") + ":" + flagName("flagDef")
+flagDef = Keyword("flag")("flagIndicator") + ":" + flagName("flagDef")
 #######################################
 lValue = Literal("lValue")("lValue")
 rValue = Literal("rValue")("rValue")
@@ -75,13 +75,13 @@ actionSeqIndicator = Literal("{") ("actionSeqIndicator")
 actionSeq <<=  Group(actionSeqIndicator + actionList + Literal("}")) ("actionSeq")
 #########################################
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
-returnType = verbatim | typeSpec("returnType")
+returnType = verbatim | typeSpec("returnTypeSpec")("returnType")
 optionalTag = Literal(":")("optionalTag")
 funcName = CID("funcName")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
-funcSpec = (Keyword("func") + returnType + ":" + funcName + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
+funcSpec = (Keyword("func")("funcIndicator") + returnType + ":" + funcName + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
 #funcSpec.setParseAction( reportParserPlace)
-fieldDef = Group(flagDef | modeSpec | varSpec | constSpec | funcSpec)("fieldDef")
+fieldDef = Group(flagDef | modeSpec | varSpec("fieldVar") | constSpec | funcSpec)("fieldDef")
 objectName = CID("objectName")
 #########################################
 fieldDefs = Group(ZeroOrMore(fieldDef))("fieldDefs")
@@ -114,20 +114,20 @@ def extractTagDefs(tagResults):
 
 
 def extractActSeqToActSeq(objectName, funcName, childActSeqRef):
-    print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQUextractActSeqToActSeq"
-    print objectName
-    print funcName
-    print childActSeqRef
-    print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQextractActSeqToActSeq"
+    #print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQUextractActSeqToActSeq"
+    #print objectName
+    #print funcName
+    #print childActSeqRef
+    #print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQextractActSeqToActSeq"
     childActSeq = extractActSeq( objectName, funcName, childActSeqRef)
     return childActSeq
     ##progSpec.addActionSeqToActionSeq(objectName, funcName, childActSeq)
 
 def extractActSeq( objectName, funcName, childActSeqRef):
     actionList = childActSeqRef.actionList
-    print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAextractActSeq"
-    print objectName, funcName, "****", actionList
-    print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    #print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAextractActSeq"
+    #print objectName, funcName, "****", actionList
+    #print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     for actionItem in actionList:
         # typeSpecKind: var | sPtr | uPtr | rPtr
         if actionItem.typeSpecKind:  
@@ -151,7 +151,7 @@ def extractActSeq( objectName, funcName, childActSeqRef):
         ####################################################### Action Sequence
         elif actionItem.actionSeqIndicator:
             thisActionList = actionItem.actionList
-            print '*************Action sequence: ', thisActionList
+            #print '*************Action sequence: ', thisActionList
             childActSeq = extractActSeqToActSeq(objectName, funcName, thisActionList)
             return childActSeq
         # Assign
@@ -197,19 +197,20 @@ def extractFuncBody(localObjectName, funcResults, funcName):
         funcActSeq = extractActSeqToFunc( localObjectName, funcName, funcResults)
         funcText = ""
     
-    #return [funcActSeq, funcText]
 
 def extractFuncDef(localObjectName, localFieldResults):
     funcSpecs = []
-    returnType = localFieldResults.returnType.varType
+    #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
+    #print localObjectName, "****", localFieldResults
+    returnType = localFieldResults.returnType
     funcName = localFieldResults.funcName
     argList = localFieldResults.argList
     funcBodyIn = localFieldResults.funcBody
     #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
-    #print returnType
-    #print funcName
-    #print argList
-    #print funcBody
+    #print "returnType", returnType
+    #print "funcName", funcName
+    #print "argList", argList
+    #print "funcBody", funcBody
     #print "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
     if(returnType[0]=='<%'): print "RETURN TYPE:", returnType
     if localFieldResults.optionalTag:
@@ -220,37 +221,47 @@ def extractFuncDef(localObjectName, localFieldResults):
     return [returnType, funcName, argList, tagList, funcBodyOut]
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
-    #print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
-    #print "Extracting fields for", localObjectName
-    #print fieldResults
-    #print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
     for fieldResult in fieldResults:
-        print "fieldResult[0]:", fieldResult[0]
+        #print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
+        #print localProgSpec, "****", localObjectName, "****", fieldResult
+        #print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
         fieldTag = fieldResult[0]
         varType =fieldResult.varType
         if(not isinstance(fieldTag, basestring)):
             varType=fieldTag[1]
             fieldTag=fieldTag[0]
-        print 'fieldTag', fieldTag, varType
-        if fieldTag == 'flag':
-            #print fieldResult[2]
+        if (fieldResult.flagIndicator):
+            thisFlagName = fieldResult.flagName
+            print "thisFlagName", thisFlagName
             progSpec.addFlag(localProgSpec, localObjectName, fieldResult[2])
-        elif fieldTag == 'mode':
-            progSpec.addMode(localProgSpec, localObjectName, fieldResult[2], fieldResult[4])
-        elif (fieldTag == 'var' or fieldTag == 'rPtr' or fieldTag == 'sPtr' or fieldTag == 'uPtr'):
-            print "TYPESPEC:", fieldResult
-            progSpec.addField(localProgSpec, localObjectName, fieldTag, [fieldTag, varType], fieldResult.varName)
-        elif fieldTag == 'const':
+        elif fieldResult.modeIndicator:
+            thisModeName = fieldResult.modeName
+            thisModeList = fieldResult.modeList
+            print "Mode: ", thisModeName, thisModeList
+            progSpec.addMode(localProgSpec, localObjectName, thisModeName, thisModeList)
+        elif fieldResult.constIndicator:
             constValue = fieldResult.constValue
-            print"@@@@@"
-            print fieldTag
-            print constValue
             progSpec.addConst(localProgSpec, localObjectName, fieldResult.cppType, fieldResult.constName, constValue)
             #exit(1)
-        elif fieldTag == 'func':
+        elif fieldResult.funcIndicator:
             localFuncSpecs = extractFuncDef( localObjectName, fieldResult)
-            #print localFuncSpecs[4]
-            progSpec.addFunc(localProgSpec, localObjectName, localFuncSpecs[0], localFuncSpecs[1], localFuncSpecs[2], localFuncSpecs[3], localFuncSpecs[4])
+            #print "FUNCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            #print localFuncSpecs
+            #print "FUNCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            thisFuncReturns = localFuncSpecs[0]
+            thisFuncName = localFuncSpecs[1]
+            thisFuncArgList = localFuncSpecs[2]
+            thisFuncTags = localFuncSpecs[3]
+            thisFuncBody = localFuncSpecs[4]
+           
+            print thisFuncReturns
+            print thisFuncName
+            print thisFuncArgList
+            print thisFuncTags
+            print thisFuncBody
+            progSpec.addFunc(localProgSpec, localObjectName, thisFuncReturns, thisFuncName, thisFuncArgList, thisFuncTags, thisFuncBody)
+        elif (fieldResult.fieldVar): 
+            progSpec.addField(localProgSpec, localObjectName, fieldTag, [fieldTag, varType], fieldResult.varName)
         else:
             print "Error in extractFieldDefs"
             print fieldResult
