@@ -39,53 +39,45 @@ buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 #######################################
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 verbatim.setParseAction( reportParserPlace)
-modeSpec = (Keyword("mode")("modeIndicator") + ":" + CID ("modeName")+ "[" + CIDList("modeList") + "]")("modeSpec")
+modeSpec = Group(Keyword("mode")("modeIndicator") + ":" + CID ("modeName")+ "[" + CIDList("modeList") + "]")("modeSpec")
 varName = CID ("varName")
 typeSpec = Forward()
-typeSpecKind = (Keyword("var") | Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr"))("typeSpecKind")
-typeSpec <<=  typeSpecKind + (typeSpec | varType)
+typeSpec <<= Group((Keyword("var")| Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr")) + (typeSpec | varType))("typeSpec")
 varSpec = Group(typeSpec + Literal(":").suppress() + varName)("varSpec")
 argList =  verbatim | Group(Optional(delimitedList(Group(varSpec))))("argList")
-createVar = varSpec("createVar")
 constName = CID("constName")
 constValue = value("constValue")
-constSpec = Keyword("const")("constIndicator") + cppType + ":" + constName + "=" + constValue("constSpec")
+constSpec = Group(Keyword("const")("constIndicator") + cppType + ":" + constName + "=" + constValue)("constSpec")
 flagName = CID("flagName")
-flagDef = Keyword("flag")("flagIndicator") + ":" + flagName("flagDef")
+flagDef = Group(Keyword("flag")("flagIndicator") + ":" + flagName)("flagDef")
 #######################################
 lValue = Literal("lValue")("lValue")
 rValue = Literal("rValue")("rValue")
-rValueList = Group(delimitedList(rValue, ','))("rValueList")
-funcCallIndicator = Literal("(") ("funcCallIndicator")
-funcCall = Group(CID + funcCallIndicator + rValueList + ")")("funcCall")
+parameters = Group(delimitedList(rValue, ','))("parameters")
+funcCall = Group(CID("calledFunc") + Literal("(") + parameters + ")")("funcCall")
 actionID = ("actionID")
-assign = Group(lValue + Literal("<-") + rValue)("assign")
+assign = Group(lValue + Literal("<-")("assignID") + rValue)("assign")
 RightLValue = lValue ("RightLValue")
-swap = Group(lValue + Literal("<->") + RightLValue)("swap")
+swap = Group(lValue + Literal("<->")("swapID") + RightLValue)("swap")
 expr = (Literal("expr"))("expr")
 ########################################
-actionSeq = Forward()
+actionSeq = Forward() 
 conditionalAction = Forward()
-conditionalID = Keyword("if")("conditionalID")
-optionalElse = (Keyword("else")  + ( actionSeq | conditionalAction) )("optionalElse")
-conditionalAction <<= Group(conditionalID + "(" + expr + ")" + actionSeq + Optional(optionalElse))("conditionalAction")
-repeatedActionID = Keyword("withEach")("repeatedActionID")
+conditionalAction <<= Group(Group(Keyword("if") + "(" + expr("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")+ Optional(Keyword("else") + (actionSeq | conditionalAction)("elseBody"))("optionalElse"))("conditionalAction")
 untilExpr = expr ("untilExpr")
 whereExpr = expr ("whereExpr")
-repeatedAction = Group(repeatedActionID + "(" + lValue + ")" + Keyword("where") + "(" + whereExpr + ")" + Keyword("until") + "(" + untilExpr + ")" + actionSeq)("repeatedAction")
-action = (createVar | funcCall | assign | swap)("action")
-actionList = Group( ZeroOrMore (conditionalAction | repeatedAction | actionSeq | action))("actionList")
-actionSeqIndicator = Literal("{") ("actionSeqIndicator")
-actionSeq <<=  Group(actionSeqIndicator + actionList + Literal("}")) ("actionSeq")
+repeatedAction = Group(Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ lValue("repList") + ":" + Optional(Keyword("where") + "(" + whereExpr + ")") + Optional(Keyword("until") + "(" + untilExpr + ")") + actionSeq)("elseBody")("repeatedAction")
+action = (varSpec | funcCall | assign | swap)("action")
+actionSeq <<=  Group(Literal("{")("actSeqID") + Group( ZeroOrMore (conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 #########################################
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 returnType = (verbatim("returnTypeVerbatim")| typeSpec("returnTypeSpec"))("returnType")
 optionalTag = Literal(":")("optionalTag")
 funcName = CID("funcName")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
-funcSpec = (Keyword("func")("funcIndicator") + returnType + ":" + funcName + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
+funcSpec = Group(Keyword("func")("funcIndicator") + returnType + ":" + funcName + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
 #funcSpec.setParseAction( reportParserPlace)
-fieldDef = Group(flagDef | modeSpec | varSpec("fieldVar") | constSpec | funcSpec)("fieldDef")
+fieldDef = (flagDef | modeSpec | varSpec | constSpec | funcSpec)("fieldDef")
 objectName = CID("objectName")
 #########################################
 fieldDefs = Group(ZeroOrMore(fieldDef))("fieldDefs")
@@ -129,89 +121,133 @@ def extractTagDefs(tagResults):
     return localTagStore
 
 
-def extractActSeqToActSeq(objectName, funcName, childActSeqRef):
+def extractActSeqToActSeq(funcName, childActSeq):
     #print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQUextractActSeqToActSeq"
-    #print objectName
-    #print funcName
-    #print childActSeqRef
+    #print childActSeq
     #print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQextractActSeqToActSeq"
-    childActSeq = extractActSeq( objectName, funcName, childActSeqRef)
-    return childActSeq
-    ##progSpec.addActionSeqToActionSeq(objectName, funcName, childActSeq)
-
-def extractActSeq( objectName, funcName, childActSeqRef):
-    actionList = childActSeqRef.actionList
-    #print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAextractActSeq"
-    #print objectName, funcName, "****", actionList
-    #print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-    for actionItem in actionList:
-        # typeSpecKind: var | sPtr | uPtr | rPtr
-        if actionItem.typeSpecKind:
-            fieldTypeSpecKind = actionItem.typeSpecKind
-            fieldType = actionItem.varType
-            fieldName = actionItem.varName
-            #progSpec.addLocalVar(objectName, funcName,  fieldTypeSpecKind, fieldType, fieldName)
-        # Conditional if
-        elif actionItem.conditionalID:
-            thisExpr = actionItem.expr
-            thisActionSeq = actionItem.actionSeq
-            thisElse = actionItem.optionalElse
-            #progSpec.addConditional(objectName, funcName, thisExpr, thisActionSeq, thisElse)
-        # Repeated Action withEach
-        elif actionItem.repeatedActionID:
-            thisLValue = actionItem.lValue
-            thisActionSeq = actionItem.actionSeq
-            thisWhereExpr = actionItem.whereExpr
-            thisUntilExpr = actionItem.untilExpr
-            #progSpec.addRepetition(objectName, funcName, thisLValue, thisActionSeq, thisWhereExpr, thisUntilExpr)
-        ####################################################### Action Sequence
-        elif actionItem.actionSeqIndicator:
-            thisActionList = actionItem.actionList
-            #print '*************Action sequence: ', thisActionList
-            childActSeq = extractActSeqToActSeq(objectName, funcName, thisActionList)
-            return childActSeq
-        # Assign
-        elif (actionItem[1]== '<-'):
-            rightValue = actionItem.rValue
-            leftValue = actionItem.lValue
-            progSpec.addAssign(objectName, funcName, rightValue, leftValue)
-        # Swap
-        elif (actionItem[1]== '<->'):
-            rightLValue = actionItem.RightLValue
-            leftLValue = actionItem.lValue
-            progSpec.addSwap(objectName, funcName, leftLValue, rightLValue)
-        # Function Call
-        elif actionItem.funcCallIndicator:
-            thisFuncCall = actionItem.rValueList
-            progSpec.addFuncCall(objectName, funcName, thisFuncCall)
-        else:
-            print "error in extractActSeq"
-            exit(1)
-    return "actionSeq"
-
-def extractActSeqToFunc(objectName, funcName, funcResults):
-    #print "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUextractActSeqToFunc"
-    #print objectName
-    #print funcName
-    #print funcResults
-    #print "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUextractActSeqToFunc"
-    childActSeq = extractActSeq( objectName, funcName, funcResults)
-    return childActSeq
+    actSeqData = extractActSeq(funcName, childActSeq)
+    return actSeqData
 
 
-
-def extractFuncBody(localObjectName, funcResults, funcName):
-    #print "EEEEEEEEEEEEEEEEEEEEEextractFuncBody"
-    #print funcResults
-    #print localObjectName
-    #print funcResults
-    #print "EEEEEEEEEEEEEEEEEEEEEextractFuncBody"
-    if funcResults[0] == "<%":
-        funcActSeq = ""
-        funcText = funcResults[1][0]
+def extractActItem(funcName, actionItem):
+    #print "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIextractActItem"
+    #print "actionItem: ", actionItem
+    #print "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIextractActItem" 
+    thisActionItem='error'
+    # Create Variable: var | sPtr | uPtr | rPtr
+    if actionItem.varName:
+        thisTypeSpec = actionItem.typeSpec
+        thisVarName = actionItem.varName
+        #print thisTypeSpec, thisVarName
+        thisActionItem = {'typeOfAction':"newVar", 'typeSpec':thisTypeSpec, 'varName':thisVarName}
+    # Conditional if
+    elif actionItem.ifStatement:
+        ifCondition = actionItem.ifStatement.ifCondition
+        IfBodyIn = actionItem.ifStatement.ifBody
+        ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
+        #elseBody = {"if":'xxx', "act":'xxx'}
+        elseBodyOut = {}
+        #print elseBody
+        if (actionItem.optionalElse):        
+            elseBodyIn = actionItem.optionalElse
+            if (elseBodyIn.conditionalAction):
+                elseBodyOut = extractActItem(funcName, elseBodyIn.conditionalAction)
+                #elseBody['if'] = elseBodyOut
+                #print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBody
+            elif (elseBodyIn.actionSeq):
+                elseBodyOut = extractActItem(funcName, elseBodyIn.actionSeq)
+                #elseBody['act']  = elseBodyOut
+                #print "\n ELSE........ELSE........ELSE........ELSE........ELSE: ", elseBody
+        #print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBody
+        thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut} 
+    # Repeated Action withEach
+    elif actionItem.repeatedActionID:
+        repName = actionItem.repName
+        repList = actionItem.repList
+        repBodyIn = actionItem.actionSeq
+        repBodyOut = extractActSeqToActSeq(funcName, repBodyIn)
+        whereExpr = ''
+        untilExpr = ''
+        if actionItem.whereExpr:
+            whereExpr = actionItem.whereExpr
+        if actionItem.untilExpr:
+            untilExpr = actionItem.untilExpr
+        #print "REP...REP...REP...REP...REP...REP...REP...REP: ", repName, repList, whereExpr, untilExpr, repBodyOut
+        thisActionItem = {'typeOfAction':"repetition" ,'repName':repName, 'whereExpr':whereExpr, 'untilExpr':untilExpr, 'repBody':repBodyOut, 'repList':repList}
+    # Action sequence
+    elif actionItem.actSeqID:
+        actionListIn = actionItem
+        #print "ACT_SEQ...ACT_SEQ...ACT_SEQ...ACT_SEQ...ACT_SEQ: ", actionListIn
+        actionListOut = extractActSeqToActSeq(funcName, actionListIn)
+        #print "ACT_SEQ...ACT_SEQ...ACT_SEQ...ACT_SEQ...ACT_SEQ: ", actionListOut
+        thisActionItem = {'typeOfAction':"actionSeq", 'actionList':actionListOut}
+    # Assign
+    elif (actionItem.assignID):
+        RHS = actionItem.rValue
+        LHS = actionItem.lValue
+        #print "ASSIGN...ASSIGN...ASSIGN...ASSIGN...ASSIGN...ASSIGN: ", assignRValue, assignRValue
+        thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS}
+    # Swap
+    elif (actionItem.swapID):
+        RHS = actionItem.RightLValue
+        LHS = actionItem.lValue
+        #print "SWAP...SWAP...SWAP...SWAP...SWAP...SWAP...SWAP...SWAP: ", swapRightLValue, swapLeftLValue
+        thisActionItem = {'typeOfAction':"swap", 'LHS':LHS, 'RHS':RHS}
+    # Function Call
+    elif actionItem.calledFunc:
+        calledFunc = actionItem.calledFunc
+        parameters = actionItem.parameters
+        #for param in actionItem.parameters:
+            #print "param: ", rValue
+            #parameters += rValue[0]
+        #print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: ", calledFunc, parameters
+        thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc, 'parameters':parameters}
     else:
-        funcActSeq = extractActSeqToFunc( localObjectName, funcName, funcResults)
-        funcText = ""
+        print "error in extractActItem"
+        exit(1)
+    #print "thisActionItem...thisActionItem...thisActionItem...thisActionItem: ", thisActionItem
+    return thisActionItem
+
+
+def extractActSeq( funcName, childActSeq):
+    #print childActSeq
+    actionList = childActSeq.actionList
+    #print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAextractActSeq"
+    #print funcName, "****", actionList
+    #print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    actSeq = []
+    for actionItem in actionList:
+        thisActionItem = extractActItem(funcName, actionItem)
+        #print "%%%%%%%%%%%%%%%%%%thisActionItem: ", thisActionItem
+        actSeq.append(thisActionItem)
+    #print "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAactSeq", actSeq
+    return actSeq
+
+def extractActSeqToFunc(funcName, funcBodyIn):
+    #print "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUextractActSeqToFunc"
+    #print "objectName: ", objectName
+    #print "funcName: ", funcName
+    #print "funcBodyIn: ", funcBodyIn
+    #print "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUextractActSeqToFunc"
+    childActSeq = extractActSeq( funcName, funcBodyIn)
+    #print "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUextractActSeqToFunc"
+    #print childActSeq
+    return childActSeq
+
+
+def extractFuncBody(localObjectName,funcName, funcBodyIn):
+    #ifBodyprint "EEEEEEEEEEEEEEEEEEEEEextractFuncBody"
+    #print "localObjectName: ", localObjectName
+    #print "funcName: ", funcName
+    #print "funcBodyIn: ", funcBodyIn
+    #print "EEEEEEEEEEEEEEEEEEEEEextractFuncBody"
+    if funcBodyIn[0] == "<%":
+        funcBodyOut = ""
+        funcTextVerbatim = funcBodyIn[1][0]
+    else:
+        funcBodyOut = extractActSeqToFunc(funcName, funcBodyIn)
+        funcTextVerbatim = ""
+    return funcBodyOut, funcTextVerbatim
 
 
 def extractFuncDef(localObjectName, localFieldResults):
@@ -227,27 +263,26 @@ def extractFuncDef(localObjectName, localFieldResults):
     argList = localFieldResults.argList
     funcBodyIn = localFieldResults.funcBody
     #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
-    #print "returnType", returnType
-    #print "funcName", funcName
-    #print "argList", argList
-    #print "funcBody", funcBody
+    #print "returnType: ", returnType
+    #print "funcName: ", funcName
+    #print "argList: ", argList
+    #print "funcBody: ", funcBodyIn
     #print "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-
-    #if(returnType[0]=='<%'): print "RETURN TYPE:", returnType
     if localFieldResults.optionalTag:
         tagList = localFieldResults[tagDefList]
     else:
         tagList = []
-    funcBodyOut = extractFuncBody(localObjectName,funcBodyIn, funcName)
-    return [returnType, funcName, argList, tagList, funcBodyOut]
+    [funcBodyOut, funcTextVerbatim] = extractFuncBody(localObjectName,funcName, funcBodyIn)
+    return [returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim]
+
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
+    print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
+    #print fieldResults
     for fieldResult in fieldResults:
-        #print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
-        #print localProgSpec, "****", localObjectName, "****", fieldResult
-        #print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
+        print  fieldResult
+        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
         fieldTag = fieldResult[0]
-        varType =fieldResult.varType
         if(not isinstance(fieldTag, basestring)):
             varType=fieldTag[1]
             fieldTag=fieldTag[0]
@@ -258,31 +293,29 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
         elif fieldResult.modeIndicator:
             thisModeName = fieldResult.modeName
             thisModeList = fieldResult.modeList
-            print "Mode: ", thisModeName, thisModeList
+            #print "Mode: ", thisModeName, thisModeList
             progSpec.addMode(localProgSpec, localObjectName, thisModeName, thisModeList)
         elif fieldResult.constIndicator:
             constValue = fieldResult.constValue
             progSpec.addConst(localProgSpec, localObjectName, fieldResult.cppType, fieldResult.constName, constValue)
             #exit(1)
         elif fieldResult.funcIndicator:
-            localFuncSpecs = extractFuncDef( localObjectName, fieldResult)
+            # extract function into an array
+            [returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim] = extractFuncDef( localObjectName, fieldResult)
             #print "FUNCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
-            #print localFuncSpecs
+            #print returnType
+            #print funcName
+            #print argList
+            #print tagList
+            #print funcBodyOut
             #print "FUNCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
-            thisFuncReturns = localFuncSpecs[0]
-            thisFuncName = localFuncSpecs[1]
-            thisFuncArgList = localFuncSpecs[2]
-            thisFuncTags = localFuncSpecs[3]
-            thisFuncBody = localFuncSpecs[4]
-
-            print thisFuncReturns
-            print thisFuncName
-            print thisFuncArgList
-            print thisFuncTags
-            print thisFuncBody
-            progSpec.addFunc(localProgSpec, localObjectName, thisFuncReturns, thisFuncName, thisFuncArgList, thisFuncTags, thisFuncBody)
-        elif (fieldResult.fieldVar):
-            progSpec.addField(localProgSpec, localObjectName, fieldTag, [fieldTag, varType], fieldResult.varName)
+            progSpec.addFunc(localProgSpec, localObjectName, returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim)
+        elif (fieldResult.varName):
+            thisTypeSpec = fieldResult.typeSpec
+            thisVarName = fieldResult.varName
+            kindOfField = thisTypeSpec[0]
+            #print "VAR FIELD: ", kindOfField, thisTypeSpec, thisVarName
+            progSpec.addField(localProgSpec, localObjectName, kindOfField, thisTypeSpec, thisVarName)
         else:
             print "Error in extractFieldDefs"
             print fieldResult
@@ -299,7 +332,7 @@ def extractBuildSpecs(buildSpecResults):
     return resultBuildSpecs
 
 def extractObjectSpecs(localProgSpec, objNames, spec):
-    #print "SSSSSSSSSSSSSSSSSSSSSSSSSspec = ", spec
+    #print "SSSSSSSSSSSSSSSSSSSSSSSextractObjectSpecs = ", spec
     ##########Grab object name
     progSpec.addObject(localProgSpec, objNames, spec.objectName)
     ###########Grab optional Object Tags

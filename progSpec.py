@@ -68,45 +68,13 @@ def addConst(objSpecs, objectName, cppType, constName, constValue):
     objSpecs[objectName]["fields"].append({'kindOfField':'const', 'fieldType':cppType, 'fieldName':constName, 'fieldValue':constValue})
     print "    ADDED CONST\n"
 
-def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody):
-    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName, 'argList':argList})
+def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody, funcTextVerbatim):
+    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName, 'argList':argList, 'funcTextVerbatim':funcTextVerbatim})
     registerBaseType(returnType, objectName)
-    print "    ADDED FUNCTION:\t", funcName, '(', argList, ')'
+    #print "    ADDED FUNCTION:\t", funcName, '(', argList, ')', funcBody
 
 #################################################################################
 
-    
-def addActionSeqToActionSeq(objectName, funcName, childActSeq):
-    
-    print "        ADDED Action to ", objectName, funcName,  "\n"
-
-def addLocalVar(objectName, funcName,  fieldTypeSpecKind, fieldType, fieldName):
-    
-    print "        ADDED LocalVar to ", objectName, ".", funcName,  fieldTypeSpecKind, fieldType, fieldName, ".\n"
-    
-def addConditional(objectName, funcName, thisExpr, thisActionSeq, thisElse):
-    
-    print "        ADDED Conditional to ", objectName, ".", funcName, thisExpr, thisActionSeq, thisElse, ".\n"
-
-def addRepetition(objectName, funcName, thisLValue, thisActionSeq, thisWhereExpr, thisUntilExpr):
-
-    print "        ADDED Repetition to ", objectName, ".", funcName, thisLValue, thisActionSeq, thisWhereExpr, thisUntilExpr, ".\n"
-    
-def addAssign(objectName, funcName, rightValue, leftValue):
-    
-    print "        ADDED Assign to ", objectName, ".", funcName, rightValue, leftValue, ".\n"
-    
-def addSwap(objectName, funcName, leftLValue, rightLValue):
-    
-    print "        ADDED Swap to ", objectName, ".", funcName, leftLValue, rightLValue, ".\n"
-    
-def addFuncCall(objectName, funcName, thisFuncCall):
-    
-    print "        ADDED Swap to ", objectName, ".", funcName, thisFuncCall, ".\n"
-
-
-
-###############
 
 def fetchTagValue(tagStoreArray, tagToFind):
     for tagStore in reversed(tagStoreArray):
