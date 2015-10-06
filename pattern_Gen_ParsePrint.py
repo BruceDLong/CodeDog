@@ -12,16 +12,18 @@ def parseParserSpec():
     FieldSpec = Group(fieldsName + Optional((Literal('.') | Literal('->')).suppress() + fieldsName))
     ValueSpec = FieldSpec | Word(nums) | (Keyword('true') | Keyword('false')) | quotedString
     WhitespaceEL = Keyword("WS")
+    BaseEL = (WhitespaceEL| Keyword('STRING') | Keyword('CID') | Keyword('UNICODE_ID')
+         | Keyword("DEC_NUM")  | Keyword("HEX_NUM")  | Keyword("BIN_NUM") )
     SetFieldStmt = Group(FieldSpec + '=' + ValueSpec)
     PeekNotEL = "!" + quotedString
     LiteralEL = quotedString
-    StructEL  = '#'+Word(alphas)
+    StructEL  = '#'+Word(alphas) + Optional(':' + fieldsName)
     ListEL = Group((Literal("+") | Literal("*")) + ParseElement)
     OptionEL = Group("<" + ParseElement + ">")
     CoFactualEL  = "(" + Group(ParseElement + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")"
     SequenceEL   = "{" + Word(alphas) + Group(OneOrMore(ParseElement)) + "}"
     AlternateEl  = "[" + Word(alphas) + Group(OneOrMore(ParseElement + Optional("|").suppress())) + "]"
-    ParseElement <<= (Group(SequenceEL) | Group(AlternateEl) | Group(CoFactualEL) | ListEL | OptionEL | Group(StructEL) | LiteralEL | Group(PeekNotEL) | WhitespaceEL)
+    ParseElement <<= (Group(SequenceEL) | Group(AlternateEl) | Group(CoFactualEL) | ListEL | OptionEL | Group(StructEL) | LiteralEL | Group(PeekNotEL) | BaseEL)
     structParserSpec = Keyword("StructParser") + Word(alphas) + "=" + ParseElement
     #structParserSpec=structParserSpec.setDebug()
     StartSym = StringStart() + Literal("{").suppress() + OneOrMore(Group(structParserSpec)) +Literal("}").suppress()
@@ -40,12 +42,31 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
     indent2=indent+"    "
     batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
     if(type(parseEL)==type("")):
+        movTag="FIXME"
         if(parseEL[0]=='"'):
             batchArgs[1] += "nxtTok(cursor, "+parseEL+")"
             printerArgs[1] ='S+='+parseEL+';'
         elif(parseEL=='WS'):
             batchArgs[1] += "RmvWSC(cursor)"
-
+            printerArgs[1] ='S+=" ";\n'
+        elif(parseEL=='STRING'):
+            batchArgs[1] += 'nxtTok(cursor, "ABC")\nITEM <'+ movTag+'- buf'
+            printerArgs[1] ='S+=" ";\n'
+        elif(parseEL=='CID'):
+            batchArgs[1] += 'nxtTok(cursor, "cTok")\nITEM <'+ movTag+'- buf'
+            printerArgs[1] ='S+=" ";\n'
+        elif(parseEL=='UNICODE_ID'):
+            batchArgs[1] += 'nxtTok(cursor, "unicodeTok")\nITEM <'+ movTag+'- buf'
+            printerArgs[1] ='S+=" ";\n'
+        elif(parseEL=='DEC_NUM'):
+            batchArgs[1] += 'nxtTok(cursor, "123")\nITEM <'+ movTag+'- buf'
+            printerArgs[1] ='S+=" ";\n'
+        elif(parseEL=='HEX_NUM'):
+            batchArgs[1] += 'nxtTok(cursor, "0x#")\nITEM <'+ movTag+'- buf'
+            printerArgs[1] ='S+=" ";\n'
+        elif(parseEL=='BIN_NUM'):
+            batchArgs[1] += 'nxtTok(cursor, "0b#")\nITEM <'+ movTag+'- buf'
+            printerArgs[1] ='S+=" ";\n'
         else:
             batchArgs[1] +=  "<" +parseEL+ ">"
     elif(parseEL[0]=='('):
@@ -98,6 +119,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
     elif(parseEL[0]=='['):
         #print indent, "OneOf"
         tagModifierS=parseEL[1]
+        print1=""
         batch1=""
         batch0="    func var bool: parseAltList_"+tagModifierS+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM )<%{\n"
         for firstItem in parseEL[2]:
@@ -107,9 +129,14 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
             batch1+=batchArgs[0]
             batch0+=batchArgs[1]
             batch0+=") {return true;}\n"
+
+            print1+=printerArgs[1]
         batch0+=indent+"return false;\n    }; %>\n\n\n"
         batchArgs[0]=batch1+"\n"+batch0
         batchArgs[1]="parseAltList_"+tagModifierS+"(cursor, ITEM)"
+
+        printerArgs[1]=print1
+
     elif(parseEL[0]=='<'):   # OPTIONAL
         batch1=""
         batch0="";
@@ -136,12 +163,12 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
             sField="&ITEM->"+parseEL[1]
         elif(FieldData[0]=="rPtr"):
             sField="ITEM->"+parseEL[1]
- #           printCmd="->printToString();\n"
+            printCmd="->printToString();\n"
         elif(FieldData[0]=="sPtr" or FieldData[0]=="uPtr"):
             sField="ITEM->"+parseEL[1]+".get()"
         else:
             sField = "ITEM->"+parseEL[1]
- #           printCmd=".printToString();\n"
+            printCmd=".printToString();\n"
         print "XXXXXXXXXX", sType, parseEL[1];
         batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
         printerArgs[1] = indent + "S += "+parseEL[1]+printCmd
@@ -183,7 +210,7 @@ def apply(objects, tags, parserSpecTag, startSymbol):
             PrinterFunc = '    func var string: printToString() <%{\n        string S="";\n' + printArgs[1] + "        return S;\n    };%>\n"
             PrinterFunc=progSpec.wrapFieldListInObjectDef(objName, PrinterFunc)
             # old code: progSpec.FillStructFromText([structsSpec, structNames ], objName, PrinterFunc)
- #           codeDogParser.AddToObjectFromText(objects[0], objects[1], PrinterFunc)
+            codeDogParser.AddToObjectFromText(objects[0], objects[1], PrinterFunc)
 
 
         BatchParserFuncs= BatchParserUtils + "\n\n" + BatchParser
@@ -192,11 +219,11 @@ def apply(objects, tags, parserSpecTag, startSymbol):
 
     CPP_GlobalText = r"""
 
-const int bufmax = 32*1024;
-typedef char bufType[bufmax];
+#const int bufmax = 32*1024;
+###typedef char bufType[bufmax];
 #define streamEnd (stream->eof() || stream->fail())
 #define ChkNEOF {if(streamEnd) {flags|=fileError; statusMesg="Unexpected End of file"; break;}}
-#define getbuf(cursor, c) {ChkNEOF; for(p=0;(c) && !streamEnd ;buf[p++]=streamGet(cursor)){if (p>=bufmax) {flags|=fileError; statusMesg="String Overflow"; break;}} buf[p]=0;}
+#define getbuf(cursor, c) {ChkNEOF; buf=""; for(p=0;(c) && !streamEnd ; ++p){buf+=streamGet(cursor); if (p>=bufmax) {flags|=fileError; statusMesg="String unreasonably long"; break;}}}
 #define nxtTok(cursor, tok) nxtTokN(cursor, 1,tok)
 
 #define U8_IS_SINGLE(c) (((c)&0x80)==0)
@@ -232,7 +259,7 @@ bool tagIsBad(string tag, const char* locale) {
         var  string: statusMesg
 
         var char: nTok
-        var bufType: buf
+        var string: buf
 
         rPtr istream: stream
         var string: streamName
@@ -386,7 +413,7 @@ bool tagIsBad(string tag, const char* locale) {
 
     """
 
-    progSpec.codeHeader['cpp']=CPP_GlobalText
+    progSpec.setCodeHeader('cpp', CPP_GlobalText)
     parserStructsName = startSymbol+"Parser"
     progSpec.addObject(objects[0], objects[1], parserStructsName)
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(parserStructsName, BatchParserFuncs))

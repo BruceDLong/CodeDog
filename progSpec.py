@@ -6,6 +6,11 @@ import re
 storeOfBaseTypesUsed={} # Registry of all types used
 codeHeader={} # e.g., codeHeader['cpp']="C++ header code"
 
+def setCodeHeader(languageID, codeText):
+    global codeHeader
+    if not languageID in codeHeader: codeHeader[languageID]='';
+    codeHeader[languageID]+='\n'+codeText
+
 def getTypesBase(typeSpec):
     if isinstance(typeSpec, basestring):
        return typeSpec
@@ -68,39 +73,38 @@ def addConst(objSpecs, objectName, cppType, constName, constValue):
     objSpecs[objectName]["fields"].append({'kindOfField':'const', 'fieldType':cppType, 'fieldName':constName, 'fieldValue':constValue})
     print "    ADDED CONST\n"
 
-def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody):
-    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName, 'argList':argList})
+def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody, funcTextVerbatim):
+    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName, 'argList':argList, 'funcTextVerbatim':funcTextVerbatim})
     registerBaseType(returnType, objectName)
-    print "    ADDED FUNCTION:\t", funcName, '(', argList, ')'
-
-def addActionToSeq(objSpecs, objectName, funcName, ):
-
-    print "        ADDED Action to ", objName, ".", funcName, ".\n"
-
-def addSequenceToFunc(objSpecs, objectName, funcName, ):
-
-    print "        ADDED Sequence to ", objName, ".", funcName, ".\n"
-
-def addRepetitionToFunc(objSpecs, objectName, funcName, ):
-
-    print "        ADDED Repetition to ", objName, ".", funcName, ".\n"
-
-def addLocalVarToFunc(objSpecs, objectName, funcName, ):
-
-    print "        ADDED LocalVar to ", objName, ".", funcName, ".\n"
-
-def addCommentToFunc(objSpecs, objectName, funcName, ):
-
-    print "        ADDED Comment to ", objName, ".", funcName, ".\n"
-
+    print "    ADDED FUNCTION:\t", funcName, '(', argList, ')', funcBody
 
 ###############
 
+def searchATagStore(tagStore, tagToFind):
+    print "SEARCHING for", tagToFind
+    tagSegs=tagToFind.split(r'.')
+    crntStore=tagStore
+    item=''
+    for seg in tagSegs:
+        print seg
+        if(seg in crntStore):
+            item=crntStore[seg]
+            crntStore=item
+        else: return None
+        print seg, item
+    print item
+    return [item]
+
 def fetchTagValue(tagStoreArray, tagToFind):
     for tagStore in reversed(tagStoreArray):
-        if(tagToFind in tagStore):
-            return tagStore[tagToFind]
+        tagRet=searchATagStore(tagStore, tagToFind)
+        if(tagRet):
+            return tagRet[0]
     return None
+
+def setTagValue(tagStore, tagToSet, tagValue):
+    tagRet=searchATagStore(tagStore, tagToSet)
+    tagRet[0]=tagValue
 
 def wrapFieldListInObjectDef(objName, fieldDefStr):
     retStr='object '+objName +' {\n' + fieldDefStr + '\n}\n'

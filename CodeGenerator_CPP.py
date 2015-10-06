@@ -2,6 +2,9 @@
 import progSpec
 import re
 
+
+buildStr_libs='g++ -g -std=gnu++11 Prot.cpp '
+
 def bitsNeeded(n):
     if n <= 1:
         return 0
@@ -90,6 +93,105 @@ def prepareTypeName(typeSpec):
         typeDefName=typeDefSpec
     return typeDefName
 
+def genIfBody(ifBody, indent):
+    ifBodyText = ""
+    for ifAction in ifBody:
+        actionOut = processAction(ifAction, indent + "    ")
+        print "If action: ", actionOut
+        ifBodyText += actionOut
+    return ifBodyText
+
+def processAction(action, indent):
+    #make a string and return it
+    actionText = ""
+    #print "........action........action........action: ", action
+    typeOfAction = action['typeOfAction']
+    #print typeOfAction
+    if (typeOfAction =='newVar'):
+        varName = action['varName']
+        typeSpec = convertType(action['typeSpec'])
+        #print "VAR: ", varName, typeSpec, typeOfAction
+        actionText = indent + typeSpec + " " + varName + ";\n"
+    elif (typeOfAction =='assign'):
+        LHS = action['LHS']
+        RHS = action['RHS']
+        #print "Assign: ", LHS, RHS
+        actionText = indent + LHS + "=" + RHS + ";\n"
+    elif (typeOfAction =='swap'):
+        LHS = action['LHS']
+        RHS = action['RHS']
+        #print "swap: ", LHS, RHS
+        actionText = indent + "swap (" + LHS + "," + RHS + ");\n"
+    #####################################################################
+    elif (typeOfAction =='conditional'):
+        ifCondition = action['ifCondition']
+        ifBodyText = genIfBody(action['ifBody'], indent)
+        actionText =  "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
+        elseBodyText = ""
+        elseBody = action['elseBody']
+        if (elseBody):
+            #print 'ELSE BODY.......ELSE BODY.......ELSE BODY:', elseBody
+            if (action['ifBody'] ):
+                elseIf = elseBody
+                elseIfText = processAction(elseIf, indent)
+                #print "ELSE IF:  ELSE IF:  ELSE IF:  ELSE IF:  ", elseIfText
+                actionText += indent + "else " + elseIfText
+                
+            elif (elseBody['actionList'] ):
+                elseActSeq = elseBody['actionList']
+                elseText = processActionSeq(elseActSeq, indent)
+                #print "ELSE: ELSE: ELSE: ELSE: ELSE: ", elseText
+                actionText += indent + "else" + elseText  
+
+        
+    ######################################################################
+    elif (typeOfAction =='repetition'):
+        #print "repetition: ", action
+        whereExpr = action['whereExpr']
+        repBody = action['repBody']
+        repName = action['repName']
+        repList = action['repList']
+        actionText += indent + "for ( auto " + repName + ":" + repList + "){\n" 
+        if action['whereExpr']:
+            whereExpr = action['whereExpr']
+            actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
+        if action['untilExpr']:
+            untilExpr = action['untilExpr']
+            actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
+        repBodyText = ''
+        for repAction in repBody:
+            actionOut = processAction(repAction, indent + "    ")
+            repBodyText += actionOut
+        actionText += repBodyText + indent + '}\n'
+    elif (typeOfAction =='funcCall'):
+        calledFunc = action['calledFunc']
+        parameters = ",".join(action['parameters'])
+        #print "funcCall: ", calledFunc, parameters
+        actionText = indent + calledFunc + " (" + parameters  + ");\n"
+    elif (typeOfAction =='actionSeq'):
+        actionListIn = action['actionList']
+        actionListText = ''
+        for action in actionListIn:
+            actionListOut = processAction(action, indent + "    ")
+            actionListText += actionListOut
+        #print "actionSeq: ", actionListText
+        actionText += indent + "{\n" + actionListText + indent + '}\n'
+    else:
+        print "error in processAction: ", action
+    #if/else for each action
+    return actionText
+
+
+def processActionSeq(actSeq, indent):
+    #print "........processActionSeq........processActionSeq........processActionSeq"
+    #print actSeq
+    #print "........processActionSeq........processActionSeq........processActionSeq"
+    actSeqText = "{\n"
+    for action in actSeq:
+        actSeqText += processAction(action, indent+'    ')
+    actSeqText += "\n" + indent + "}"
+    
+    return actSeqText
 def headType(typeSpec): # e.g., xPtr or if var, int, uint, etc,
     if typeSpec[0]=='var': return typeSpec[1]
     return typeSpec[0]
@@ -158,13 +260,23 @@ def processOtherFields(objects, objectName, tags, indent):
             typeStr=convertedType
             registerType(objectName, fieldName, typeStr, typeDefName)
             structCode += indent + typeDefName +' '+ fieldName +";\n";
+        #################################################################
         elif kindOfField=='func':
             if(fieldType=='none'): convertedType=''
             else:
                 #print convertedType
                 convertedType+=''
-            funcText=field['funcText'][1]
+            #get verbatim
+            if field['funcTextVerbatim']:
+                funcText=field['funcTextVerbatim']
+            # if no verbatim found so generate function text from action sequence
+            elif field['funcText']:
+                funcText=processActionSeq(field['funcText'], indent)
+            else: 
+                print "error in processOtherFields: no funcText or funcTextVerbatim found"
+                exit(1)
             #print "FUNCTEXT:",funcText
+        ###########################################################
             if(objectName=='MAIN'):
                 if fieldName=='main':
                     funcDefCode += 'int main(int argc, char **argv)' +funcText+"\n\n"
@@ -187,8 +299,8 @@ def processOtherFields(objects, objectName, tags, indent):
                     for arg in argList:
                         if(count>0): argListText+=", "
                         count+=1
-                        argListText+= convertType(arg[0]) +' '+ arg[2]
-                print "FUNCTION:",convertedType, fieldName, '(', argListText, ') ', funcText
+                        argListText+= convertType(arg.typeSpecKind +' '+ arg.varName)
+                #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') ', funcText
                 if(fieldType[0] != '<%'):
                     registerType(objectName, fieldName, convertedType, typeDefName)
                 else: typeDefName=convertedType
@@ -261,12 +373,26 @@ def makeFileHeader(tags):
     header += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
     return header
 
-def integrateLibrary(libID):
-    print '    ', libID
+def integrateLibrary(tags, libID):
+    print '    Integrating', libID, tags
+    libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
+    print "LIB_FILES", libFiles
+    global buildStr_libs
+    for libFile in libFiles:
+        buildStr_libs+=' -l'+libFile
+    libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
+    for libHdr in libHeaders:
+        tags[0]['Include'] +=', <'+libHdr+'>'
+        print "Added header", libHdr
+    print 'BUILD STR', buildStr_libs
+
 
 def connectLibraries(objects, tags):
     print "Choosing Libaries to link..."
-    if (progSpec.fetchTagValue(tags, 'largeNumbers') != None): integrateLibrary('gmp')
+    libList = progSpec.fetchTagValue(tags, 'libraries')
+    for lib in libList:
+        if (progSpec.fetchTagValue(tags, 'libraries."+lib+".useStatus')!='notLinked'):
+            integrateLibrary(tags, lib)
 
 def generate(objects, tags):
     print "\nGenerating CPP code...\n"
@@ -277,5 +403,5 @@ def generate(objects, tags):
     typeDefCode = produceTypeDefs(typeDefMap)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
-    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + typeDefCode + codeHeader + structCodeAcc + funcCodeAcc + topBottomStrings[1]
+    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + codeHeader + typeDefCode + structCodeAcc + funcCodeAcc + topBottomStrings[1]
     return outputStr

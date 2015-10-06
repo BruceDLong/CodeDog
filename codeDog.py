@@ -6,6 +6,7 @@ import codeDogParser
 import pattern_Write_Main
 import pattern_Gen_ParsePrint
 import pattern_Gen_Eventhandler
+import pattern_BigNums
 #import pattern_Gen_GUI
 
 import CodeGenerator_CPP
@@ -55,6 +56,7 @@ def ScanAndApplyPatterns(objects, tags):
             if pattName=='Write_Main': pattern_Write_Main.apply(objects, tags, patternArgs[0])
             elif pattName=='Gen_Eventhandler': pattern_Gen_Eventhandler.apply(objects, tags)
             elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
+            elif pattName=='useBigNums': pattern_BigNums.apply(tags)
 
 def setFeatureNeeded(tags, featureID, objMap):
     tags[featureID]=objMap
@@ -105,5 +107,6 @@ print codeDogStr
 
 # objectSpecs is like: [ProgSpec, objNames]
 [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)
+
 
 outputScript = GenerateSystem(objectSpecs, buildSpecs, tagStore)
