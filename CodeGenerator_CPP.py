@@ -97,9 +97,21 @@ def genIfBody(ifBody, indent):
     ifBodyText = ""
     for ifAction in ifBody:
         actionOut = processAction(ifAction, indent + "    ")
-        print "If action: ", actionOut
+        #print "If action: ", actionOut
         ifBodyText += actionOut
     return ifBodyText
+
+def stringifyArray(thisExpression):
+    thisString = ''
+    for each in thisExpression:
+        if isinstance(each, basestring):
+            thisString += each
+        else:
+            thisString += stringifyArray(each)
+    print thisString
+    #thisString = ''.join(thisExpression)
+    return thisString
+
 
 def processAction(action, indent):
     #make a string and return it
@@ -113,18 +125,21 @@ def processAction(action, indent):
         #print "VAR: ", varName, typeSpec, typeOfAction
         actionText = indent + typeSpec + " " + varName + ";\n"
     elif (typeOfAction =='assign'):
-        LHS = action['LHS']
-        RHS = action['RHS']
+        LHS = ".".join(action['LHS'])
+        RHS = stringifyArray(action['RHS'])
+        assignTag = action['assignTag']
         #print "Assign: ", LHS, RHS
-        actionText = indent + LHS + "=" + RHS + ";\n"
+        if assignTag == '':
+            actionText = indent + LHS + " = " + RHS + ";\n"
+        else:
+            actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='swap'):
-        LHS = action['LHS']
-        RHS = action['RHS']
+        LHS =  ".".join(action['LHS'])
+        RHS =  ".".join(action['LHS'])
         #print "swap: ", LHS, RHS
-        actionText = indent + "swap (" + LHS + "," + RHS + ");\n"
-    #####################################################################
+        actionText = indent + "swap (" + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='conditional'):
-        ifCondition = action['ifCondition']
+        ifCondition = stringifyArray(action['ifCondition'])
         ifBodyText = genIfBody(action['ifBody'], indent)
         actionText =  "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
         elseBodyText = ""
@@ -142,21 +157,18 @@ def processAction(action, indent):
                 elseText = processActionSeq(elseActSeq, indent)
                 #print "ELSE: ELSE: ELSE: ELSE: ELSE: ", elseText
                 actionText += indent + "else" + elseText  
-
-        
-    ######################################################################
     elif (typeOfAction =='repetition'):
         #print "repetition: ", action
-        whereExpr = action['whereExpr']
+        #whereExpr = action['whereExpr']
         repBody = action['repBody']
         repName = action['repName']
-        repList = action['repList']
+        repList = ".".join(action['repList'])
         actionText += indent + "for ( auto " + repName + ":" + repList + "){\n" 
         if action['whereExpr']:
-            whereExpr = action['whereExpr']
+            whereExpr = stringifyArray(action['whereExpr'])
             actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
         if action['untilExpr']:
-            untilExpr = action['untilExpr']
+            untilExpr = stringifyArray(action['untilExpr'])
             actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
         repBodyText = ''
         for repAction in repBody:
@@ -178,7 +190,7 @@ def processAction(action, indent):
         actionText += indent + "{\n" + actionListText + indent + '}\n'
     else:
         print "error in processAction: ", action
-    #if/else for each action
+    print "actionText", actionText
     return actionText
 
 
@@ -188,7 +200,9 @@ def processActionSeq(actSeq, indent):
     #print "........processActionSeq........processActionSeq........processActionSeq"
     actSeqText = "{\n"
     for action in actSeq:
-        actSeqText += processAction(action, indent+'    ')
+        actionText = processAction(action, indent+'    ')
+        #print actionText
+        actSeqText += actionText
     actSeqText += "\n" + indent + "}"
     
     return actSeqText
@@ -396,7 +410,7 @@ def connectLibraries(objects, tags):
 
 def generate(objects, tags):
     print "\nGenerating CPP code...\n"
-    libInterfacesText=connectLibraries(objects, tags)
+    #libInterfacesText=connectLibraries(objects, tags)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)

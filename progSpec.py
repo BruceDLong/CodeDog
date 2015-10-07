@@ -76,7 +76,7 @@ def addConst(objSpecs, objectName, cppType, constName, constValue):
 def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody, funcTextVerbatim):
     objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName, 'argList':argList, 'funcTextVerbatim':funcTextVerbatim})
     registerBaseType(returnType, objectName)
-    print "    ADDED FUNCTION:\t", funcName, '(', argList, ')', funcBody
+    print "    ADDED FUNCTION:\t", funcName, '(', argList, ')'
 
 ###############
 

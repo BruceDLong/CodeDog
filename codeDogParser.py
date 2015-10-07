@@ -2,7 +2,7 @@
 
 import re
 import progSpec
-from pyparsing import Word, alphas, nums, Literal, Keyword, Optional, OneOrMore, ZeroOrMore, delimitedList, Group, ParseException, quotedString, Forward, StringStart, StringEnd, SkipTo
+from pyparsing import Word, alphas, nums, Literal, Keyword, Optional, OneOrMore, oneOf, ZeroOrMore, delimitedList, Group, ParseException, quotedString, Forward, StringStart, StringEnd, SkipTo
 
 def reportParserPlace(s, loc, toks):
     print "    PARSING AT char",loc, toks
@@ -45,38 +45,36 @@ typeSpec = Forward()
 typeSpec <<= Group((Keyword("var")| Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr")) + (typeSpec | varType))("typeSpec")
 varSpec = Group(typeSpec + Literal(":").suppress() + varName)("varSpec")
 argList =  verbatim | Group(Optional(delimitedList(Group(varSpec))))("argList")
-
 constName = CID("constName")
 constValue = value("constValue")
 constSpec = Group(Keyword("const")("constIndicator") + cppType + ":" + constName + "=" + constValue)("constSpec")
 flagName = CID("flagName")
 flagDef = Group(Keyword("flag")("flagIndicator") + ":" + flagName)("flagDef")
 #######################################
-lValue = Literal("lValue")("lValue")
-rValue = Literal("rValue")("rValue")
+lValue = Group(CID + Optional(Literal('.').suppress() + CID))("lValue")
+swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
+expr = Forward()
+funcCall = Forward()
+factor = (value | ('(' + expr + ')') | funcCall)("factor")
+term = (factor + ZeroOrMore(oneOf('* /') + factor))("term")
+expr <<= (term + ZeroOrMore(oneOf('+ -') + term))("expr")
+rValue = (expr)("rValue")
+assign = Group(lValue + (Literal("<")("assignID") + Optional(Word(alphas + nums + '_')("assignTag")) + Literal("-")) + rValue)("assign")
 parameters = Group(delimitedList(rValue, ','))("parameters")
-funcCall = Group(CID("calledFunc") + Literal("(") + parameters + ")")("funcCall")
-actionID = ("actionID")
-assign = Group(lValue + Literal("<-")("assignID") + rValue)("assign")
-RightLValue = lValue ("RightLValue")
-swap = Group(lValue + Literal("<->")("swapID") + RightLValue)("swap")
-expr = (Literal("expr"))("expr")
+funcCall <<= (CID("calledFunc") + Literal("(") + parameters + ")")("funcCall")
 ########################################
 actionSeq = Forward()
 conditionalAction = Forward()
 conditionalAction <<= Group(Group(Keyword("if") + "(" + expr("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")+ Optional(Keyword("else") + (actionSeq | conditionalAction)("elseBody"))("optionalElse"))("conditionalAction")
-untilExpr = expr ("untilExpr")
-whereExpr = expr ("whereExpr")
-repeatedAction = Group(Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ lValue("repList") + ":" + Optional(Keyword("where") + "(" + whereExpr + ")") + Optional(Keyword("until") + "(" + untilExpr + ")") + actionSeq)("elseBody")("repeatedAction")
-action = (varSpec | funcCall | assign | swap)("action")
+repeatedAction = Group(Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ lValue("repList") + ":" + Optional(Keyword("where") + "(" + expr("whereExpr") + ")") + Optional(Keyword("until") + "(" + expr("untilExpr") + ")") + actionSeq)("elseBody")("repeatedAction")
+action = (varSpec | Group(funcCall) | assign | swap)("action")
 actionSeq <<=  Group(Literal("{")("actSeqID") + Group( ZeroOrMore (conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 #########################################
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 returnType = (verbatim("returnTypeVerbatim")| typeSpec("returnTypeSpec"))("returnType")
 optionalTag = Literal(":")("optionalTag")
-funcName = CID("funcName")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
-funcSpec = Group(Keyword("func")("funcIndicator") + returnType + ":" + funcName + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
+funcSpec = Group(Keyword("func")("funcIndicator") + returnType + ":" + CID("funcName") + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
 #funcSpec.setParseAction( reportParserPlace)
 fieldDef = (flagDef | modeSpec | varSpec | constSpec | funcSpec)("fieldDef")
 objectName = CID("objectName")
@@ -145,18 +143,14 @@ def extractActItem(funcName, actionItem):
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
         ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
-        #elseBody = {"if":'xxx', "act":'xxx'}
         elseBodyOut = {}
-        #print elseBody
         if (actionItem.optionalElse):
             elseBodyIn = actionItem.optionalElse
             if (elseBodyIn.conditionalAction):
                 elseBodyOut = extractActItem(funcName, elseBodyIn.conditionalAction)
-                #elseBody['if'] = elseBodyOut
                 #print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBody
             elif (elseBodyIn.actionSeq):
                 elseBodyOut = extractActItem(funcName, elseBodyIn.actionSeq)
-                #elseBody['act']  = elseBodyOut
                 #print "\n ELSE........ELSE........ELSE........ELSE........ELSE: ", elseBody
         #print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBody
         thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut}
@@ -185,8 +179,11 @@ def extractActItem(funcName, actionItem):
     elif (actionItem.assignID):
         RHS = actionItem.rValue
         LHS = actionItem.lValue
-        #print "ASSIGN...ASSIGN...ASSIGN...ASSIGN...ASSIGN...ASSIGN: ", assignRValue, assignRValue
-        thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS}
+        assignTag = ''
+        print "ASSIGN...ASSIGN...ASSIGN...ASSIGN...ASSIGN...ASSIGN: ", RHS, LHS
+        if (actionItem.assignTag):
+            assignTag = actionItem.assignTag
+        thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS, 'assignTag':assignTag}
     # Swap
     elif (actionItem.swapID):
         RHS = actionItem.RightLValue
@@ -274,7 +271,7 @@ def extractFuncDef(localObjectName, localFieldResults):
     return [returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim]
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
-    print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
+    #print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
     #print fieldResults
     for fieldResult in fieldResults:
 
@@ -285,7 +282,7 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
             fieldTag=fieldTag[0]
         if (fieldResult.flagIndicator):
             thisFlagName = fieldResult.flagName
-            print "thisFlagName", thisFlagName
+            #print "thisFlagName", thisFlagName
             progSpec.addFlag(localProgSpec, localObjectName, fieldResult[2])
         elif fieldResult.modeIndicator:
             thisModeName = fieldResult.modeName
@@ -294,9 +291,9 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
             progSpec.addMode(localProgSpec, localObjectName, thisModeName, thisModeList)
         elif fieldResult.constIndicator:
             constValue = fieldResult.constValue
-            print"@@@@@"
-            print fieldTag
-            print constValue
+            #print"@@@@@"
+            #print fieldTag
+            #print constValue
             progSpec.addConst(localProgSpec, localObjectName, fieldResult.cppType, fieldResult.constName, constValue)
             #exit(1)
         elif fieldResult.funcIndicator:
