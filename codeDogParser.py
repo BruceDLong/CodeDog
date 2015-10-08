@@ -38,7 +38,6 @@ buildSpec = Group(buildID + Literal(":").suppress() + buildDefList + ";")("build
 buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 #######################################
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
-verbatim.setParseAction( reportParserPlace)
 modeSpec = Group(Keyword("mode")("modeIndicator") + ":" + CID ("modeName")+ "[" + CIDList("modeList") + "]")("modeSpec")
 varName = CID ("varName")
 typeSpec = Forward()
@@ -52,7 +51,7 @@ constSpec = Group(Keyword("const")("constIndicator") + cppType + ":" + constName
 flagName = CID("flagName")
 flagDef = Group(Keyword("flag")("flagIndicator") + ":" + flagName)("flagDef")
 #######################################
-lValue = Literal("lValue")("lValue")
+lValue = Literal("lValue")("lValue") #Group(CID + Optional(Literal('.').suppress() + CID)
 rValue = Literal("rValue")("rValue")
 parameters = Group(delimitedList(rValue, ','))("parameters")
 funcCall = Group(CID("calledFunc") + Literal("(") + parameters + ")")("funcCall")
