@@ -101,7 +101,6 @@ def fetchTagValue(tagStoreArray, tagToFind):
         if(tagRet):
             return tagRet[0]
     return None
-
 def setTagValue(tagStore, tagToSet, tagValue):
     tagRet=searchATagStore(tagStore, tagToSet)
     tagRet[0]=tagValue
