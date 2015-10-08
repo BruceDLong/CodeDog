@@ -2,9 +2,7 @@
 import progSpec
 import re
 
-
 buildStr_libs='g++ -g -std=gnu++11 Prot.cpp '
-
 def bitsNeeded(n):
     if n <= 1:
         return 0
@@ -399,7 +397,6 @@ def integrateLibrary(tags, libID):
         tags[0]['Include'] +=', <'+libHdr+'>'
         print "Added header", libHdr
     print 'BUILD STR', buildStr_libs
-
 
 def connectLibraries(objects, tags):
     print "Choosing Libaries to link..."

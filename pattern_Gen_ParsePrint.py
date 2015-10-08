@@ -12,8 +12,8 @@ def parseParserSpec():
     FieldSpec = Group(fieldsName + Optional((Literal('.') | Literal('->')).suppress() + fieldsName))
     ValueSpec = FieldSpec | Word(nums) | (Keyword('true') | Keyword('false')) | quotedString
     WhitespaceEL = Keyword("WS")
-    BaseEL = (WhitespaceEL| Keyword('STRING') | Keyword('CID') | Keyword('UNICODE_ID')
-         | Keyword("DEC_NUM")  | Keyword("HEX_NUM")  | Keyword("BIN_NUM") )
+    BaseEL = Group((WhitespaceEL| Keyword('STRING') | Keyword('CID') | Keyword('UNICODE_ID')
+         | Keyword("DEC_NUM")  | Keyword("HEX_NUM")  | Keyword("BIN_NUM") ) + Optional(':'+fieldsName))
     SetFieldStmt = Group(FieldSpec + '=' + ValueSpec)
     PeekNotEL = "!" + quotedString
     LiteralEL = quotedString
@@ -42,30 +42,13 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
     indent2=indent+"    "
     batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
     if(type(parseEL)==type("")):
-        movTag="FIXME"
+        movTag=""
+        #if(???) movTag=
         if(parseEL[0]=='"'):
             batchArgs[1] += "nxtTok(cursor, "+parseEL+")"
             printerArgs[1] ='S+='+parseEL+';'
         elif(parseEL=='WS'):
             batchArgs[1] += "RmvWSC(cursor)"
-            printerArgs[1] ='S+=" ";\n'
-        elif(parseEL=='STRING'):
-            batchArgs[1] += 'nxtTok(cursor, "ABC")\nITEM <'+ movTag+'- buf'
-            printerArgs[1] ='S+=" ";\n'
-        elif(parseEL=='CID'):
-            batchArgs[1] += 'nxtTok(cursor, "cTok")\nITEM <'+ movTag+'- buf'
-            printerArgs[1] ='S+=" ";\n'
-        elif(parseEL=='UNICODE_ID'):
-            batchArgs[1] += 'nxtTok(cursor, "unicodeTok")\nITEM <'+ movTag+'- buf'
-            printerArgs[1] ='S+=" ";\n'
-        elif(parseEL=='DEC_NUM'):
-            batchArgs[1] += 'nxtTok(cursor, "123")\nITEM <'+ movTag+'- buf'
-            printerArgs[1] ='S+=" ";\n'
-        elif(parseEL=='HEX_NUM'):
-            batchArgs[1] += 'nxtTok(cursor, "0x#")\nITEM <'+ movTag+'- buf'
-            printerArgs[1] ='S+=" ";\n'
-        elif(parseEL=='BIN_NUM'):
-            batchArgs[1] += 'nxtTok(cursor, "0b#")\nITEM <'+ movTag+'- buf'
             printerArgs[1] ='S+=" ";\n'
         else:
             batchArgs[1] +=  "<" +parseEL+ ">"
@@ -172,6 +155,26 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         print "XXXXXXXXXX", sType, parseEL[1];
         batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
         printerArgs[1] = indent + "S += "+parseEL[1]+printCmd
+
+
+    elif(parseEL[0]=='STRING'):
+        batchArgs[1] += 'nxtTok(cursor, "ABC")\nITEM <'+ parseEL[1]+'- buf'
+        printerArgs[1] ='S+=" ";\n'
+    elif(parseEL[0]=='CID'):
+        batchArgs[1] += 'nxtTok(cursor, "cTok")\nITEM <'+ parseEL[1]+'- buf'
+        printerArgs[1] ='S+=" ";\n'
+    elif(parseEL[0]=='UNICODE_ID'):
+        batchArgs[1] += 'nxtTok(cursor, "unicodeTok")\nITEM <'+ parseEL[1]+'- buf'
+        printerArgs[1] ='S+=" ";\n'
+    elif(parseEL[0]=='DEC_NUM'):
+        batchArgs[1] += 'nxtTok(cursor, "123")\nITEM <'+ parseEL[1]+'- buf'
+        printerArgs[1] ='S+=" ";\n'
+    elif(parseEL[0]=='HEX_NUM'):
+        batchArgs[1] += 'nxtTok(cursor, "0x#")\nITEM <'+ parseEL[1]+'- buf'
+        printerArgs[1] ='S+=" ";\n'
+    elif(parseEL[0]=='BIN_NUM'):
+        batchArgs[1] += 'nxtTok(cursor, "0b#")\nITEM <'+ parseEL[1]+'- buf'
+        printerArgs[1] ='S+=" ";\n'
     else:
         print indent, parseEL
 

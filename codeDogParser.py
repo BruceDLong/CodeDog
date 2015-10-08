@@ -45,6 +45,7 @@ typeSpec = Forward()
 typeSpec <<= Group((Keyword("var")| Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr")) + (typeSpec | varType))("typeSpec")
 varSpec = Group(typeSpec + Literal(":").suppress() + varName)("varSpec")
 argList =  verbatim | Group(Optional(delimitedList(Group(varSpec))))("argList")
+
 constName = CID("constName")
 constValue = value("constValue")
 constSpec = Group(Keyword("const")("constIndicator") + cppType + ":" + constName + "=" + constValue)("constSpec")
@@ -73,6 +74,7 @@ actionSeq <<=  Group(Literal("{")("actSeqID") + Group( ZeroOrMore (conditionalAc
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 returnType = (verbatim("returnTypeVerbatim")| typeSpec("returnTypeSpec"))("returnType")
 optionalTag = Literal(":")("optionalTag")
+funcName = CID("funcName")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
 funcSpec = Group(Keyword("func")("funcIndicator") + returnType + ":" + CID("funcName") + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
 #funcSpec.setParseAction( reportParserPlace)
@@ -143,14 +145,18 @@ def extractActItem(funcName, actionItem):
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
         ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
+        #elseBody = {"if":'xxx', "act":'xxx'}
         elseBodyOut = {}
+        #print elseBody
         if (actionItem.optionalElse):
             elseBodyIn = actionItem.optionalElse
             if (elseBodyIn.conditionalAction):
                 elseBodyOut = extractActItem(funcName, elseBodyIn.conditionalAction)
+                #elseBody['if'] = elseBodyOut
                 #print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBody
             elif (elseBodyIn.actionSeq):
                 elseBodyOut = extractActItem(funcName, elseBodyIn.actionSeq)
+                #elseBody['act']  = elseBodyOut
                 #print "\n ELSE........ELSE........ELSE........ELSE........ELSE: ", elseBody
         #print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBody
         thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut}

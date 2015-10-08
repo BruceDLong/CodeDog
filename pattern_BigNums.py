@@ -14,6 +14,8 @@ struct BigFrac :mpq_class {
     BigFrac(const int32_t &num=0):mpq_class(num){};
 };
 
+typedef BigFrac infonData;
+
 """
 
     progSpec.setCodeHeader('cpp', CPP_GlobalText)
