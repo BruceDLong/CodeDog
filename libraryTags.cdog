@@ -1,0 +1,11 @@
+// libraryTags.cdog
+
+libraries = {
+    gmp={
+        useStatus='static'
+        description='Gnu library to provide arithmetic for arbitrarily large integers, floats and fractions.'
+        features=[BigNumbers, BigFractions]
+        libFiles=[gmp, gmpxx]
+        headers=[gmp.h, gmpxx.h]
+    }
+}

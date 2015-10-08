@@ -45,6 +45,7 @@ typeSpec = Forward()
 typeSpec <<= Group((Keyword("var")| Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr")) + (typeSpec | varType))("typeSpec")
 varSpec = Group(typeSpec + Literal(":").suppress() + varName)("varSpec")
 argList =  verbatim | Group(Optional(delimitedList(Group(varSpec))))("argList")
+
 constName = CID("constName")
 constValue = value("constValue")
 constSpec = Group(Keyword("const")("constIndicator") + cppType + ":" + constName + "=" + constValue)("constSpec")
@@ -61,7 +62,7 @@ RightLValue = lValue ("RightLValue")
 swap = Group(lValue + Literal("<->")("swapID") + RightLValue)("swap")
 expr = (Literal("expr"))("expr")
 ########################################
-actionSeq = Forward() 
+actionSeq = Forward()
 conditionalAction = Forward()
 conditionalAction <<= Group(Group(Keyword("if") + "(" + expr("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")+ Optional(Keyword("else") + (actionSeq | conditionalAction)("elseBody"))("optionalElse"))("conditionalAction")
 untilExpr = expr ("untilExpr")
@@ -120,7 +121,6 @@ def extractTagDefs(tagResults):
         localTagStore[tagSpec.tagID] = tagVal
     return localTagStore
 
-
 def extractActSeqToActSeq(funcName, childActSeq):
     #print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQUextractActSeqToActSeq"
     #print childActSeq
@@ -132,7 +132,7 @@ def extractActSeqToActSeq(funcName, childActSeq):
 def extractActItem(funcName, actionItem):
     #print "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIextractActItem"
     #print "actionItem: ", actionItem
-    #print "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIextractActItem" 
+    #print "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIextractActItem"
     thisActionItem='error'
     # Create Variable: var | sPtr | uPtr | rPtr
     if actionItem.varName:
@@ -148,7 +148,7 @@ def extractActItem(funcName, actionItem):
         #elseBody = {"if":'xxx', "act":'xxx'}
         elseBodyOut = {}
         #print elseBody
-        if (actionItem.optionalElse):        
+        if (actionItem.optionalElse):
             elseBodyIn = actionItem.optionalElse
             if (elseBodyIn.conditionalAction):
                 elseBodyOut = extractActItem(funcName, elseBodyIn.conditionalAction)
@@ -159,7 +159,7 @@ def extractActItem(funcName, actionItem):
                 #elseBody['act']  = elseBodyOut
                 #print "\n ELSE........ELSE........ELSE........ELSE........ELSE: ", elseBody
         #print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBody
-        thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut} 
+        thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut}
     # Repeated Action withEach
     elif actionItem.repeatedActionID:
         repName = actionItem.repName
@@ -208,7 +208,6 @@ def extractActItem(funcName, actionItem):
     #print "thisActionItem...thisActionItem...thisActionItem...thisActionItem: ", thisActionItem
     return thisActionItem
 
-
 def extractActSeq( funcName, childActSeq):
     #print childActSeq
     actionList = childActSeq.actionList
@@ -249,7 +248,6 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
         funcTextVerbatim = ""
     return funcBodyOut, funcTextVerbatim
 
-
 def extractFuncDef(localObjectName, localFieldResults):
     funcSpecs = []
     #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
@@ -275,14 +273,13 @@ def extractFuncDef(localObjectName, localFieldResults):
     [funcBodyOut, funcTextVerbatim] = extractFuncBody(localObjectName,funcName, funcBodyIn)
     return [returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim]
 
-
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
     print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
     #print fieldResults
     for fieldResult in fieldResults:
-        print  fieldResult
-        print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
+
         fieldTag = fieldResult[0]
+       # varType =fieldResult.varType
         if(not isinstance(fieldTag, basestring)):
             varType=fieldTag[1]
             fieldTag=fieldTag[0]
@@ -297,6 +294,9 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
             progSpec.addMode(localProgSpec, localObjectName, thisModeName, thisModeList)
         elif fieldResult.constIndicator:
             constValue = fieldResult.constValue
+            print"@@@@@"
+            print fieldTag
+            print constValue
             progSpec.addConst(localProgSpec, localObjectName, fieldResult.cppType, fieldResult.constName, constValue)
             #exit(1)
         elif fieldResult.funcIndicator:
@@ -332,7 +332,7 @@ def extractBuildSpecs(buildSpecResults):
     return resultBuildSpecs
 
 def extractObjectSpecs(localProgSpec, objNames, spec):
-    #print "SSSSSSSSSSSSSSSSSSSSSSSextractObjectSpecs = ", spec
+    #print spec
     ##########Grab object name
     progSpec.addObject(localProgSpec, objNames, spec.objectName)
     ###########Grab optional Object Tags

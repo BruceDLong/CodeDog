@@ -19,9 +19,8 @@ def apply(objects, tags, parserSpecTag):
     infonParser parser;
     parser.stream=&fileIn;
     streamSpan cursor;
-    infon* topInfon;
-    //infonPtr topInfPtr=make_shared(topInfon);
-    parser.BatchParse(&cursor, topInfon);
+    shared_ptr<infon> topInfon=make_shared<infon>();
+    parser.BatchParse(&cursor, topInfon.get());
     //topInfon->printToString();
     exit(0);
     //    eventHandler EvH;

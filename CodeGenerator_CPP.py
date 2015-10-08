@@ -2,6 +2,7 @@
 import progSpec
 import re
 
+buildStr_libs='g++ -g -std=gnu++11 Prot.cpp '
 def bitsNeeded(n):
     if n <= 1:
         return 0
@@ -189,7 +190,6 @@ def processActionSeq(actSeq, indent):
     actSeqText += "\n" + indent + "}"
     
     return actSeqText
-
 def headType(typeSpec): # e.g., xPtr or if var, int, uint, etc,
     if typeSpec[0]=='var': return typeSpec[1]
     return typeSpec[0]
@@ -226,16 +226,13 @@ def generate_constructor(objects, objectName, tags):
     return constructCode
 
 def processOtherFields(objects, objectName, tags, indent):
-    #print ".........processOtherFields...........processOtherFields...........processOtherFields"
-    #print "        Coding fields for", objectName
-    #print ".........processOtherFields...........processOtherFields...........processOtherFields"
+    print "        Coding fields for", objectName
     globalFuncs=''
     funcDefCode=''
     structCode=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
-        #print "........field........field........field: ",field
-        #print "........field........field........field: "
+        #print field
         kindOfField=field['kindOfField']
         if(kindOfField=='flag' or kindOfField=='mode'): continue
         fieldType=field['fieldType']
@@ -263,8 +260,7 @@ def processOtherFields(objects, objectName, tags, indent):
             structCode += indent + typeDefName +' '+ fieldName +";\n";
         #################################################################
         elif kindOfField=='func':
-            #print "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFffff"
-            if(fieldType=='none'): convertedType='' # this is no return type
+            if(fieldType=='none'): convertedType=''
             else:
                 #print convertedType
                 convertedType+=''
@@ -277,8 +273,6 @@ def processOtherFields(objects, objectName, tags, indent):
             else: 
                 print "error in processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
-            #print "funcText: ", funcText
-            #print "funcText...funcText...funcText...funcText...funcText...funcText", funcText
             #print "FUNCTEXT:",funcText
         ###########################################################
             if(objectName=='MAIN'):
@@ -310,8 +304,7 @@ def processOtherFields(objects, objectName, tags, indent):
                 else: typeDefName=convertedType
                 structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
                 objPrefix=objectName +'::'
-                #print "***...***...***...***...***...***: ", funcText
-                funcDefCode += typeDefName + ' ' + objPrefix + fieldName +"("+argListText+")" +funcText+"\n\n"
+                funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")" +funcText+"\n\n"
         elif kindOfField=='const':
             fieldValue=field['fieldValue']
             structCode += indent + 'const ' + fieldType +' ' + fieldName +" = "+fieldValue +';\n';
@@ -378,12 +371,25 @@ def makeFileHeader(tags):
     header += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
     return header
 
-def integrateLibrary(libID):
-    print '    ', libID
+def integrateLibrary(tags, libID):
+    print '    Integrating', libID, tags
+    libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
+    print "LIB_FILES", libFiles
+    global buildStr_libs
+    for libFile in libFiles:
+        buildStr_libs+=' -l'+libFile
+    libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
+    for libHdr in libHeaders:
+        tags[0]['Include'] +=', <'+libHdr+'>'
+        print "Added header", libHdr
+    print 'BUILD STR', buildStr_libs
 
 def connectLibraries(objects, tags):
     print "Choosing Libaries to link..."
-    if (progSpec.fetchTagValue(tags, 'largeNumbers') != None): integrateLibrary('gmp')
+    libList = progSpec.fetchTagValue(tags, 'libraries')
+    for lib in libList:
+        if (progSpec.fetchTagValue(tags, 'libraries."+lib+".useStatus')!='notLinked'):
+            integrateLibrary(tags, lib)
 
 def generate(objects, tags):
     print "\nGenerating CPP code...\n"
@@ -392,8 +398,7 @@ def generate(objects, tags):
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)
     typeDefCode = produceTypeDefs(typeDefMap)
-
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
-    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + typeDefCode + codeHeader + structCodeAcc + funcCodeAcc + topBottomStrings[1]
+    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + codeHeader + typeDefCode + structCodeAcc + funcCodeAcc + topBottomStrings[1]
     return outputStr
