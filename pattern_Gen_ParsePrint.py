@@ -44,21 +44,21 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
     if(type(parseEL)==type("")):
         movTag=""
         #if(???) movTag=
-        if(parseEL[0]=='"'):
+        if(parseEL[0]=='"' or parseEL[0]=="'"):
             batchArgs[1] += "nxtTok(cursor, "+parseEL+")"
             printerArgs[1] ='S+='+parseEL+';'
         elif(parseEL=='WS'):
             batchArgs[1] += "RmvWSC(cursor)"
             printerArgs[1] ='S+=" ";\n'
         else:
-            batchArgs[1] +=  "<" +parseEL+ ">"
+            batchArgs[1] +=  "<-WTF" +parseEL+ ">"
     elif(parseEL[0]=='('):
         #print indent, "Co-Factual"
         actionStr=""; testStr="";
         print "PREPING ACTION..."
         count=0
         for action in parseEL[1][2]:
-            print action
+            print "ACTION:",action
             resultStrs=progSpec.getActionTestStrings(objMap, structName, action)
             actionStr+=resultStrs[1]
             if(count>0): testStr+=" && "
@@ -70,7 +70,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
         TraverseParseElement(objMap, structName, Item, batchArgs, pulseArgs, printerArgs, indent2)
         batch0="    func var bool: parseCoFactual_"+str(tagModifier)+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM)<%{\n"
-        batch0+= indent+"if(" + batchArgs[1] + ") {"+actionStr+"} else {MARK_ERROR; return false;}\n"
+        batch0+= "    "+"if(" + batchArgs[1] + ") {"+actionStr+"} else {MARK_ERROR; return false;}\n"
         batchArgs[0]+="\n"+batch0+"    }; %>\n"
         batchArgs[1]="parseCoFactual_"+str(tagModifier)+"(cursor, ITEM)"
 
@@ -85,7 +85,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         batch0="";
         batch0+="    func var bool: parseSequence_"+tagModifierS+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM ) <%{\n"
         for firstItem in parseEL[2]:
-            batch0 += indent+"if(!"
+            batch0 += "    "+"if(!"
             batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
             TraverseParseElement(objMap, structName, firstItem, batchArgs, pulseArgs, printerArgs, indent2)
             batch1+=batchArgs[0]
@@ -94,7 +94,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
 
             print1+=printerArgs[1]
 
-        batch0+=indent+"return true;\n    }; %>\n\n\n"
+        batch0+="    "+"return true;\n    }; %>\n\n\n"
         batchArgs[0]=batch1+"\n"+batch0
         batchArgs[1]="parseSequence_"+tagModifierS+"(cursor, ITEM)"
         printerArgs[1]=print1
@@ -106,7 +106,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         batch1=""
         batch0="    func var bool: parseAltList_"+tagModifierS+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM )<%{\n"
         for firstItem in parseEL[2]:
-            batch0 += indent+"if("
+            batch0 += "    "+"if("
             batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
             TraverseParseElement(objMap, structName, firstItem, batchArgs, pulseArgs, printerArgs, indent2)
             batch1+=batchArgs[0]
@@ -114,7 +114,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
             batch0+=") {return true;}\n"
 
             print1+=printerArgs[1]
-        batch0+=indent+"return false;\n    }; %>\n\n\n"
+        batch0+="    "+"return false;\n    }; %>\n\n\n"
         batchArgs[0]=batch1+"\n"+batch0
         batchArgs[1]="parseAltList_"+tagModifierS+"(cursor, ITEM)"
 
@@ -124,7 +124,9 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         batch1=""
         batch0="";
         batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
+        print "PARSEEL[1]:", parseEL[1]
         TraverseParseElement(objMap, structName, parseEL[1], batchArgs, pulseArgs, printerArgs, indent2)
+        print "     =", batchArgs
         batch1+=batchArgs[0]
         batch0+=batchArgs[1]
         batchArgs[1] = "(" + batch0 + "||true)"
@@ -149,38 +151,59 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
             printCmd="->printToString();\n"
         elif(FieldData[0]=="sPtr" or FieldData[0]=="uPtr"):
             sField="ITEM->"+parseEL[1]+".get()"
+        elif(FieldData[0]=="list"):
+            #TODO Handle List
+            print "PARSE NEEDS CODED FOR LIST"
         else:
             sField = "ITEM->"+parseEL[1]
             printCmd=".printToString();\n"
         print "XXXXXXXXXX", sType, parseEL[1];
         batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
-        printerArgs[1] = indent + "S += "+parseEL[1]+printCmd
+        printerArgs[1] = "    " + "S += "+parseEL[1]+printCmd
 
-
-    elif(parseEL[0]=='STRING'):
-        batchArgs[1] += 'nxtTok(cursor, "ABC")\nITEM <'+ parseEL[1]+'- buf'
-        printerArgs[1] ='S+=" ";\n'
-    elif(parseEL[0]=='CID'):
-        batchArgs[1] += 'nxtTok(cursor, "cTok")\nITEM <'+ parseEL[1]+'- buf'
-        printerArgs[1] ='S+=" ";\n'
-    elif(parseEL[0]=='UNICODE_ID'):
-        batchArgs[1] += 'nxtTok(cursor, "unicodeTok")\nITEM <'+ parseEL[1]+'- buf'
-        printerArgs[1] ='S+=" ";\n'
-    elif(parseEL[0]=='DEC_NUM'):
-        batchArgs[1] += 'nxtTok(cursor, "123")\nITEM <'+ parseEL[1]+'- buf'
-        printerArgs[1] ='S+=" ";\n'
-    elif(parseEL[0]=='HEX_NUM'):
-        batchArgs[1] += 'nxtTok(cursor, "0x#")\nITEM <'+ parseEL[1]+'- buf'
-        printerArgs[1] ='S+=" ";\n'
-    elif(parseEL[0]=='BIN_NUM'):
-        batchArgs[1] += 'nxtTok(cursor, "0b#")\nITEM <'+ parseEL[1]+'- buf'
-        printerArgs[1] ='S+=" ";\n'
     else:
-        print indent, parseEL
+        opAssignTag=''
+        bufTypeTag=''
+        if len(parseEL)>1: opAssignTag=parseEL[2]
+        funcName="parseBuffer_"+parseEL[0]+str(tagModifier)
+        batch0="    func var bool: "+funcName+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM )<%{\n"
+        tagModifier+=1
+        if(parseEL[0]=='STRING'):
+            bufTypeTag="ABC"
+
+        elif(parseEL[0]=='CID'):
+            bufTypeTag="cTok"
+
+        elif(parseEL[0]=='UNICODE_ID'):
+            bufTypeTag="unicodeTok"
+
+        elif(parseEL[0]=='DEC_NUM'):
+            bufTypeTag="123"
+
+        elif(parseEL[0]=='HEX_NUM'):
+            bufTypeTag="0x#"
+
+        elif(parseEL[0]=='BIN_NUM'):
+            bufTypeTag="0b#"
+
+        elif(parseEL[0]=='WS'):
+            batch0=""
+            batchArgs[1] += "RmvWSC(cursor)"
+
+        else:
+            print "Unknown parse", "    ", parseEL
+            exit(1)
+
+        printerArgs[1] ='S+=" ";\n'
+        if(parseEL[0] != 'WS'):
+            batch0+='    if(!nxtTok(cursor, "'+bufTypeTag+'")) {return false;}\n    else {opAssign_'+opAssignTag+'(ITEM, buf);}\n'
+            batch0+="    "+"return true;\n    };\n%>\n\n"
+            batchArgs[0] = batch0
+            batchArgs[1] = funcName+"(cursor, ITEM)"
 
     BatchParser[0]+=batchArgs[0]; BatchParser[1]+=batchArgs[1];
     PulseParser[0]+=pulseArgs[0]; PulseParser[1]+=pulseArgs[1];
-    PrintFunc[0]+=printerArgs[0]; PrintFunc[1]+=printerArgs[1];
+    #PrintFunc[0]+=printerArgs[0]; PrintFunc[1]+=printerArgs[1];
 
 def apply(objects, tags, parserSpecTag, startSymbol):
     parserSpec = tags[parserSpecTag]
@@ -222,8 +245,7 @@ def apply(objects, tags, parserSpecTag, startSymbol):
 
     CPP_GlobalText = r"""
 
-#const int bufmax = 32*1024;
-###typedef char bufType[bufmax];
+const int bufmax = 32*1024;
 #define streamEnd (stream->eof() || stream->fail())
 #define ChkNEOF {if(streamEnd) {flags|=fileError; statusMesg="Unexpected End of file"; break;}}
 #define getbuf(cursor, c) {ChkNEOF; buf=""; for(p=0;(c) && !streamEnd ; ++p){buf+=streamGet(cursor); if (p>=bufmax) {flags|=fileError; statusMesg="String unreasonably long"; break;}}}

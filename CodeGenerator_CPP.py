@@ -81,6 +81,8 @@ def convertType(fieldType):
             cppType="shared_ptr<"+baseType + '> '
         elif kindOfField=='uPtr':
             cppType="unique_ptr<"+baseType + '> '
+        elif kindOfField=='list':
+            cppType="vector<"+baseType + '> '
         else: cppType=kindOfField; print "RETURNTYPE:", fieldType
     return cppType
 
@@ -149,19 +151,19 @@ def processAction(action, indent):
                 elseIfText = processAction(elseIf, indent)
                 #print "ELSE IF:  ELSE IF:  ELSE IF:  ELSE IF:  ", elseIfText
                 actionText += indent + "else " + elseIfText
-                
+
             elif (elseBody['actionList'] ):
                 elseActSeq = elseBody['actionList']
                 elseText = processActionSeq(elseActSeq, indent)
                 #print "ELSE: ELSE: ELSE: ELSE: ELSE: ", elseText
-                actionText += indent + "else" + elseText  
+                actionText += indent + "else" + elseText
     elif (typeOfAction =='repetition'):
         #print "repetition: ", action
         #whereExpr = action['whereExpr']
         repBody = action['repBody']
         repName = action['repName']
         repList = ".".join(action['repList'])
-        actionText += indent + "for ( auto " + repName + ":" + repList + "){\n" 
+        actionText += indent + "for ( auto " + repName + ":" + repList + "){\n"
         if action['whereExpr']:
             whereExpr = stringifyArray(action['whereExpr'])
             actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
@@ -202,7 +204,7 @@ def processActionSeq(actSeq, indent):
         #print actionText
         actSeqText += actionText
     actSeqText += "\n" + indent + "}"
-    
+
     return actSeqText
 def headType(typeSpec): # e.g., xPtr or if var, int, uint, etc,
     if typeSpec[0]=='var': return typeSpec[1]
@@ -264,11 +266,7 @@ def processOtherFields(objects, objectName, tags, indent):
             typeStr=convertedType # + '*'
             registerType(objectName, fieldName, typeStr, "")
             structCode += indent + typeStr + fieldName +";\n";
-        elif kindOfField=='sPtr':
-            typeStr=convertedType
-            registerType(objectName, fieldName, typeStr, typeDefName)
-            structCode += indent + typeDefName +' '+ fieldName +";\n";
-        elif kindOfField=='uPtr':
+        elif kindOfField=='sPtr' or kindOfField=='uPtr' or kindOfField=='list':
             typeStr=convertedType
             registerType(objectName, fieldName, typeStr, typeDefName)
             structCode += indent + typeDefName +' '+ fieldName +";\n";
@@ -284,7 +282,7 @@ def processOtherFields(objects, objectName, tags, indent):
             # if no verbatim found so generate function text from action sequence
             elif field['funcText']:
                 funcText=processActionSeq(field['funcText'], indent)
-            else: 
+            else:
                 print "error in processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
             #print "FUNCTEXT:",funcText
@@ -297,12 +295,18 @@ def processOtherFields(objects, objectName, tags, indent):
                     if argList[0]=='<%':
                         argListText=argList[1][0]
                     else:
-                        argListText="Argument List Needs Generated"
+                        argListText=""
+                        count=0
+                        for arg in argList:
+                            if(count>0): argListText+=", "
+                            count+=1
+                            argListText+= convertType(arg[0][0]) +' '+ arg[0][1]
                     globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")" +funcText+"\n\n"
             else:
                 argList=field['argList']
                 if len(argList)==0:
                     argListText='void'
+                    print "VOID:", argList
                 elif argList[0]=='<%':
                     argListText=argList[1][0]
                 else:
@@ -311,7 +315,7 @@ def processOtherFields(objects, objectName, tags, indent):
                     for arg in argList:
                         if(count>0): argListText+=", "
                         count+=1
-                        argListText+= convertType(arg.typeSpecKind +' '+ arg.varName)
+                        argListText+= convertType(arg[0][0]) +' '+ arg[0][1]
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') ', funcText
                 if(fieldType[0] != '<%'):
                     registerType(objectName, fieldName, convertedType, typeDefName)
@@ -407,12 +411,12 @@ def connectLibraries(objects, tags):
 
 def generate(objects, tags):
     print "\nGenerating CPP code...\n"
-    #libInterfacesText=connectLibraries(objects, tags)
+    libInterfacesText=connectLibraries(objects, tags)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)
     typeDefCode = produceTypeDefs(typeDefMap)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
-    outputStr = header + topBottomStrings[0] + constsEnums + forwardDecls + codeHeader + typeDefCode + structCodeAcc + funcCodeAcc + topBottomStrings[1]
+    outputStr = header + constsEnums + forwardDecls + codeHeader + typeDefCode + structCodeAcc + topBottomStrings[0] + funcCodeAcc + topBottomStrings[1]
     return outputStr

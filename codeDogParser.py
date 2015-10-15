@@ -42,9 +42,9 @@ verbatim.setParseAction( reportParserPlace)
 modeSpec = Group(Keyword("mode")("modeIndicator") + ":" + CID ("modeName")+ "[" + CIDList("modeList") + "]")("modeSpec")
 varName = CID ("varName")
 typeSpec = Forward()
-typeSpec <<= Group((Keyword("var")| Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr")) + (typeSpec | varType))("typeSpec")
+typeSpec <<= Group((Keyword("var")| Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") | Keyword("list")) + (typeSpec | varType))("typeSpec")
 varSpec = Group(typeSpec + Literal(":").suppress() + varName)("varSpec")
-argList =  verbatim | Group(Optional(delimitedList(Group(varSpec))))("argList")
+argList =  (verbatim | Group(Optional(delimitedList(Group(varSpec)))))("argList")
 
 constName = CID("constName")
 constValue = value("constValue")
@@ -134,7 +134,7 @@ def extractActItem(funcName, actionItem):
     #print "actionItem: ", actionItem
     #print "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIextractActItem"
     thisActionItem='error'
-    # Create Variable: var | sPtr | uPtr | rPtr
+    # Create Variable: var | sPtr | uPtr | rPtr | list
     if actionItem.varName:
         thisTypeSpec = actionItem.typeSpec
         thisVarName = actionItem.varName
@@ -263,7 +263,7 @@ def extractFuncDef(localObjectName, localFieldResults):
     funcName = localFieldResults.funcName
     argList = localFieldResults.argList
     funcBodyIn = localFieldResults.funcBody
-    #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
+    print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
     #print "returnType: ", returnType
     #print "funcName: ", funcName
     #print "argList: ", argList

@@ -48,7 +48,7 @@ def addField(objSpecs, objectName, kindOfField, fieldType, fieldName):
     if(fieldName in objSpecs[objectName]["fields"]):
         print "Note: The field '", objectName, '::', fieldName, "' already exists. Not re-adding"
         return
-    if (kindOfField=="var" or kindOfField=="rPtr" or kindOfField=="sPtr" or kindOfField=="uPtr"):
+    if (kindOfField=="var" or kindOfField=="rPtr" or kindOfField=="sPtr" or kindOfField=="uPtr" or kindOfField=="list"):
         objSpecs[objectName]["fields"].append({'kindOfField':kindOfField, 'fieldType':fieldType, 'fieldName':fieldName})
         registerBaseType(fieldType, objectName)
     else:
@@ -121,6 +121,7 @@ def createTypedefName(ItmType):
         if(typeHead=='rPtr'): suffix='Ptr'
         elif(typeHead=='sPtr'): suffix='SPtr'
         elif(typeHead=='uPtr'): suffix='UPtr'
+        elif(typeHead=='list'): suffix='List'
         return baseType+suffix
 
 def getNameSegInfo(objMap, structName, fieldName):
@@ -158,6 +159,10 @@ def getFieldInfo(objMap, structName, fieldNameSegments):
                     referenceStr+= joiner+fieldName
                     structType=REF['fieldType'][1]
                 elif structKind=='iPtr' or structKind=='rPtr' or structKind=='sPtr' or structKind=='uPtr':
+                    referenceStr+= joiner+fieldName
+                    structType=REF['fieldType']
+                elif structKind=='list':
+                    # TODO: handle list
                     referenceStr+= joiner+fieldName
                     structType=REF['fieldType']
                 prevKind=structKind
