@@ -125,15 +125,17 @@ def createTypedefName(ItmType):
         return baseType+suffix
 
 def getNameSegInfo(objMap, structName, fieldName):
-    structToSearch = objMap[structName]
-    if not structToSearch: print "struct ", structName, " not found."; exit(2);
-    fieldListToSearch = structToSearch['fields']
-    if not fieldListToSearch: print "struct's fields ", structName, " not found."; exit(2);
-    for fieldRec in fieldListToSearch:
-        if fieldRec['fieldName']==fieldName:
-            print "FOR ", structName, '::', fieldName, ", returning", fieldRec
-            return fieldRec
-    return None
+	structToSearch = objMap[structName]
+	#print fieldName
+	if not structToSearch: print "struct ", structName, " not found."; exit(2);
+	fieldListToSearch = structToSearch['fields']
+	if not fieldListToSearch: print "struct's fields ", structName, " not found."; exit(2);
+	for fieldRec in fieldListToSearch:
+		#print "fieldRec['fieldName']", fieldRec['fieldName']
+		if fieldRec['fieldName']==fieldName:
+			print "FOR ", structName, '::', fieldName, ", returning", fieldRec
+			return fieldRec
+	return None
 
 def getFieldInfo(objMap, structName, fieldNameSegments):
     # return [kind-of-last-element,  reference-string, type-of-last-element]
@@ -143,31 +145,34 @@ def getFieldInfo(objMap, structName, fieldNameSegments):
     referenceStr=""
     print "    Getting Field Info for:", structName, fieldNameSegments
     for fieldName in fieldNameSegments:
-        print "    Segment:",structName,'::',fieldName;
-        REF=getNameSegInfo(objMap, structName, fieldName)
-        if(REF):
-            print "    REF:", REF
-            if 'kindOfField' in REF:
-                structKind=REF['kindOfField']
-                if(prevKind[1:]=="Ptr"): joiner='->'
-                else: joiner= '.'
-                if (structKind=='flag'):
-                    referenceStr+=joiner+"flags"
-                elif structKind=='mode':
-                    referenceStr+=joiner+'flags'
-                elif structKind=='var':
-                    referenceStr+= joiner+fieldName
-                    structType=REF['fieldType'][1]
-                elif structKind=='iPtr' or structKind=='rPtr' or structKind=='sPtr' or structKind=='uPtr':
-                    referenceStr+= joiner+fieldName
-                    structType=REF['fieldType']
-                elif structKind=='list':
-                    # TODO: handle list
-                    referenceStr+= joiner+fieldName
-                    structType=REF['fieldType']
-                prevKind=structKind
-            structName=structType
-        else: print "Problem getting name seg info:", structName, fieldName; exit(1);
+		print "    Segment:",structName,'::',fieldName;
+		REF=getNameSegInfo(objMap, structName, fieldName)
+		#print "REF: ", REF
+		if(REF):
+			#print "    REF:", REF
+			if 'kindOfField' in REF:
+				structKind=REF['kindOfField']
+				#print "structKind", structKind
+				if(prevKind[1:]=="Ptr"): joiner='->'
+				else: joiner= '.'
+				if (structKind=='flag'):
+					referenceStr+=joiner+"flags"
+				elif structKind=='mode':
+					referenceStr+=joiner+'flags'
+				elif structKind=='var':
+					referenceStr+= joiner+fieldName
+					structType=REF['fieldType'][1]
+				elif structKind=='iPtr' or structKind=='rPtr' or structKind=='sPtr' or structKind=='uPtr':
+					referenceStr+= joiner+fieldName
+					structType=REF['fieldType']
+				elif structKind=='list':
+					print "LIST........LIST........LIST........LIST........LIST........"
+					# TODO: handle list
+					referenceStr+= joiner+fieldName
+					structType=REF['fieldType']
+				prevKind=structKind
+			structName=structType
+		else: print "Problem getting name seg info:", structName, fieldName; exit(1);
     return [structKind, referenceStr, structType]
 
 def getValueString(objMap, structName, valItem):
@@ -179,12 +184,12 @@ def getValueString(objMap, structName, valItem):
 def getActionTestStrings(objMap, structName, action):
     print "################################ Getting Action and Test string for", structName, "ACTION:", action
     LHS=getFieldInfo(objMap, structName, action[0])
-    print "LHS:", LHS
+    #print "LHS:", LHS
     RHS=getValueString(objMap, structName, action[2])
     leftKind=LHS[0]
     actionStr=""; testStr="";
     if leftKind =='flag':
-        print "ACTION[0]=", action[2][0]
+        #print "ACTION[0]=", action[2][0]
         actionStr="SetBits(ITEM->flags, "+action[0][-1]+", "+ action[2][0]+");"
         testStr="(flags&"+action[0][0]+")"
     elif leftKind == "mode":
@@ -198,4 +203,3 @@ def getActionTestStrings(objMap, structName, action):
         print "PTR - ERROR: CODE THIS"
         exit(2)
     return ([leftKind, actionStr, testStr])
-

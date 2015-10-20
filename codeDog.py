@@ -47,6 +47,8 @@ def replaceFileName(fileMatch):
 
 def ScanAndApplyPatterns(objects, tags):
     print "Applying Patterns..."
+    print "Applying Patterns..."
+    print "Applying Patterns..."
     for item in objects[1]:
         if item[0]=='!':
             pattName=item[1:]

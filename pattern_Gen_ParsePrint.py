@@ -38,9 +38,11 @@ tagModifier=1
 def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, PrintFunc, indent):
     # BatchParser[0] = text of parsing function being built.
     # BatchParser[1] = text of functions to add to the class.
+    print "TraverseParseElement: ", structName
     global tagModifier
     indent2=indent+"    "
     batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
+    #if it's a string can change to is instance progSpec.baseString()
     if(type(parseEL)==type("")):
         movTag=""
         #if(???) movTag=
@@ -52,21 +54,23 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
             printerArgs[1] ='S+=" ";\n'
         else:
             batchArgs[1] +=  "<-WTF" +parseEL+ ">"
+    # check for 
     elif(parseEL[0]=='('):
         #print indent, "Co-Factual"
         actionStr=""; testStr="";
-        print "PREPING ACTION..."
+        #print "PREPING ACTION..."
         count=0
         for action in parseEL[1][2]:
-            print "ACTION:",action
+            #print "ACTION:",action
             resultStrs=progSpec.getActionTestStrings(objMap, structName, action)
+            #print resultStrs
             actionStr+=resultStrs[1]
             if(count>0): testStr+=" && "
             count+=1
             testStr+=resultStrs[2]
 
         Item = parseEL[1][0]
-        print "=========================>",Item
+        #print "=========================>",Item
         batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
         TraverseParseElement(objMap, structName, Item, batchArgs, pulseArgs, printerArgs, indent2)
         batch0="    func var bool: parseCoFactual_"+str(tagModifier)+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM)<%{\n"
@@ -124,9 +128,9 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         batch1=""
         batch0="";
         batchArgs=["", ""]; pulseArgs=["", ""]; printerArgs=["", ""];
-        print "PARSEEL[1]:", parseEL[1]
+        #print "PARSEEL[1]:", parseEL[1]
         TraverseParseElement(objMap, structName, parseEL[1], batchArgs, pulseArgs, printerArgs, indent2)
-        print "     =", batchArgs
+        #print "     =", batchArgs
         batch1+=batchArgs[0]
         batch0+=batchArgs[1]
         batchArgs[1] = "(" + batch0 + "||true)"
@@ -143,6 +147,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         FieldData=progSpec.getFieldInfo(objMap, structName, [parseEL[1]])
         sType=getBaseTypeStr(FieldData[2])
         printCmd=""
+        print "#####################: ", FieldData[0]
         if(sType==""): sType=structName
         if(FieldData[0]=="var"):
             sField="&ITEM->"+parseEL[1]
@@ -152,8 +157,30 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         elif(FieldData[0]=="sPtr" or FieldData[0]=="uPtr"):
             sField="ITEM->"+parseEL[1]+".get()"
         elif(FieldData[0]=="list"):
-            #TODO Handle List
-            print "PARSE NEEDS CODED FOR LIST"
+			#TODO Handle List
+			print "PARSE NEEDS CODED FOR LIST: ", parseEL[1]
+			batch1=""
+			print1=""
+			batch0 = "func var bool: parse_Repetition_"+ str(tagModifier) + "(rPtr streamSpan: cursor, rPtr " + structName + ": ITEM )<%{\n"
+			batch0 += "    " + 'bool notDone = '
+			batchArgs = ["", ""]
+			pulseArgs = ["", ""]
+			printerArgs = ["", ""]
+			TraverseParseElement(objMap, structName, parseEL[1], batchArgs, pulseArgs, printerArgs, indent2)
+			batch1 += batchArgs[0]
+			batch0 += batchArgs[1]
+			batch0 += ';\n'+ "    " + 'while(notDone)\n'
+			batch0 += "    " + "    " + '{notDone = '
+			batch0 += batchArgs[1]
+			batch0 +=  '}\n'
+			batch0 += "    " + "return true;\n    }; %>\n\n\n"
+			#print1 += printerArgs[1]
+			
+			batchArgs[0] = batch1 + '\n' + batch0
+			sType = "Repetition_" + str(tagModifier) 
+			#printerArgs[1]=print1
+			sField = "ITEM->"+parseEL[1]
+			tagModifier+=1
         else:
             sField = "ITEM->"+parseEL[1]
             printCmd=".printToString();\n"
@@ -208,6 +235,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
 def apply(objects, tags, parserSpecTag, startSymbol):
     parserSpec = tags[parserSpecTag]
     AST = parseParserSpec()
+    print "PARSE.....PRINT.....PARSE.....PRINT....."
     try:
         print "Parsing Syntax Definition"
         results = AST.parseString(parserSpec, parseAll=True)
@@ -443,4 +471,3 @@ bool tagIsBad(string tag, const char* locale) {
     progSpec.addObject(objects[0], objects[1], parserStructsName)
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(parserStructsName, BatchParserFuncs))
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(parserStructsName, parserFields))
-

@@ -38,7 +38,7 @@ buildSpec = Group(buildID + Literal(":").suppress() + buildDefList + ";")("build
 buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 #######################################
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
-verbatim.setParseAction( reportParserPlace)
+#verbatim.setParseAction( reportParserPlace)
 modeSpec = Group(Keyword("mode")("modeIndicator") + ":" + CID ("modeName")+ "[" + CIDList("modeList") + "]")("modeSpec")
 varName = CID ("varName")
 typeSpec = Forward()
@@ -263,7 +263,7 @@ def extractFuncDef(localObjectName, localFieldResults):
     funcName = localFieldResults.funcName
     argList = localFieldResults.argList
     funcBodyIn = localFieldResults.funcBody
-    print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
+    #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
     #print "returnType: ", returnType
     #print "funcName: ", funcName
     #print "argList: ", argList
@@ -277,8 +277,8 @@ def extractFuncDef(localObjectName, localFieldResults):
     return [returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim]
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
-    #print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
-    #print fieldResults
+    print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
+    print fieldResults
     for fieldResult in fieldResults:
 
         fieldTag = fieldResult[0]
@@ -317,7 +317,7 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
             thisTypeSpec = fieldResult.typeSpec
             thisVarName = fieldResult.varName
             kindOfField = thisTypeSpec[0]
-            #print "VAR FIELD: ", kindOfField, thisTypeSpec, thisVarName
+            print "VAR FIELD: ", kindOfField, thisTypeSpec, thisVarName
             progSpec.addField(localProgSpec, localObjectName, kindOfField, thisTypeSpec, thisVarName)
         else:
             print "Error in extractFieldDefs"
@@ -406,5 +406,3 @@ def AddToObjectFromText(spec, objNames, inputStr):
     results = objectList.parseString(inputStr, parseAll = True)
     print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'
     extractObjectOrPattern(spec, objNames, results[0])
-
-
