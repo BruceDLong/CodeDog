@@ -54,7 +54,7 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
             printerArgs[1] ='S+=" ";\n'
         else:
             batchArgs[1] +=  "<-WTF" +parseEL+ ">"
-    # check for 
+    # check for
     elif(parseEL[0]=='('):
         #print indent, "Co-Factual"
         actionStr=""; testStr="";
@@ -151,41 +151,47 @@ def TraverseParseElement(objMap, structName, parseEL, BatchParser, PulseParser, 
         if(sType==""): sType=structName
         if(FieldData[0]=="var"):
             sField="&ITEM->"+parseEL[1]
+            batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
         elif(FieldData[0]=="rPtr"):
+            batch0="    func var bool: parseRPtr_"+sType+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM )<%{\n"
+            batch0 += "        " + "ITEM->"+parseEL[1]+" = new "+structName+";\n"
             sField="ITEM->"+parseEL[1]
+            batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
             printCmd="->printToString();\n"
         elif(FieldData[0]=="sPtr" or FieldData[0]=="uPtr"):
+            batch0="    func var bool: parseSPtr_"+sType+"(rPtr streamSpan:  cursor, rPtr "+structName+": ITEM )<%{\n"
             sField="ITEM->"+parseEL[1]+".get()"
+            batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
         elif(FieldData[0]=="list"):
-			#TODO Handle List
-			print "PARSE NEEDS CODED FOR LIST: ", parseEL[1]
-			batch1=""
-			print1=""
-			batch0 = "func var bool: parse_Repetition_"+ str(tagModifier) + "(rPtr streamSpan: cursor, rPtr " + structName + ": ITEM )<%{\n"
-			batch0 += "    " + 'bool notDone = '
-			batchArgs = ["", ""]
-			pulseArgs = ["", ""]
-			printerArgs = ["", ""]
-			TraverseParseElement(objMap, structName, parseEL[1], batchArgs, pulseArgs, printerArgs, indent2)
-			batch1 += batchArgs[0]
-			batch0 += batchArgs[1]
-			batch0 += ';\n'+ "    " + 'while(notDone)\n'
-			batch0 += "    " + "    " + '{notDone = '
-			batch0 += batchArgs[1]
-			batch0 +=  '}\n'
-			batch0 += "    " + "return true;\n    }; %>\n\n\n"
-			#print1 += printerArgs[1]
-			
-			batchArgs[0] = batch1 + '\n' + batch0
-			sType = "Repetition_" + str(tagModifier) 
-			#printerArgs[1]=print1
-			sField = "ITEM->"+parseEL[1]
-			tagModifier+=1
+            #TODO Handle List
+            print "PARSE NEEDS CODED FOR LIST: ", parseEL[1]
+            batch1=""
+            print1=""
+            batch0 = "func var bool: parse_Repetition_"+ str(tagModifier) + "(rPtr streamSpan: cursor, rPtr " + structName + ": ITEM )<%{\n"
+            batch0 += "    " + 'bool notDone = '
+            batchArgs = ["", ""]
+            pulseArgs = ["", ""]
+            printerArgs = ["", ""]
+            TraverseParseElement(objMap, structName, parseEL[1], batchArgs, pulseArgs, printerArgs, indent2)
+            batch1 += batchArgs[0]
+            batch0 += batchArgs[1]
+            batch0 += ';\n'+ "    " + 'while(notDone)\n'
+            batch0 += "    " + "    " + '{notDone = '
+            batch0 += batchArgs[1]
+            batch0 +=  '}\n'
+            batch0 += "    " + "return true;\n    }; %>\n\n\n"
+            #print1 += printerArgs[1]
+
+            batchArgs[0] = batch1 + '\n' + batch0
+            sType = "Repetition_" + str(tagModifier)
+            #printerArgs[1]=print1
+            sField = "ITEM->"+parseEL[1]
+            tagModifier+=1
+            batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
         else:
             sField = "ITEM->"+parseEL[1]
             printCmd=".printToString();\n"
-        print "XXXXXXXXXX", sType, parseEL[1];
-        batchArgs[1] = "parse_"+sType+"(cursor, "+sField+")"
+
         printerArgs[1] = "    " + "S += "+parseEL[1]+printCmd
 
     else:

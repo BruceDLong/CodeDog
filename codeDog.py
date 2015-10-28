@@ -109,6 +109,6 @@ print codeDogStr
 
 # objectSpecs is like: [ProgSpec, objNames]
 [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)
-
+tagStore['dogFilename']=file_name
 
 outputScript = GenerateSystem(objectSpecs, buildSpecs, tagStore)
