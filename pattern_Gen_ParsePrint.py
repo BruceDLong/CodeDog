@@ -474,6 +474,6 @@ bool tagIsBad(string tag, const char* locale) {
 
     progSpec.setCodeHeader('cpp', CPP_GlobalText)
     parserStructsName = startSymbol+"Parser"
-    progSpec.addObject(objects[0], objects[1], parserStructsName)
+    progSpec.addObject(objects[0], objects[1], parserStructsName, 'model')
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(parserStructsName, BatchParserFuncs))
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(parserStructsName, parserFields))

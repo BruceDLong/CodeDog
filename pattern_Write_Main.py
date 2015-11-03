@@ -16,12 +16,12 @@ def apply(objects, tags, parserSpecTag):
     string inputFilename="testInfon.pr";
     fstream fileIn("testInfon.pr");
     if (!fileIn.is_open()){cout<<"Could not open "<<inputFilename<<".\n"; exit(1);}
-    infonParser parser;
+/*    infonParser parser;
     parser.stream=&fileIn;
     streamSpan cursor;
     shared_ptr<infon> topInfon=make_shared<infon>();
     parser.BatchParse(&cursor, topInfon.get());
-    //topInfon->printToString();
+*/    //topInfon->printToString();
     exit(0);
     //    eventHandler EvH;
     //    int ret=EvH.eventLoop();
@@ -32,5 +32,5 @@ def apply(objects, tags, parserSpecTag):
 
 """
 
-    progSpec.addObject(objects[0], objects[1], 'MAIN')
+    progSpec.addObject(objects[0], objects[1], 'MAIN', 'struct')
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef('MAIN', mainFuncCode))

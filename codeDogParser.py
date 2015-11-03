@@ -2,7 +2,7 @@
 
 import re
 import progSpec
-from pyparsing import Word, alphas, nums, Literal, Keyword, Optional, OneOrMore, oneOf, ZeroOrMore, delimitedList, Group, ParseException, quotedString, Forward, StringStart, StringEnd, SkipTo
+from pyparsing import Word, alphas, nums, Literal, Keyword, Optional, OneOrMore, oneOf, ZeroOrMore, delimitedList, Group, ParseException, quotedString, Forward, StringStart, StringEnd, SkipTo, Combine
 
 def reportParserPlace(s, loc, toks):
     print "    PARSING AT char",loc, toks
@@ -20,9 +20,8 @@ varType = (objectName | cppType | numRange | Keyword("mesg"))("varType")
 boolValue = (Keyword("true") | Keyword("false"))("boolValue")
 floatNum = intNum + Optional("." + intNum)("floatNum")
 listVal = "[" + delimitedList(value, ",") + "]"
-strMapVal = Forward()
+strMapVal = "{" + delimitedList( quotedString() + ":" + value, ",")  + "}"
 value <<= (boolValue | intNum | floatNum | quotedString() | listVal | strMapVal)("value")
-strMapVal <<= "{" + delimitedList( quotedString() + ":" + value, ",")  + "}"
 backTickString = Literal("`").suppress() + SkipTo("`") + Literal("`").suppress()("backTickString")
 tagID = identifier("tagID")
 tagDefList = Forward()
@@ -40,6 +39,7 @@ buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 #verbatim.setParseAction( reportParserPlace)
 modeSpec = Group(Keyword("mode")("modeIndicator") + ":" + CID ("modeName")+ "[" + CIDList("modeList") + "]")("modeSpec")
+#varName = Group(CID ("varName")+Optional("(" + argList + ")"))("varName")
 varName = CID ("varName")
 typeSpec = Forward()
 typeSpec <<= Group((Keyword("var")| Keyword("sPtr") | Keyword("uPtr") | Keyword("rPtr") | Keyword("list")) + (typeSpec | varType))("typeSpec")
@@ -57,6 +57,10 @@ funcCall = Forward()
 #factor = (value | ('(' + expr + ')') | funcCall)("factor")
 #term = (factor + ZeroOrMore(oneOf('* / %') + factor))("term")
 #expr <<= (term + ZeroOrMore(oneOf('+ -') + term))("expr")
+arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
+secondRefSegment = (Literal('.').suppress() + CID | arrayRef)
+firstRefSegment = (CID | arrayRef)
+#varRef = Group(firstRefSegment + ZeroOrMore(secondRefSegment))("varRef")
 varRef = Group(CID + Optional(Literal('.').suppress() + CID))("varRef")
 lValue = varRef("lValue")
 factor = (value | ('(' + expr + ')') | funcCall | ('!' + expr) | ('-' + expr) | varRef)("factor")
@@ -86,11 +90,12 @@ funcName = CID("funcName")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
 funcSpec = Group(Keyword("func")("funcIndicator") + returnType + ":" + CID("funcName") + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
 #funcSpec.setParseAction( reportParserPlace)
-fieldDef = (flagDef | modeSpec | varSpec | constSpec | funcSpec)("fieldDef")
-objectName = CID("objectName")
+fieldDef = (Optional('>')('isNext') + (flagDef | modeSpec | varSpec | constSpec | funcSpec))("fieldDef")
 #########################################
 fieldDefs = Group(ZeroOrMore(fieldDef))("fieldDefs")
-objectDef = Group(Keyword("object") + objectName + Optional(optionalTag + tagDefList) + Literal("{").suppress() + fieldDefs + Literal("}").suppress())("objectDef")
+objectName = Combine(CID + Optional('::' + CID))("objectName")
+modelTypes = (Keyword("model") |Keyword("struct") |Keyword("string") |Keyword("stream"))
+objectDef = Group(modelTypes + objectName + Optional(optionalTag + tagDefList) + Literal("{").suppress() + fieldDefs + Literal("}").suppress())("objectDef")
 doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
 objectList = Group(ZeroOrMore(objectDef | doPattern))("objectList")
 progSpecParser = (tagDefList + buildSpecList + objectList)("progSpecParser")
@@ -342,10 +347,10 @@ def extractBuildSpecs(buildSpecResults):
         #print spec
     return resultBuildSpecs
 
-def extractObjectSpecs(localProgSpec, objNames, spec):
+def extractObjectSpecs(localProgSpec, objNames, spec, varType):
     #print spec
-    ##########Grab object name
-    progSpec.addObject(localProgSpec, objNames, spec.objectName)
+    objectName=spec.objectName[0]
+    progSpec.addObject(localProgSpec, objNames, objectName, varType)
     ###########Grab optional Object Tags
     #print "SSSSSSSSSSSSSSSSSSSSSSSSSspec.fieldDefs = ",spec.fieldDefs
     if spec.optionalTag:  #change so it generates an empty one if no field defs
@@ -355,24 +360,25 @@ def extractObjectSpecs(localProgSpec, objNames, spec):
     else:
         objTags = {}
         #fieldIDX = 3
-    progSpec.addObjTags(localProgSpec, spec.objectName, objTags)
+    progSpec.addObjTags(localProgSpec, objectName, objTags)
     ###########Grab field defs
-    extractFieldDefs(localProgSpec, spec.objectName, spec.fieldDefs)
+    extractFieldDefs(localProgSpec, objectName, spec.fieldDefs)
 
     return
 
 def extractPatternSpecs(localProgSpec, objNames, spec):
     #print spec
-    patternName=spec.objectName
+    patternName=spec.objectName[0]
     patternArgWords=spec.CIDList
     progSpec.addPattern(localProgSpec, objNames, patternName, patternArgWords)
     return
 
 def extractObjectOrPattern(localProgSpec, objNames, objectSpecResults):
     for spec in objectSpecResults:
-        if spec[0] == "object":
-            extractObjectSpecs(localProgSpec, objNames, spec)
-        elif spec[0] == "do":
+        s=spec[0]
+        if s == "model" or s == "struct" or s == "string" or s == "stream":
+            extractObjectSpecs(localProgSpec, objNames, spec, s)
+        elif s == "do":
             extractPatternSpecs(localProgSpec, objNames, spec)
         else:
             print "Error in extractObjectOrPattern; expected 'object' or 'do' and got '",spec[0],"'"

@@ -28,13 +28,13 @@ def addPattern(objSpecs, objectNameList, name, patternList):
     patternName='!'+name
     objectNameList.append(patternName)
     objSpecs[name]={'name':patternName, 'parameters':patternList}
-    print "ADDED PATTERN", name
+    print "ADDED PATTERN", name, patternName
 
-def addObject(objSpecs, objectNameList, name):
+def addObject(objSpecs, objectNameList, name, varType):
     if(name in objSpecs):
         print "Note: The struct '", name, "' is being added but already exists."
         return
-    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[]}
+    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], 'varType':varType}
     objectNameList.append(name)
     print "ADDED STRUCT: ", name
 
@@ -106,7 +106,7 @@ def setTagValue(tagStore, tagToSet, tagValue):
     tagRet[0]=tagValue
 
 def wrapFieldListInObjectDef(objName, fieldDefStr):
-    retStr='object '+objName +' {\n' + fieldDefStr + '\n}\n'
+    retStr='model '+objName +' {\n' + fieldDefStr + '\n}\n'
     return retStr
 
 ###############
