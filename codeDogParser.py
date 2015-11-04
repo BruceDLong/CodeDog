@@ -85,21 +85,21 @@ actionSeq <<=  Group(Literal("{")("actSeqID") + Group( ZeroOrMore (conditionalAc
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 returnType = (verbatim("returnTypeVerbatim")| typeSpec("returnTypeSpec"))("returnType")
 optionalTag = Literal(":")("optionalTag")
-funcName = CID("funcName")
+#funcName = CID("funcName")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
-funcSpec = Group(Keyword("func")("funcIndicator") + returnType + ":" + CID("funcName") + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
+#funcSpec = Group(Keyword("func")("funcIndicator") + returnType + ":" + CID("funcName") + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
 #funcSpec.setParseAction( reportParserPlace)
 nameAndVal = (
-          (Literal(":") + CID + "(" + argList + ")" + "=" + funcBody )
-        | (Literal(":") + CID + "=" + value )
+          (Literal(":") + CID("name") + "(" + argList + ")" + "=" + funcBody )
+        | (Literal(":") + CID("name")  + "=" + value )
         | (Literal(":") + "=" + (value | funcBody))
-        | (Literal(":") + CID + "(" + argList + ")"))("nameAndVal")
+        | (Literal(":") + CID("name")  + Optional("(" + argList + ")")))("nameAndVal")
 
 arraySpec = Group ('[' + Optional(intNum | numRange) + ']')("arraySpec")
 meOrMy = (Keyword("me") | Keyword("my"))
 owners = (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their"))
-modeSpec = Group(Optional(meOrMy) + Keyword("mode")("modeIndicator") + "[" + CIDList("modeList") + "]"+ nameAndVal("modeName"))("modeSpec")
-flagDef  = Group(Optional(meOrMy) + Keyword("flag") + nameAndVal )("flagDef")
+modeSpec = (Optional(meOrMy) + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal("modeName"))("modeSpec")
+flagDef  = (Optional(meOrMy) + Keyword("flag")("flagIndicator") + nameAndVal )("flagDef")
 #fieldDef = (Optional('>')('isNext') + (flagDef | modeSpec | varSpec | constSpec | funcSpec))("fieldDef")
 baseType = (cppType)("baseType")
 objectName = Combine(CID + Optional('::' + CID))("objectName")
@@ -110,9 +110,9 @@ fieldDefs = Forward()
 coFactualEL  = (Literal("(") + Group(fieldDefs + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEL")
 alternateEl  = (Literal("[") + Group(OneOrMore(fieldDefs + Optional("|").suppress())) + Literal("]"))("alternateEl")
 anonModel = (fieldDefs | alternateEl | coFactualEL ) ("anonModel")
-fullFieldDef = (Optional('>') + Optional(owners) + (baseType | objectName | anonModel) +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
-fieldDef = (flagDef | modeSpec | quotedString() | intNum | nameAndVal | fullFieldDef)("fieldDef")
-fieldDefs <<=  (Literal("{") + Group(ZeroOrMore(fieldDef))+ Literal("}"))("fieldDefs")
+fullFieldDef = (Optional('>')('isNext') + Optional(owners) + (baseType | objectName | anonModel)('fieldVarType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
+fieldDef = Group(flagDef | modeSpec | quotedString() | intNum | nameAndVal | fullFieldDef)("fieldDef")
+fieldDefs <<=  (Literal("{").suppress() + (ZeroOrMore(fieldDef))+ Literal("}").suppress())("fieldDefs")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(optionalTag + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
 doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
@@ -285,22 +285,22 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
 
 def extractFuncDef(localObjectName, localFieldResults):
     funcSpecs = []
-    #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
-    #print localObjectName, "****", localFieldResults
-    if (localFieldResults.returnType[0]=='<%'):
+    print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
+    print localObjectName, "****", localFieldResults
+    if (localFieldResults.fieldVarType =='<%'):
         returnType = localFieldResults.returnType[1][0]
     else:
-        returnType = localFieldResults.returnType
+        returnType = localFieldResults.fieldVarType
     #else: print 'Bad return type', localFieldResults.returnType[1]; exit(1);
     funcName = localFieldResults.funcName
     argList = localFieldResults.argList
     funcBodyIn = localFieldResults.funcBody
-    #print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
-    #print "returnType: ", returnType
-    #print "funcName: ", funcName
-    #print "argList: ", argList
-    #print "funcBody: ", funcBodyIn
-    #print "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+    print "FFFFFFFFFFFFFFFFFFFFFFFFFextractFuncDef:"
+    print "returnType: ", returnType
+    print "funcName: ", funcName
+    print "argList: ", argList
+    print "funcBody: ", funcBodyIn
+    print "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
     if localFieldResults.optionalTag:
         tagList = localFieldResults[tagDefList]
     else:
@@ -310,22 +310,35 @@ def extractFuncDef(localObjectName, localFieldResults):
 
 def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
     print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
-    print fieldResults
+    #print fieldResults
     for fieldResult in fieldResults:
-
+        print fieldResult
         fieldTag = fieldResult[0]
        # varType =fieldResult.varType
         if(not isinstance(fieldTag, basestring)):
             varType=fieldTag[1]
             fieldTag=fieldTag[0]
         if (fieldResult.flagIndicator):
-            thisFlagName = fieldResult.flagName
-            #print "thisFlagName", thisFlagName
-            progSpec.addFlag(localProgSpec, localObjectName, fieldResult[2])
+            if (fieldResult.isNext):
+                thisIsNext = fieldResult.isNext
+            else:
+                thisIsNext = None
+            if (fieldResult.meOrMy):
+                thisOwner = fieldResult.meOrMy
+            else:
+                thisOwner = "me"
+            thisType = fieldResult.flagIndicator
+            thisName = fieldResult.name
+            if (fieldResult.value):
+                thisVal = fieldResult.value
+            else:
+                thisVal = "False"
+            print "thisFlag:", thisIsNext, thisOwner, thisType, thisName, thisVal
+            progSpec.addFlag(localProgSpec, localObjectName, thisIsNext, thisOwner, thisType, thisName, thisVal)
         elif fieldResult.modeIndicator:
             thisModeName = fieldResult.modeName
             thisModeList = fieldResult.modeList
-            #print "Mode: ", thisModeName, thisModeList
+            print "Mode: ", thisModeName, thisModeList
             progSpec.addMode(localProgSpec, localObjectName, thisModeName, thisModeList)
         elif fieldResult.constIndicator:
             constValue = fieldResult.constValue
@@ -334,10 +347,10 @@ def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
             #print constValue
             progSpec.addConst(localProgSpec, localObjectName, fieldResult.cppType, fieldResult.constName, constValue)
             #exit(1)
-        elif fieldResult.funcIndicator:
+        elif fieldResult.funcBody:
             # extract function into an array
             [returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim] = extractFuncDef( localObjectName, fieldResult)
-            #print "FUNCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+            print "FUNCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
             #print returnType
             #print funcName
             #print argList

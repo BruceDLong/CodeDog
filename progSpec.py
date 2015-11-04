@@ -56,12 +56,12 @@ def addField(objSpecs, objectName, kindOfField, fieldType, fieldName):
         exit(1)
     print "    ADDED FIELD:\t", kindOfField, fieldName
 
-def addFlag(objSpecs, objectName, flagName):
-    if(flagName in objSpecs[objectName]["fields"]):
-        print "Note: The flag '", objectName, '::', flagName, "' already exists. Not re-adding"
+def addFlag(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisVal):
+    if(thisName in objSpecs[objectName]["fields"]):
+        print "Note: The flag '", objectName, '::', thisName, "' already exists. Not re-adding"
         return
-    objSpecs[objectName]["fields"].append({'kindOfField':'flag', 'fieldName':flagName})
-    print "    ADDED FLAG: \t", flagName
+    objSpecs[objectName]["fields"].append({'kindOfField':'flag', 'fieldName':thisName})
+    print "    ADDED FLAG: \t", thisName
 
 
 def addMode(objSpecs, objectName, modeName, enumList):
