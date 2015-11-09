@@ -98,8 +98,8 @@ nameAndVal = (
 arraySpec = Group ('[' + Optional(intNum | numRange) + ']')("arraySpec")
 meOrMy = (Keyword("me") | Keyword("my"))
 owners = (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their"))
-modeSpec = (Optional(meOrMy) + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal("modeName"))("modeSpec")
-flagDef  = (Optional(meOrMy) + Keyword("flag")("flagIndicator") + nameAndVal )("flagDef")
+modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal("modeName"))("modeSpec")
+flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") + nameAndVal )("flagDef")
 #fieldDef = (Optional('>')('isNext') + (flagDef | modeSpec | varSpec | constSpec | funcSpec))("fieldDef")
 baseType = (cppType)("baseType")
 objectName = Combine(CID + Optional('::' + CID))("objectName")
@@ -110,8 +110,8 @@ fieldDefs = Forward()
 coFactualEL  = (Literal("(") + Group(fieldDefs + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEL")
 alternateEl  = (Literal("[") + Group(OneOrMore(fieldDefs + Optional("|").suppress())) + Literal("]"))("alternateEl")
 anonModel = (fieldDefs | alternateEl | coFactualEL ) ("anonModel")
-fullFieldDef = (Optional('>')('isNext') + Optional(owners) + (baseType | objectName | anonModel)('fieldVarType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
-fieldDef = Group(flagDef | modeSpec | quotedString() | intNum | nameAndVal | fullFieldDef)("fieldDef")
+fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | anonModel)('fieldVarType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
+fieldDef = Group(flagDef('flagDef') | modeSpec('modeDef') | quotedString()('constStr') | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 fieldDefs <<=  (Literal("{").suppress() + (ZeroOrMore(fieldDef))+ Literal("}").suppress())("fieldDefs")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(optionalTag + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
@@ -308,66 +308,39 @@ def extractFuncDef(localObjectName, localFieldResults):
     [funcBodyOut, funcTextVerbatim] = extractFuncBody(localObjectName,funcName, funcBodyIn)
     return [returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim]
 
-def extractFieldDefs(localProgSpec, localObjectName, fieldResults):
+def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
     print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
     #print fieldResults
     for fieldResult in fieldResults:
-        print fieldResult
-        fieldTag = fieldResult[0]
-       # varType =fieldResult.varType
-        if(not isinstance(fieldTag, basestring)):
-            varType=fieldTag[1]
-            fieldTag=fieldTag[0]
-        if (fieldResult.flagIndicator):
-            if (fieldResult.isNext):
-                thisIsNext = fieldResult.isNext
-            else:
-                thisIsNext = None
-            if (fieldResult.meOrMy):
-                thisOwner = fieldResult.meOrMy
-            else:
-                thisOwner = "me"
-            thisType = fieldResult.flagIndicator
-            thisName = fieldResult.name
-            if (fieldResult.value):
-                thisVal = fieldResult.value
-            else:
-                thisVal = "False"
-            print "thisFlag:", thisIsNext, thisOwner, thisType, thisName, thisVal
-            progSpec.addFlag(localProgSpec, localObjectName, thisIsNext, thisOwner, thisType, thisName, thisVal)
-        elif fieldResult.modeIndicator:
-            thisModeName = fieldResult.modeName
-            thisModeList = fieldResult.modeList
-            print "Mode: ", thisModeName, thisModeList
-            progSpec.addMode(localProgSpec, localObjectName, thisModeName, thisModeList)
-        elif fieldResult.constIndicator:
-            constValue = fieldResult.constValue
-            #print"@@@@@"
-            #print fieldTag
-            #print constValue
-            progSpec.addConst(localProgSpec, localObjectName, fieldResult.cppType, fieldResult.constName, constValue)
-            #exit(1)
-        elif fieldResult.funcBody:
-            # extract function into an array
-            [returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim] = extractFuncDef( localObjectName, fieldResult)
-            print "FUNCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
-            #print returnType
-            #print funcName
-            #print argList
-            #print tagList
-            #print funcBodyOut
-            #print "FUNCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
-            progSpec.addFunc(localProgSpec, localObjectName, returnType, funcName, argList, tagList, funcBodyOut, funcTextVerbatim)
-        elif (fieldResult.varName):
-            thisTypeSpec = fieldResult.typeSpec
-            thisVarName = fieldResult.varName
-            kindOfField = thisTypeSpec[0]
-            print "VAR FIELD: ", kindOfField, thisTypeSpec, thisVarName
-            progSpec.addField(localProgSpec, localObjectName, kindOfField, thisTypeSpec, thisVarName)
+
+        isNext=False;    if(fieldResult.isNext): isNext=fieldResult.isNext
+        owner='me';      if(fieldResult.owner): owner=fieldResult.owner
+        fieldType=None;  if(fieldResult.fieldType): fieldType=fieldResult.fieldType
+        fieldName=None;  if(fieldResult.fieldName): fieldName=fieldResult.fieldName
+        givenValue=None; if(fieldResult.givenValue): givenValue=fieldResult.givenValue
+
+        if(fieldResult.flagDef):
+            print "FLAG: ", fieldResult
+            progSpec.addField(ProgSpec, ObjectName, False, owner, 'flag', fieldName, givenValue)
+        elif(fieldResult.modeDef):
+            print "MODE: ", fieldResult
+            progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, enumList)
+        elif(fieldResult.constStr):
+            print "CONST String: ", fieldResult
+            progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'string', None, givenValue)
+        elif(fieldResult.constNum):
+            print "CONST Num: ", fieldResult
+            progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'int', None, givenValue)
+        elif(fieldResult.nameVal):
+            print "NameAndVal: ", fieldResult
+            progSpec.addField(ProgSpec, ObjectName, None, None, None, fieldName, givenValue)
+        elif(fieldResult.fullFieldDef):
+            print "FULL: ", fieldResult
+            progSpec.addField(ProgSpec, ObjectName, isNext, owner, fieldType, fieldName, givenValue)
         else:
-            print "Error in extractFieldDefs"
-            print fieldResult
+            print "Error in extractFieldDefs:", fieldResult
             exit(1)
+    exit(1)
 
 
 def extractBuildSpecs(buildSpecResults):

@@ -44,34 +44,31 @@ def addObjTags(objSpecs, objectName, objTags):
 
 
 
-def addField(objSpecs, objectName, kindOfField, fieldType, fieldName):
-    if(fieldName in objSpecs[objectName]["fields"]):
-        print "Note: The field '", objectName, '::', fieldName, "' already exists. Not re-adding"
+def addField(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue):
+    if(thisName in objSpecs[objectName]["fields"]):
+        print "Note: The field '", objectName, '::', thisName, "' already exists. Not re-adding"
         return
-    if (kindOfField=="var" or kindOfField=="rPtr" or kindOfField=="sPtr" or kindOfField=="uPtr" or kindOfField=="list"):
-        objSpecs[objectName]["fields"].append({'kindOfField':kindOfField, 'fieldType':fieldType, 'fieldName':fieldName})
-        registerBaseType(fieldType, objectName)
-    else:
-        print "When adding a Field to ", objectName, ", invalid field type: ", kindOfField,"."
-        exit(1)
-    print "    ADDED FIELD:\t", kindOfField, fieldName
+    #if (kindOfField=="var" or kindOfField=="rPtr" or kindOfField=="sPtr" or kindOfField=="uPtr" or kindOfField=="list"):
+        #objSpecs[objectName]["fields"].append({'kindOfField':kindOfField, 'fieldType':fieldType, 'fieldName':fieldName})
+        #registerBaseType(fieldType, objectName)
+    #else:
+        #print "When adding a Field to ", objectName, ", invalid field type: ", kindOfField,"."
+        #exit(1)
+    print "    ADDED FIELD:\t", thisType, thisName
 
-def addFlag(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisVal):
+def addFlag(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue):
     if(thisName in objSpecs[objectName]["fields"]):
         print "Note: The flag '", objectName, '::', thisName, "' already exists. Not re-adding"
         return
-    objSpecs[objectName]["fields"].append({'kindOfField':'flag', 'fieldName':thisName})
+    objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':'flag', 'fieldName':thisName, 'value':thisValue})
     print "    ADDED FLAG: \t", thisName
 
 
-def addMode(objSpecs, objectName, modeName, enumList):
-    objSpecs[objectName]["fields"].append({'kindOfField':'mode', 'fieldName':modeName, 'enumList':enumList})
+def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue, enumList):
+    objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':'mode', 'fieldName':thisName, 'value':thisValue, 'enumList':enumList})
     print "    ADDED MODE:\t", modeName
     print enumList
 
-def addConst(objSpecs, objectName, cppType, constName, constValue):
-    objSpecs[objectName]["fields"].append({'kindOfField':'const', 'fieldType':cppType, 'fieldName':constName, 'fieldValue':constValue})
-    print "    ADDED CONST\n"
 
 def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody, funcTextVerbatim):
     objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName, 'argList':argList, 'funcTextVerbatim':funcTextVerbatim})
