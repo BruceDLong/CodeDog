@@ -30,11 +30,11 @@ def addPattern(objSpecs, objectNameList, name, patternList):
     objSpecs[name]={'name':patternName, 'parameters':patternList}
     print "ADDED PATTERN", name, patternName
 
-def addObject(objSpecs, objectNameList, name, varType):
+def addObject(objSpecs, objectNameList, name, stateType):
     if(name in objSpecs):
         print "Note: The struct '", name, "' is being added but already exists."
         return
-    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], 'varType':varType}
+    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], 'stateType':stateType}
     objectNameList.append(name)
     print "ADDED STRUCT: ", name
 
@@ -44,36 +44,24 @@ def addObjTags(objSpecs, objectName, objTags):
 
 
 
-def addField(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue):
+def addField(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisArgList, thisValue):
     if(thisName in objSpecs[objectName]["fields"]):
         print "Note: The field '", objectName, '::', thisName, "' already exists. Not re-adding"
         return
-    #if (kindOfField=="var" or kindOfField=="rPtr" or kindOfField=="sPtr" or kindOfField=="uPtr" or kindOfField=="list"):
-        #objSpecs[objectName]["fields"].append({'kindOfField':kindOfField, 'fieldType':fieldType, 'fieldName':fieldName})
-        #registerBaseType(fieldType, objectName)
-    #else:
-        #print "When adding a Field to ", objectName, ", invalid field type: ", kindOfField,"."
-        #exit(1)
-    print "    ADDED FIELD:\t", thisType, thisName
+    objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':thisType, 'fieldName':thisName, 'argList':thisArgList, 'value':thisValue})
+    if(thisOwner!='flag' and thisOwner!='mode'):
+        registerBaseType(thisType, objectName)
 
-def addFlag(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue):
-    if(thisName in objSpecs[objectName]["fields"]):
-        print "Note: The flag '", objectName, '::', thisName, "' already exists. Not re-adding"
-        return
-    objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':'flag', 'fieldName':thisName, 'value':thisValue})
-    print "    ADDED FLAG: \t", thisName
+    print "    ADDED FIELD:\t", thisType, thisName
 
 
 def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue, enumList):
+    if(thisName in objSpecs[objectName]["fields"]):
+        print "Note: The mode '", objectName, '::', thisName, "' already exists. Not re-adding"
+        return
     objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':'mode', 'fieldName':thisName, 'value':thisValue, 'enumList':enumList})
     print "    ADDED MODE:\t", modeName
     print enumList
-
-
-def addFunc(objSpecs, objectName, returnType, funcName, argList, tagList, funcBody, funcTextVerbatim):
-    objSpecs[objectName]["fields"].append({'kindOfField':'func', 'funcText':funcBody, 'fieldType':returnType, 'fieldName':funcName, 'argList':argList, 'funcTextVerbatim':funcTextVerbatim})
-    registerBaseType(returnType, objectName)
-    print "    ADDED FUNCTION:\t", funcName, '(', argList, ')'
 
 ###############
 

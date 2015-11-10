@@ -313,30 +313,37 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
     #print fieldResults
     for fieldResult in fieldResults:
 
-        isNext=False;    if(fieldResult.isNext): isNext=fieldResult.isNext
-        owner='me';      if(fieldResult.owner): owner=fieldResult.owner
-        fieldType=None;  if(fieldResult.fieldType): fieldType=fieldResult.fieldType
-        fieldName=None;  if(fieldResult.fieldName): fieldName=fieldResult.fieldName
-        givenValue=None; if(fieldResult.givenValue): givenValue=fieldResult.givenValue
+        isNext=False;
+        if(fieldResult.isNext): isNext=fieldResult.isNext
+        if(fieldResult.owner): owner=fieldResult.owner;
+        else: owner='me';
+        if(fieldResult.fieldType): fieldType=fieldResult.fieldType;
+        else: fieldType=None;
+        if(fieldResult.fieldName): fieldName=fieldResult.fieldName;
+        else: fieldName=None;
+        if(fieldResult.givenValue): givenValue=fieldResult.givenValue
+        else: givenValue=None;
+        if(fieldResult.argList): argList=fieldResult.argList
+        else: argList=None;
 
         if(fieldResult.flagDef):
             print "FLAG: ", fieldResult
-            progSpec.addField(ProgSpec, ObjectName, False, owner, 'flag', fieldName, givenValue)
+            progSpec.addField(ProgSpec, ObjectName, False, owner, 'flag', fieldName, None, givenValue)
         elif(fieldResult.modeDef):
             print "MODE: ", fieldResult
             progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, enumList)
         elif(fieldResult.constStr):
             print "CONST String: ", fieldResult
-            progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'string', None, givenValue)
+            progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'string', None, None, givenValue)
         elif(fieldResult.constNum):
             print "CONST Num: ", fieldResult
-            progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'int', None, givenValue)
+            progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'int', None, None, givenValue)
         elif(fieldResult.nameVal):
             print "NameAndVal: ", fieldResult
-            progSpec.addField(ProgSpec, ObjectName, None, None, None, fieldName, givenValue)
+            progSpec.addField(ProgSpec, ObjectName, None, None, None, fieldName, argList, givenValue)
         elif(fieldResult.fullFieldDef):
             print "FULL: ", fieldResult
-            progSpec.addField(ProgSpec, ObjectName, isNext, owner, fieldType, fieldName, givenValue)
+            progSpec.addField(ProgSpec, ObjectName, isNext, owner, fieldType, fieldName, argList, givenValue)
         else:
             print "Error in extractFieldDefs:", fieldResult
             exit(1)
@@ -352,10 +359,10 @@ def extractBuildSpecs(buildSpecResults):
         #print spec
     return resultBuildSpecs
 
-def extractObjectSpecs(localProgSpec, objNames, spec, varType):
+def extractObjectSpecs(localProgSpec, objNames, spec, stateType):
     #print spec
     objectName=spec.objectName[0]
-    progSpec.addObject(localProgSpec, objNames, objectName, varType)
+    progSpec.addObject(localProgSpec, objNames, objectName, stateType)
     ###########Grab optional Object Tags
     #print "SSSSSSSSSSSSSSSSSSSSSSSSSspec.fieldDefs = ",spec.fieldDefs
     if spec.optionalTag:  #change so it generates an empty one if no field defs

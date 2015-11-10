@@ -242,7 +242,7 @@ def generate_constructor(objects, objectName, tags):
     else: constructCode=''
     return constructCode
 
-def processOtherFields(objects, objectName, tags, indent):
+def processOtherStructFields(objects, objectName, tags, indent):
     #print "        Coding fields for", objectName
     globalFuncs=''
     funcDefCode=''
@@ -250,29 +250,36 @@ def processOtherFields(objects, objectName, tags, indent):
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
         #print field
-        kindOfField=field['kindOfField']
-        if(kindOfField=='flag' or kindOfField=='mode'): continue
         fieldType=field['fieldType']
-        fieldName=field['fieldName']
+        if(fieldType=='flag' or fieldType=='mode'): continue
+        fieldOwner=field['owner']
+        fieldName =field['fieldName']
+        fieldValue=field['value']
+        fieldArglist = field['argList']
         if fieldName=='opAssign': fieldName='operator='
         convertedType = convertType(fieldType)
         typeDefName = progSpec.createTypedefName(fieldType)
-        if kindOfField != 'flags':
-            print "        ->", kindOfField, fieldName
-
-        if kindOfField=='var':
-            registerType(objectName, fieldName, convertedType, "")
-            structCode += indent + convertedType + ' ' + fieldName +";\n";
-        elif kindOfField=='rPtr':
-            typeStr=convertedType # + '*'
-            registerType(objectName, fieldName, typeStr, "")
-            structCode += indent + typeStr + fieldName +";\n";
-        elif kindOfField=='sPtr' or kindOfField=='uPtr' or kindOfField=='list':
-            typeStr=convertedType
-            registerType(objectName, fieldName, typeStr, typeDefName)
-            structCode += indent + typeDefName +' '+ fieldName +";\n";
+        print "        ->", fieldOwner, fieldType, fieldName, '=', fieldValue
+        if(fieldOwner=='const'):
+            structCode += indent + 'const ' + fieldType +' ' + fieldName +" = "+fieldValue +';\n';
+        elif(fieldArglist==None):
+            if fieldOwner=='me':
+                registerType(objectName, fieldName, convertedType, "")
+                structCode += indent + convertedType + ' ' + fieldName +";\n";
+            elif fieldOwner=='my':
+                typeStr=convertedType # + '*'
+                registerType(objectName, fieldName, typeStr, "")
+                structCode += indent + typeStr + fieldName +";\n";
+            elif fieldOwner=='our':
+                typeStr=convertedType # + '*'
+                registerType(objectName, fieldName, typeStr, "")
+                structCode += indent + typeStr + fieldName +";\n";
+            elif fieldOwner=='their':
+                typeStr=convertedType
+                registerType(objectName, fieldName, typeStr, typeDefName)
+                structCode += indent + typeDefName +' '+ fieldName +";\n";
         #################################################################
-        elif kindOfField=='func':
+        else: # Arglist exists so this is a function.
             if(fieldType=='none'): convertedType=''
             else:
                 #print convertedType
@@ -324,9 +331,6 @@ def processOtherFields(objects, objectName, tags, indent):
                 structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
                 objPrefix=objectName +'::'
                 funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")" +funcText+"\n\n"
-        elif kindOfField=='const':
-            fieldValue=field['fieldValue']
-            structCode += indent + 'const ' + fieldType +' ' + fieldName +" = "+fieldValue +';\n';
 
     if(objectName=='MAIN'):
         return [structCode, funcDefCode, globalFuncs]
@@ -334,6 +338,11 @@ def processOtherFields(objects, objectName, tags, indent):
         constructCode=generate_constructor(objects, objectName, tags)
         structCode+=constructCode
         return [structCode, funcDefCode]
+
+def processOtherFields(objects, objectName, tags, indent):
+    if  (ObjectDef['stateType'] == 'struct'): processOtherStructFields(objects, objectName, tags, indent)
+    elif(ObjectDef['stateType'] == 'string'): processOtherStringFields(objects, objectName, tags, indent)
+
 
 
 def generateAllObjectsButMain(objects, tags):
