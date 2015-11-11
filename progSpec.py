@@ -17,6 +17,7 @@ def getTypesBase(typeSpec):
     else: return getTypesBase(typeSpec[1])
 
 def registerBaseType(usedType, objectName):
+    #print "registerBaseType: ", usedType, objectName
     baseType=getTypesBase(usedType)
     if not (baseType in storeOfBaseTypesUsed):
         storeOfBaseTypesUsed[baseType]={}
@@ -50,9 +51,10 @@ def addField(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, th
         return
     objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':thisType, 'fieldName':thisName, 'argList':thisArgList, 'value':thisValue})
     if(thisOwner!='flag' and thisOwner!='mode'):
-        registerBaseType(thisType, objectName)
+        #registerBaseType(thisType, objectName)
+        print "Fix registerBaseType: ", thisType, objectName
 
-    print "    ADDED FIELD:\t", thisType, thisName
+    print "    ADDED FIELD:\t", thisType, "FIELDNAME: ", thisName, 
 
 
 def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue, enumList):

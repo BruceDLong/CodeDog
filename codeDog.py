@@ -81,6 +81,7 @@ def GenerateProgram(objects, buildSpec, tags):
     return result
 
 def GenerateSystem(objects, buildSpecs, tags):
+    print "GGGGGGGGGGGGGGGGGGGGGGGGenerateSystem"
     ScanAndApplyPatterns(objects, tags)
     ScanFuncsAndTypesThenSetTags(tags)
     for buildSpec in buildSpecs:

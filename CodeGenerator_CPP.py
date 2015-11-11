@@ -19,15 +19,16 @@ def processFlagAndModeFields(objects, objectName, tags):
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
         #print field
-        kindOfField=field['kindOfField'];
+        fieldType=field['fieldType'];
         fieldName=field['fieldName'];
+        print "FIELD.....FIELD...FIELD...FIELD", field
 
-        if kindOfField=='flag':
+        if fieldType=='flag':
             #print "        ->:", fieldName
             flagsVarNeeded=True
             structEnums += "\nconst int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
             bitCursor += 1;
-        elif kindOfField=='mode':
+        elif fieldType=='mode':
             #print "        ->:", fieldName, '[]'
             structEnums += "\n// For Mode "+fieldName
             flagsVarNeeded=True
@@ -65,6 +66,7 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     typeDefMap[typeOfField]=typeDefTag
 
 def convertType(fieldType):
+    print "fieldType: ", fieldType
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
             cppType=fieldType+'_t'
@@ -74,16 +76,15 @@ def convertType(fieldType):
         kindOfField=fieldType[0]
         if(kindOfField=='<%'): return fieldType[1][0]
         baseType=convertType(fieldType[1])
-        if kindOfField=='var':
+        if kindOfField=='me':
             cppType = baseType
-        elif kindOfField=='rPtr':
+        elif kindOfField=='my':
             cppType=baseType + '*'
-        elif kindOfField=='sPtr':
+        elif kindOfField=='our':
             cppType="shared_ptr<"+baseType + '> '
-        elif kindOfField=='uPtr':
+        elif kindOfField=='their':
             cppType="unique_ptr<"+baseType + '> '
-        elif kindOfField=='list':
-            cppType="vector<"+baseType + '> '
+            
         else: cppType=kindOfField; print "RETURNTYPE:", fieldType
     return cppType
 
@@ -220,8 +221,10 @@ def generate_constructor(objects, objectName, tags):
     count=0
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
-        kindOfField=field['kindOfField']
-        if(kindOfField=='flag' or kindOfField=='mode' or kindOfField=='func'): continue
+        print "^^^^^^^^^^^^^^^^^^^^"
+        print "field: ", field
+        fieldType=field['fieldType']
+        if(fieldType=='flag' or fieldType=='mode' or fieldType=='func'): continue
         fieldType=field['fieldType']
         fieldHeadType=headType(fieldType)
         convertedType = convertType(fieldType)
@@ -249,7 +252,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
     structCode=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
-        #print field
+        print field
         fieldType=field['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=field['owner']
@@ -261,6 +264,9 @@ def processOtherStructFields(objects, objectName, tags, indent):
         typeDefName = progSpec.createTypedefName(fieldType)
         print "        ->", fieldOwner, fieldType, fieldName, '=', fieldValue
         if(fieldOwner=='const'):
+            print fieldType
+            print fieldName
+            print fieldValue
             structCode += indent + 'const ' + fieldType +' ' + fieldName +" = "+fieldValue +';\n';
         elif(fieldArglist==None):
             if fieldOwner=='me':
@@ -275,6 +281,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 registerType(objectName, fieldName, typeStr, "")
                 structCode += indent + typeStr + fieldName +";\n";
             elif fieldOwner=='their':
+                print "THEIR.....THEIR.....THEIR"
                 typeStr=convertedType
                 registerType(objectName, fieldName, typeStr, typeDefName)
                 structCode += indent + typeDefName +' '+ fieldName +";\n";
@@ -340,8 +347,19 @@ def processOtherStructFields(objects, objectName, tags, indent):
         return [structCode, funcDefCode]
 
 def processOtherFields(objects, objectName, tags, indent):
-    if  (ObjectDef['stateType'] == 'struct'): processOtherStructFields(objects, objectName, tags, indent)
-    elif(ObjectDef['stateType'] == 'string'): processOtherStringFields(objects, objectName, tags, indent)
+    ObjectDef = objects[0][objectName]
+    print "ObjectDef: ", ObjectDef
+    if  (ObjectDef['stateType'] == 'struct'): 
+
+        return processOtherStructFields(objects, objectName, tags, indent)
+    elif (ObjectDef['stateType'] == 'string'): 
+        return processOtherStringFields(objects, objectName, tags, indent)
+    elif (ObjectDef['stateType'] == 'model'): 
+        return processOtherModelFields(objects, objectName, tags, indent)
+    else: 
+        print "Error in processOtherFields"
+        exit(1)
+    
 
 
 
@@ -357,9 +375,11 @@ def generateAllObjectsButMain(objects, tags):
             [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags)
             constsEnums+=strOut
             if(needsFlagsVar):
-                progSpec.addField(objects[0], objectName, 'var', ['var','uint64'], 'flags')
+                progSpec.addField(objects[0], objectName, False, 'me', "uint64", 'flags', None, None)
 
             if(objectName != 'MAIN'):
+                print "\n\n****************", objectName
+               
                 forwardDecls+="struct " + objectName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherFields(objects, objectName, tags, '    ')
                 structCodeAcc += "\nstruct "+objectName+"{\n" + structCode + '};\n'

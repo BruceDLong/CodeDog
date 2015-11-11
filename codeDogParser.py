@@ -89,11 +89,11 @@ optionalTag = Literal(":")("optionalTag")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
 #funcSpec = Group(Keyword("func")("funcIndicator") + returnType + ":" + CID("funcName") + "(" + argList + ")" + Optional(optionalTag + tagDefList) + funcBody)("funcSpec")
 #funcSpec.setParseAction( reportParserPlace)
-nameAndVal = (
-          (Literal(":") + CID("name") + "(" + argList + ")" + "=" + funcBody )
-        | (Literal(":") + CID("name")  + "=" + value )
-        | (Literal(":") + "=" + (value | funcBody))
-        | (Literal(":") + CID("name")  + Optional("(" + argList + ")")))("nameAndVal")
+nameAndVal = Group(
+          (Literal(":") + CID("fieldName") + "(" + argList + ")" + "=" + funcBody )
+        | (Literal(":") + CID("fieldName")  + "=" + value("givenValue"))
+        | (Literal(":") + "=" + (value("givenValue") | funcBody))
+        | (Literal(":") + CID("fieldName")  + Optional("(" + argList + ")")))("nameAndVal")
 
 arraySpec = Group ('[' + Optional(intNum | numRange) + ']')("arraySpec")
 meOrMy = (Keyword("me") | Keyword("my"))
@@ -110,7 +110,7 @@ fieldDefs = Forward()
 coFactualEL  = (Literal("(") + Group(fieldDefs + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEL")
 alternateEl  = (Literal("[") + Group(OneOrMore(fieldDefs + Optional("|").suppress())) + Literal("]"))("alternateEl")
 anonModel = (fieldDefs | alternateEl | coFactualEL ) ("anonModel")
-fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | anonModel)('fieldVarType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
+fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | anonModel)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef = Group(flagDef('flagDef') | modeSpec('modeDef') | quotedString()('constStr') | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 fieldDefs <<=  (Literal("{").suppress() + (ZeroOrMore(fieldDef))+ Literal("}").suppress())("fieldDefs")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
@@ -312,17 +312,28 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
     print "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxextractFieldDefs"
     #print fieldResults
     for fieldResult in fieldResults:
-
+        print fieldResult
         isNext=False;
         if(fieldResult.isNext): isNext=fieldResult.isNext
         if(fieldResult.owner): owner=fieldResult.owner;
         else: owner='me';
         if(fieldResult.fieldType): fieldType=fieldResult.fieldType;
         else: fieldType=None;
-        if(fieldResult.fieldName): fieldName=fieldResult.fieldName;
-        else: fieldName=None;
-        if(fieldResult.givenValue): givenValue=fieldResult.givenValue
-        else: givenValue=None;
+        if(fieldResult.nameAndVal): 
+            nameAndVal = fieldResult.nameAndVal
+            print "nameAndVal = ", nameAndVal
+            if(nameAndVal.fieldName): 
+                fieldName = nameAndVal.fieldName
+                print "FIELD NAME", fieldName
+            else: fieldName=None;
+            if(nameAndVal.givenValue):
+                
+                givenValue = nameAndVal.givenValue
+                print "FIELD VALUE", givenValue
+            else: givenValue=None;
+        else: 
+            givenValue=None;
+            fieldName=None;
         if(fieldResult.argList): argList=fieldResult.argList
         else: argList=None;
 
@@ -342,12 +353,13 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
             print "NameAndVal: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, None, None, None, fieldName, argList, givenValue)
         elif(fieldResult.fullFieldDef):
+            print "\n^^^^^^^^^^^^^^^^^^^^^^^^"
             print "FULL: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, isNext, owner, fieldType, fieldName, argList, givenValue)
         else:
             print "Error in extractFieldDefs:", fieldResult
             exit(1)
-    exit(1)
+
 
 
 def extractBuildSpecs(buildSpecResults):
