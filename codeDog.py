@@ -9,6 +9,8 @@ import pattern_Gen_Eventhandler
 import pattern_BigNums
 #import pattern_Gen_GUI
 
+#import stringStructs
+
 import CodeGenerator_CPP
 #import CodeGenerator_JavaScript
 #import CodeGenerator_ObjectiveC
@@ -60,6 +62,7 @@ def ScanAndApplyPatterns(objects, tags):
             elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
             elif pattName=='useBigNums': pattern_BigNums.apply(tags)
 
+
 def setFeatureNeeded(tags, featureID, objMap):
     tags[featureID]=objMap
 
@@ -81,8 +84,9 @@ def GenerateProgram(objects, buildSpec, tags):
     return result
 
 def GenerateSystem(objects, buildSpecs, tags):
-    print "GGGGGGGGGGGGGGGGGGGGGGGGenerateSystem"
+    print "Generating System"
     ScanAndApplyPatterns(objects, tags)
+    #stringStructs.CreateStructsForStringModels(objects, tags)
     ScanFuncsAndTypesThenSetTags(tags)
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]
@@ -104,11 +108,10 @@ if(len(sys.argv) < 2):
 file_name = sys.argv[1]
 codeDogStr = stringFromFile(file_name)
 codeDogStr = processIncludedFiles(codeDogStr)
-print codeDogStr
-
 
 
 # objectSpecs is like: [ProgSpec, objNames]
+print "Parsing", file_name, "..."
 [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)
 tagStore['dogFilename']=file_name
 

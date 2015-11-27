@@ -84,7 +84,7 @@ def convertType(fieldType):
             cppType="shared_ptr<"+baseType + '> '
         elif kindOfField=='their':
             cppType="unique_ptr<"+baseType + '> '
-            
+
         else: cppType=kindOfField; print "RETURNTYPE:", fieldType
     return cppType
 
@@ -197,17 +197,14 @@ def processAction(action, indent):
 
 
 def processActionSeq(actSeq, indent):
-    #print "........processActionSeq........processActionSeq........processActionSeq"
-    #print actSeq
-    #print "........processActionSeq........processActionSeq........processActionSeq"
     actSeqText = "{\n"
     for action in actSeq:
         actionText = processAction(action, indent+'    ')
         #print actionText
         actSeqText += actionText
     actSeqText += "\n" + indent + "}"
-
     return actSeqText
+
 def headType(typeSpec): # e.g., xPtr or if var, int, uint, etc,
     if typeSpec[0]=='var': return typeSpec[1]
     return typeSpec[0]
@@ -275,11 +272,11 @@ def processOtherStructFields(objects, objectName, tags, indent):
             elif fieldOwner=='my':
                 typeStr=convertedType # + '*'
                 registerType(objectName, fieldName, typeStr, "")
-                structCode += indent + typeStr + fieldName +";\n";
+                structCode += indent + typeStr +' '+ fieldName +";\n";
             elif fieldOwner=='our':
                 typeStr=convertedType # + '*'
                 registerType(objectName, fieldName, typeStr, "")
-                structCode += indent + typeStr + fieldName +";\n";
+                structCode += indent + typeStr +' ' + fieldName +";\n";
             elif fieldOwner=='their':
                 print "THEIR.....THEIR.....THEIR"
                 typeStr=convertedType
@@ -291,12 +288,11 @@ def processOtherStructFields(objects, objectName, tags, indent):
             else:
                 #print convertedType
                 convertedType+=''
-            #get verbatim
-            if field['funcTextVerbatim']:
-                funcText=field['funcTextVerbatim']
+            if (field['value'][1]!=''): # This is apparently a 'verbatim' function.
+                funcText=field['value'][1]
             # if no verbatim found so generate function text from action sequence
-            elif field['funcText']:
-                funcText=processActionSeq(field['funcText'], indent)
+            elif field['value'][0]!='':
+                funcText=processActionSeq(field['value'][0], indent)
             else:
                 print "error in processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
@@ -346,22 +342,6 @@ def processOtherStructFields(objects, objectName, tags, indent):
         structCode+=constructCode
         return [structCode, funcDefCode]
 
-def processOtherFields(objects, objectName, tags, indent):
-    ObjectDef = objects[0][objectName]
-    print "ObjectDef: ", ObjectDef
-    if  (ObjectDef['stateType'] == 'struct'): 
-
-        return processOtherStructFields(objects, objectName, tags, indent)
-    elif (ObjectDef['stateType'] == 'string'): 
-        return processOtherStringFields(objects, objectName, tags, indent)
-    elif (ObjectDef['stateType'] == 'model'): 
-        return processOtherModelFields(objects, objectName, tags, indent)
-    else: 
-        print "Error in processOtherFields"
-        exit(1)
-    
-
-
 
 def generateAllObjectsButMain(objects, tags):
     print "    Generating Objects..."
@@ -376,12 +356,11 @@ def generateAllObjectsButMain(objects, tags):
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, False, 'me', "uint64", 'flags', None, None)
-
-            if(objectName != 'MAIN'):
+            if(objectName != 'MAIN' and objects[0][objectName]['stateType'] == 'struct'):
                 print "\n\n****************", objectName
-               
+
                 forwardDecls+="struct " + objectName + ";  \t// Forward declaration\n"
-                [structCode, funcCode]=processOtherFields(objects, objectName, tags, '    ')
+                [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ')
                 structCodeAcc += "\nstruct "+objectName+"{\n" + structCode + '};\n'
                 funcCodeAcc+=funcCode
     return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
@@ -391,7 +370,10 @@ def generateAllObjectsButMain(objects, tags):
 def processMain(objects, tags):
     print "\n    Generating MAIN..."
     if("MAIN" in objects[1]):
-        [structCode, funcCode, globalFuncs]=processOtherFields(objects, "MAIN", tags, '')
+        if(objects[0]["MAIN"]['stateType'] != 'struct'):
+            print "MAIN must be a 'struct'."
+            exit(2)
+        [structCode, funcCode, globalFuncs]=processOtherStructFields(objects, "MAIN", tags, '')
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
