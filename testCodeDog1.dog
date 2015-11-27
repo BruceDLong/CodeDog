@@ -1,0 +1,44 @@
+// Test dog file
+
+BuildCmd = `g++ -std=gnu++11 test.cpp -o test`
+Title = "CodeDog test suite"
+FileName = "test.cpp"
+Version = "0.8"
+CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
+Authors = "Bruce Long, Tiffany Lawrence"
+Description = "This test file is for testing CodeDog."
+
+LicenseText = `This file is part of the "CodeDog test suite"
+The CodeDog test suite is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+The CodeDog test suite is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with the CodeDog test suite.  If not, see www.gnu.org/licenses.`
+
+langToGen="CPP"
+
+TestList = [abc, def, ghi, jkl]
+TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
+
+Include=`<fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>`
+
+#include libraryTags.cdog
+
+LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
+//AndroidBuild: CPU='arm7' Lang='java' optimize='speed';
+//AppleBuild: CPU='i386' Lang='objectiveC' optimize='clarity';
+//
+//do useBigNums(tags)
+
+struct streamSpan {
+    my flag: isOK
+    me flag: isBig
+    flag: isBare=true
+    flag: isOne = 1
+    const string: text="BEGIN"
+    const int32: height=4321
+    my uint32: offset
+    my uint32: length
+    our uint32: distance
+    their uint32: age
+    me uint32: addOne(my uint32: X)=  {A<-B}
+    their uint32: age2
+}
