@@ -41,7 +41,7 @@ def addObject(objSpecs, objectNameList, name, stateType):
 
 def addObjTags(objSpecs, objectName, objTags):
     objSpecs[objectName]["tags"]=objTags
-    print "    ADDED Tags to object.\t"
+    print "    ADDED Tags to "+objectName+".\t"
 
 
 
@@ -51,10 +51,7 @@ def addField(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, th
         return
     objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':thisType, 'fieldName':thisName, 'argList':thisArgList, 'value':thisValue})
     if(thisOwner!='flag' and thisOwner!='mode'):
-        #registerBaseType(thisType, objectName)
-        print "Fix registerBaseType: ", thisType, objectName
-
-    print "    ADDED FIELD:\t", thisType, "FIELDNAME: ", thisName, 
+        registerBaseType(thisType, objectName)
 
 
 def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue, enumList):
@@ -68,18 +65,18 @@ def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thi
 ###############
 
 def searchATagStore(tagStore, tagToFind):
-    print "SEARCHING for", tagToFind
+    #print "SEARCHING for tag", tagToFind
     tagSegs=tagToFind.split(r'.')
     crntStore=tagStore
     item=''
     for seg in tagSegs:
-        print seg
+        #print seg
         if(seg in crntStore):
             item=crntStore[seg]
             crntStore=item
         else: return None
-        print seg, item
-    print item
+        #print seg, item
+    #print item
     return [item]
 
 def fetchTagValue(tagStoreArray, tagToFind):
@@ -93,7 +90,7 @@ def setTagValue(tagStore, tagToSet, tagValue):
     tagRet[0]=tagValue
 
 def wrapFieldListInObjectDef(objName, fieldDefStr):
-    retStr='model '+objName +' {\n' + fieldDefStr + '\n}\n'
+    retStr='struct '+objName +' {\n' + fieldDefStr + '\n}\n'
     return retStr
 
 ###############

@@ -48,14 +48,12 @@ def replaceFileName(fileMatch):
 
 
 def ScanAndApplyPatterns(objects, tags):
-    print "Applying Patterns..."
-    print len(objects[1])
+    print "    Applying Patterns..."
     for item in objects[1]:
-        print "    ITEM:", item
         if item[0]=='!':
             pattName=item[1:]
             patternArgs=objects[0][pattName]['parameters']
-            print pattName, ':', patternArgs
+            print "        PATTERN:", pattName, ':', patternArgs
 
             if pattName=='Write_Main': pattern_Write_Main.apply(objects, tags, patternArgs[0])
             elif pattName=='Gen_Eventhandler': pattern_Gen_Eventhandler.apply(objects, tags)
@@ -69,7 +67,7 @@ def setFeatureNeeded(tags, featureID, objMap):
 def ScanFuncsAndTypesThenSetTags(tags):
     for typeName in progSpec.storeOfBaseTypesUsed:
         if(typeName=='BigNum' or typeName=='BigFrac'):
-            print 'Need Large Numbers'
+            print 'NOTE: Need Large Numbers'
             setFeatureNeeded(tags, 'largeNumbers', progSpec.storeOfBaseTypesUsed[typeName])
 
 
@@ -77,20 +75,20 @@ def GenerateProgram(objects, buildSpec, tags):
     result='No Language Generator Found for '+tags['langToGen']
     langGenTag = tags['langToGen']
     if(langGenTag == 'CPP'):
-        print 'Generating C++ Program...'
+        print '        Generating C++ Program...'
         result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]])
     else:
-        print "No language generator found for ", langGenTag
+        print "ERROR: No language generator found for ", langGenTag
     return result
 
 def GenerateSystem(objects, buildSpecs, tags):
-    print "Generating System"
+    print "\n\n######################   G E N E R A T I N G   S Y S T E M"
     ScanAndApplyPatterns(objects, tags)
     #stringStructs.CreateStructsForStringModels(objects, tags)
     ScanFuncsAndTypesThenSetTags(tags)
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]
-        print "Generating code for build ", buildName
+        print "    Generating code for build", buildName
         outStr = GenerateProgram(objects, buildSpec, tags)
         writeFile(buildName, tagStore['FileName'], outStr)
         #GenerateBuildSystem()
@@ -111,8 +109,9 @@ codeDogStr = processIncludedFiles(codeDogStr)
 
 
 # objectSpecs is like: [ProgSpec, objNames]
-print "Parsing", file_name, "..."
+print "######################   P A R S I N G   S Y S T E M  (", file_name, ")"
 [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)
 tagStore['dogFilename']=file_name
 
 outputScript = GenerateSystem(objectSpecs, buildSpecs, tagStore)
+print "\n\n######################   D O N E"

@@ -10,7 +10,7 @@ def apply(objects, tags, parserSpecTag):
 
     mainFuncCode=r"""
 
-    func var int32: main(<% var int32: argc, rPtr int32: argv %>) <%{
+    me int32: main(me int32: argc, me int32: argv ) = <%{
         if(sizeof(int)!=4) {cout<<"WARNING! int size is "<<sizeof(int)<<" bytes.\n\n";}
         signal(SIGSEGV, reportFault);
     string inputFilename="testInfon.pr";

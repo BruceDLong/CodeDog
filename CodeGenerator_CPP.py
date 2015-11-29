@@ -12,24 +12,23 @@ def bitsNeeded(n):
 
 
 def processFlagAndModeFields(objects, objectName, tags):
-    print "\n        Coding flags and modes for:", objectName
+    print "                    Coding flags and modes for:", objectName
     flagsVarNeeded = False
     bitCursor=0
     structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
-        #print field
         fieldType=field['fieldType'];
         fieldName=field['fieldName'];
-        print "FIELD.....FIELD...FIELD...FIELD", field
+        #print "                    ", field
 
         if fieldType=='flag':
-            #print "        ->:", fieldName
+            print "                        flag: ", fieldName
             flagsVarNeeded=True
-            structEnums += "\nconst int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
+            structEnums += "const int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
             bitCursor += 1;
         elif fieldType=='mode':
-            #print "        ->:", fieldName, '[]'
+            print "                        mode: ", fieldName, '[]'
             structEnums += "\n// For Mode "+fieldName
             flagsVarNeeded=True
             # calculate field and bit position
@@ -39,8 +38,8 @@ def processFlagAndModeFields(objects, objectName, tags):
             #field[4]=numEnumBits;
             enumMask=((1 << numEnumBits) - 1) << bitCursor
 
-            structEnums += "\nconst int "+fieldName +"Offset = " + hex(bitCursor) +";"
-            structEnums += "\nconst int "+fieldName +"Mask = " + hex(enumMask) +";"
+            structEnums += "const int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
+            structEnums += "const int "+fieldName +"Mask = " + hex(enumMask) +";"
 
             # enum
             count=0
@@ -65,27 +64,30 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
-def convertType(fieldType):
+def convertType(owner, fieldType):
     print "fieldType: ", fieldType
+    cppType="TYPE ERROR"
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
             cppType=fieldType+'_t'
         else:
             cppType=fieldType
-    else:
-        kindOfField=fieldType[0]
-        if(kindOfField=='<%'): return fieldType[1][0]
-        baseType=convertType(fieldType[1])
-        if kindOfField=='me':
-            cppType = baseType
-        elif kindOfField=='my':
-            cppType=baseType + '*'
-        elif kindOfField=='our':
-            cppType="shared_ptr<"+baseType + '> '
-        elif kindOfField=='their':
-            cppType="unique_ptr<"+baseType + '> '
+    if(fieldType=='<%'): return fieldType[1][0]
 
-        else: cppType=kindOfField; print "RETURNTYPE:", fieldType
+    kindOfField=owner
+    if kindOfField=='const':
+        cppType = "const "+cppType
+    elif kindOfField=='me':
+        cppType = cppType
+    elif kindOfField=='my':
+        cppType += '*'
+    elif kindOfField=='our':
+        cppType="shared_ptr<"+cppType + '> '
+    elif kindOfField=='their':
+        cppType="unique_ptr<"+cppType + '> '
+    else:
+        print "ERROR: Owner of type not valid '" + owner + "'"
+        exit(1)
     return cppType
 
 def prepareTypeName(typeSpec):
@@ -192,7 +194,7 @@ def processAction(action, indent):
         actionText += indent + "{\n" + actionListText + indent + '}\n'
     else:
         print "error in processAction: ", action
-    print "actionText", actionText
+ #   print "actionText", actionText
     return actionText
 
 
@@ -212,19 +214,20 @@ def headType(typeSpec): # e.g., xPtr or if var, int, uint, etc,
 
 
 def generate_constructor(objects, objectName, tags):
-    print 'Generate Constructor'
+    print "                    Generating Constructor for:", objectName
     constructorInit=":"
     constructorArgs="    "+objectName+"("
     count=0
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
-        print "^^^^^^^^^^^^^^^^^^^^"
-        print "field: ", field
+        #print "^^^^^^^^^^^^^^^^^^^^"
+        #print "field: ", field
         fieldType=field['fieldType']
         if(fieldType=='flag' or fieldType=='mode' or fieldType=='func'): continue
+        fieldOwner=field['owner']
         fieldType=field['fieldType']
         fieldHeadType=headType(fieldType)
-        convertedType = convertType(fieldType)
+        convertedType = convertType(fieldOwner, fieldType)
         fieldName=field['fieldName']
         #print "$$$$$$$$$$$$$$$$$$$$$$$$$ Constructing:", objectName, fieldName, fieldType, fieldHeadType, convertedType
         if(fieldHeadType[0:3]=="int" or fieldHeadType[0:4]=="uint" or fieldHeadType[-3:]=="Ptr"):
@@ -243,13 +246,12 @@ def generate_constructor(objects, objectName, tags):
     return constructCode
 
 def processOtherStructFields(objects, objectName, tags, indent):
-    #print "        Coding fields for", objectName
+    print "                    Coding fields for", objectName
     globalFuncs=''
     funcDefCode=''
     structCode=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
-        print field
         fieldType=field['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=field['owner']
@@ -257,44 +259,29 @@ def processOtherStructFields(objects, objectName, tags, indent):
         fieldValue=field['value']
         fieldArglist = field['argList']
         if fieldName=='opAssign': fieldName='operator='
-        convertedType = convertType(fieldType)
+        convertedType = convertType(fieldOwner, fieldType)
         typeDefName = progSpec.createTypedefName(fieldType)
-        print "        ->", fieldOwner, fieldType, fieldName, '=', fieldValue
+        if(fieldValue == None):fieldValueText=""
+        else: fieldValueText = " = "+ str(fieldValue)
+        registerType(objectName, fieldName, convertedType, "")
+        print "                       ", fieldOwner, fieldType, fieldName
         if(fieldOwner=='const'):
-            print fieldType
-            print fieldName
-            print fieldValue
-            structCode += indent + 'const ' + fieldType +' ' + fieldName +" = "+fieldValue +';\n';
+            structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
         elif(fieldArglist==None):
-            if fieldOwner=='me':
-                registerType(objectName, fieldName, convertedType, "")
-                structCode += indent + convertedType + ' ' + fieldName +";\n";
-            elif fieldOwner=='my':
-                typeStr=convertedType # + '*'
-                registerType(objectName, fieldName, typeStr, "")
-                structCode += indent + typeStr +' '+ fieldName +";\n";
-            elif fieldOwner=='our':
-                typeStr=convertedType # + '*'
-                registerType(objectName, fieldName, typeStr, "")
-                structCode += indent + typeStr +' ' + fieldName +";\n";
-            elif fieldOwner=='their':
-                print "THEIR.....THEIR.....THEIR"
-                typeStr=convertedType
-                registerType(objectName, fieldName, typeStr, typeDefName)
-                structCode += indent + typeDefName +' '+ fieldName +";\n";
+            structCode += indent + convertedType +' ' + fieldName + fieldValueText +';\n';
         #################################################################
         else: # Arglist exists so this is a function.
             if(fieldType=='none'): convertedType=''
             else:
                 #print convertedType
                 convertedType+=''
-            if (field['value'][1]!=''): # This is apparently a 'verbatim' function.
+            if (field['value'][1]!=''): # This function body is 'verbatim'.
                 funcText=field['value'][1]
-            # if no verbatim found so generate function text from action sequence
+            # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
                 funcText=processActionSeq(field['value'][0], indent)
             else:
-                print "error in processOtherFields: no funcText or funcTextVerbatim found"
+                print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
             #print "FUNCTEXT:",funcText
         ###########################################################
@@ -311,7 +298,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                         for arg in argList:
                             if(count>0): argListText+=", "
                             count+=1
-                            argListText+= convertType(arg[0][0]) +' '+ arg[0][1]
+                            argListText+= convertType(fieldOwner, arg[0][0]) +' '+ arg[0][1]
                     globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")" +funcText+"\n\n"
             else:
                 argList=field['argList']
@@ -326,7 +313,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                     for arg in argList:
                         if(count>0): argListText+=", "
                         count+=1
-                        argListText+= convertType(arg[0][0]) +' '+ arg[0][1]
+                        argListText+= convertType(arg[0][0], arg[0][1]) + ' ' + arg[0][2][1]
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') ', funcText
                 if(fieldType[0] != '<%'):
                     registerType(objectName, fieldName, convertedType, typeDefName)
@@ -344,7 +331,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
 
 
 def generateAllObjectsButMain(objects, tags):
-    print "    Generating Objects..."
+    print "\n            Generating Objects..."
     constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
     forwardDecls="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
@@ -352,13 +339,12 @@ def generateAllObjectsButMain(objects, tags):
     needsFlagsVar=False;
     for objectName in objects[1]:
         if(objectName[0] != '!'):
+            print "                [" + objectName+"]"
             [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags)
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, False, 'me', "uint64", 'flags', None, None)
             if(objectName != 'MAIN' and objects[0][objectName]['stateType'] == 'struct'):
-                print "\n\n****************", objectName
-
                 forwardDecls+="struct " + objectName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ')
                 structCodeAcc += "\nstruct "+objectName+"{\n" + structCode + '};\n'
@@ -368,10 +354,10 @@ def generateAllObjectsButMain(objects, tags):
 
 
 def processMain(objects, tags):
-    print "\n    Generating MAIN..."
+    print "\n            Generating MAIN..."
     if("MAIN" in objects[1]):
         if(objects[0]["MAIN"]['stateType'] != 'struct'):
-            print "MAIN must be a 'struct'."
+            print "ERROR: MAIN must be a 'struct'."
             exit(2)
         [structCode, funcCode, globalFuncs]=processOtherStructFields(objects, "MAIN", tags, '')
         if(funcCode==''): funcCode="// No main() function.\n"
@@ -417,27 +403,27 @@ def makeFileHeader(tags):
     return header
 
 def integrateLibrary(tags, libID):
-    print '    Integrating', libID, tags
+    print '                Integrating', libID
     libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
-    print "LIB_FILES", libFiles
+    #print "LIB_FILES", libFiles
     global buildStr_libs
     for libFile in libFiles:
         buildStr_libs+=' -l'+libFile
     libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
     for libHdr in libHeaders:
         tags[0]['Include'] +=', <'+libHdr+'>'
-        print "Added header", libHdr
-    print 'BUILD STR', buildStr_libs
+        #print "Added header", libHdr
+    #print 'BUILD STR', buildStr_libs
 
 def connectLibraries(objects, tags):
-    print "Choosing Libaries to link..."
+    print "\n            Choosing Libaries to link..."
     libList = progSpec.fetchTagValue(tags, 'libraries')
     for lib in libList:
         if (progSpec.fetchTagValue(tags, 'libraries."+lib+".useStatus')!='notLinked'):
             integrateLibrary(tags, lib)
 
 def generate(objects, tags):
-    print "\nGenerating CPP code...\n"
+    #print "\nGenerating CPP code...\n"
     libInterfacesText=connectLibraries(objects, tags)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)

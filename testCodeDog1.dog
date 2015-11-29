@@ -18,7 +18,7 @@ langToGen="CPP"
 TestList = [abc, def, ghi, jkl]
 TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
 
-Include=`<fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>`
+Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
 
 #include libraryTags.cdog
 
@@ -35,10 +35,28 @@ struct streamSpan {
     flag: isOne = 1
     const string: text="BEGIN"
     const int32: height=4321
-    my uint32: offset
+    me uint32: offset=5
     my uint32: length
     our uint32: distance
     their uint32: age
-    me uint32: addOne(my uint32: X)=  {A<-B}
+    me uint32: addOne(me uint32: X) =  {
+        X <- 123+34
+        if(true) {
+            X <- 123+345
+
+         }
+         else if(false) {X <- 123+346} else { X <- 123+3457 if(false) {X <- 123+3458}}
+
+        // assignment
+
+        // fielddefs
+     //   our streamSpan
+     //   const uint32 age=30
+
+        // function calls
+        //print(age)
+    }
     their uint32: age2
 }
+
+do Write_Main(eventLoop)

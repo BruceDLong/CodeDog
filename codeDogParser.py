@@ -51,7 +51,7 @@ secondRefSegment = (Literal('.').suppress() + CID | arrayRef)
 firstRefSegment = (CID | arrayRef)
 varRef = Group(firstRefSegment + ZeroOrMore(secondRefSegment))("varRef")
 lValue = varRef("lValue")
-factor = (value | ('(' + expr + ')') | funcCall | ('!' + expr) | ('-' + expr) | varRef)("factor")
+factor = (funcCall | value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef)("factor")
 term = ( factor + ZeroOrMore(oneOf('* / %') + factor ))("term")
 plus = ( term  + ZeroOrMore(oneOf('+ -') + term ))("plus")
 comparison = ( plus + ZeroOrMore(oneOf('< > <= >=') + plus ))("comparison")
@@ -60,8 +60,8 @@ logAnd = ( isEQ  + ZeroOrMore('and' + isEQ ))("logAnd")
 expr <<= ( logAnd + ZeroOrMore('or' + logAnd ))("expr")
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = (expr)("rValue")
-assign = Group(lValue + (Literal("<")("assignID") + Optional(Word(alphas + nums + '_')("assignTag")) + Literal("-")) + rValue)("assign")
-parameters = Group(delimitedList(rValue, ','))("parameters")
+assign = Group(lValue + Combine(Literal("<") + Optional(Word(alphas + nums + '_')("assignTag")) + Literal("-"))("assignID") + rValue)("assign")
+parameters = Group(Optional(delimitedList(rValue, ',')))("parameters")
 funcCall <<= (CID("calledFunc") + Literal("(") + parameters + ")")("funcCall")
 
 ########################################   F U N C T I O N S
@@ -78,12 +78,12 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action = (fieldDef | Group(funcCall) | assign | swap)("action")
+action = (Group(funcCall) | assign | fieldDef | swap)("action")
 actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
 
-#########################################   F I  E L D   D E S C R I P T I O N S
+#########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
           (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + "=" + funcBody )         # Function Definition
         | (Literal(":") + CID("fieldName")  + "=" + value("givenValue"))
@@ -99,14 +99,14 @@ baseType = (cppType)("baseType")
 
 #########################################   O B J E C T   D E S C R I P T I O N S
 objectName = Combine(CID + Optional('::' + CID))("objectName")
-fieldDefs = (Literal("{").suppress() + (ZeroOrMore(fieldDef))+ Literal("}").suppress())("fieldDefs")
+fieldDefs = (Literal("{").suppress() + ZeroOrMore(fieldDef)+ Literal("}").suppress())("fieldDefs")
 SetFieldStmt = Group(lValue + '=' + rValue)
 coFactualEL  = (Literal("(") + Group(fieldDefs + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEL")
 alternateEl  = (Literal("[") + Group(OneOrMore(fieldDefs + Optional("|").suppress())) + Literal("]"))("alternateEl")
 anonModel = (fieldDefs | alternateEl | coFactualEL ) ("anonModel")
 owners = (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their"))
 fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | anonModel)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
-fieldDef = Group(flagDef('flagDef') | modeSpec('modeDef') | quotedString()('constStr') | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
+fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | quotedString()('constStr') | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
 doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
@@ -132,20 +132,20 @@ def extractTagDefs(tagResults):
         tagVal = tagSpec.tagValue
         if ((not isinstance(tagVal, basestring)) and len(tagVal)>=2):
             if(tagVal[0]=='['):
-                print "LIST OF VALUES"
+                #print "LIST OF VALUES"
                 tagValues=[]
                 for multiVal in tagVal[1]:
                     tagValues.append(multiVal[0])
-                print tagValues
+                #print tagValues
 
             elif(tagVal[0]=='{'):
-                print "MAP OF VALUES"
+                #print "MAP OF VALUES"
                 tagValues=extractTagDefs(tagVal[1])
             tagVal=tagValues
         # Remove quotes
         elif (len(tagVal)>=2 and (tagVal[0] == '"' or tagVal[0] == "'") and (tagVal[0]==tagVal[-1])):
             tagVal = tagVal[1:-1]
-        print tagSpec.tagID, " is ", tagVal
+        #print tagSpec.tagID, " is ", tagVal
         localTagStore[tagSpec.tagID] = tagVal
     return localTagStore
 
@@ -157,19 +157,13 @@ def extractActSeqToActSeq(funcName, childActSeq):
     return actSeqData
 
 def parseResultToArray(parseSegment):
-    #print 'parseSegment: ', parseSegment
     myList = []
-    for each in parseSegment:
-        #print each
-        myList.append(each)
-    #print myList
+    for seg in parseSegment:
+        myList.append(seg)
     return myList
 
 
 def extractActItem(funcName, actionItem):
-    #print "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIextractActItem"
-    #print "actionItem: ", actionItem
-    #print "IIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIextractActItem"
     thisActionItem='error'
     # Create Variable: var | sPtr | uPtr | rPtr | list
     if actionItem.varName:
@@ -177,8 +171,7 @@ def extractActItem(funcName, actionItem):
         thisVarName = actionItem.varName
         #print 'TypeSpec and VarName: ', thisTypeSpec, thisVarName
         thisActionItem = {'typeOfAction':"newVar", 'typeSpec':thisTypeSpec, 'varName':thisVarName}
-    # Conditional if
-    elif actionItem.ifStatement:
+    elif actionItem.ifStatement:    # Conditional if
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
         ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
@@ -284,7 +277,7 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
     return funcBodyOut, funcTextVerbatim
 
 def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
-    print "Extracting Field Defs"
+    print "    EXTRACTING Field Defs for", ObjectName
     #print fieldResults
     for fieldResult in fieldResults:
         #print fieldResult
@@ -318,23 +311,22 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
             givenValue=None;
             fieldName=None;
         if(fieldResult.flagDef):
-            print "FLAG: ", fieldResult
+            print "        FLAG: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, False, owner, 'flag', fieldName, None, givenValue)
         elif(fieldResult.modeDef):
-            print "MODE: ", fieldResult
+            print "        MODE: ", fieldResult
             progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, enumList)
         elif(fieldResult.constStr):
-            print "CONST String: ", fieldResult
+            print "        CONST String: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'string', None, None, givenValue)
         elif(fieldResult.constNum):
-            print "CONST Num: ", fieldResult
+            print "        CONST Num: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'int', None, None, givenValue)
         elif(fieldResult.nameVal):
-            print "NameAndVal: ", fieldResult
+            print "        NameAndVal: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, None, None, None, fieldName, argList, givenValue)
         elif(fieldResult.fullFieldDef):
-            print "\n^^^^^^^^^^^^^^^^^^^^^^^^"
-            print "FULL: ", fieldResult
+            print "        FULL FIELD: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, isNext, owner, fieldType, fieldName, argList, givenValue)
         else:
             print "Error in extractFieldDefs:", fieldResult
