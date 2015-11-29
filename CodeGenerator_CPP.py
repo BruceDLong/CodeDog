@@ -65,7 +65,7 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     typeDefMap[typeOfField]=typeDefTag
 
 def convertType(owner, fieldType):
-    print "fieldType: ", fieldType
+    #print "fieldType: ", fieldType
     cppType="TYPE ERROR"
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):

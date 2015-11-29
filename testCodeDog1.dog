@@ -47,14 +47,10 @@ struct streamSpan {
          }
          else if(false) {X <- 123+346} else { X <- 123+3457 if(false) {X <- 123+3458}}
 
-        // assignment
-
-        // fielddefs
+///////  Uncomment these three lines to test things
      //   our streamSpan
      //   const uint32 age=30
-
-        // function calls
-        //print(age)
+     //   print(age)
     }
     their uint32: age2
 }
