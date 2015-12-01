@@ -50,8 +50,10 @@ arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset'))
 secondRefSegment = (Literal('.').suppress() + CID | arrayRef)
 firstRefSegment = (CID | arrayRef)
 varRef = Group(firstRefSegment + ZeroOrMore(secondRefSegment))("varRef")
+parameters = Forward()
+varFuncRef = Group(varRef("varName") + Optional(parameters))("varFuncRef")
 lValue = varRef("lValue")
-factor = (funcCall | value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef)("factor")
+factor = ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)("factor")
 term = ( factor + ZeroOrMore(oneOf('* / %') + factor ))("term")
 plus = ( term  + ZeroOrMore(oneOf('+ -') + term ))("plus")
 comparison = ( plus + ZeroOrMore(oneOf('< > <= >=') + plus ))("comparison")
@@ -59,10 +61,10 @@ isEQ = ( comparison  + ZeroOrMore(oneOf('= !=') + comparison ))("isEQ")
 logAnd = ( isEQ  + ZeroOrMore('and' + isEQ ))("logAnd")
 expr <<= ( logAnd + ZeroOrMore('or' + logAnd ))("expr")
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
-rValue = (expr)("rValue")
+rValue = Group(expr)("rValue")
 assign = Group(lValue + Combine(Literal("<") + Optional(Word(alphas + nums + '_')("assignTag")) + Literal("-"))("assignID") + rValue)("assign")
-parameters = Group(Optional(delimitedList(rValue, ',')))("parameters")
-funcCall <<= (CID("calledFunc") + Literal("(") + parameters + ")")("funcCall")
+parameters <<= Group(Literal("(").suppress() + Optional(delimitedList(rValue, ',') + Literal(")").suppress()))("parameters")
+funcCall <<= Group(varRef("varName") + parameters("parameters"))("funcCall")
 
 ########################################   F U N C T I O N S
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
@@ -78,7 +80,7 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action = (Group(funcCall) | assign | fieldDef | swap)("action")
+action = Group(funcCall | assign("assignID") | fieldDef('fieldDef'))
 actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
@@ -166,7 +168,8 @@ def parseResultToArray(parseSegment):
 def extractActItem(funcName, actionItem):
     thisActionItem='error'
     # Create Variable: var | sPtr | uPtr | rPtr | list
-    if actionItem.varName:
+    print "ACTIONITEM:", actionItem
+    if actionItem.fieldDef:
         thisTypeSpec = actionItem.typeSpec
         thisVarName = actionItem.varName
         #print 'TypeSpec and VarName: ', thisTypeSpec, thisVarName
@@ -228,16 +231,18 @@ def extractActItem(funcName, actionItem):
         #print "SWAP...SWAP...SWAP...SWAP...SWAP...SWAP...SWAP...SWAP: ", swapRightLValue, swapLeftLValue
         thisActionItem = {'typeOfAction':"swap", 'LHS':LHS, 'RHS':RHS}
     # Function Call
-    elif actionItem.calledFunc:
-        calledFunc = actionItem.calledFunc
-        parameters = actionItem.parameters
-        #for param in actionItem.parameters:
-            #print "param: ", rValue
-            #parameters += rValue[0]
-        #print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: ", calledFunc, parameters
+    elif actionItem.funcCall:
+        calledFunc = str(actionItem.funcCall.varName)
+        parameters = actionItem.funcCall.parameters
+        paramText=''
+        for param in parameters:
+            print "param: ", param
+            paramText += str(param[0])
+        print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: [", calledFunc, '], [', paramText, ']'
         thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc, 'parameters':parameters}
     else:
         print "error in extractActItem"
+        print "actionItem", actionItem
         exit(1)
     #print "thisActionItem...thisActionItem...thisActionItem...thisActionItem: ", thisActionItem
     return thisActionItem

@@ -116,6 +116,55 @@ def stringifyArray(thisExpression):
     #thisString = ''.join(thisExpression)
     return thisString
 
+################################  C o d e   E x p r e s s i o n s
+
+def codeFactor(item):
+    S=''
+    #  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
+    return S
+
+def codeTerm(item):
+    S=codeFactor(item[0])
+    for each i in item[1]:
+        S+=' * ' + codeFactor(i)
+        S+=' / ' + codeFactor(i)
+        S+=' % ' + codeFactor(i)
+    return S
+
+def codePlus(item):
+    S=codeTerm(item[0])
+    for each i in item[1]:
+        S+=' + ' + codeTerm(i)
+        S+=' - ' + codeTerm(i)
+    return S
+
+def codeComparison(item):
+    S=codePlus(item[0])
+    for each i in item[1]:
+        S+=' < '   + codePlus(i)
+        S+=' > '   + codePlus(i)
+        S+=' <= '  + codePlus(i)
+        S+=' >= '  + codePlus(i)
+    return S
+
+def codeIsEQ(item):
+    S=codeComparison(item[0])
+    for each i in item[1]:
+        S+=' == ' + codeComparison(i)
+        S+=' != ' + codeComparison(i)
+    return S
+
+def codeLogAnd(item):
+    S=codeIsEQ(item[0])
+    for each i in item[1]:
+        S+=' and ' + codeIsEQ(i)
+    return S
+
+def codeExpr(item):
+    S=codeLogAnd(item[0])
+    for each i in item[1]:
+        S+=' or ' + codeLogAnd(i)
+    return S
 
 def processAction(action, indent):
     #make a string and return it
@@ -125,7 +174,7 @@ def processAction(action, indent):
     #print typeOfAction
     if (typeOfAction =='newVar'):
         varName = action['varName']
-        typeSpec = convertType(action['typeSpec'])
+        typeSpec = "SHINY-TYPE" #convertType(action['typeSpec'])
         #print "VAR: ", varName, typeSpec, typeOfAction
         actionText = indent + typeSpec + " " + varName + ";\n"
     elif (typeOfAction =='assign'):
@@ -169,10 +218,10 @@ def processAction(action, indent):
         repList = ".".join(action['repList'])
         actionText += indent + "for ( auto " + repName + ":" + repList + "){\n"
         if action['whereExpr']:
-            whereExpr = stringifyArray(action['whereExpr'])
+            whereExpr = codeExpression(action['whereExpr'])
             actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
         if action['untilExpr']:
-            untilExpr = stringifyArray(action['untilExpr'])
+            untilExpr = codeExpression(action['untilExpr'])
             actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
         repBodyText = ''
         for repAction in repBody:
@@ -180,9 +229,16 @@ def processAction(action, indent):
             repBodyText += actionOut
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
-        calledFunc = action['calledFunc']
-        parameters = ",".join(action['parameters'])
-        #print "funcCall: ", calledFunc, parameters
+        print "ACTION:", action
+        calledFunc = action['funcCall']['varName']
+        parameters=''
+        for P in action['funcCall']['parameters']:
+            print "--->",P
+            if(count>0): parameters+=', '
+            count+=1
+            parameters+=str(P)
+
+        print "funcCall: ", calledFunc, parameters
         actionText = indent + calledFunc + " (" + parameters  + ");\n"
     elif (typeOfAction =='actionSeq'):
         actionListIn = action['actionList']
