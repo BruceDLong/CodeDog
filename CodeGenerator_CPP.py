@@ -119,59 +119,93 @@ def stringifyArray(thisExpression):
 ################################  C o d e   E x p r e s s i o n s
 
 def codeFactor(item):
-    S=''
+    S=item
     #  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
+    print 'factor: ', S
     return S
 
 def codeTerm(item):
+    print 'term item:', item
+    print len(item)
     S=codeFactor(item[0])
-    for each i in item[1]:
-        S+=' * ' + codeFactor(i)
-        S+=' / ' + codeFactor(i)
-        S+=' % ' + codeFactor(i)
+    if len(item) > 0:
+        if not(isinstance(item, basestring)):
+            print item[0]
+            for i in item[0]:
+                print 'term:', i
+                #S+=' * ' + codeFactor(i)
+                #S+=' / ' + codeFactor(i)
+                #S+=' % ' + codeFactor(i)
     return S
 
 def codePlus(item):
+    print 'plus item:', item
+    print len(item)
     S=codeTerm(item[0])
-    for each i in item[1]:
-        S+=' + ' + codeTerm(i)
-        S+=' - ' + codeTerm(i)
+    if len(item) > 0:
+        for  i in item[1]:
+            print 'plus ', i
+            #S+=' + ' + codeTerm(i)
+            #S+=' - ' + codeTerm(i)
     return S
 
 def codeComparison(item):
+    print 'Comp item', item
+    print len(item)
     S=codePlus(item[0])
-    for each i in item[1]:
-        S+=' < '   + codePlus(i)
-        S+=' > '   + codePlus(i)
-        S+=' <= '  + codePlus(i)
-        S+=' >= '  + codePlus(i)
+    if len(item) > 0:
+        for  i in item[1]:
+            print 'comp ', i
+            #S+=' < '   + codePlus(i)
+            #S+=' > '   + codePlus(i)
+            #S+=' <= '  + codePlus(i)
+            #S+=' >= '  + codePlus(i)
     return S
 
 def codeIsEQ(item):
+    print 'IsEq item:', item
+    print len(item)
     S=codeComparison(item[0])
-    for each i in item[1]:
-        S+=' == ' + codeComparison(i)
-        S+=' != ' + codeComparison(i)
+    if len(item) > 0:
+        for  i in item[1]:
+            print 'IsEq ', i
+            #S+=' == ' + codeComparison(i)
+            #S+=' != ' + codeComparison(i)
     return S
 
 def codeLogAnd(item):
-    S=codeIsEQ(item[0])
-    for each i in item[1]:
-        S+=' and ' + codeIsEQ(i)
+    print 'And item:', item
+    print len(item)
+    S= codeIsEQ(item[0])
+    if len(item) > 0:
+        for  i in item[1]:
+            print 'AND ', i
+            if (i == 'and'):
+                S+=' && '
+            else:
+                S+= codeIsEQ(i)
     return S
 
 def codeExpr(item):
+    print 'Or item:', item
+    print len(item)
     S=codeLogAnd(item[0])
-    for each i in item[1]:
-        S+=' or ' + codeLogAnd(i)
+    
+    if len(item) > 0:
+        for i in item[1]:
+            print 'OR ', i
+            if (i == 'or'):
+                S+=' || ' 
+            else: S+=codeLogAnd(i)
+    print S
+    exit(1)
     return S
 
 def processAction(action, indent):
     #make a string and return it
     actionText = ""
-    #print "........action........action........action: ", action
     typeOfAction = action['typeOfAction']
-    #print typeOfAction
+    
     if (typeOfAction =='newVar'):
         varName = action['varName']
         typeSpec = "SHINY-TYPE" #convertType(action['typeSpec'])
@@ -229,16 +263,16 @@ def processAction(action, indent):
             repBodyText += actionOut
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
-        print "ACTION:", action
-        calledFunc = action['funcCall']['varName']
+        #print "##########################################FUNC CALL\n",
+        calledFunc = action['calledFunc']
         parameters=''
-        for P in action['funcCall']['parameters']:
-            print "--->",P
+        count = 0
+        for P in action['parameters']:
+            #print "--->",P
             if(count>0): parameters+=', '
             count+=1
-            parameters+=str(P)
-
-        print "funcCall: ", calledFunc, parameters
+            parameters+=codeExpr(P)
+        #print "funcCall: ", calledFunc, parameters
         actionText = indent + calledFunc + " (" + parameters  + ");\n"
     elif (typeOfAction =='actionSeq'):
         actionListIn = action['actionList']

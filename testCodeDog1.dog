@@ -44,14 +44,14 @@ struct streamSpan {
         if(true) {
             X <- 123+345
 
-         }
-         else if(false) {X <- 123+346} else { X <- 123+3457 if(false) {X <- 123+3458}}
+        }
+        else if(false) {X <- 123+346} else { X <- 123+3457 if(false) {X <- 123+3458}}
 
 ///////  Uncomment these three lines to test things
       me streamSpan
-     //   const uint32 age=30
+      const uint32: age=30
 
-     //   print(age, 23, 2+3, addOne[5].next, FUNC(321), Func2( 3), 23 )
+      //print(234 or 567 or 789 or 654, age, 23, 2+3, addOne[5].next, FUNC(321), Func2( ), 23 )
     }
     their uint32: age2
 }
