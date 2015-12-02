@@ -54,12 +54,12 @@ parameters = Forward()
 varFuncRef = Group(varRef("varName") + Optional(parameters))("varFuncRef")
 lValue = varRef("lValue")
 factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)("factor")
-term = Group( factor + Optional(Group(OneOrMore(oneOf('* / %') + factor ))))("term")
-plus = Group( term  + Optional(Group(OneOrMore(oneOf('+ -') + term ))))("plus")
-comparison = Group( plus + Optional(Group(OneOrMore(oneOf('< > <= >=') + plus ))))("comparison")
-isEQ = Group( comparison  + Optional(Group(OneOrMore(oneOf('= !=') + comparison ))))("isEQ")
-logAnd = Group( isEQ  + Optional(Group(OneOrMore('and' + isEQ ))))("logAnd")
-expr <<= Group( logAnd + Optional(Group(OneOrMore('or' + logAnd ))))("expr")
+term = Group( factor + Group(Optional(OneOrMore(Group(oneOf('* / %') + factor )))))("term")
+plus = Group( term  + Group(Optional(OneOrMore(Group(oneOf('+ -') + term )))))("plus")
+comparison = Group( plus + Group(Optional(OneOrMore(Group(oneOf('< > <= >=') + plus )))))("comparison")
+isEQ = Group( comparison  + Group(Optional(OneOrMore(Group(oneOf('= !=') + comparison )))))("isEQ")
+logAnd = Group( isEQ  + Group(Optional(OneOrMore(Group('and' + isEQ )))))
+expr <<= Group( logAnd + Group(Optional(OneOrMore(Group('or' + logAnd )))))("expr")
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 assign = (lValue + Combine(Literal("<") + Optional(Word(alphas + nums + '_')("assignTag")) + Literal("-"))("assignID") + rValue)("assign")
@@ -233,8 +233,8 @@ def extractActItem(funcName, actionItem):
     # Function Call
     elif actionItem.funcCall:
         calledFunc = (actionItem.funcCall.varRef[0])
-        parameters = actionItem.funcCall.parameters[0]
-        #print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: [", calledFunc, '], [', parameters, ']'
+        parameters = actionItem.funcCall.parameters
+        print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: [", calledFunc, '], <', parameters, '>\n\n'
         thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc, 'parameters':parameters}
     else:
         print "error in extractActItem"

@@ -118,94 +118,132 @@ def stringifyArray(thisExpression):
 
 ################################  C o d e   E x p r e s s i o n s
 
+def codeItemName(item):
+    S=''
+    S += str(item)
+    return S
+
 def codeFactor(item):
-    S=item
     #  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
-    print 'factor: ', S
+    print '                  factor: ', item
+    S=''
+    item0 = item[0]
+    print "ITEM0=", item0
+    if (isinstance(item0, basestring)):
+        if item0=='(':
+            S+='(' + codeExpr(item[1]) +')'
+        elif item0=='!':
+            S+='!' + codeExpr(item[1])
+        elif item0=='-':
+            S+='-' + codeExpr(item[1])
+        else: S=item0
+    else:
+        print "VARFUNCREF:", item0
+        if len(item0)==1:
+            S+=codeItemName(item0[0])               # Code variable reference
+        else:
+            S=codeFuncCall(item0[0], item0[1])   # Code function call within an expr
     return S
 
 def codeTerm(item):
-    print 'term item:', item
-    print len(item)
+    print '               term item:', item
     S=codeFactor(item[0])
-    if len(item) > 0:
-        if not(isinstance(item, basestring)):
-            print item[0]
-            for i in item[0]:
-                print 'term:', i
-                #S+=' * ' + codeFactor(i)
-                #S+=' / ' + codeFactor(i)
-                #S+=' % ' + codeFactor(i)
+    if (not(isinstance(item, basestring))) and (len(item) > 1):
+        for i in item[1]:
+            print '               term:', i
+            if   (i[0] == '*'): S+=' * '
+            elif (i[0] == '/'): S+=' / '
+            elif (i[0] == '%'): S+=' % '
+            else: print "ERROR: One of '*', '/' or '%' expected in c++ code generator."; exit(2)
+            S+=codeFactor(i[1])
     return S
 
 def codePlus(item):
-    print 'plus item:', item
+    print '            plus item:', item
     print len(item)
     S=codeTerm(item[0])
-    if len(item) > 0:
+    if len(item) > 1:
         for  i in item[1]:
-            print 'plus ', i
-            #S+=' + ' + codeTerm(i)
-            #S+=' - ' + codeTerm(i)
+            print '            plus ', i
+            if   (i[0] == '+'): S+=' + '
+            elif (i[0] == '-'): S+=' - '
+            else: print "ERROR: '+' or '-' expected in c++ code generator."; exit(2)
+            S+=codeTerm(i[1])
     return S
 
 def codeComparison(item):
-    print 'Comp item', item
+    print '         Comp item', item
     print len(item)
     S=codePlus(item[0])
-    if len(item) > 0:
+    if len(item) > 1:
         for  i in item[1]:
-            print 'comp ', i
-            #S+=' < '   + codePlus(i)
-            #S+=' > '   + codePlus(i)
-            #S+=' <= '  + codePlus(i)
-            #S+=' >= '  + codePlus(i)
+            print '         comp ', i
+            if   (i[0] == '<'): S+=' < '
+            elif (i[0] == '>'): S+=' > '
+            elif (i[0] == '<='): S+=' <= '
+            elif (i[0] == '>='): S+=' >= '
+            else: print "ERROR: One of <, >, <= or >= expected in c++ code generator."; exit(2)
+            S+=codePlus(i[1])
     return S
 
 def codeIsEQ(item):
-    print 'IsEq item:', item
+    print '      IsEq item:', item
     print len(item)
     S=codeComparison(item[0])
-    if len(item) > 0:
-        for  i in item[1]:
-            print 'IsEq ', i
-            #S+=' == ' + codeComparison(i)
-            #S+=' != ' + codeComparison(i)
+    if len(item) > 1:
+        for i in item[1]:
+            print '      IsEq ', i
+            if   (i[0] == '=='): S+=' == '
+            elif (i[0] == '!='): S+=' != '
+            else: print "ERROR: 'and' expected in c++ code generator."; exit(2)
+            S+=codeComparison(i[1])
     return S
 
 def codeLogAnd(item):
-    print 'And item:', item
+    print '   And item:', item
     print len(item)
     S= codeIsEQ(item[0])
-    if len(item) > 0:
-        for  i in item[1]:
-            print 'AND ', i
-            if (i == 'and'):
-                S+=' && '
-            else:
-                S+= codeIsEQ(i)
+    if len(item) > 1:
+        for i in item[1]:
+            print '   AND ', i
+            if (i[0] == 'and'):
+                S+=' && ' + codeIsEQ(i[1])
+            else: print "ERROR: 'and' expected in c++ code generator."; exit(2)
     return S
 
 def codeExpr(item):
     print 'Or item:', item
     print len(item)
     S=codeLogAnd(item[0])
-    
-    if len(item) > 0:
+    if len(item) > 1:
         for i in item[1]:
             print 'OR ', i
-            if (i == 'or'):
-                S+=' || ' 
-            else: S+=codeLogAnd(i)
-    print S
-    exit(1)
+            if (i[0] == 'or'):
+                S+=' || ' + codeLogAnd(i[1])
+            else: print "ERROR: 'or' expected in c++ code generator."; exit(2)
+    print "S:",S
+    return S
+
+def codeParameterList(paramList):
+    S=''
+    count = 0
+    for P in paramList:
+        if(count>0): S+=', '
+        count+=1
+        S+=codeExpr(P[0])
+    return S
+
+def codeFuncCall(funcName, paramList):
+    S=''
+    S+=codeItemName(funcName)
+    S+='(' + codeParameterList(paramList) + ')'
     return S
 
 def processAction(action, indent):
     #make a string and return it
     actionText = ""
     typeOfAction = action['typeOfAction']
-    
+
     if (typeOfAction =='newVar'):
         varName = action['varName']
         typeSpec = "SHINY-TYPE" #convertType(action['typeSpec'])
@@ -252,10 +290,10 @@ def processAction(action, indent):
         repList = ".".join(action['repList'])
         actionText += indent + "for ( auto " + repName + ":" + repList + "){\n"
         if action['whereExpr']:
-            whereExpr = codeExpression(action['whereExpr'])
+            whereExpr = codeExpr(action['whereExpr'])
             actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
         if action['untilExpr']:
-            untilExpr = codeExpression(action['untilExpr'])
+            untilExpr = codeExpr(action['untilExpr'])
             actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
         repBodyText = ''
         for repAction in repBody:
@@ -263,17 +301,11 @@ def processAction(action, indent):
             repBodyText += actionOut
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
-        #print "##########################################FUNC CALL\n",
+        #print "########################################## FUNCTION CALL AS ACTION\n",
         calledFunc = action['calledFunc']
-        parameters=''
-        count = 0
-        for P in action['parameters']:
-            #print "--->",P
-            if(count>0): parameters+=', '
-            count+=1
-            parameters+=codeExpr(P)
+        parameters = action['parameters']
         #print "funcCall: ", calledFunc, parameters
-        actionText = indent + calledFunc + " (" + parameters  + ");\n"
+        actionText = indent + codeFuncCall(calledFunc, parameters) + ';\n'
     elif (typeOfAction =='actionSeq'):
         actionListIn = action['actionList']
         actionListText = ''
