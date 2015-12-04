@@ -9,7 +9,7 @@ import pattern_Gen_Eventhandler
 import pattern_BigNums
 #import pattern_Gen_GUI
 
-#import stringStructs
+import stringStructs
 
 import CodeGenerator_CPP
 #import CodeGenerator_JavaScript

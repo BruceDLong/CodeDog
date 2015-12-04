@@ -49,7 +49,7 @@ funcCall = Forward()
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 secondRefSegment = (Literal('.').suppress() + CID | arrayRef)
 firstRefSegment = (CID | arrayRef)
-varRef = Group(firstRefSegment + ZeroOrMore(secondRefSegment))("varRef")
+varRef = Group(firstRefSegment + Group(ZeroOrMore(secondRefSegment)))("varRef")
 parameters = Forward()
 varFuncRef = Group(varRef("varName") + Optional(parameters))("varFuncRef")
 lValue = varRef("lValue")
@@ -63,7 +63,7 @@ expr <<= Group( logAnd + Group(Optional(OneOrMore(Group('or' + logAnd )))))("exp
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 assign = (lValue + Combine(Literal("<") + Optional(Word(alphas + nums + '_')("assignTag")) + Literal("-"))("assignID") + rValue)("assign")
-parameters <<= (Literal("(").suppress() + Optional(delimitedList(rValue, ',')) + Literal(")").suppress())("parameters")
+parameters <<= (Literal("(") + Optional(Group(delimitedList(rValue, ','))) + Literal(")").suppress())("parameters")
 funcCall <<= Group(varRef+ parameters("parameters"))("funcCall")
 
 ########################################   F U N C T I O N S
@@ -72,7 +72,7 @@ fieldDef = Forward()
 argList =  (verbatim | Group(Optional(delimitedList(Group( fieldDef)))))("argList")
 actionSeq = Forward()
 conditionalAction = Forward()
-conditionalAction <<= Group(Group(Keyword("if") + "(" + expr("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")+ Optional(Keyword("else") + (actionSeq | conditionalAction)("elseBody"))("optionalElse"))("conditionalAction")
+conditionalAction <<= Group(Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")+ Optional(Keyword("else") + (actionSeq | conditionalAction)("elseBody"))("optionalElse"))("conditionalAction")
 repeatedAction = Group(
             Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ lValue("repList") + ":"
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
@@ -172,7 +172,7 @@ def extractActItem(funcName, actionItem):
     if actionItem.fieldDef:
         thisTypeSpec = actionItem.typeSpec
         thisVarName = actionItem.varName
-        #print 'TypeSpec and VarName: ', thisTypeSpec, thisVarName
+        print 'TypeSpec and VarName: ', thisTypeSpec, thisVarName
         thisActionItem = {'typeOfAction':"newVar", 'typeSpec':thisTypeSpec, 'varName':thisVarName}
     elif actionItem.ifStatement:    # Conditional if
         ifCondition = actionItem.ifStatement.ifCondition
@@ -232,8 +232,14 @@ def extractActItem(funcName, actionItem):
         thisActionItem = {'typeOfAction':"swap", 'LHS':LHS, 'RHS':RHS}
     # Function Call
     elif actionItem.funcCall:
-        calledFunc = (actionItem.funcCall.varRef[0])
-        parameters = actionItem.funcCall.parameters
+        calledFunc = (actionItem.funcCall.varRef)
+        parameterData = actionItem.funcCall.parameters
+        if parameterData[0]=='(':
+            if len(parameterData)>1:
+                parameters=parameterData[1]
+            else:
+                parameters=[]
+
         print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: [", calledFunc, '], <', parameters, '>\n\n'
         thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc, 'parameters':parameters}
     else:
@@ -327,7 +333,7 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
             print "        NameAndVal: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, None, None, None, fieldName, argList, givenValue)
         elif(fieldResult.fullFieldDef):
-            print "        FULL FIELD: ", fieldResult
+            print "        FULL FIELD: ", [isNext, owner, fieldType, fieldName]
             progSpec.addField(ProgSpec, ObjectName, isNext, owner, fieldType, fieldName, argList, givenValue)
         else:
             print "Error in extractFieldDefs:", fieldResult
@@ -415,9 +421,9 @@ def parseCodeDogString(inputString):
 
 def AddToObjectFromText(spec, objNames, inputStr):
     inputStr = comment_remover(inputStr)
-    print '####################\n',inputStr, "\n######################^\n\n\n"
+    #print '####################\n',inputStr, "\n######################^\n\n\n"
 
     # (map of objects, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
-    print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'
+    #print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'
     extractObjectOrPattern(spec, objNames, results[0])

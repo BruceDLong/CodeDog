@@ -51,7 +51,10 @@ struct streamSpan {
       me streamSpan
       const uint32: age=30
 
-      print(1234 or 567 or 789 or 654, age, 23, 2+3*(5-4/3), addOne[5].next, FUNC(321), Func2( ), -23 , !true)
+      print(1234 or 567 or 789 or 654, age, 23, 2+3*(5-4/3) % sqrt(81, 'hello'), addOne[5].next, FUNC(821, name, 'hi'), noArgs( ), -23 , !true)
+      disLodge()
+      windPipe[3].dislodge()
+      MoreArgs('abc', def, 234)
     }
     their uint32: age2
 }

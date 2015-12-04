@@ -25,17 +25,24 @@ def codeDogTypeToString(objects, tags, field):
 
     return S
 
-def writePositionalGet(objects, tags, field):
-    S="    "+codeDogTypeToString(objects, tags, field)+'{\n'
-    if(isKnown) return reference to value
-    if(length is constant) set it and set flag
-    if(pos is unknown)
-        query for it
-        // use predecessor's pos+len
-    if(pos is known)
-         Scoop the data with A<-B
-         set and propagate length
-    S+='}\n'
+def writePositionalFetch(objects, tags, field):
+    S="""
+    const fetchOK=0
+    const fetchNotReady=1
+    const fetchParseError=2
+    const fetchIOError=3
+
+    getStatus fetch(){
+        if(%s_hasVal) return fetchOK
+        if(length is constant) set it and set flag
+        if(! %s_hasPos)
+            query for it
+            // use predecessor's pos+len
+        if(%s_hasPos)
+             Scoop the data with A<-B
+             set and propagate length
+    }
+    """ % [fname, fname, fname]
     return S
 
 def CreateStructsForStringModels(objects, tags):
@@ -54,7 +61,7 @@ def CreateStructsForStringModels(objects, tags):
                     objFieldStr+="    flag: "+fname+'_hasPos\n'
                     objFieldStr+="    flag: "+fname+'_hasLen\n'
                     objFieldStr+="    streamSpan: "+fname+'_span\n'
-                    objFieldStr+= writePositionalGet(field)
+                    objFieldStr+= writePositionalFetch(field)
                     objFieldStr+= writePositionalSet(field)
                 else:
                     objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
