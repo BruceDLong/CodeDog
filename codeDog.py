@@ -60,6 +60,20 @@ def ScanAndApplyPatterns(objects, tags):
             elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
             elif pattName=='useBigNums': pattern_BigNums.apply(tags)
 
+def AutoGenerateStructsFromModels(objects, tags):
+    #TODO: Convert ranges and deduce field types if possible.
+    print "    Generating Auto-structs..."
+    for objName in objects[1]:
+        if objName[0]!='!':
+            autoFlag = 'autoGen' in objects[0][objName]
+            stateType=objects[0][objName]['stateType']
+            if(autoFlag and stateType=='struct'):
+                thisModel=progSpec.findModelOf(objects, objName)
+                newFields=[]
+                for F in thisModel['fields']:
+                    #print 'FIELD:', F
+                    newFields.append(F)
+                objects[0][objName]['fields'] = newFields
 
 def setFeatureNeeded(tags, featureID, objMap):
     tags[featureID]=objMap
@@ -84,7 +98,8 @@ def GenerateProgram(objects, buildSpec, tags):
 def GenerateSystem(objects, buildSpecs, tags):
     print "\n\n######################   G E N E R A T I N G   S Y S T E M"
     ScanAndApplyPatterns(objects, tags)
-    #stringStructs.CreateStructsForStringModels(objects, tags)
+    stringStructs.CreateStructsForStringModels(objects, tags)
+    AutoGenerateStructsFromModels(objects, tags)
     ScanFuncsAndTypesThenSetTags(tags)
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]

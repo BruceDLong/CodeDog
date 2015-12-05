@@ -51,7 +51,7 @@ def addField(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, th
         return
     objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':thisType, 'fieldName':thisName, 'argList':thisArgList, 'value':thisValue})
     if(thisOwner!='flag' and thisOwner!='mode'):
-        registerBaseType(thisType, objectName)
+        print "FIX THIS COMMENTED OUT PART", thisType, objectName #registerBaseType(thisType, objectName)
 
 
 def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue, enumList):
@@ -61,6 +61,9 @@ def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thi
     objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':'mode', 'fieldName':thisName, 'value':thisValue, 'enumList':enumList})
     print "    ADDED MODE:\t", modeName
     print enumList
+
+def markStructAuto(objSpecs, objectName):
+    objSpecs[objectName]["autoGen"]='yes'
 
 ###############
 
@@ -99,14 +102,23 @@ def createTypedefName(ItmType):
     if(isinstance(ItmType, basestring)):
         return ItmType
     else:
+        return 'BAD-TYPE-NAME'
         baseType=createTypedefName(ItmType[1])
         suffix=''
         typeHead=ItmType[0]
-        if(typeHead=='rPtr'): suffix='Ptr'
-        elif(typeHead=='sPtr'): suffix='SPtr'
-        elif(typeHead=='uPtr'): suffix='UPtr'
-        elif(typeHead=='list'): suffix='List'
+        if(typeHead=='their'): suffix='RPtr'
+        elif(typeHead=='our'): suffix='SPtr'
+        elif(typeHead=='my'): suffix='UPtr'
         return baseType+suffix
+
+
+def findModelOf(objMap, structName):
+    # returns None or ref to the model. E.g. for date:HR, the model would be 'date'
+    colonIndex=structName.find('::')
+    if(colonIndex==-1): return None
+    modelName=structName[0:colonIndex]
+    return objMap[0][modelName]
+
 
 def getNameSegInfo(objMap, structName, fieldName):
     structToSearch = objMap[structName]
@@ -147,11 +159,6 @@ def getFieldInfo(objMap, structName, fieldNameSegments):
                     referenceStr+= joiner+fieldName
                     structType=REF['fieldType'][1]
                 elif structKind=='iPtr' or structKind=='rPtr' or structKind=='sPtr' or structKind=='uPtr':
-                    referenceStr+= joiner+fieldName
-                    structType=REF['fieldType']
-                elif structKind=='list':
-                    print "LIST........LIST........LIST........LIST........LIST........"
-                    # TODO: handle list
                     referenceStr+= joiner+fieldName
                     structType=REF['fieldType']
                 prevKind=structKind

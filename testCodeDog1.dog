@@ -28,6 +28,37 @@ LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
 //
 //do useBigNums(tags)
 
+model date {
+    me int32: month
+    me int32: date
+    me int32: year
+}
+struct date::mem auto
+
+model personRec {
+    flag: hired
+    me int32:  age
+    me string: name
+    me string: address
+    me date:   birthday
+}
+
+struct personRec::HRForm auto
+
+string date::strForm {
+    > int32:month
+    > int32:date
+    > int32:year
+}
+
+string personRec::strForm {
+    flag: hired
+    > me int32:  age
+    > me string: name
+    > me string: address
+    > me date_mem:   birthday
+}
+
 struct streamSpan {
     my flag: isOK
     me flag: isBig
@@ -48,10 +79,10 @@ struct streamSpan {
         else if(false) {X <- 123+346} else { X <- 123+3457 if(false) {X <- 123+3458}}
 
 ///////  Uncomment these three lines to test things
-      me streamSpan
+      our streamSpan: span
       const uint32: age=30
 
-      print(1234 or 567 or 789 or 654, age, 23, 2+3*(5-4/3) % sqrt(81, 'hello'), addOne[5].next, FUNC(821, name, 'hi'), noArgs( ), -23 , !true)
+      print(1234 or 567 or 789 or 654, age, 23, 2+3*(5-4/3) % sqrt(81, "hello"), addOne[5].next, FUNC(821, name, 'hi'), noArgs( ), -23 , !true)
       disLodge()
       windPipe[3].dislodge()
       MoreArgs('abc', def, 234)

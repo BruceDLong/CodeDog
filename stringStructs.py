@@ -26,15 +26,20 @@ def codeDogTypeToString(objects, tags, field):
     return S
 
 def writePositionalFetch(objects, tags, field):
+    fname=field['fieldName']
+# TODO: Move these constants out-side. They should only be done once. Best if they an an enum.
     S="""
-    const fetchOK=0
-    const fetchNotReady=1
-    const fetchParseError=2
-    const fetchIOError=3
+    const int32: fetchOK=0
+    const int32: fetchNotReady=1
+    const int32: fetchParseError=2
+    const int32: fetchIOError=3
 
-    getStatus fetch(){
-        if(%s_hasVal) return fetchOK
-        if(length is constant) set it and set flag
+    me uint32: fetch_%s()={
+        if(%s_hasVal) {return (fetchOK)}
+        }
+"""% (fname, fname)
+    temp="""
+        if(this is const string) set length and set have-length flag
         if(! %s_hasPos)
             query for it
             // use predecessor's pos+len
@@ -42,15 +47,25 @@ def writePositionalFetch(objects, tags, field):
              Scoop the data with A<-B
              set and propagate length
     }
-    """ % [fname, fname, fname]
+    """ # % (fname, fname, fname)
     return S
+
+def writePositionalSet(field):
+    return "    // Positional Set() TBD\n";
+
+def writeContextualGet(field):
+    return "    // Contextual Get() TBD\n";
+
+def writeContextualSet(field):
+    return "    // Contextual Set() TBD\n";
 
 def CreateStructsForStringModels(objects, tags):
     print "Creating structs from string models..."
     for objectName in objects[1]:
+        if objectName[0] == '!': continue
         ObjectDef = objects[0][objectName]
         if(objectName[0] != '!' and ObjectDef['stateType'] == 'string'):
-            print "    ", objectName
+            print "    WRITING STRUCT:", objectName
             objFieldStr=""
             for field in ObjectDef['fields']:
                 fname=field['fieldName']
@@ -61,12 +76,12 @@ def CreateStructsForStringModels(objects, tags):
                     objFieldStr+="    flag: "+fname+'_hasPos\n'
                     objFieldStr+="    flag: "+fname+'_hasLen\n'
                     objFieldStr+="    streamSpan: "+fname+'_span\n'
-                    objFieldStr+= writePositionalFetch(field)
+                    objFieldStr+= writePositionalFetch(objects, tags, field)
                     objFieldStr+= writePositionalSet(field)
                 else:
                     objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
                     objFieldStr+= writeContextualSet(field)
-            print "objFieldStr:", objFieldStr
+            print "#################################### objFieldStr:\n", objFieldStr, '\n####################################'
             structsName = objectName+"_struct"
-            #progSpec.addObject(objects[0], objects[1], structsName, 'struct')
-            #codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, objFieldStr))
+            progSpec.addObject(objects[0], objects[1], structsName, 'struct')
+            codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, objFieldStr))

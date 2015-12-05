@@ -67,12 +67,13 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
 def convertType(owner, fieldType):
     #print "fieldType: ", fieldType
     cppType="TYPE ERROR"
+    if(fieldType=='<%'): return fieldType[1][0]
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
             cppType=fieldType+'_t'
         else:
             cppType=fieldType
-    if(fieldType=='<%'): return fieldType[1][0]
+    else: cppType=fieldType[0]
 
     kindOfField=owner
     if kindOfField=='const':
@@ -88,6 +89,7 @@ def convertType(owner, fieldType):
     else:
         print "ERROR: Owner of type not valid '" + owner + "'"
         exit(1)
+    if cppType=='TYPE ERROR': print cppType, owner, fieldType;
     return cppType
 
 def prepareTypeName(typeSpec):
@@ -128,7 +130,7 @@ def codeNameSeg(item, connector):
     return S
 
 def codeItemName(item):
-    print "NAME:", item
+    #print "NAME:", item
     S=''
     S += codeNameSeg(item[0],'')
     if len(item)>1:
@@ -141,7 +143,7 @@ def codeFactor(item):
     #print '                  factor: ', item
     S=''
     item0 = item[0]
-    print "ITEM0=", item0
+    #print "ITEM0=", item0
     if (isinstance(item0, basestring)):
         if item0=='(':
             S+='(' + codeExpr(item[1]) +')'
@@ -149,9 +151,11 @@ def codeFactor(item):
             S+='!' + codeExpr(item[1])
         elif item0=='-':
             S+='-' + codeExpr(item[1])
-        else: S=item0
+        else:
+            if(item0[0]=="'" or item0[0]=='"'): S='"'+item0[1:-1] +'"'
+            else: S=item0
     else:
-        print "VARFUNCREF:", item0
+        #print "VARFUNCREF:", item0
         if len(item0)==1:
             S+=codeItemName(item0[0])                 # Code variable reference
         else:
@@ -257,10 +261,15 @@ def processAction(action, indent):
     typeOfAction = action['typeOfAction']
 
     if (typeOfAction =='newVar'):
-        varName = action['varName']
-        typeSpec = convertType('me', action['typeSpec'])
-        #print "VAR: ", varName, typeSpec, typeOfAction
-        actionText = indent + typeSpec + " " + varName + ";\n"
+        fieldDef=action['fieldDef'][0]
+        owner=fieldDef[0]
+        fieldType=fieldDef[1]
+        varName = fieldDef[2][1]
+        typeSpec = convertType(owner, fieldType)
+        assignValue=''
+        if(len(fieldDef[2])==4):
+            assignValue=' = '+fieldDef[2][3]
+        actionText = indent + typeSpec + " " + varName + assignValue + ";\n"
     elif (typeOfAction =='assign'):
         LHS = codeItemName(action['LHS'])
         RHS = codeExpr(action['RHS'][0])
@@ -278,7 +287,7 @@ def processAction(action, indent):
     elif (typeOfAction =='conditional'):
         ifCondition = codeExpr(action['ifCondition'][0])
         ifBodyText = genIfBody(action['ifBody'], indent)
-        actionText =  "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
+        actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
         elseBodyText = ""
         elseBody = action['elseBody']
         if (elseBody):
@@ -287,13 +296,13 @@ def processAction(action, indent):
                 elseIf = elseBody
                 elseIfText = processAction(elseIf, indent)
                 #print "ELSE IF:  ELSE IF:  ELSE IF:  ELSE IF:  ", elseIfText
-                actionText += indent + "else " + elseIfText
+                actionText += indent + "else " + elseIfText.lstrip()
 
             elif (elseBody['actionList'] ):
                 elseActSeq = elseBody['actionList']
                 elseText = processActionSeq(elseActSeq, indent)
                 #print "ELSE: ELSE: ELSE: ELSE: ELSE: ", elseText
-                actionText += indent + "else" + elseText
+                actionText += indent + "else " + elseText.lstrip()
     elif (typeOfAction =='repetition'):
         #print "repetition: ", action
         #whereExpr = action['whereExpr']
@@ -357,7 +366,7 @@ def generate_constructor(objects, objectName, tags):
         #print "^^^^^^^^^^^^^^^^^^^^"
         #print "field: ", field
         fieldType=field['fieldType']
-        if(fieldType=='flag' or fieldType=='mode' or fieldType=='func'): continue
+        if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=field['owner']
         fieldType=field['fieldType']
         fieldHeadType=headType(fieldType)
@@ -394,7 +403,8 @@ def processOtherStructFields(objects, objectName, tags, indent):
         fieldArglist = field['argList']
         if fieldName=='opAssign': fieldName='operator='
         convertedType = convertType(fieldOwner, fieldType)
-        typeDefName = progSpec.createTypedefName(fieldType)
+        #print "CONVERT-TYPE:", fieldOwner, fieldType, convertedType
+        typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         if(fieldValue == None):fieldValueText=""
         else: fieldValueText = " = "+ str(fieldValue)
         registerType(objectName, fieldName, convertedType, "")
@@ -413,7 +423,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 funcText=field['value'][1]
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                funcText=processActionSeq(field['value'][0], indent)
+                funcText=processActionSeq(field['value'][0], '')
             else:
                 print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
@@ -437,8 +447,8 @@ def processOtherStructFields(objects, objectName, tags, indent):
             else:
                 argList=field['argList']
                 if len(argList)==0:
-                    argListText='void'
-                    print "VOID:", argList
+                    argListText='' #'void'
+                    #print "VOID:", argList
                 elif argList[0]=='<%':
                     argListText=argList[1][0]
                 else:
@@ -452,8 +462,9 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 if(fieldType[0] != '<%'):
                     registerType(objectName, fieldName, convertedType, typeDefName)
                 else: typeDefName=convertedType
+                LangFormOfObjName = convertObjectNameToCPP(objectName)
                 structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
-                objPrefix=objectName +'::'
+                objPrefix=LangFormOfObjName +'::'
                 funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")" +funcText+"\n\n"
 
     if(objectName=='MAIN'):
@@ -463,6 +474,8 @@ def processOtherStructFields(objects, objectName, tags, indent):
         structCode+=constructCode
         return [structCode, funcDefCode]
 
+def convertObjectNameToCPP(objName):
+    return objName.replace('::', '_')
 
 def generateAllObjectsButMain(objects, tags):
     print "\n            Generating Objects..."
@@ -479,9 +492,10 @@ def generateAllObjectsButMain(objects, tags):
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, False, 'me', "uint64", 'flags', None, None)
             if(objectName != 'MAIN' and objects[0][objectName]['stateType'] == 'struct'):
-                forwardDecls+="struct " + objectName + ";  \t// Forward declaration\n"
+                LangFormOfObjName = convertObjectNameToCPP(objectName)
+                forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ')
-                structCodeAcc += "\nstruct "+objectName+"{\n" + structCode + '};\n'
+                structCodeAcc += "\nstruct "+LangFormOfObjName+"{\n" + structCode + '};\n'
                 funcCodeAcc+=funcCode
     return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
 

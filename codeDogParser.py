@@ -172,8 +172,8 @@ def extractActItem(funcName, actionItem):
     if actionItem.fieldDef:
         thisTypeSpec = actionItem.typeSpec
         thisVarName = actionItem.varName
-        print 'TypeSpec and VarName: ', thisTypeSpec, thisVarName
-        thisActionItem = {'typeOfAction':"newVar", 'typeSpec':thisTypeSpec, 'varName':thisVarName}
+        #print 'TypeSpec and VarName: ', actionItem
+        thisActionItem = {'typeOfAction':"newVar", 'fieldDef':actionItem}
     elif actionItem.ifStatement:    # Conditional if
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
@@ -288,8 +288,9 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
     #print fieldResults
     for fieldResult in fieldResults:
         #print fieldResult
+        argList=[]
         isNext=False;
-        if(fieldResult.isNext): isNext=fieldResult.isNext
+        if(fieldResult.isNext): isNext=True #fieldResult.isNext
         if(fieldResult.owner): owner=fieldResult.owner;
         else: owner='me';
         if(fieldResult.fieldType): fieldType=fieldResult.fieldType;
@@ -366,7 +367,10 @@ def extractObjectSpecs(localProgSpec, objNames, spec, stateType):
         #fieldIDX = 3
     progSpec.addObjTags(localProgSpec, objectName, objTags)
     ###########Grab field defs
-    extractFieldDefs(localProgSpec, objectName, spec.fieldDefs)
+    if(spec[2]=='auto'):
+        progSpec.markStructAuto(localProgSpec, objectName)
+    else:
+        extractFieldDefs(localProgSpec, objectName, spec.fieldDefs)
 
 
     return
