@@ -59,8 +59,8 @@ def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thi
         print "Note: The mode '", objectName, '::', thisName, "' already exists. Not re-adding"
         return
     objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':'mode', 'fieldName':thisName, 'value':thisValue, 'enumList':enumList})
-    print "    ADDED MODE:\t", modeName
-    print enumList
+    print "    ADDED MODE:\t", thisName
+
 
 def markStructAuto(objSpecs, objectName):
     objSpecs[objectName]["autoGen"]='yes'

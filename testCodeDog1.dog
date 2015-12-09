@@ -20,7 +20,7 @@ TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
 
-#include libraryTags.cdog
+#include libraryTags.dog
 
 LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
 //AndroidBuild: CPU='arm7' Lang='java' optimize='speed';

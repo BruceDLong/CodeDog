@@ -17,7 +17,7 @@ tagValue = Forward()
 tagMap  = Group('{' + tagDefList + '}')
 tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ','))) + ']')
 backTickString = Literal("`").suppress() + SkipTo("`") + Literal("`").suppress()("backTickString")
-tagValue <<= (quotedString() | backTickString | Word(alphas+nums+'-_.') | tagList | tagMap)("tagValue")
+tagValue <<= (quotedString() | backTickString | Word(alphas+nums+'-_./') | tagList | tagMap)("tagValue")
 tagDef = Group(tagID + Literal("=").suppress() + tagValue)("tagDef")
 tagDefList <<= Group(ZeroOrMore(tagDef))("tagDefList")
 #tagDefList.setParseAction(reportParserPlace)
@@ -95,7 +95,7 @@ nameAndVal = Group(
 
 arraySpec = Group ('[' + Optional(intNum | numRange) + ']')("arraySpec")
 meOrMy = (Keyword("me") | Keyword("my"))
-modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal("modeName"))("modeSpec")
+modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
 flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") + nameAndVal )("flagDef")
 baseType = (cppType)("baseType")
 
@@ -319,11 +319,14 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
             givenValue=None;
             fieldName=None;
         if(fieldResult.flagDef):
-            print "        FLAG: ", fieldResult
+            #print "        FLAG: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, False, owner, 'flag', fieldName, None, givenValue)
         elif(fieldResult.modeDef):
-            print "        MODE: ", fieldResult
-            progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, enumList)
+            #print "        MODE: ", fieldResult
+            modeList=fieldResult.modeList
+            #print fieldResult
+
+            progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, modeList)
         elif(fieldResult.constStr):
             print "        CONST String: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'string', None, None, givenValue)

@@ -28,7 +28,8 @@ def processFlagAndModeFields(objects, objectName, tags):
             structEnums += "const int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
             bitCursor += 1;
         elif fieldType=='mode':
-            print "                        mode: ", fieldName, '[]'
+            #print "                        mode: ", fieldName, '[]'
+            #print field
             structEnums += "\n// For Mode "+fieldName
             flagsVarNeeded=True
             # calculate field and bit position
