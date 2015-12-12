@@ -2,8 +2,11 @@
 import progSpec
 import re
 import datetime
+import pattern_Write_Main
 
-buildStr_libs='g++ -g -std=gnu++11 Prot.cpp '
+buildStr_libs='g++ -g -std=gnu++11 ' 
+
+
 def bitsNeeded(n):
     if n <= 1:
         return 0
@@ -416,7 +419,8 @@ def processOtherStructFields(objects, objectName, tags, indent):
             structCode += indent + convertedType +' ' + fieldName + fieldValueText +';\n';
         #################################################################
         else: # Arglist exists so this is a function.
-            if(fieldType=='none'): convertedType=''
+            if(fieldType=='none'): 
+                convertedType=''
             else:
                 #print convertedType
                 convertedType+=''
@@ -434,16 +438,20 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 if fieldName=='main':
                     funcDefCode += 'int main(int argc, char **argv)' +funcText+"\n\n"
                 else:
+                    #print "FIELD: ", field
                     argList=field['argList']
-                    if argList[0]=='<%':
-                        argListText=argList[1][0]
-                    else:
-                        argListText=""
-                        count=0
-                        for arg in argList:
-                            if(count>0): argListText+=", "
-                            count+=1
-                            argListText+= convertType(fieldOwner, arg[0][0]) +' '+ arg[0][1]
+                    #print "ARG LIST: ", argList, len(argList)
+                    argListText=""
+                    if (len(argList)>0):
+                        if argList[0]=='<%':
+                            argListText=argList[1][0]
+                        else:
+                            
+                            count=0
+                            for arg in argList:
+                                if(count>0): argListText+=", "
+                                count+=1
+                                argListText+= convertType(fieldOwner, arg[0][0]) +' '+ arg[0][1]
                     globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")" +funcText+"\n\n"
             else:
                 argList=field['argList']
@@ -530,6 +538,7 @@ def makeTagText(tags, tagName):
 
 def makeFileHeader(tags):
     global buildStr_libs
+    
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
     header += "// " + makeTagText(tags, 'CopyrightMesg') +'\n'
     header += "// This file: " + makeTagText(tags, 'FileName') +'\n'
@@ -559,20 +568,28 @@ def integrateLibrary(tags, libID):
     for libFile in libFiles:
         buildStr_libs+=' -l'+libFile
     libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
+    
+    #pattern_Write_Main.addInitDeinit("jjjjj", deinitCode)
     for libHdr in libHeaders:
         tags[0]['Include'] +=', <'+libHdr+'>'
         #print "Added header", libHdr
     #print 'BUILD STR', buildStr_libs
+    
+
+    
 
 def connectLibraries(objects, tags):
     print "\n            Choosing Libaries to link..."
     libList = progSpec.fetchTagValue(tags, 'libraries')
+    
     for lib in libList:
         if (progSpec.fetchTagValue(tags, 'libraries."+lib+".useStatus')!='notLinked'):
             integrateLibrary(tags, lib)
 
 def generate(objects, tags):
     #print "\nGenerating CPP code...\n"
+    global buildStr_libs
+    buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(objects, tags)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
