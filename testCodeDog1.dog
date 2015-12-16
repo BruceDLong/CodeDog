@@ -28,11 +28,13 @@ LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
 //
 //do useBigNums(tags)
 
-model date {
+model month {mode [January, February, March, April, May, June, July, August, September, October, November, December] : month}
+
+model date [
     me int32: month
     me int32: date
     me int32: year
-}
+]
 struct date::mem auto
 
 model personRec {
@@ -47,6 +49,7 @@ struct personRec::HRForm auto
 
 string date::strForm {
     > int32:month
+    ". "
     > int32:date
     > int32:year
 }
@@ -59,7 +62,7 @@ string personRec::strForm {
     > me date_mem:   birthday
 }
 
-struct streamSpan {
+struct testObject {
     my flag: isOK
     me flag: isBig
     flag: isBare=true
@@ -79,7 +82,7 @@ struct streamSpan {
         else if(false) {X <- 123+346} else { X <- 123+3457 if(false) {X <- 123+3458}}
 
 ///////  Uncomment these three lines to test things
-      our streamSpan: span
+      our testOject: span
       const uint32: age=30
 
       print(1234 or 567 or 789 or 654, age, 23, 2+3*(5-4/3) % sqrt(81, "hello"), addOne[5].next, FUNC(821, name, 'hi'), noArgs( ), -23 , !true)

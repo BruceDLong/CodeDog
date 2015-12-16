@@ -32,5 +32,5 @@ def apply(objects, tags, parserSpecTag):
 
 """
 
-    progSpec.addObject(objects[0], objects[1], 'MAIN', 'struct')
+    progSpec.addObject(objects[0], objects[1], 'MAIN', 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef('MAIN', mainFuncCode))

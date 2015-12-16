@@ -101,11 +101,12 @@ baseType = (cppType)("baseType")
 
 #########################################   O B J E C T   D E S C R I P T I O N S
 objectName = Combine(CID + Optional('::' + CID))("objectName")
-fieldDefs = (Literal("{").suppress() + ZeroOrMore(fieldDef)+ Literal("}").suppress())("fieldDefs")
+fieldDefs = ZeroOrMore(fieldDef)("fieldDefs")
 SetFieldStmt = Group(lValue + '=' + rValue)
-coFactualEL  = (Literal("(") + Group(fieldDefs + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEL")
-alternateEl  = (Literal("[") + Group(OneOrMore(fieldDefs + Optional("|").suppress())) + Literal("]"))("alternateEl")
-anonModel = (fieldDefs | alternateEl | coFactualEL ) ("anonModel")
+coFactualEl  = (Literal("(") + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEl")
+sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
+alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
+anonModel = (sequenceEl | alternateEl) ("anonModel")
 owners = (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their"))
 fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | anonModel)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | quotedString()('constStr') | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
@@ -288,6 +289,7 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
     #print fieldResults
     for fieldResult in fieldResults:
         #print fieldResult
+        nameIDX=1
         argList=[]
         isNext=False;
         if(fieldResult.isNext): isNext=True #fieldResult.isNext
@@ -328,11 +330,13 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
 
             progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, modeList)
         elif(fieldResult.constStr):
-            print "        CONST String: ", fieldResult
-            progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'string', None, None, givenValue)
+            if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
+            givenValue=fieldResult.constStr[1:-1]
+            progSpec.addField(ProgSpec, ObjectName, True, 'const', 'string', fieldName, None, givenValue)
         elif(fieldResult.constNum):
             print "        CONST Num: ", fieldResult
-            progSpec.addField(ProgSpec, ObjectName, isNext, 'const', 'int', None, None, givenValue)
+            if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
+            progSpec.addField(ProgSpec, ObjectName, True, 'const', 'int', fieldName, None, givenValue)
         elif(fieldResult.nameVal):
             print "        NameAndVal: ", fieldResult
             progSpec.addField(ProgSpec, ObjectName, None, None, None, fieldName, argList, givenValue)
@@ -358,7 +362,10 @@ def extractBuildSpecs(buildSpecResults):
 def extractObjectSpecs(localProgSpec, objNames, spec, stateType):
     #print spec
     objectName=spec.objectName[0]
-    progSpec.addObject(localProgSpec, objNames, objectName, stateType)
+    configType="unknown"
+    if(spec.sequenceEl): configType="SEQ"
+    elif(spec.alternateEl):configType="ALT"
+    progSpec.addObject(localProgSpec, objNames, objectName, stateType, configType)
     ###########Grab optional Object Tags
     #print "SSSSSSSSSSSSSSSSSSSSSSSSSspec.fieldDefs = ",spec.fieldDefs
     if spec.optionalTag:  #change so it generates an empty one if no field defs
@@ -373,8 +380,8 @@ def extractObjectSpecs(localProgSpec, objNames, spec, stateType):
     if(spec[2]=='auto'):
         progSpec.markStructAuto(localProgSpec, objectName)
     else:
+        print "SPEC.FIELDDEFS",spec.fieldDefs
         extractFieldDefs(localProgSpec, objectName, spec.fieldDefs)
-
 
     return
 

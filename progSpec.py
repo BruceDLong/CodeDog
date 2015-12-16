@@ -31,11 +31,12 @@ def addPattern(objSpecs, objectNameList, name, patternList):
     objSpecs[name]={'name':patternName, 'parameters':patternList}
     print "ADDED PATTERN", name, patternName
 
-def addObject(objSpecs, objectNameList, name, stateType):
+def addObject(objSpecs, objectNameList, name, stateType, configType):
+    # Config type is [unknown | SEQ | ALT]
     if(name in objSpecs):
         print "Note: The struct '", name, "' is being added but already exists."
         return
-    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], 'stateType':stateType}
+    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], 'stateType':stateType, 'configType':configType}
     objectNameList.append(name)
     print "ADDED STRUCT: ", name
 

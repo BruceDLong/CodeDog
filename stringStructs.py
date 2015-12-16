@@ -19,7 +19,8 @@ def codeDogTypeToString(objects, tags, field):
             S+='mode ['+field['enumList']+']: ' + fieldName + '='+fieldValue+'\n'
         else: S+='mode ['+field['enumList']+']: ' + fieldName +'\n'
     elif fieldOwner=='const':
-        S+='const '+fieldType+': ' + fieldName + '='+fieldValue+'\n'
+        print 'const ', fieldType, ': ', fieldName, '=',fieldValue
+        #S+='const '+fieldType+': ' + fieldName + '='+fieldValue+'\n'
     elif fieldOwner=='const':
         print "Finish This"
 
@@ -27,27 +28,25 @@ def codeDogTypeToString(objects, tags, field):
 
 def writePositionalFetch(objects, tags, field):
     fname=field['fieldName']
-# TODO: Move these constants out-side. They should only be done once. Best if they an an enum.
+    fieldType=str(field['fieldType'])
     S="""
-    const int32: fetchOK=0
-    const int32: fetchNotReady=1
-    const int32: fetchParseError=2
-    const int32: fetchIOError=3
-
-    me uint32: fetch_%s()={
+    me fetchResult: fetch_%s()={
         if(%s_hasVal) {return (fetchOK)}
-        }
 """% (fname, fname)
-    temp="""
-        if(this is const string) set length and set have-length flag
-        if(! %s_hasPos)
-            query for it
-            // use predecessor's pos+len
-        if(%s_hasPos)
-             Scoop the data with A<-B
-             set and propagate length
-    }
-    """ # % (fname, fname, fname)
+    print 'FIELD::', fname, field['owner'], '"'+fieldType+'"'
+    if(field['owner']=='const' and fieldType=='string'):
+        S+='    %s_hasLen <- true \n    %s_span.len <- '% (fname, fname) + str(len(field['value']))
+    S+="        if(! %s_hasPos){pos <- pred.pos+pred.len}\n" % (fname)
+    S+="        if( %s_hasPos){\n" % (fname)
+    # Scoop Data
+    S+=' FieldTYpe("' + fieldType +'")\n'
+    if fieldType=='struct':
+        print " Call stuct's fetch()"
+    #elif fieldType=='':
+    # Set and propogate length
+    S+="        }\n"
+    S+='    }'
+
     return S
 
 def writePositionalSet(field):
@@ -61,27 +60,56 @@ def writeContextualSet(field):
 
 def CreateStructsForStringModels(objects, tags):
     print "Creating structs from string models..."
+
+    # Define fieldResult struct
+    structsName = 'fetchResult'
+    StructFieldStr = "mode [fetchOK, fetchNotReady, fetchSyntaxError, FetchIO_Error] : fetchResult"
+    progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
+
+    # Define streamSpan struct
+    structsName = 'streamSpan'
+    StructFieldStr = "    me uint32: offset \n    me uint32: len"
+    progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
+
+
     for objectName in objects[1]:
         if objectName[0] == '!': continue
         ObjectDef = objects[0][objectName]
         if(objectName[0] != '!' and ObjectDef['stateType'] == 'string'):
-            print "    WRITING STRUCT:", objectName
+            primaryFetchFuncText='\n\nme fetchResult: fetch()={\n    me fetchResult: result\n'
+            configType=ObjectDef['configType']
+            print "    WRITING STRING-STRUCT:", objectName, configType
             objFieldStr=""
             for field in ObjectDef['fields']:
                 fname=field['fieldName']
                 print "        ", field
+
+                #### First, write 'master' fetch function for this field...
                 objFieldStr+="    "+codeDogTypeToString(objects, tags, field)
                 objFieldStr+="    flag: "+fname+'_hasVal\n'
                 if(field['isNext']==True):
                     objFieldStr+="    flag: "+fname+'_hasPos\n'
                     objFieldStr+="    flag: "+fname+'_hasLen\n'
-                    objFieldStr+="    streamSpan: "+fname+'_span\n'
+                    objFieldStr+="    me streamSpan: "+fname+'_span\n'
                     objFieldStr+= writePositionalFetch(objects, tags, field)
                     objFieldStr+= writePositionalSet(field)
                 else:
                     objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
                     objFieldStr+= writeContextualSet(field)
+
+                ### Next, call that function from the 'master' fetch()...
+                primaryFetchFuncText+='    result <- fetch_'+fname+'()\n'
+                if(configType=='SEQ'):
+                    primaryFetchFuncText+='    if(result!=fetchOK){return(result)}\n\n'
+                elif(configTypee=='ALT'):
+                    primaryFetchFuncText+='     if(result!=fetchSyntaxError){return(result)}\n\n'
+            if(configType=='SEQ'):  primaryFetchFuncText+='    return(fetchOK)\n'
+            elif(configType=='ALT'):primaryFetchFuncText+='    return(fetchSyntaxError)\n'
+            primaryFetchFuncText+='\n}\n'
+            objFieldStr += primaryFetchFuncText
             print "#################################### objFieldStr:\n", objFieldStr, '\n####################################'
             structsName = objectName+"_struct"
-            progSpec.addObject(objects[0], objects[1], structsName, 'struct')
+            progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
             codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, objFieldStr))
