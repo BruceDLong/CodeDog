@@ -1,13 +1,13 @@
 // libraryTags.cdog
 
 libraries = {
-    gmp={
-        useStatus='static'
-        description='Gnu library to provide arithmetic for arbitrarily large integers, floats and fractions.'
-        features=[BigNumbers, BigFractions]
-        libFiles=[gmp, gmpxx]
-        headers=[gmp.h, gmpxx.h]
-    }
+    //gmp={
+        //useStatus='static'
+        //description='Gnu library to provide arithmetic for arbitrarily large integers, floats and fractions.'
+        //features=[BigNumbers, BigFractions]
+        //libFiles=[gmp, gmpxx]
+        //headers=[gmp.h, gmpxx.h]
+    //}
     
     sdl2={
         useStatus='static'
@@ -15,12 +15,14 @@ libraries = {
         features=[GraphicsModes, Mouse, Keyboard, Audio]
         libFiles=[SDL2, SDL2_image]
         headers=[SDL2/SDL.h, SDL2/SDL_image.h]
+        initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"
+        deinitCode="SDL_Quit()"
     }
-    cairo={
-        useStatus='static'
-        description='Drawing 2D'
-        features=[Drawing2D]
-        libFiles=[cairo]
-        headers=[cairo.h]
-    }
+    //cairo={
+        //useStatus='static'
+        //description='Drawing 2D'
+        //features=[Drawing2D]
+        //libFiles=[cairo]
+        //headers=[cairo.h]
+    //}
 }

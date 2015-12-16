@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License along with the
 
 langToGen="CPP"
 
+initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"
+deinitCode="SDL_Quit()"
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
 
@@ -23,36 +25,23 @@ Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <
 LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
 
 
-struct streamSpan {
-    mode [a,b,c]:testMode
-    my flag: isOK
-    me flag: isBig
-    flag: isBare=true
-    flag: isOne = 1
-    const string: text="BEGIN"
-    const int32: height=4321
-    me uint32: offset=5
-    my uint32: length
-    our uint32: distance
-    their uint32: age
-    me uint32: addOne(me uint32: X) =  {
-        X <- 123+34
-        if(true) {
-            X <- 123+345
-
-        }
-        else if(false) {X <- 123+346} else { X <- 123+3457 if(false) {X <- 123+3458}}
-
-///////  Uncomment these three lines to test things
-      our streamSpan: span
-      const uint32: age=30
-
-      print(1234 or 567 or 789 or 654, age, 23, 2+3*(5-4/3) % sqrt(81, "hello"), addOne[5].next, FUNC(821, name, 'hi'), noArgs( ), -23 , !true)
-      disLodge()
-      windPipe[3].dislodge()
-      MoreArgs('abc', def, 234)
-    }
-    their uint32: age2
+struct  {
+    me void: DrawLine()=<%{
+        SDL_Window* window = SDL_CreateWindow("title", 10,10,700,500, SDL_WINDOW_RESIZABLE);
+        SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+        SDL_SetRenderDrawColor(renderer, 0xA0, 0xA0, 0xc0, 0xFF);
+        SDL_RenderDrawLine(renderer,5,5, 200, 400);
+        SDL_RenderPresent(renderer);
+        SDL_Delay(20000);
+    }%>
+   
 }
 
 do Write_Main(eventLoop)
+
+    //SDL_Window* window = SDL_CreateWindow("title", 10,10,700,500, SDL_WINDOW_RESIZABLE);
+    //SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+    //SDL_SetRenderDrawColor(renderer, 0xA0, 0xA0, 0xc0, 0xFF);
+    //SDL_RenderDrawLine(renderer,5,5, 200, 400);
+    //SDL_RenderPresent(renderer);
+    //SDL_Delay(20000);
