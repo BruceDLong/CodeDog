@@ -18,6 +18,10 @@ langToGen="CPP"
 TestList = [abc, def, ghi, jkl]
 TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
 
+
+initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"
+deinitCode="SDL_Quit()"
+
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
 
 #include libraryTags.dog
@@ -81,14 +85,15 @@ struct testObject {
         }
         else if(false) {X <- 123+346} else { X <- 123+3457 if(false) {X <- 123+3458}}
 
-///////  Uncomment these three lines to test things
-      our testOject: span
+///////  Uncomment these lines to test things
+      our testObject: span
       const uint32: age=30
 
       print(1234 or 567 or 789 or 654, age, 23, 2+3*(5-4/3) % sqrt(81, "hello"), addOne[5].next, FUNC(821, name, 'hi'), noArgs( ), -23 , !true)
       disLodge()
       windPipe[3].dislodge()
       MoreArgs('abc', def, 234)
+      print('Hello %s`table[T].patron.name`! Thanx for your donation of %i`table[t].miminumDonation`. enjoy your meal.')
     }
     their uint32: age2
 }

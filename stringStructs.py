@@ -32,7 +32,13 @@ def writePositionalFetch(objects, tags, field):
     S="""
     me fetchResult: fetch_%s()={
         if(%s_hasVal) {return (fetchOK)}
+        }
 """% (fname, fname)
+    return S
+
+
+
+
     print 'FIELD::', fname, field['owner'], '"'+fieldType+'"'
     if(field['owner']=='const' and fieldType=='string'):
         S+='    %s_hasLen <- true \n    %s_span.len <- '% (fname, fname) + str(len(field['value']))
@@ -63,7 +69,7 @@ def CreateStructsForStringModels(objects, tags):
 
     # Define fieldResult struct
     structsName = 'fetchResult'
-    StructFieldStr = "mode [fetchOK, fetchNotReady, fetchSyntaxError, FetchIO_Error] : fetchResult"
+    StructFieldStr = "mode [fetchOK, fetchNotReady, fetchSyntaxError, FetchIO_Error] : FetchResult"
     progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
 
@@ -82,11 +88,12 @@ def CreateStructsForStringModels(objects, tags):
             configType=ObjectDef['configType']
             print "    WRITING STRING-STRUCT:", objectName, configType
             objFieldStr=""
+            objFieldStr='   me  string: data\n'
             for field in ObjectDef['fields']:
                 fname=field['fieldName']
                 print "        ", field
 
-                #### First, write 'master' fetch function for this field...
+                #### First, write fetch function for this field...
                 objFieldStr+="    "+codeDogTypeToString(objects, tags, field)
                 objFieldStr+="    flag: "+fname+'_hasVal\n'
                 if(field['isNext']==True):
@@ -100,11 +107,11 @@ def CreateStructsForStringModels(objects, tags):
                     objFieldStr+= writeContextualSet(field)
 
                 ### Next, call that function from the 'master' fetch()...
-                primaryFetchFuncText+='    result <- fetch_'+fname+'()\n'
-                if(configType=='SEQ'):
-                    primaryFetchFuncText+='    if(result!=fetchOK){return(result)}\n\n'
-                elif(configTypee=='ALT'):
-                    primaryFetchFuncText+='     if(result!=fetchSyntaxError){return(result)}\n\n'
+    #            primaryFetchFuncText+='    result <- fetch_'+fname+'()\n'
+    #            if(configType=='SEQ'):
+     #               primaryFetchFuncText+='    if(result!=fetchOK){return(result)}\n\n'
+     #           elif(configTypee=='ALT'):
+     #               primaryFetchFuncText+='     if(result!=fetchSyntaxError){return(result)}\n\n'
             if(configType=='SEQ'):  primaryFetchFuncText+='    return(fetchOK)\n'
             elif(configType=='ALT'):primaryFetchFuncText+='    return(fetchSyntaxError)\n'
             primaryFetchFuncText+='\n}\n'

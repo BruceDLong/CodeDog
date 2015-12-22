@@ -4,7 +4,7 @@ import re
 import datetime
 import pattern_Write_Main
 
-buildStr_libs='g++ -g -std=gnu++11 ' 
+buildStr_libs='g++ -g -std=gnu++11 '
 
 
 def bitsNeeded(n):
@@ -13,6 +13,8 @@ def bitsNeeded(n):
     else:
         return 1 + bitsNeeded((n + 1) / 2)
 
+def convertObjectNameToCPP(objName):
+    return objName.replace('::', '_')
 
 def processFlagAndModeFields(objects, objectName, tags):
     print "                    Coding flags and modes for:", objectName
@@ -77,7 +79,7 @@ def convertType(owner, fieldType):
             cppType=fieldType+'_t'
         else:
             cppType=fieldType
-    else: cppType=fieldType[0]
+    else: cppType=convertObjectNameToCPP(fieldType[0])
 
     kindOfField=owner
     if kindOfField=='const':
@@ -85,11 +87,11 @@ def convertType(owner, fieldType):
     elif kindOfField=='me':
         cppType = cppType
     elif kindOfField=='my':
-        cppType += '*'
+        cppType="unique_ptr<"+cppType + '> '
     elif kindOfField=='our':
         cppType="shared_ptr<"+cppType + '> '
     elif kindOfField=='their':
-        cppType="unique_ptr<"+cppType + '> '
+        cppType += '*'
     else:
         print "ERROR: Owner of type not valid '" + owner + "'"
         exit(1)
@@ -142,6 +144,18 @@ def codeItemName(item):
             S+=codeNameSeg(i,'.')
     return S
 
+def codeUserMesg(item):
+    # TODO: Make 'user messages'interpolate and adjust for locale.
+    S=''; fmtStr=''; argStr='';
+    pos=0
+    for m in re.finditer(r"%[ils]`.+?-`", item):
+        fmtStr += item[pos:m.start()+2]
+        argStr += ', ' + item[m.start()+3:m.end()-1]
+        pos=m.end()
+    fmtStr += item[pos:-1]
+    S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
+    return S
+
 def codeFactor(item):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
     #print '                  factor: ', item
@@ -156,7 +170,8 @@ def codeFactor(item):
         elif item0=='-':
             S+='-' + codeExpr(item[1])
         else:
-            if(item0[0]=="'" or item0[0]=='"'): S='"'+item0[1:-1] +'"'
+            if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1])
+            elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
             else: S=item0
     else:
         #print "VARFUNCREF:", item0
@@ -354,37 +369,38 @@ def processActionSeq(actSeq, indent):
     actSeqText += "\n" + indent + "}"
     return actSeqText
 
-def headType(typeSpec): # e.g., xPtr or if var, int, uint, etc,
-    if typeSpec[0]=='var': return typeSpec[1]
-    return typeSpec[0]
-
-
-
 def generate_constructor(objects, objectName, tags):
     print "                    Generating Constructor for:", objectName
     constructorInit=":"
-    constructorArgs="    "+objectName+"("
+    constructorArgs="    "+convertObjectNameToCPP(objectName)+"("
     count=0
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
         #print "^^^^^^^^^^^^^^^^^^^^"
-        #print "field: ", field
         fieldType=field['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
+        if(field['argList']): continue
+        print "field: ", field['fieldType']
         fieldOwner=field['owner']
-        fieldType=field['fieldType']
-        fieldHeadType=headType(fieldType)
         convertedType = convertType(fieldOwner, fieldType)
         fieldName=field['fieldName']
-        #print "$$$$$$$$$$$$$$$$$$$$$$$$$ Constructing:", objectName, fieldName, fieldType, fieldHeadType, convertedType
-        if(fieldHeadType[0:3]=="int" or fieldHeadType[0:4]=="uint" or fieldHeadType[-3:]=="Ptr"):
-            constructorArgs += convertedType+" _"+fieldName+"=0,"
-            constructorInit += fieldName+"("+" _"+fieldName+"),"
-            count += 1
-        elif(fieldHeadType=="string"):
-            constructorArgs += convertedType+" _"+fieldName+'="",'
-            constructorInit += fieldName+"("+" _"+fieldName+"),"
-            count += 1
+
+        #print "$$$$$$$$$$$$$$$$$$$$$$$$$ Constructing:", objectName, fieldName, fieldType, convertedType
+        if(fieldOwner != 'me'):
+            if(fieldOwner != 'my'):
+                print "                > ", fieldOwner, convertedType, fieldName
+                constructorArgs += convertedType+" _"+fieldName+"=0,"
+                constructorInit += fieldName+"("+" _"+fieldName+"),"
+                count += 1
+        elif (isinstance(fieldType, basestring)):
+            if(fieldType[0:3]=="int" or fieldType[0:4]=="uint"):
+                constructorArgs += convertedType+" _"+fieldName+"=0,"
+                constructorInit += fieldName+"("+" _"+fieldName+"),"
+                count += 1
+            elif(fieldType=="string"):
+                constructorArgs += convertedType+" _"+fieldName+'="",'
+                constructorInit += fieldName+"("+" _"+fieldName+"),"
+                count += 1
     if(count>0):
         constructorInit=constructorInit[0:-1]
         constructorArgs=constructorArgs[0:-1]
@@ -419,7 +435,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
             structCode += indent + convertedType +' ' + fieldName + fieldValueText +';\n';
         #################################################################
         else: # Arglist exists so this is a function.
-            if(fieldType=='none'): 
+            if(fieldType=='none'):
                 convertedType=''
             else:
                 #print convertedType
@@ -446,7 +462,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                         if argList[0]=='<%':
                             argListText=argList[1][0]
                         else:
-                            
+
                             count=0
                             for arg in argList:
                                 if(count>0): argListText+=", "
@@ -483,9 +499,6 @@ def processOtherStructFields(objects, objectName, tags, indent):
         structCode+=constructCode
         return [structCode, funcDefCode]
 
-def convertObjectNameToCPP(objName):
-    return objName.replace('::', '_')
-
 def generateAllObjectsButMain(objects, tags):
     print "\n            Generating Objects..."
     constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
@@ -500,7 +513,7 @@ def generateAllObjectsButMain(objects, tags):
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, False, 'me', "uint64", 'flags', None, None)
-            if(objectName != 'MAIN' and objects[0][objectName]['stateType'] == 'struct'):
+            if(objectName != 'MAIN' and objects[0][objectName]['stateType'] == 'struct' and ('enumList' not in objects[0][objectName])):
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
                 forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ')
@@ -536,9 +549,15 @@ def makeTagText(tags, tagName):
     if tagVal==None: return "Tag '"+tagName+"' is not set in the dog file."
     return tagVal
 
+def addSpecialCode():
+    S='\n\n//////////// C++ specific code:\n'
+    S+="string strFmt(string mesg){return mesg;}\n"
+
+    return S
+
 def makeFileHeader(tags):
     global buildStr_libs
-    
+
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
     header += "// " + makeTagText(tags, 'CopyrightMesg') +'\n'
     header += "// This file: " + makeTagText(tags, 'FileName') +'\n'
@@ -558,6 +577,8 @@ def makeFileHeader(tags):
 
     header += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
     header += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
+
+    header += addSpecialCode()
     return header
 
 def integrateLibrary(tags, libID):
@@ -568,20 +589,16 @@ def integrateLibrary(tags, libID):
     for libFile in libFiles:
         buildStr_libs+=' -l'+libFile
     libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
-    
-    #pattern_Write_Main.addInitDeinit("jjjjj", deinitCode)
+
     for libHdr in libHeaders:
         tags[0]['Include'] +=', <'+libHdr+'>'
         #print "Added header", libHdr
     #print 'BUILD STR', buildStr_libs
-    
-
-    
 
 def connectLibraries(objects, tags):
     print "\n            Choosing Libaries to link..."
     libList = progSpec.fetchTagValue(tags, 'libraries')
-    
+
     for lib in libList:
         if (progSpec.fetchTagValue(tags, 'libraries."+lib+".useStatus')!='notLinked'):
             integrateLibrary(tags, lib)

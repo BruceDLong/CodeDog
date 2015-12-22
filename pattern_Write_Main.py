@@ -5,21 +5,21 @@ import codeDogParser
 
 mainFuncCode=r"// No Main given"
 def apply(objects, tags, parserSpecTag):
-    initCode=tags['initCode'] 
-    deinitCode=tags['deinitCode'] 
+    initCode=tags['initCode']
+    deinitCode=tags['deinitCode']
     tags['Include'] += ",<signal.h>"
 
     initFuncCode=r"""
     me void: initialize () = {
         %s
     }
-    
+
     me void: deinitialize () = {
        %s
     }
     """ % (initCode, deinitCode)
- 
-    
+
+
     mainFuncCode="""
     me int32: main(me int32: argc, me int32: argv ) = <%{
     initialize();
@@ -36,12 +36,12 @@ def apply(objects, tags, parserSpecTag):
     streamSpan cursor;
     shared_ptr<infon> topInfon=make_shared<infon>();
     parser.BatchParse(&cursor, topInfon.get());
-*/ 
+*/
 
     return 0;
     } %>
 
 """
 
-    progSpec.addObject(objects[0], objects[1], 'MAIN', 'struct')
+    progSpec.addObject(objects[0], objects[1], 'MAIN', 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef('MAIN', initFuncCode + mainFuncCode ))
