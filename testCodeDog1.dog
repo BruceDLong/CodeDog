@@ -18,6 +18,7 @@ langToGen="CPP"
 TestList = [abc, def, ghi, jkl]
 TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
 
+testEventHandling = {ID='testEvH' maxEvents='100000' types=[GUI, LogicAtom] runFromMain=1}
 
 initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"
 deinitCode="SDL_Quit()"
@@ -69,15 +70,15 @@ string personRec::strForm {
 struct testObject {
     my flag: isOK
     me flag: isBig
-    flag: isBare=true
-    flag: isOne = 1
-    const string: text="BEGIN"
-    const int32: height=4321
-    me uint32: offset=5
+    flag: isBare <- true
+    flag: isOne <- 1
+    const string: text <- "BEGIN"
+    const int32: height <- 4321
+    me uint32: offset <- 5
     my uint32: length
     our uint32: distance
     their uint32: age
-    me uint32: addOne(me uint32: X) =  {
+    me uint32: addOne(me uint32: X) <- {
         X <- 123+34
         if(true) {
             X <- 123+345
@@ -87,15 +88,15 @@ struct testObject {
 
 ///////  Uncomment these lines to test things
       our testObject: span
-      const uint32: age=30
+      const uint32: age <- 30
 
       print(1234 or 567 or 789 or 654, age, 23, 2+3*(5-4/3) % sqrt(81, "hello"), addOne[5].next, FUNC(821, name, 'hi'), noArgs( ), -23 , !true)
       disLodge()
       windPipe[3].dislodge()
       MoreArgs('abc', def, 234)
-      print('Hello %s`table[T].patron.name`! Thanx for your donation of %i`table[t].miminumDonation`. enjoy your meal.')
+      print('Hello %s`table[T].patron.name`! Thanx for your donation of %i`table[t].miminumDonation`. enjoy your meal.', 2+3, "HOLA")
     }
     their uint32: age2
 }
-
+do Gen_EventHandler(testEventHandling)
 do Write_Main(eventLoop)

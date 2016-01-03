@@ -4,40 +4,31 @@ import progSpec
 import codeDogParser
 
 mainFuncCode=r"// No Main given"
-def apply(objects, tags, parserSpecTag):
+def apply(objects, tags, codeToRun):
+    # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
     initCode=tags['initCode']
+    runCode =tags['runCode']
     deinitCode=tags['deinitCode']
     tags['Include'] += ",<signal.h>"
 
     initFuncCode=r"""
-    me void: initialize () = {
+    me void: initialize() <- {
         %s
     }
 
-    me void: deinitialize () = {
+    me void: deinitialize() <- {
        %s
     }
     """ % (initCode, deinitCode)
 
-
+    # TODO: Some deInitialize items should automatically run during abort().
+    # TODO: Deinitialize items should happen in reverse order.
     mainFuncCode="""
-    me int32: main(me int32: argc, me int32: argv ) = <%{
-    initialize();
+    me int32: main(me int32: argc, me int32: argv ) <- <%{
     signal(SIGSEGV, reportFault);
-    drawLine dl;
-    dl.DrawLine();
+    initialize();
+    """ + runCode + """
     deinitialize();
-    return 0;
- /*   string inputFilename="testInfon.pr";
-    fstream fileIn("testInfon.pr");
-    if (!fileIn.is_open()){cout<<"Could not open "<<inputFilename<<".\n"; exit(1);}
-    infonParser parser;
-    parser.stream=&fileIn;
-    streamSpan cursor;
-    shared_ptr<infon> topInfon=make_shared<infon>();
-    parser.BatchParse(&cursor, topInfon.get());
-*/
-
     return 0;
     } %>
 

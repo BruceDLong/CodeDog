@@ -268,8 +268,22 @@ def codeParameterList(paramList):
         S+=codeExpr(P[0])
     return S
 
+def codeSpecialFunc(funcName, paramList):
+    S=''
+    if(funcName=='print'):
+        S+='cout'
+        for P in paramList:
+            S+=' << '+codeExpr(P[0])
+    return S
+
 def codeFuncCall(funcName, paramList):
     S=''
+    if isinstance(funcName[0], basestring):
+        funcSegName=codeNameSeg(funcName[0],'')
+        S=codeSpecialFunc(funcSegName, paramList)
+        if(S != ''):
+            print "SpecialFunc"
+            return S
     S+=codeItemName(funcName)
     S+='(' + codeParameterList(paramList) + ')'
     return S
@@ -379,13 +393,13 @@ def generate_constructor(objects, objectName, tags):
         #print "^^^^^^^^^^^^^^^^^^^^"
         fieldType=field['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
-        if(field['argList']): continue
-        print "field: ", field['fieldType']
+        if(field['argList'] or field['argList']!=None): continue
         fieldOwner=field['owner']
+        if(fieldOwner=='const'): continue
         convertedType = convertType(fieldOwner, fieldType)
         fieldName=field['fieldName']
 
-        #print "$$$$$$$$$$$$$$$$$$$$$$$$$ Constructing:", objectName, fieldName, fieldType, convertedType
+        #print "                        Constructing:", objectName, fieldName, fieldType, convertedType
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
                 print "                > ", fieldOwner, convertedType, fieldName

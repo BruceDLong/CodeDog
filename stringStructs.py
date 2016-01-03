@@ -12,15 +12,15 @@ def codeDogTypeToString(objects, tags, field):
     fieldOwner =field['owner']
     if(fieldType == 'flag'):
         if fieldValue!=None and fieldValue!=0 and fieldValue!='false':
-            S+='flag: ' + fieldName + '=true\n'
+            S+='flag: ' + fieldName + ' <- true\n'
         else: S+='flag: ' + fieldName +'\n'
     elif fieldType=='mode':
         if fieldValue!=None:
-            S+='mode ['+field['enumList']+']: ' + fieldName + '='+fieldValue+'\n'
+            S+='mode ['+field['enumList']+']: ' + fieldName + ' <- '+fieldValue+'\n'
         else: S+='mode ['+field['enumList']+']: ' + fieldName +'\n'
     elif fieldOwner=='const':
-        print 'const ', fieldType, ': ', fieldName, '=',fieldValue
-        #S+='const '+fieldType+': ' + fieldName + '='+fieldValue+'\n'
+        print 'const ', fieldType, ': ', fieldName, ' <- ',fieldValue
+        #S+='const '+fieldType+': ' + fieldName + ' <- '+fieldValue+'\n'
     elif fieldOwner=='const':
         print "Finish This"
 
@@ -30,7 +30,7 @@ def writePositionalFetch(objects, tags, field):
     fname=field['fieldName']
     fieldType=str(field['fieldType'])
     S="""
-    me fetchResult: fetch_%s()={
+    me fetchResult: fetch_%s() <- {
         if(%s_hasVal) {return (fetchOK)}
         }
 """% (fname, fname)
@@ -84,7 +84,7 @@ def CreateStructsForStringModels(objects, tags):
         if objectName[0] == '!': continue
         ObjectDef = objects[0][objectName]
         if(objectName[0] != '!' and ObjectDef['stateType'] == 'string'):
-            primaryFetchFuncText='\n\nme fetchResult: fetch()={\n    me fetchResult: result\n'
+            primaryFetchFuncText='\n\nme fetchResult: fetch()<- {\n    me fetchResult: result\n'
             configType=ObjectDef['configType']
             print "    WRITING STRING-STRUCT:", objectName, configType
             objFieldStr=""

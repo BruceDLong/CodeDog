@@ -1,0 +1,99 @@
+// PlatformTags.dog
+
+platforms = {
+    Linux={
+
+        // List typical libs; Versions / sub-versions list exceptions
+        // Also, spec packaging and app-distribution details
+        description='An easy to use, highly reliable and powerful operating system that is free and open.'
+        V-Legacy={}
+        V-2015_onward={
+            V-Debian_Based={
+                installed_libs=[X-glib-2.0, X-gtk-3.0, X-gtk-2.0, X-cairo-2.0, X-pango-1.0, X-imageGroup, freetype6, fontconfig-1, openGL-2.1, alsa, gmp, gmpxx]
+                available_libs=[]
+                V-Ubuntu_based={
+                    V-Ubuntu={}
+                    V-Mint={}
+                }
+                V-LMDE={}
+            }
+            V-Fedora_based={}
+            V-SUSE_based={}
+            V-ArchLinux={}
+            V-Gentoo={}
+            V-Steam={}
+        }
+    }
+
+    ChromeBook={}
+
+    Android={
+        installed_libs=[gtk-3.0, gtk-2.0, cairo, pango, pixman, freetype6, gmp, gmpxx]
+        available_libs=[]
+    }
+
+    OS-X_Devices={
+        V-Legacy={}
+        V-Intel={
+            V-Desktop={
+                V-MacMini={}
+                V-iMac={}
+                V-MacPro={}
+            }
+            V-Laptop={
+                V-MacBookAir={}
+                V-MacBook={}
+                V-MacBookPro={}
+            }
+        }
+    }
+
+    iOS_Devices={
+        V-iPod={
+        }
+        V-iPhone={
+            V-FirstGen={}
+            V-3G={}
+            V-Series4={
+                V-4={}
+                V-4s={}
+            }
+            V-Series5={
+                V-5={}
+                V-5c={}
+                V-5s={}
+            }
+            V-Series6={
+                V-6={}
+                V-6_Plus={}
+                V-6s={}
+                V-6s_Plus={}
+            }
+            V-FirstGen={}
+        }
+        V-iPad={
+        }
+        V-AppleTV={
+        }
+        V-AppleWatch={
+        }
+    }
+
+    Windows={
+        V-WinXP={}
+        V-WinNT={}
+        V-WinVista={}
+        V-Win7={}
+        V-Win8={}
+        V-Win10={}
+    }
+
+    Web={
+        HTML5_Text={}
+        HTML5_Canvas={}
+    }
+
+    PSP ={}
+    Wii ={}
+    XBox={}
+}

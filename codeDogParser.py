@@ -87,9 +87,9 @@ funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
-          (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + "=" + funcBody )         # Function Definition
-        | (Literal(":") + CID("fieldName")  + "=" + value("givenValue"))
-        | (Literal(":") + "=" + (value("givenValue") | funcBody))
+          (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + "<-" + funcBody )         # Function Definition
+        | (Literal(":") + CID("fieldName")  + "<-" + value("givenValue"))
+        | (Literal(":") + "<-" + (value("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
     )("nameAndVal")
 
@@ -229,7 +229,6 @@ def extractActItem(funcName, actionItem):
     elif (actionItem.swapID):
         RHS = actionItem.RightLValue
         LHS = actionItem.lValue
-        #print "SWAP...SWAP...SWAP...SWAP...SWAP...SWAP...SWAP...SWAP: ", swapRightLValue, swapLeftLValue
         thisActionItem = {'typeOfAction':"swap", 'LHS':LHS, 'RHS':RHS}
     # Function Call
     elif actionItem.funcCall:
@@ -241,7 +240,7 @@ def extractActItem(funcName, actionItem):
             else:
                 parameters=[]
 
-        print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: [", calledFunc, '], <', parameters, '>\n\n'
+        #print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: [", calledFunc, '], <', parameters, '>\n\n'
         thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc, 'parameters':parameters}
     else:
         print "error in extractActItem"

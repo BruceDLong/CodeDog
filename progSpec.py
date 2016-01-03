@@ -52,7 +52,8 @@ def addField(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, th
         return
     objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':thisType, 'fieldName':thisName, 'argList':thisArgList, 'value':thisValue})
     if(thisOwner!='flag' and thisOwner!='mode'):
-        print "FIX THIS COMMENTED OUT PART", thisType, objectName #registerBaseType(thisType, objectName)
+        pass
+        #print "FIX THIS COMMENTED OUT PART", thisType, objectName #registerBaseType(thisType, objectName)
 
 
 def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue, enumList):
@@ -89,6 +90,7 @@ def fetchTagValue(tagStoreArray, tagToFind):
         if(tagRet):
             return tagRet[0]
     return None
+
 def setTagValue(tagStore, tagToSet, tagValue):
     tagRet=searchATagStore(tagStore, tagToSet)
     tagRet[0]=tagValue
