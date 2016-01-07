@@ -1,5 +1,7 @@
 // testDraw.dog
 
+LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
+
 BuildCmd = `g++ -std=gnu++11 test.cpp -o test`
 Title = "CodeDog test suite"
 FileName = "testDraw.cpp"
@@ -22,8 +24,6 @@ Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <
 
 #include libraryTags.dog
 
-LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
-
 
 struct  {
     me void: DrawLine()=<%{
@@ -37,7 +37,7 @@ struct  {
    
 }
 
-do Write_Main(eventLoop)
+//do Write_Main(eventLoop)
 
     //SDL_Window* window = SDL_CreateWindow("title", 10,10,700,500, SDL_WINDOW_RESIZABLE);
     //SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
