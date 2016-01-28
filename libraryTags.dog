@@ -8,11 +8,14 @@ libraries = {
         //libFiles=[gmp, gmpxx]
         //headers=[gmp.h, gmpxx.h]
     //}
-    
+
     sdl2={
         useStatus='static'
         description='Simple DirectMedia Layer is a wrapper around basic machine functionality'
         features=[GraphicsModes, Mouse, Keyboard, Audio]
+        platforms=[Linux, OS-X_Devices, Windows, iOS_Devices, Android]
+        bindings =[c, cpp, java, perl, python]
+        CPUs     =[i386, amd64, arm7]
         libFiles=[SDL2, SDL2_image]
         headers=[SDL2/SDL.h, SDL2/SDL_image.h]
         initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"

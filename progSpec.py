@@ -99,6 +99,13 @@ def wrapFieldListInObjectDef(objName, fieldDefStr):
     retStr='struct '+objName +' {\n' + fieldDefStr + '\n}\n'
     return retStr
 
+def setFeatureNeeded(tags, featureID, objMap):
+    tags['featuresNeeded'][featureID]=objMap
+
+def setFeaturesNeeded(tags, featureIDs, neededBy):
+    for feature in featureIDs:
+        setFeatureNeeded(tags, feature, neededBy)
+
 ###############
 
 def createTypedefName(ItmType):

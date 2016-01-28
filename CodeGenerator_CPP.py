@@ -597,6 +597,7 @@ def makeFileHeader(tags):
 
 def integrateLibrary(tags, libID):
     print '                Integrating', libID
+    # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
     libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
     #print "LIB_FILES", libFiles
     global buildStr_libs
@@ -609,19 +610,16 @@ def integrateLibrary(tags, libID):
         #print "Added header", libHdr
     #print 'BUILD STR', buildStr_libs
 
-def connectLibraries(objects, tags):
+def connectLibraries(objects, tags, libsToUse):
     print "\n            Choosing Libaries to link..."
-    libList = progSpec.fetchTagValue(tags, 'libraries')
+    for lib in libsToUse:
+        integrateLibrary(tags, lib)
 
-    for lib in libList:
-        if (progSpec.fetchTagValue(tags, 'libraries."+lib+".useStatus')!='notLinked'):
-            integrateLibrary(tags, lib)
-
-def generate(objects, tags):
+def generate(objects, tags, libsToUse):
     #print "\nGenerating CPP code...\n"
     global buildStr_libs
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
-    libInterfacesText=connectLibraries(objects, tags)
+    libInterfacesText=connectLibraries(objects, tags, libsToUse)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)
