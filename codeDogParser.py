@@ -116,7 +116,7 @@ doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList
 objectList = Group(ZeroOrMore(objectDef | doPattern))("objectList")
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
-progSpecParser = (tagDefList + buildSpecList + objectList)("progSpecParser")
+progSpecParser = (Optional(buildSpecList) + tagDefList + objectList)("progSpecParser")
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
@@ -130,6 +130,7 @@ def parseInput(inputStr):
 
 def extractTagDefs(tagResults):
     localTagStore = {}
+    print tagResults
 
     for tagSpec in tagResults:
         tagVal = tagSpec.tagValue
@@ -352,10 +353,14 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
 def extractBuildSpecs(buildSpecResults):
     resultBuildSpecs = []
     #print buildSpecResults
-    for localBuildSpecs in buildSpecResults:
-        spec = [localBuildSpecs.buildID, extractTagDefs(localBuildSpecs.buildDefList)]
-        resultBuildSpecs.append(spec)
-        #print spec
+    if (len(buildSpecResults)==0):
+        resultBuildSpecs = [['LinuxBuild', {'': ''}]]
+    else:
+        for localBuildSpecs in buildSpecResults:
+            #TODO fix buildDefList extraction
+            spec = [localBuildSpecs.buildID, extractTagDefs(localBuildSpecs.buildDefList)]
+            resultBuildSpecs.append(spec)
+    #print resultBuildSpecs
     return resultBuildSpecs
 
 def extractObjectSpecs(localProgSpec, objNames, spec, stateType):

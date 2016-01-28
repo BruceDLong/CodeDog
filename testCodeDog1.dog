@@ -1,5 +1,9 @@
 // Test dog file
 
+//LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
+//AndroidBuild: CPU='arm7' Lang='java' optimize='speed';
+//AppleBuild: CPU='i386' Lang='objectiveC' optimize='clarity';
+ 
 BuildCmd = `g++ -std=gnu++11 test.cpp -o test`
 Title = "CodeDog test suite"
 FileName = "test.cpp"
@@ -27,9 +31,7 @@ Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <
 
 #include libraryTags.dog
 
-LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
-//AndroidBuild: CPU='arm7' Lang='java' optimize='speed';
-//AppleBuild: CPU='i386' Lang='objectiveC' optimize='clarity';
+
 //
 //do useBigNums(tags)
 

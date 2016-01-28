@@ -1,5 +1,8 @@
 // testEvents.dog
 
+LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
+
+
 BuildCmd = `g++ -std=gnu++11 testParse.cpp -o test`
 Title = "CodeDog parsing test"
 FileName = "testGUI.cpp"
@@ -23,8 +26,6 @@ deinitCode="SDL_Quit()"
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
 
 #include libraryTags.dog
-
-LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
 
 struct GUI_event {
     me uint32: type

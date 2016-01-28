@@ -1,5 +1,7 @@
 // testParse.dog
 
+LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
+
 BuildCmd = `g++ -std=gnu++11 testParse.cpp -o test`
 Title = "CodeDog parsing test"
 FileName = "testParse.cpp"
@@ -20,7 +22,6 @@ Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <
 
 #include libraryTags.dog
 
-LinuxBuild: CPU='amd64' Language='c++' optimize='speed';
 
 model month {mode [January, February, March, April, May, June, July, August, September, October, November, December] : month}
 
