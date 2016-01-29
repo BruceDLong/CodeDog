@@ -32,7 +32,7 @@ platforms = {
         available_libs=[]
     }
 
-    OS-X_Devices={
+    OSX_Devices={
         V-Legacy={}
         V-Intel={
             V-Desktop={

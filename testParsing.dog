@@ -1,6 +1,6 @@
 // testParse.dog
 
-LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
+LinuxBuild: CPU='amd64' Language='c++' optimize='speed';
 
 BuildCmd = `g++ -std=gnu++11 testParse.cpp -o test`
 Title = "CodeDog parsing test"

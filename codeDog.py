@@ -20,6 +20,7 @@ import re
 import os
 import sys
 import errno
+import platform
 
 def writeFile(path, fileName, outStr):
     try:
@@ -78,8 +79,16 @@ def AutoGenerateStructsFromModels(objects, tags):
 
 def GroomTags(tags):
     # Set tag defaults as needed
-    if not ('featuresNeeded' in tags):  tags['featuresNeeded']={}
-    # TODO: default to localhost for Platform, and CPU, etc. Default to CPP for language
+    if not ('featuresNeeded' in tags[0]):
+        tags[0]['featuresNeeded']={}
+
+    # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
+    if not ('Platform' in tags[0]):
+        platformID=platform.system()
+        if platformID=='Darwin': platformID="OSX_Devices"
+        tags[0]['Platform']=platformID
+    if not ('Language' in tags[0]):
+        tags[0]['Language']="CPP"
 
     # Find any needed features based on types used
     for typeName in progSpec.storeOfBaseTypesUsed:
@@ -101,20 +110,20 @@ def GenerateProgram(objects, buildSpec, tags, libsToUse):
 def ChooseLibs(objects, buildSpec, tags):
     print "\n\n######################   C H O O S I N G   L I B R A R I E S"
     # TODO: Why is fetchTagValue called with tags, not [tags]?
-    libList = progSpec.fetchTagValue(tags, 'libraries')
+    libList = progSpec.fetchTagValue([tags], 'libraries')
     Platform= progSpec.fetchTagValue([tags, buildSpec[1]], 'Platform')
     Language= progSpec.fetchTagValue([tags, buildSpec[1]], 'Language')
     CPU     = progSpec.fetchTagValue([tags, buildSpec[1]], 'CPU')
 
     compatibleLibs=[]
     for lib in libList:
-        libPlatforms=progSpec.fetchTagValue(tags, 'libraries."+lib+".platforms')
-        libBindings =progSpec.fetchTagValue(tags, 'libraries."+lib+".bindings')
-        libCPUs     =progSpec.fetchTagValue(tags, 'libraries."+lib+".CPUs')
-        libFeatures =progSpec.fetchTagValue(tags, 'libraries."+lib+".features')
+        libPlatforms=progSpec.fetchTagValue([tags], 'libraries."+lib+".platforms')
+        libBindings =progSpec.fetchTagValue([tags], 'libraries."+lib+".bindings')
+        libCPUs     =progSpec.fetchTagValue([tags], 'libraries."+lib+".CPUs')
+        libFeatures =progSpec.fetchTagValue([tags], 'libraries."+lib+".features')
 
-        if (libPlatforms[?]==Platform and libBindings[?]==Language and libCPUs[?]==CPU):
-            compatibleLibs.append([lib, libFeatures])
+       # if (libPlatforms[?]==Platform and libBindings[?]==Language and libCPUs[?]==CPU):
+       #     compatibleLibs.append([lib, libFeatures])
 
     libsToUse=[]
 #   for need in featuresNeeded:
@@ -127,7 +136,7 @@ def GenerateSystem(objects, buildSpecs, tags):
     ScanAndApplyPatterns(objects, tags)
     stringStructs.CreateStructsForStringModels(objects, tags)
     AutoGenerateStructsFromModels(objects, tags)
-    GroomTags([tags, buildSpecs)
+    GroomTags([tags, buildSpecs])
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]
         print "    Generating code for build", buildName
