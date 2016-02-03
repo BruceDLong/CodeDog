@@ -7,9 +7,13 @@ import pattern_Write_Main
 import pattern_Gen_ParsePrint
 import pattern_Gen_EventHandler
 import pattern_BigNums
+import pattern_GUI_Toolkit
 #import pattern_Gen_GUI
 
 import stringStructs
+
+##########  Library Shells
+import Lib_GTK2
 
 import CodeGenerator_CPP
 #import CodeGenerator_JavaScript
@@ -60,6 +64,7 @@ def ScanAndApplyPatterns(objects, tags):
             elif pattName=='Gen_EventHandler': pattern_Gen_EventHandler.apply(objects, tags, patternArgs[0])
             #elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
             elif pattName=='useBigNums': pattern_BigNums.apply(tags)
+            elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(objects, tags)
 
 def AutoGenerateStructsFromModels(objects, tags):
     #TODO: Convert ranges and deduce field types if possible.
@@ -114,20 +119,45 @@ def ChooseLibs(objects, buildSpec, tags):
     Platform= progSpec.fetchTagValue([tags, buildSpec[1]], 'Platform')
     Language= progSpec.fetchTagValue([tags, buildSpec[1]], 'Language')
     CPU     = progSpec.fetchTagValue([tags, buildSpec[1]], 'CPU')
+    print "LIB-LIST:", libList, Platform, Language, CPU
 
     compatibleLibs=[]
     for lib in libList:
-        libPlatforms=progSpec.fetchTagValue([tags], 'libraries."+lib+".platforms')
-        libBindings =progSpec.fetchTagValue([tags], 'libraries."+lib+".bindings')
-        libCPUs     =progSpec.fetchTagValue([tags], 'libraries."+lib+".CPUs')
-        libFeatures =progSpec.fetchTagValue([tags], 'libraries."+lib+".features')
+        libPlatforms=progSpec.fetchTagValue([tags], "libraries."+lib+".platforms")
+        libBindings =progSpec.fetchTagValue([tags], "libraries."+lib+".bindings")
+        libCPUs     =progSpec.fetchTagValue([tags], "libraries."+lib+".CPUs")
+        libFeatures =progSpec.fetchTagValue([tags], "libraries."+lib+".features")
+        print "LIB:", lib
+        print libPlatforms
+        print libBindings
+        print libCPUs
+        print libFeatures
 
-       # if (libPlatforms[?]==Platform and libBindings[?]==Language and libCPUs[?]==CPU):
-       #     compatibleLibs.append([lib, libFeatures])
+        LibCanWork=True
+        if not (libPlatforms and Platform in libPlatforms): LibCanWork=False;
+        if not (libBindings and Language in libBindings): LibCanWork=False;
+      #  if not (libCPUs and CPU in libCPUs): LibCanWork=False;
 
-    libsToUse=[]
-#   for need in featuresNeeded:
-#       if():
+        if(LibCanWork):
+            print lib, "works for this system."
+            compatibleLibs.append([lib, libFeatures])
+
+    # TODO: This should cause error if a need isn't met. And, it should resolve when multiple libraries can meet a need.
+    featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
+    print "Features Needed:", featuresNeeded
+    libsToUse={}
+    for need in featuresNeeded:
+        print "    ", need
+        for LIB in compatibleLibs:
+            if(need in LIB[1]):
+                libsToUse[LIB[0]] = True
+                print "        ", LIB[0]
+
+    print "USING LIBS: ", libsToUse
+    for Lib in libsToUse:
+        if   (Lib=="GTK2"): Lib_GTK2.use(Platform)
+        elif (Lib=="SDL2"): Lib_SDL2.use(Platform)
+
 
     return libsToUse
 

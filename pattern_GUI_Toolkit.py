@@ -11,7 +11,7 @@ def apply(objects, tags):
     # Provide wrapper commands
 
     # Make a class with init, event-loop, deInit (Can be activated from main.)
-    title=searchATagStore(tags, 'Title')
+    title=progSpec.searchATagStore(tags, 'Title')
     GUI_TK_code = """
     struct GUI_TK {
         their SDL_Window: window <- 0

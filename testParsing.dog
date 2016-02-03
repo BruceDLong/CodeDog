@@ -17,6 +17,8 @@ You should have received a copy of the GNU General Public License along with the
 
 langToGen="CPP"
 
+featuresNeeded = {GraphicsModes = 'GUI' Mouse='GUI' Keyboard='GUI' Audio='GUI'}
+
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
 
@@ -48,6 +50,7 @@ string date::strForm {
     > int32:date
     > int32:year
 }
+//do makeGUI(listMgr)
 
 string personRec::strForm {
     flag: hired
