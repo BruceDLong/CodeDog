@@ -11,6 +11,8 @@ CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long"
 Description = "This test file is for testing CodeDog."
 
+featuresNeeded = {GUI_ToolKit = 'GUI' Mouse='GUI' Keyboard='GUI' Audio='GUI'}
+
 LicenseText = `This file is part of the "CodeDog test suite"
 The CodeDog test suite is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 The CodeDog test suite is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
@@ -18,10 +20,10 @@ You should have received a copy of the GNU General Public License along with the
 
 langToGen="CPP"
 
-testEventHandling = {ID='testEvH' maxEvents='100000' types=[GUI_event] runFromMain=1}
-initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"
-runCode = "EventMaster_testEvH EvMaster; EvMaster.primeEvents(); EvMaster.eventLoop();"
-deinitCode="SDL_Quit()"
+GUI_Spec = {ID='testEvH' appClass="thisApp" runFromMain=1}
+initCode="gui_tk.GUI_Init()"
+runCode = "gui_tk.GUI_Run()"
+deinitCode="gui_tk.GUI_Deinit()"
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
 
@@ -34,5 +36,21 @@ struct GUI_event {
     me bool: Handle_GUI_event() <- { return(true) }
 }
 
-do Gen_EventHandler(testEventHandling)
+struct thisApp{
+    me void: createAppMenu() <- {
+      GtkWidget* MenuLvl1;
+      GtkWidget* MenuLvl2;
+
+      MenuLvl1=create_SubMenu(menubar, "File");
+            MenuLvl2=create_MenuItem(MenuLvl1, "Open");
+            MenuLvl2=create_SubMenu(MenuLvl1, "Print");
+            MenuLvl2=create_MenuItem(MenuLvl1, "Save");
+            MenuLvl2=create_SubMenu(MenuLvl1, "Quit");
+      MenuLvl1=create_SubMenu(menubar, "View");
+      MenuLvl1=create_SubMenu(menubar, "Data");
+      MenuLvl1=create_SubMenu(menubar, "Help");
+    }
+}
+
+do makeGUI(GUI_Spec)
 do Write_Main(eventLoop)

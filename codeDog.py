@@ -13,7 +13,7 @@ import pattern_GUI_Toolkit
 import stringStructs
 
 ##########  Library Shells
-import Lib_GTK2
+import Lib_GTK3
 
 import CodeGenerator_CPP
 #import CodeGenerator_JavaScript
@@ -65,6 +65,9 @@ def ScanAndApplyPatterns(objects, tags):
             #elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
             elif pattName=='useBigNums': pattern_BigNums.apply(tags)
             elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(objects, tags)
+            else:
+                print "\nPattern", pattName, "not recognized.\n\n"
+                exit()
 
 def AutoGenerateStructsFromModels(objects, tags):
     #TODO: Convert ranges and deduce field types if possible.
@@ -155,8 +158,8 @@ def ChooseLibs(objects, buildSpec, tags):
 
     print "USING LIBS: ", libsToUse
     for Lib in libsToUse:
-        if   (Lib=="GTK2"): Lib_GTK2.use(Platform)
-        elif (Lib=="SDL2"): Lib_SDL2.use(Platform)
+        if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildSpec, tags, Platform)
+        elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildSpec, tags, Platform)
 
 
     return libsToUse

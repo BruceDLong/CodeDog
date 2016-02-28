@@ -7,8 +7,8 @@ mainFuncCode=r"// No Main given"
 def apply(objects, tags, codeToRun):
     # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
     initCode=tags['initCode']
-    #runCode =tags['runCode']
-    runCode = ""
+    runCode =tags['runCode']+";"
+    #runCode = ""
     deinitCode=tags['deinitCode']
     tags['Include'] += ",<signal.h>"
 

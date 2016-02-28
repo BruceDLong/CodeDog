@@ -481,7 +481,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                             for arg in argList:
                                 if(count>0): argListText+=", "
                                 count+=1
-                                argListText+= convertType(fieldOwner, arg[0][0]) +' '+ arg[0][1]
+                                argListText+=convertType(arg[0][0], arg[0][1]) + ' ' + arg[0][2][1]
                     globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")" +funcText+"\n\n"
             else:
                 argList=field['argList']

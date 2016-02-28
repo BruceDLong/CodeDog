@@ -12,7 +12,7 @@ libraries = {
     sdl2={
         useStatus='static'
         description='Simple DirectMedia Layer is a wrapper around basic machine functionality'
-        features=[GraphicsModes, Mouse, Keyboard, Audio]
+        features=[GraphicsModes, MouseX, KeyboardX, AudioX]
         platforms=[Linux, OS-X_Devices, Windows, iOS_Devices, Android]
         bindings =[C, CPP, java, perl, python]
         CPUs     =[i386, amd64, arm7]
@@ -21,6 +21,18 @@ libraries = {
         initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"
         deinitCode="SDL_Quit()"
     }
+
+    GTK3={
+        useStatus='dynamic'
+        description='GTK is a GUI Toolkit'
+        features=[GUI_ToolKit, Mouse, Keyboard, Audio]
+        platforms=[Linux, OS-X_Devices, Windows]
+        bindings =[C, CPP, java, perl, python]
+        CPUs     =[i386, amd64, arm7]
+        libFiles=[`pkg-config --libs gtk+-3.0`]
+        headers=[gtk/gtk.h]
+    }
+
     cairo={
         useStatus='static'
         description='Drawing 2D'
