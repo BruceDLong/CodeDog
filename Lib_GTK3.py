@@ -177,24 +177,19 @@ their GtkWidget: create_menu(me gint: depth) <- <%{
 
 def createMenubar():
     S="""
-      GtkWidget *box;
       GtkWidget *boxForMenubar;
       GtkWidget *menubar;
-      GtkWidget *menu;
-      GtkWidget *menuitem;
-      box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-      gtk_container_add (GTK_CONTAINER (window), box);
-      gtk_widget_show (box);
+
 
       boxForMenubar = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-      gtk_container_add (GTK_CONTAINER (box), boxForMenubar);
+      gtk_container_add (GTK_CONTAINER (topBox), boxForMenubar);
       gtk_widget_show (boxForMenubar);
 
       menubar = gtk_menu_bar_new ();
       gtk_box_pack_start (GTK_BOX (boxForMenubar), menubar, TRUE, TRUE, 0);
       gtk_widget_show (menubar);
 
-
+      appFuncs.createAppMenu();
       """
     return S
 
@@ -206,7 +201,7 @@ def createMainAppArea():
 
       frame = gtk_frame_new (NULL);
       gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
-      gtk_box_pack_start (GTK_BOX (box), frame, TRUE, TRUE, 0);
+      gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
 
       drawing_area = gtk_drawing_area_new ();
 
@@ -238,6 +233,10 @@ def use(objects, buildSpec, tags, platform):
     print "USING GTK3"
 
     CODE="""
+    struct GUI_menuBar{their GtkWidget: GUI_menuBar}
+    struct GUI_menu{their GtkWidget: GUI_menu}
+    struct GUI_menuItem{their GtkWidget: GUI_menuItem}
+
     struct GUI_TK{
         their GtkApplication: app
         their GtkWidget: window
@@ -274,6 +273,7 @@ def use(objects, buildSpec, tags, platform):
         %s
         me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%%{
           GtkWidget *window;
+          GtkWidget *topBox;
 
           window = gtk_application_window_new (app);
           gtk_window_set_title (GTK_WINDOW (window), "Window");
@@ -281,6 +281,9 @@ def use(objects, buildSpec, tags, platform):
           g_signal_connect (window, "destroy", G_CALLBACK (close_window), NULL);
           gtk_container_set_border_width (GTK_CONTAINER (window), 0);
 
+          topBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+          gtk_container_add (GTK_CONTAINER (window), topBox);
+          gtk_widget_show (topBox);
           ////////////////////  A d d  A p p l i c a t i o n   M e n u
           %s
 

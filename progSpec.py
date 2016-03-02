@@ -108,6 +108,17 @@ def setFeaturesNeeded(tags, featureIDs, neededBy):
 
 ###############
 
+def isWrappedType(objMap, structname):
+    structToSearch=objMap[0][structname]
+    if not structToSearch: print "struct ", structName, " not found."; exit(2);
+    fieldListToSearch = structToSearch['fields']
+    if not fieldListToSearch: return False
+    if len(fieldListToSearch)==1:
+        if fieldListToSearch[0]['fieldName']==structname:
+            return True
+    return False
+
+
 def createTypedefName(ItmType):
     if(isinstance(ItmType, basestring)):
         return ItmType

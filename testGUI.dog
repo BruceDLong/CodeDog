@@ -20,12 +20,13 @@ You should have received a copy of the GNU General Public License along with the
 
 langToGen="CPP"
 
+Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
+
 GUI_Spec = {ID='testEvH' appClass="thisApp" runFromMain=1}
+
 initCode="gui_tk.GUI_Init()"
 runCode = "gui_tk.GUI_Run()"
 deinitCode="gui_tk.GUI_Deinit()"
-
-Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
 
 #include libraryTags.dog
 
@@ -37,18 +38,18 @@ struct GUI_event {
 }
 
 struct thisApp{
-    me void: createAppMenu() <- {
-      GtkWidget* MenuLvl1;
-      GtkWidget* MenuLvl2;
+    me void: createAppMenu(me GUI_menuBar: menubar) <-  {
+      me GUI_menu: MenuLvl1
+      me GUI_menu: MenuLvl2
 
-      MenuLvl1=create_SubMenu(menubar, "File");
-            MenuLvl2=create_MenuItem(MenuLvl1, "Open");
-            MenuLvl2=create_SubMenu(MenuLvl1, "Print");
-            MenuLvl2=create_MenuItem(MenuLvl1, "Save");
-            MenuLvl2=create_SubMenu(MenuLvl1, "Quit");
-      MenuLvl1=create_SubMenu(menubar, "View");
-      MenuLvl1=create_SubMenu(menubar, "Data");
-      MenuLvl1=create_SubMenu(menubar, "Help");
+      MenuLvl1 <- create_SubMenu(menubar, "File")
+            MenuLvl2 <- create_MenuItem(MenuLvl1, "Open")
+            MenuLvl2 <- create_SubMenu(MenuLvl1, "Print")
+            MenuLvl2 <- create_MenuItem(MenuLvl1, "Save")
+            MenuLvl2 <- create_SubMenu(MenuLvl1, "Quit")
+      MenuLvl1 <- create_SubMenu(menubar, "View")
+      MenuLvl1 <- create_SubMenu(menubar, "Data")
+      MenuLvl1 <- create_SubMenu(menubar, "Help")
     }
 }
 

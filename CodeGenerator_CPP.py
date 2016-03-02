@@ -384,6 +384,7 @@ def processActionSeq(actSeq, indent):
     return actSeqText
 
 def generate_constructor(objects, objectName, tags):
+    if progSpec.isWrappedType(objects, objectName): return ""
     print "                    Generating Constructor for:", objectName
     constructorInit=":"
     constructorArgs="    "+convertObjectNameToCPP(objectName)+"("
