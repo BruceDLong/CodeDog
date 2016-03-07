@@ -12,7 +12,7 @@ CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long, Tiffany Lawrence"
 Description = "This test file is for testing CodeDog."
 
-featuresNeeded = {GraphicsModes = 'GUI' Mouse='GUI' Keyboard='GUI' Audio='GUI']
+featuresNeeded = {GraphicsModes = 'GUI' Mouse='GUI' Keyboard='GUI' Audio='GUI'}
 
 LicenseText = `This file is part of the "CodeDog test suite"
 The CodeDog test suite is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
@@ -27,6 +27,7 @@ TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
 testEventHandling = {ID='testEvH' maxEvents='100000' types=[GUI, LogicAtom] runFromMain=1}
 
 initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"
+runCode="RunEventLoop()"
 deinitCode="SDL_Quit()"
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
@@ -82,6 +83,7 @@ struct testObject {
     my uint32: length
     our uint32: distance
     their uint32: age
+    me int32: X
     me uint32: addOne(me uint32: X) <- {
         X <- 123+34
         if(true) {

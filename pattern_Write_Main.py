@@ -18,7 +18,7 @@ def apply(objects, tags, codeToRun):
     }
 
     me void: deinitialize() <- {
-       %s
+        %s
     }
     """ % (initCode, deinitCode)
 

@@ -13,6 +13,76 @@ def bitsNeeded(n):
     else:
         return 1 + bitsNeeded((n + 1) / 2)
 
+###### Routines to track types of identifiers and to look up type based on identifier.
+
+objectsRef=[]
+localVarsAllocated = []   # Format: [owner, fieldType, varName]
+localArgsAllocated = []   # Format: [owner, fieldType, varName]
+currentObjName=''
+
+def CheckBuiltinItems(itemName):
+    if(itemName=='print'):  return ['const', 'void', 'BUILTIN']
+    if(itemName=='return'): return ['const', 'void', 'BUILTIN']
+    if(itemName=='sqrt'):   return ['const', 'number', 'BUILTIN']
+
+def CheckFunctionsLocalVarArgList(itemName):
+    print "Searching function for", itemName
+    global localVarsAllocated
+    for item in reversed(localVarsAllocated):
+        if item[2]==itemName:
+            return [item[0], item[1], 'LOCAL']
+    global localArgsAllocated
+    for item in reversed(localArgsAllocated):
+        if item[2]==itemName:
+            return [item[0], item[1], 'FUNCARG']
+    return 0
+
+def CheckObjectVars(objName, itemName):
+    print "Searching "+objName+" for", itemName
+    if(not objName in objectsRef[0]):
+        return 0
+    ObjectDef = objectsRef[0][objName]
+    for field in ObjectDef['fields']:
+        fieldType=field['fieldType']
+        fieldName=field['fieldName']
+        if fieldName==itemName:
+            return field
+    return 0
+
+
+def fetchItemsTypeInfo(itemName):
+    # return format: ['me', 'string', 'OBJVAR']. Substitute for wrapped types.
+    # TODO: also search any libraries that are used.
+    print "FETCHING:", itemName
+    global currentObjName
+    RefType=""
+    REF=CheckBuiltinItems(itemName)
+    if (REF):
+        RefType="BUILTIN"
+        return REF
+    else:
+        REF=CheckFunctionsLocalVarArgList(itemName)
+        if (REF):
+            RefType="LOCAL"
+            return REF
+        else:
+            REF=CheckObjectVars(currentObjName, itemName)
+            if (REF):
+                RefType="OBJVAR"
+
+            else:
+                REF=CheckObjectVars("MAIN", itemName)
+                if (REF):
+                    RefType="GLOBAL"
+                else:
+                    print "\nVariable", itemName, "could not be found."
+                    #exit(1)
+                    return [0,0,0]
+    return [REF['owner'], REF['fieldType'], RefType]
+    # Example: ['me', 'string', 'OBJVAR']
+
+###### End of type tracking code
+
 def convertObjectNameToCPP(objName):
     return objName.replace('::', '_')
 
@@ -70,8 +140,14 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
-def convertType(owner, fieldType):
+def convertType(objects, owner, fieldType):
     #print "fieldType: ", fieldType
+    if not isinstance(fieldType, basestring): fieldType=fieldType[0]
+    baseType = progSpec.isWrappedType(objects, fieldType)
+    if(baseType[0]!=''):
+        owner=baseType[0]
+        fieldType=baseType[1]
+
     cppType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     if(isinstance(fieldType, basestring)):
@@ -98,12 +174,6 @@ def convertType(owner, fieldType):
     if cppType=='TYPE ERROR': print cppType, owner, fieldType;
     return cppType
 
-def prepareTypeName(typeSpec):
-    typeDefName=createTypedefName(typeSpec)
-    typeDefSpec=convertType(typeSpec)
-    if(typeSpec[0]=='var'):
-        typeDefName=typeDefSpec
-    return typeDefName
 
 def genIfBody(ifBody, indent):
     ifBodyText = ""
@@ -133,16 +203,23 @@ def codeNameSeg(item, connector):
     else:
         if item[0]=='[':
             S+= '[' + codeExpr(item[1]) +']'
-    return S
+    return [S,  fetchItemsTypeInfo(item)]
 
 def codeItemName(item):
-    #print "NAME:", item
+    print "NAME:", item
     S=''
-    S += codeNameSeg(item[0],'')
+    connector=''
+    [segStr, segType]=codeNameSeg(item[0],connector)
+    S+=segStr
     if len(item)>1:
         for i in item[1]:
-            S+=codeNameSeg(i,'.')
+            segOwner=segType[0]
+            if(segOwner!='me'): connector='->'
+            else: connector='.'
+            [segStr, segType]=codeNameSeg(i, connector)
+            S+=segStr
     return S
+
 
 def codeUserMesg(item):
     # TODO: Make 'user messages'interpolate and adjust for locale.
@@ -279,7 +356,7 @@ def codeSpecialFunc(funcName, paramList):
 def codeFuncCall(funcName, paramList):
     S=''
     if isinstance(funcName[0], basestring):
-        funcSegName=codeNameSeg(funcName[0],'')
+        [funcSegName, segType]=codeNameSeg(funcName[0],'')
         S=codeSpecialFunc(funcSegName, paramList)
         if(S != ''):
             print "SpecialFunc"
@@ -290,19 +367,21 @@ def codeFuncCall(funcName, paramList):
 
 def processAction(action, indent):
     #make a string and return it
+    global localVarsAllocated
     actionText = ""
     typeOfAction = action['typeOfAction']
 
     if (typeOfAction =='newVar'):
         fieldDef=action['fieldDef'][0]
         owner=fieldDef[0]
-        fieldType=fieldDef[1]
+        fieldType=fieldDef[1];
         varName = fieldDef[2][1]
-        typeSpec = convertType(owner, fieldType)
+        typeSpec = convertType(objectsRef, owner, fieldType)
         assignValue=''
         if(len(fieldDef[2])==4):
             assignValue=' = '+fieldDef[2][3]
         actionText = indent + typeSpec + " " + varName + assignValue + ";\n"
+        localVarsAllocated.append([owner, fieldType, varName])  # Tracking locae vars for scope
     elif (typeOfAction =='assign'):
         LHS = codeItemName(action['LHS'])
         RHS = codeExpr(action['RHS'][0])
@@ -375,16 +454,26 @@ def processAction(action, indent):
 
 
 def processActionSeq(actSeq, indent):
+    global localVarsAllocated
+    localVarsAllocated.append(["STOP",'',''])
     actSeqText = "{\n"
     for action in actSeq:
         actionText = processAction(action, indent+'    ')
         #print actionText
         actSeqText += actionText
     actSeqText += "\n" + indent + "}"
+    localVarRecord=['','']
+    while(localVarRecord[0] != 'STOP'):
+        localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
 def generate_constructor(objects, objectName, tags):
-    if progSpec.isWrappedType(objects, objectName): return ""
+    baseType = progSpec.isWrappedType(objects, objectName)
+    if(baseType[0]!=''): return ''
+    else:
+        fieldOwner=baseType[0]
+        objectName=baseType[1][0]
+    if not objectName in objects[0]: return ''
     print "                    Generating Constructor for:", objectName
     constructorInit=":"
     constructorArgs="    "+convertObjectNameToCPP(objectName)+"("
@@ -397,7 +486,7 @@ def generate_constructor(objects, objectName, tags):
         if(field['argList'] or field['argList']!=None): continue
         fieldOwner=field['owner']
         if(fieldOwner=='const'): continue
-        convertedType = convertType(fieldOwner, fieldType)
+        convertedType = convertType(objects, fieldOwner, fieldType)
         fieldName=field['fieldName']
 
         #print "                        Constructing:", objectName, fieldName, fieldType, convertedType
@@ -425,11 +514,13 @@ def generate_constructor(objects, objectName, tags):
 
 def processOtherStructFields(objects, objectName, tags, indent):
     print "                    Coding fields for", objectName
+    global localArgsAllocated
     globalFuncs=''
     funcDefCode=''
     structCode=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
+        localArgsAllocated=[]
         fieldType=field['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=field['owner']
@@ -437,7 +528,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         fieldValue=field['value']
         fieldArglist = field['argList']
         if fieldName=='opAssign': fieldName='operator='
-        convertedType = convertType(fieldOwner, fieldType)
+        convertedType = convertType(objects, fieldOwner, fieldType)
         #print "CONVERT-TYPE:", fieldOwner, fieldType, convertedType
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         if(fieldValue == None):fieldValueText=""
@@ -455,19 +546,13 @@ def processOtherStructFields(objects, objectName, tags, indent):
             else:
                 #print convertedType
                 convertedType+=''
-            if (field['value'][1]!=''): # This function body is 'verbatim'.
-                funcText=field['value'][1]
-            # No verbatim found so generate function text from action sequence
-            elif field['value'][0]!='':
-                funcText=processActionSeq(field['value'][0], '')
-            else:
-                print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
-                exit(1)
-            #print "FUNCTEXT:",funcText
-        ###########################################################
+
+        ##### Generate function header for both decl and defn.
             if(objectName=='MAIN'):
                 if fieldName=='main':
-                    funcDefCode += 'int main(int argc, char **argv)' +funcText+"\n\n"
+                    funcDefCode += 'int main(int argc, char *argv[])'
+                    localArgsAllocated.append(['me', 'int', 'argc'])
+                    localArgsAllocated.append(['their', 'char', 'argv'])  # TODO: Wrong. argv should be an array.
                 else:
                     #print "FIELD: ", field
                     argList=field['argList']
@@ -482,8 +567,13 @@ def processOtherStructFields(objects, objectName, tags, indent):
                             for arg in argList:
                                 if(count>0): argListText+=", "
                                 count+=1
-                                argListText+=convertType(arg[0][0], arg[0][1]) + ' ' + arg[0][2][1]
-                    globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")" +funcText+"\n\n"
+                                owner=arg[0][0]
+                                argType=arg[0][1]
+                                varName=arg[0][2][1]
+                                argListText+= convertType(objects, owner, argType) + ' ' + varName
+                                localArgsAllocated.append([owner, argType, varName])  # Tracking function argumets for scope
+
+                    globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")"
             else:
                 argList=field['argList']
                 if len(argList)==0:
@@ -497,15 +587,35 @@ def processOtherStructFields(objects, objectName, tags, indent):
                     for arg in argList:
                         if(count>0): argListText+=", "
                         count+=1
-                        argListText+= convertType(arg[0][0], arg[0][1]) + ' ' + arg[0][2][1]
-                #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') ', funcText
+                        owner=arg[0][0]
+                        argType=arg[0][1]
+                        varName=arg[0][2][1]
+                        argListText+= convertType(objects, owner, argType) + ' ' + varName
+                        localArgsAllocated.append([owner, argType, varName])  # Tracking function argumets for scope
+                #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
                 if(fieldType[0] != '<%'):
                     registerType(objectName, fieldName, convertedType, typeDefName)
                 else: typeDefName=convertedType
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
                 structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
                 objPrefix=LangFormOfObjName +'::'
-                funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")" +funcText+"\n\n"
+                funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+
+            ##### Generate Function Body
+            if (field['value'][1]!=''): # This function body is 'verbatim'.
+                funcText=field['value'][1]
+            # No verbatim found so generate function text from action sequence
+            elif field['value'][0]!='':
+                funcText=processActionSeq(field['value'][0], '')
+            else:
+                print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
+                exit(1)
+
+            if(objectName=='MAIN'):
+                if(fieldName=='main'):
+                    funcDefCode += funcText+"\n\n"
+                else: globalFuncs += funcText+"\n\n"
+            else: funcDefCode += funcText+"\n\n"
 
     if(objectName=='MAIN'):
         return [structCode, funcDefCode, globalFuncs]
@@ -516,14 +626,17 @@ def processOtherStructFields(objects, objectName, tags, indent):
 
 def generateAllObjectsButMain(objects, tags):
     print "\n            Generating Objects..."
+    global currentObjName
     constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
     forwardDecls="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
     needsFlagsVar=False;
     for objectName in objects[1]:
+        if progSpec.isWrappedType(objects, objectName)[0]!='': continue
         if(objectName[0] != '!'):
             print "                [" + objectName+"]"
+            currentObjName=objectName
             [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags)
             constsEnums+=strOut
             if(needsFlagsVar):
@@ -534,6 +647,7 @@ def generateAllObjectsButMain(objects, tags):
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ')
                 structCodeAcc += "\nstruct "+LangFormOfObjName+"{\n" + structCode + '};\n'
                 funcCodeAcc+=funcCode
+        currentObjName=''
     return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
 
 
@@ -618,7 +732,9 @@ def connectLibraries(objects, tags, libsToUse):
 
 def generate(objects, tags, libsToUse):
     #print "\nGenerating CPP code...\n"
+    global objectsRef
     global buildStr_libs
+    objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(objects, tags, libsToUse)
     header = makeFileHeader(tags)
