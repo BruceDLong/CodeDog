@@ -35,7 +35,7 @@ objectName = CID("objectName")
 cppType = (Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
 intNum = Word(nums)("intNum")
 numRange = intNum + ".." + intNum("numRange")
-varType = (objectName | cppType | numRange | Keyword("mesg"))("varType")
+varType = (objectName | cppType | numRange)("varType")
 boolValue = (Keyword("true") | Keyword("false"))("boolValue")
 floatNum = intNum + Optional("." + intNum)("floatNum")
 value = Forward()
@@ -93,7 +93,7 @@ nameAndVal = Group(
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
     )("nameAndVal")
 
-arraySpec = Group ('[' + Optional(intNum | numRange) + ']')("arraySpec")
+arraySpec = Group (Literal('[') + Optional(intNum | varType)('indexType') + Literal(']'))("arraySpec")
 meOrMy = (Keyword("me") | Keyword("my"))
 modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
 flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") + nameAndVal )("flagDef")
@@ -130,7 +130,7 @@ def parseInput(inputStr):
 
 def extractTagDefs(tagResults):
     localTagStore = {}
-    print tagResults
+    #print tagResults
 
     for tagSpec in tagResults:
         tagVal = tagSpec.tagValue
@@ -153,6 +153,74 @@ def extractTagDefs(tagResults):
         localTagStore[tagSpec.tagID] = tagVal
     return localTagStore
 
+nameIDX=1
+def packFieldDef(fieldResult, ObjectName, indent):
+    global nameIDX
+    fieldDef={}
+    argList=[]
+    isNext=False;
+    if(fieldResult.isNext): isNext=True
+    if(fieldResult.owner): owner=fieldResult.owner;
+    else: owner='me';
+    if(fieldResult.fieldType): fieldType=fieldResult.fieldType;
+    else: fieldType=None;
+    if(fieldResult.arraySpec): arraySpec=fieldResult.arraySpec;
+    else: arraySpec=None;
+    if(fieldResult.nameAndVal):
+        nameAndVal = fieldResult.nameAndVal
+        #print "nameAndVal = ", nameAndVal
+        if(nameAndVal.fieldName):
+            fieldName = nameAndVal.fieldName
+            #print "FIELD NAME", fieldName
+        else: fieldName=None;
+        if(nameAndVal.givenValue):
+            givenValue = nameAndVal.givenValue
+
+        elif(nameAndVal.funcBody):
+            [funcBodyOut, funcTextVerbatim] = extractFuncBody(ObjectName, fieldName, nameAndVal.funcBody)
+            givenValue=[funcBodyOut, funcTextVerbatim]
+            #print "\n\n[funcBodyOut, funcTextVerbatim] ", givenValue
+
+        else: givenValue=None;
+        if(nameAndVal.argListTag):
+            for argSpec in nameAndVal.argList:
+                argList.append(packFieldDef(argSpec[0], ObjectName, indent+"    "))
+        else: argList=None;
+    else:
+        givenValue=None;
+        fieldName=None;
+
+
+    if(fieldResult.flagDef):
+        print indent+"        FLAG: ", fieldResult
+        if(arraySpec): print"Lists of flags are not allowed.\n"; exit(2);
+        fieldDef=progSpec.packField(False, owner, 'flag', arraySpec, fieldName, None, givenValue)
+    elif(fieldResult.modeDef):
+        print indent+"        MODE: ", fieldResult
+        modeList=fieldResult.modeList
+        if(arraySpec): print"Lists of modes are not allowed.\n"; exit(2);
+        fieldDef=progSpec.packField(False, owner, 'flag', arraySpec, fieldName, None, givenValue)
+        fieldDef['typeSpec']['enumList']=modeList
+        #fieldDef=progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, modeList)
+    elif(fieldResult.constStr):
+        if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
+        givenValue=fieldResult.constStr[1:-1]
+        fieldDef=progSpec.packField(True, 'const', 'string', arraySpec, fieldName, None, givenValue)
+    elif(fieldResult.constNum):
+        print indent+"        CONST Num: ", fieldResult
+        if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
+        fieldDef=progSpec.packField(True, 'const', 'int', arraySpec, fieldName, None, givenValue)
+    elif(fieldResult.nameVal):
+        print indent+"        NameAndVal: ", fieldResult
+        fieldDef=progSpec.packField(None, None, None, arraySpec, fieldName, argList, givenValue)
+    elif(fieldResult.fullFieldDef):
+        print indent+"        FULL FIELD: ", [isNext, owner, fieldType, arraySpec, fieldName]
+        fieldDef=progSpec.packField(isNext, owner, fieldType, arraySpec, fieldName, argList, givenValue)
+    else:
+        print "Error in packing FieldDefs:", fieldResult
+        exit(1)
+    return fieldDef
+
 def extractActSeqToActSeq(funcName, childActSeq):
     #print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQUextractActSeqToActSeq"
     #print childActSeq
@@ -172,10 +240,7 @@ def extractActItem(funcName, actionItem):
     # Create Variable: var | sPtr | uPtr | rPtr | list
     #print "ACTIONITEM:", actionItem
     if actionItem.fieldDef:
-        thisTypeSpec = actionItem.typeSpec
-        thisVarName = actionItem.varName
-        #print 'TypeSpec and VarName: ', actionItem
-        thisActionItem = {'typeOfAction':"newVar", 'fieldDef':actionItem}
+        thisActionItem = {'typeOfAction':"newVar", 'fieldDef':packFieldDef(actionItem.fieldDef, '', '    LOCAL:')}
     elif actionItem.ifStatement:    # Conditional if
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
@@ -288,65 +353,8 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
     print "    EXTRACTING Field Defs for", ObjectName
     #print fieldResults
     for fieldResult in fieldResults:
-        #print fieldResult
-        nameIDX=1
-        argList=[]
-        isNext=False;
-        if(fieldResult.isNext): isNext=True #fieldResult.isNext
-        if(fieldResult.owner): owner=fieldResult.owner;
-        else: owner='me';
-        if(fieldResult.fieldType): fieldType=fieldResult.fieldType;
-        else: fieldType=None;
-        if(fieldResult.nameAndVal):
-            nameAndVal = fieldResult.nameAndVal
-            #print "nameAndVal = ", nameAndVal
-            if(nameAndVal.fieldName):
-                fieldName = nameAndVal.fieldName
-                #print "FIELD NAME", fieldName
-            else: fieldName=None;
-            if(nameAndVal.givenValue):
-                givenValue = nameAndVal.givenValue
-
-            elif(nameAndVal.funcBody):
-                [funcBodyOut, funcTextVerbatim] = extractFuncBody(ObjectName, fieldName, nameAndVal.funcBody)
-                givenValue=[funcBodyOut, funcTextVerbatim]
-                #print "\n\n[funcBodyOut, funcTextVerbatim] ", givenValue
-
-            else: givenValue=None;
-            if(nameAndVal.argListTag):
-                argList=nameAndVal.argList
-                #print 'argList: ', argList
-            else: argList=None;
-        else:
-            givenValue=None;
-            fieldName=None;
-        if(fieldResult.flagDef):
-            #print "        FLAG: ", fieldResult
-            progSpec.addField(ProgSpec, ObjectName, False, owner, 'flag', fieldName, None, givenValue)
-        elif(fieldResult.modeDef):
-            #print "        MODE: ", fieldResult
-            modeList=fieldResult.modeList
-            #print fieldResult
-
-            progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, modeList)
-        elif(fieldResult.constStr):
-            if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
-            givenValue=fieldResult.constStr[1:-1]
-            progSpec.addField(ProgSpec, ObjectName, True, 'const', 'string', fieldName, None, givenValue)
-        elif(fieldResult.constNum):
-            print "        CONST Num: ", fieldResult
-            if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
-            progSpec.addField(ProgSpec, ObjectName, True, 'const', 'int', fieldName, None, givenValue)
-        elif(fieldResult.nameVal):
-            print "        NameAndVal: ", fieldResult
-            progSpec.addField(ProgSpec, ObjectName, None, None, None, fieldName, argList, givenValue)
-        elif(fieldResult.fullFieldDef):
-            print "        FULL FIELD: ", [isNext, owner, fieldType, fieldName]
-            progSpec.addField(ProgSpec, ObjectName, isNext, owner, fieldType, fieldName, argList, givenValue)
-        else:
-            print "Error in extractFieldDefs:", fieldResult
-            exit(1)
-
+        fieldDef=packFieldDef(fieldResult, ObjectName, '')
+        progSpec.addField(ProgSpec, ObjectName, fieldDef)
 
 
 
@@ -371,7 +379,6 @@ def extractObjectSpecs(localProgSpec, objNames, spec, stateType):
     elif(spec.alternateEl):configType="ALT"
     progSpec.addObject(localProgSpec, objNames, objectName, stateType, configType)
     ###########Grab optional Object Tags
-    #print "SSSSSSSSSSSSSSSSSSSSSSSSSspec.fieldDefs = ",spec.fieldDefs
     if spec.optionalTag:  #change so it generates an empty one if no field defs
         #print "SSSSSSSSSSSSSSSSSSSSSSSSSspec.tagDefList = ",spec.tagDefList
         objTags = extractTagDefs(spec.tagDefList)
@@ -384,7 +391,7 @@ def extractObjectSpecs(localProgSpec, objNames, spec, stateType):
     if(spec[2]=='auto'):
         progSpec.markStructAuto(localProgSpec, objectName)
     else:
-        print "SPEC.FIELDDEFS",spec.fieldDefs
+        #print "SPEC.FIELDDEFS",spec.fieldDefs
         extractFieldDefs(localProgSpec, objectName, spec.fieldDefs)
 
     return

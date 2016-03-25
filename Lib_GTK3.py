@@ -8,33 +8,6 @@ def createUtilityFunctions():
 /* Surface to store current scribbles */
 their cairo_surface_t: surface <- 0
 
-me void: clear_surface() <- {
-  their cairo_t: cr
-
-  cr <- cairo_create(surface)
-
-  cairo_set_source_rgb(cr, 1, 1, 1)
-  cairo_paint(cr)
-
-  cairo_destroy(cr)
-}
-
-/* Create a new surface of the appropriate size to store our scribbles */
-me gboolean: configure_event_cb (their GtkWidget: widget, their GdkEventConfigure: event, me gpointer: data) <- <% {
-  if (surface)
-    cairo_surface_destroy (surface);
-
-  surface = gdk_window_create_similar_surface (gtk_widget_get_window (widget),
-                                               CAIRO_CONTENT_COLOR,
-                                               gtk_widget_get_allocated_width (widget),
-                                               gtk_widget_get_allocated_height (widget));
-
-  /* Initialize the surface to white */
-  clear_surface ();
-
-  /* We've handled the configure event, no need for further processing. */
-  return TRUE;
-} %>
 
 /* Redraw the screen from the surface. Note that the ::draw
  * signal receives a ready-to-be-used cairo_t that is already
@@ -49,67 +22,8 @@ me gboolean: draw_cb (their GtkWidget: widget,
   return FALSE;
 }  %>
 
-/* Draw a rectangle on the surface at the given position */
-me void: draw_brush (their GtkWidget: widget,
-            me gdouble:    x,
-            me gdouble:    y) <- <%{
-  cairo_t *cr;
 
-  /* Paint to the surface, where we store our state */
-  cr = cairo_create (surface);
 
-  cairo_rectangle (cr, x - 3, y - 3, 6, 6);
-  cairo_fill (cr);
-
-  cairo_destroy (cr);
-
-  /* Now invalidate the affected region of the drawing area. */
-  gtk_widget_queue_draw_area (widget, x - 3, y - 3, 6, 6);
-} %>
-
-/* Handle button press events by either drawing a rectangle
- * or clearing the surface, depending on which button was pressed.
- * The ::button-press signal handler receives a GdkEventButton
- * struct which contains this information.
- */
-me gboolean: button_press_event_cb (their GtkWidget: widget,
-                       their GdkEventButton: event,
-                       me gpointer:        data) <- <%{
-  /* paranoia check, in case we haven't gotten a configure event */
-  if (surface == NULL)
-    return FALSE;
-
-  if (event->button == GDK_BUTTON_PRIMARY)
-    {
-      draw_brush (widget, event->x, event->y);
-    }
-  else if (event->button == GDK_BUTTON_SECONDARY)
-    {
-      clear_surface ();
-      gtk_widget_queue_draw (widget);
-    }
-
-  /* We've handled the event, stop processing */
-  return TRUE;
-} %>
-
-/* Handle motion events by continuing to draw if button 1 is
- * still held down. The ::motion-notify signal handler receives
- * a GdkEventMotion struct which contains this information.
- */
-me gboolean: motion_notify_event_cb (their GtkWidget: widget,
-                        their GdkEventMotion: event,
-                        me gpointer: data) <- <% {
-  /* paranoia check, in case we haven't gotten a configure event */
-  if (surface == NULL)
-    return FALSE;
-
-  if (event->state & GDK_BUTTON1_MASK)
-    draw_brush (widget, event->x, event->y);
-
-  /* We've handled it, stop processing */
-  return TRUE;
-} %>
 
 me void: close_window() <- {
   if (surface)
@@ -189,7 +103,7 @@ def createMenubar():
       gtk_box_pack_start (GTK_BOX (boxForMenubar), menubar, TRUE, TRUE, 0);
       gtk_widget_show (menubar);
 
-      appFuncs.createAppMenu();
+      appFuncs.createAppMenu(menubar);
       """
     return S
 
@@ -197,27 +111,15 @@ def createMenubar():
 def createMainAppArea():
     S="""
       GtkWidget *frame;
-      GtkWidget *drawing_area;
+      GtkWidget *appArea;
 
       frame = gtk_frame_new (NULL);
       gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
       gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
 
-      drawing_area = gtk_drawing_area_new ();
+      appArea = appFuncs.createAppArea();
+      gtk_container_add (GTK_CONTAINER (frame), appArea);
 
-      gtk_widget_set_size_request (drawing_area, 100, 100);
-
-      gtk_container_add (GTK_CONTAINER (frame), drawing_area);
-
-      g_signal_connect (drawing_area, "draw", G_CALLBACK (draw_cb), NULL);
-      g_signal_connect (drawing_area,"configure-event", G_CALLBACK (configure_event_cb), NULL);
-
-
-      g_signal_connect (drawing_area, "motion-notify-event",  G_CALLBACK (motion_notify_event_cb), NULL);
-      g_signal_connect (drawing_area, "button-press-event", G_CALLBACK (button_press_event_cb), NULL);
-
-
-      gtk_widget_set_events (drawing_area, gtk_widget_get_events (drawing_area) | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK);
 """
     return S
 
@@ -233,9 +135,12 @@ def use(objects, buildSpec, tags, platform):
     print "USING GTK3"
 
     CODE="""
+    struct GUI_item{their GtkWidget: GUI_item}
     struct GUI_menuBar{their GtkWidget: GUI_menuBar}
     struct GUI_menu{their GtkWidget: GUI_menu}
     struct GUI_menuItem{their GtkWidget: GUI_menuItem}
+
+    struct GUI_canvas{their GtkWidget: GUI_canvas}
 
     struct GUI_TK{
         their GtkApplication: app
@@ -267,9 +172,10 @@ def use(objects, buildSpec, tags, platform):
     STATUS_BAR_CODE=createStatusBar()
 
 
-    MAIN_CODE="""
-    struct MAIN{
+    GLOBAL_CODE="""
+    struct GLOBAL{
         me GUI_TK: gui_tk
+        me thisApp: appFuncs
         %s
         me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%%{
           GtkWidget *window;
@@ -299,4 +205,4 @@ def use(objects, buildSpec, tags, platform):
     }
 """ % (APP_UTILITY_CODE, MENU_BAR_CODE, MAIN_APP_CODE, STATUS_BAR_CODE)
 
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], MAIN_CODE )
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )

@@ -37,6 +37,100 @@ struct GUI_event {
     me bool: Handle_GUI_event() <- { return(true) }
 }
 
+struct GLOBAL {
+
+
+    me void: GUI_clear_canvas() <- {
+      their cairo_t: cr
+
+      cr <- cairo_create(surface)
+
+      cairo_set_source_rgb(cr, 1, 1, 1)
+      cairo_paint(cr)
+
+      cairo_destroy(cr)
+    }
+
+    me GUI_item: GUI_create_canvas() <- {
+        return (gtk_drawing_area_new())
+    }
+
+
+    /* Create a new surface of the appropriate size to store our scribbles */
+    me bool: configure_event_cb (their GtkWidget: widget, their GdkEventConfigure: event, me gpointer: data) <- <% {
+      if (surface)
+        cairo_surface_destroy (surface);
+
+      surface = gdk_window_create_similar_surface (gtk_widget_get_window (widget),
+                                                   CAIRO_CONTENT_COLOR,
+                                                   gtk_widget_get_allocated_width (widget),
+                                                   gtk_widget_get_allocated_height (widget));
+
+      /* Initialize the surface to white */
+      GUI_clear_canvas();
+
+      /* We've handled the configure event, no need for further processing. */
+      return TRUE;
+    } %>
+
+    /* Draw a rectangle on the surface at the given position */
+    me void: draw_brush (their GtkWidget: widget,
+                me double:    x,
+                me double:    y) <- <%{
+      cairo_t *cr;
+
+      /* Paint to the surface, where we store our state */
+      cr = cairo_create (surface);
+
+      cairo_rectangle (cr, x - 3, y - 3, 6, 6);
+      cairo_fill (cr);
+
+      cairo_destroy (cr);
+
+      /* Now invalidate the affected region of the drawing area. */
+      gtk_widget_queue_draw_area (widget, x - 3, y - 3, 6, 6);
+    } %>
+
+    /* Handle button press events by either drawing a rectangle
+     * or clearing the surface, depending on which button was pressed.
+     * The ::button-press signal handler receives a GdkEventButton
+     * struct which contains this information.
+     */
+    me bool: button_press_event_cb (their GtkWidget: widget,
+                           their GdkEventButton: event,
+                           me gpointer:        data) <- <%{
+      /* paranoia check, in case we haven't gotten a configure event */
+      if (surface == NULL)
+        return FALSE;
+
+      if (event->button == GDK_BUTTON_PRIMARY)
+        {
+          draw_brush (widget, event->x, event->y);
+        }
+      else if (event->button == GDK_BUTTON_SECONDARY)
+        {
+          GUI_clear_canvas();
+          gtk_widget_queue_draw (widget);
+        }
+
+      /* We've handled the event, stop processing */
+      return TRUE;
+    } %>
+    me bool: motion_notify_event_cb (their GtkWidget: widget,
+                            their GdkEventMotion: event,
+                            me gpointer: data) <- <% {
+      /* paranoia check, in case we haven't gotten a configure event */
+      if (surface == NULL)
+        return FALSE;
+
+      if (event->state & GDK_BUTTON1_MASK)
+        draw_brush (widget, event->x, event->y);
+
+      /* We've handled it, stop processing */
+      return TRUE;
+    } %>
+}
+
 struct thisApp{
     me void: createAppMenu(me GUI_menuBar: menubar) <-  {
       me GUI_menu: MenuLvl1
@@ -50,6 +144,36 @@ struct thisApp{
       MenuLvl1 <- create_SubMenu(menubar, "View")
       MenuLvl1 <- create_SubMenu(menubar, "Data")
       MenuLvl1 <- create_SubMenu(menubar, "Help")
+    }
+
+    me void: HandlePointerBtnDown(me GUI_event: ev) <- {}
+    me void: HandlePointerBtnUp  (me GUI_event: ev) <- {}
+    me void: HandlePointerMoved  (me GUI_event: ev) <- {}
+
+    me GUI_item: createAppArea() <- {
+        me GUI_item: drawing_area
+        drawing_area <- gtk_drawing_area_new()
+
+        gtk_widget_set_size_request(drawing_area, 100, 100)
+
+        g_signal_connect (drawing_area, "draw", G_CALLBACK (draw_cb), NULL)
+        g_signal_connect (drawing_area,"configure-event", G_CALLBACK (configure_event_cb), NULL)
+
+
+        g_signal_connect (drawing_area, "motion-notify-event",  G_CALLBACK (motion_notify_event_cb), NULL)
+        g_signal_connect (drawing_area, "button-press-event", G_CALLBACK (button_press_event_cb), NULL)
+
+
+        gtk_widget_set_events(drawing_area, gtk_widget_get_events(drawing_area) + GDK_BUTTON_PRESS_MASK + GDK_POINTER_MOTION_MASK)
+
+        return(drawing_area)
+
+    /*    me GUI_canvas: mainCanvas
+        mainCanvas <- GUI_create_canvas()
+        mainCanvas.HandlePtrBtnDown <- HandlePointerBtnDown
+        mainCanvas.HandlePointerBtnUp <- HandlePointerBtnUp
+        mainCanvas.HandlePointerBtnMoved <- HandlePointerBtnMoved
+    */
     }
 }
 

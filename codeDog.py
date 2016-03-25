@@ -122,7 +122,7 @@ def ChooseLibs(objects, buildSpec, tags):
     Platform= progSpec.fetchTagValue([tags, buildSpec[1]], 'Platform')
     Language= progSpec.fetchTagValue([tags, buildSpec[1]], 'Language')
     CPU     = progSpec.fetchTagValue([tags, buildSpec[1]], 'CPU')
-    print "LIB-LIST:", libList, Platform, Language, CPU
+    print "PLATFORM, LANGUAGE, CPU:", Platform, ',', Language, ',', CPU
 
     compatibleLibs=[]
     for lib in libList:
@@ -130,11 +130,11 @@ def ChooseLibs(objects, buildSpec, tags):
         libBindings =progSpec.fetchTagValue([tags], "libraries."+lib+".bindings")
         libCPUs     =progSpec.fetchTagValue([tags], "libraries."+lib+".CPUs")
         libFeatures =progSpec.fetchTagValue([tags], "libraries."+lib+".features")
-        print "LIB:", lib
-        print libPlatforms
-        print libBindings
-        print libCPUs
-        print libFeatures
+        #print "LIB:", lib
+        #print libPlatforms
+        #print libBindings
+        #print libCPUs
+        #print libFeatures
 
         LibCanWork=True
         if not (libPlatforms and Platform in libPlatforms): LibCanWork=False;

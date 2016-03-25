@@ -16,34 +16,33 @@ def bitsNeeded(n):
 ###### Routines to track types of identifiers and to look up type based on identifier.
 
 objectsRef=[]
-localVarsAllocated = []   # Format: [owner, fieldType, varName]
-localArgsAllocated = []   # Format: [owner, fieldType, varName]
+localVarsAllocated = []   # Format: [varName, typeSpec]
+localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
 
 def CheckBuiltinItems(itemName):
-    if(itemName=='print'):  return ['const', 'void', 'BUILTIN']
-    if(itemName=='return'): return ['const', 'void', 'BUILTIN']
-    if(itemName=='sqrt'):   return ['const', 'number', 'BUILTIN']
+    if(itemName=='print'):  return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
+    if(itemName=='return'): return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
+    if(itemName=='sqrt'):   return [{'owner':'const', 'fieldType':'number', 'arraySpec':None,'argList':None}, 'BUILTIN']
 
 def CheckFunctionsLocalVarArgList(itemName):
-    print "Searching function for", itemName
+    #print "Searching function for", itemName
     global localVarsAllocated
     for item in reversed(localVarsAllocated):
-        if item[2]==itemName:
-            return [item[0], item[1], 'LOCAL']
+        if item[0]==itemName:
+            return [item[1], 'LOCAL']
     global localArgsAllocated
     for item in reversed(localArgsAllocated):
-        if item[2]==itemName:
-            return [item[0], item[1], 'FUNCARG']
+        if item[0]==itemName:
+            return [item[1], 'FUNCARG']
     return 0
 
 def CheckObjectVars(objName, itemName):
-    print "Searching "+objName+" for", itemName
+    #print "Searching "+objName+" for", itemName
     if(not objName in objectsRef[0]):
         return 0
     ObjectDef = objectsRef[0][objName]
     for field in ObjectDef['fields']:
-        fieldType=field['fieldType']
         fieldName=field['fieldName']
         if fieldName==itemName:
             return field
@@ -51,9 +50,9 @@ def CheckObjectVars(objName, itemName):
 
 
 def fetchItemsTypeInfo(itemName):
-    # return format: ['me', 'string', 'OBJVAR']. Substitute for wrapped types.
+    # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     # TODO: also search any libraries that are used.
-    print "FETCHING:", itemName
+    #print "FETCHING:", itemName
     global currentObjName
     RefType=""
     REF=CheckBuiltinItems(itemName)
@@ -71,15 +70,15 @@ def fetchItemsTypeInfo(itemName):
                 RefType="OBJVAR"
 
             else:
-                REF=CheckObjectVars("MAIN", itemName)
+                REF=CheckObjectVars("GLOBAL", itemName)
                 if (REF):
                     RefType="GLOBAL"
                 else:
-                    print "\nVariable", itemName, "could not be found."
+                    #print "\nVariable", itemName, "could not be found."
                     #exit(1)
-                    return [0,0,0]
-    return [REF['owner'], REF['fieldType'], RefType]
-    # Example: ['me', 'string', 'OBJVAR']
+                    return [0,0]
+    return [REF['typeSpec'], RefType]
+    # Example: [{typeSpec}, 'OBJVAR']
 
 ###### End of type tracking code
 
@@ -93,7 +92,7 @@ def processFlagAndModeFields(objects, objectName, tags):
     structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
-        fieldType=field['fieldType'];
+        fieldType=field['typeSpec']['fieldType'];
         fieldName=field['fieldName'];
         #print "                    ", field
 
@@ -108,7 +107,7 @@ def processFlagAndModeFields(objects, objectName, tags):
             structEnums += "\n// For Mode "+fieldName
             flagsVarNeeded=True
             # calculate field and bit position
-            enumSize= len(field['enumList'])
+            enumSize= len(field['typeSpec']['enumList'])
             numEnumBits=bitsNeeded(enumSize)
             #field[3]=enumSize;
             #field[4]=numEnumBits;
@@ -120,13 +119,13 @@ def processFlagAndModeFields(objects, objectName, tags):
             # enum
             count=0
             structEnums += "\nenum " + fieldName +" {"
-            for enumName in field['enumList']:
+            for enumName in field['typeSpec']['enumList']:
                 structEnums += enumName+"="+hex(count<<bitCursor)
                 count=count+1
                 if(count<enumSize): structEnums += ", "
             structEnums += "};\n";
 
-            structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['enumList']))+'"};\n'
+            structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
             # read/write macros
             structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
             # str array and printer
@@ -140,13 +139,17 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
-def convertType(objects, owner, fieldType):
+def convertType(objects, TypeSpec):
+    owner=TypeSpec['owner']
+    fieldType=TypeSpec['fieldType']
     #print "fieldType: ", fieldType
-    if not isinstance(fieldType, basestring): fieldType=fieldType[0]
+    if not isinstance(fieldType, basestring):
+        if len(fieldType)>1: exit(2)
+        fieldType=fieldType[0]
     baseType = progSpec.isWrappedType(objects, fieldType)
-    if(baseType[0]!=''):
-        owner=baseType[0]
-        fieldType=baseType[1]
+    if(baseType!=None):
+        owner=baseType['owner']
+        fieldType=baseType['fieldType']
 
     cppType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
@@ -172,6 +175,13 @@ def convertType(objects, owner, fieldType):
         print "ERROR: Owner of type not valid '" + owner + "'"
         exit(1)
     if cppType=='TYPE ERROR': print cppType, owner, fieldType;
+    arraySpec=TypeSpec['arraySpec']
+    if(arraySpec): # Make list, map, etc
+        arraySpec=arraySpec['indexType']
+        if str(arraySpec)[0:4]=='uint':
+            cppType="vector< "+cppType+" >"
+        elif str(arraySpec)=='string':
+            cppType="map< "+cppType+" >"
     return cppType
 
 
@@ -206,14 +216,14 @@ def codeNameSeg(item, connector):
     return [S,  fetchItemsTypeInfo(item)]
 
 def codeItemName(item):
-    print "NAME:", item
+    #print "NAME:", item
     S=''
     connector=''
     [segStr, segType]=codeNameSeg(item[0],connector)
     S+=segStr
     if len(item)>1:
         for i in item[1]:
-            segOwner=segType[0]
+            segOwner=segType[0]['owner']
             if(segOwner!='me'): connector='->'
             else: connector='.'
             [segStr, segType]=codeNameSeg(i, connector)
@@ -372,16 +382,16 @@ def processAction(action, indent):
     typeOfAction = action['typeOfAction']
 
     if (typeOfAction =='newVar'):
-        fieldDef=action['fieldDef'][0]
-        owner=fieldDef[0]
-        fieldType=fieldDef[1];
-        varName = fieldDef[2][1]
-        typeSpec = convertType(objectsRef, owner, fieldType)
+        fieldDef=action['fieldDef']
+        print "FIEKDDEF:", fieldDef
+        typeSpec= fieldDef['typeSpec']
+        varName = fieldDef['fieldName']
+        fieldType = convertType(objectsRef, typeSpec)
         assignValue=''
-        if(len(fieldDef[2])==4):
-            assignValue=' = '+fieldDef[2][3]
-        actionText = indent + typeSpec + " " + varName + assignValue + ";\n"
-        localVarsAllocated.append([owner, fieldType, varName])  # Tracking locae vars for scope
+        if(fieldDef['value']):
+            assignValue=' = '+fieldDef['value']
+        actionText = indent + fieldType + " " + varName + assignValue + ";\n"
+        localVarsAllocated.append([varName, typeSpec])  # Tracking locae vars for scope
     elif (typeOfAction =='assign'):
         LHS = codeItemName(action['LHS'])
         RHS = codeExpr(action['RHS'][0])
@@ -455,7 +465,7 @@ def processAction(action, indent):
 
 def processActionSeq(actSeq, indent):
     global localVarsAllocated
-    localVarsAllocated.append(["STOP",'',''])
+    localVarsAllocated.append(["STOP",''])
     actSeqText = "{\n"
     for action in actSeq:
         actionText = processAction(action, indent+'    ')
@@ -467,29 +477,27 @@ def processActionSeq(actSeq, indent):
         localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
-def generate_constructor(objects, objectName, tags):
-    baseType = progSpec.isWrappedType(objects, objectName)
-    if(baseType[0]!=''): return ''
-    else:
-        fieldOwner=baseType[0]
-        objectName=baseType[1][0]
-    if not objectName in objects[0]: return ''
-    print "                    Generating Constructor for:", objectName
+def generate_constructor(objects, ClassName, tags):
+    baseType = progSpec.isWrappedType(objects, ClassName)
+    if(baseType!=None): return ''
+    if not ClassName in objects[0]: return ''
+    print "                    Generating Constructor for:", ClassName
     constructorInit=":"
-    constructorArgs="    "+convertObjectNameToCPP(objectName)+"("
+    constructorArgs="    "+convertObjectNameToCPP(ClassName)+"("
     count=0
-    ObjectDef = objects[0][objectName]
+    ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
         #print "^^^^^^^^^^^^^^^^^^^^"
-        fieldType=field['fieldType']
+        typeSpec =field['typeSpec']
+        fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
-        if(field['argList'] or field['argList']!=None): continue
-        fieldOwner=field['owner']
+        if(typeSpec['argList'] or typeSpec['argList']!=None): continue
+        fieldOwner=typeSpec['owner']
         if(fieldOwner=='const'): continue
-        convertedType = convertType(objects, fieldOwner, fieldType)
+        convertedType = convertType(objects, typeSpec)
         fieldName=field['fieldName']
 
-        #print "                        Constructing:", objectName, fieldName, fieldType, convertedType
+        #print "                        Constructing:", ClassName, fieldName, fieldType, convertedType
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
                 print "                > ", fieldOwner, convertedType, fieldName
@@ -521,14 +529,15 @@ def processOtherStructFields(objects, objectName, tags, indent):
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
         localArgsAllocated=[]
-        fieldType=field['fieldType']
+        typeSpec =field['typeSpec']
+        fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
-        fieldOwner=field['owner']
+        fieldOwner=typeSpec['owner']
         fieldName =field['fieldName']
         fieldValue=field['value']
-        fieldArglist = field['argList']
+        fieldArglist = typeSpec['argList']
         if fieldName=='opAssign': fieldName='operator='
-        convertedType = convertType(objects, fieldOwner, fieldType)
+        convertedType = convertType(objects, typeSpec)
         #print "CONVERT-TYPE:", fieldOwner, fieldType, convertedType
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         if(fieldValue == None):fieldValueText=""
@@ -548,14 +557,14 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 convertedType+=''
 
         ##### Generate function header for both decl and defn.
-            if(objectName=='MAIN'):
+            if(objectName=='GLOBAL'):
                 if fieldName=='main':
                     funcDefCode += 'int main(int argc, char *argv[])'
-                    localArgsAllocated.append(['me', 'int', 'argc'])
-                    localArgsAllocated.append(['their', 'char', 'argv'])  # TODO: Wrong. argv should be an array.
+                    localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
+                    localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
                 else:
                     #print "FIELD: ", field
-                    argList=field['argList']
+                    argList=field['typeSpec']['argList']
                     #print "ARG LIST: ", argList, len(argList)
                     argListText=""
                     if (len(argList)>0):
@@ -567,18 +576,16 @@ def processOtherStructFields(objects, objectName, tags, indent):
                             for arg in argList:
                                 if(count>0): argListText+=", "
                                 count+=1
-                                owner=arg[0][0]
-                                argType=arg[0][1]
-                                varName=arg[0][2][1]
-                                argListText+= convertType(objects, owner, argType) + ' ' + varName
-                                localArgsAllocated.append([owner, argType, varName])  # Tracking function argumets for scope
+                                argTypeSpec =arg['typeSpec']
+                                argFieldName=arg['fieldName']
+                                argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
+                                localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
 
                     globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")"
             else:
-                argList=field['argList']
+                argList=field['typeSpec']['argList']
                 if len(argList)==0:
                     argListText='' #'void'
-                    #print "VOID:", argList
                 elif argList[0]=='<%':
                     argListText=argList[1][0]
                 else:
@@ -587,11 +594,10 @@ def processOtherStructFields(objects, objectName, tags, indent):
                     for arg in argList:
                         if(count>0): argListText+=", "
                         count+=1
-                        owner=arg[0][0]
-                        argType=arg[0][1]
-                        varName=arg[0][2][1]
-                        argListText+= convertType(objects, owner, argType) + ' ' + varName
-                        localArgsAllocated.append([owner, argType, varName])  # Tracking function argumets for scope
+                        argTypeSpec =arg['typeSpec']
+                        argFieldName=arg['fieldName']
+                        argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
+                        localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
                 if(fieldType[0] != '<%'):
                     registerType(objectName, fieldName, convertedType, typeDefName)
@@ -611,13 +617,13 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
 
-            if(objectName=='MAIN'):
+            if(objectName=='GLOBAL'):
                 if(fieldName=='main'):
                     funcDefCode += funcText+"\n\n"
                 else: globalFuncs += funcText+"\n\n"
             else: funcDefCode += funcText+"\n\n"
 
-    if(objectName=='MAIN'):
+    if(objectName=='GLOBAL'):
         return [structCode, funcDefCode, globalFuncs]
     else:
         constructCode=generate_constructor(objects, objectName, tags)
@@ -633,15 +639,15 @@ def generateAllObjectsButMain(objects, tags):
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
     needsFlagsVar=False;
     for objectName in objects[1]:
-        if progSpec.isWrappedType(objects, objectName)[0]!='': continue
+        if progSpec.isWrappedType(objects, objectName)!=None: continue
         if(objectName[0] != '!'):
             print "                [" + objectName+"]"
             currentObjName=objectName
             [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags)
             constsEnums+=strOut
             if(needsFlagsVar):
-                progSpec.addField(objects[0], objectName, False, 'me', "uint64", 'flags', None, None)
-            if(objectName != 'MAIN' and objects[0][objectName]['stateType'] == 'struct' and ('enumList' not in objects[0][objectName])):
+                progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
+            if(objectName != 'GLOBAL' and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
                 forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ')
@@ -653,12 +659,12 @@ def generateAllObjectsButMain(objects, tags):
 
 
 def processMain(objects, tags):
-    print "\n            Generating MAIN..."
-    if("MAIN" in objects[1]):
-        if(objects[0]["MAIN"]['stateType'] != 'struct'):
-            print "ERROR: MAIN must be a 'struct'."
+    print "\n            Generating GLOBAL..."
+    if("GLOBAL" in objects[1]):
+        if(objects[0]["GLOBAL"]['stateType'] != 'struct'):
+            print "ERROR: GLOBAL must be a 'struct'."
             exit(2)
-        [structCode, funcCode, globalFuncs]=processOtherStructFields(objects, "MAIN", tags, '')
+        [structCode, funcCode, globalFuncs]=processOtherStructFields(objects, "GLOBAL", tags, '')
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]

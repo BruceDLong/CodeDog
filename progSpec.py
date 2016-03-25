@@ -45,23 +45,16 @@ def addObjTags(objSpecs, objectName, objTags):
     print "    ADDED Tags to "+objectName+".\t"
 
 
+def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, thisValue):
+    return {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec,'argList':thisArgList}, 'fieldName':thisName,  'value':thisValue}
 
-def addField(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisArgList, thisValue):
-    if(thisName in objSpecs[objectName]["fields"]):
+def addField(objSpecs, objectName, packedField):
+    if(packedField['fieldName'] in objSpecs[objectName]["fields"]):
         print "Note: The field '", objectName, '::', thisName, "' already exists. Not re-adding"
         return
-    objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':thisType, 'fieldName':thisName, 'argList':thisArgList, 'value':thisValue})
-    if(thisOwner!='flag' and thisOwner!='mode'):
-        pass
+    objSpecs[objectName]["fields"].append(packedField)
+    #if(thisOwner!='flag' and thisOwner!='mode'):
         #print "FIX THIS COMMENTED OUT PART", thisType, objectName #registerBaseType(thisType, objectName)
-
-
-def addMode(objSpecs, objectName, thisIsNext, thisOwner, thisType, thisName, thisValue, enumList):
-    if(thisName in objSpecs[objectName]["fields"]):
-        print "Note: The mode '", objectName, '::', thisName, "' already exists. Not re-adding"
-        return
-    objSpecs[objectName]["fields"].append({'isNext': thisIsNext, 'owner':thisOwner, 'fieldType':'mode', 'fieldName':thisName, 'value':thisValue, 'enumList':enumList})
-    print "    ADDED MODE:\t", thisName
 
 
 def markStructAuto(objSpecs, objectName):
@@ -95,6 +88,13 @@ def setTagValue(tagStore, tagToSet, tagValue):
     tagRet=searchATagStore(tagStore, tagToSet)
     tagRet[0]=tagValue
 
+def appendToStringTagValue(tagStore, tagToSet, toAppend):
+    tagRet=searchATagStore(tagStore, tagToSet)
+    if(tagRet==None):
+        tagStore[tagToSet]=toAppend
+    else:
+        tagRet[0]+= "\n" +toAppend
+
 def wrapFieldListInObjectDef(objName, fieldDefStr):
     retStr='struct '+objName +' {\n' + fieldDefStr + '\n}\n'
     return retStr
@@ -109,15 +109,15 @@ def setFeaturesNeeded(tags, featureIDs, neededBy):
 ###############
 
 def isWrappedType(objMap, structname):
-    if not structname in objMap[0]: return ['','X']; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
+    if not structname in objMap[0]: return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
     structToSearch=objMap[0][structname]
     fieldListToSearch = structToSearch['fields']
-    if not fieldListToSearch: return False
+    if not fieldListToSearch: return None
     if len(fieldListToSearch)==1:
         theField=fieldListToSearch[0]
         if theField['fieldName']==structname:
-            return [theField['owner'], theField['fieldType']]
-    return ['','Y']
+            return theField['typeSpec']
+    return None
 
 
 def createTypedefName(ItmType):
@@ -141,7 +141,7 @@ def findModelOf(objMap, structName):
     modelName=structName[0:colonIndex]
     return objMap[0][modelName]
 
-
+"""
 def getNameSegInfo(objMap, structName, fieldName):
     structToSearch = objMap[structName]
     #print fieldName
@@ -216,3 +216,4 @@ def getActionTestStrings(objMap, structName, action):
         print "PTR - ERROR: CODE THIS"
         exit(2)
     return ([leftKind, actionStr, testStr])
+"""
