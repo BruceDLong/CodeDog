@@ -2,13 +2,14 @@
 
 import re
 import progSpec
-from pyparsing import Word, alphas, nums, Literal, Keyword, Optional, OneOrMore, oneOf, ZeroOrMore, delimitedList, Group, ParseException, quotedString, Forward, StringStart, StringEnd, SkipTo, Combine
+from pyparsing import *
+
 
 def reportParserPlace(s, loc, toks):
     print "    PARSING AT char",loc, toks
 
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
-
+ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
 identifier = Word(alphas + nums + "_-")("identifier")
 tagID = identifier("tagID")
@@ -45,13 +46,13 @@ value <<= (boolValue | intNum | floatNum | quotedString() | listVal | strMapVal)
 
 #######################################   E X P R E S S I O N S
 expr = Forward()
-funcCall = Forward()
-arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
-secondRefSegment = (Literal('.').suppress() + CID | arrayRef)
-firstRefSegment = (CID | arrayRef)
-varRef = Group(firstRefSegment + Group(ZeroOrMore(secondRefSegment)))("varRef")
 parameters = Forward()
-varFuncRef = Group(varRef("varName") + Optional(parameters))("varFuncRef")
+owners = Forward()
+arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
+firstRefSegment = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
+secondRefSegment = Group((Literal('.').suppress() + CID | arrayRef) + Optional(parameters))
+varRef = Group(firstRefSegment + (ZeroOrMore(secondRefSegment)))("varRef")
+varFuncRef = varRef("varFuncRef")
 lValue = varRef("lValue")
 factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)("factor")
 term = Group( factor + Group(Optional(OneOrMore(Group(oneOf('* / %') + factor )))))("term")
@@ -64,9 +65,9 @@ swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 assign = (lValue + Combine(Literal("<") + Optional(Word(alphas + nums + '_')("assignTag")) + Literal("-"))("assignID") + rValue)("assign")
 parameters <<= (Literal("(") + Optional(Group(delimitedList(rValue, ','))) + Literal(")").suppress())("parameters")
-funcCall <<= Group(varRef+ parameters("parameters"))("funcCall")
 
 ########################################   F U N C T I O N S
+funcCall = varRef("funcCall")
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 fieldDef = Forward()
 argList =  (verbatim | Group(Optional(delimitedList(Group( fieldDef)))))("argList")
@@ -80,7 +81,7 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action = Group(funcCall | assign | fieldDef('fieldDef'))
+action = Group(assign("assign") | funcCall("funcCall") | fieldDef('fieldDef'))
 actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
@@ -107,7 +108,7 @@ coFactualEl  = (Literal("(") + Group(fieldDef + "<=>" + Group(OneOrMore(SetField
 sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
 alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
 anonModel = (sequenceEl | alternateEl) ("anonModel")
-owners = (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their"))
+owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their"))
 fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | anonModel)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | quotedString()('constStr') | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
@@ -199,7 +200,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
         print indent+"        MODE: ", fieldResult
         modeList=fieldResult.modeList
         if(arraySpec): print"Lists of modes are not allowed.\n"; exit(2);
-        fieldDef=progSpec.packField(False, owner, 'flag', arraySpec, fieldName, None, givenValue)
+        fieldDef=progSpec.packField(False, owner, 'mode', arraySpec, fieldName, None, givenValue)
         fieldDef['typeSpec']['enumList']=modeList
         #fieldDef=progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, modeList)
     elif(fieldResult.constStr):
@@ -222,9 +223,6 @@ def packFieldDef(fieldResult, ObjectName, indent):
     return fieldDef
 
 def extractActSeqToActSeq(funcName, childActSeq):
-    #print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQUextractActSeqToActSeq"
-    #print childActSeq
-    #print "QQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQextractActSeqToActSeq"
     actSeqData = extractActSeq(funcName, childActSeq)
     return actSeqData
 
@@ -237,7 +235,6 @@ def parseResultToArray(parseSegment):
 
 def extractActItem(funcName, actionItem):
     thisActionItem='error'
-    # Create Variable: var | sPtr | uPtr | rPtr | list
     #print "ACTIONITEM:", actionItem
     if actionItem.fieldDef:
         thisActionItem = {'typeOfAction':"newVar", 'fieldDef':packFieldDef(actionItem.fieldDef, '', '    LOCAL:')}
@@ -298,21 +295,16 @@ def extractActItem(funcName, actionItem):
         thisActionItem = {'typeOfAction':"swap", 'LHS':LHS, 'RHS':RHS}
     # Function Call
     elif actionItem.funcCall:
-        calledFunc = (actionItem.funcCall.varRef)
-        parameterData = actionItem.funcCall.parameters
-        if parameterData[0]=='(':
-            if len(parameterData)>1:
-                parameters=parameterData[1]
-            else:
-                parameters=[]
-
-        #print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: [", calledFunc, '], <', parameters, '>\n\n'
-        thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc, 'parameters':parameters}
+        calledFunc = (actionItem.funcCall)
+        #print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: <", calledFunc, '>\n\n'
+        # TODO: Verify that calledFunc is a function and error out if not. (The last segment should have '(' as its second item.)
+        if len(calledFunc[-1])<2 or calledFunc[-1][1] != '(':
+            print "Expected a function, not a variable:", calledFunc[-1]; exit(2)
+        thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc}
     else:
         print "error in extractActItem"
-        print "actionItem", actionItem
+        print "actionItem", str(actionItem)
         exit(1)
-    #print "thisActionItem...thisActionItem...thisActionItem...thisActionItem: ", thisActionItem
     return thisActionItem
 
 def extractActSeq( funcName, childActSeq):
@@ -335,11 +327,6 @@ def extractActSeqToFunc(funcName, funcBodyIn):
 
 
 def extractFuncBody(localObjectName,funcName, funcBodyIn):
-    #print "EEEEEEEEEEEEEEEEEEEEEextractFuncBody"
-    #print "localObjectName: ", localObjectName
-    #print "funcName: ", funcName
-    #print "funcBodyIn: ", funcBodyIn
-    #print "EEEEEEEEEEEEEEEEEEEEEextractFuncBody"
     if funcBodyIn[0] == "<%":
         funcBodyOut = ""
         funcTextVerbatim = funcBodyIn[1][0]
@@ -365,7 +352,6 @@ def extractBuildSpecs(buildSpecResults):
         resultBuildSpecs = [['LinuxBuild', {'': ''}]]
     else:
         for localBuildSpecs in buildSpecResults:
-            #TODO fix buildDefList extraction
             spec = [localBuildSpecs.buildID, extractTagDefs(localBuildSpecs.buildDefList)]
             resultBuildSpecs.append(spec)
     #print resultBuildSpecs

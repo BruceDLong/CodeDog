@@ -27,6 +27,7 @@ def apply(objects, tags, codeToRun):
     mainFuncCode="""
     me int32: main(me int32: argc, me int32: argv ) <- <%{
     signal(SIGSEGV, reportFault);
+    std::ios_base::sync_with_stdio(false);
     initialize();
     """ + runCode + """
     deinitialize();
