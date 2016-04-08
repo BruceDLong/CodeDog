@@ -26,8 +26,9 @@ me gboolean: draw_cb (their GtkWidget: widget,
 
 
 me void: close_window() <- {
-  if (surface)
+  if (surface){
     cairo_surface_destroy(surface)
+  }
 
   gtk_main_quit()
 }

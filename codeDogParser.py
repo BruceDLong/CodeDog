@@ -73,9 +73,14 @@ fieldDef = Forward()
 argList =  (verbatim | Group(Optional(delimitedList(Group( fieldDef)))))("argList")
 actionSeq = Forward()
 conditionalAction = Forward()
-conditionalAction <<= Group(Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")+ Optional(Keyword("else") + (actionSeq | conditionalAction)("elseBody"))("optionalElse"))("conditionalAction")
+conditionalAction <<= Group(
+            Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
+            + Optional((Keyword("else") | Keyword("but")) + (actionSeq | conditionalAction)("elseBody"))("optionalElse")
+        )("conditionalAction")
+traversalModes = (Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative"))
+rangeSpec = Group(Keyword("RANGE") +'(' + rValue + ".." + rValue + ')')
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ lValue("repList") + ":"
+            Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (rangeSpec('rangeSpec') | rValue("repList"))('itemsToIter') + ":"
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
@@ -202,7 +207,6 @@ def packFieldDef(fieldResult, ObjectName, indent):
         if(arraySpec): print"Lists of modes are not allowed.\n"; exit(2);
         fieldDef=progSpec.packField(False, owner, 'mode', arraySpec, fieldName, None, givenValue)
         fieldDef['typeSpec']['enumList']=modeList
-        #fieldDef=progSpec.addMode(ProgSpec, ObjectName, False, owner, 'mode', fieldName, givenValue, modeList)
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
         givenValue=fieldResult.constStr[1:-1]
@@ -238,7 +242,7 @@ def extractActItem(funcName, actionItem):
     #print "ACTIONITEM:", actionItem
     if actionItem.fieldDef:
         thisActionItem = {'typeOfAction':"newVar", 'fieldDef':packFieldDef(actionItem.fieldDef, '', '    LOCAL:')}
-    elif actionItem.ifStatement:    # Conditional if
+    elif actionItem.ifStatement:    # Conditional
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
         ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
@@ -249,13 +253,12 @@ def extractActItem(funcName, actionItem):
             elseBodyIn = actionItem.optionalElse
             if (elseBodyIn.conditionalAction):
                 elseBodyOut = extractActItem(funcName, elseBodyIn.conditionalAction)
-                #elseBody['if'] = elseBodyOut
-                #print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBody
+                print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBodyOut
             elif (elseBodyIn.actionSeq):
                 elseBodyOut = extractActItem(funcName, elseBodyIn.actionSeq)
                 #elseBody['act']  = elseBodyOut
                 #print "\n ELSE........ELSE........ELSE........ELSE........ELSE: ", elseBody
-        #print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBodyOut
+        print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBodyOut
 
         thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut}
     # Repeated Action withEach
@@ -264,14 +267,20 @@ def extractActItem(funcName, actionItem):
         repList = actionItem.repList
         repBodyIn = actionItem.actionSeq
         repBodyOut = extractActSeqToActSeq(funcName, repBodyIn)
+        traversalMode=None
+        if actionItem.traversalMode:
+            traversalMode = actionItem.traversalMode
+        rangeSpec=None
+        if actionItem.rangeSpec:
+            rangeSpec = actionItem.rangeSpec
         whereExpr = ''
         untilExpr = ''
         if actionItem.whereExpr:
             whereExpr = actionItem.whereExpr
         if actionItem.untilExpr:
             untilExpr = actionItem.untilExpr
-        #print "REP...REP...REP...REP...REP...REP...REP...REP: ", repName, repList, whereExpr, untilExpr, repBodyOut
-        thisActionItem = {'typeOfAction':"repetition" ,'repName':repName, 'whereExpr':whereExpr, 'untilExpr':untilExpr, 'repBody':repBodyOut, 'repList':repList}
+        thisActionItem = {'typeOfAction':"repetition" ,'repName':repName, 'whereExpr':whereExpr, 'untilExpr':untilExpr, 'repBody':repBodyOut,
+                            'repList':repList, 'traversalMode':traversalMode, 'rangeSpec':rangeSpec}
     # Action sequence
     elif actionItem.actSeqID:
         actionListIn = actionItem

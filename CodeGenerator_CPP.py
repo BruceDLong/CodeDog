@@ -460,8 +460,8 @@ def processAction(action, indent):
         LHS = codeStr
         RHS = codeExpr(action['RHS'][0])
         assignTag = action['assignTag']
-        LHS_FieldType=typeSpec['fieldType']
         #print "Assign: ", LHS, RHS
+        LHS_FieldType=typeSpec['fieldType']
         if assignTag == '':
             if LHS_FieldType=='flag':
                 divPoint=startPointOfNamesLastSegment(LHS)
@@ -491,24 +491,33 @@ def processAction(action, indent):
         elseBody = action['elseBody']
         if (elseBody):
             #print 'ELSE BODY.......ELSE BODY.......ELSE BODY:', elseBody
-            if (action['ifBody'] ):
+            """  if (action['nextIf'] ):
                 elseIf = elseBody
                 elseIfText = processAction(elseIf, indent)
                 #print "ELSE IF:  ELSE IF:  ELSE IF:  ELSE IF:  ", elseIfText
                 actionText += indent + "else " + elseIfText.lstrip()
-
-            elif (elseBody['actionList'] ):
+"""
+            if ('actionList' in elseBody):
                 elseActSeq = elseBody['actionList']
-                elseText = processActionSeq(elseActSeq, indent)
-                #print "ELSE: ELSE: ELSE: ELSE: ELSE: ", elseText
-                actionText += indent + "else " + elseText.lstrip()
+            else: elseActSeq = elseBody['elseBody']['actionList']
+            elseText = processActionSeq(elseActSeq, indent)
+            #print "ELSE: ELSE: ELSE: ELSE: ELSE: ", elseText
+            actionText += indent + "else " + elseText.lstrip()
     elif (typeOfAction =='repetition'):
-        #print "repetition: ", action
-        #whereExpr = action['whereExpr']
         repBody = action['repBody']
         repName = action['repName']
-        repList = ".".join(action['repList'])
-        actionText += indent + "for ( auto " + repName + ":" + repList + "){\n"
+        traversalMode = action['traversalMode']
+        rangeSpec = action['rangeSpec']
+        # TODO: add cases for traversing trees and graphs in various orders or ways.
+        if(rangeSpec): # iterate over range
+            if(traversalMode=='Forward' or traversalMode==None):
+                actionText += indent + "for( auto " + repName+'='+codeExpr(rangeSpec[2][0]) + "; " + repName + "!=" +codeExpr(rangeSpec[4][0])+"; ++"+ repName + "){\n"
+            elif(traversalMode=='Backward'):
+                actionText += indent + "for( auto " + repName+'='+codeExpr(rangeSpec[4][0]) + "; " + repName + "!=" +codeExpr(rangeSpec[2][0])+"; --"+ repName + "){\n"
+
+        else: # interate over a container
+            repList = ".".join(action['repList'])
+            actionText += indent + "for( auto " + repName + ":" + repList + "){\n"
         if action['whereExpr']:
             whereExpr = codeExpr(action['whereExpr'])
             actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
@@ -521,8 +530,11 @@ def processAction(action, indent):
             repBodyText += actionOut
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
-        print "########################################## FUNCTION CALL AS ACTION",action['calledFunc']
+        print "\n########################################## FUNCTION CALL AS ACTION",action['calledFunc']
         calledFunc = action['calledFunc']
+        if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':
+            print "\nERROR: It is not allowed to name a function", calledFunc[0][0]
+            exit(2)
         actionText = indent + codeFuncCall(calledFunc) + ';\n'
     elif (typeOfAction =='actionSeq'):
         actionListIn = action['actionList']
