@@ -45,21 +45,21 @@ def CheckFunctionsLocalVarArgList(itemName):
     return 0
 
 def CheckObjectVars(objName, itemName):
-    #print "Searching "+objName+" for", itemName
+    #print "Searching",objName,"for", itemName
     if(not objName in objectsRef[0]):
-        return 0
+        return 0  # Model def not found
     ObjectDef = objectsRef[0][objName]
     for field in ObjectDef['fields']:
         fieldName=field['fieldName']
         if fieldName==itemName:
             return field
-    return 0
+    return 0 # Field not found in model
 
 
 def fetchItemsTypeSpec(itemName):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     # TODO: also search any libraries that are used.
-    print "FETCHING:", itemName
+    #print "FETCHING:", itemName
     global currentObjName
     RefType=""
     REF=CheckBuiltinItems(itemName)
@@ -81,9 +81,9 @@ def fetchItemsTypeSpec(itemName):
                 if (REF):
                     RefType="GLOBAL"
                 else:
-                    print "\nVariable", itemName, "could not be found."
+                    #print "\nVariable", itemName, "could not be found."
                     #exit(1)
-                    return [0,0]
+                    return [None, "LIB"]
     return [REF['typeSpec'], RefType]
     # Example: [{typeSpec}, 'OBJVAR']
 
@@ -200,85 +200,77 @@ def genIfBody(ifBody, indent):
         ifBodyText += actionOut
     return ifBodyText
 
-def stringifyArray(thisExpression):
-    thisString = ''
-    for each in thisExpression:
-        if isinstance(each, basestring):
-            thisString += each
-        else:
-            thisString += stringifyArray(each)
-    #print thisString
-    #thisString = ''.join(thisExpression)
-    return thisString
 
 ################################  C o d e   E x p r e s s i o n s
 
-def codeNameSeg(item, connector):
-    print "CODENAMESEG:", item
+def codeNameSeg(segSpec, typeSpecIn, connector):
+    # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
+    #print "CODENAMESEG:", segSpec, typeSpecIn
     S=''
-    itemName=item[0]
-    typeSpec=fetchItemsTypeSpec(itemName)
-    print "TYPESPEC:", typeSpec
-    if (isinstance(itemName, basestring)):
-        S+=connector+itemName
-    elif itemName=='[':
-        S+= '[' + codeExpr(item0[1]) +']'
-    else: print "Unknown data reference:", itemName; exit(2);
+    typeSpecOut={'owner':''}
+    name=segSpec[0]
+    if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
+        containerType=getArrayType(typeSpecIn)
+        if(name=='['):
+            S+= '[' + codeExpr(item0[1]) +']'
+            return [S, TypeInButNotArray]
+        if containerType=='deque':
+            if name=='at' or name=='insert' or name=='clear' or name=='erase' or  name=='size' or name=='front' or  name=='back': pass
+            elif name=='popFirst' : name='pop_front'
+            elif name=='popLast'  : name='pop_back'
+            elif name=='pushFirst': name='push_front'
+            elif name=='pushLast' : name='push_back'
+            else: print "Unknown deque command:", name; exit(2);
+        elif containerType=='map':
+            if name=='at' or name=='insert' or name=='clear' or name=='erase' or  name=='size' or name=='front' or  name=='back': pass
+            elif name=='popFront' : name='pop_front'
+            elif name=='popBack'  : name='pop_back'
+            else: print "Unknown map command:", name; exit(2);
+        else: print "Unknown container type:", containerType; exit(2);
+        typeSpecOut={'owner':'me', 'fieldType': typeSpecIn['fieldType']}
 
-    if(len(item) > 1 and item[1]=='('):
-        print "@@@CODENAMESEG:", item
-        if(len(item)==2):
+
+    elif ('dummyType' in typeSpecIn): # This is the first segment of a name
+        tmp=codeSpecialFunc(segSpec)   # Check if it's a special function like 'print'
+        if(tmp!=''):
+            S=tmp
+            return [S, '']
+        typeSpecOut=fetchItemsTypeSpec(name)[0]
+    else:
+        typeSpecOut=CheckObjectVars(typeSpecIn['fieldType'][0], name)['typeSpec']
+
+    S+=connector+name
+
+    # Add parameters if this is a function call
+    if(len(segSpec) > 1 and segSpec[1]=='('):
+        if(len(segSpec)==2):
             S+="()"
         else:
-            S+= '('+codeParameterList(item[2])+')'
-        print S
-    return [S,  typeSpec[0]]
+            S+= '('+codeParameterList(segSpec[2])+')'
+    return [S,  typeSpecOut]
 
 def codeItemRef(name, LorR_Val):
-    print "NAME:", name
     S=''
+    segStr=''
+    segType={'owner':'', 'dummyType':True}
     connector=''
-    [segStr, segType]=['',{'owner':''}]
     prevLen=len(S)
     segIDX=0
-    for seg in name:
-        item=seg[0]
-        print "NAMED-ITEM:", item, segType
-        if(segType and 'arraySpec' in segType and segType['arraySpec']):
-            print "IS_ARRAY"
-            if (isinstance(item, basestring)):
-                arrayType=getArrayType(segType)
-                if arrayType=='deque':
-                    if item=='at' or item=='insert' or item=='clear' or item=='erase' or  item=='size' or item=='front' or  item=='back': pass
-                    elif item=='popFirst' : item='pop_front'
-                    elif item=='popLast'  : item='pop_back'
-                    elif item=='pushFirst': item='push_front'
-                    elif item=='pushLast' : item='push_back'
-                    else: print "Unknown deque command:", item; exit(2);
-                elif arrayType=='map':
-                    if item=='at' or item=='insert' or item=='clear' or item=='erase' or  item=='size' or item=='front' or  item=='back': pass
-                    elif item=='popFront' : item='pop_front'
-                    elif item=='popBack'  : item='pop_back'
-                    else: print "Unknown map command:", item; exit(2);
-                else: print "Unknown container type:", arrayType; exit(2);
-            else: print "Unknown data access:", item; exit(2);
-            seg[0]=item
-        elif(segIDX==0): # It is the first segment
-            if(len(name)==1):  # There is only one segment
-                tmp=codeSpecialFunc(seg)   # Check if it's a special function like 'print'
-                if(tmp!=''):
-                    S=tmp
-                    return [S, segType]
-
+    for segSpec in name:
+        segName=segSpec[0]
         if(segIDX>0):
+            # Detect connector to use '.' '->', '', (*...).
             connector='.'
-            if(segType): # This is where to detect type of vars  not found to determine whether to use '.' or '->'
+            if(segType): # This is where to detect type of vars not found to determine whether to use '.' or '->'
                 segOwner=segType['owner']
                 if(segOwner!='me'): connector='->'
-        [segStr, segType]=codeNameSeg(seg, connector)
+
+        if segType!=None:
+            [segStr, segType]=codeNameSeg(segSpec, segType, connector)
         prevLen=len(S)
         S+=segStr
         segIDX+=1
+
     # Handle cases where seg's type is flag or mode
     if segType and LorR_Val=='RVAL':
         fieldType=segType['fieldType']
@@ -320,7 +312,6 @@ def codeFactor(item):
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
             else: S=item0
     else:
-        print "VARFUNCREF:", item0
         [codeStr, typeSpec]=codeItemRef(item0, 'RVAL')
         S+=codeStr                                # Code variable reference or function call
     return S
@@ -454,13 +445,13 @@ def processAction(action, indent):
         if(fieldDef['value']):
             assignValue=' = '+fieldDef['value']
         actionText = indent + fieldType + " " + varName + assignValue + ";\n"
-        localVarsAllocated.append([varName, typeSpec])  # Tracking locae vars for scope
+        localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
         LHS = codeStr
         RHS = codeExpr(action['RHS'][0])
         assignTag = action['assignTag']
-        #print "Assign: ", LHS, RHS
+        #print "Assign: ", LHS, RHS, typeSpec
         LHS_FieldType=typeSpec['fieldType']
         if assignTag == '':
             if LHS_FieldType=='flag':
@@ -468,7 +459,7 @@ def processAction(action, indent):
                 LHS_Left=LHS[0:divPoint]
                 bitMask =LHS[divPoint:]
                 actionText=indent + "SetBits("+LHS_Left+"flags, "+bitMask+", "+ RHS+");\n"
-                print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS
+                #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS
             elif LHS_FieldType=='mode':
                 divPoint=startPointOfNamesLastSegment(LHS)
                 LHS_Left=LHS[0:divPoint]
@@ -518,6 +509,11 @@ def processAction(action, indent):
         else: # interate over a container
             repList = ".".join(action['repList'])
             actionText += indent + "for( auto " + repName + ":" + repList + "){\n"
+
+        # TODO: The type ['int'] in the next line should be the type of the control variable.
+        ctrlVarsTypeSpec = ['int']
+   #     localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+
         if action['whereExpr']:
             whereExpr = codeExpr(action['whereExpr'])
             actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
@@ -530,7 +526,7 @@ def processAction(action, indent):
             repBodyText += actionOut
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
-        print "\n########################################## FUNCTION CALL AS ACTION",action['calledFunc']
+        #print "\n########################################## FUNCTION CALL AS ACTION",action['calledFunc']
         calledFunc = action['calledFunc']
         if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':
             print "\nERROR: It is not allowed to name a function", calledFunc[0][0]

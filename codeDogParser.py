@@ -253,12 +253,12 @@ def extractActItem(funcName, actionItem):
             elseBodyIn = actionItem.optionalElse
             if (elseBodyIn.conditionalAction):
                 elseBodyOut = extractActItem(funcName, elseBodyIn.conditionalAction)
-                print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBodyOut
+                #print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBodyOut
             elif (elseBodyIn.actionSeq):
                 elseBodyOut = extractActItem(funcName, elseBodyIn.actionSeq)
                 #elseBody['act']  = elseBodyOut
                 #print "\n ELSE........ELSE........ELSE........ELSE........ELSE: ", elseBody
-        print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBodyOut
+        #print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBodyOut
 
         thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut}
     # Repeated Action withEach
