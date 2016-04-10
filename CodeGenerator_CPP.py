@@ -211,18 +211,21 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
     name=segSpec[0]
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         containerType=getArrayType(typeSpecIn)
+        resultTypeSpec={'owner':'me', 'fieldType': typeSpecIn['fieldType']}
         if(name=='['):
             S+= '[' + codeExpr(item0[1]) +']'
             return [S, TypeInButNotArray]
         if containerType=='deque':
-            if name=='at' or name=='insert' or name=='clear' or name=='erase' or  name=='size' or name=='front' or  name=='back': pass
+            if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='front' or  name=='back': pass
+            elif name=='clear': resultTypeSpec={'owner':'me', 'fieldType': ['void']}
             elif name=='popFirst' : name='pop_front'
             elif name=='popLast'  : name='pop_back'
             elif name=='pushFirst': name='push_front'
             elif name=='pushLast' : name='push_back'
             else: print "Unknown deque command:", name; exit(2);
         elif containerType=='map':
-            if name=='at' or name=='insert' or name=='clear' or name=='erase' or  name=='size' or name=='front' or  name=='back': pass
+            if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='front' or  name=='back': pass
+            elif name=='clear': resultTypeSpec={'owner':'me', 'fieldType': ['void']}
             elif name=='popFront' : name='pop_front'
             elif name=='popBack'  : name='pop_back'
             else: print "Unknown map command:", name; exit(2);
