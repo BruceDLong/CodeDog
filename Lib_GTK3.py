@@ -85,6 +85,11 @@ their GtkWidget: create_menu(me gint: depth) <- <%{
 
   return menu;
 }
+
+void: setCallback(me GUI_item: widget, string eventID, callBackFunction callback) <- {
+    g_signal_connect (widget, eventID.data(), G_CALLBACK (callback), NULL)
+}
+
 %>
 """
     return S
