@@ -8,23 +8,6 @@ def createUtilityFunctions():
 /* Surface to store current scribbles */
 their cairo_surface_t: surface <- 0
 
-
-/* Redraw the screen from the surface. Note that the ::draw
- * signal receives a ready-to-be-used cairo_t that is already
- * clipped to only draw the exposed areas of the widget
- */
-me gboolean: draw_cb (their GtkWidget: widget,
-         their cairo_t:   cr,
-         me gpointer:   data)  <- <% {
-  cairo_set_source_surface (cr, surface, 0, 0);
-  cairo_paint (cr);
-
-  return FALSE;
-}  %>
-
-
-
-
 me void: close_window() <- {
   if (surface){
     cairo_surface_destroy(surface)
@@ -85,12 +68,15 @@ their GtkWidget: create_menu(me gint: depth) <- <%{
 
   return menu;
 }
-
-void: setCallback(me GUI_item: widget, string eventID, callBackFunction callback) <- {
-    g_signal_connect (widget, eventID.data(), G_CALLBACK (callback), NULL)
-}
-
 %>
+
+me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: callback) <- <% {
+    g_signal_connect(widget, eventID.data(), G_CALLBACK (callback), NULL);
+    if(eventID=="motion-notify-event" || eventID=="button-press-event"){
+        gtk_widget_set_events(widget, gtk_widget_get_events(widget) | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK);
+    }
+} %>
+
 """
     return S
 
@@ -145,8 +131,11 @@ def use(objects, buildSpec, tags, platform):
     struct GUI_menuBar{their GtkWidget: GUI_menuBar}
     struct GUI_menu{their GtkWidget: GUI_menu}
     struct GUI_menuItem{their GtkWidget: GUI_menuItem}
-
     struct GUI_canvas{their GtkWidget: GUI_canvas}
+
+    struct GUI_callback{me GCallback: GUI_callback}
+
+    struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
     struct GUI_TK{
         their GtkApplication: app

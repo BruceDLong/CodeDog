@@ -20,7 +20,7 @@ localVarsAllocated = []   # Format: [varName, typeSpec]
 localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
 
-def getArrayType(typeSpec):
+def getContainerType(typeSpec):
     idxType=typeSpec['arraySpec']['indexType']
     if(idxType[0:4]=='uint'): return "deque"
     elif idxType=='string': return 'map'
@@ -52,6 +52,8 @@ def CheckObjectVars(objName, itemName):
     for field in ObjectDef['fields']:
         fieldName=field['fieldName']
         if fieldName==itemName:
+            if itemName=='draw_cb':
+                print "OBJECTDEF:", field['value']
             return field
     return 0 # Field not found in model
 
@@ -184,7 +186,7 @@ def convertType(objects, TypeSpec):
     if cppType=='TYPE ERROR': print cppType, owner, fieldType;
     arraySpec=TypeSpec['arraySpec']
     if(arraySpec): # Make list, map, etc
-        arrayType=getArrayType(TypeSpec)
+        arrayType=getContainerType(TypeSpec)
         if arrayType=='deque':
             cppType="deque< "+cppType+" >"
         elif arrayType=='map':
@@ -210,7 +212,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
     typeSpecOut={'owner':''}
     name=segSpec[0]
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
-        containerType=getArrayType(typeSpecIn)
+        containerType=getContainerType(typeSpecIn)
         resultTypeSpec={'owner':'me', 'fieldType': typeSpecIn['fieldType']}
         if(name=='['):
             S+= '[' + codeExpr(item0[1]) +']'
@@ -240,7 +242,11 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             return [S, '']
         typeSpecOut=fetchItemsTypeSpec(name)[0]
     else:
-        typeSpecOut=CheckObjectVars(typeSpecIn['fieldType'][0], name)['typeSpec']
+        fType=typeSpecIn['fieldType']
+        print "TypeSpecIN:", fType
+
+        typeSpecOut=CheckObjectVars(typeSpecIn['fieldType'][0], name)
+        if typeSpecOut!=0: typeSpecOut=typeSpecOut['typeSpec']
 
     S+=connector+name
 
@@ -249,6 +255,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         if(len(segSpec)==2):
             S+="()"
         else:
+            print "TypeOUT:", typeSpecOut
             S+= '('+codeParameterList(segSpec[2])+')'
     return [S,  typeSpecOut]
 
@@ -260,6 +267,7 @@ def codeItemRef(name, LorR_Val):
     prevLen=len(S)
     segIDX=0
     for segSpec in name:
+        print "NameSeg:", segSpec
         segName=segSpec[0]
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).

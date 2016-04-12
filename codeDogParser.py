@@ -168,7 +168,9 @@ def packFieldDef(fieldResult, ObjectName, indent):
     if(fieldResult.isNext): isNext=True
     if(fieldResult.owner): owner=fieldResult.owner;
     else: owner='me';
-    if(fieldResult.fieldType): fieldType=fieldResult.fieldType;
+    if(fieldResult.fieldType):
+        fieldType=fieldResult.fieldType;
+        #if isinstance(fieldType, basestring): fieldType=[fieldType]
     else: fieldType=None;
     if(fieldResult.arraySpec): arraySpec=fieldResult.arraySpec;
     else: arraySpec=None;
