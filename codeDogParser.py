@@ -99,7 +99,8 @@ nameAndVal = Group(
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
     )("nameAndVal")
 
-arraySpec = Group (Literal('[') + Optional(intNum | varType)('indexType') + Literal(']'))("arraySpec")
+datastructID = (Keyword("list") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph"))('datastructID')
+arraySpec = Group (Literal('[') + datastructID + Optional(intNum | varType)('indexType') + Literal(']'))("arraySpec")
 meOrMy = (Keyword("me") | Keyword("my"))
 modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
 flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") + nameAndVal )("flagDef")

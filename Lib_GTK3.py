@@ -70,10 +70,15 @@ their GtkWidget: create_menu(me gint: depth) <- <%{
 }
 %>
 
+me void: showWidget(their GtkWidget: widget) <-  <%!gtk_widget_show(%1)%>
+
 me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: callback) <- <% {
     g_signal_connect(widget, eventID.data(), G_CALLBACK (callback), NULL);
-    if(eventID=="motion-notify-event" || eventID=="button-press-event"){
-        gtk_widget_set_events(widget, gtk_widget_get_events(widget) | GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK);
+    if(eventID=="button-press-event"){
+        gtk_widget_set_events(widget, gtk_widget_get_events(widget) | GDK_BUTTON_PRESS_MASK);
+    }
+    if(eventID=="motion-notify-event"){
+        gtk_widget_set_events(widget, gtk_widget_get_events(widget) | GDK_POINTER_MOTION_MASK);
     }
 } %>
 

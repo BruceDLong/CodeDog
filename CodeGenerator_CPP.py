@@ -22,10 +22,10 @@ currentObjName=''
 
 def getContainerType(typeSpec):
     idxType=typeSpec['arraySpec']['indexType']
-    if(idxType[0:4]=='uint'): return "deque"
-    elif idxType=='string': return 'map'
-    print "ERROR: Unknown data structure type"
-    exit(2)
+    datastructID = typeSpec['arraySpec']['datastructID']
+    if idxType[0:4]=='uint': idxType+='_t'
+    if(datastructID=='list' and idxType[0:4]=='uint'): datastructID = "deque"
+    return [datastructID, idxType]
 
 def CheckBuiltinItems(itemName):
     if(itemName=='print'):  return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
@@ -52,6 +52,7 @@ def CheckObjectVars(objName, itemName):
     for field in ObjectDef['fields']:
         fieldName=field['fieldName']
         if fieldName==itemName:
+            # TODO: Why is this function mentioned by name?
             if itemName=='draw_cb':
                 print "OBJECTDEF:", field['value']
             return field
@@ -61,7 +62,7 @@ def CheckObjectVars(objName, itemName):
 def fetchItemsTypeSpec(itemName):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     # TODO: also search any libraries that are used.
-    #print "FETCHING:", itemName
+    # print "FETCHING:", itemName
     global currentObjName
     RefType=""
     REF=CheckBuiltinItems(itemName)
@@ -83,7 +84,7 @@ def fetchItemsTypeSpec(itemName):
                 if (REF):
                     RefType="GLOBAL"
                 else:
-                    #print "\nVariable", itemName, "could not be found."
+                    print "\nVariable", itemName, "could not be found."
                     #exit(1)
                     return [None, "LIB"]
     return [REF['typeSpec'], RefType]
@@ -184,13 +185,16 @@ def convertType(objects, TypeSpec):
         print "ERROR: Owner of type not valid '" + owner + "'"
         exit(1)
     if cppType=='TYPE ERROR': print cppType, owner, fieldType;
-    arraySpec=TypeSpec['arraySpec']
-    if(arraySpec): # Make list, map, etc
-        arrayType=getContainerType(TypeSpec)
-        if arrayType=='deque':
-            cppType="deque< "+cppType+" >"
-        elif arrayType=='map':
-            cppType="map< "+cppType+" >"
+    if 'arraySpec' in TypeSpec:
+        arraySpec=TypeSpec['arraySpec']
+        if(arraySpec): # Make list, map, etc
+            [containerType, idxType]=getContainerType(TypeSpec)
+            if containerType=='deque':
+                cppType="deque< "+cppType+" >"
+            elif containerType=='map':
+                cppType="map< "+idxType+', '+cppType+" >"
+            elif containerType=='multimap':
+                cppType="multimap< "+idxType+', '+cppType+" >"
     return cppType
 
 
@@ -202,37 +206,78 @@ def genIfBody(ifBody, indent):
         ifBodyText += actionOut
     return ifBodyText
 
+def convertNameSeg(typeSpecOut, name, paramList):
+    newName = typeSpecOut['codeConverter']
+    if paramList != None:
+        count=1
+        for P in paramList:
+            oldTextTag='%'+str(count)
+            [S2, argType]=codeExpr(P[0])
+            if(isinstance(newName, basestring)):
+                newName=newName.replace(oldTextTag, S2)
+            else: exit(2)
+            count+=1
+        if count>1: paramList=None;
+    return [newName, paramList]
 
 ################################  C o d e   E x p r e s s i o n s
 
 def codeNameSeg(segSpec, typeSpecIn, connector):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
-    #print "CODENAMESEG:", segSpec, typeSpecIn
+    print "CODENAMESEG:", segSpec, typeSpecIn
     S=''
     typeSpecOut={'owner':''}
+    paramList=None
+    if len(segSpec) > 1 and segSpec[1]=='(':
+        if(len(segSpec)==2):
+            paramList=[]
+        else:
+            paramList=segSpec[2]
+
     name=segSpec[0]
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
-        containerType=getContainerType(typeSpecIn)
-        resultTypeSpec={'owner':'me', 'fieldType': typeSpecIn['fieldType']}
+        [containerType, idxType]=getContainerType(typeSpecIn)
+        typeSpecOut={'owner':'me', 'fieldType': typeSpecIn['fieldType']}
         if(name=='['):
-            S+= '[' + codeExpr(item0[1]) +']'
-            return [S, TypeInButNotArray]
+            [S2, idxType] = codeExpr(item0[1])
+            S+= '[' + S2 +']'
+            return [S, typeSpecOut]
         if containerType=='deque':
             if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='front' or  name=='back': pass
-            elif name=='clear': resultTypeSpec={'owner':'me', 'fieldType': ['void']}
+            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             elif name=='popFirst' : name='pop_front'
             elif name=='popLast'  : name='pop_back'
             elif name=='pushFirst': name='push_front'
             elif name=='pushLast' : name='push_back'
             else: print "Unknown deque command:", name; exit(2);
         elif containerType=='map':
-            if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='front' or  name=='back': pass
-            elif name=='clear': resultTypeSpec={'owner':'me', 'fieldType': ['void']}
+            if name=='at' or name=='insert' or name=='erase' or  name=='size': pass
+            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+            elif name=='front': name='begin()->second'; paramList=None;
+            elif name=='back': name='rbegin()->second'; paramList=None;
             elif name=='popFront' : name='pop_front'
             elif name=='popBack'  : name='pop_back'
             else: print "Unknown map command:", name; exit(2);
+        elif containerType=='multimap':
+            convertedIdxType=idxType
+            convertedItmType=convertType(objectsRef, typeSpecOut)
+            if name=='at' or name=='erase' or  name=='size': pass
+            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+            elif name=='front': name='begin()->second'; paramList=None;
+            elif name=='back': name='rbegin()->second'; paramList=None;
+            elif name=='popFront' : name='pop_front'
+            elif name=='popBack'  : name='pop_back'
+            elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
+            else: print "Unknown multimap command:", name; exit(2);
+        elif containerType=='tree': # TODO: Make trees work
+            if name=='insert' or name=='erase' or  name=='size': pass
+            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+            else: print "Unknown tree command:", name; exit(2)
+        elif containerType=='graph': # TODO: Make graphs work
+            if name=='insert' or name=='erase' or  name=='size': pass
+            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+            else: print "Unknown graph command:", name; exit(2);
         else: print "Unknown container type:", containerType; exit(2);
-        typeSpecOut={'owner':'me', 'fieldType': typeSpecIn['fieldType']}
 
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
@@ -243,20 +288,23 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         typeSpecOut=fetchItemsTypeSpec(name)[0]
     else:
         fType=typeSpecIn['fieldType']
-        print "TypeSpecIN:", fType
+        #print "TypeSpecIN:", fType
 
         typeSpecOut=CheckObjectVars(typeSpecIn['fieldType'][0], name)
         if typeSpecOut!=0: typeSpecOut=typeSpecOut['typeSpec']
 
+    print "TYPESPECOUT:", name, ',',typeSpecOut
+    if typeSpecOut and 'codeConverter' in typeSpecOut:
+        [name, paramList]=convertNameSeg(typeSpecOut, name, paramList)
+
     S+=connector+name
 
     # Add parameters if this is a function call
-    if(len(segSpec) > 1 and segSpec[1]=='('):
-        if(len(segSpec)==2):
+    if(paramList != None):
+        if(len(paramList)==0):
             S+="()"
         else:
-            print "TypeOUT:", typeSpecOut
-            S+= '('+codeParameterList(segSpec[2])+')'
+            S+= '('+codeParameterList(paramList)+')'
     return [S,  typeSpecOut]
 
 def codeItemRef(name, LorR_Val):
@@ -267,12 +315,13 @@ def codeItemRef(name, LorR_Val):
     prevLen=len(S)
     segIDX=0
     for segSpec in name:
-        print "NameSeg:", segSpec
+        #print "NameSeg:", segSpec
         segName=segSpec[0]
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).
             connector='.'
             if(segType): # This is where to detect type of vars not found to determine whether to use '.' or '->'
+                #print "SEGTYPE:", segType
                 segOwner=segType['owner']
                 if(segOwner!='me'): connector='->'
 
@@ -309,27 +358,32 @@ def codeFactor(item):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
     #print '                  factor: ', item
     S=''
+    retType='noType'
     item0 = item[0]
     #print "ITEM0=", item0
     if (isinstance(item0, basestring)):
         if item0=='(':
-            S+='(' + codeExpr(item[1]) +')'
+            [S2, retType] = codeExpr(item[1])
+            S+='(' + S2 +')'
         elif item0=='!':
-            S+='!' + codeExpr(item[1])
+            [S2, retType] = codeExpr(item[1])
+            S+='!' + S2
         elif item0=='-':
-            S+='-' + codeExpr(item[1])
+            [S2, retType] = codeExpr(item[1])
+            S+='-' + S2
         else:
+            retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1])
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
             else: S=item0
     else:
-        [codeStr, typeSpec]=codeItemRef(item0, 'RVAL')
+        [codeStr, retType]=codeItemRef(item0, 'RVAL')
         S+=codeStr                                # Code variable reference or function call
-    return S
+    return [S, retType]
 
 def codeTerm(item):
     #print '               term item:', item
-    S=codeFactor(item[0])
+    [S, retType]=codeFactor(item[0])
     if (not(isinstance(item, basestring))) and (len(item) > 1):
         for i in item[1]:
             #print '               term:', i
@@ -337,24 +391,26 @@ def codeTerm(item):
             elif (i[0] == '/'): S+=' / '
             elif (i[0] == '%'): S+=' % '
             else: print "ERROR: One of '*', '/' or '%' expected in c++ code generator."; exit(2)
-            S+=codeFactor(i[1])
-    return S
+            [S2, retType2] = codeFactor(i[1])
+            S+=S2
+    return [S, retType]
 
 def codePlus(item):
     #print '            plus item:', item
-    S=codeTerm(item[0])
+    [S, retType]=codeTerm(item[0])
     if len(item) > 1:
         for  i in item[1]:
             #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
             elif (i[0] == '-'): S+=' - '
             else: print "ERROR: '+' or '-' expected in c++ code generator."; exit(2)
-            S+=codeTerm(i[1])
-    return S
+            [S2, retType2] = codeTerm(i[1])
+            S+=S2
+    return [S, retType]
 
 def codeComparison(item):
     #print '         Comp item', item
-    S=codePlus(item[0])
+    [S, retType]=codePlus(item[0])
     if len(item) > 1:
         for  i in item[1]:
             #print '         comp ', i
@@ -363,43 +419,50 @@ def codeComparison(item):
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
             else: print "ERROR: One of <, >, <= or >= expected in c++ code generator."; exit(2)
-            S+=codePlus(i[1])
-    return S
+            [S2, retType] = codePlus(i[1])
+            S+=S2
+            retType='bool'
+    return [S, retType]
 
 def codeIsEQ(item):
     #print '      IsEq item:', item
-    S=codeComparison(item[0])
+    [S, retType]=codeComparison(item[0])
     if len(item) > 1:
         for i in item[1]:
             #print '      IsEq ', i
             if   (i[0] == '=='): S+=' == '
             elif (i[0] == '!='): S+=' != '
             else: print "ERROR: 'and' expected in c++ code generator."; exit(2)
-            S+=codeComparison(i[1])
-    return S
+            [S2, retType] = codeComparison(i[1])
+            S+=S2
+            retType='bool'
+    return [S, retType]
 
 def codeLogAnd(item):
     #print '   And item:', item
-    S= codeIsEQ(item[0])
+    [S, retType] = codeIsEQ(item[0])
     if len(item) > 1:
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
-                S+=' && ' + codeIsEQ(i[1])
+                [S2, retType] = codeIsEQ(i[1])
+                S+=' && ' + S2
             else: print "ERROR: 'and' expected in c++ code generator."; exit(2)
-    return S
+            retType='bool'
+    return [S, retType]
 
 def codeExpr(item):
     #print 'Or item:', item
-    S=codeLogAnd(item[0])
+    [S, retType]=codeLogAnd(item[0])
     if len(item) > 1:
         for i in item[1]:
             #print 'OR ', i
             if (i[0] == 'or'):
-                S+=' || ' + codeLogAnd(i[1])
+                S+=' || ' + codeLogAnd(i[1])[0]
             else: print "ERROR: 'or' expected in c++ code generator."; exit(2)
+            retType='bool'
     #print "S:",S
-    return S
+    return [S, retType]
 
 def codeParameterList(paramList):
     S=''
@@ -408,7 +471,8 @@ def codeParameterList(paramList):
         if(count>0): S+=', '
         count+=1
         #print "PARAM",P
-        S+=codeExpr(P[0])
+        [S2, argType]=codeExpr(P[0])
+        S+=S2
     return S
 
 def codeSpecialFunc(segSpec):
@@ -419,7 +483,9 @@ def codeSpecialFunc(segSpec):
         if(len(segSpec)>2):
             paramList=segSpec[2]
             for P in paramList:
-                S+=' << '+codeExpr(P[0])
+                [S2, argType]=codeExpr(P[0])
+                S+=' << '+S2
+            S+=" << flush"
     return S
 
 def codeFuncCall(funcCallSpec):
@@ -460,7 +526,8 @@ def processAction(action, indent):
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
         LHS = codeStr
-        RHS = codeExpr(action['RHS'][0])
+        [S2, rhsType]=codeExpr(action['RHS'][0])
+        RHS = S2
         assignTag = action['assignTag']
         #print "Assign: ", LHS, RHS, typeSpec
         LHS_FieldType=typeSpec['fieldType']
@@ -486,7 +553,8 @@ def processAction(action, indent):
         #print "swap: ", LHS, RHS
         actionText = indent + "swap (" + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='conditional'):
-        ifCondition = codeExpr(action['ifCondition'][0])
+        [S2, conditionType] =  codeExpr(action['ifCondition'][0])
+        ifCondition = S2
         ifBodyText = genIfBody(action['ifBody'], indent)
         actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
         elseBodyText = ""
@@ -512,24 +580,33 @@ def processAction(action, indent):
         rangeSpec = action['rangeSpec']
         # TODO: add cases for traversing trees and graphs in various orders or ways.
         if(rangeSpec): # iterate over range
+            [S_low, lowValType] = codeExpr(rangeSpec[2][0])
+            [S_hi,   hiValType] = codeExpr(rangeSpec[4][0])
+            #print "RANGE:", S_low, "..", S_hi
+            ctrlVarsTypeSpec = lowValType
             if(traversalMode=='Forward' or traversalMode==None):
-                actionText += indent + "for( auto " + repName+'='+codeExpr(rangeSpec[2][0]) + "; " + repName + "!=" +codeExpr(rangeSpec[4][0])+"; ++"+ repName + "){\n"
+                actionText += indent + "for( auto " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
             elif(traversalMode=='Backward'):
-                actionText += indent + "for( auto " + repName+'='+codeExpr(rangeSpec[4][0]) + "; " + repName + "!=" +codeExpr(rangeSpec[2][0])+"; --"+ repName + "){\n"
+                actionText += indent + "for( auto " + repName+'='+ S_hi + "; " + repName + "!=" + S_low +"; --"+ repName + "){\n"
 
         else: # interate over a container
-            repList = ".".join(action['repList'])
-            actionText += indent + "for( auto " + repName + ":" + repList + "){\n"
+            #print "ITERATE OVER", action['repList'][0]
+            [repContainer, containerType] = codeExpr(action['repList'][0])
+            datastructID = containerType['arraySpec']['datastructID']
+            ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType']}
+            if datastructID=='multimap' or datastructID=='map':
+                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType'], 'codeConverter':(repName+'.first')}
+                localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+                ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+            actionText += indent + "for( auto " + repName + ":" + repContainer + "){\n"
 
-        # TODO: The type ['int'] in the next line should be the type of the control variable.
-        ctrlVarsTypeSpec = ['int']
-   #     localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
 
         if action['whereExpr']:
-            whereExpr = codeExpr(action['whereExpr'])
+            [whereExpr, whereConditionType] = codeExpr(action['whereExpr'])
             actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
         if action['untilExpr']:
-            untilExpr = codeExpr(action['untilExpr'])
+            [untilExpr, untilConditionType] = codeExpr(action['untilExpr'])
             actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
         repBodyText = ''
         for repAction in repBody:
@@ -617,12 +694,15 @@ def generate_constructor(objects, ClassName, tags):
 def processOtherStructFields(objects, objectName, tags, indent):
     print "                    Coding fields for", objectName
     global localArgsAllocated
-    globalFuncs=''
-    funcDefCode=''
-    structCode=""
+    globalFuncsAcc=''
+    funcDefCodeAcc=''
+    structCodeAcc=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
         localArgsAllocated=[]
+        funcDefCode=""
+        structCode=""
+        globalFuncs=""
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
@@ -702,8 +782,15 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
 
             ##### Generate Function Body
-            if (field['value'][1]!=''): # This function body is 'verbatim'.
-                funcText=field['value'][1]
+            verbatimText=field['value'][1]
+            if (verbatimText!=''): # This function body is 'verbatim'.
+                if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
+                    structCode=""
+                    funcText=""
+                    funcDefCode=""
+                    globalFuncs=""
+                else:
+                    funcText=verbatimText
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
                 funcText=processActionSeq(field['value'][0], '')
@@ -717,12 +804,16 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 else: globalFuncs += funcText+"\n\n"
             else: funcDefCode += funcText+"\n\n"
 
+        funcDefCodeAcc += funcDefCode
+        structCodeAcc  += structCode
+        globalFuncsAcc += globalFuncs
+
     if(objectName=='GLOBAL'):
-        return [structCode, funcDefCode, globalFuncs]
+        return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
     else:
         constructCode=generate_constructor(objects, objectName, tags)
-        structCode+=constructCode
-        return [structCode, funcDefCode]
+        structCodeAcc+=constructCode
+        return [structCodeAcc, funcDefCodeAcc]
 
 def generateAllObjectsButMain(objects, tags):
     print "\n            Generating Objects..."
