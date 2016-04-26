@@ -5,6 +5,7 @@ import progSpec
 import codeDogParser
 
 def codeDogTypeToString(objects, tags, field):
+    print "FIELD:", field
     S=''
     fieldName=field['fieldName']
     fieldType=field['fieldType']

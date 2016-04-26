@@ -46,7 +46,12 @@ def addObjTags(objSpecs, objectName, objTags):
 
 
 def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, thisValue):
-    return {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec,'argList':thisArgList}, 'fieldName':thisName,  'value':thisValue}
+    codeConverter=None
+    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec,'argList':thisArgList}, 'fieldName':thisName,  'value':thisValue}
+    if( thisValue!=None and (not isinstance(thisValue, basestring)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
+        codeConverter = thisValue[1][1:]
+        packedField['typeSpec']['codeConverter']=codeConverter
+    return packedField
 
 def addField(objSpecs, objectName, packedField):
     if(packedField['fieldName'] in objSpecs[objectName]["fields"]):
