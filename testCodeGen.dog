@@ -4,7 +4,7 @@
 //AndroidBuild: CPU='arm7' Lang='java' optimize='speed';
 //AppleBuild: CPU='i386' Lang='objectiveC' optimize='clarity';
 
-BuildCmd = `g++ -std=gnu++11 test.java -o test`
+BuildCmd = `javac test.java`
 Title = "CodeDog test suite"
 FileName = "test.java"
 Version = "0.8"
@@ -30,12 +30,24 @@ initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"
 runCode="RunEventLoop()"
 deinitCode="SDL_Quit()"
 
-Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
+Include=`java.lang.String`
 #include libraryTags.dog
 
-// test classes
-struct myClass  {
-    me int32: X
+// test class 
+struct testClass  {
     me string: address
     me bool: isOn
+    me char: ste
+    me bool: testFunc (me int32: arg1) <- {
+        me int32: X <- 12
+        if (X == 1){X <- 2}
+        else if(X == 2 ){X <- 3}
+        else if(X == 3 ){X <- 4}
+        else {print('Hello')}
+        return(false)
+    }
 }
+
+
+
+do Write_Main(eventLoop)

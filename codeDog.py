@@ -16,9 +16,10 @@ import stringStructs
 import Lib_GTK3
 
 import CodeGenerator_CPP
+import CodeGenerator_Java
 #import CodeGenerator_JavaScript
 #import CodeGenerator_ObjectiveC
-#import CodeGenerator_Java
+
 
 import re
 import os
@@ -111,6 +112,9 @@ def GenerateProgram(objects, buildSpec, tags, libsToUse):
     if(langGenTag == 'CPP'):
         print '        Generating C++ Program...'
         result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]], libsToUse)
+    if(langGenTag == 'Java'):
+        print '        Generating Java Program...'
+        result=CodeGenerator_Java.generate(objects, [tags, buildSpec[1]], libsToUse)
     else:
         print "ERROR: No language generator found for ", langGenTag
     return result
@@ -167,7 +171,7 @@ def ChooseLibs(objects, buildSpec, tags):
 def GenerateSystem(objects, buildSpecs, tags):
     print "\n\n######################   G E N E R A T I N G   S Y S T E M"
     ScanAndApplyPatterns(objects, tags)
-    stringStructs.CreateStructsForStringModels(objects, tags)
+    #stringStructs.CreateStructsForStringModels(objects, tags)
     AutoGenerateStructsFromModels(objects, tags)
     GroomTags([tags, buildSpecs])
     for buildSpec in buildSpecs:

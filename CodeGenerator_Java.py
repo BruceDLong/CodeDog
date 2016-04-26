@@ -163,8 +163,16 @@ def convertType(objects, TypeSpec):
     cppType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     if(isinstance(fieldType, basestring)):
-        if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
+        if(fieldType=='int32'):
             cppType='int'
+        elif(fieldType=='int64'):
+            cppType='long'
+        elif(fieldType=='char' ):
+            cppType='byte'
+        elif(fieldType=='bool' ):
+            cppType='boolean'
+        elif(fieldType=='string' ):
+            cppType='String'
         else:
             cppType=fieldType
     else: cppType=convertObjectNameToCPP(fieldType[0])
@@ -267,7 +275,7 @@ def codeItemRef(name, LorR_Val):
     prevLen=len(S)
     segIDX=0
     for segSpec in name:
-        print "NameSeg:", segSpec
+        #print "NameSeg:", segSpec
         segName=segSpec[0]
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).
@@ -296,21 +304,24 @@ def codeItemRef(name, LorR_Val):
 def codeUserMesg(item):
     # TODO: Make 'user messages'interpolate and adjust for locale.
     S=''; fmtStr=''; argStr='';
+    #print "codeUserMesg: ", item
     pos=0
     for m in re.finditer(r"%[ils]`.+?-`", item):
         fmtStr += item[pos:m.start()+2]
         argStr += ', ' + item[m.start()+3:m.end()-1]
         pos=m.end()
-    fmtStr += item[pos:-1]
-    S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
+    fmtStr += item[pos:]
+    S='('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
 def codeFactor(item):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
     #print '                  factor: ', item
+    
     S=''
     item0 = item[0]
     #print "ITEM0=", item0
+  
     if (isinstance(item0, basestring)):
         if item0=='(':
             S+='(' + codeExpr(item[1]) +')'
@@ -323,6 +334,7 @@ def codeFactor(item):
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
             else: S=item0
     else:
+
         [codeStr, typeSpec]=codeItemRef(item0, 'RVAL')
         S+=codeStr                                # Code variable reference or function call
     return S
@@ -336,7 +348,7 @@ def codeTerm(item):
             if   (i[0] == '*'): S+=' * '
             elif (i[0] == '/'): S+=' / '
             elif (i[0] == '%'): S+=' % '
-            else: print "ERROR: One of '*', '/' or '%' expected in c++ code generator."; exit(2)
+            else: print "ERROR: One of '*', '/' or '%' expected in Java code generator."; exit(2)
             S+=codeFactor(i[1])
     return S
 
@@ -348,7 +360,7 @@ def codePlus(item):
             #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
             elif (i[0] == '-'): S+=' - '
-            else: print "ERROR: '+' or '-' expected in c++ code generator."; exit(2)
+            else: print "ERROR: '+' or '-' expected in Java code generator."; exit(2)
             S+=codeTerm(i[1])
     return S
 
@@ -362,7 +374,7 @@ def codeComparison(item):
             elif (i[0] == '>'): S+=' > '
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
-            else: print "ERROR: One of <, >, <= or >= expected in c++ code generator."; exit(2)
+            else: print "ERROR: One of <, >, <= or >= expected in Java code generator."; exit(2)
             S+=codePlus(i[1])
     return S
 
@@ -374,7 +386,7 @@ def codeIsEQ(item):
             #print '      IsEq ', i
             if   (i[0] == '=='): S+=' == '
             elif (i[0] == '!='): S+=' != '
-            else: print "ERROR: 'and' expected in c++ code generator."; exit(2)
+            else: print "ERROR: 'and' expected in Java code generator."; exit(2)
             S+=codeComparison(i[1])
     return S
 
@@ -386,7 +398,7 @@ def codeLogAnd(item):
             #print '   AND ', i
             if (i[0] == 'and'):
                 S+=' && ' + codeIsEQ(i[1])
-            else: print "ERROR: 'and' expected in c++ code generator."; exit(2)
+            else: print "ERROR: 'and' expected in Java code generator."; exit(2)
     return S
 
 def codeExpr(item):
@@ -397,7 +409,7 @@ def codeExpr(item):
             #print 'OR ', i
             if (i[0] == 'or'):
                 S+=' || ' + codeLogAnd(i[1])
-            else: print "ERROR: 'or' expected in c++ code generator."; exit(2)
+            else: print "ERROR: 'or' expected in Java code generator."; exit(2)
     #print "S:",S
     return S
 
@@ -415,11 +427,11 @@ def codeSpecialFunc(segSpec):
     S=''
     funcName=segSpec[0]
     if(funcName=='print'):
-        S+='cout'
+        S+='System.out.println'
         if(len(segSpec)>2):
             paramList=segSpec[2]
             for P in paramList:
-                S+=' << '+codeExpr(P[0])
+                S+=codeExpr(P[0])
     return S
 
 def codeFuncCall(funcCallSpec):
@@ -440,6 +452,7 @@ def startPointOfNamesLastSegment(name):
             break
         p-=1
     return p
+
 
 def processAction(action, indent):
     #make a string and return it
@@ -486,25 +499,24 @@ def processAction(action, indent):
         #print "swap: ", LHS, RHS
         actionText = indent + "swap (" + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='conditional'):
+        #print action
+        #actionText += processConditional(action, indent)
         ifCondition = codeExpr(action['ifCondition'][0])
         ifBodyText = genIfBody(action['ifBody'], indent)
         actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
         elseBodyText = ""
         elseBody = action['elseBody']
         if (elseBody):
-            #print 'ELSE BODY.......ELSE BODY.......ELSE BODY:', elseBody
-            """  if (action['nextIf'] ):
-                elseIf = elseBody
-                elseIfText = processAction(elseIf, indent)
-                #print "ELSE IF:  ELSE IF:  ELSE IF:  ELSE IF:  ", elseIfText
-                actionText += indent + "else " + elseIfText.lstrip()
-"""
-            if ('actionList' in elseBody):
-                elseActSeq = elseBody['actionList']
-            else: elseActSeq = elseBody['elseBody']['actionList']
-            elseText = processActionSeq(elseActSeq, indent)
-            #print "ELSE: ELSE: ELSE: ELSE: ELSE: ", elseText
-            actionText += indent + "else " + elseText.lstrip()
+            if (elseBody[0]=='if'):
+                #print 'ELSE IF:', elseBody
+                elseAction = elseBody[1]
+                elseText = processActionSeq(elseAction, indent)
+                actionText += indent + "else " + elseText.lstrip()
+            elif (elseBody[0]=='action'):
+                elseAction = elseBody[1]['actionList']
+                elseText = processActionSeq(elseAction, indent)
+                actionText += indent + "else " + elseText.lstrip()
+            else: print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
         repBody = action['repBody']
         repName = action['repName']
@@ -556,7 +568,6 @@ def processAction(action, indent):
  #   print "actionText", actionText
     return actionText
 
-
 def processActionSeq(actSeq, indent):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
@@ -578,6 +589,7 @@ def generate_constructor(objects, ClassName, tags):
     print "                    Generating Constructor for:", ClassName
     constructorInit=""
     constructorArgs="    "+convertObjectNameToCPP(ClassName)+"("
+  
     count=0
     ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
@@ -599,18 +611,14 @@ def generate_constructor(objects, ClassName, tags):
                 constructorInit += fieldName+"="+" _"+fieldName+"),"
                 count += 1
         elif (isinstance(fieldType, basestring)):
-            if(fieldType[0:3]=="int" or fieldType[0:4]=="uint"):
-                constructorArgs += convertedType+" _"+fieldName+"=0,"
-                constructorInit += fieldName+"="+" _"+fieldName+";"
-                count += 1
-            elif(fieldType=="string"):
-                constructorArgs += convertedType+" _"+fieldName+'="",'
-                constructorInit += fieldName+"("+" _"+fieldName+"),"
-                count += 1
+            constructorArgs += convertedType+" _"+fieldName+","
+            constructorInit += fieldName+"="+" _"+fieldName+";"
+            count += 1
+
     if(count>0):
         constructorInit=constructorInit[0:-1]
         constructorArgs=constructorArgs[0:-1]
-        constructCode = constructorArgs+"){"+constructorInit+"};\n"
+        constructCode = constructorArgs+"){"+constructorInit+";}\n"
     else: constructCode=''
     return constructCode
 
@@ -697,8 +705,8 @@ def processOtherStructFields(objects, objectName, tags, indent):
                     registerType(objectName, fieldName, convertedType, typeDefName)
                 else: typeDefName=convertedType
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
-                structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
-                objPrefix=LangFormOfObjName +'::'
+                structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
+                objPrefix=LangFormOfObjName 
                 funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
 
             ##### Generate Function Body
@@ -706,7 +714,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 funcText=field['value'][1]
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                funcText=processActionSeq(field['value'][0], '')
+                funcText= indent + processActionSeq(field['value'][0], '    ')
             else:
                 print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
@@ -715,20 +723,21 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 if(fieldName=='main'):
                     funcDefCode += funcText+"\n\n"
                 else: globalFuncs += funcText+"\n\n"
-            else: funcDefCode += funcText+"\n\n"
+            else: structCode += funcText+"\n\n"
 
     if(objectName=='GLOBAL'):
         return [structCode, funcDefCode, globalFuncs]
     else:
         constructCode=generate_constructor(objects, objectName, tags)
         structCode+=constructCode
+
         return [structCode, funcDefCode]
 
 def generateAllObjectsButMain(objects, tags):
     print "\n            Generating Objects..."
     global currentObjName
     constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
-    forwardDecls="\n";
+    #forwardDecls="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
     needsFlagsVar=False;
@@ -743,17 +752,21 @@ def generateAllObjectsButMain(objects, tags):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
             if(objectName != 'GLOBAL' and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
-                forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
+                #forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ')
                 structCodeAcc += "\nclass "+LangFormOfObjName+"{\n" + structCode + '};\n'
-                funcCodeAcc+=funcCode
+                #TODO remove funcCode variable
+                funcCodeAcc=""
         currentObjName=''
-    return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
-
+    return [constsEnums, structCodeAcc, funcCodeAcc]
 
 
 def processMain(objects, tags):
     print "\n            Generating GLOBAL..."
+    #TODO Java-ize this
+    #header += addSpecialCode()
+    
+    
     if("GLOBAL" in objects[1]):
         if(objects[0]["GLOBAL"]['stateType'] != 'struct'):
             print "ERROR: GLOBAL must be a 'struct'."
@@ -779,8 +792,8 @@ def makeTagText(tags, tagName):
     return tagVal
 
 def addSpecialCode():
-    S='\n\n//////////// C++ specific code:\n'
-    S+="string strFmt(string mesg){return mesg;}\n"
+    S='\n\n//////////// Java specific code:\n'
+    S+="String strFmt(String mesg){return mesg;}\n"
 
     return S
 
@@ -799,15 +812,15 @@ def makeFileHeader(tags):
     header += "\n// Build Command: " +buildStr_libs+'\n'
     includes = re.split("[,\s]+", progSpec.fetchTagValue(tags, 'Include'))
     for hdr in includes:
-        header+="\n#include "+hdr
-    header += "\n\nusing namespace std; \n\n"
+        header+="\nimport "+hdr+";"
+    header += "\n"
+    
+    #TODO: Java-ize this:
+    #header += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
+    #header += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
+    #header += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
 
-    header += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
-
-    header += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
-    header += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
-
-    header += addSpecialCode()
+    
     return header
 
 def integrateLibrary(tags, libID):
@@ -838,10 +851,10 @@ def generate(objects, tags, libsToUse):
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(objects, tags, libsToUse)
     header = makeFileHeader(tags)
-    [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
+    [constsEnums, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     topBottomStrings = processMain(objects, tags)
     typeDefCode = produceTypeDefs(typeDefMap)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
-    outputStr = header + constsEnums + forwardDecls + codeHeader + typeDefCode + structCodeAcc + topBottomStrings[0] + funcCodeAcc + topBottomStrings[1]
+    outputStr = header + constsEnums + codeHeader + typeDefCode + structCodeAcc + topBottomStrings[0] + funcCodeAcc + topBottomStrings[1]
     return outputStr

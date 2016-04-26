@@ -58,7 +58,7 @@ factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFu
 term = Group( factor + Group(Optional(OneOrMore(Group(oneOf('* / %') + factor )))))("term")
 plus = Group( term  + Group(Optional(OneOrMore(Group(oneOf('+ -') + term )))))("plus")
 comparison = Group( plus + Group(Optional(OneOrMore(Group(oneOf('< > <= >=') + plus )))))("comparison")
-isEQ = Group( comparison  + Group(Optional(OneOrMore(Group(oneOf('= !=') + comparison )))))("isEQ")
+isEQ = Group( comparison  + Group(Optional(OneOrMore(Group(oneOf('== !=') + comparison )))))("isEQ")
 logAnd = Group( isEQ  + Group(Optional(OneOrMore(Group('and' + isEQ )))))
 expr <<= Group( logAnd + Group(Optional(OneOrMore(Group('or' + logAnd )))))("expr")
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
@@ -75,7 +75,7 @@ actionSeq = Forward()
 conditionalAction = Forward()
 conditionalAction <<= Group(
             Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
-            + Optional((Keyword("else") | Keyword("but")) + (actionSeq | conditionalAction)("elseBody"))("optionalElse")
+            + Optional((Keyword("else") | Keyword("but")) + (actionSeq | (conditionalAction('ifAction')))("elseBody"))("optionalElse")
         )("conditionalAction")
 traversalModes = (Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative"))
 rangeSpec = Group(Keyword("RANGE") +'(' + rValue + ".." + rValue + ')')
@@ -241,23 +241,25 @@ def parseResultToArray(parseSegment):
 
 def extractActItem(funcName, actionItem):
     thisActionItem='error'
+    #print "*******************"
     #print "ACTIONITEM:", actionItem
     if actionItem.fieldDef:
         thisActionItem = {'typeOfAction':"newVar", 'fieldDef':packFieldDef(actionItem.fieldDef, '', '    LOCAL:')}
     elif actionItem.ifStatement:    # Conditional
+        #print "*******************"
+        #print "ACTIONITEM:", actionItem
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
         ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
-        #elseBody = {"if":'xxx', "act":'xxx'}
         elseBodyOut = {}
         #print elseBody
         if (actionItem.optionalElse):
             elseBodyIn = actionItem.optionalElse
-            if (elseBodyIn.conditionalAction):
-                elseBodyOut = extractActItem(funcName, elseBodyIn.conditionalAction)
+            if (elseBodyIn.ifAction):
+                elseBodyOut = ['if' , [extractActItem(funcName, elseBodyIn.ifAction)] ]
                 #print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBodyOut
             elif (elseBodyIn.actionSeq):
-                elseBodyOut = extractActItem(funcName, elseBodyIn.actionSeq)
+                elseBodyOut = ['action', extractActItem(funcName, elseBodyIn.actionSeq)]
                 #elseBody['act']  = elseBodyOut
                 #print "\n ELSE........ELSE........ELSE........ELSE........ELSE: ", elseBody
         #print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBodyOut
