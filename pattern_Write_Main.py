@@ -6,10 +6,12 @@ import codeDogParser
 mainFuncCode=r"// No Main given"
 def apply(objects, tags, codeToRun):
     # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
-    initCode=tags['initCode']
-    runCode =tags['runCode']+";"
-    #runCode = ""
-    deinitCode=tags['deinitCode']
+    initFuncCode=''; initCode=''; runCode=''; deinitCode=''
+
+    if 'initCode'   in tags: initCode  = tags['initCode']
+    if 'runCode'    in tags: runCode   = tags['runCode']+';'
+    if 'deinitCode' in tags: deinitCode= tags['deinitCode']
+
     tags['Include'] += ",<signal.h>"
 
     initFuncCode=r"""

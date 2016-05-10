@@ -146,6 +146,10 @@ def findModelOf(objMap, structName):
     modelName=structName[0:colonIndex]
     return objMap[0][modelName]
 
+def isStruct(fieldType):
+    if isinstance(fieldType, basestring): return False
+    return True
+
 """
 def getNameSegInfo(objMap, structName, fieldName):
     structToSearch = objMap[structName]

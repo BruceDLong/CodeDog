@@ -32,6 +32,7 @@ def CheckBuiltinItems(itemName):
     if(itemName=='return'): return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
     if(itemName=='sqrt'):   return [{'owner':'const', 'fieldType':'number', 'arraySpec':None,'argList':None}, 'BUILTIN']
 
+
 def CheckFunctionsLocalVarArgList(itemName):
     #print "Searching function for", itemName
     global localVarsAllocated
@@ -44,25 +45,58 @@ def CheckFunctionsLocalVarArgList(itemName):
             return [item[1], 'FUNCARG']
     return 0
 
-def CheckObjectVars(objName, itemName):
+def CheckObjectVars(objName, itemName, level):
     #print "Searching",objName,"for", itemName
     if(not objName in objectsRef[0]):
         return 0  # Model def not found
+    retVal=None
+    wrappedTypeSpec = progSpec.isWrappedType(objectsRef, objName)
+    if(wrappedTypeSpec != None):
+        actualFieldType=wrappedTypeSpec['fieldType']
+        if not isinstance(actualFieldType, basestring):
+            #print "'actualFieldType", wrappedTypeSpec, actualFieldType, objName
+            retVal = CheckObjectVars(actualFieldType[0], itemName, 0)
+            if retVal==0: return 0
+            retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
+            return retVal
+        else:
+            if 'fieldName' in wrappedTypeSpec and wrappedTypeSpec['fieldName']==itemName:
+                return wrappedTypeSpec
+            else: return 0
+
     ObjectDef = objectsRef[0][objName]
     for field in ObjectDef['fields']:
         fieldName=field['fieldName']
         if fieldName==itemName:
-            # TODO: Why is this function mentioned by name?
-            if itemName=='draw_cb':
-                print "OBJECTDEF:", field['value']
             return field
+
+    # Not found so look a level deeper (Passive Inheritance)
+    if level>0:
+        count=0
+        for field in ObjectDef['fields']:
+            fieldName=field['fieldName']
+            typeSpec=field['typeSpec']
+            fieldType=typeSpec['fieldType']
+            owner=typeSpec['owner']
+            if isinstance(fieldType, basestring): continue;
+            tmpRetVal = CheckObjectVars(fieldType[0], itemName, level-1)
+            if tmpRetVal==0: continue;
+            print "PASSIVE:", itemName, tmpRetVal
+            count+=1
+            if(owner=='me'): connector='.'
+            else: connector='->'
+            retVal=tmpRetVal
+            retVal['fieldName']= fieldName + connector + tmpRetVal['fieldName']
+        if(count>1): print("Passive Inheritance for "+itemName+" in "+objName+" is ambiguous."); exit(2);
+        if(count==1): return retVal
+
     return 0 # Field not found in model
 
 
 def fetchItemsTypeSpec(itemName):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     # TODO: also search any libraries that are used.
-    # print "FETCHING:", itemName
+    #print "FETCHING:", itemName
     global currentObjName
     RefType=""
     REF=CheckBuiltinItems(itemName)
@@ -75,16 +109,16 @@ def fetchItemsTypeSpec(itemName):
             RefType="LOCAL"
             return REF
         else:
-            REF=CheckObjectVars(currentObjName, itemName)
+            REF=CheckObjectVars(currentObjName, itemName, 1)
             if (REF):
                 RefType="OBJVAR"
 
             else:
-                REF=CheckObjectVars("GLOBAL", itemName)
+                REF=CheckObjectVars("GLOBAL", itemName, 0)
                 if (REF):
                     RefType="GLOBAL"
                 else:
-                    print "\nVariable", itemName, "could not be found."
+                    #print "\nVariable", itemName, "could not be found."
                     #exit(1)
                     return [None, "LIB"]
     return [REF['typeSpec'], RefType]
@@ -95,17 +129,20 @@ def fetchItemsTypeSpec(itemName):
 def convertObjectNameToCPP(objName):
     return objName.replace('::', '_')
 
+fieldNamesAlreadyUsed={}
 def processFlagAndModeFields(objects, objectName, tags):
     print "                    Coding flags and modes for:", objectName
+    global fieldNamesAlreadyUsed
     flagsVarNeeded = False
     bitCursor=0
-    structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'
+    structEnums=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
         fieldType=field['typeSpec']['fieldType'];
         fieldName=field['fieldName'];
+        if fieldName in fieldNamesAlreadyUsed: continue
+        else:fieldNamesAlreadyUsed[fieldName]=objectName
         #print "                    ", field
-
         if fieldType=='flag':
             print "                        flag: ", fieldName
             flagsVarNeeded=True
@@ -141,6 +178,7 @@ def processFlagAndModeFields(objects, objectName, tags):
             # str array and printer
 
             bitCursor=bitCursor+numEnumBits;
+    if structEnums!="": structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'+structEnums
     return [flagsVarNeeded, structEnums]
 
 typeDefMap={}
@@ -217,15 +255,16 @@ def convertNameSeg(typeSpecOut, name, paramList):
                 newName=newName.replace(oldTextTag, S2)
             else: exit(2)
             count+=1
-        if count>1: paramList=None;
+        paramList=None;
     return [newName, paramList]
 
 ################################  C o d e   E x p r e s s i o n s
 
 def codeNameSeg(segSpec, typeSpecIn, connector):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
-    print "CODENAMESEG:", segSpec, typeSpecIn
+    #print "CODENAMESEG:", segSpec, typeSpecIn
     S=''
+    S_alt=''
     typeSpecOut={'owner':''}
     paramList=None
     if len(segSpec) > 1 and segSpec[1]=='(':
@@ -237,9 +276,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
     name=segSpec[0]
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=getContainerType(typeSpecIn)
-        typeSpecOut={'owner':'me', 'fieldType': typeSpecIn['fieldType']}
-        if(name=='['):
-            [S2, idxType] = codeExpr(item0[1])
+        typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
+        print "NAME:", name
+        if(name[0]=='['):
+            [S2, idxType] = codeExpr(name[1])
             S+= '[' + S2 +']'
             return [S, typeSpecOut]
         if containerType=='deque':
@@ -251,23 +291,26 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             elif name=='pushLast' : name='push_back'
             else: print "Unknown deque command:", name; exit(2);
         elif containerType=='map':
-            if name=='at' or name=='insert' or name=='erase' or  name=='size': pass
+            convertedIdxType=idxType
+            convertedItmType=convertType(objectsRef, typeSpecOut)
+            if name=='at' or name=='erase' or  name=='size': pass
+            elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             elif name=='front': name='begin()->second'; paramList=None;
             elif name=='back': name='rbegin()->second'; paramList=None;
-            elif name=='popFront' : name='pop_front'
-            elif name=='popBack'  : name='pop_back'
+            elif name=='popFirst' : name='pop_front'
+            elif name=='popLast'  : name='pop_back'
             else: print "Unknown map command:", name; exit(2);
         elif containerType=='multimap':
             convertedIdxType=idxType
             convertedItmType=convertType(objectsRef, typeSpecOut)
             if name=='at' or name=='erase' or  name=='size': pass
+            elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             elif name=='front': name='begin()->second'; paramList=None;
             elif name=='back': name='rbegin()->second'; paramList=None;
-            elif name=='popFront' : name='pop_front'
-            elif name=='popBack'  : name='pop_back'
-            elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
+            elif name=='popFirst' : name='pop_front'
+            elif name=='popLast'  : name='pop_back'
             else: print "Unknown multimap command:", name; exit(2);
         elif containerType=='tree': # TODO: Make trees work
             if name=='insert' or name=='erase' or  name=='size': pass
@@ -277,6 +320,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             if name=='insert' or name=='erase' or  name=='size': pass
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             else: print "Unknown graph command:", name; exit(2);
+        elif containerType=='stream': # TODO: Make stream work
+            pass
+        elif containerType=='filesystem': # TODO: Make filesystem work
+            pass
         else: print "Unknown container type:", containerType; exit(2);
 
 
@@ -288,21 +335,34 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         typeSpecOut=fetchItemsTypeSpec(name)[0]
     else:
         fType=typeSpecIn['fieldType']
-        #print "TypeSpecIN:", fType
 
-        typeSpecOut=CheckObjectVars(typeSpecIn['fieldType'][0], name)
-        if typeSpecOut!=0: typeSpecOut=typeSpecOut['typeSpec']
+        if(name=='allocate'):
+            print "TypeSpecIN:", typeSpecIn
+            owner=typeSpecIn['owner']
+            if(owner=='our'): S_alt=" = make_shared<"+fType[0]+">"
+            elif(owner=='my'): S_alt=" = make_unique<"+fType[0]+">"
+            elif(owner=='their'): S_alt=" = new "+fType[0]
+            elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
+            elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
+            else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
+            typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        else:
+            typeSpecOut=CheckObjectVars(typeSpecIn['fieldType'][0], name, 1)
+            if typeSpecOut!=0:
+                name=typeSpecOut['fieldName']
+                typeSpecOut=typeSpecOut['typeSpec']
 
-    print "TYPESPECOUT:", name, ',',typeSpecOut
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [name, paramList]=convertNameSeg(typeSpecOut, name, paramList)
 
-    S+=connector+name
+    if S_alt=='': S+=connector+name
+    else: S += S_alt
 
     # Add parameters if this is a function call
     if(paramList != None):
         if(len(paramList)==0):
-            S+="()"
+            if name != 'return' and name!='break' and name!='continue':
+                S+="()"
         else:
             S+= '('+codeParameterList(paramList)+')'
     return [S,  typeSpecOut]
@@ -332,12 +392,14 @@ def codeItemRef(name, LorR_Val):
         segIDX+=1
 
     # Handle cases where seg's type is flag or mode
-    if segType and LorR_Val=='RVAL':
+    if segType and LorR_Val=='RVAL' and 'fieldType' in segType:
         fieldType=segType['fieldType']
         if fieldType=='flag':
-            S='(' + S[0:prevLen] + connector + 'flags & ' + segStr + ')' # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
+            segName=segStr[len(connector):]
+            S='(' + S[0:prevLen] + connector + 'flags & ' + segName + ')' # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
         elif fieldType=='mode':
-            S="((" + S[0:prevLen] + "flags&"+segStr+"Mask)"+">>"+segStr+"Offset)"
+            segName=segStr[len(connector):]
+            S="((" + S[0:prevLen] + connector +  "flags&"+segName+"Mask)"+">>"+segName+"Offset)"
 
     return [S, segType]
 
@@ -346,11 +408,12 @@ def codeUserMesg(item):
     # TODO: Make 'user messages'interpolate and adjust for locale.
     S=''; fmtStr=''; argStr='';
     pos=0
-    for m in re.finditer(r"%[ils]`.+?-`", item):
+    for m in re.finditer(r"%[ilsp]`.+?`", item):
         fmtStr += item[pos:m.start()+2]
         argStr += ', ' + item[m.start()+3:m.end()-1]
         pos=m.end()
-    fmtStr += item[pos:-1]
+    fmtStr += item[pos:]
+    fmtStr=fmtStr.replace('"', r'\"')
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
@@ -375,10 +438,13 @@ def codeFactor(item):
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1])
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
-            else: S=item0
+            else: S=item0;
     else:
-        [codeStr, retType]=codeItemRef(item0, 'RVAL')
-        S+=codeStr                                # Code variable reference or function call
+        if isinstance(item0[0], basestring):
+            S+=item0[0]
+        else:
+            [codeStr, retType]=codeItemRef(item0, 'RVAL')
+            S+=codeStr                                # Code variable reference or function call
     return [S, retType]
 
 def codeTerm(item):
@@ -464,6 +530,16 @@ def codeExpr(item):
     #print "S:",S
     return [S, retType]
 
+def chooseVirtualRValOwner(LVAL, RVAL):
+    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
+    print "chooseVirtualRValOwner:", LVAL, "###", RVAL
+    LeftOwner=LVAL['owner']
+    RightOwner=RVAL['owner']
+    if LeftOwner == RightOwner: return ["", ""]
+    if LeftOwner=='me' and (RightOwner=='my' or RightOwner=='our' or RightOwner=='their'): return ["(*", ")"]
+    if (LeftOwner=='my' or LeftOwner=='our' or LeftOwner=='their') and RightOwner=='me': return ["&", '']
+    # TODO: Verify these and other combinations. e.g., do we need something like ['', '.get()'] ?
+
 def codeParameterList(paramList):
     S=''
     count = 0
@@ -472,6 +548,7 @@ def codeParameterList(paramList):
         count+=1
         #print "PARAM",P
         [S2, argType]=codeExpr(P[0])
+        # TODO: get arg's type and call chooseVirtualRValOwner()
         S+=S2
     return S
 
@@ -479,6 +556,7 @@ def codeSpecialFunc(segSpec):
     S=''
     funcName=segSpec[0]
     if(funcName=='print'):
+        # TODO: have a tag to choose cout vs printf()
         S+='cout'
         if(len(segSpec)>2):
             paramList=segSpec[2]
@@ -486,6 +564,10 @@ def codeSpecialFunc(segSpec):
                 [S2, argType]=codeExpr(P[0])
                 S+=' << '+S2
             S+=" << flush"
+    #elif(funcName=='break'):
+    #elif(funcName=='return'):
+    #elif(funcName==''):
+
     return S
 
 def codeFuncCall(funcCallSpec):
@@ -527,7 +609,9 @@ def processAction(action, indent):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
         LHS = codeStr
         [S2, rhsType]=codeExpr(action['RHS'][0])
-        RHS = S2
+        print "RHS:", S2
+        [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
+        RHS = leftMod+S2+rightMod
         assignTag = action['assignTag']
         #print "Assign: ", LHS, RHS, typeSpec
         LHS_FieldType=typeSpec['fieldType']
@@ -579,6 +663,7 @@ def processAction(action, indent):
         traversalMode = action['traversalMode']
         rangeSpec = action['rangeSpec']
         # TODO: add cases for traversing trees and graphs in various orders or ways.
+        loopCounterName=''
         if(rangeSpec): # iterate over range
             [S_low, lowValType] = codeExpr(rangeSpec[2][0])
             [S_hi,   hiValType] = codeExpr(rangeSpec[4][0])
@@ -593,11 +678,21 @@ def processAction(action, indent):
             #print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = codeExpr(action['repList'][0])
             datastructID = containerType['arraySpec']['datastructID']
+
+            wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
+            if(wrappedTypeSpec != None):
+                containerType=wrappedTypeSpec
+
+
             ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType']}
             if datastructID=='multimap' or datastructID=='map':
                 keyVarSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType'], 'codeConverter':(repName+'.first')}
                 localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
                 ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+            elif datastructID=='list':
+                loopCounterName=repName+'_key'
+                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType']}
+                localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
             actionText += indent + "for( auto " + repName + ":" + repContainer + "){\n"
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
@@ -612,6 +707,9 @@ def processAction(action, indent):
         for repAction in repBody:
             actionOut = processAction(repAction, indent + "    ")
             repBodyText += actionOut
+        if loopCounterName!='':
+            actionText=indent + "uint64_t " + loopCounterName + "=0;\n" + actionText
+            repBodyText += indent + "    " + "++" + loopCounterName + ";\n"
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
         #print "\n########################################## FUNCTION CALL AS ACTION",action['calledFunc']
@@ -663,6 +761,7 @@ def generate_constructor(objects, ClassName, tags):
         fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
+        if(typeSpec['arraySpec'] or typeSpec['arraySpec']!=None): continue
         fieldOwner=typeSpec['owner']
         if(fieldOwner=='const'): continue
         convertedType = convertType(objects, typeSpec)
@@ -711,7 +810,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         if fieldName=='opAssign': fieldName='operator='
-        convertedType = convertType(objects, typeSpec)
+        convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
         #print "CONVERT-TYPE:", fieldOwner, fieldType, convertedType
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         if(fieldValue == None):fieldValueText=""
@@ -871,7 +970,29 @@ def makeTagText(tags, tagName):
 
 def addSpecialCode():
     S='\n\n//////////// C++ specific code:\n'
-    S+="string strFmt(string mesg){return mesg;}\n"
+    S+="""
+    // Thanks to Erik Aronesty via stackoverflow.com
+    // Like printf but returns a string.
+    // #include <memory>, #include <cstdarg>
+    inline std::string strFmt(const std::string fmt_str, ...) {
+        int final_n, n = fmt_str.size() * 2; /* reserve 2 times as much as the length of the fmt_str */
+        std::string str;
+        std::unique_ptr<char[]> formatted;
+        va_list ap;
+        while(1) {
+            formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
+            strcpy(&formatted[0], fmt_str.c_str());
+            va_start(ap, fmt_str);
+            final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
+            va_end(ap);
+            if (final_n < 0 || final_n >= n)
+                n += abs(final_n - n + 1);
+            else
+                break;
+        }
+        return std::string(formatted.get());
+    }
+    """
 
     return S
 

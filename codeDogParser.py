@@ -11,7 +11,7 @@ def reportParserPlace(s, loc, toks):
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
-identifier = Word(alphas + nums + "_-")("identifier")
+identifier = Word(alphas + nums + "_")("identifier")
 tagID = identifier("tagID")
 tagDefList = Forward()
 tagValue = Forward()
@@ -38,11 +38,11 @@ intNum = Word(nums)("intNum")
 numRange = intNum + ".." + intNum("numRange")
 varType = (objectName | cppType | numRange)("varType")
 boolValue = (Keyword("true") | Keyword("false"))("boolValue")
-floatNum = intNum + Optional("." + intNum)("floatNum")
+floatNum = Combine(intNum + "." + intNum)("floatNum")
 value = Forward()
 listVal = "[" + delimitedList(value, ",") + "]"
 strMapVal = "{" + delimitedList( quotedString() + ":" + value, ",")  + "}"
-value <<= (boolValue | intNum | floatNum | quotedString() | listVal | strMapVal)("value")
+value <<= (boolValue | floatNum | intNum | quotedString() | listVal | strMapVal)("value")
 
 #######################################   E X P R E S S I O N S
 expr = Forward()
@@ -58,7 +58,7 @@ factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFu
 term = Group( factor + Group(Optional(OneOrMore(Group(oneOf('* / %') + factor )))))("term")
 plus = Group( term  + Group(Optional(OneOrMore(Group(oneOf('+ -') + term )))))("plus")
 comparison = Group( plus + Group(Optional(OneOrMore(Group(oneOf('< > <= >=') + plus )))))("comparison")
-isEQ = Group( comparison  + Group(Optional(OneOrMore(Group(oneOf('= !=') + comparison )))))("isEQ")
+isEQ = Group( comparison  + Group(Optional(OneOrMore(Group(oneOf('== !=') + comparison )))))("isEQ")
 logAnd = Group( isEQ  + Group(Optional(OneOrMore(Group('and' + isEQ )))))
 expr <<= Group( logAnd + Group(Optional(OneOrMore(Group('or' + logAnd )))))("expr")
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")

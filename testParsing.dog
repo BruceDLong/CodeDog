@@ -17,10 +17,10 @@ You should have received a copy of the GNU General Public License along with the
 
 langToGen="CPP"
 
-featuresNeeded = {GraphicsModes = 'GUI' Mouse='GUI' Keyboard='GUI' Audio='GUI'}
+featuresNeeded = {}
 
 
-Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
+Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`
 
 #include libraryTags.dog
 
@@ -59,3 +59,6 @@ string personRec::strForm {
     > me string: address
     > me date_mem:   birthday
 }
+
+
+do Write_Main(xyz)
