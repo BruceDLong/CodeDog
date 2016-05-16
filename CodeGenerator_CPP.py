@@ -71,6 +71,9 @@ def CheckObjectVars(objName, itemName, level):
             return field
 
     # Not found so look a level deeper (Passive Inheritance)
+    # Passive inheritance is disabled for now as it was slow to compile and not being used.
+    # It also causes problems with the 'flags' member since multiple child structs have it.
+    """
     if level>0:
         count=0
         for field in ObjectDef['fields']:
@@ -89,6 +92,7 @@ def CheckObjectVars(objName, itemName, level):
             retVal['fieldName']= fieldName + connector + tmpRetVal['fieldName']
         if(count>1): print("Passive Inheritance for "+itemName+" in "+objName+" is ambiguous."); exit(2);
         if(count==1): return retVal
+        """
 
     return 0 # Field not found in model
 
@@ -277,7 +281,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=getContainerType(typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
-        print "NAME:", name
+        #print "NAME:", name
         if(name[0]=='['):
             [S2, idxType] = codeExpr(name[1])
             S+= '[' + S2 +']'
@@ -337,7 +341,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         fType=typeSpecIn['fieldType']
 
         if(name=='allocate'):
-            print "TypeSpecIN:", typeSpecIn
             owner=typeSpecIn['owner']
             if(owner=='our'): S_alt=" = make_shared<"+fType[0]+">"
             elif(owner=='my'): S_alt=" = make_unique<"+fType[0]+">"
@@ -423,7 +426,7 @@ def codeFactor(item):
     S=''
     retType='noType'
     item0 = item[0]
-    #print "ITEM0=", item0
+    #print "ITEM0=", item0, ">>>>>", item
     if (isinstance(item0, basestring)):
         if item0=='(':
             [S2, retType] = codeExpr(item[1])
@@ -434,11 +437,19 @@ def codeFactor(item):
         elif item0=='-':
             [S2, retType] = codeExpr(item[1])
             S+='-' + S2
+        elif item0=='[':
+            tmp="{"
+            for expr in item[1:-1]:
+                [S2, retType] = codeExpr(expr)
+                if len(tmp)>1: tmp+=", "
+                tmp+=S2
+            tmp+="}"
+            S+=tmp
         else:
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1])
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
-            else: S=item0;
+            else: S+=item0;
     else:
         if isinstance(item0[0], basestring):
             S+=item0[0]
@@ -520,7 +531,7 @@ def codeLogAnd(item):
 def codeExpr(item):
     #print 'Or item:', item
     [S, retType]=codeLogAnd(item[0])
-    if len(item) > 1:
+    if not isinstance(item, basestring) and len(item) > 1:
         for i in item[1]:
             #print 'OR ', i
             if (i[0] == 'or'):
@@ -532,7 +543,7 @@ def codeExpr(item):
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
-    print "chooseVirtualRValOwner:", LVAL, "###", RVAL
+    #print "chooseVirtualRValOwner:", LVAL, "###", RVAL
     LeftOwner=LVAL['owner']
     RightOwner=RVAL['owner']
     if LeftOwner == RightOwner: return ["", ""]
@@ -602,14 +613,17 @@ def processAction(action, indent):
         fieldType = convertType(objectsRef, typeSpec)
         assignValue=''
         if(fieldDef['value']):
-            assignValue=' = '+fieldDef['value']
+            [S2, rhsType]=codeExpr(fieldDef['value'][0])
+            [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
+            RHS = leftMod+S2+rightMod
+            assignValue=' = '+ RHS
         actionText = indent + fieldType + " " + varName + assignValue + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
         LHS = codeStr
         [S2, rhsType]=codeExpr(action['RHS'][0])
-        print "RHS:", S2
+        #print "RHS:", S2
         [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
         RHS = leftMod+S2+rightMod
         assignTag = action['assignTag']
@@ -814,7 +828,10 @@ def processOtherStructFields(objects, objectName, tags, indent):
         #print "CONVERT-TYPE:", fieldOwner, fieldType, convertedType
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         if(fieldValue == None):fieldValueText=""
-        else: fieldValueText = " = "+ str(fieldValue)
+        elif(fieldOwner=='const'):
+            fieldValueText = " = "+ codeExpr(fieldValue)[0]
+        else:
+            fieldValueText = " = "+ str(fieldValue)
         registerType(objectName, fieldName, convertedType, "")
         print "                       ", fieldOwner, fieldType, fieldName
         if(fieldOwner=='const'):

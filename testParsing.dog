@@ -46,7 +46,7 @@ struct personRec::HRForm auto
 
 string date::strForm {
     > int32:month
-    ". "
+     ", "
     > int32:date
     > int32:year
 }

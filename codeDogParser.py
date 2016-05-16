@@ -94,8 +94,8 @@ funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
           (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + "<-" + funcBody )         # Function Definition
-        | (Literal(":") + CID("fieldName")  + "<-" + value("givenValue"))
-        | (Literal(":") + "<-" + (value("givenValue") | funcBody))
+        | (Literal(":") + CID("fieldName")  + "<-" + rValue("givenValue"))
+        | (Literal(":") + "<-" + (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
     )("nameAndVal")
 
