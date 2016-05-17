@@ -30,6 +30,7 @@ buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 #buildSpec.setParseAction(reportParserPlace)
 
 #######################################   B A S I C   T Y P E S
+expr = Forward()
 CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
 objectName = CID("objectName")
@@ -40,12 +41,11 @@ varType = (objectName | cppType | numRange)("varType")
 boolValue = (Keyword("true") | Keyword("false"))("boolValue")
 floatNum = Combine(intNum + "." + intNum)("floatNum")
 value = Forward()
-listVal = "[" + delimitedList(value, ",") + "]"
-strMapVal = "{" + delimitedList( quotedString() + ":" + value, ",")  + "}"
+listVal = "[" + delimitedList(expr, ",") + "]"
+strMapVal = "{" + delimitedList( quotedString() + ":" + expr, ",")  + "}"
 value <<= (boolValue | floatNum | intNum | quotedString() | listVal | strMapVal)("value")
 
 #######################################   E X P R E S S I O N S
-expr = Forward()
 parameters = Forward()
 owners = Forward()
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')

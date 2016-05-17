@@ -27,17 +27,22 @@ def codeDogTypeToString(objects, tags, field):
 
     return S
 
-def genParserCode(consts, parseRuleList):
+rules=[]
+constDefs=[]
+
+def genParserCode():
+    global rules
+    global constDefs
     RuleList=''
-    for rule in parseRuleList:
-        if rule[0]=='term':
-            RuleList+='        addTerminalProd(' + rule[1] + ', "' + str(rule[2]) + '")\n'
-        elif rule[0]=='nonterm':
-            RuleList+='        addNon_TermProd(' + rule[1] + ', ' + str(rule[2]) + ')\n'
+    for rule in rules:
+        if rule[1]=='term':
+            RuleList+='        addTerminalProd("' + rule[0] +'", ' + rule[2] + ', "' + str(rule[3]) + '")\n'
+        elif rule[1]=='nonterm':
+            RuleList+='        addNon_TermProd("' + rule[0] +'", ' + rule[2] + ', ' + str(rule[3]) + ')\n'
 
     ConstList=''
-    for C in consts:
-        ConstList+='const uint32: ' + C.replace('::','_') + ' <- ' + str(consts[C]) + '\n'
+    for C in constDefs:
+        ConstList+='    const uint32: ' + C[0].replace('::','_') + ' <- ' + str(C[1]) + '\n'
 
     code= r"""
 struct stateRec{
@@ -90,8 +95,8 @@ struct EParser{
     me production[list uint32]: grammar
 
     void: clearGrammar() <- {grammar.clear()}
-    void: addTerminalProd(me uint32: f, me string: s) <- {grammar.pushLast(production(s, f+isTerm))}
-    void: addNon_TermProd(me uint32: f, me uint32[list uint32]: terms) <- {
+    void: addTerminalProd(me string: name, me uint32: f, me string: s) <- {grammar.pushLast(production(s, f+isTerm))}
+    void: addNon_TermProd(me string: name, me uint32: f, me uint32[list uint32]: terms) <- {
         me production: P
         P.flags <- f
         P.items <- terms
@@ -223,7 +228,7 @@ struct EParser{
                             me uint32: MIN_ITEMS <- prod.items[1]
                             me uint32: MAX_ITEMS <- prod.items[2]
                             me bool: must_be   <- SRec.SeqPosition<MIN_ITEMS
-                            me bool: cannot_be <- SRec.SeqPosition>MAX_ITEMS
+                            me bool: cannot_be <- SRec.SeqPosition>MAX_ITEMS and (MAX_ITEMS!=0)
                             if(!must_be){
                                 complete(SRec, crntPos)
                                 print("         REP (TENT): ")
@@ -247,7 +252,7 @@ struct EParser{
     """
     code=code.replace('#CONST_CODE_HERE', ConstList, 1)
     code=code.replace('#GRAMMAR_CODE_HERE', RuleList, 1)
-
+    print "CODE:",code
     return code
 
 def writePositionalFetch(objects, tags, field):
@@ -288,65 +293,80 @@ def writeContextualGet(field):
 def writeContextualSet(field):
     return "    // Contextual Set() TBD\n";
 
-def populateBaseRules():
-    rules=[]
-    constDefs={}
-    row=0
-    rules.append(["term", "parseSEQ",  '{']);  constDefs['lBrace']=str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '}']);  constDefs['rBrace']=str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '(']);  constDefs['lParen']=str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  ')']);  constDefs['rParen']=str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '[']);  constDefs['lBrckt']=str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  ']']);  constDefs['Brckt'] =str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  ' ']);  constDefs['Space'] =str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  ',']);  constDefs['comma'] =str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '\\"']);constDefs['quote2']=str(row);  row+=1;
-    rules.append(["term", "parseSEQ",  "'"]);  constDefs['quote1']=str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '`']);  constDefs['quoteBack']=str(row);row+=1;
-    rules.append(["term", "parseSEQ",  '!']);  constDefs['bang']  =str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '.']);  constDefs['period']=str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '/']);  constDefs['slash'] =str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '?']);  constDefs['question']=str(row); row+=1;
-    rules.append(["term", "parseSEQ",  ':']);  constDefs['colon'] =str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '-']);  constDefs['minus'] =str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '+']);  constDefs['plus']  =str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '=']);  constDefs['equals']=str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '*']);  constDefs['star']  =str(row);   row+=1;
-    rules.append(["term", "parseSEQ",  '<']);  constDefs['lessThan']=str(row); row+=1;
-    rules.append(["term", "parseSEQ",  '>']);  constDefs['greaterThan']=str(row);row+=1;
-    rules.append(["term", "parseSEQ",  '@']);  constDefs['atSign']=str(row);   row+=1;
-    return [constDefs, rules]
 
-def writeParseRule(crIdx, modelName, field):
-    print "WRITE PARSE RULE:", crIdx, modelName, field
-    rules=[]
-    constDefs={}
+def appendRule(ruleName, termOrNot, pFlags, prodData):
+    global rules
+    global constDefs
+    # If rule already exists, return the name rather than recreate it
+    # is there a rule with the same term, flags, and prodData? (Only care about term+parseSEQ+data)
+    ruleExists=False
+    if (ruleExists):
+        ruleName = 'XXXX'
+    else:
+        thisIDX=len(rules)
+        if not isinstance(ruleName, basestring):
+            ruleName="rule"+str(thisIDX)
+        constDefs.append([ruleName, str(thisIDX)])
+        print "PRODDATA:", prodData
+        if isinstance(prodData, list):
+            prodData='['+(', '.join(map(str,prodData))) + ']'
+        rules.append([ruleName, termOrNot, pFlags, prodData])
+    return ruleName
+
+def populateBaseRules():
+    appendRule('lBrace', "term", "parseSEQ",  '{')
+    appendRule('rBrace', "term", "parseSEQ",  '}')
+    appendRule('lParen', "term", "parseSEQ",  '(')
+    appendRule('rParen', "term", "parseSEQ",  ')')
+    appendRule('lBrckt', "term", "parseSEQ",  '[')
+    appendRule('rBrckt', "term", "parseSEQ",  ']')
+    appendRule('Space',  "term", "parseSEQ",  ' ')
+    appendRule('comma',  "term", "parseSEQ",  ',')
+    #appendRule('quote2', "term", "parseSEQ",  '\\"')
+    appendRule('quote1', "term", "parseSEQ",  "'")
+    appendRule('quoteBack', "term", "parseSEQ",  '`')
+    appendRule('bang',   "term", "parseSEQ",  '!')
+    appendRule('period', "term", "parseSEQ",  '.')
+    appendRule('slash',  "term", "parseSEQ",  '/')
+    appendRule('question', "term", "parseSEQ",  '?')
+    appendRule('colon',  "term", "parseSEQ",  ':')
+    appendRule('minus',  "term", "parseSEQ",  '-')
+    appendRule('plus',   "term", "parseSEQ",  '+')
+    appendRule('equals', "term", "parseSEQ",  '=')
+    appendRule('star',   "term", "parseSEQ",  '*')
+    appendRule('lessThan', "term", "parseSEQ",'<')
+    appendRule('greaterThan',"term","parseSEQ",'>')
+    appendRule('atSign', "term", "parseSEQ",  '@')
+
+def fetchOrWriteParseRule(modelName, field):
+    print "WRITE PARSE RULE:", modelName, field
     fieldName  =field['fieldName']
     fieldValue =field['value']
     typeSpec   =field['typeSpec']
-    configType =field['configType']
     fieldType  =typeSpec['fieldType']
     fieldOwner =typeSpec['owner']
 
+    nameIn=None
+    nameOut=None
     if fieldOwner=='const':
         if fieldType=='string':
-            rules.append(["term", "parseSEQ",  fieldValue])
-        elif fieldType[0:4]=='uint':   rules.append(["term", "parseSEQ",  fieldValue])
-        elif fieldType[0:3]=='int':    rules.append(["term", "parseSEQ",  fieldValue])
-        elif fieldType[0:6]=='double': rules.append(["term", "parseSEQ",  fieldValue])
-        elif fieldType[0:4]=='char':   rules.append(["term", "parseSEQ",  fieldValue])
-        elif fieldType[0:4]=='bool':   rules.append(["term", "parseSEQ",  fieldValue])
+            nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
+        elif fieldType[0:4]=='uint':   nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
+        elif fieldType[0:3]=='int':    nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
+        elif fieldType[0:6]=='double': nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
+        elif fieldType[0:4]=='char':   nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
+        elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
         else:
-            print "Unusable const type in writeParseRule()"; exit(2);
+            print "Unusable const type in fetchOrWriteParseRule():", fieldType; exit(2);
 
     elif fieldOwner=='me':
-        if fieldType=='string':        rules.append(["term", "parseQuoted2String", None])
-        elif fieldType[0:4]=='uint':   rules.append(["term", "parseREP",  "0123456789"])
-        elif fieldType[0:3]=='int':    rules.append(["term", "parseInt",   None])
-        elif fieldType[0:6]=='double': rules.append(["term", "parseRadix", None])
-        elif fieldType[0:4]=='char':   rules.append(["term", "parseChar",  None])
-        elif fieldType[0:4]=='bool':   rules.append(["term", "parseBool",  None])
-        elif progSpec.isStruct(fieldType): pass #     rules.append(["nonterm", "parseSEQA", [123,456,789]])
+        if fieldType=='string':        nameOut=appendRule(nameIn, "term", "parseQuoted2String", None)
+        elif fieldType[0:4]=='uint':   nameOut=appendRule(nameIn, "term", "parseREP",  "0123456789")
+        elif fieldType[0:3]=='int':    nameOut=appendRule(nameIn, "term", "parseInt",   None)
+        elif fieldType[0:6]=='double': nameOut=appendRule(nameIn, "term", "parseRadix", None)
+        elif fieldType[0:4]=='char':   nameOut=appendRule(nameIn, "term", "parseChar",  None)
+        elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn, "term", "parseBool",  None)
+        elif progSpec.isStruct(fieldType): pass #     nameOut=appendRule(nameIn, "nonterm", "parseSEQA", [123,456,789])
         elif progSpec.isAlt(fieldType):
             pass
         elif progSpec.isOpt(fieldType):
@@ -354,12 +374,45 @@ def writeParseRule(crIdx, modelName, field):
         elif progSpec.isCofactual(fieldType):
             pass
         else:
-            print "Unusable type in writeParseRule()"; exit(2);
+            print "Unusable type in fetchOrWriteParseRule():", fieldType; exit(2);
+    else: print "Pointer types not yet handled in fetchOrWriteParseRule():", fieldType; exit(2);
 
-    if typeSpec['arraySpec']:         rules.append(["nonterm", "parseREP", [crntIdx, 0, None]])
+    if typeSpec['arraySpec']: nameOut=appendRule(nameIn, "nonterm", "parseREP", [crntIdx, 0, 0])
 
 
-    return [constDefs, rules]
+    return nameOut
+
+def AddFields(objects, tags, listName, fields, SeqOrAlt):
+    partIndexes=[]
+    for field in fields:
+        fname=field['fieldName']
+        print "        ", field
+        if(field['isNext']==True):
+            ruleIdxStr = fetchOrWriteParseRule(listName, field)
+            partIndexes.append(ruleIdxStr)
+        else: pass;
+    nameIn='parse_'+listName
+    nameOut=appendRule(nameIn, "nonterm", SeqOrAlt, partIndexes)
+    #if typeSpec['arraySpec']: nameOut=appendRule(nameIn, "nonterm", "parseREP", [crntIdx, 0, 0])
+
+def Write_Fetch_and_Set_Functions_For_Each_Field(objects, tags, listName, fields, SeqOrAlt):
+    #### First, write fetch function for this field...
+    #objFieldTypeStr=codeDogTypeToString(objects, tags, field)
+    for field in fields:
+        fname=field['fieldName']
+        print "        ", field
+        if(field['isNext']==True):
+            pass
+           # objFieldStr+="    flag: "+fname+'_hasPos\n'
+           # objFieldStr+="    flag: "+fname+'_hasLen\n'
+           # objFieldStr+="    me streamSpan: "+fname+'_span\n'
+           # objFieldStr+= writePositionalFetch(objects, tags, field)
+           # objFieldStr+= writePositionalSet(field)
+        else:
+            pass
+           # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
+           # objFieldStr+= writeContextualSet(field)
+
 
 def CreateStructsForStringModels(objects, tags):
     print "Creating structs from string models..."
@@ -377,11 +430,8 @@ def CreateStructsForStringModels(objects, tags):
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
 
 
-    constsMap={}      # store const defs to be coded
-    parseRuleList=[]  # store rule defs to be coded
-    [consts, parseRules] = populateBaseRules()
-    constsMap.update(consts)
-    parseRuleList+=parseRules
+    populateBaseRules()
+
     for objectName in objects[1]:
         print "OBJECT:", objectName
         if objectName[0] == '!': continue
@@ -390,35 +440,18 @@ def CreateStructsForStringModels(objects, tags):
 
             print "    WRITING STRING-STRUCT:", objectName
             # TODO: modelExists = progSpec.findModelOf(objMap, structName)
-            numIsNextFields=0
-            thisStructsIDX=len(parseRuleList)
-            constsMap["parse_"+objectName]=thisStructsIDX
-            parseRuleList.append(["nonterm", "parseSEQ", []])  # Fill this in below
-            for field in ObjectDef['fields']:
-                fname=field['fieldName']
-                print "        ", field
+            fields=ObjectDef['fields']
+            configType=ObjectDef['configType']
+            SeqOrAlt=''
+            if configType=='SEQ': SeqOrAlt='parseSEQ'
+            elif configType=='ALT': SeqOrAlt='parseALT'
 
-                #### First, write fetch function for this field...
-                #objFieldTypeStr=codeDogTypeToString(objects, tags, field)
-                if(field['isNext']==True):
-                    numIsNextFields+=1
-                    crIdx=thisStructsIDX+numIsNextFields
-                    [consts, parseRules] = writeParseRule(crIdx, objectName, field)
-                    constsMap.update(consts)
-                    parseRuleList+=parseRules
+            # Write the rules for all the fields, and a parent rule which is either SEQ or ALT, and REP/OPT as needed.
+            AddFields(objects, tags, objectName.replace('::', '_'), fields, SeqOrAlt)
+
+            Write_Fetch_and_Set_Functions_For_Each_Field(objects, tags, objectName, fields, SeqOrAlt)
 
 
-                   # objFieldStr+="    flag: "+fname+'_hasPos\n'
-                   # objFieldStr+="    flag: "+fname+'_hasLen\n'
-                   # objFieldStr+="    me streamSpan: "+fname+'_span\n'
-                   # objFieldStr+= writePositionalFetch(objects, tags, field)
-                   # objFieldStr+= writePositionalSet(field)
-                else:
-                    pass
-                   # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
-                   # objFieldStr+= writeContextualSet(field)
-            parseRuleList[thisStructsIDX][2]=range(thisStructsIDX+1, thisStructsIDX+numIsNextFields) # Complete the structs parse rule
-            print "RULEZ:", parseRuleList[thisStructsIDX];
             #if(configType=='SEQ'):  primaryFetchFuncText+='    return(fetchOK)\n'
             #elif(configType=='ALT'):primaryFetchFuncText+='    return(fetchSyntaxError)\n'
             #primaryFetchFuncText+='\n}\n'
@@ -429,7 +462,5 @@ def CreateStructsForStringModels(objects, tags):
             #codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, objFieldStr))
 
     ############  Add struct parser
-    parserCode=genParserCode(constsMap, parseRuleList)
-    structsName = "chartParser"
-    #progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
+    parserCode=genParserCode()
     codeDogParser.AddToObjectFromText(objects[0], objects[1], parserCode)
