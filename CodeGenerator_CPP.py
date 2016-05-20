@@ -278,6 +278,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             paramList=segSpec[2]
 
     name=segSpec[0]
+    #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=getContainerType(typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
@@ -287,8 +288,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             S+= '[' + S2 +']'
             return [S, typeSpecOut]
         if containerType=='deque':
-            if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='front' or  name=='back': pass
+            if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='end' or  name=='rend': pass
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+            elif name=='front'    : name='begin()'; paramList=None;
+            elif name=='back'     : name='rbegin()'; paramList=None;
             elif name=='popFirst' : name='pop_front'
             elif name=='popLast'  : name='pop_back'
             elif name=='pushFirst': name='push_front'
@@ -349,6 +352,11 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
             else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif(name[0]=='[' and fType=='string'):
+            typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
+            [S2, idxType] = codeExpr(name[1])
+            S+= '[' + S2 +']'
+            return [S, typeSpecOut]
         else:
             typeSpecOut=CheckObjectVars(typeSpecIn['fieldType'][0], name, 1)
             if typeSpecOut!=0:
@@ -411,7 +419,7 @@ def codeUserMesg(item):
     # TODO: Make 'user messages'interpolate and adjust for locale.
     S=''; fmtStr=''; argStr='';
     pos=0
-    for m in re.finditer(r"%[ilsp]`.+?`", item):
+    for m in re.finditer(r"%[ilscp]`.+?`", item):
         fmtStr += item[pos:m.start()+2]
         argStr += ', ' + item[m.start()+3:m.end()-1]
         pos=m.end()
@@ -623,7 +631,7 @@ def processAction(action, indent):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
         LHS = codeStr
         [S2, rhsType]=codeExpr(action['RHS'][0])
-        #print "RHS:", S2
+        print "RHS:", S2, typeSpec, rhsType
         [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
         RHS = leftMod+S2+rightMod
         assignTag = action['assignTag']
@@ -633,14 +641,14 @@ def processAction(action, indent):
             if LHS_FieldType=='flag':
                 divPoint=startPointOfNamesLastSegment(LHS)
                 LHS_Left=LHS[0:divPoint]
-                bitMask =LHS[divPoint:]
-                actionText=indent + "SetBits("+LHS_Left+"flags, "+bitMask+", "+ RHS+");\n"
+                bitMask =LHS[divPoint+1:]
+                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+", "+ RHS+");\n"
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS
             elif LHS_FieldType=='mode':
                 divPoint=startPointOfNamesLastSegment(LHS)
                 LHS_Left=LHS[0:divPoint]
-                bitMask =LHS[divPoint:]
-                actionText=indent + "SetBits("+LHS_Left+"flags, "+bitMask+"Mask, "+ RHS+");\n"
+                bitMask =LHS[divPoint+1:]
+                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+"Mask, "+ RHS+");\n"
             else:
                 actionText = indent + LHS + " = " + RHS + ";\n"
         else:
@@ -707,7 +715,8 @@ def processAction(action, indent):
                 loopCounterName=repName+'_key'
                 keyVarSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType']}
                 localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-            actionText += indent + "for( auto " + repName + ":" + repContainer + "){\n"
+            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+                            + indent+indent+"auto "+repName+" = *"+repName+"Itr;\n")
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
 
@@ -825,15 +834,15 @@ def processOtherStructFields(objects, objectName, tags, indent):
         fieldArglist = typeSpec['argList']
         if fieldName=='opAssign': fieldName='operator='
         convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
-        #print "CONVERT-TYPE:", fieldOwner, fieldType, convertedType
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
+        print "                       ", fieldType, fieldName
         if(fieldValue == None):fieldValueText=""
         elif(fieldOwner=='const'):
             fieldValueText = " = "+ codeExpr(fieldValue)[0]
         else:
+            # TODO: This next line, oddly, is a HUGE performace hog due to pyParsing. Especially on long functions. Fix it.
             fieldValueText = " = "+ str(fieldValue)
-        registerType(objectName, fieldName, convertedType, "")
-        print "                       ", fieldOwner, fieldType, fieldName
+        #registerType(objectName, fieldName, convertedType, "")
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
         elif(fieldArglist==None):
@@ -890,7 +899,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                         localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
                 if(fieldType[0] != '<%'):
-                    registerType(objectName, fieldName, convertedType, typeDefName)
+                    pass #registerType(objectName, fieldName, convertedType, typeDefName)
                 else: typeDefName=convertedType
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
                 structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";

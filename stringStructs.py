@@ -69,15 +69,15 @@ struct production{
     void: print(me uint32: SeqPos, me uint32: originPos) <- {
         me uint32: ProdType <- prodType
         print("[")
-        print(prodType)
+        print(prodType, ": ")
         if(isTerm){
-            if(SeqPos==0) {print("# ")}
+            if(SeqPos==0) {print(" > ")}
             print('"%s`constStr.data()`"')
-            if(SeqPos>0) {print("# ")}
+            if(SeqPos>0) {print(" > ")}
             print(', Origin:%i`originPos`')
         } else {
             withEach p in items:{
-                if(p_key==SeqPos and ProdType!=parseREP){ print("# ")}
+                if(p_key==SeqPos and ProdType!=parseREP){ print(" > ")}
                 print('%i`p` ')
             }
             if(ProdType==parseREP){ print('(POS:%i`SeqPos`)')}
@@ -93,12 +93,19 @@ struct EParser{
     me uint64: startProduction
     me stateSets[list uint32]: SSets
     me production[list uint32]: grammar
+    me bool: parseFound
 
     void: clearGrammar() <- {grammar.clear()}
-    void: addTerminalProd(me string: name, me uint32: f, me string: s) <- {grammar.pushLast(production(s, f+isTerm))}
-    void: addNon_TermProd(me string: name, me uint32: f, me uint32[list uint32]: terms) <- {
+    void: addTerminalProd(me string: name, me uint32: ProdType, me string: s) <- {
         me production: P
-        P.flags <- f
+        P.prodType <- ProdType
+        P.isTerm   <- true
+        P.constStr <- s
+        grammar.pushLast(P)
+    }
+    void: addNon_TermProd(me string: name, me uint32: ProdType, me uint32[list uint32]: terms) <- {
+        me production: P
+        P.prodType <- ProdType
         P.items <- terms
         grammar.pushLast(P)
     }
@@ -106,13 +113,19 @@ struct EParser{
     void: dump() <- {
          withEach crntPos in RANGE(0 .. SSets.size()):{
             their stateSets: SSet <- SSets[crntPos]
-            print("SLOT: %i`crntPos` (%c`textToParse[crntPos]`) - size:%i`(int)SSet.stateRecs.size()`\n")
+            me string: ch <- "x"
+            if(crntPos+1 != SSets.size()) {
+                ch <- textToParse[crntPos]
+            }
+            print('"SLOT: %i`crntPos` (%s`ch.data()`) - size:%i`(int)SSet->stateRecs.size()`\n')
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
                 print('    %p`SRec` (%p`SRec->child`, %p`SRec->prev`): ')
                 prod.print(SRec.SeqPosition, SRec.originPos)
             }
         }
+        if(parseFound){print("\nPARSE PASSED!\n\n")}
+        else {print("\nPARSE failed.\n\n")}
     }
 
 #CONST_CODE_HERE
@@ -124,7 +137,7 @@ struct EParser{
     }
 
     me void: addProductionToStateSet(me uint32: crntPos, me uint32: productionID, me uint32: SeqPos, me uint32: origin, our stateRec: prev, our stateRec: child) <- {
-        print('############ ADD %i`productionID` at %i`crntPos` (prev=%p`prev`): ')
+        print('############ ADDING rule %i`productionID` at char slot %i`crntPos` (prev=%p`prev`): ')
         withEach item in SSets[crntPos].stateRecs:{ // Don't add duplicates.
             // TODO: change this to be faster. Not a linear search.
             if(item.productionID==productionID and item.SeqPosition==SeqPos and item.originPos==origin){
@@ -132,23 +145,28 @@ struct EParser{
                 return()
             }
         }
-
-        me uint32: ProdType <- grammar[productionID].prodType
+        their production: prod <- grammar[productionID]
+        if(productionID==startProduction and SeqPos==prod.items.size() and origin==0){
+            parseFound <- true
+            print("\n\nPARSE PASSED!!!\n\n")
+        }
+        me uint32: ProdType <- prod.prodType
         if(ProdType == parseSEQ or ProdType == parseREP){
-            grammar[productionID].print(SeqPos, origin)
+            prod.print(SeqPos, origin)
             our stateRec: newStateRecPtr newStateRecPtr.allocate(productionID, SeqPos, origin, prev, child)
             SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
-            print('ADDED %i`SeqPos`, %p`prev`\n')
+            print('                         ADDED with SeqPos=%i`SeqPos`, %p`prev`\n')
         } else {if(ProdType == parseALT){
-            print("ALT\n")
-            withEach AltProd in grammar[productionID].items:{
-                print("         ALT: ")
+            print("                         ALT\n")
+            withEach AltProd in prod.items:{
+                print("                                  ALT: ")
                 addProductionToStateSet(crntPos, AltProd, 0, origin, prev, child)
             }
         }}
     }
 
     me void: initPosStateSets(me uint64: startProd, me string: txt) <- {
+        print('Will parse "%s`txt.data()` with rule %i`startProd`.\n')
         startProduction <- startProd
         textToParse <- txt
         SSets.clear()
@@ -164,17 +182,18 @@ struct EParser{
     me uint32: textMatches(their production: Prod, me uint32: pos) <- {
         // TODO: write textMatches()
         // TODO: handle REP and OPT
-        print("    MATCHING: ")
+        print('    MATCHING %s`Prod->constStr.data()`: ')
         me uint32: L <- Prod.constStr.size()
         if(true){ //prod is simple text match
-            if(pos+L > textToParse.size()){print("size-fail\n") return(0)}
+            if(pos+L > textToParse.size()){print("FAILED (target string too short)\n") return(0)}
             withEach i in RANGE(0 .. L):{
-//                if( Prod.constStr[i] != textToParse[pos+i]) {return(0)}
+                if( Prod.constStr[i] != textToParse[pos+i]) {print("FAILED\n") return(0)}
             }
-        //    printf("YES (%s)\n", Prod.constStr.data());
+            print("PASSED\n")
             return(L)
         } else{
         }
+        print("Huh???\n")
         return(0)
     }
 
@@ -202,15 +221,19 @@ struct EParser{
     }
 
     me bool: doParse() <- {
-        // TODO: Add pred links and extract a parse tree.
+        parseFound <- false
         withEach crntPos in RANGE(0 .. SSets.size()):{
             their stateSets: SSet <- SSets[crntPos]
-            print("At position %i`crntPos` (%c`textToParse[crntPos]`) - size:%i`(int)SSet.stateRecs.size()`\n")
+            me string: ch <- "x"
+            if(crntPos+1 != SSets.size()) {
+                ch <- textToParse[crntPos]
+            }
+            print('At position %i`crntPos` (%s`ch.data()`) - size:%i`SSet->stateRecs.size()`\n')  //, crntPos, textToParse[crntPos], SSet.stateRecs.size())
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
                 me uint32: ProdType <- prod.prodType
                 me uint32: isTerminal <- prod.isTerm
-                print("    => Set/Rec: %i`crntPos`/%i`SRec_key`, prodID:%i`SRec->productionID` ")
+                print('    => Set/Rec: %i`crntPos` / %i`SRec_key`, prodID:%i`SRec->productionID` ') //, crntPos, SRec_key, SRec.productionID)
                 if((isTerminal and SRec.SeqPosition==1)
                     or  (!isTerminal and ProdType!=parseREP and SRec.SeqPosition==prod.items.size())){             // COMPLETER
                     complete(SRec, crntPos)
@@ -313,30 +336,18 @@ def appendRule(ruleName, termOrNot, pFlags, prodData):
         rules.append([ruleName, termOrNot, pFlags, prodData])
     return ruleName
 
+definedRules={}
+
 def populateBaseRules():
-    appendRule('lBrace', "term", "parseSEQ",  '{')
-    appendRule('rBrace', "term", "parseSEQ",  '}')
-    appendRule('lParen', "term", "parseSEQ",  '(')
-    appendRule('rParen', "term", "parseSEQ",  ')')
-    appendRule('lBrckt', "term", "parseSEQ",  '[')
-    appendRule('rBrckt', "term", "parseSEQ",  ']')
-    appendRule('Space',  "term", "parseSEQ",  ' ')
-    appendRule('comma',  "term", "parseSEQ",  ',')
-    #appendRule('quote2', "term", "parseSEQ",  '\\"')
-    appendRule('quote1', "term", "parseSEQ",  "'")
-    appendRule('quoteBack', "term", "parseSEQ",  '`')
-    appendRule('bang',   "term", "parseSEQ",  '!')
-    appendRule('period', "term", "parseSEQ",  '.')
-    appendRule('slash',  "term", "parseSEQ",  '/')
-    appendRule('question', "term", "parseSEQ",  '?')
-    appendRule('colon',  "term", "parseSEQ",  ':')
-    appendRule('minus',  "term", "parseSEQ",  '-')
-    appendRule('plus',   "term", "parseSEQ",  '+')
-    appendRule('equals', "term", "parseSEQ",  '=')
-    appendRule('star',   "term", "parseSEQ",  '*')
-    appendRule('lessThan', "term", "parseSEQ",'<')
-    appendRule('greaterThan',"term","parseSEQ",'>')
-    appendRule('atSign', "term", "parseSEQ",  '@')
+    definedRulePairs=[['{','lBrace'],  ['}','rBrace'], ['(','lParen'],  [')','rParen'],  ['[','lBrckt'],  [']','rBrckt'],  [' ','space'],  [',','comma'],
+            ['!','bang'],  ['.','period'],  ['/','slash'],  ['?','question'],  [':','colon'],  ['`','quoteBack'],  ["'",'quote1'],  [r'\"','quote2'],
+            ['-','minus'],  ['+','plus'],  ['=','equals'],  ['*','star'], ['<','lessThan'],  ['>','grtrThan'],  ['@','atSign'], ['#','hashMark'],  ['$','dollarSign'],
+            ['%','percent'],  ['^','carot'], ['~','tilde'], ['_','underscore'],  ['|','bar'], [r'\\','backSlash'],  [';','semiColon'] ]
+
+    for pair in definedRulePairs:
+        appendRule(pair[1], "term", "parseSEQ",  pair[0])
+        definedRules[pair[0]]=pair[1]
+
 
 def fetchOrWriteParseRule(modelName, field):
     print "WRITE PARSE RULE:", modelName, field
@@ -350,7 +361,8 @@ def fetchOrWriteParseRule(modelName, field):
     nameOut=None
     if fieldOwner=='const':
         if fieldType=='string':
-            nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
+            if fieldValue in definedRules: nameOut=definedRules[fieldValue]
+            else: nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
         elif fieldType[0:4]=='uint':   nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
         elif fieldType[0:3]=='int':    nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
         elif fieldType[0:6]=='double': nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
@@ -366,7 +378,7 @@ def fetchOrWriteParseRule(modelName, field):
         elif fieldType[0:6]=='double': nameOut=appendRule(nameIn, "term", "parseRadix", None)
         elif fieldType[0:4]=='char':   nameOut=appendRule(nameIn, "term", "parseChar",  None)
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn, "term", "parseBool",  None)
-        elif progSpec.isStruct(fieldType): pass #     nameOut=appendRule(nameIn, "nonterm", "parseSEQA", [123,456,789])
+        elif progSpec.isStruct(fieldType): nameOut='parse_'+fieldType[0]
         elif progSpec.isAlt(fieldType):
             pass
         elif progSpec.isOpt(fieldType):

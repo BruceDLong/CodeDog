@@ -147,6 +147,7 @@ def findModelOf(objMap, structName):
     return objMap[0][modelName]
 
 def isStruct(fieldType):
+    print "IS_STRUCT:", fieldType
     if isinstance(fieldType, basestring): return False
     return True
 

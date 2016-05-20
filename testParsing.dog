@@ -19,6 +19,12 @@ langToGen="CPP"
 
 featuresNeeded = {}
 
+runCode=`
+    EParser parser;
+    parser.populateGrammar();
+    parser.initPosStateSets(parser.parse_testParse, "[Robert]");
+    parser.doParse();
+`
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`
 
@@ -46,7 +52,7 @@ struct personRec::HRForm auto
 
 string date::strForm {
     > int32:month
-     ", "
+     ","
     > int32:date
     > int32:year
 }
@@ -57,8 +63,14 @@ string personRec::strForm {
     > me int32:  age
     > me string: name
     > me string: address
-    > me date_mem:   birthday
+  //  > me date_strForm:   birthday
+  //  > me {me int32: height me int32: weight}: measurements
 }
 
+string testParse{
+    '['
+    'Robert'
+    ']'
+}
 
 do Write_Main(xyz)
