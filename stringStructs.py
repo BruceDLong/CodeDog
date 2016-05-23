@@ -76,11 +76,13 @@ struct production{
             if(SeqPos>0) {print(" > ")}
             print(', Origin:%i`originPos`')
         } else {
+            if(ProdType==parseALT and SeqPos==0) {print(" > ")}
             withEach p in items:{
-                if(p_key==SeqPos and ProdType!=parseREP){ print(" > ")}
+                if(ProdType == parseSEQ and p_key == SeqPos){ print(" > ")}
                 print('%i`p` ')
             }
-            if(ProdType==parseREP){ print('(POS:%i`SeqPos`)')}
+            if(ProdType==parseREP){ print('(Len:%i`SeqPos`)')}
+            else {if ((p_key == SeqPos and ProdType == parseSEQ or (ProdType==parseALT and SeqPos>0))) {print(" > ")}}
             print(', Origin:%i`originPos` ')
         }
         print("] ")
@@ -138,7 +140,7 @@ struct EParser{
     }
 
     me void: addProductionToStateSet(me uint32: crntPos, me uint32: productionID, me uint32: SeqPos, me uint32: origin, our stateRec: prev, our stateRec: child) <- {
-        print('############ ADDING rule %i`productionID` at char slot %i`crntPos`... ')
+        print('############ ADDING rule %i`productionID` at char slot %i`crntPos` at POS %i`SeqPos`... ')
         withEach item in SSets[crntPos].stateRecs:{ // Don't add duplicates.
             // TODO: change this to be faster. Not a linear search.
             if(item.productionID==productionID and item.SeqPosition==SeqPos and item.originPos==origin){
@@ -152,12 +154,14 @@ struct EParser{
             print(" <PARSE PASSED!> ")
         }
         me uint32: ProdType <- prod.prodType
-        if(ProdType == parseSEQ or ProdType == parseREP){
+        if(ProdType == parseSEQ or ProdType == parseREP or ProdType == parseALT){
             prod.print(SeqPos, origin)
             our stateRec: newStateRecPtr newStateRecPtr.allocate(productionID, SeqPos, origin, prev, child)
             SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
             print(' ADDED \n')
-        } else {if(ProdType == parseALT){
+        }
+
+        if(ProdType == parseALT and SeqPos==0){
             print("  ALT-LIST\n")
             withEach AltProd in prod.items:{
                 print("                                  ALT: ")
@@ -165,7 +169,6 @@ struct EParser{
             }
         } else {print("  Unknown ProductionType:", ProdType)}
         print("\n")
-        }
     }
 
     me void: initPosStateSets(me uint64: startProd, me string: txt) <- {
@@ -202,25 +205,43 @@ struct EParser{
         print('        COMPLETING: check items at origin %i`SRec->originPos`... \n')
         their stateSets: SSet  <- SSets[SRec.originPos]
         withEach backSRec in SSet.stateRecs:{
-            me uint32[list uint32]: items <- grammar[backSRec.productionID].items
+            their production: backProd <- grammar[backSRec.productionID]
             print('                Checking Item #%i`backSRec_key`: ')
             //print('************* SRec.child=%p`SRec->child`, %p`backSRec`\n')
-            if(grammar[backSRec.productionID].prodType==parseREP){
-                print(" Item is REP ")
-                me uint32: MAX_ITEMS  <- items[2]
-                if((backSRec.SeqPosition < MAX_ITEMS) and items[0] == SRec.productionID){
-                    addProductionToStateSet(crntPos, backSRec.productionID, backSRec.SeqPosition+1, backSRec.originPos, backSRec, SRec)
+            me uint32: prodTypeFlag <- backProd.prodType
+            me uint32: backSRecSeqPos <- backSRec.SeqPosition
+            if(prodTypeFlag==parseREP){
+                print(" ADVANCING REP: ")
+                me uint32: MAX_ITEMS  <- backProd.items[2]
+                if((backSRecSeqPos < MAX_ITEMS or MAX_ITEMS==0) and backProd.items[0] == SRec.productionID){
+                    addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
+                } else{print("\n")}
 
+            } else {if(prodTypeFlag==parseSEQ){
+                if(backSRecSeqPos < backProd.items.size() and backProd.items[backSRecSeqPos] == SRec.productionID){
+                    print(" ADVANCING SEQ: ")
+                    addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
+                } else {print(" Item is NOT ADVANCING  \n")}
+            } else {if(prodTypeFlag==parseALT){
+                withEach backAltProdID in backProd.items:{
+                    if(backSRecSeqPos == 0 and backAltProdID==SRec.productionID){
+                        print(" ADVANCING ALT: ")
+                        addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
+                    }
                 }
-
-            } else {
-                if((isTerm and backSRec.SeqPosition > 0) or (items.size()>backSRec.SeqPosition and items[backSRec.SeqPosition] == SRec.productionID)){
-                    print(" Item is COMPLETE: ")
-                    addProductionToStateSet(crntPos, backSRec.productionID, backSRec.SeqPosition+1, backSRec.originPos, backSRec, SRec)
-                } else {print(" Item is NOT COMPLETED  \n")}
+            }}
             }
         }
         print("\n")
+    }
+
+    me bool: ruleIsDone(me bool: isTerminal, me uint32: seqPos, me uint32: ProdType, me uint32: numItems)<-{
+        if(isTerminal and seqPos==1) {return(true)}
+        if(!isTerminal){
+            if(ProdType==parseSEQ and seqPos==numItems) {return(true)}
+            if(ProdType==parseALT and seqPos==1) {return(true)}
+        }
+        return(false)
     }
 
     me bool: doParse() <- {
@@ -236,9 +257,15 @@ struct EParser{
                 their production: prod <- grammar[SRec.productionID]
                 me uint32: ProdType <- prod.prodType
                 me uint32: isTerminal <- prod.isTerm
+                me uint32: seqPos <- SRec.SeqPosition
                 print('    Processing Record #%i`SRec_key`, prodID:%i`SRec->productionID`... ')
-                if((isTerminal and SRec.SeqPosition==1)
-                    or  (!isTerminal and ProdType!=parseREP and SRec.SeqPosition==prod.items.size())){             // COMPLETER
+        /*        if((isTerminal and seqPos==1)
+                    or  (!isTerminal and (
+                        (ProdType==parseSEQ and seqPos==prod.items.size())  or
+                        (ProdType==parseALT and seqPos==1)
+                        )
+                    )) */
+                if(ruleIsDone(isTerminal, seqPos, ProdType, prod.items.size())){             // COMPLETER
                     complete(SRec, crntPos)
                 }else{
                     if(isTerminal){       // SCANNER
@@ -252,8 +279,8 @@ struct EParser{
                         if(ProdType == parseREP){
                             me uint32: MIN_ITEMS <- prod.items[1]
                             me uint32: MAX_ITEMS <- prod.items[2]
-                            me bool: must_be   <- SRec.SeqPosition<MIN_ITEMS
-                            me bool: cannot_be <- SRec.SeqPosition>MAX_ITEMS and (MAX_ITEMS!=0)
+                            me bool: must_be   <- seqPos < MIN_ITEMS
+                            me bool: cannot_be <- seqPos > MAX_ITEMS and (MAX_ITEMS!=0)
                             if(!must_be){
                                 complete(SRec, crntPos)
                                 print("         REP (TENT): ")
@@ -264,7 +291,7 @@ struct EParser{
                             }}
                         } else { // Not a REP
                             print("         SEQ|ALT: ")
-                            addProductionToStateSet(crntPos, prod.items[SRec.SeqPosition], 0, crntPos, 0, 0)
+                            addProductionToStateSet(crntPos, prod.items[seqPos], 0, crntPos, 0, 0)
                         }
                     }
                 }
@@ -391,7 +418,9 @@ def fetchOrWriteParseRule(modelName, field):
             print "Unusable type in fetchOrWriteParseRule():", fieldType; exit(2);
     else: print "Pointer types not yet handled in fetchOrWriteParseRule():", fieldType; exit(2);
 
-    if typeSpec['arraySpec']: nameOut=appendRule(nameIn, "nonterm", "parseREP", [crntIdx, 0, 0])
+    if typeSpec['arraySpec']:
+        global rules
+        nameOut=appendRule(nameOut+'REP', "nonterm", "parseREP", [nameOut, 0, 0])
 
 
     return nameOut

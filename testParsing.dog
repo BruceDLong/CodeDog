@@ -72,7 +72,7 @@ string numChar["1" | "2" | "3" | "4"]
 string testParse{
     "["
     "Robert"
-    > numChar
+    > numChar[list uint32]: numbStr
     "]"
 }
 
