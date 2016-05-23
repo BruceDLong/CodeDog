@@ -171,7 +171,7 @@ def processFlagAndModeFields(objects, objectName, tags):
             count=0
             structEnums += "\nenum " + fieldName +" {"
             for enumName in field['typeSpec']['enumList']:
-                structEnums += enumName+"="+hex(count<<bitCursor)
+                structEnums += enumName+"="+hex(count)
                 count=count+1
                 if(count<enumSize): structEnums += ", "
             structEnums += "};\n";
@@ -631,7 +631,7 @@ def processAction(action, indent):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
         LHS = codeStr
         [S2, rhsType]=codeExpr(action['RHS'][0])
-        print "RHS:", S2, typeSpec, rhsType
+        #print "RHS:", S2, typeSpec, rhsType
         [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
         RHS = leftMod+S2+rightMod
         assignTag = action['assignTag']
@@ -642,13 +642,13 @@ def processAction(action, indent):
                 divPoint=startPointOfNamesLastSegment(LHS)
                 LHS_Left=LHS[0:divPoint]
                 bitMask =LHS[divPoint+1:]
-                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+", "+ RHS+");\n"
+                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+", "+ RHS + ");\n"
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS
             elif LHS_FieldType=='mode':
                 divPoint=startPointOfNamesLastSegment(LHS)
                 LHS_Left=LHS[0:divPoint]
                 bitMask =LHS[divPoint+1:]
-                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+"Mask, "+ RHS+");\n"
+                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+"Mask, "+ RHS+"<<" +bitMask+"Offset"+");\n"
             else:
                 actionText = indent + LHS + " = " + RHS + ";\n"
         else:

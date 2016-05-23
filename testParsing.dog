@@ -22,7 +22,7 @@ featuresNeeded = {}
 runCode=`
     EParser parser;
     parser.populateGrammar();
-    parser.initPosStateSets(parser.parse_testParse, "[Robert]");
+    parser.initPosStateSets(parser.parse_testParse, "[Robert2]");
     parser.doParse();
 `
 
@@ -67,10 +67,13 @@ string personRec::strForm {
   //  > me {me int32: height me int32: weight}: measurements
 }
 
+string numChar["1" | "2" | "3" | "4"]
+
 string testParse{
-    '['
-    'Robert'
-    ']'
+    "["
+    "Robert"
+    > numChar
+    "]"
 }
 
 do Write_Main(xyz)
