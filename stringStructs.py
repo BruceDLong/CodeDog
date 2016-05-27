@@ -46,10 +46,10 @@ def genParserCode():
 
     code= r"""
 struct stateRec{
-   // stateRec(me uint32: prodID, me uint32: SeqPos, me uint32: origin, stateRec* Prev, stateRec* Child):productionID(prodID), SeqPosition(SeqPos), originPos(origin), prev(Prev), child(Child){}
     me uint32: productionID
     me uint32: SeqPosition
     me uint32: originPos
+    me uint32: crntPos
     our stateRec: prev
     our stateRec: child
 }
@@ -63,7 +63,7 @@ struct stateSets{
 
 struct production{
     flag: isTerm
-    mode[parseSEQ, parseALT, parseREP, parseOPT, parseInt, parseUint, parseQuoted1String, parseQuoted2String, parseBool, parseRadix, parseChar]: prodType
+    mode[parseSEQ, parseALT, parseREP, parseOPT, parseAUTO]: prodType
     me string: constStr
     me uint32[list uint32]: items
     void: print(me uint32: SeqPos, me uint32: originPos) <- {
@@ -96,6 +96,7 @@ struct EParser{
     me stateSets[list uint32]: SSets
     me production[list uint32]: grammar
     me bool: parseFound
+    our stateRec: LastTopLevelItem
 
     void: clearGrammar() <- {grammar.clear()}
     void: addTerminalProd(me string: name, me uint32: ProdType, me string: s) <- {
@@ -149,14 +150,19 @@ struct EParser{
             }
         }
         their production: prod <- grammar[productionID]
-        if(productionID==startProduction and SeqPos==prod.items.size() and origin==0){
-            parseFound <- true
-            print(" <PARSE PASSED!> ")
+        me bool: thisIsTopLevelItem <- false
+        if(productionID==startProduction and origin==0){
+            thisIsTopLevelItem <- true
+            if(SeqPos==prod.items.size()){
+                parseFound <- true
+                print(" <PARSE PASSED!> ")
+            }
         }
         me uint32: ProdType <- prod.prodType
         if(ProdType == parseSEQ or ProdType == parseREP or ProdType == parseALT){
             prod.print(SeqPos, origin)
-            our stateRec: newStateRecPtr newStateRecPtr.allocate(productionID, SeqPos, origin, prev, child)
+            our stateRec: newStateRecPtr newStateRecPtr.allocate(productionID, SeqPos, origin, crntPos, prev, child)
+            if(thisIsTopLevelItem) {LastTopLevelItem <- newStateRecPtr}
             SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
             print(' ADDED \n')
         }
@@ -183,20 +189,25 @@ struct EParser{
         addProductionToStateSet(0, startProduction, 0, 0, 0,0)
     }
 
-    void: resolve() <- {}
-
-    me uint32: textMatches(their production: Prod, me uint32: pos) <- {
+    me uint32: textMatches(me uint32: ProdID, me uint32: pos) <- {
+        their production: Prod <- grammar[ProdID]
         print('    MATCHING "%s`Prod->constStr.data()`"... ')
-        me uint32: L <- Prod.constStr.size()
-        if(true){ //prod is simple text match
+        me uint32: prodType <- Prod.prodType
+        if(prodType==parseSEQ){ //prod is simple text match
+            me uint32: L <- Prod.constStr.size()
             if(pos+L > textToParse.size()){print("FAILED (target string too short)\n") return(0)}
             withEach i in RANGE(0 .. L):{
                 if( Prod.constStr[i] != textToParse[pos+i]) {print("FAILED\n") return(0)}
             }
             print("PASSED\n")
             return(L)
-        } else{
-        }
+        } else{if(prodType==parseAUTO){
+            me uint32: len <- 0
+ //           if(streamEOF()){print"Unexpected end of file.\n"; exit(2);}
+ //           if(ProdID==ws)  {withEach ch in stream until(!isalpha(ch)): heach(char)}
+ //           if(ProdID==alphaSeq)  {withEach ch in stream until(!isalpha(ch)): heach(char)}
+ //           if(ProdID==quotedStr1){withEach ch in stream until(!isalpha(ch)): heach(char)}
+        }}
         print("Huh???\n")
         return(0)
     }
@@ -270,7 +281,7 @@ struct EParser{
                 }else{
                     if(isTerminal){       // SCANNER
                         // print("SCANNING \n") // Scanning means Testing for a Matching terminal
-                        me uint32: len <- textMatches(prod, crntPos)
+                        me uint32: len <- textMatches(SRec.productionID, crntPos)
                         if(len>0){ // if match succeeded
                             addProductionToStateSet(crntPos+len, SRec.productionID, 1, crntPos, 0, 0)
                         }
@@ -299,6 +310,12 @@ struct EParser{
         }
         print("\n\n#####################################\n")
         dump()
+    }
+
+    me uint32: resolve(our stateRec: LastTopLevelItem) <- {
+        our stateRec: crntRec <- LastTopLevelItem
+        me uint32: seqPow <- crntRec.SeqPosition
+        their production: Prod <- grammar[crntRec.crntPos]
     }
 }
     """
@@ -365,6 +382,7 @@ def appendRule(ruleName, termOrNot, pFlags, prodData):
         rules.append([ruleName, termOrNot, pFlags, prodData])
     return ruleName
 
+
 definedRules={}
 
 def populateBaseRules():
@@ -376,6 +394,22 @@ def populateBaseRules():
     for pair in definedRulePairs:
         appendRule(pair[1], "term", "parseSEQ",  pair[0])
         definedRules[pair[0]]=pair[1]
+
+    # Define common string formats
+    appendRule('alphaSeq',  'term', 'parseAUTO', "alphabetic string")
+    appendRule('uintSeq',   'term', 'parseAUTO', '(0123456789)[]')
+    appendRule('intSeq',    'term', 'parseAUTO', '+-(0123456789)[]')
+    appendRule('RdxSeq',    'term', 'parseAUTO', '+-(0123456789)[].(0123456789)[]')
+    appendRule('ws',        'term', 'parseAUTO', 'white space[]')
+    appendRule('quotedStr1','term', 'parseAUTO', "Single quoted string with escapes")
+    appendRule('quotedStr2','term', 'parseAUTO', "Double quoted string with escapes")
+    appendRule('CID',       'term', 'parseAUTO', 'C-like identifier')
+    appendRule('UniID',     'term', 'parseAUTO', 'Unicode identifier. Uses current Locale.')
+    appendRule('printables','term', 'parseAUTO', "Seq of printable ascii chars")
+    appendRule('toEOL',     'term', 'parseAUTO', "Read chars to End Of Line, including EOL.")
+    # TODO: delimited List, keyWord
+
+
 
 
 def fetchOrWriteParseRule(modelName, field):
@@ -401,12 +435,12 @@ def fetchOrWriteParseRule(modelName, field):
             print "Unusable const type in fetchOrWriteParseRule():", fieldType; exit(2);
 
     elif fieldOwner=='me':
-        if fieldType=='string':        nameOut=appendRule(nameIn, "term", "parseQuoted2String", None)
-        elif fieldType[0:4]=='uint':   nameOut=appendRule(nameIn, "term", "parseREP",  "0123456789")
-        elif fieldType[0:3]=='int':    nameOut=appendRule(nameIn, "term", "parseInt",   None)
-        elif fieldType[0:6]=='double': nameOut=appendRule(nameIn, "term", "parseRadix", None)
-        elif fieldType[0:4]=='char':   nameOut=appendRule(nameIn, "term", "parseChar",  None)
-        elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn, "term", "parseBool",  None)
+        if fieldType=='string':        nameOut='quotedStr1'
+        elif fieldType[0:4]=='uint':   nameOut='uintSeq'
+        elif fieldType[0:3]=='int':    nameOut='intSeq'
+        elif fieldType[0:6]=='double': nameOut='RdxSeq'
+        elif fieldType[0:4]=='char':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
+        elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif progSpec.isStruct(fieldType): nameOut='parse_'+fieldType[0]
         elif progSpec.isAlt(fieldType):
             pass

@@ -24,6 +24,7 @@ runCode=`
     parser.populateGrammar();
     parser.initPosStateSets(parser.parse_testParse, "[Robert2]");
     parser.doParse();
+    parser.resolve(parser.LastTopLevelItem);
 `
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`
