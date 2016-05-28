@@ -123,7 +123,7 @@ struct EParser{
             print('SLOT: %i`crntPos` (%s`ch.data()`) - size:%i`(int)SSet->stateRecs.size()`\n')
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
-                print('    %p`SRec` (%p`SRec->child`, %p`SRec->prev`): ')
+                print('    (%p`SRec` -> cause: %p`SRec->child`, pred:%p`SRec->prev`): ')
                 prod.print(SRec.SeqPosition, SRec.originPos)
                 print("\n")
             }
@@ -277,13 +277,13 @@ struct EParser{
                         )
                     )) */
                 if(ruleIsDone(isTerminal, seqPos, ProdType, prod.items.size())){             // COMPLETER
-                    complete(SRec, crntPos)
+                    complete(SRec, crntPos)  // Notate that SEQ is finished, actually add parent's follower.
                 }else{
                     if(isTerminal){       // SCANNER
                         // print("SCANNING \n") // Scanning means Testing for a Matching terminal
                         me uint32: len <- textMatches(SRec.productionID, crntPos)
                         if(len>0){ // if match succeeded
-                            addProductionToStateSet(crntPos+len, SRec.productionID, 1, crntPos, 0, 0)
+                            addProductionToStateSet(crntPos+len, SRec.productionID, 1, crntPos, SRec, 0)  // Notate that terminal is finished, mark for adding parent's follower.
                         }
                     }else{ // non-terminal                           // PREDICTOR
                         print("NON_TERMINAL \n")
@@ -295,14 +295,14 @@ struct EParser{
                             if(!must_be){
                                 complete(SRec, crntPos)
                                 print("         REP (TENT): ")
-                                addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, 0, 0) // Tentative
+                                addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, SRec, 0) // Tentative
                             } else {if(!cannot_be){
                                 print("         REP: ")
-                                addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, 0, 0)
+                                addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, SRec, 0)
                             }}
                         } else { // Not a REP
                             print("         SEQ|ALT: ")
-                            addProductionToStateSet(crntPos, prod.items[seqPos], 0, crntPos, 0, 0)
+                            addProductionToStateSet(crntPos, prod.items[seqPos], 0, crntPos, SRec, 0)  // Add a child SEQ with cursor at the very beginning. (0)
                         }
                     }
                 }
@@ -313,9 +313,19 @@ struct EParser{
     }
 
     me uint32: resolve(our stateRec: LastTopLevelItem) <- {
+        if(!LastTopLevelItem){print("\nStateRecPtr is null.\n\n") exit(1)}
+        print("\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n", LasTTopLevelItem.SeqPosition, "\n")
         our stateRec: crntRec <- LastTopLevelItem
-        me uint32: seqPow <- crntRec.SeqPosition
-        their production: Prod <- grammar[crntRec.crntPos]
+        me uint32: seqPos <- crntRec.SeqPosition
+        their production: Prod <- grammar[crntRec.productionID]
+
+        if(Prod.isTerm){
+        } else{
+            withEach subItem in Backward RANGE(0 .. seqPos):{
+                resolve(crntRec.child)
+                crntRec <- crntRec.prev
+            }
+        }
     }
 }
     """

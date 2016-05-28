@@ -692,9 +692,9 @@ def processAction(action, indent):
             #print "RANGE:", S_low, "..", S_hi
             ctrlVarsTypeSpec = lowValType
             if(traversalMode=='Forward' or traversalMode==None):
-                actionText += indent + "for( auto " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
+                actionText += indent + "for( int64_t " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
             elif(traversalMode=='Backward'):
-                actionText += indent + "for( auto " + repName+'='+ S_hi + "; " + repName + "!=" + S_low +"; --"+ repName + "){\n"
+                actionText += indent + "for( int64_t " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
 
         else: # interate over a container
             #print "ITERATE OVER", action['repList'][0]
