@@ -17,10 +17,17 @@ You should have received a copy of the GNU General Public License along with the
 
 langToGen="CPP"
 
-featuresNeeded = {GraphicsModes = 'GUI' Mouse='GUI' Keyboard='GUI' Audio='GUI'}
+featuresNeeded = {}
 
+runCode=`
+    EParser parser;
+    parser.populateGrammar();
+    parser.initPosStateSets(parser.parse_testParse, "[Robert2]");
+    parser.doParse();
+    parser.resolve(parser.LastTopLevelItem);
+`
 
-Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>`
+Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`
 
 #include libraryTags.dog
 
@@ -46,7 +53,7 @@ struct personRec::HRForm auto
 
 string date::strForm {
     > int32:month
-    ". "
+     ","
     > int32:date
     > int32:year
 }
@@ -57,5 +64,17 @@ string personRec::strForm {
     > me int32:  age
     > me string: name
     > me string: address
-    > me date_mem:   birthday
+  //  > me date_strForm:   birthday
+  //  > me {me int32: height me int32: weight}: measurements
 }
+
+string numChar["1" | "2" | "3" | "4"]
+
+string testParse{
+    "["
+    "Robert"
+    > numChar[list uint32]: numbStr
+    "]"
+}
+
+do Write_Main(xyz)

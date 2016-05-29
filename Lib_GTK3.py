@@ -5,6 +5,20 @@ import codeDogParser
 
 def createUtilityFunctions():
     S="""
+
+
+    // LOGGING INTERFACE:
+    me void: logMesg(me string: s) <- <%!g_message(%1)%>
+    me void: logInfo(me string: s) <- <%!g_info(%1)%>
+    me void: logCriticalIssue(me string: s) <- <%!g_critical(%1)%>
+    me void: logFatalError(me string: s) <- <%!g_error(%1)%>
+    me void: logWarning(me string: s) <- <%!g_warning(%1)%>
+    me void: logDebug(me string: s) <- <%!g_debug(%1)%>
+    //me void: assert(condition) <- {}
+
+
+// GUI INTERFACE:
+
 /* Surface to store current scribbles */
 their cairo_surface_t: surface <- 0
 
@@ -70,7 +84,10 @@ their GtkWidget: create_menu(me gint: depth) <- <%{
 }
 %>
 
-me void: showWidget(their GtkWidget: widget) <-  <%!gtk_widget_show(%1)%>
+me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(cr, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
+me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(%1)%>
+me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
+me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
 
 me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: callback) <- <% {
     g_signal_connect(widget, eventID.data(), G_CALLBACK (callback), NULL);
@@ -132,6 +149,10 @@ def use(objects, buildSpec, tags, platform):
     print "USING GTK3"
 
     CODE="""
+
+    struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
+
+
     struct GUI_item{their GtkWidget: GUI_item}
     struct GUI_menuBar{their GtkWidget: GUI_menuBar}
     struct GUI_menu{their GtkWidget: GUI_menu}

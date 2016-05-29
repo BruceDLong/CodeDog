@@ -3,6 +3,7 @@
 import re
 import progSpec
 from pyparsing import *
+ParserElement.enablePackrat()
 
 
 def reportParserPlace(s, loc, toks):
@@ -11,7 +12,7 @@ def reportParserPlace(s, loc, toks):
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
-identifier = Word(alphas + nums + "_-")("identifier")
+identifier = Word(alphas + nums + "_")("identifier")
 tagID = identifier("tagID")
 tagDefList = Forward()
 tagValue = Forward()
@@ -30,6 +31,7 @@ buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 #buildSpec.setParseAction(reportParserPlace)
 
 #######################################   B A S I C   T Y P E S
+expr = Forward()
 CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
 objectName = CID("objectName")
@@ -38,14 +40,13 @@ intNum = Word(nums)("intNum")
 numRange = intNum + ".." + intNum("numRange")
 varType = (objectName | cppType | numRange)("varType")
 boolValue = (Keyword("true") | Keyword("false"))("boolValue")
-floatNum = intNum + Optional("." + intNum)("floatNum")
+floatNum = Combine(intNum + "." + intNum)("floatNum")
 value = Forward()
-listVal = "[" + delimitedList(value, ",") + "]"
-strMapVal = "{" + delimitedList( quotedString() + ":" + value, ",")  + "}"
-value <<= (boolValue | intNum | floatNum | quotedString() | listVal | strMapVal)("value")
+listVal = "[" + delimitedList(expr, ",") + "]"
+strMapVal = "{" + delimitedList( quotedString() + ":" + expr, ",")  + "}"
+value <<= (boolValue | floatNum | intNum | quotedString() | listVal | strMapVal)("value")
 
 #######################################   E X P R E S S I O N S
-expr = Forward()
 parameters = Forward()
 owners = Forward()
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
@@ -94,8 +95,8 @@ funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
           (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + "<-" + funcBody )         # Function Definition
-        | (Literal(":") + CID("fieldName")  + "<-" + value("givenValue"))
-        | (Literal(":") + "<-" + (value("givenValue") | funcBody))
+        | (Literal(":") + CID("fieldName")  + "<-" + rValue("givenValue"))
+        | (Literal(":") + "<-" + (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
     )("nameAndVal")
 
@@ -115,7 +116,7 @@ sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
 alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
 anonModel = (sequenceEl | alternateEl) ("anonModel")
 owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their"))
-fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | anonModel)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
+fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | Group(anonModel))('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | quotedString()('constStr') | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
@@ -371,13 +372,13 @@ def extractBuildSpecs(buildSpecResults):
     #print resultBuildSpecs
     return resultBuildSpecs
 
-def extractObjectSpecs(localProgSpec, objNames, spec, stateType):
+def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
     #print spec
     objectName=spec.objectName[0]
     configType="unknown"
     if(spec.sequenceEl): configType="SEQ"
     elif(spec.alternateEl):configType="ALT"
-    progSpec.addObject(localProgSpec, objNames, objectName, stateType, configType)
+    progSpec.addObject(ProgSpec, objNames, objectName, stateType, configType)
     ###########Grab optional Object Tags
     if spec.optionalTag:  #change so it generates an empty one if no field defs
         #print "SSSSSSSSSSSSSSSSSSSSSSSSSspec.tagDefList = ",spec.tagDefList
@@ -386,32 +387,32 @@ def extractObjectSpecs(localProgSpec, objNames, spec, stateType):
     else:
         objTags = {}
         #fieldIDX = 3
-    progSpec.addObjTags(localProgSpec, objectName, objTags)
+    progSpec.addObjTags(ProgSpec, objectName, objTags)
     ###########Grab field defs
     if(spec[2]=='auto'):
-        progSpec.markStructAuto(localProgSpec, objectName)
+        progSpec.markStructAuto(ProgSpec, objectName)
     else:
         #print "SPEC.FIELDDEFS",spec.fieldDefs
-        extractFieldDefs(localProgSpec, objectName, spec.fieldDefs)
+        extractFieldDefs(ProgSpec, objectName, spec.fieldDefs)
 
     return
 
-def extractPatternSpecs(localProgSpec, objNames, spec):
+def extractPatternSpecs(ProgSpec, objNames, spec):
     #print spec
     patternName=spec.objectName[0]
     patternArgWords=spec.CIDList
-    progSpec.addPattern(localProgSpec, objNames, patternName, patternArgWords)
+    progSpec.addPattern(ProgSpec, objNames, patternName, patternArgWords)
     return
 
-def extractObjectOrPattern(localProgSpec, objNames, objectSpecResults):
+def extractObjectsOrPatterns(ProgSpec, objNames, objectSpecResults):
     for spec in objectSpecResults:
         s=spec[0]
         if s == "model" or s == "struct" or s == "string" or s == "stream":
-            extractObjectSpecs(localProgSpec, objNames, spec, s)
+            extractObjectSpecs(ProgSpec, objNames, spec, s)
         elif s == "do":
-            extractPatternSpecs(localProgSpec, objNames, spec)
+            extractPatternSpecs(ProgSpec, objNames, spec)
         else:
-            print "Error in extractObjectOrPattern; expected 'object' or 'do' and got '",spec[0],"'"
+            print "Error in extractObjectsOrPatterns; expected 'object' or 'do' and got '",spec[0],"'"
             exit(1)
 
 
@@ -438,10 +439,10 @@ def parseCodeDogString(inputString):
     #print results.buildSpecList
     buildSpecs = extractBuildSpecs(results.buildSpecList)
     #print results.objectList
-    localProgSpec = {}
+    ProgSpec = {}
     objNames = []
-    extractObjectOrPattern(localProgSpec, objNames, results.objectList)
-    objectSpecs = [localProgSpec, objNames]
+    extractObjectsOrPatterns(ProgSpec, objNames, results.objectList)
+    objectSpecs = [ProgSpec, objNames]
     return[tagStore, buildSpecs, objectSpecs]
 
 def AddToObjectFromText(spec, objNames, inputStr):
@@ -451,4 +452,4 @@ def AddToObjectFromText(spec, objNames, inputStr):
     # (map of objects, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
     #print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'
-    extractObjectOrPattern(spec, objNames, results[0])
+    extractObjectsOrPatterns(spec, objNames, results[0])
