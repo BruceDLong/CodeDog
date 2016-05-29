@@ -628,6 +628,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
     globalFuncs=''
     funcDefCode=''
     structCode=""
+    funcText=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
         localArgsAllocated=[]
@@ -657,80 +658,61 @@ def processOtherStructFields(objects, objectName, tags, indent):
             else:
                 #print convertedType
                 convertedType+=''
-
         ##### Generate function header for both decl and defn.
-            if(objectName=='GLOBAL'):
-                if fieldName=='main':
-                    funcDefCode += 'int main(int argc, char *argv[])'
-                    localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
-                    localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
-                else:
-                    #print "FIELD: ", field
-                    argList=field['typeSpec']['argList']
-                    #print "ARG LIST: ", argList, len(argList)
-                    argListText=""
-                    if (len(argList)>0):
-                        if argList[0]=='<%':
-                            argListText=argList[1][0]
-                        else:
-
-                            count=0
-                            for arg in argList:
-                                if(count>0): argListText+=", "
-                                count+=1
-                                argTypeSpec =arg['typeSpec']
-                                argFieldName=arg['fieldName']
-                                argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
-                                localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
-
-                    globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")"
+            argList=field['typeSpec']['argList']
+            if len(argList)==0:
+                argListText='' #'void'
+            elif argList[0]=='<%':
+                argListText=argList[1][0]
             else:
-                argList=field['typeSpec']['argList']
-                if len(argList)==0:
-                    argListText='' #'void'
-                elif argList[0]=='<%':
-                    argListText=argList[1][0]
-                else:
-                    argListText=""
-                    count=0
-                    for arg in argList:
-                        if(count>0): argListText+=", "
-                        count+=1
-                        argTypeSpec =arg['typeSpec']
-                        argFieldName=arg['fieldName']
-                        argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
-                        localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
-                #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
-                if(fieldType[0] != '<%'):
-                    registerType(objectName, fieldName, convertedType, typeDefName)
-                else: typeDefName=convertedType
-                LangFormOfObjName = convertObjectNameToCPP(objectName)
-                structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
-                objPrefix=LangFormOfObjName 
-                funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
-
+                argListText=""
+                count=0
+                for arg in argList:
+                    if(count>0): argListText+=", "
+                    count+=1
+                    argTypeSpec =arg['typeSpec']
+                    argFieldName=arg['fieldName']
+                    argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
+                    localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
+            #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
+            if(fieldType[0] != '<%'):
+                registerType(objectName, fieldName, convertedType, typeDefName)
+            else: typeDefName=convertedType
+            LangFormOfObjName = convertObjectNameToCPP(objectName)
+            #structCode += indent + "public static " + typeDefName +' ' + fieldName +"("+argListText+")\n";
+            objPrefix=LangFormOfObjName 
+            if(objectName=='GLOBAL' and fieldName=='main'):
+                #funcDefCode += 'public static void main(String[] args)'
+                structCode += indent + "public static " + typeDefName +' ' + fieldName +"(String[] args)\n";
+                #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
+            elif(objectName=='GLOBAL') :
+                structCode += indent + "public static " + typeDefName + ' ' + fieldName +"("+argListText+")"
+            else: 
+                #funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+                structCode += indent + "public static " + typeDefName +' ' + fieldName +"("+argListText+")\n";
             ##### Generate Function Body
             if (field['value'][1]!=''): # This function body is 'verbatim'.
                 funcText=field['value'][1]
+
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                funcText= indent + processActionSeq(field['value'][0], '    ')
+                structCode += indent + processActionSeq(field['value'][0], '    ')+"\n"
             else:
                 print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
 
-            if(objectName=='GLOBAL'):
+            if(False or objectName=='GLOBAL'):
                 if(fieldName=='main'):
                     funcDefCode += funcText+"\n\n"
                 else: globalFuncs += funcText+"\n\n"
-            else: structCode += funcText+"\n\n"
+            else: structCode += funcText+ "\n" + "\n"
 
-    if(objectName=='GLOBAL'):
-        return [structCode, funcDefCode, globalFuncs]
+        
+    if(False and objectName=='GLOBAL'):
+        return [structCode, funcDefCode]
     else:
         constructCode=generate_constructor(objects, objectName, tags)
         structCode+=constructCode
-
         return [structCode, funcDefCode]
 
 def generateAllObjectsButMain(objects, tags):
@@ -750,13 +732,12 @@ def generateAllObjectsButMain(objects, tags):
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
-            if(objectName != 'GLOBAL' and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
+            if(objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
                 #forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ')
                 structCodeAcc += "\nclass "+LangFormOfObjName+"{\n" + structCode + '};\n'
-                #TODO remove funcCode variable
-                funcCodeAcc=""
+                funcCodeAcc+= funcCode
         currentObjName=''
     return [constsEnums, structCodeAcc, funcCodeAcc]
 
@@ -766,14 +747,13 @@ def processMain(objects, tags):
     #TODO Java-ize this
     #header += addSpecialCode()
     
-    
     if("GLOBAL" in objects[1]):
         if(objects[0]["GLOBAL"]['stateType'] != 'struct'):
             print "ERROR: GLOBAL must be a 'struct'."
             exit(2)
         [structCode, funcCode, globalFuncs]=processOtherStructFields(objects, "GLOBAL", tags, '')
         if(funcCode==''): funcCode="// No main() function.\n"
-        if(structCode==''): structCode="// No Main Globals.\n"
+        if(structCode==''): structCode="// No Main Globals.\n" 
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
@@ -852,9 +832,9 @@ def generate(objects, tags, libsToUse):
     libInterfacesText=connectLibraries(objects, tags, libsToUse)
     header = makeFileHeader(tags)
     [constsEnums, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
-    topBottomStrings = processMain(objects, tags)
-    typeDefCode = produceTypeDefs(typeDefMap)
+    #topBottomStrings = processMain(objects, tags)
+    #typeDefCode = produceTypeDefs(typeDefMap)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
-    outputStr = header + constsEnums + codeHeader + typeDefCode + structCodeAcc + topBottomStrings[0] + funcCodeAcc + topBottomStrings[1]
+    outputStr = header + constsEnums + codeHeader  + structCodeAcc + funcCodeAcc 
     return outputStr

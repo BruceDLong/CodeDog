@@ -26,9 +26,9 @@ TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
 
 testEventHandling = {ID='testEvH' maxEvents='100000' types=[GUI, LogicAtom] runFromMain=1}
 
-initCode="SDL_Init(SDL_INIT_VIDEO+SDL_INIT_AUDIO+SDL_INIT_TIMER)"
-runCode="RunEventLoop()"
-deinitCode="SDL_Quit()"
+initCode=''
+runCode=""
+deinitCode=''
 
 Include=`java.lang.String`
 #include libraryTags.dog
