@@ -22,7 +22,7 @@ featuresNeeded = {}
 runCode=`
     EParser parser;
     parser.populateGrammar();
-    parser.initPosStateSets(parser.parse_testParse, "[Robert2]");
+    parser.initPosStateSets(parser.parse_testParse, "[Robert234'Hello World!']");
     parser.doParse();
     parser.resolve(parser.LastTopLevelItem);
 `
@@ -74,6 +74,7 @@ string testParse{
     "["
     "Robert"
     > numChar[list uint32]: numbStr
+    > me string: worldMesg
     "]"
 }
 

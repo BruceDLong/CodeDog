@@ -159,7 +159,7 @@ struct EParser{
             }
         }
         me uint32: ProdType <- prod.prodType
-        if(ProdType == parseSEQ or ProdType == parseREP or ProdType == parseALT){
+        if(ProdType == parseSEQ or ProdType == parseREP or ProdType == parseALT or ProdType == parseAUTO){
             prod.print(SeqPos, origin)
             our stateRec: newStateRecPtr newStateRecPtr.allocate(productionID, SeqPos, origin, crntPos, prev, child)
             if(thisIsTopLevelItem) {LastTopLevelItem <- newStateRecPtr}
@@ -189,24 +189,142 @@ struct EParser{
         addProductionToStateSet(0, startProduction, 0, 0, 0,0)
     }
 
+
+    me uint32: chkStr(me uint32: pos, me string: s) <- {
+        me uint32: L <- s.size()
+        if(pos+L > textToParse.size()){print("chkStr FAILED (target string too short)\n") return(0)}
+        withEach i in RANGE(0 .. L):{
+            if( s[i] != textToParse[pos+i]) {print("chkStr FAILED\n") return(0)}
+        }
+        print("chkStr PASSED\n")
+        return(L)
+    }
+
+    me uint32: scrapeUntil(me uint32:pos, me string:endChar) <- {
+        me char: ender <- endChar[0]
+        me char: ch
+        me uint32: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(ch==ender){return(p-pos)}
+        }
+        return(0)
+    }
+
+    me uint32: escapedScrapeUntil(me uint32:pos, me string:endChar) <- {
+        me char: ch
+        me char: prevChar
+        me char: ender <- endChar[0]
+        me uint32: txtSize <- textToParse.size()
+        me string: escCharStr <- "\\ "
+        me char: escChar <- escCharStr[0]
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(prevChar!=escChar and ch==ender){return(p-pos)}
+            if(prevChar==escChar and ch==escChar) {prevChar<-escCharStr[1]}
+            else {prevChar <- ch}
+        }
+        return(0)
+    }
+
+
+    me uint32: scrapeAlphaSeq(me uint32: pos) <- {
+        me char: ch
+        me uint32: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(isalpha(ch)){}else{return(p-pos)}
+        }
+        return(txtSize-pos)
+    }
+    me uint32: scrapeUintSeq(me uint32: pos) <- {
+        me char: ch
+        me uint32: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(isdigit(ch)){}else{return(p-pos)}
+        }
+        return(txtSize-pos)
+    }
+    me uint32: scrapeAlphaNumSeq(me uint32: pos) <- {
+        me char: ch
+        me uint32: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(isalnum(ch)){}else{return(p-pos)}
+        }
+        return(txtSize-pos)
+    }
+
+    me uint32: scrapePrintableSeq(me uint32: pos) <- {
+        me char: ch
+        me uint32: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(isprint(ch)){}else{return(p-pos)}
+        }
+        return(txtSize-pos)
+    }
+
+    me uint32: scrapeWS(me uint32: pos) <- {
+        me char: ch
+        me uint32: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(isspace(ch)){}else{return(p-pos)}
+        }
+        return(txtSize-pos)
+    }
+
+    me uint32: scrapeQuotedStr1(me uint32: pos) <- {
+        pos <- pos+scrapeWS(pos)
+        if(chkStr(pos, "'")){pos <- pos+1}else{return(0)}
+        me uint32: sLen <- escapedScrapeUntil(pos, "'")
+        if(sLen==0){return(0)}
+        return(sLen+2)
+    }
+
+    me uint32: scrapeQuotedStr2(me uint32: pos) <- {
+        pos <- pos+scrapeWS(pos)
+        if(chkStr(pos, "\"")){pos <- pos+1}else{return(0)}
+        me uint32: sLen <- escapedScrapeUntil(pos, "\"")
+        if(sLen==0){return(0)}
+        return(sLen+2)
+    }
+    me uint32: scrapeCID(me uint32: pos) <- {
+    }
+    me uint32: scrapeUniID(me uint32: pos) <- {
+    }
+    me uint32: scrapeIntSeq(me uint32: pos) <- {
+    }
+    me uint32: scrapeRdxSeq(me uint32: pos) <- {
+    }
+    me uint32: scrapeToEOL(me uint32: pos) <- {
+        return scrapeUntil(pos, "\\n")
+    }
+
     me uint32: textMatches(me uint32: ProdID, me uint32: pos) <- {
         their production: Prod <- grammar[ProdID]
         print('    MATCHING "%s`Prod->constStr.data()`"... ')
         me uint32: prodType <- Prod.prodType
         if(prodType==parseSEQ){ //prod is simple text match
-            me uint32: L <- Prod.constStr.size()
-            if(pos+L > textToParse.size()){print("FAILED (target string too short)\n") return(0)}
-            withEach i in RANGE(0 .. L):{
-                if( Prod.constStr[i] != textToParse[pos+i]) {print("FAILED\n") return(0)}
-            }
-            print("PASSED\n")
-            return(L)
+            return(chkStr(pos, Prod.constStr))
         } else{if(prodType==parseAUTO){
             me uint32: len <- 0
- //           if(streamEOF()){print"Unexpected end of file.\n"; exit(2);}
- //           if(ProdID==ws)  {withEach ch in stream until(!isalpha(ch)): heach(char)}
- //           if(ProdID==alphaSeq)  {withEach ch in stream until(!isalpha(ch)): heach(char)}
- //           if(ProdID==quotedStr1){withEach ch in stream until(!isalpha(ch)): heach(char)}
+            if(ProdID==alphaSeq)  {return(scrapeAlphaSeq(pos))}
+ /*         if(ProdID==uintSeq) {withEach p in RANGE(pos, textToParse.size()):{if(!isNum(textToParse[p]){break()}} return(p-pos)}
+            if(ProdID==alphaNumSeq) {return(scrapeAlphaNumSeq)}
+            if(ProdID==printables) {withEach p in RANGE(pos, textToParse.size()):{if(!isPrintable(textToParse[p]){break()}} return(p-pos)}
+            if(ProdID==ws) {return(scrapeWS(pos))} */
+            if(ProdID==quotedStr1) {return(scrapeQuotedStr1(pos))}
+   /*        if(ProdID==quotedStr2) {return(scrapeQuotedStr2(pos))}
+             if(ProdID==CID) {return(scrapeCID(pos))}
+             if(ProdID==UniID) {return(scrapeUniID(pos))}
+             if(ProdID==intSeq) {return(scrapeIntSeq(pos))}
+             if(ProdID==RdxSeq) {return(scrapeRdxSeq(pos))}
+             if(ProdID==toEOL) {return(scrapeToEOL(pos))}
+*/
+            return(len)
         }}
         print("Huh???\n")
         return(0)
@@ -314,7 +432,6 @@ struct EParser{
 
     me uint32: resolve(our stateRec: LastTopLevelItem) <- {
         if(!LastTopLevelItem){print("\nStateRecPtr is null.\n\n") exit(1)}
-        print("\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n", LasTTopLevelItem.SeqPosition, "\n")
         our stateRec: crntRec <- LastTopLevelItem
         me uint32: seqPos <- crntRec.SeqPosition
         their production: Prod <- grammar[crntRec.productionID]
@@ -410,6 +527,7 @@ def populateBaseRules():
     appendRule('uintSeq',   'term', 'parseAUTO', '(0123456789)[]')
     appendRule('intSeq',    'term', 'parseAUTO', '+-(0123456789)[]')
     appendRule('RdxSeq',    'term', 'parseAUTO', '+-(0123456789)[].(0123456789)[]')
+    appendRule('alphaNumSeq',  'term', 'parseAUTO', "alpha-numeric string")
     appendRule('ws',        'term', 'parseAUTO', 'white space[]')
     appendRule('quotedStr1','term', 'parseAUTO', "Single quoted string with escapes")
     appendRule('quotedStr2','term', 'parseAUTO', "Double quoted string with escapes")
