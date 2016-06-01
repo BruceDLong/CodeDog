@@ -69,7 +69,7 @@ struct production{
     void: print(me uint32: SeqPos, me uint32: originPos) <- {
         me uint32: ProdType <- prodType
         print("[")
-        print(prodType, ": ")
+        print(prodTypeStrings[prodType], ": ")
         if(isTerm){
             if(SeqPos==0) {print(" > ")}
             print('"%s`constStr.data()`"')
@@ -79,6 +79,9 @@ struct production{
             if(ProdType==parseALT and SeqPos==0) {print(" > ")}
             withEach p in items:{
                 if(ProdType == parseSEQ and p_key == SeqPos){ print(" > ")}
+                if(p_key){
+                    if(ProdType==parseALT){print("| ")}
+                }
                 print('%i`p` ')
             }
             if(ProdType==parseREP){ print('(Len:%i`SeqPos`)')}
@@ -255,6 +258,16 @@ struct EParser{
         }
         return(txtSize-pos)
     }
+    me uint32: scrapeAlphaNum_Seq(me uint32: pos) <- {
+        me char: ch
+        me string: chars <- "_"
+        me uint32: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(isalnum(ch) or ch==chars[0]){}else{return(p-pos)}
+        }
+        return(txtSize-pos)
+    }
 
     me uint32: scrapePrintableSeq(me uint32: pos) <- {
         me char: ch
@@ -292,15 +305,35 @@ struct EParser{
         return(sLen+2)
     }
     me uint32: scrapeCID(me uint32: pos) <- {
+        me char: ch <- textToParse[pos]
+        me uint32: txtSize <- textToParse.size()
+        me string: chars <- "_"
+        if(pos >= txtSize){
+            // Set I/O Error: Read past EOS
+            return(0)
+        }
+        if(isalpha(ch) or ch==chars[0]){
+            return(scrapeAlphaNum_Seq(pos)+1)
+        } else {return(0)}
     }
-    me uint32: scrapeUniID(me uint32: pos) <- {
-    }
+    // TODO: me uint32: scrapeUniID(me uint32: pos) <- { }
+
     me uint32: scrapeIntSeq(me uint32: pos) <- {
+        me char: ch <- textToParse[pos]
+        me uint32: txtSize <- textToParse.size()
+        me uint32: initialChars <- 0
+        me string: chars <- "+-"
+        if(pos >= txtSize){
+            // Set I/O Error: Read past EOS
+            return(0)
+        }
+        if(ch==chars[0] or ch==chars[1]){ initialChars <- 1}
+        return(scrapeUintSeq(pos)+initialChars)
     }
-    me uint32: scrapeRdxSeq(me uint32: pos) <- {
-    }
+    // TODO: me uint32: scrapeRdxSeq(me uint32: pos) <- { }
+
     me uint32: scrapeToEOL(me uint32: pos) <- {
-        return scrapeUntil(pos, "\\n")
+        return(scrapeUntil(pos, "\\n"))
     }
 
     me uint32: textMatches(me uint32: ProdID, me uint32: pos) <- {
@@ -310,21 +343,19 @@ struct EParser{
         if(prodType==parseSEQ){ //prod is simple text match
             return(chkStr(pos, Prod.constStr))
         } else{if(prodType==parseAUTO){
-            me uint32: len <- 0
-            if(ProdID==alphaSeq)  {return(scrapeAlphaSeq(pos))}
- /*         if(ProdID==uintSeq) {withEach p in RANGE(pos, textToParse.size()):{if(!isNum(textToParse[p]){break()}} return(p-pos)}
-            if(ProdID==alphaNumSeq) {return(scrapeAlphaNumSeq)}
-            if(ProdID==printables) {withEach p in RANGE(pos, textToParse.size()):{if(!isPrintable(textToParse[p]){break()}} return(p-pos)}
-            if(ProdID==ws) {return(scrapeWS(pos))} */
-            if(ProdID==quotedStr1) {return(scrapeQuotedStr1(pos))}
-   /*        if(ProdID==quotedStr2) {return(scrapeQuotedStr2(pos))}
-             if(ProdID==CID) {return(scrapeCID(pos))}
-             if(ProdID==UniID) {return(scrapeUniID(pos))}
-             if(ProdID==intSeq) {return(scrapeIntSeq(pos))}
-             if(ProdID==RdxSeq) {return(scrapeRdxSeq(pos))}
-             if(ProdID==toEOL) {return(scrapeToEOL(pos))}
-*/
-            return(len)
+            if(ProdID==alphaSeq)    {return(scrapeAlphaSeq(pos))}
+            if(ProdID==uintSeq)     {return(scrapeUintSeq(pos))}
+            if(ProdID==alphaNumSeq) {return(scrapeAlphaNumSeq(pos))}
+            if(ProdID==printables)  {return(scrapePrintableSeq(pos))}
+            if(ProdID==ws)          {return(scrapeWS(pos))}
+            if(ProdID==quotedStr1)  {return(scrapeQuotedStr1(pos))}
+            if(ProdID==quotedStr2)  {return(scrapeQuotedStr2(pos))}
+            if(ProdID==CID)         {return(scrapeCID(pos))}
+         //   if(ProdID==UniID)       {return(scrapeUniID(pos))}
+            if(ProdID==intSeq)      {return(scrapeIntSeq(pos))}
+         //   if(ProdID==RdxSeq)      {return(scrapeRdxSeq(pos))}
+            if(ProdID==toEOL)       {return(scrapeToEOL(pos))}
+
         }}
         print("Huh???\n")
         return(0)
@@ -430,19 +461,24 @@ struct EParser{
         dump()
     }
 
-    me uint32: resolve(our stateRec: LastTopLevelItem) <- {
+    me uint32: resolve(our stateRec: LastTopLevelItem, me string: indent) <- {
         if(!LastTopLevelItem){print("\nStateRecPtr is null.\n\n") exit(1)}
         our stateRec: crntRec <- LastTopLevelItem
         me uint32: seqPos <- crntRec.SeqPosition
-        their production: Prod <- grammar[crntRec.productionID]
-
+        me uint32: prodID <- crntRec.productionID
+        their production: Prod <- grammar[prodID]
+        print(indent+'grammar[%i`prodID`] = ')
+        Prod.print(seqPos, crntRec.originPos)
+        print("\n", indent, "\n")
         if(Prod.isTerm){
         } else{
             withEach subItem in Backward RANGE(0 .. seqPos):{
-                resolve(crntRec.child)
+                print(indent, "   item #", subItem, ": \n")
+                resolve(crntRec.child, indent+"     | ")
                 crntRec <- crntRec.prev
             }
         }
+        if(indent==""){print("\nRESOLVED\n\n")}
     }
 }
     """
@@ -627,6 +663,8 @@ def CreateStructsForStringModels(objects, tags):
     #~ StructFieldStr = "mode [fetchOK, fetchNotReady, fetchSyntaxError, FetchIO_Error] : FetchResult"
     #~ progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
     #~ codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
+
+    tags['Include'] += ",<cctype>"
 
     # Define streamSpan struct
     structsName = 'streamSpan'
