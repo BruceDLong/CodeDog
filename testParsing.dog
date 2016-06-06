@@ -22,9 +22,10 @@ featuresNeeded = {}
 runCode=`
     EParser parser;
     parser.populateGrammar();
-    parser.initPosStateSets(parser.parse_testParse, "[Robert234'Hello World!']");
+    parser.initPosStateSets(parser.parse_testParse_str, "[Robert234'Hello World!']");
     parser.doParse();
-    parser.resolve(parser.LastTopLevelItem, "");
+    shared_ptr<stateRec> topItem = parser.resolve(parser.LastTopLevelItem, "");
+    parser.displayParse(topItem, "");
 `
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`
@@ -49,9 +50,9 @@ model personRec {
     me date::mem:   birthday
 }
 
-struct personRec::HRForm auto
+struct personRec::mem auto
 
-string date::strForm {
+string date::str {
     > int32:month
      ","
     > int32:date
@@ -59,23 +60,31 @@ string date::strForm {
 }
 //do makeGUI(listMgr)
 
-string personRec::strForm {
+string personRec::str {
     flag: hired
     > me int32:  age
     > me string: name
     > me string: address
-  //  > me date_strForm:   birthday
+  //  > me date_str:   birthday
   //  > me {me int32: height me int32: weight}: measurements
 }
 
 string numChar["1" | "2" | "3" | "4"]
 
-string testParse{
+model testParse{
+    "Robert"
+    numChar[list uint32]: numbStr
+    me string: worldMesg
+}
+
+string testParse::str{
     "["
     "Robert"
     > numChar[list uint32]: numbStr
     > me string: worldMesg
     "]"
 }
+
+struct testParse::mem auto
 
 do Write_Main(xyz)

@@ -209,7 +209,7 @@ def convertType(objects, TypeSpec):
         if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
             cppType=fieldType+'_t'
         else:
-            cppType=fieldType
+            cppType=convertObjectNameToCPP(fieldType)
     else: cppType=convertObjectNameToCPP(fieldType[0])
 
     kindOfField=owner
@@ -340,6 +340,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             S=tmp
             return [S, '']
         typeSpecOut=fetchItemsTypeSpec(name)[0]
+        #print "NAMESEG:", name, typeSpecOut
     else:
         fType=typeSpecIn['fieldType']
 
@@ -551,7 +552,6 @@ def codeExpr(item):
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
-    #print "chooseVirtualRValOwner:", LVAL, "###", RVAL
     LeftOwner=LVAL['owner']
     RightOwner=RVAL['owner']
     if LeftOwner == RightOwner: return ["", ""]
@@ -838,7 +838,9 @@ def processOtherStructFields(objects, objectName, tags, indent):
         print "                       ", fieldType, fieldName
         if(fieldValue == None):fieldValueText=""
         elif(fieldOwner=='const'):
-            fieldValueText = " = "+ codeExpr(fieldValue)[0]
+            if isinstance(fieldValue, basestring):
+                fieldValueText = ' = "'+ fieldValue + '"'
+            else: fieldValueText = " = "+ codeExpr(fieldValue)[0]
         else:
             # TODO: This next line, oddly, is a HUGE performace hog due to pyParsing. Especially on long functions. Fix it.
             fieldValueText = " = "+ str(fieldValue)
