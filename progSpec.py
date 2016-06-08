@@ -151,6 +151,12 @@ def isStruct(fieldType):
     if isinstance(fieldType, basestring): return False
     return True
 
+
+def TypeSpecsBaseType(typeSpec):
+    owner=typeSpec['owner']
+    fieldType=typeSpec['fieldType']
+
+
 """
 def getNameSegInfo(objMap, structName, fieldName):
     structToSearch = objMap[structName]

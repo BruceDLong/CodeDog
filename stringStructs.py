@@ -641,10 +641,18 @@ def fetchOrWriteParseRule(modelName, field):
             print "Unusable type in fetchOrWriteParseRule():", fieldType; exit(2);
     else: print "Pointer types not yet handled in fetchOrWriteParseRule():", fieldType; exit(2);
 
-    if typeSpec['arraySpec']:
+    if('arraySpec' in typeSpec and typeSpec['arraySpec']):
         global rules
-        nameOut=appendRule(nameOut+'REP', "nonterm", "parseREP", [nameOut, 0, 0])
-
+        containerSpec=typeSpec['arraySpec']
+        idxType=''
+        if 'indexType' in containerSpec:
+            idxType=containerSpec['indexType']
+        datastructID = containerSpec['datastructID']
+        if idxType[0:4]=='uint': pass
+        if(datastructID=='list'):
+            nameOut=appendRule(nameOut+'REP', "nonterm", "parseREP", [nameOut, 0, 0])
+        elif datastructID=='opt':
+            nameOut=appendRule(nameOut+'OPT', "nonterm", "parseREP", [nameOut, 0, 1])
 
     return nameOut
 

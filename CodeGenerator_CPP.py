@@ -21,8 +21,11 @@ localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
 
 def getContainerType(typeSpec):
-    idxType=typeSpec['arraySpec']['indexType']
-    datastructID = typeSpec['arraySpec']['datastructID']
+    containerSpec=typeSpec['arraySpec']
+    idxType=''
+    if 'indexType' in containerSpec:
+        idxType=containerSpec['indexType']
+    datastructID = containerSpec['datastructID']
     if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list' and idxType[0:4]=='uint'): datastructID = "deque"
     return [datastructID, idxType]

@@ -35,11 +35,11 @@ Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>,
 
 model month {mode [January, February, March, April, May, June, July, August, September, October, November, December] : month}
 
-model date [
+model date {
     me int32: month
     me int32: date
     me int32: year
-]
+}
 struct date::mem auto
 
 model personRec {
@@ -73,14 +73,14 @@ string numChar["1" | "2" | "3" | "4"]
 
 model testParse{
     "Robert"
-    numChar[list uint32]: numbStr
+    numChar[list]: numbStr
     me string: worldMesg
 }
 
 string testParse::str{
     "["
     "Robert"
-    > numChar[list uint32]: numbStr
+    > numChar[list]: numbStr
     > me string: worldMesg
     "]"
 }
