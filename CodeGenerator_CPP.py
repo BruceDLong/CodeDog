@@ -209,6 +209,8 @@ def convertType(objects, TypeSpec):
     cppType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     if(isinstance(fieldType, basestring)):
+        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
+        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
         if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
             cppType=fieldType+'_t'
         else:

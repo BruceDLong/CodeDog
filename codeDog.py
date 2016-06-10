@@ -78,15 +78,16 @@ def AutoGenerateStructsFromModels(objects, tags):
             autoFlag = 'autoGen' in objects[0][objName]
             stateType=objects[0][objName]['stateType']
             if(autoFlag and stateType=='struct'):
-                print("objName")
+                print("objName", objName)
                 thisModel=progSpec.findModelOf(objects, objName)
                 newFields=[]
                 for F in thisModel['fields']:
-                    print 'NEWFIELD:', F
-                   # if numSpec: chooseIntType
-                   # elif alt: chooseCommonType
+                    baseType=progSpec.TypeSpecsMinimumBaseType(objects, F['typeSpec'])
+                    if baseType!=None:
+                        F['typeSpec']['fieldType']=baseType
                     newFields.append(F)
                 objects[0][objName]['fields'] = newFields
+
 
 
 def GroomTags(tags):

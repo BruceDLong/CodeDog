@@ -37,7 +37,7 @@ CIDList = Group(delimitedList(CID, ','))("CIDList")
 objectName = CID("objectName")
 cppType = (Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
 intNum = Word(nums)("intNum")
-numRange = intNum + ".." + intNum("numRange")
+numRange = Group(intNum + ".." + intNum)("numRange")
 varType = (objectName | cppType | numRange)("varType")
 boolValue = (Keyword("true") | Keyword("false"))("boolValue")
 floatNum = Combine(intNum + "." + intNum)("floatNum")
@@ -105,7 +105,7 @@ arraySpec = Group (Literal('[') + datastructID + Optional(intNum | varType)('ind
 meOrMy = (Keyword("me") | Keyword("my"))
 modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
 flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") + nameAndVal )("flagDef")
-baseType = (cppType)("baseType")
+baseType = (cppType | numRange)("baseType")
 
 #########################################   O B J E C T   D E S C R I P T I O N S
 objectName = Combine(CID + Optional('::' + CID))("objectName")

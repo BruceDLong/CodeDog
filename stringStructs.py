@@ -670,6 +670,9 @@ def AddFields(objects, tags, listName, fields, SeqOrAlt):
 def Write_Fetch_and_Set_Functions_For_Each_Field(objects, tags, listName, fields, SeqOrAlt):
     # TODO: here we assume that the memory form has '::mem' using AutoAssigners, make this work with other forms.
     memVersionName=listName[:listName.find("::")]+"::mem"
+    memObj=objects[0][memVersionName]
+    memObjFields=memObj['fields']
+    print "NON OF FieLDS:", memObj, "%%%%%", len(memObjFields)
     S='        their production: prod <- grammar[SRec.productionID]\n'
     for field in fields:
         fieldName  =field['fieldName']
@@ -679,19 +682,25 @@ def Write_Fetch_and_Set_Functions_For_Each_Field(objects, tags, listName, fields
         fieldType  =typeSpec['fieldType']
         fieldOwner =typeSpec['owner']
 
-        print "        ", fieldName
+        toField = progSpec.fetchFieldByName(memObjFields, fieldName)
+        if(toField):
+            toFieldType =toField['fieldType']
+        else: toFieldType="BOBO"#fieldType
+        toFieldType = progSpec.TypeSpecsMinimumBaseType(objects, typeSpec)
+
+        print "        CONVERTING:", fieldName, toFieldType,  'FROM:', toField
         if(fieldIsNext==True):
             S+='        SRec <- getNextStateRec(SRec)\n'
             if fieldOwner=='const':
                 pass
             else:
-                if fieldType=='string':            S=S+'        memStruct.'+fieldName+' <- '+ "makeStr(SRec)"+"\n"
-                elif fieldType[0:4]=='uint':       S=S+'        memStruct.'+fieldName+' <- '+ "makeInt(SRec)"+"\n"
-                elif fieldType[0:3]=='int':        S=S+'        memStruct.'+fieldName+' <- '+ "makeInt(SRec)"+"\n"
-                elif fieldType[0:6]=='double':     S=S+'        memStruct.'+fieldName+' <- '+ "makeDblFromStr(SRec)"+"\n"
-                elif fieldType[0:4]=='char':       S=S+'        memStruct.'+fieldName+' <- '+ "crntStr[0]"+"\n"
-                elif fieldType[0:4]=='bool':       S=S+'        memStruct.'+fieldName+' <- '+ 'crntStr=="true"'+"\n"
-                elif progSpec.isStruct(fieldType): S=S+'        memStruct.'+fieldName+' <- ExtractStruct_'+fieldType[0]+'()\n'
+                if toFieldType=='string':            S=S+'        memStruct.'+fieldName+' <- '+ "makeStr(SRec)"+"\n"
+                elif toFieldType[0:4]=='uint':       S=S+'        memStruct.'+fieldName+' <- '+ "makeInt(SRec)"+"\n"
+                elif toFieldType[0:3]=='int':        S=S+'        memStruct.'+fieldName+' <- '+ "makeInt(SRec)"+"\n"
+                elif toFieldType[0:6]=='double':     S=S+'        memStruct.'+fieldName+' <- '+ "makeDblFromStr(SRec)"+"\n"
+                elif toFieldType[0:4]=='char':       S=S+'        memStruct.'+fieldName+' <- '+ "crntStr[0]"+"\n"
+                elif toFieldType[0:4]=='bool':       S=S+'        memStruct.'+fieldName+' <- '+ 'crntStr=="true"'+"\n"
+                elif progSpec.isStruct(toFieldType): S=S+'        memStruct.'+fieldName+' <- ExtractStruct_'+fieldType[0]+'()\n'
         else:
             pass
            # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'

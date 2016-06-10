@@ -147,14 +147,46 @@ def findModelOf(objMap, structName):
     return objMap[0][modelName]
 
 def isStruct(fieldType):
-    print "IS_STRUCT:", fieldType
     if isinstance(fieldType, basestring): return False
     return True
 
+def typeIsNumRange(fieldType):
+    if isinstance(fieldType, basestring): return False
+    if len(fieldType)==3:
+        if fieldType[1]=='..':
+            return True
+    return False
 
-def TypeSpecsBaseType(typeSpec):
+def fetchFieldByName(fields, fieldName):
+    for field in fields:
+        fname=field['fieldName']
+        if fname==fieldName: return field
+    return None
+
+def TypeSpecsMinimumBaseType(objects, typeSpec):
     owner=typeSpec['owner']
     fieldType=typeSpec['fieldType']
+    #print "TYPESPEC:", typeSpec, "<", fieldType, ">\n"
+    if typeIsNumRange(fieldType):
+        minVal = int(fieldType[0])
+        maxVal = int(fieldType[2])
+        if minVal>=0:
+            if (maxVal<=256):    return "uint8"
+            if maxVal<=65536:    return "uint16"
+            if maxVal<=(2**32):  return "uint32"
+            if maxVal<=(2**64):  return "uint64"
+            if maxVal<=(2**128): return "uint128"
+            else:  return "flexInt"
+        else: # Handle signed values (int)
+            return "int64"
+    elif isStruct(fieldType):
+        fieldObj=objects[0][fieldType[0]]
+        fieldObjConfig=fieldObj['configType']
+        if(fieldObjConfig=='ALT'):
+            innerTypeSpec=fieldObj['fields'][0]['typeSpec']
+            retType = TypeSpecsMinimumBaseType(objects, innerTypeSpec)
+            return retType
+    return fieldType
 
 
 """

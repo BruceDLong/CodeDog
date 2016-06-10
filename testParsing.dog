@@ -36,7 +36,7 @@ Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>,
 model month {mode [January, February, March, April, May, June, July, August, September, October, November, December] : month}
 
 model date {
-    me int32: month
+    me 1..12: month
     me int32: date
     me int32: year
 }
