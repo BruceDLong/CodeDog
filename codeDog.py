@@ -78,10 +78,13 @@ def AutoGenerateStructsFromModels(objects, tags):
             autoFlag = 'autoGen' in objects[0][objName]
             stateType=objects[0][objName]['stateType']
             if(autoFlag and stateType=='struct'):
+                print("objName")
                 thisModel=progSpec.findModelOf(objects, objName)
                 newFields=[]
                 for F in thisModel['fields']:
-                    #print 'FIELD:', F
+                    print 'NEWFIELD:', F
+                   # if numSpec: chooseIntType
+                   # elif alt: chooseCommonType
                     newFields.append(F)
                 objects[0][objName]['fields'] = newFields
 
@@ -112,7 +115,7 @@ def GenerateProgram(objects, buildSpec, tags, libsToUse):
     if(langGenTag == 'CPP'):
         print '        Generating C++ Program...'
         result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]], libsToUse)
-    if(langGenTag == 'Java'):
+    elif(langGenTag == 'Java'):
         print '        Generating Java Program...'
         result=CodeGenerator_Java.generate(objects, [tags, buildSpec[1]], libsToUse)
     else:
@@ -171,7 +174,7 @@ def ChooseLibs(objects, buildSpec, tags):
 def GenerateSystem(objects, buildSpecs, tags):
     print "\n\n######################   G E N E R A T I N G   S Y S T E M"
     ScanAndApplyPatterns(objects, tags)
-    #stringStructs.CreateStructsForStringModels(objects, tags)
+    stringStructs.CreateStructsForStringModels(objects, tags)
     AutoGenerateStructsFromModels(objects, tags)
     GroomTags([tags, buildSpecs])
     for buildSpec in buildSpecs:

@@ -22,9 +22,10 @@ featuresNeeded = {}
 runCode=`
     EParser parser;
     parser.populateGrammar();
-    parser.initPosStateSets(parser.parse_testParse, "[Robert2]");
+    parser.initPosStateSets(parser.parse_testParse_str, "[Robert234'Hello World!']");
     parser.doParse();
-    parser.resolve(parser.LastTopLevelItem);
+    shared_ptr<stateRec> topItem = parser.resolve(parser.LastTopLevelItem, "");
+    parser.displayParse(topItem, "");
 `
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`
@@ -34,11 +35,11 @@ Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>,
 
 model month {mode [January, February, March, April, May, June, July, August, September, October, November, December] : month}
 
-model date [
+model date {
     me int32: month
     me int32: date
     me int32: year
-]
+}
 struct date::mem auto
 
 model personRec {
@@ -49,9 +50,9 @@ model personRec {
     me date::mem:   birthday
 }
 
-struct personRec::HRForm auto
+struct personRec::mem auto
 
-string date::strForm {
+string date::str {
     > int32:month
      ","
     > int32:date
@@ -59,22 +60,31 @@ string date::strForm {
 }
 //do makeGUI(listMgr)
 
-string personRec::strForm {
+string personRec::str {
     flag: hired
     > me int32:  age
     > me string: name
     > me string: address
-  //  > me date_strForm:   birthday
+  //  > me date_str:   birthday
   //  > me {me int32: height me int32: weight}: measurements
 }
 
 string numChar["1" | "2" | "3" | "4"]
 
-string testParse{
+model testParse{
+    "Robert"
+    numChar[list]: numbStr
+    me string: worldMesg
+}
+
+string testParse::str{
     "["
     "Robert"
-    > numChar[list uint32]: numbStr
+    > numChar[list]: numbStr
+    > me string: worldMesg
     "]"
 }
+
+struct testParse::mem auto
 
 do Write_Main(xyz)
