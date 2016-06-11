@@ -23,7 +23,7 @@ currentObjName=''
 def getContainerType(typeSpec):
     idxType=typeSpec['arraySpec']['indexType']
     datastructID = typeSpec['arraySpec']['datastructID']
-    if idxType[0:4]=='uint': idxType+='_t'
+    if idxType[0:4]=='uint': idxType='Long'
     if(datastructID=='list' and idxType[0:4]=='uint'): datastructID = "deque"
     return [datastructID, idxType]
 
@@ -208,6 +208,8 @@ def convertType(objects, TypeSpec):
     if(isinstance(fieldType, basestring)):
         if(fieldType=='int32'):
             cppType='int'
+        elif(fieldType=='uint32' or fieldType=='uint32'):
+            cppType='long'
         elif(fieldType=='int64'):
             cppType='long'
         elif(fieldType=='char' ):
@@ -217,7 +219,7 @@ def convertType(objects, TypeSpec):
         elif(fieldType=='string' ):
             cppType='String'
         else:
-            cppType=fieldType
+            cppType=convertObjectNameToCPP(fieldType)
     else: cppType=convertObjectNameToCPP(fieldType[0])
 
     kindOfField=owner
@@ -226,11 +228,11 @@ def convertType(objects, TypeSpec):
     elif kindOfField=='me':
         cppType = cppType
     elif kindOfField=='my':
-        cppType="unique_ptr<"+cppType + '> '
+        cppType = cppType
     elif kindOfField=='our':
-        cppType="shared_ptr<"+cppType + '> '
+        ccppType = cppType
     elif kindOfField=='their':
-        cppType += '*'
+        cppType = cppType
     else:
         print "ERROR: Owner of type not valid '" + owner + "'"
         exit(1)
@@ -242,9 +244,9 @@ def convertType(objects, TypeSpec):
             if containerType=='deque':
                 cppType="deque< "+cppType+" >"
             elif containerType=='map':
-                cppType="map< "+idxType+', '+cppType+" >"
+                cppType="TreeMap< "+idxType+', '+cppType+" >"
             elif containerType=='multimap':
-                cppType="multimap< "+idxType+', '+cppType+" >"
+                cppType="TreeMap< "+idxType+', '+cppType+" >"
     return cppType
 
 
@@ -306,13 +308,13 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             elif name=='pushLast' : name='push_back'
             else: print "Unknown deque command:", name; exit(2);
         elif containerType=='map':
-            convertedIdxType=idxType
+            convertedIdxType=idxType 
             convertedItmType=convertType(objectsRef, typeSpecOut)
             if name=='at' or name=='erase' or  name=='size': pass
             elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front': name='begin()->second'; paramList=None;
-            elif name=='back': name='rbegin()->second'; paramList=None;
+            elif name=='front': name='firstEntry()->second'; paramList=None;
+            elif name=='back': name='lastEntry()->second'; paramList=None;
             elif name=='popFirst' : name='pop_front'
             elif name=='popLast'  : name='pop_back'
             else: print "Unknown map command:", name; exit(2);
@@ -322,8 +324,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             if name=='at' or name=='erase' or  name=='size': pass
             elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front': name='begin()->second'; paramList=None;
-            elif name=='back': name='rbegin()->second'; paramList=None;
+            elif name=='front': name='firstEntry()'; paramList=None;
+            elif name=='back': name='lastEntry()'; paramList=None;
             elif name=='popFirst' : name='pop_front'
             elif name=='popLast'  : name='pop_back'
             else: print "Unknown multimap command:", name; exit(2);
@@ -836,6 +838,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         fieldArglist = typeSpec['argList']
         if fieldName=='opAssign': fieldName='operator='
         convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
+        print "convertedType: ", convertedType
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         print "                       ", fieldType, fieldName
         if(fieldValue == None):fieldValueText=""
@@ -887,7 +890,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 structCode += indent + "public static " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
             else: 
                 #funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
-                structCode += indent + "public static " + typeDefName +' ' + fieldName +"("+argListText+")\n";
+                structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
 
             ##### Generate Function Body
             verbatimText=field['value'][1]
@@ -915,7 +918,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         funcDefCodeAcc += funcDefCode
         structCodeAcc  += structCode
         globalFuncsAcc += globalFuncs
-        print "structCode: " + structCode
+        #print "structCode: " + structCode
     #print "funcDefCodeAcc: " + funcDefCodeAcc
     #print "structCodeAcc: " + structCodeAcc
     if(False and objectName=='GLOBAL'):
