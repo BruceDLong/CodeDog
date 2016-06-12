@@ -21,10 +21,13 @@ localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
 
 def getContainerType(typeSpec):
-    idxType=typeSpec['arraySpec']['indexType']
-    datastructID = typeSpec['arraySpec']['datastructID']
-    if idxType[0:4]=='uint': idxType='Long'
+    containerSpec=typeSpec['arraySpec']
+    idxType=''
+    if 'indexType' in containerSpec:
+        idxType= convertJavaType(containerSpec['indexType'])
+    datastructID = containerSpec['datastructID']
     if(datastructID=='list' and idxType[0:4]=='uint'): datastructID = "deque"
+    #print "datastructID, idxType",datastructID, idxType
     return [datastructID, idxType]
 
 def CheckBuiltinItems(itemName):
@@ -150,11 +153,11 @@ def processFlagAndModeFields(objects, objectName, tags):
         if fieldType=='flag':
             print "                        flag: ", fieldName
             flagsVarNeeded=True
-            structEnums += "const int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
+            structEnums += "final int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
             bitCursor += 1;
         elif fieldType=='mode':
-            #print "                        mode: ", fieldName, '[]'
-            #print field
+            print "                        mode: ", fieldName, '[]'
+            print field
             structEnums += "\n// For Mode "+fieldName+"\n"
             flagsVarNeeded=True
             # calculate field and bit position
@@ -164,17 +167,14 @@ def processFlagAndModeFields(objects, objectName, tags):
             #field[4]=numEnumBits;
             enumMask=((1 << numEnumBits) - 1) << bitCursor
 
-            structEnums += "const int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
-            structEnums += "const int "+fieldName +"Mask = " + hex(enumMask) +";"
+            structEnums += "final int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
+            structEnums += "final int "+fieldName +"Mask = " + hex(enumMask) +";"
 
             # enum
             count=0
-            structEnums += "\nenum " + fieldName +" {"
             for enumName in field['typeSpec']['enumList']:
-                structEnums += enumName+"="+hex(count)
+                structEnums += "final int "+enumName+"="+hex(count)+";\n"
                 count=count+1
-                if(count<enumSize): structEnums += ", "
-            structEnums += "};\n";
 
             structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
             # read/write macros
@@ -191,6 +191,24 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
+def convertJavaType(fieldType):
+    if(fieldType=='int32'):
+        javaType='int'
+    elif(fieldType=='uint32' or fieldType=='uint32'):
+        javaType='long'
+    elif(fieldType=='int64'):
+        javaType='long'
+    elif(fieldType=='char' ):
+        javaType='byte'
+    elif(fieldType=='bool' ):
+        javaType='boolean'
+    elif(fieldType=='string' ):
+        javaType='String'
+    else:
+        javaType=convertObjectNameToCPP(fieldType)
+    #print "javaType: ", javaType
+    return javaType
+
 def convertType(objects, TypeSpec):
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
@@ -206,31 +224,18 @@ def convertType(objects, TypeSpec):
     cppType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     if(isinstance(fieldType, basestring)):
-        if(fieldType=='int32'):
-            cppType='int'
-        elif(fieldType=='uint32' or fieldType=='uint32'):
-            cppType='long'
-        elif(fieldType=='int64'):
-            cppType='long'
-        elif(fieldType=='char' ):
-            cppType='byte'
-        elif(fieldType=='bool' ):
-            cppType='boolean'
-        elif(fieldType=='string' ):
-            cppType='String'
-        else:
-            cppType=convertObjectNameToCPP(fieldType)
+        cppType= convertJavaType(fieldType)
     else: cppType=convertObjectNameToCPP(fieldType[0])
 
     kindOfField=owner
     if kindOfField=='const':
-        cppType = "const "+cppType
+        cppType = "final "+cppType
     elif kindOfField=='me':
         cppType = cppType
     elif kindOfField=='my':
         cppType = cppType
     elif kindOfField=='our':
-        ccppType = cppType
+        cppType = cppType
     elif kindOfField=='their':
         cppType = cppType
     else:
@@ -243,9 +248,12 @@ def convertType(objects, TypeSpec):
             [containerType, idxType]=getContainerType(TypeSpec)
             if containerType=='deque':
                 cppType="deque< "+cppType+" >"
-            elif containerType=='map':
-                cppType="TreeMap< "+idxType+', '+cppType+" >"
-            elif containerType=='multimap':
+            elif (containerType=='map') or (containerType=='multimap'):
+                if (idxType == "long"): 
+                    idxType = "Long"
+                if (cppType != "blah"): 
+                    #TODO search for cppType object
+                    cppType = "Object"
                 cppType="TreeMap< "+idxType+', '+cppType+" >"
     return cppType
 
@@ -292,7 +300,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=getContainerType(typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
-        #print "NAME:", name
+        print "NAME:", name
         if(name[0]=='['):
             [S2, idxType] = codeExpr(name[1])
             S+= '[' + S2 +']'
@@ -837,8 +845,10 @@ def processOtherStructFields(objects, objectName, tags, indent):
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         if fieldName=='opAssign': fieldName='operator='
+        #print "          TREEMAP: ", typeSpec
         convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
         print "convertedType: ", convertedType
+        
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         print "                       ", fieldType, fieldName
         if(fieldValue == None):fieldValueText=""
@@ -851,7 +861,12 @@ def processOtherStructFields(objects, objectName, tags, indent):
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
         elif(fieldArglist==None):
-            structCode += indent + convertedType +' ' + fieldName + fieldValueText +';\n';
+            convertedType += ' ' + fieldName
+            if (convertedType[0]=="T"):
+                #todo check for string "treemap"
+                convertedType += " = new TreeMap()"
+                print "TREEMAP!",  convertedType
+            structCode += indent + convertedType + fieldValueText +';\n';
         #################################################################
         else: # Arglist exists so this is a function.
             if(fieldType=='none'):
@@ -873,7 +888,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                         count+=1
                         argTypeSpec =arg['typeSpec']
                         argFieldName=arg['fieldName']
-                        argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
+                        argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName 
                         localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
                 if(fieldType[0] != '<%'):
@@ -901,24 +916,24 @@ def processOtherStructFields(objects, objectName, tags, indent):
                     funcDefCode=""
                     globalFuncs=""
                 else:
-                    funcText=verbatimText
+                    funcText=verbatimText 
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
                 structCode += indent + processActionSeq(field['value'][0], '    ')+"\n"
             else:
                 print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
-
             if(False or objectName=='GLOBAL'):
                 if(fieldName=='main'):
                     funcDefCode += funcText+"\n\n"
                 else: globalFuncs += funcText+"\n\n"
             else: funcDefCode += funcText+"\n\n"
 
-        funcDefCodeAcc += funcDefCode
-        structCodeAcc  += structCode
+        funcDefCodeAcc += ""
+        structCodeAcc  += structCode + funcDefCode
         globalFuncsAcc += globalFuncs
         #print "structCode: " + structCode
+        #print "funcDefCode: " + funcDefCode
     #print "funcDefCodeAcc: " + funcDefCodeAcc
     #print "structCodeAcc: " + structCodeAcc
     if(False and objectName=='GLOBAL'):
