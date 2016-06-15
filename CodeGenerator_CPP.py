@@ -27,7 +27,7 @@ def getContainerType(typeSpec):
         idxType=containerSpec['indexType']
     datastructID = containerSpec['datastructID']
     if idxType[0:4]=='uint': idxType+='_t'
-    if(datastructID=='list' and idxType[0:4]=='uint'): datastructID = "deque"
+    if(datastructID=='list'): datastructID = "deque"
     return [datastructID, idxType]
 
 def CheckBuiltinItems(itemName):
@@ -199,7 +199,7 @@ def convertType(objects, TypeSpec):
     fieldType=TypeSpec['fieldType']
     #print "fieldType: ", fieldType
     if not isinstance(fieldType, basestring):
-        if len(fieldType)>1: exit(2)
+        #if len(fieldType)>1: exit(2)
         fieldType=fieldType[0]
     baseType = progSpec.isWrappedType(objects, fieldType)
     if(baseType!=None):
@@ -689,6 +689,7 @@ def processAction(action, indent):
         repName = action['repName']
         traversalMode = action['traversalMode']
         rangeSpec = action['rangeSpec']
+        whileSpec = action['whileSpec']
         # TODO: add cases for traversing trees and graphs in various orders or ways.
         loopCounterName=''
         if(rangeSpec): # iterate over range
@@ -700,7 +701,11 @@ def processAction(action, indent):
                 actionText += indent + "for( int64_t " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
             elif(traversalMode=='Backward'):
                 actionText += indent + "for( int64_t " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
-
+            localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+        elif(whileSpec):
+            print "\nWHILESPEC:", whileSpec
+            [whereExpr, whereConditionType] = codeExpr(whileSpec[2])
+            actionText += indent + "while(" + whereExpr + "){\n"
         else: # interate over a container
             #print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = codeExpr(action['repList'][0])
@@ -723,7 +728,7 @@ def processAction(action, indent):
             actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
                             + indent+indent+"auto "+repName+" = *"+repName+"Itr;\n")
 
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+            localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
 
         if action['whereExpr']:
             [whereExpr, whereConditionType] = codeExpr(action['whereExpr'])

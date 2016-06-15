@@ -79,9 +79,10 @@ conditionalAction <<= Group(
             + Optional((Keyword("else") | Keyword("but")) + (actionSeq | conditionalAction)("elseBody"))("optionalElse")
         )("conditionalAction")
 traversalModes = (Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative"))
-rangeSpec = Group(Keyword("RANGE") +'(' + rValue + ".." + rValue + ')')
+rangeSpec = Group(Keyword("RANGE") + '(' + rValue + ".." + rValue + ')')
+whileSpec = Group(Keyword('WHILE') + '(' + expr + ')')
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (rangeSpec('rangeSpec') | rValue("repList"))('itemsToIter') + ":"
+            Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | rValue("repList"))('itemsToIter') + ":"
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
@@ -274,6 +275,9 @@ def extractActItem(funcName, actionItem):
         traversalMode=None
         if actionItem.traversalMode:
             traversalMode = actionItem.traversalMode
+        whileSpec=None
+        if actionItem.whileSpec:
+            whileSpec = actionItem.whileSpec
         rangeSpec=None
         if actionItem.rangeSpec:
             rangeSpec = actionItem.rangeSpec
@@ -284,7 +288,7 @@ def extractActItem(funcName, actionItem):
         if actionItem.untilExpr:
             untilExpr = actionItem.untilExpr
         thisActionItem = {'typeOfAction':"repetition" ,'repName':repName, 'whereExpr':whereExpr, 'untilExpr':untilExpr, 'repBody':repBodyOut,
-                            'repList':repList, 'traversalMode':traversalMode, 'rangeSpec':rangeSpec}
+                            'repList':repList, 'traversalMode':traversalMode, 'rangeSpec':rangeSpec, 'whileSpec':whileSpec}
     # Action sequence
     elif actionItem.actSeqID:
         actionListIn = actionItem

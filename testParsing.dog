@@ -22,10 +22,15 @@ featuresNeeded = {}
 runCode=`
     EParser parser;
     parser.populateGrammar();
-    parser.initPosStateSets(parser.parse_testParse_str, "[Robert234'Hello World!']");
+    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!']");
     parser.doParse();
     shared_ptr<stateRec> topItem = parser.resolve(parser.LastTopLevelItem, "");
     parser.displayParse(topItem, "");
+    testParse_mem TPM;
+    parser.ExtractStruct_testParse_str(topItem, &TPM);
+
+    cout<<"\n\nTMP.Mesg: "<<TPM.worldMesg<<"\n";
+    cout<<"TMP.numStr: "<<TPM.numbStr<<"\n";
 `
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`
@@ -47,15 +52,15 @@ model personRec {
     me int32:  age
     me string: name
     me string: address
-    me date::mem:   birthday
+    me date:   birthday
 }
 
 struct personRec::mem auto
 
 string date::str {
     > int32:month
-     ","
-    > int32:date
+     "/"
+    > int32:date "/"
     > int32:year
 }
 //do makeGUI(listMgr)
@@ -65,7 +70,7 @@ string personRec::str {
     > me int32:  age
     > me string: name
     > me string: address
-  //  > me date_str:   birthday
+  //  > me date::str:   birthday
   //  > me {me int32: height me int32: weight}: measurements
 }
 
@@ -74,13 +79,15 @@ string numChar["1" | "2" | "3" | "4"]
 model testParse{
     "Robert"
     numChar[list]: numbStr
+    me date: birthday
     me string: worldMesg
 }
 
 string testParse::str{
     "["
-    "Robert"
-    > numChar[list]: numbStr
+    "Robert" " "
+    > numChar[list]: numbStr " "
+    > date::str: birthday " "
     > me string: worldMesg
     "]"
 }

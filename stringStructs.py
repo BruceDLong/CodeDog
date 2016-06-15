@@ -36,9 +36,9 @@ def genParserCode():
     RuleList=''
     for rule in rules:
         if rule[1]=='term':
-            RuleList+='        addTerminalProd("' + rule[0] +'", ' + rule[2] + ', "' + str(rule[3]) + '")\n'
+            RuleList+='        addTerminalProd("' + rule[0] +'", ' + rule[2] + ', "' + str(rule[3]).replace('::','_') + '")\n'
         elif rule[1]=='nonterm':
-            RuleList+='        addNon_TermProd("' + rule[0] +'", ' + rule[2] + ', ' + str(rule[3]) + ')\n'
+            RuleList+='        addNon_TermProd("' + rule[0] +'", ' + rule[2] + ', ' + str(rule[3]).replace('::','_') + ')\n'
 
     ConstList=''
     for C in constDefs:
@@ -669,10 +669,11 @@ def AddFields(objects, tags, listName, fields, SeqOrAlt):
 
 def Write_Fetch_and_Set_Functions_For_Each_Field(objects, tags, listName, fields, SeqOrAlt):
     # TODO: here we assume that the memory form has '::mem' using AutoAssigners, make this work with other forms.
+    # NOTE: The below three lines don't work because memObj['fields'] hasn't yet been populated. So we precreate with TypeSpecsMinimumBaseType()
     memVersionName=listName[:listName.find("::")]+"::mem"
     memObj=objects[0][memVersionName]
     memObjFields=memObj['fields']
-    print "NON OF FieLDS:", memObj, "%%%%%", len(memObjFields)
+
     S='        their production: prod <- grammar[SRec.productionID]\n'
     for field in fields:
         fieldName  =field['fieldName']
@@ -683,28 +684,52 @@ def Write_Fetch_and_Set_Functions_For_Each_Field(objects, tags, listName, fields
         fieldOwner =typeSpec['owner']
 
         toField = progSpec.fetchFieldByName(memObjFields, fieldName)
-        if(toField):
-            toFieldType =toField['fieldType']
-        else: toFieldType="BOBO"#fieldType
-        toFieldType = progSpec.TypeSpecsMinimumBaseType(objects, typeSpec)
-
-        print "        CONVERTING:", fieldName, toFieldType,  'FROM:', toField
+        if(toField==None):
+            toFieldType = progSpec.TypeSpecsMinimumBaseType(objects, typeSpec)
+            toTypeSpec=typeSpec
+        else:
+            toTypeSpec = toField['typeSpec']
+            toFieldType= toTypeSpec['fieldType']
+        print "        CONVERTING:", fieldName, toFieldType, typeSpec
+        print "            TOFieldTYPE1:", toField
+        print "            TOFieldTYPE :", toFieldType
+        fromIsList=False
+        toIsList=False
+        codeStr=''
+        finalCodeStr=''
+        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+            fromIsList=True
+        if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:
+            toIsList=True
         if(fieldIsNext==True):
             S+='        SRec <- getNextStateRec(SRec)\n'
             if fieldOwner=='const':
                 pass
             else:
-                if toFieldType=='string':            S=S+'        memStruct.'+fieldName+' <- '+ "makeStr(SRec)"+"\n"
-                elif toFieldType[0:4]=='uint':       S=S+'        memStruct.'+fieldName+' <- '+ "makeInt(SRec)"+"\n"
-                elif toFieldType[0:3]=='int':        S=S+'        memStruct.'+fieldName+' <- '+ "makeInt(SRec)"+"\n"
-                elif toFieldType[0:6]=='double':     S=S+'        memStruct.'+fieldName+' <- '+ "makeDblFromStr(SRec)"+"\n"
-                elif toFieldType[0:4]=='char':       S=S+'        memStruct.'+fieldName+' <- '+ "crntStr[0]"+"\n"
-                elif toFieldType[0:4]=='bool':       S=S+'        memStruct.'+fieldName+' <- '+ 'crntStr=="true"'+"\n"
-                elif progSpec.isStruct(toFieldType): S=S+'        memStruct.'+fieldName+' <- ExtractStruct_'+fieldType[0]+'()\n'
+                if toFieldType=='string':            codeStr="makeStr(SRec.child)"+"\n"
+                elif toFieldType[0:4]=='uint':       codeStr="makeInt(SRec.child)"+"\n"
+                elif toFieldType[0:3]=='int':        codeStr="makeInt(SRec.child)"+"\n"
+                elif toFieldType[0:6]=='double':     codeStr="makeDblFromStr(SRec->child)"+"\n"
+                elif toFieldType[0:4]=='char':       codeStr="crntStr[0]"+"\n"
+                elif toFieldType[0:4]=='bool':       codeStr='crntStr=="true"'+"\n"
+                elif progSpec.isStruct(toFieldType): finalCodeStr='        ExtractStruct_'+fieldType[0].replace('::', '_')+'(SRec.child, memStruct.'+fieldName+')\n'
         else:
             pass
            # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
            # objFieldStr+= writeContextualSet(field)
+        if codeStr!="":
+            if fromIsList:
+                if toIsList:
+                    S+='        withEach Cnt in WHILE(A==1):{'
+                    S+='            memStruct.'+fieldName+'.pushLast('+codeStr+')\n}\n'
+                else:
+                    if toFieldType=='string':      S+='        memStruct.'+fieldName+' <- '+"heachStr(SRec)"+"\n"
+                    elif toFieldType[0:4]=='uint': S+='        memStruct.'+fieldName+' <- '+"heachNum(SRec)"+"\n"
+                    elif toFieldType[0:3]=='int':  S+='        memStruct.'+fieldName+' <- '+"heachNum(SRec)"+"\n"
+                    else: print"\n\nRepetition extraction to a double field not yet coded.\n"; exit(2);
+            else: S+='        memStruct.'+fieldName+' <- '+codeStr+"\n"
+        elif finalCodeStr!="":
+            S+=finalCodeStr;
 
     seqExtracter =  "\n    me bool: ExtractStruct_"+listName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     return seqExtracter
@@ -731,19 +756,38 @@ def CreateStructsForStringModels(objects, tags):
     populateBaseRules()
 
     ExtracterCode="""
+    me string: heachStr(our stateRec: SRec) <- {
+        me string: S
+        me uint64: startPos <- SRec.child.originPos
+        me uint64: endPos <- SRec.next.crntPos
+        withEach i in RANGE(startPos .. endPos):{
+            S <- S+textToParse[i]
+        }
+        return(S)
+    }
+     me int64: heachNum(our stateRec: SRec) <- {
+        me string: S <- heachStr(SRec)
+        me int64: N <- atoi(S.data())
+        return(N)
+    }
+
     me string: makeStr(our stateRec: SRec) <- {
         me string: S
-        withEach i in RANGE(SRec.originPos .. SRec.crntPos):{
+        me uint64: startPos <- SRec.originPos
+        me uint64: endPos <- SRec.crntPos
+        me uint32: prod <- SRec.productionID
+        if(prod == quotedStr1 or prod == quotedStr2){
+            startPos <- startPos+1
+            endPos <- endPos-1
+        }
+        withEach i in RANGE(startPos .. endPos):{
             S <- S+textToParse[i]
         }
         return(S)
     }
     me uint64: makeInt(our stateRec: SRec) <- {
-        me string: S
-        withEach i in RANGE(SRec.originPos .. SRec.crntPos):{
-            S <- S+textToParse[i]
-        }
-        me uint64: N <- atoi(S.data())
+        me string: S <- makeStr(SRec)
+        me int64: N <- atoi(S.data())
         return(N)
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(0) }

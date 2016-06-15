@@ -26,6 +26,7 @@ import os
 import sys
 import errno
 import platform
+import copy
 
 def writeFile(path, fileName, outStr):
     try:
@@ -71,23 +72,24 @@ def ScanAndApplyPatterns(objects, tags):
                 exit()
 
 def AutoGenerateStructsFromModels(objects, tags):
-    #TODO: Convert ranges and deduce field types if possible.
     print "    Generating Auto-structs..."
     for objName in objects[1]:
         if objName[0]!='!':
             autoFlag = 'autoGen' in objects[0][objName]
             stateType=objects[0][objName]['stateType']
             if(autoFlag and stateType=='struct'):
-                print("objName", objName)
+                print("        Object:", objName)
                 thisModel=progSpec.findModelOf(objects, objName)
                 newFields=[]
                 for F in thisModel['fields']:
                     baseType=progSpec.TypeSpecsMinimumBaseType(objects, F['typeSpec'])
+                    G = F.copy()
                     if baseType!=None:
-                        F['typeSpec']['fieldType']=baseType
-                    newFields.append(F)
+                        G['typeSpec']=F['typeSpec'].copy()
+                        G['typeSpec']['fieldType']=baseType
+                    newFields.append(G)
                 objects[0][objName]['fields'] = newFields
-
+    #exit(2)
 
 
 def GroomTags(tags):
@@ -114,10 +116,10 @@ def GenerateProgram(objects, buildSpec, tags, libsToUse):
     result='No Language Generator Found for '+tags['langToGen']
     langGenTag = tags['langToGen']
     if(langGenTag == 'CPP'):
-        print '        Generating C++ Program...'
+        print "\n\n######################  G e n e r a t i n g   C + +   P r o g r a m . . ."
         result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]], libsToUse)
     elif(langGenTag == 'Java'):
-        print '        Generating Java Program...'
+        print "\n\n######################  G e n e r a t i n g   J a v a   P r o g r a m . . ."
         result=CodeGenerator_Java.generate(objects, [tags, buildSpec[1]], libsToUse)
     else:
         print "ERROR: No language generator found for ", langGenTag
