@@ -703,7 +703,6 @@ def processAction(action, indent):
                 actionText += indent + "for( int64_t " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
-            print "\nWHILESPEC:", whileSpec
             [whereExpr, whereConditionType] = codeExpr(whileSpec[2])
             actionText += indent + "while(" + whereExpr + "){\n"
         else: # interate over a container
