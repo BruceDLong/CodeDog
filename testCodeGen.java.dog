@@ -1,25 +1,26 @@
 // Test dog file
 
-//LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
-//AndroidBuild: CPU='arm7' Lang='java' optimize='speed';
+//LinuxBuild: CPU='amd64' Lang='CPP' optimize='speed';
+//AndroidBuild: CPU='arm7' Lang='Java' optimize='speed';
 //AppleBuild: CPU='i386' Lang='objectiveC' optimize='clarity';
+JavaBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 
 BuildCmd = `javac test.java`
 Title = "CodeDog test suite"
-FileName = "test.java"
+FileName = "test"  //TODO: determine extension for multiple builds
 Version = "0.8"
 CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long, Tiffany Lawrence"
 Description = "This test file is for testing CodeDog."
 
-featuresNeeded = {}
+featuresNeeded = {GUI_ToolKit = 'GUI' Mouse='GUI' Keyboard='GUI' Audio='GUI' RandomNumbers=''}
 
 LicenseText = `This file is part of the "CodeDog test suite"
 The CodeDog test suite is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 The CodeDog test suite is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with the CodeDog test suite.  If not, see www.gnu.org/licenses.`
 
-langToGen="Java"
+//langToGen="Java"    // TODO: remove this and grab Lang from build specs
 
 TestList = [abc, def, ghi, jkl]
 TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
@@ -30,7 +31,7 @@ initCode=''
 runCode=''
 deinitCode=''
 
-Include=`java.lang.String, java.util.*`
+Include=`java.lang.String`
 #include libraryTags.dog
 
 // test class 
@@ -60,13 +61,15 @@ struct itemValue{
     me timeStamp: timestamp
 }
 
-struct dataTracker{
+/*
+
+struct testTreeMaps{
     me double: minimum
     me double: maximum
     me int32:  precision
 
     me itemValue[multimap uint32]: dataPoints
-    me dataTracker[multimap uint32]: eventTrackers
+    me testTreeMaps[multimap uint32]: eventTrackers
     me itemValue[map uint32]: valueCache
 
     me void: addDataPoint(me itemValue: item) <- {dataPoints.insert(item.timestamp, item)}
@@ -75,15 +78,13 @@ struct dataTracker{
     me timeStamp: earliestTimeRecorded() <- {return(dataPoints.front().timestamp)}
     me timeStamp: latestTimeRecorded() <- {return(dataPoints.back().timestamp)}
 
-    their itemValue: valueAtTime(their timeStamp: t) <- {}
-    their itemValue: valueAfterTime(their timeStamp: t) <- {}
 
     me void: populateForTesting(me timeStamp: startTime, me timeStamp: endTime, me int32: lowVal, me int32: highVal, me uint32: numItems) <- {
         me itemValue: val
-        logMesg("POPULATING...")
+        //logMesg("POPULATING...") TODO get this to work
         withEach item in RANGE(0 .. numItems):{
-            val.value <- rand() % (highVal-lowVal) + lowVal
-            val.timestamp <- rand() % (endTime-startTime) + startTime
+            //val.value <- rand() % (highVal-lowVal) + lowVal  // TODO: val.value = (int)(Math.random() % (highVal - lowVal)) + lowVal;
+            //val.timestamp <- rand() % (endTime-startTime) + startTime  // TODO: val.value = (int)(Math.random() % (highVal - lowVal)) + lowVal;
             addDataPoint(val)
         }
     }
@@ -91,7 +92,6 @@ struct dataTracker{
 }
 
 
-
-
+*/
 
 do Write_Main(eventLoop)

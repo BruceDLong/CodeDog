@@ -254,7 +254,7 @@ def convertType(objects, TypeSpec):
                 if (cppType != "blah"): 
                     #TODO search for cppType object
                     cppType = "Object"
-                cppType="TreeMap< "+idxType+', '+cppType+" >"
+                cppType="TreeMap< "+idxType+', '+fieldType+" >"
     return cppType
 
 
@@ -319,10 +319,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             convertedIdxType=idxType 
             convertedItmType=convertType(objectsRef, typeSpecOut)
             if name=='at' or name=='erase' or  name=='size': pass
-            elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
+            elif name=='insert'   : name='put'; # typeSpecOut['codeConverter']='p(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front': name='firstEntry()->second'; paramList=None;
-            elif name=='back': name='lastEntry()->second'; paramList=None;
+            elif name=='front': name='firstEntry().getValue()'; paramList=None;
+            elif name=='back': name='lastEntry().getValue()'; paramList=None;
             elif name=='popFirst' : name='pop_front'
             elif name=='popLast'  : name='pop_back'
             else: print "Unknown map command:", name; exit(2);
@@ -330,10 +330,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             convertedIdxType=idxType
             convertedItmType=convertType(objectsRef, typeSpecOut)
             if name=='at' or name=='erase' or  name=='size': pass
-            elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
+            elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front': name='firstEntry()'; paramList=None;
-            elif name=='back': name='lastEntry()'; paramList=None;
+            elif name=='front': name='firstEntry().getValue()'; paramList=None;
+            elif name=='back': name='lastEntry().getValue()'; paramList=None;
             elif name=='popFirst' : name='pop_front'
             elif name=='popLast'  : name='pop_back'
             else: print "Unknown multimap command:", name; exit(2);
@@ -707,9 +707,9 @@ def processAction(action, indent):
             #print "RANGE:", S_low, "..", S_hi
             ctrlVarsTypeSpec = lowValType
             if(traversalMode=='Forward' or traversalMode==None):
-                actionText += indent + "for( int64_t " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
+                actionText += indent + "for( long " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
             elif(traversalMode=='Backward'):
-                actionText += indent + "for( int64_t " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+                actionText += indent + "for( long " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
 
         else: # interate over a container
             #print "ITERATE OVER", action['repList'][0]
@@ -746,7 +746,7 @@ def processAction(action, indent):
             actionOut = processAction(repAction, indent + "    ")
             repBodyText += actionOut
         if loopCounterName!='':
-            actionText=indent + "uint64_t " + loopCounterName + "=0;\n" + actionText
+            actionText=indent + "long " + loopCounterName + "=0;\n" + actionText
             repBodyText += indent + "    " + "++" + loopCounterName + ";\n"
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
@@ -865,7 +865,6 @@ def processOtherStructFields(objects, objectName, tags, indent):
             if (convertedType[0]=="T"):
                 #todo check for string "treemap"
                 convertedType += " = new TreeMap()"
-                print "TREEMAP!",  convertedType
             structCode += indent + convertedType + fieldValueText +';\n';
         #################################################################
         else: # Arglist exists so this is a function.
@@ -1065,7 +1064,7 @@ def integrateLibrary(tags, libID):
     libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
 
     for libHdr in libHeaders:
-        tags[0]['Include'] +=', <'+libHdr+'>'
+        tags[0]['Include'] +=', '+libHdr
         #print "Added header", libHdr
     #print 'BUILD STR', buildStr_libs
 

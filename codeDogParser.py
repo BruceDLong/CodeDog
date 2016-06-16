@@ -364,14 +364,18 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
 
 def extractBuildSpecs(buildSpecResults):
     resultBuildSpecs = []
-    #print buildSpecResults
+    print "^*^*^*^*^*^*^*^*^*buildSpecResults: ", buildSpecResults
     if (len(buildSpecResults)==0):
         resultBuildSpecs = [['LinuxBuild', {'': ''}]]
+        print "len 0";
     else:
         for localBuildSpecs in buildSpecResults:
-            spec = [localBuildSpecs.buildID, extractTagDefs(localBuildSpecs.buildDefList)]
+            print "localBuildSpecs.buildDefList: ", localBuildSpecs.buildDefList
+            spec = [localBuildSpecs.buildID, extractTagDefs(localBuildSpecs.buildDefList[0])]
             resultBuildSpecs.append(spec)
-    #print resultBuildSpecs
+            print "spec: ", spec,  localBuildSpecs.buildDefList
+        print "len > 0: ", len(buildSpecResults);
+    print "^*^*^*^*^*^*^*^*^*resultBuildSpecs: ",resultBuildSpecs
     return resultBuildSpecs
 
 def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
