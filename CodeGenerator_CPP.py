@@ -671,19 +671,15 @@ def processAction(action, indent):
         elseBodyText = ""
         elseBody = action['elseBody']
         if (elseBody):
-            #print 'ELSE BODY.......ELSE BODY.......ELSE BODY:', elseBody
-            """  if (action['nextIf'] ):
-                elseIf = elseBody
-                elseIfText = processAction(elseIf, indent)
-                #print "ELSE IF:  ELSE IF:  ELSE IF:  ELSE IF:  ", elseIfText
-                actionText += indent + "else " + elseIfText.lstrip()
-"""
-            if ('actionList' in elseBody):
-                elseActSeq = elseBody['actionList']
-            else: elseActSeq = elseBody['elseBody']['actionList']
-            elseText = processActionSeq(elseActSeq, indent)
-            #print "ELSE: ELSE: ELSE: ELSE: ELSE: ", elseText
-            actionText += indent + "else " + elseText.lstrip()
+            if (elseBody[0]=='if'):
+                elseAction = elseBody[1]
+                elseText = processActionSeq(elseAction, indent)
+                actionText += indent + "else " + elseText.lstrip()
+            elif (elseBody[0]=='action'):
+                elseAction = elseBody[1]['actionList']
+                elseText = processActionSeq(elseAction, indent)
+                actionText += indent + "else " + elseText.lstrip()
+            else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
         repBody = action['repBody']
         repName = action['repName']

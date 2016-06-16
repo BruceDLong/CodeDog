@@ -257,10 +257,10 @@ def extractActItem(funcName, actionItem):
         if (actionItem.optionalElse):
             elseBodyIn = actionItem.optionalElse
             if (elseBodyIn.conditionalAction):
-                elseBodyOut = extractActItem(funcName, elseBodyIn.conditionalAction)
+                elseBodyOut = ['if' , [extractActItem(funcName, elseBodyIn.conditionalAction)] ]
                 #print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBodyOut
             elif (elseBodyIn.actionSeq):
-                elseBodyOut = extractActItem(funcName, elseBodyIn.actionSeq)
+                elseBodyOut = ['action', extractActItem(funcName, elseBodyIn.actionSeq)]
                 #elseBody['act']  = elseBodyOut
                 #print "\n ELSE........ELSE........ELSE........ELSE........ELSE: ", elseBody
         #print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBodyOut

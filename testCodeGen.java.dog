@@ -3,11 +3,10 @@
 //LinuxBuild: CPU='amd64' Lang='c++' optimize='speed';
 //AndroidBuild: CPU='arm7' Lang='java' optimize='speed';
 //AppleBuild: CPU='i386' Lang='objectiveC' optimize='clarity';
-// g++ -g -std=gnu++11 `pkg-config --cflags gtk+-3.0` test.cpp
 
-BuildCmd = `g++ -std=gnu++11 test.cpp -o test`
+BuildCmd = `javac test.java`
 Title = "CodeDog test suite"
-FileName = "test.cpp"
+FileName = "test.java"
 Version = "0.8"
 CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long, Tiffany Lawrence"
@@ -20,22 +19,19 @@ The CodeDog test suite is free software: you can redistribute it and/or modify i
 The CodeDog test suite is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with the CodeDog test suite.  If not, see www.gnu.org/licenses.`
 
-langToGen="CPP"
+langToGen="Java"
 
 TestList = [abc, def, ghi, jkl]
 TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
 
 testEventHandling = {ID='testEvH' maxEvents='100000' types=[GUI, LogicAtom] runFromMain=1}
 
-initCode=""
-runCode=""
-deinitCode=""
+initCode=''
+runCode=''
+deinitCode=''
 
-Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>, <deque>`
-
+Include=`java.lang.String, java.util.*`
 #include libraryTags.dog
-
-
 
 // test class 
 struct testClass  {
@@ -46,9 +42,56 @@ struct testClass  {
         me int32: X <- 12
         if (X == 1){X <- 2}
         else if(X == 2 ){X <- 3}
-
-        else {X <- 5}
+        else if(X == 3 ){X <- 4}
+        else {print('Hello')}
         return(false)
     }
 }
+
+
+
+
+struct timeStamp{me uint32: timeStamp}
+
+struct itemValue{
+    me double: value
+    me int32:  sourceID
+    me int32:  TypeID
+    me timeStamp: timestamp
+}
+
+struct dataTracker{
+    me double: minimum
+    me double: maximum
+    me int32:  precision
+
+    me itemValue[multimap uint32]: dataPoints
+    me dataTracker[multimap uint32]: eventTrackers
+    me itemValue[map uint32]: valueCache
+
+    me void: addDataPoint(me itemValue: item) <- {dataPoints.insert(item.timestamp, item)}
+    me void: delDataPoint(their itemValue: item) <- {}  // TODO: Write delDataPoint()
+
+    me timeStamp: earliestTimeRecorded() <- {return(dataPoints.front().timestamp)}
+    me timeStamp: latestTimeRecorded() <- {return(dataPoints.back().timestamp)}
+
+    their itemValue: valueAtTime(their timeStamp: t) <- {}
+    their itemValue: valueAfterTime(their timeStamp: t) <- {}
+
+    me void: populateForTesting(me timeStamp: startTime, me timeStamp: endTime, me int32: lowVal, me int32: highVal, me uint32: numItems) <- {
+        me itemValue: val
+        logMesg("POPULATING...")
+        withEach item in RANGE(0 .. numItems):{
+            val.value <- rand() % (highVal-lowVal) + lowVal
+            val.timestamp <- rand() % (endTime-startTime) + startTime
+            addDataPoint(val)
+        }
+    }
+
+}
+
+
+
+
+
 do Write_Main(eventLoop)
