@@ -111,6 +111,8 @@ def setFeaturesNeeded(tags, featureIDs, neededBy):
     for feature in featureIDs:
         setFeatureNeeded(tags, feature, neededBy)
 
+def addCodeToInit(tagStore, newInitCode):
+    appendToStringTagValue(tagStore, "initCode", newInitCode);
 ###############
 
 def isWrappedType(objMap, structname):

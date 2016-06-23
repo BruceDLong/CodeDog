@@ -49,6 +49,6 @@ libraries = {
         bindings =[Java]
         CPUs     =[JavaVM]
         libFiles=[`pkg-config --libs gtk+-3.0`]
-        headers=[java.util.Random]
+        headers=[`java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.TreeMap`]
     }
 }

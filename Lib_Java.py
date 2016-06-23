@@ -3,23 +3,44 @@
 import progSpec
 import codeDogParser
 
+def createUtilityFunctions():
+    S="""
+	"""
+    return S
+
 def use(objects, buildSpec, tags, platform):
     print "USING Java"
+    progSpec.addCodeToInit(tags, "Random javaRandomVar = new Random();/n");
+    progSpec.addCodeToInit(tags, "private final static Logger logger = Logger.getLogger(className.class.getName());/n");
 
     CODE="""
-        
+   
     """
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
-
-    #APP_UTILITY_CODE = createUtilityFunctions()
-    #MENU_BAR_CODE = createMenubar()
-    #MAIN_APP_CODE = createMainAppArea()
-    #STATUS_BAR_CODE=createStatusBar()
-
-
-    #GLOBAL_CODE="""
-        
-    #""" % (APP_UTILITY_CODE, MENU_BAR_CODE, MAIN_APP_CODE, STATUS_BAR_CODE)
     
+    GLOBAL_CODE="""
+        struct GLOBAL{
+            me int32: rand()<- <%! GLOBAL.randInt(%1)%>
+            // LOGGING INTERFACE:
+            me void: logMesg(me string: s) <- <%!GLOBAL.getLoggInfo(%1)%>
+            me void: getLoggInfo()<- <%!{}%>
+        }
+    """
+  
+    #codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
+
+
     
-    #codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+    
+    #public static void getLoggInfo( String str)
+    #{
+        #final Logger logger = Logger.getLogger(testTreeMaps.class.getName());
+        #logger.log(Level.INFO, str);
+    #}
+    
+    #public static int randInt(int highVal)
+    #{
+        #Random javaRandomVar = new Random();
+        #int randomNumber = javaRandomVar.nextInt(highVal + 1);
+        #return randomNumber;
+    #}

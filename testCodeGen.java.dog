@@ -33,7 +33,8 @@ deinitCode=''
 
 Include=`java.lang.String`
 #include libraryTags.dog
-
+ 
+/*
 // test class 
 struct testClass  {
     me string: address
@@ -48,7 +49,7 @@ struct testClass  {
         return(false)
     }
 }
-
+*/
 
 
 
@@ -61,37 +62,56 @@ struct itemValue{
     me timeStamp: timestamp
 }
 
-/*
+
 
 struct testTreeMaps{
     me double: minimum
     me double: maximum
     me int32:  precision
 
-    me itemValue[multimap uint32]: dataPoints
+    me itemValue[multimap uint32]: dataPoints  
     me testTreeMaps[multimap uint32]: eventTrackers
     me itemValue[map uint32]: valueCache
+    //TODO:  private final static Logger logger = Logger.getLogger(testTreeMaps.class.getName());
 
     me void: addDataPoint(me itemValue: item) <- {dataPoints.insert(item.timestamp, item)}
-    me void: delDataPoint(their itemValue: item) <- {}  // TODO: Write delDataPoint()
+    me void: delDataPoint(their itemValue: item) <- {}  
 
     me timeStamp: earliestTimeRecorded() <- {return(dataPoints.front().timestamp)}
     me timeStamp: latestTimeRecorded() <- {return(dataPoints.back().timestamp)}
 
 
     me void: populateForTesting(me timeStamp: startTime, me timeStamp: endTime, me int32: lowVal, me int32: highVal, me uint32: numItems) <- {
-        me itemValue: val
-        //logMesg("POPULATING...") TODO get this to work
+        me itemValue: val   
+        logMesg("POPULATING...") // TODO:  logger.log(Level.INFO, "POPULATING...");
         withEach item in RANGE(0 .. numItems):{
-            //val.value <- rand() % (highVal-lowVal) + lowVal  // TODO: val.value = (int)(Math.random() % (highVal - lowVal)) + lowVal;
-            //val.timestamp <- rand() % (endTime-startTime) + startTime  // TODO: val.value = (int)(Math.random() % (highVal - lowVal)) + lowVal;
+            //TODO: add init code // Random javaRandomVar = new Random();
+            val.value <- rand(highVal-lowVal) + lowVal     
+            //val.timestamp <- rand(endTime-startTime) + startTime   //TODO: handle long
+            //TODO: make c++ and java random number generator for codedog that is like java's next int but with a parameter passed and returns random number between 0 and number passed
             addDataPoint(val)
         }
     }
 
 }
 
+struct test{
+    me void: main ()<-{
+        me int32: highVal <- 8
+        me int32: lowVal <- 2 
+        me int64: startTime <- 345678910 
+        me int64: endTime <- 345679910
+        me int64: numItems <- 345378910
+        me int32: myVal <- rand(highVal-lowVal) + lowVal 
+        System.out.println("myVal")
+        System.out.println(myVal)
+        //logMesg("TestClass...")
+        me testTreeMaps: myTestTree 
+        myTestTree.populateForTesting(startTime,endTime,lowVal,highVal,numItems)
+    }
+}
 
-*/
+
+
 
 do Write_Main(eventLoop)

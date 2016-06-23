@@ -254,7 +254,7 @@ def convertType(objects, TypeSpec):
                 if (cppType != "blah"): 
                     #TODO search for cppType object
                     cppType = "Object"
-                cppType="TreeMap< "+idxType+', '+fieldType+" >"
+                cppType="< "+idxType+', '+fieldType+" >"
     return cppType
 
 
@@ -397,6 +397,24 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             S+= '('+codeParameterList(paramList)+')'
     return [S,  typeSpecOut]
 
+def codeUnknownNameSeg(segSpec):
+    S=''
+    paramList=None
+    segName=segSpec[0]
+    S += '.'+ segName
+    if len(segSpec) > 1 and segSpec[1]=='(':
+        if(len(segSpec)==2):
+            paramList=[]
+        else:
+            paramList=segSpec[2]
+    # Add parameters if this is a function call
+    if(paramList != None):
+        if(len(paramList)==0):
+            S+="()"
+        else:
+            S+= '('+codeParameterList(paramList)+')'
+    return S;
+
 def codeItemRef(name, LorR_Val):
     S=''
     segStr=''
@@ -407,6 +425,7 @@ def codeItemRef(name, LorR_Val):
     for segSpec in name:
         #print "NameSeg:", segSpec
         segName=segSpec[0]
+        #print "segName: ", segName
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).
             connector='.'
@@ -414,11 +433,12 @@ def codeItemRef(name, LorR_Val):
                 #print "SEGTYPE:", segType
                 segOwner=segType['owner']
                 if(segOwner!='me'): connector='->'
-
         if segType!=None:
             [segStr, segType]=codeNameSeg(segSpec, segType, connector)
-        prevLen=len(S)
+        else:
+            segStr= codeUnknownNameSeg(segSpec)
         S+=segStr
+        prevLen=len(S)
         segIDX+=1
 
     # Handle cases where seg's type is flag or mode
@@ -631,7 +651,7 @@ def processAction(action, indent):
     global localVarsAllocated
     actionText = ""
     typeOfAction = action['typeOfAction']
-
+    
     if (typeOfAction =='newVar'):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
@@ -642,8 +662,10 @@ def processAction(action, indent):
             [S2, rhsType]=codeExpr(fieldDef['value'][0])
             [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
             RHS = leftMod+S2+rightMod
-            assignValue=' = '+ RHS
-        actionText = indent + fieldType + " " + varName + assignValue + ";\n"
+            assignValue=' = '+ RHS + ';\n'
+        else:
+            assignValue= " = new " + fieldType +"();\n"
+        actionText = indent + fieldType + " " + varName + assignValue 
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
@@ -847,7 +869,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         if fieldName=='opAssign': fieldName='operator='
         #print "          TREEMAP: ", typeSpec
         convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
-        print "convertedType: ", convertedType
+        #print "convertedType: ", convertedType
         
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         print "                       ", fieldType, fieldName
@@ -861,10 +883,12 @@ def processOtherStructFields(objects, objectName, tags, indent):
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
         elif(fieldArglist==None):
-            convertedType += ' ' + fieldName
-            if (convertedType[0]=="T"):
-                #todo check for string "treemap"
-                convertedType += " = new TreeMap()"
+            if (convertedType[0]=="<"):
+                #TODO: check for string "Treemap"
+                #convertedType += " = new TreeMap()"
+                convertedType ="TreeMap " + convertedType + " " + fieldName + " = new TreeMap " + convertedType + " ()"
+            else:
+                convertedType += ' ' + fieldName
             structCode += indent + convertedType + fieldValueText +';\n';
         #################################################################
         else: # Arglist exists so this is a function.
@@ -938,7 +962,8 @@ def processOtherStructFields(objects, objectName, tags, indent):
     if(False and objectName=='GLOBAL'):
         return [structCode, funcDefCode]
     else:
-        constructCode=generate_constructor(objects, objectName, tags, indent)
+        #constructCode=generate_constructor(objects, objectName, tags, indent)
+        constructCode=""
         structCodeAcc+=constructCode
         return [structCodeAcc, funcDefCodeAcc]
 
