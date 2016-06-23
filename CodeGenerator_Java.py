@@ -3,6 +3,7 @@ import progSpec
 import re
 import datetime
 import pattern_Write_Main
+import codeDogParser
 
 buildStr_libs='g++ -g -std=gnu++11 '
 
@@ -1098,6 +1099,26 @@ def connectLibraries(objects, tags, libsToUse):
     for lib in libsToUse:
         integrateLibrary(tags, lib)
 
+def createInit_DeInit(objects, tags):
+    initCode=''; deinitCode=''
+
+    if 'initCode'   in tags: initCode  = tags['initCode']
+    if 'deinitCode' in tags: deinitCode= tags['deinitCode']
+    
+    GLOBAL_CODE="""
+struct GLOBAL{
+    me void: initialize() <- {
+        %s
+    }
+
+    me void: deinitialize() <- {
+        %s
+    }
+}
+    """ % (initCode, deinitCode)
+
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+
 def generate(objects, tags, libsToUse):
     #print "\nGenerating CPP code...\n"
     global objectsRef
@@ -1105,6 +1126,7 @@ def generate(objects, tags, libsToUse):
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(objects, tags, libsToUse)
+    createInit_DeInit(objects, tags[0])
     header = makeFileHeader(tags)
     [constsEnums, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     #topBottomStrings = processMain(objects, tags)

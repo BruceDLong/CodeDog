@@ -6,23 +6,11 @@ import codeDogParser
 mainFuncCode=r"// No Main given"
 def apply(objects, tags, codeToRun):
     # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
-    initFuncCode=''; initCode=''; runCode=''; deinitCode=''
+    runCode='';
 
-    if 'initCode'   in tags: initCode  = tags['initCode']
     if 'runCode'    in tags: runCode   = tags['runCode']+';'
-    if 'deinitCode' in tags: deinitCode= tags['deinitCode']
 
     tags['Include'] += ",<signal.h>"
-
-    initFuncCode=r"""
-    me void: initialize() <- {
-        %s
-    }
-
-    me void: deinitialize() <- {
-        %s
-    }
-    """ % (initCode, deinitCode)
 
     # TODO: Some deInitialize items should automatically run during abort().
     # TODO: Deinitialize items should happen in reverse order.
@@ -39,4 +27,4 @@ def apply(objects, tags, codeToRun):
 """
 
     progSpec.addObject(objects[0], objects[1], 'GLOBAL', 'struct', 'SEQ')
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef('GLOBAL', initFuncCode + mainFuncCode ))
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ))
