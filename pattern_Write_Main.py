@@ -10,7 +10,6 @@ def apply(objects, tags, codeToRun):
 
     if 'runCode'    in tags: runCode   = tags['runCode']+';'
 
-    tags['Include'] += ",<signal.h>"
 
     # TODO: Some deInitialize items should automatically run during abort().
     # TODO: Deinitialize items should happen in reverse order.

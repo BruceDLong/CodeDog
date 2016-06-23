@@ -15,6 +15,8 @@ import stringStructs
 ##########  Library Shells
 import Lib_GTK3
 import Lib_Java
+import Lib_CPP
+
 
 import CodeGenerator_CPP
 import CodeGenerator_Java
@@ -96,9 +98,7 @@ def AutoGenerateStructsFromModels(objects, tags):
 
 def GroomTags(tags):
     # Set tag defaults as needed
-    if not ('featuresNeeded' in tags[0]):
-        tags[0]['featuresNeeded']={}
-
+    tags[0]['featuresNeeded']['System'] = 'system'
     # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
     if not ('Platform' in tags[0]):
         platformID=platform.system()
@@ -173,6 +173,7 @@ def ChooseLibs(objects, buildSpec, tags):
         if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildSpec, tags, Platform)
         elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildSpec, tags, Platform)
         elif (Lib=="Java"): Lib_Java.use(objects, buildSpec, tags, Platform)
+        elif (Lib=="CPP"): Lib_CPP.use(objects, buildSpec, tags, Platform)
 
 
     return libsToUse
@@ -183,6 +184,7 @@ def GenerateSystem(objects, buildSpecs, tags):
     stringStructs.CreateStructsForStringModels(objects, tags)
     AutoGenerateStructsFromModels(objects, tags)
     GroomTags([tags, buildSpecs])
+
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]
         print "    Generating code for build", buildName

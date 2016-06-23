@@ -1053,7 +1053,7 @@ def addSpecialCode():
 
     return S
 
-def makeFileHeader(tags):
+def makeFileHeader(tags, libsToUse):
     global buildStr_libs
 
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
@@ -1066,9 +1066,10 @@ def makeFileHeader(tags):
     header += "\n/*  " + makeTagText(tags, 'LicenseText') +'\n*/\n'
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
     header += "\n// Build Command: " +buildStr_libs+'\n'
-    includes = re.split("[,\s]+", progSpec.fetchTagValue(tags, 'Include'))
-    for hdr in includes:
-        header+="\nimport "+hdr+";"
+    print "\n            Choosing Libaries to link..."
+    for lib in libsToUse:
+        header += integrateLibraries(tags, lib)
+        
     header += "\n"
     
     #TODO: Java-ize this:
@@ -1079,25 +1080,21 @@ def makeFileHeader(tags):
     
     return header
 
-def integrateLibrary(tags, libID):
+def integrateLibraries(tags, libID):
     print '                Integrating', libID
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
     libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
     #print "LIB_FILES", libFiles
     global buildStr_libs
+    header = ''
     for libFile in libFiles:
         buildStr_libs+=' -l'+libFile
-    libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
-
-    for libHdr in libHeaders:
-        tags[0]['Include'] +=', '+libHdr
-        #print "Added header", libHdr
+    libs=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')[0].split(",")
+    for lib in libs:
+        header += 'import '+lib+ ';\n'
     #print 'BUILD STR', buildStr_libs
+    return header
 
-def connectLibraries(objects, tags, libsToUse):
-    print "\n            Choosing Libaries to link..."
-    for lib in libsToUse:
-        integrateLibrary(tags, lib)
 
 def createInit_DeInit(objects, tags):
     initCode=''; deinitCode=''
@@ -1125,9 +1122,8 @@ def generate(objects, tags, libsToUse):
     global buildStr_libs
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
-    libInterfacesText=connectLibraries(objects, tags, libsToUse)
     createInit_DeInit(objects, tags[0])
-    header = makeFileHeader(tags)
+    header = makeFileHeader(tags, libsToUse)
     [constsEnums, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     #topBottomStrings = processMain(objects, tags)
     #typeDefCode = produceTypeDefs(typeDefMap)

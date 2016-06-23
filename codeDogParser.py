@@ -188,6 +188,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
             givenValue = nameAndVal.givenValue
 
         elif(nameAndVal.funcBody):
+            #print "fieldResult: ", fieldResult
             [funcBodyOut, funcTextVerbatim] = extractFuncBody(ObjectName, fieldName, nameAndVal.funcBody)
             givenValue=[funcBodyOut, funcTextVerbatim]
             #print "\n\n[funcBodyOut, funcTextVerbatim] ", givenValue
@@ -329,6 +330,7 @@ def extractActSeq( funcName, childActSeq):
     actionList = childActSeq.actionList
     actSeq = []
     for actionItem in actionList:
+        #print "actionItem: ", actionItem
         thisActionItem = extractActItem(funcName, actionItem)
         actSeq.append(thisActionItem)
     return actSeq
@@ -337,6 +339,7 @@ def extractActSeqToFunc(funcName, funcBodyIn):
     #print "extractActSeqToFunc"
     #print "objectName: ", objectName
     #print "funcName: ", funcName
+    #print "funcBodyIn: ", funcBodyIn
     #print "funcBodyIn: ", funcBodyIn
     childActSeq = extractActSeq( funcName, funcBodyIn)
     #print childActSeq
@@ -348,6 +351,7 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
         funcBodyOut = ""
         funcTextVerbatim = funcBodyIn[1][0]
     else:
+        #print "funcBodyIn: ", funcBodyIn
         funcBodyOut = extractActSeqToFunc(funcName, funcBodyIn)
         funcTextVerbatim = ""
     #print funcBodyOut
@@ -357,6 +361,7 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
     print "    EXTRACTING Field Defs for", ObjectName
     #print fieldResults
     for fieldResult in fieldResults:
+        #print "fieldResult: ", fieldResult
         fieldDef=packFieldDef(fieldResult, ObjectName, '')
         progSpec.addField(ProgSpec, ObjectName, fieldDef)
 
