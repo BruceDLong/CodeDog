@@ -14,7 +14,7 @@ libraries = {
         description='Simple DirectMedia Layer is a wrapper around basic machine functionality'
         features=[GraphicsModes, MouseX, KeyboardX, AudioX]
         platforms=[Linux, OS-X_Devices, Windows, iOS_Devices, Android]
-        bindings =[C, CPP, java, perl, python]
+        bindings =[C, CPP, perl, python]
         CPUs     =[i386, amd64, arm7]
         libFiles=[SDL2, SDL2_image]
         headers=[SDL2/SDL.h, SDL2/SDL_image.h]
@@ -27,7 +27,7 @@ libraries = {
         description='GTK is a GUI Toolkit'
         features=[GUI_ToolKit, Mouse, Keyboard, Audio]
         platforms=[Linux, OS-X_Devices, Windows]
-        bindings =[C, CPP, java, perl, python]
+        bindings =[C, CPP, perl, python]
         CPUs     =[i386, amd64, arm7]
         libFiles=[`pkg-config --libs gtk+-3.0`]
         headers=[gtk/gtk.h]
@@ -39,5 +39,16 @@ libraries = {
         features=[Drawing2D]
         libFiles=[cairo]
         headers=[cairo.h]
+    }
+    
+    Java={
+        useStatus='dynamic'
+        description='Misc Java'
+        features=[GUI_ToolKit, Mouse, Keyboard, Audio, RandomNumbers]
+        platforms=[Java]
+        bindings =[Java]
+        CPUs     =[JavaVM]
+        libFiles=[`pkg-config --libs gtk+-3.0`]
+        headers=[`java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.TreeMap`]
     }
 }

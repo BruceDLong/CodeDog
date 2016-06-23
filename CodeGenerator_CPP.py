@@ -383,6 +383,24 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         else:
             S+= '('+codeParameterList(paramList)+')'
     return [S,  typeSpecOut]
+    
+def codeUnknownNameSeg(segSpec):
+    S=''
+    paramList=None
+    segName=segSpec[0]
+    S += '.'+ segName
+    if len(segSpec) > 1 and segSpec[1]=='(':
+        if(len(segSpec)==2):
+            paramList=[]
+        else:
+            paramList=segSpec[2]
+    # Add parameters if this is a function call
+    if(paramList != None):
+        if(len(paramList)==0):
+            S+="()"
+        else:
+            S+= '('+codeParameterList(paramList)+')'
+    return S;
 
 def codeItemRef(name, LorR_Val):
     S=''
@@ -404,6 +422,8 @@ def codeItemRef(name, LorR_Val):
 
         if segType!=None:
             [segStr, segType]=codeNameSeg(segSpec, segType, connector)
+        else:
+            segStr= codeUnknownNameSeg(segSpec)
         prevLen=len(S)
         S+=segStr
         segIDX+=1

@@ -14,6 +14,7 @@ import stringStructs
 
 ##########  Library Shells
 import Lib_GTK3
+import Lib_Java
 
 import CodeGenerator_CPP
 import CodeGenerator_Java
@@ -72,6 +73,7 @@ def ScanAndApplyPatterns(objects, tags):
                 exit()
 
 def AutoGenerateStructsFromModels(objects, tags):
+    #TODO: Convert ranges and deduce field types if possible.
     print "    Generating Auto-structs..."
     for objName in objects[1]:
         if objName[0]!='!':
@@ -113,8 +115,8 @@ def GroomTags(tags):
 
 
 def GenerateProgram(objects, buildSpec, tags, libsToUse):
-    result='No Language Generator Found for '+tags['langToGen']
-    langGenTag = tags['langToGen']
+    result='No Language Generator Found for '+buildSpec[1]['Lang']
+    langGenTag = buildSpec[1]['Lang']
     if(langGenTag == 'CPP'):
         print "\n\n######################  G E N E R A T I N G   C + +   P R O G R A M . . ."
         result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]], libsToUse)
@@ -130,7 +132,7 @@ def ChooseLibs(objects, buildSpec, tags):
     # TODO: Why is fetchTagValue called with tags, not [tags]?
     libList = progSpec.fetchTagValue([tags], 'libraries')
     Platform= progSpec.fetchTagValue([tags, buildSpec[1]], 'Platform')
-    Language= progSpec.fetchTagValue([tags, buildSpec[1]], 'Language')
+    Language= progSpec.fetchTagValue([tags, buildSpec[1]], 'Lang')
     CPU     = progSpec.fetchTagValue([tags, buildSpec[1]], 'CPU')
     print "PLATFORM, LANGUAGE, CPU:", Platform, ',', Language, ',', CPU
 
@@ -170,6 +172,7 @@ def ChooseLibs(objects, buildSpec, tags):
     for Lib in libsToUse:
         if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildSpec, tags, Platform)
         elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildSpec, tags, Platform)
+        elif (Lib=="Java"): Lib_Java.use(objects, buildSpec, tags, Platform)
 
 
     return libsToUse
@@ -185,7 +188,13 @@ def GenerateSystem(objects, buildSpecs, tags):
         print "    Generating code for build", buildName
         libsToUse=ChooseLibs(objects, buildSpec, tags)
         outStr = GenerateProgram(objects, buildSpec, tags, libsToUse)
-        writeFile(buildName, tagStore['FileName'], outStr)
+        fileName = tagStore['FileName'] 
+        langGenTag = buildSpec[1]['Lang']
+        if(langGenTag == 'CPP'): fileName+='.cpp'
+        elif(langGenTag == 'Java'):  fileName+='.java'
+        else:
+            print "ERROR: unrecognized language ", langGenTag
+        writeFile(buildName, fileName, outStr)
         #GenerateBuildSystem()
     # GenerateTests()
     # GenerateDocuments()
