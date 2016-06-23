@@ -563,7 +563,7 @@ def appendRule(ruleName, termOrNot, pFlags, prodData):
         if not isinstance(ruleName, basestring):
             ruleName="rule"+str(thisIDX)
         constDefs.append([ruleName, str(thisIDX)])
-        print "PRODDATA:", prodData
+        #print "PRODDATA:", prodData
         if isinstance(prodData, list):
             prodData='['+(', '.join(map(str,prodData))) + ']'
         rules.append([ruleName, termOrNot, pFlags, prodData])
@@ -630,7 +630,13 @@ def fetchOrWriteParseRule(modelName, field):
         elif fieldType[0:6]=='double': nameOut='RdxSeq'
         elif fieldType[0:4]=='char':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
-        elif progSpec.isStruct(fieldType): nameOut='parse_'+fieldType[0]
+        elif progSpec.isStruct(fieldType):
+            objName=fieldType[0]
+            print 'OBJNAME:', objName
+            if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
+                nameOut=objName
+            else:
+                nameOut='parse_'+fieldType[0]
         elif progSpec.isAlt(fieldType):
             pass
         elif progSpec.isOpt(fieldType):
@@ -667,69 +673,95 @@ def AddFields(objects, tags, listName, fields, SeqOrAlt):
     nameIn='parse_'+listName
     nameOut=appendRule(nameIn, "nonterm", SeqOrAlt, partIndexes)
 
-def Write_Fetch_and_Set_Functions_For_Each_Field(objects, tags, listName, fields, SeqOrAlt):
+def Write_fieldExtracter(objects, field, memObjFields):
+    S=''
+    fieldName  =field['fieldName']
+    fieldIsNext=field['isNext']
+    fieldValue =field['value']
+    typeSpec   =field['typeSpec']
+    fieldType  =typeSpec['fieldType']
+    fieldOwner =typeSpec['owner']
+
+    toField = progSpec.fetchFieldByName(memObjFields, fieldName)
+    if(toField==None):
+        toFieldType = progSpec.TypeSpecsMinimumBaseType(objects, typeSpec)
+        toTypeSpec=typeSpec
+    else:
+        toTypeSpec = toField['typeSpec']
+        toFieldType= toTypeSpec['fieldType']
+    print "        CONVERTING:", fieldName, toFieldType, typeSpec
+    print "            TOFieldTYPE1:", toField
+    print "            TOFieldTYPE :", toFieldType
+    print "FIELD-NAME/TYPE:", fieldName,'/', fieldType
+    fromIsList=False
+    toIsList=False
+    codeStr=''
+    finalCodeStr=''
+    if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+        fromIsList=True
+    if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:
+        toIsList=True
+    if(fieldIsNext==True):
+        S+='        SRec <- getNextStateRec(SRec)\n'
+        if fieldOwner=='const':
+            pass
+        else:
+            if toFieldType=='string':            codeStr="makeStr(SRec.child)"+"\n"
+            elif toFieldType[0:4]=='uint':       codeStr="makeInt(SRec.child)"+"\n"
+            elif toFieldType[0:3]=='int':        codeStr="makeInt(SRec.child)"+"\n"
+            elif toFieldType[0:6]=='double':     codeStr="makeDblFromStr(SRec->child)"+"\n"
+            elif toFieldType[0:4]=='char':       codeStr="crntStr[0]"+"\n"
+            elif toFieldType[0:4]=='bool':       codeStr='crntStr=="true"'+"\n"
+            elif progSpec.isStruct(toFieldType):
+                objName=toFieldType[0]
+                if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
+                    codeStr="makeStr(SRec.child)"
+                else:
+                    finalCodeStr='        ExtractStruct_'+fieldType[0].replace('::', '_')+'(SRec.child, memStruct.'+fieldName+')\n'
+    else:
+        pass
+       # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
+       # objFieldStr+= writeContextualSet(field)
+    if codeStr!="":
+        if fromIsList:
+            if toIsList:
+                S+='''
+    our stateRec: childSRec <- SRec.child
+    withEach Cnt in WHILE(childSRec.next):{
+        childSRec <- childSRec.next
+        print("# ", makeStr(childSRec.child), "\\n")'''
+                S+='\n            memStruct.'+fieldName+'.pushLast('+codeStr+')\n}\n'
+            else:
+                if toFieldType=='string':      S+='        memStruct.'+fieldName+' <- '+"heachStr(SRec)"+"\n"
+                elif toFieldType[0:4]=='uint': S+='        memStruct.'+fieldName+' <- '+"heachNum(SRec)"+"\n"
+                elif toFieldType[0:3]=='int':  S+='        memStruct.'+fieldName+' <- '+"heachNum(SRec)"+"\n"
+                else: print"\n\nRepetition extraction to a double field not yet coded.\n"; exit(2);
+        else:
+            print "MEMSTRUCT:", fieldName, codeStr
+            S+='        memStruct.'+fieldName+' <- '+codeStr+"\n"
+    elif finalCodeStr!="":
+        S+=finalCodeStr;
+
+    return S
+
+def Write_structExtracter(objects, tags, listName, fields, SeqOrAlt):
     # TODO: here we assume that the memory form has '::mem' using AutoAssigners, make this work with other forms.
-    # NOTE: The below three lines don't work because memObj['fields'] hasn't yet been populated. So we precreate with TypeSpecsMinimumBaseType()
-    memVersionName=listName[:listName.find("::")]+"::mem"
+    seperatorIdx= listName.find("::")
+    print "LISTNAME:", listName, seperatorIdx
+    memVersionName=listName
+    if seperatorIdx>=0:
+        memVersionName=listName[:listName.find("::")]+"::mem"
     memObj=objects[0][memVersionName]
     memObjFields=memObj['fields']
 
     S='        their production: prod <- grammar[SRec.productionID]\n'
     for field in fields:
-        fieldName  =field['fieldName']
-        fieldIsNext=field['isNext']
-        fieldValue =field['value']
-        typeSpec   =field['typeSpec']
-        fieldType  =typeSpec['fieldType']
-        fieldOwner =typeSpec['owner']
-
-        toField = progSpec.fetchFieldByName(memObjFields, fieldName)
-        if(toField==None):
-            toFieldType = progSpec.TypeSpecsMinimumBaseType(objects, typeSpec)
-            toTypeSpec=typeSpec
+        if(SeqOrAlt=='parseALT'):
+            S+="    if(MyProdID == prod.items[field_key]){\n"
+            S+="    "+Write_fieldExtracter(objects, field, memObjFields)
+            S+="    }"
         else:
-            toTypeSpec = toField['typeSpec']
-            toFieldType= toTypeSpec['fieldType']
-        print "        CONVERTING:", fieldName, toFieldType, typeSpec
-        print "            TOFieldTYPE1:", toField
-        print "            TOFieldTYPE :", toFieldType
-        fromIsList=False
-        toIsList=False
-        codeStr=''
-        finalCodeStr=''
-        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
-            fromIsList=True
-        if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:
-            toIsList=True
-        if(fieldIsNext==True):
-            S+='        SRec <- getNextStateRec(SRec)\n'
-            if fieldOwner=='const':
-                pass
-            else:
-                if toFieldType=='string':            codeStr="makeStr(SRec.child)"+"\n"
-                elif toFieldType[0:4]=='uint':       codeStr="makeInt(SRec.child)"+"\n"
-                elif toFieldType[0:3]=='int':        codeStr="makeInt(SRec.child)"+"\n"
-                elif toFieldType[0:6]=='double':     codeStr="makeDblFromStr(SRec->child)"+"\n"
-                elif toFieldType[0:4]=='char':       codeStr="crntStr[0]"+"\n"
-                elif toFieldType[0:4]=='bool':       codeStr='crntStr=="true"'+"\n"
-                elif progSpec.isStruct(toFieldType): finalCodeStr='        ExtractStruct_'+fieldType[0].replace('::', '_')+'(SRec.child, memStruct.'+fieldName+')\n'
-        else:
-            pass
-           # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
-           # objFieldStr+= writeContextualSet(field)
-        if codeStr!="":
-            if fromIsList:
-                if toIsList:
-                    S+='        withEach Cnt in WHILE(A==1):{'
-                    S+='            memStruct.'+fieldName+'.pushLast('+codeStr+')\n}\n'
-                else:
-                    if toFieldType=='string':      S+='        memStruct.'+fieldName+' <- '+"heachStr(SRec)"+"\n"
-                    elif toFieldType[0:4]=='uint': S+='        memStruct.'+fieldName+' <- '+"heachNum(SRec)"+"\n"
-                    elif toFieldType[0:3]=='int':  S+='        memStruct.'+fieldName+' <- '+"heachNum(SRec)"+"\n"
-                    else: print"\n\nRepetition extraction to a double field not yet coded.\n"; exit(2);
-            else: S+='        memStruct.'+fieldName+' <- '+codeStr+"\n"
-        elif finalCodeStr!="":
-            S+=finalCodeStr;
+            S+=Write_fieldExtracter(objects, field, memObjFields)
 
     seqExtracter =  "\n    me bool: ExtractStruct_"+listName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     return seqExtracter
@@ -743,15 +775,6 @@ def CreateStructsForStringModels(objects, tags):
     #~ StructFieldStr = "mode [fetchOK, fetchNotReady, fetchSyntaxError, FetchIO_Error] : FetchResult"
     #~ progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
     #~ codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
-
-    tags['Include'] += ",<cctype>"
-
-    # Define streamSpan struct
-    structsName = 'streamSpan'
-    StructFieldStr = "    me uint32: offset \n    me uint32: len"
-    progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
-
 
     populateBaseRules()
 
@@ -792,12 +815,13 @@ def CreateStructsForStringModels(objects, tags):
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(0) }
     """
+
+    numStringStructs=0
     for objectName in objects[1]:
         if objectName[0] == '!': continue
         ObjectDef = objects[0][objectName]
-        print "OBJECT:", objectName, ObjectDef
         if(ObjectDef['stateType'] == 'string'):
-
+            numStringStructs+=1
             print "    WRITING STRING-STRUCT:", objectName
             # TODO: modelExists = progSpec.findModelOf(objMap, structName)
             fields=ObjectDef['fields']
@@ -809,8 +833,18 @@ def CreateStructsForStringModels(objects, tags):
             # Write the rules for all the fields, and a parent rule which is either SEQ or ALT, and REP/OPT as needed.
             AddFields(objects, tags, objectName.replace('::', '_'), fields, SeqOrAlt)
 
-            if SeqOrAlt=='parseSEQ':
-                ExtracterCode += Write_Fetch_and_Set_Functions_For_Each_Field(objects, tags, objectName, fields, SeqOrAlt)
+            ExtracterCode += Write_structExtracter(objects, tags, objectName, fields, SeqOrAlt)
+
+    if numStringStructs==0: return
+
+
+    tags['Include'] += ",<cctype>"
+
+    # Define streamSpan struct
+    structsName = 'streamSpan'
+    StructFieldStr = "    me uint32: offset \n    me uint32: len"
+    progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
 
 
 

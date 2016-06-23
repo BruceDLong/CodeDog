@@ -116,10 +116,10 @@ def GenerateProgram(objects, buildSpec, tags, libsToUse):
     result='No Language Generator Found for '+tags['langToGen']
     langGenTag = tags['langToGen']
     if(langGenTag == 'CPP'):
-        print "\n\n######################  G e n e r a t i n g   C + +   P r o g r a m . . ."
+        print "\n\n######################  G E N E R A T I N G   C + +   P R O G R A M . . ."
         result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]], libsToUse)
     elif(langGenTag == 'Java'):
-        print "\n\n######################  G e n e r a t i n g   J a v a   P r o g r a m . . ."
+        print "\n\n######################  G E N E R A T I N G   J A V A   P R O G R A M . . ."
         result=CodeGenerator_Java.generate(objects, [tags, buildSpec[1]], libsToUse)
     else:
         print "ERROR: No language generator found for ", langGenTag
