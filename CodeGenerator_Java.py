@@ -1053,8 +1053,10 @@ def addSpecialCode():
 
     return S
 
-def makeFileHeader(tags, libsToUse):
+libInterfacesText=''
+def makeFileHeader(tags):
     global buildStr_libs
+    global libInterfacesText
 
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
     header += "// " + makeTagText(tags, 'CopyrightMesg') +'\n'
@@ -1066,18 +1068,8 @@ def makeFileHeader(tags, libsToUse):
     header += "\n/*  " + makeTagText(tags, 'LicenseText') +'\n*/\n'
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
     header += "\n// Build Command: " +buildStr_libs+'\n'
-    print "\n            Choosing Libaries to link..."
-    for lib in libsToUse:
-        header += integrateLibraries(tags, lib)
-        
-    header += "\n"
-    
-    #TODO: Java-ize this:
-    #header += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
-    #header += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
-    #header += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
-
-    
+    header += libInterfacesText + "\n\nusing namespace std; \n\n"
+    header += addSpecialCode()
     return header
 
 def integrateLibraries(tags, libID):
@@ -1086,15 +1078,22 @@ def integrateLibraries(tags, libID):
     libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
     #print "LIB_FILES", libFiles
     global buildStr_libs
-    header = ''
+    headerStr = ''
     for libFile in libFiles:
         buildStr_libs+=' -l'+libFile
-    libs=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')[0].split(",")
-    for lib in libs:
-        header += 'import '+lib+ ';\n'
+    libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
+    for libHdr in libHeaders:
+        headerStr += 'import '+libHdr+';\n'
+        #print "Added header", libHdr
     #print 'BUILD STR', buildStr_libs
-    return header
+    return headerStr
 
+def connectLibraries(objects, tags, libsToUse):
+    print "\n            Choosing Libaries to link..."
+    headerStr = ''
+    for lib in libsToUse:
+        headerStr += integrateLibraries(tags, lib)
+    return headerStr
 
 def createInit_DeInit(objects, tags):
     initCode=''; deinitCode=''
@@ -1120,10 +1119,12 @@ def generate(objects, tags, libsToUse):
     #print "\nGenerating CPP code...\n"
     global objectsRef
     global buildStr_libs
+    global libInterfacesText
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     createInit_DeInit(objects, tags[0])
-    header = makeFileHeader(tags, libsToUse)
+    libInterfacesText=connectLibraries(objects, tags, libsToUse)
+    header = makeFileHeader(tags)
     [constsEnums, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
     #topBottomStrings = processMain(objects, tags)
     #typeDefCode = produceTypeDefs(typeDefMap)
