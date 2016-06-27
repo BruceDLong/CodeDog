@@ -29,7 +29,7 @@ libraries = {
         platforms=[Linux, OS-X_Devices, Windows]
         bindings =[C, CPP, perl, python]
         CPUs     =[i386, amd64, arm7]
-        libFiles=[`pkg-config --libs gtk+-3.0`]
+        libFiles=[`pkg-config --cflags --libs gtk+-3.0`]
         headers=[gtk/gtk.h]
     }
 
@@ -44,11 +44,22 @@ libraries = {
     Java={
         useStatus='dynamic'
         description='Misc Java'
-        features=[GUI_ToolKit, Mouse, Keyboard, Audio, RandomNumbers]
+        features=[System]
         platforms=[Java]
         bindings =[Java]
         CPUs     =[JavaVM]
-        libFiles=[`pkg-config --cflags gtk+-3.0`, `pkg-config --libs gtk+-3.0`]
-        headers=[`java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.TreeMap`]
+        libFiles=[]
+        headers=[java.lang.String, java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.TreeMap]
+    }
+
+    CPP={
+        useStatus='dynamic'
+        description='Misc CPP'
+        features=[System]
+        platforms=[Linux, OS-X_Devices, Windows]
+        bindings =[C, CPP, perl, python]
+        CPUs     =[i386, amd64, arm7]
+        libFiles=[]
+        headers=[signal.h, string, cstring, memory, cstdint, deque, map, cstdarg, iostream]
     }
 }

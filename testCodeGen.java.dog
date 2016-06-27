@@ -1,6 +1,5 @@
 // Test dog file
-
-//LinuxBuild: CPU='amd64' Lang='CPP' optimize='speed';
+LinuxBuild: CPU='amd64' Lang='CPP' optimize='speed';
 //AndroidBuild: CPU='arm7' Lang='Java' optimize='speed';
 //AppleBuild: CPU='i386' Lang='objectiveC' optimize='clarity';
 JavaBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
@@ -13,7 +12,7 @@ CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long, Tiffany Lawrence"
 Description = "This test file is for testing CodeDog."
 
-featuresNeeded = {GUI_ToolKit = 'GUI' Mouse='GUI' Keyboard='GUI' Audio='GUI' RandomNumbers=''}
+featuresNeeded = {GUI_ToolKit = 'GUI' Mouse='GUI' Keyboard='GUI' Audio='GUI' }
 
 LicenseText = `This file is part of the "CodeDog test suite"
 The CodeDog test suite is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
@@ -31,7 +30,7 @@ initCode=''
 runCode=''
 deinitCode=''
 
-Include=`java.lang.String`
+Include=``
 #include libraryTags.dog
  
 /*

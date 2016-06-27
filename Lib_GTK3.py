@@ -30,7 +30,7 @@ me void: close_window() <- {
   gtk_main_quit()
 }
 
-their GtkWidget: create_MenuItem(their GtkWidget: ParentMenu, me string: label) <- <%{
+me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <%{
   GtkWidget *menuitem;
 
       menuitem = gtk_menu_item_new_with_label (label.data());
@@ -41,7 +41,7 @@ their GtkWidget: create_MenuItem(their GtkWidget: ParentMenu, me string: label) 
   return menuitem;
 } %>
 
-their GtkWidget: create_SubMenu(their GtkWidget: ParentMenu, me string: label) <- <%{
+me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
   GtkWidget *SubMenu = gtk_menu_new ();
   GtkWidget *menuitem;
 
@@ -53,7 +53,7 @@ their GtkWidget: create_SubMenu(their GtkWidget: ParentMenu, me string: label) <
   return SubMenu;
 } %>
 
-their GtkWidget: create_menu(me gint: depth) <- <%{
+me GUI_menu: create_menu(me gint: depth) <- <%{
   GtkWidget *menu;
   GtkWidget *menuitem;
   GSList *group;

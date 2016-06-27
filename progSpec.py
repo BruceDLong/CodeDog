@@ -99,6 +99,7 @@ def appendToStringTagValue(tagStore, tagToSet, toAppend):
         tagStore[tagToSet]=toAppend
     else:
         tagRet[0]+= "\n" +toAppend
+        tagStore[tagToSet]=tagRet[0]
 
 def wrapFieldListInObjectDef(objName, fieldDefStr):
     retStr='struct '+objName +' {\n' + fieldDefStr + '\n}\n'
@@ -112,7 +113,8 @@ def setFeaturesNeeded(tags, featureIDs, neededBy):
         setFeatureNeeded(tags, feature, neededBy)
 
 def addCodeToInit(tagStore, newInitCode):
-    appendToStringTagValue(tagStore, "initCode", newInitCode);
+    appendToStringTagValue(tagStore, "initCode", newInitCode + "\n");
+    
 ###############
 
 def isWrappedType(objMap, structname):

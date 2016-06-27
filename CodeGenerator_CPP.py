@@ -3,6 +3,7 @@ import progSpec
 import re
 import datetime
 import pattern_Write_Main
+import codeDogParser
 
 buildStr_libs='g++ -g -std=gnu++11 '
 
@@ -346,7 +347,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             S=tmp
             return [S, '']
         typeSpecOut=fetchItemsTypeSpec(name)[0]
-        #print "NAMESEG:", name, typeSpecOut
     else:
         fType=typeSpecIn['fieldType']
 
@@ -805,7 +805,6 @@ def generate_constructor(objects, ClassName, tags):
     count=0
     ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
-        #print "^^^^^^^^^^^^^^^^^^^^"
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
@@ -867,14 +866,14 @@ def processOtherStructFields(objects, objectName, tags, indent):
             if isinstance(fieldValue, basestring):
                 fieldValueText = ' = "'+ fieldValue + '"'
             else: fieldValueText = " = "+ codeExpr(fieldValue)[0]
-        else:
-            # TODO: This next line, oddly, is a HUGE performace hog due to pyParsing. Especially on long functions. Fix it.
-            fieldValueText = " = "+ str(fieldValue)
+        elif(fieldArglist==None):
+            fieldValueText = " = "+ codeExpr(fieldValue[0])[0]
+        else: fieldValueText = " = "+ str(fieldValue)
         #registerType(objectName, fieldName, convertedType, "")
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
         elif(fieldArglist==None):
-            structCode += indent + convertedType +' ' + fieldName + fieldValueText +';\n';
+            structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
         #################################################################
         else: # Arglist exists so this is a function.
             if(fieldType=='none'):
@@ -1024,6 +1023,12 @@ def makeTagText(tags, tagName):
 
 def addSpecialCode():
     S='\n\n//////////// C++ specific code:\n'
+
+    S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
+
+    S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
+    S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
+
     S+="""
     // Thanks to Erik Aronesty via stackoverflow.com
     // Like printf but returns a string.
@@ -1050,8 +1055,10 @@ def addSpecialCode():
 
     return S
 
+libInterfacesText=''
 def makeFileHeader(tags):
     global buildStr_libs
+    global libInterfacesText
 
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
     header += "// " + makeTagText(tags, 'CopyrightMesg') +'\n'
@@ -1063,45 +1070,62 @@ def makeFileHeader(tags):
     header += "\n/*  " + makeTagText(tags, 'LicenseText') +'\n*/\n'
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
     header += "\n// Build Command: " +buildStr_libs+'\n'
-    includes = re.split("[,\s]+", progSpec.fetchTagValue(tags, 'Include'))
-    for hdr in includes:
-        header+="\n#include "+hdr
-    header += "\n\nusing namespace std; \n\n"
-
-    header += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
-
-    header += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
-    header += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
-
+    header += libInterfacesText + "\n\nusing namespace std; \n\n"
     header += addSpecialCode()
     return header
 
-def integrateLibrary(tags, libID):
+
+def integrateLibraries(tags, libID):
     print '                Integrating', libID
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
     libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
     #print "LIB_FILES", libFiles
     global buildStr_libs
+    headerStr = ''
     for libFile in libFiles:
         buildStr_libs+=' -l'+libFile
     libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
-
     for libHdr in libHeaders:
-        tags[0]['Include'] +=', <'+libHdr+'>'
+        headerStr += '#include <'+libHdr+'>\n'
         #print "Added header", libHdr
     #print 'BUILD STR', buildStr_libs
+    return headerStr
 
 def connectLibraries(objects, tags, libsToUse):
     print "\n            Choosing Libaries to link..."
+    headerStr = ''
     for lib in libsToUse:
-        integrateLibrary(tags, lib)
+        headerStr += integrateLibraries(tags, lib)
+    return headerStr
+
+def createInit_DeInit(objects, tags):
+    initCode=''; deinitCode=''
+
+    if 'initCode'   in tags: initCode  = tags['initCode']
+    if 'deinitCode' in tags: deinitCode= tags['deinitCode']
+
+    GLOBAL_CODE="""
+struct GLOBAL{
+    me void: initialize() <- {
+        %s
+    }
+
+    me void: deinitialize() <- {
+        %s
+    }
+}
+    """ % (initCode, deinitCode)
+
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
 def generate(objects, tags, libsToUse):
     #print "\nGenerating CPP code...\n"
     global objectsRef
     global buildStr_libs
+    global libInterfacesText
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
+    createInit_DeInit(objects, tags[0])
     libInterfacesText=connectLibraries(objects, tags, libsToUse)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
