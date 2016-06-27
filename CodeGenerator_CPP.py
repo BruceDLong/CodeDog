@@ -134,6 +134,7 @@ def fetchItemsTypeSpec(itemName):
 ###### End of type tracking code
 
 def convertObjectNameToCPP(objName):
+    if objName[-5:]=='::mem': return objName[:-5]
     return objName.replace('::', '_')
 
 fieldNamesAlreadyUsed={}
@@ -383,7 +384,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         else:
             S+= '('+codeParameterList(paramList)+')'
     return [S,  typeSpecOut]
-    
+
 def codeUnknownNameSeg(segSpec):
     S=''
     paramList=None

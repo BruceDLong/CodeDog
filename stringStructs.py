@@ -659,7 +659,7 @@ def fetchOrWriteParseRule(modelName, field):
             nameOut=appendRule(nameOut+'REP', "nonterm", "parseREP", [nameOut, 0, 0])
         elif datastructID=='opt':
             nameOut=appendRule(nameOut+'OPT', "nonterm", "parseREP", [nameOut, 0, 1])
-
+    field['parseRule']=nameOut
     return nameOut
 
 def AddFields(objects, tags, listName, fields, SeqOrAlt):
@@ -722,6 +722,26 @@ def Write_fieldExtracter(objects, field, memObjFields):
         pass
        # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
        # objFieldStr+= writeContextualSet(field)
+
+    # if isOpt: pass else:
+    if fromIsList and toIsList:
+        S+='''
+    our stateRec: childSRec <- SRec.child
+    withEach Cnt in WHILE(childSRec.next):{
+        childSRec <- childSRec.next
+        ExtractStruct_numChar(childSRec.child.next,0)
+        print("# ", makeStr(childSRec.child), "\\n")'''
+        S+='\n            memStruct.'+fieldName+'.pushLast('+codeStr+')\n}\n'
+    elif fromIsALT:
+        pass
+    elif progSpec.isStruct(fieldType) and progSpec.isStruct(toFieldType):
+        pass
+    elif ():
+        if codeStr!="": S+='        memStruct.'+fieldName+' <- '+codeStr+"\n"
+        elif finalCodeStr!="": S+=finalCodeStr;
+    return S
+
+
     if codeStr!="":
         if fromIsList:
             if toIsList:
@@ -729,6 +749,7 @@ def Write_fieldExtracter(objects, field, memObjFields):
     our stateRec: childSRec <- SRec.child
     withEach Cnt in WHILE(childSRec.next):{
         childSRec <- childSRec.next
+        ExtractStruct_numChar(childSRec.child.next,0)
         print("# ", makeStr(childSRec.child), "\\n")'''
                 S+='\n            memStruct.'+fieldName+'.pushLast('+codeStr+')\n}\n'
             else:
@@ -754,14 +775,18 @@ def Write_structExtracter(objects, tags, listName, fields, SeqOrAlt):
     memObj=objects[0][memVersionName]
     memObjFields=memObj['fields']
 
-    S='        their production: prod <- grammar[SRec.productionID]\n'
+    S=''
+    if(SeqOrAlt=='parseALT'): S+="    me int32: ruleIDX <- SRec.child.productionID\n"
+    count=0
     for field in fields:
         if(SeqOrAlt=='parseALT'):
-            S+="    if(MyProdID == prod.items[field_key]){\n"
+            if(count>0): S+="    else if(ruleIDX == " + field['parseRule'] + "){\n"
+            else: S+="    if(ruleIDX == " + field['parseRule'] + "){\n"
             S+="    "+Write_fieldExtracter(objects, field, memObjFields)
             S+="    }"
         else:
             S+=Write_fieldExtracter(objects, field, memObjFields)
+        count+=1
 
     seqExtracter =  "\n    me bool: ExtractStruct_"+listName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     return seqExtracter
