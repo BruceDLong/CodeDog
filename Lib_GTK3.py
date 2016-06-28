@@ -84,10 +84,26 @@ me GUI_menu: create_menu(me gint: depth) <- <%{
 }
 %>
 
+me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(cr, %1, %2, %3, %4)%>
+me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(cr, %1, %2, %3)%>
+me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(cr, %1)%>
+me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(cr, %1, %2)%>
+me void: lineTo(me double: x, me double: y) <- <%!cairo_line_to(cr, %1, %2)%>
+me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(cr, %1, %2)%>
+me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(cr, %1, %2)%>
+me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
+me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
+me void: paintNow() <- <%!cairo_paint(cr)%>
+me void: strokeNow() <- <%!cairo_stroke(cr)%>
+
 me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(cr, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
 me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(%1)%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
 me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
+me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
+me GUI_item: newScrollingWindow() <- <%!gtk_scrolled_window_new(0, 0)%>
+me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
+me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
 
 me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: callback) <- <% {
     g_signal_connect(widget, eventID.data(), G_CALLBACK (callback), NULL);
@@ -149,8 +165,9 @@ def use(objects, buildSpec, tags, platform):
     print "USING GTK3"
 
     CODE="""
-
+    struct GUI_ctxt{their cairo_t:GUI_ctxt}
     struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
+    struct GUI_offset{their GtkAdjustment:GUI_offset}
 
 
     struct GUI_item{their GtkWidget: GUI_item}
@@ -158,6 +175,7 @@ def use(objects, buildSpec, tags, platform):
     struct GUI_menu{their GtkWidget: GUI_menu}
     struct GUI_menuItem{their GtkWidget: GUI_menuItem}
     struct GUI_canvas{their GtkWidget: GUI_canvas}
+    struct GUI_container{their GtkContainer:GUI_container}
 
     struct GUI_callback{me GCallback: GUI_callback}
 
@@ -225,5 +243,5 @@ def use(objects, buildSpec, tags, platform):
         }%%>
     }
 """ % (APP_UTILITY_CODE, MENU_BAR_CODE, MAIN_APP_CODE, STATUS_BAR_CODE)
-
+    print "##################################################\n", GLOBAL_CODE, "\n\n\n"
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )

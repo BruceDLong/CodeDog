@@ -10,7 +10,7 @@ def createUtilityFunctions():
 def use(objects, buildSpec, tags, platform):
     print "USING CPP************************"
     progSpec.addCodeToInit(tags, "signal(SIGSEGV, reportFault)");
-    progSpec.addCodeToInit(tags, "sync_with_stdio(false)");  #std::ios_base::sync_with_stdio(false)"
+   # progSpec.addCodeToInit(tags, "sync_with_stdio(false)");  #std::ios_base::sync_with_stdio(false)"
 
     CODE="""
 
