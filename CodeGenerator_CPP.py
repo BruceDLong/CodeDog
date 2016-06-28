@@ -814,7 +814,7 @@ def generate_constructor(objects, ClassName, tags):
         if(fieldOwner=='const'): continue
         convertedType = convertType(objects, typeSpec)
         fieldName=field['fieldName']
-
+        
         #print "                        Constructing:", ClassName, fieldName, fieldType, convertedType
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
@@ -955,7 +955,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                     funcDefCode += funcText+"\n\n"
                 else: globalFuncs += funcText+"\n\n"
             else: funcDefCode += funcText+"\n\n"
-
+        
         funcDefCodeAcc += funcDefCode
         structCodeAcc  += structCode
         globalFuncsAcc += globalFuncs
@@ -1101,8 +1101,10 @@ def connectLibraries(objects, tags, libsToUse):
 def createInit_DeInit(objects, tags):
     initCode=''; deinitCode=''
 
-    if 'initCode'   in tags: initCode  = tags['initCode']
-    if 'deinitCode' in tags: deinitCode= tags['deinitCode']
+    if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
+    if 'deinitCode' in tags[0]: deinitCode = tags[0]['deinitCode']
+    if 'initCode'   in tags[1]: initCode  += tags[1]['initCode']
+    if 'deinitCode' in tags[1]: deinitCode += tags[1]['deinitCode']
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -1125,7 +1127,9 @@ def generate(objects, tags, libsToUse):
     global libInterfacesText
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
-    createInit_DeInit(objects, tags[0])
+    createInit_DeInit(objects, tags)
+    print "createInit_DeInit"
+    printObjectGlobal(objects)
     libInterfacesText=connectLibraries(objects, tags, libsToUse)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
