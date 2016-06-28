@@ -9,9 +9,9 @@ def createUtilityFunctions():
 
 def use(objects, buildSpec, tags, platform):
     print "USING CPP"
-    progSpec.addCodeToInit(tags[1], "signal(SIGSEGV, reportFault)");
-    progSpec.addCodeToInit(tags[1], "sync_with_stdio(false)");  #std::ios_base::sync_with_stdio(false)"
-    
+    progSpec.addCodeToInit(tags, "signal(SIGSEGV, reportFault)");
+   # progSpec.addCodeToInit(tags, "sync_with_stdio(false)");  #std::ios_base::sync_with_stdio(false)"
+
     CODE="""
 
     """
@@ -27,3 +27,4 @@ def use(objects, buildSpec, tags, platform):
 
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+z
