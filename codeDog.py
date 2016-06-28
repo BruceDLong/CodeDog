@@ -173,7 +173,7 @@ def ChooseLibs(objects, buildSpec, tags):
         if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildSpec, tags, Platform)
         elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildSpec, tags, Platform)
         elif (Lib=="Java"): Lib_Java.use(objects, buildSpec, tags, Platform)
-        elif (Lib=="CPP"): Lib_CPP.use(objects, buildSpec, tags, Platform)
+        elif (Lib=="CPP"):  Lib_CPP.use(objects, buildSpec, tags, Platform)
 
 
     return libsToUse
@@ -190,7 +190,7 @@ def GenerateSystem(objects, buildSpecs, tags):
         print "    Generating code for build", buildName
         libsToUse=ChooseLibs(objects, buildSpec, tags)
         outStr = GenerateProgram(objects, buildSpec, tags, libsToUse)
-        fileName = tagStore['FileName'] 
+        fileName = tagStore['FileName']
         langGenTag = buildSpec[1]['Lang']
         if(langGenTag == 'CPP'): fileName+='.cpp'
         elif(langGenTag == 'Java'):  fileName+='.java'

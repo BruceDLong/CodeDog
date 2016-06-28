@@ -221,7 +221,9 @@ def convertType(objects, TypeSpec):
     if(baseType!=None):
         owner=baseType['owner']
         fieldType=baseType['fieldType']
-
+        if not isinstance(fieldType, basestring):
+            if len(fieldType)>1: exit(2)
+            fieldType=fieldType[0]
     cppType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     if(isinstance(fieldType, basestring)):
@@ -250,9 +252,9 @@ def convertType(objects, TypeSpec):
             if containerType=='deque':
                 cppType="deque< "+cppType+" >"
             elif (containerType=='map') or (containerType=='multimap'):
-                if (idxType == "long"): 
+                if (idxType == "long"):
                     idxType = "Long"
-                if (cppType != "blah"): 
+                if (cppType != "blah"):
                     #TODO search for cppType object
                     cppType = "Object"
                 cppType="< "+idxType+', '+fieldType+" >"
@@ -317,10 +319,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             elif name=='pushLast' : name='push_back'
             else: print "Unknown deque command:", name; exit(2);
         elif containerType=='map':
-            convertedIdxType=idxType 
+            convertedIdxType=idxType
             convertedItmType=convertType(objectsRef, typeSpecOut)
             if name=='at' or name=='erase' or  name=='size': pass
-            elif name=='insert'   : name='put'; # typeSpecOut['codeConverter']='p(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
+            elif name=='insert'   : name='put';
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             elif name=='front': name='firstEntry().getValue()'; paramList=None;
             elif name=='back': name='lastEntry().getValue()'; paramList=None;
@@ -365,10 +367,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
 
         if(name=='allocate'):
             owner=typeSpecIn['owner']
-            if(owner=='our'): S_alt=" = make_shared<"+fType[0]+">"
-            elif(owner=='my'): S_alt=" = make_unique<"+fType[0]+">"
+            if(owner=='our'): S_alt=" = new "+fType[0]
+            elif(owner=='my'): S_alt=" = new "+fType[0]
             elif(owner=='their'): S_alt=" = new "+fType[0]
-            elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
+            elif(owner=='me'): S_alt=" = new "+fType[0]
             elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
             else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -433,7 +435,7 @@ def codeItemRef(name, LorR_Val):
             if(segType): # This is where to detect type of vars not found to determine whether to use '.' or '->'
                 #print "SEGTYPE:", segType
                 segOwner=segType['owner']
-                if(segOwner!='me'): connector='->'
+                if(segOwner!='me'): connector='.'
         if segType!=None:
             [segStr, segType]=codeNameSeg(segSpec, segType, connector)
         else:
@@ -458,7 +460,6 @@ def codeItemRef(name, LorR_Val):
 def codeUserMesg(item):
     # TODO: Make 'user messages'interpolate and adjust for locale.
     S=''; fmtStr=''; argStr='';
-    #print "codeUserMesg: ", item
     pos=0
     for m in re.finditer(r"%[ilscp]`.+?`", item):
         fmtStr += item[pos:m.start()+2]
@@ -466,7 +467,7 @@ def codeUserMesg(item):
         pos=m.end()
     fmtStr += item[pos:]
     fmtStr=fmtStr.replace('"', r'\"')
-    S='('+'"'+ fmtStr +'"'+ argStr +')'
+    S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
 def codeFactor(item):
@@ -652,29 +653,37 @@ def processAction(action, indent):
     global localVarsAllocated
     actionText = ""
     typeOfAction = action['typeOfAction']
-    
+
     if (typeOfAction =='newVar'):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
         fieldType = convertType(objectsRef, typeSpec)
+
         assignValue=''
-        if(fieldDef['value']):
-            [S2, rhsType]=codeExpr(fieldDef['value'][0])
-            [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
-            RHS = leftMod+S2+rightMod
-            assignValue=' = '+ RHS + ';\n'
+        if isinstance(fieldType, basestring):
+            if(fieldDef['value']):
+                [S2, rhsType]=codeExpr(fieldDef['value'][0])
+                RHS = S2
+                assignValue=' = '+ RHS + ';\n'
+            else: assignValue=';\n'
+        elif(fieldDef['value']):
+                [S2, rhsType]=codeExpr(fieldDef['value'][0])
+                RHS = S2
+                assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
         else:
+            print "TYPE:", fieldType
             assignValue= " = new " + fieldType +"();\n"
-        actionText = indent + fieldType + " " + varName + assignValue 
+
+        actionText = indent + fieldType + " " + varName + assignValue
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
         LHS = codeStr
         [S2, rhsType]=codeExpr(action['RHS'][0])
         #print "RHS:", S2, typeSpec, rhsType
-        [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
-        RHS = leftMod+S2+rightMod
+        #[leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
+        RHS = S2 #leftMod+S2+rightMod
         assignTag = action['assignTag']
         #print "Assign: ", LHS, RHS, typeSpec
         LHS_FieldType=typeSpec['fieldType']
@@ -816,7 +825,6 @@ def generate_constructor(objects, ClassName, tags, indent):
     count=0
     ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
-        #print "^^^^^^^^^^^^^^^^^^^^"
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
@@ -843,7 +851,7 @@ def generate_constructor(objects, ClassName, tags, indent):
             count += 1
     if(count>0):
         constructCode = constructorArgs+")" + "\n" + indent + "{\n" + constructorInit + "\n" + indent +  "}" + "\n"
-        
+
     else: constructCode=''
     return constructCode
 
@@ -871,15 +879,17 @@ def processOtherStructFields(objects, objectName, tags, indent):
         #print "          TREEMAP: ", typeSpec
         convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
         #print "convertedType: ", convertedType
-        
+
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         print "                       ", fieldType, fieldName
         if(fieldValue == None):fieldValueText=""
         elif(fieldOwner=='const'):
-            fieldValueText = " = "+ codeExpr(fieldValue)[0]
-        else:
-            # TODO: This next line, oddly, is a HUGE performace hog due to pyParsing. Especially on long functions. Fix it.
-            fieldValueText = " = "+ str(fieldValue)
+            if isinstance(fieldValue, basestring):
+                fieldValueText = ' = "'+ fieldValue + '"'
+            else: fieldValueText = " = "+ codeExpr(fieldValue)[0]
+        elif(fieldArglist==None):
+            fieldValueText = " = "+ codeExpr(fieldValue[0])[0]
+        else: fieldValueText = " = "+ str(fieldValue)
         #registerType(objectName, fieldName, convertedType, "")
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
@@ -912,7 +922,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                         count+=1
                         argTypeSpec =arg['typeSpec']
                         argFieldName=arg['fieldName']
-                        argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName 
+                        argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
                         localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
                 if(fieldType[0] != '<%'):
@@ -920,14 +930,14 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 else: typeDefName=convertedType
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
             #structCode += indent + "public static " + typeDefName +' ' + fieldName +"("+argListText+")\n";
-            objPrefix=LangFormOfObjName 
+            objPrefix=LangFormOfObjName
             if(objectName=='GLOBAL' and fieldName=='main'):
                 #funcDefCode += 'public static void main(String[] args)'
-                structCode += indent + "public static " + typeDefName +' ' + fieldName +"(String[] args)\n";
+                structCode += indent + "public static " + typeDefName +' ' + fieldName +"(String[] args);\n";
                 #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
             elif(objectName=='GLOBAL') :
-                structCode += indent + "public static " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
-            else: 
+                structCode += indent + "public static " + typeDefName + ' ' + fieldName +"("+argListText+");\n"
+            else:
                 #funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
                 structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
 
@@ -940,7 +950,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                     funcDefCode=""
                     globalFuncs=""
                 else:
-                    funcText=verbatimText 
+                    funcText=verbatimText
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
                 structCode += indent + processActionSeq(field['value'][0], '    ')+"\n"
@@ -1000,7 +1010,7 @@ def processMain(objects, tags):
     print "\n            Generating GLOBAL..."
     #TODO Java-ize this
     #header += addSpecialCode()
-    
+
     if("GLOBAL" in objects[1]):
         if(objects[0]["GLOBAL"]['stateType'] != 'struct'):
             print "ERROR: GLOBAL must be a 'struct'."
@@ -1026,29 +1036,9 @@ def makeTagText(tags, tagName):
     return tagVal
 
 def addSpecialCode():
-    S='\n\n//////////// C++ specific code:\n'
+    S='\n\n//////////// Java specific code:\n'
     S+="""
-    // Thanks to Erik Aronesty via stackoverflow.com
-    // Like printf but returns a string.
-    // #include <memory>, #include <cstdarg>
-    inline std::string strFmt(const std::string fmt_str, ...) {
-        int final_n, n = fmt_str.size() * 2; /* reserve 2 times as much as the length of the fmt_str */
-        std::string str;
-        std::unique_ptr<char[]> formatted;
-        va_list ap;
-        while(1) {
-            formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
-            strcpy(&formatted[0], fmt_str.c_str());
-            va_start(ap, fmt_str);
-            final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
-            va_end(ap);
-            if (final_n < 0 || final_n >= n)
-                n += abs(final_n - n + 1);
-            else
-                break;
-        }
-        return std::string(formatted.get());
-    }
+
     """
 
     return S
@@ -1068,7 +1058,7 @@ def makeFileHeader(tags):
     header += "\n/*  " + makeTagText(tags, 'LicenseText') +'\n*/\n'
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
     header += "\n// Build Command: " +buildStr_libs+'\n'
-    header += libInterfacesText + "\n\nusing namespace std; \n\n"
+    header += libInterfacesText
     header += addSpecialCode()
     return header
 
@@ -1100,7 +1090,7 @@ def createInit_DeInit(objects, tags):
 
     if 'initCode'   in tags: initCode  = tags['initCode']
     if 'deinitCode' in tags: deinitCode= tags['deinitCode']
-    
+
     GLOBAL_CODE="""
 struct GLOBAL{
     me void: initialize() <- {
@@ -1130,5 +1120,5 @@ def generate(objects, tags, libsToUse):
     #typeDefCode = produceTypeDefs(typeDefMap)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
-    outputStr = header + constsEnums + codeHeader  + structCodeAcc + funcCodeAcc 
+    outputStr = header + constsEnums + codeHeader  + structCodeAcc + funcCodeAcc
     return outputStr

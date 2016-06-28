@@ -14,14 +14,12 @@ def apply(objects, tags, codeToRun):
     # TODO: Some deInitialize items should automatically run during abort().
     # TODO: Deinitialize items should happen in reverse order.
     mainFuncCode="""
-    me int32: main(me int32: argc, me int32: argv ) <- <%{
-    signal(SIGSEGV, reportFault);
-    std::ios_base::sync_with_stdio(false);
+me int32: main(me int32: argc, me int32: argv ) <- <%{
     initialize();
     """ + runCode + """
     deinitialize();
     return 0;
-    } %>
+} %>
 
 """
 
