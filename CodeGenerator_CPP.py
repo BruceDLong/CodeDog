@@ -1129,7 +1129,6 @@ def generate(objects, tags, libsToUse):
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     createInit_DeInit(objects, tags)
     print "createInit_DeInit"
-    printObjectGlobal(objects)
     libInterfacesText=connectLibraries(objects, tags, libsToUse)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
