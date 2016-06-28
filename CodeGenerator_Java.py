@@ -137,54 +137,48 @@ def fetchItemsTypeSpec(itemName):
 def convertObjectNameToCPP(objName):
     return objName.replace('::', '_')
 
-fieldNamesAlreadyUsed={}
-def processFlagAndModeFields(objects, objectName, tags):
-    print "                    Coding flags and modes for:", objectName
-    global fieldNamesAlreadyUsed
+
+def processFlagAndModeFields(field, fieldName, tags):
+    #print "                    Coding flag or mode for:", fieldName, 
     flagsVarNeeded = False
     bitCursor=0
     structEnums=""
-    ObjectDef = objects[0][objectName]
-    for field in ObjectDef['fields']:
-        fieldType=field['typeSpec']['fieldType'];
-        fieldName=field['fieldName'];
-        if fieldName in fieldNamesAlreadyUsed: continue
-        else:fieldNamesAlreadyUsed[fieldName]=objectName
-        #print "                    ", field
-        if fieldType=='flag':
-            print "                        flag: ", fieldName
-            flagsVarNeeded=True
-            structEnums += "final int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
-            bitCursor += 1;
-        elif fieldType=='mode':
-            print "                        mode: ", fieldName, '[]'
-            print field
-            structEnums += "\n// For Mode "+fieldName+"\n"
-            flagsVarNeeded=True
-            # calculate field and bit position
-            enumSize= len(field['typeSpec']['enumList'])
-            numEnumBits=bitsNeeded(enumSize)
-            #field[3]=enumSize;
-            #field[4]=numEnumBits;
-            enumMask=((1 << numEnumBits) - 1) << bitCursor
+    fieldType=field['typeSpec']['fieldType'];
+    fieldName=field['fieldName'];
+    #print "                    ", field
+    if fieldType=='flag':
+        print "                        flag: ", fieldName
+        flagsVarNeeded=True
+        structEnums += "final int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
+        bitCursor += 1;
+    elif fieldType=='mode':
+        print "                        mode: ", fieldName, '[]'
+        print field
+        structEnums += "\n// For Mode "+fieldName+"\n"
+        flagsVarNeeded=True
+        # calculate field and bit position
+        enumSize= len(field['typeSpec']['enumList'])
+        numEnumBits=bitsNeeded(enumSize)
+        #field[3]=enumSize;
+        #field[4]=numEnumBits;
+        enumMask=((1 << numEnumBits) - 1) << bitCursor
 
-            structEnums += "final int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
-            structEnums += "final int "+fieldName +"Mask = " + hex(enumMask) +";"
+        structEnums += "final int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
+        structEnums += "final int "+fieldName +"Mask = " + hex(enumMask) +";"
 
-            # enum
-            count=0
-            for enumName in field['typeSpec']['enumList']:
-                structEnums += "final int "+enumName+"="+hex(count)+";\n"
-                count=count+1
+        # enum
+        count=0
+        for enumName in field['typeSpec']['enumList']:
+            structEnums += "final int "+enumName+"="+hex(count)+";\n"
+            count=count+1
 
-            structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
-            # read/write macros
-            structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
-            # str array and printer
+        structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
+        # read/write macros
+        structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
+        # str array and printer
 
-            bitCursor=bitCursor+numEnumBits;
-    if structEnums!="": structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'+structEnums
-    return [flagsVarNeeded, structEnums]
+        bitCursor=bitCursor+numEnumBits;
+    return structEnums
 
 typeDefMap={}
 ObjectsFieldTypeMap={}
@@ -855,9 +849,12 @@ def generate_constructor(objects, ClassName, tags, indent):
     else: constructCode=''
     return constructCode
 
+fieldNamesAlreadyUsed={}
+
 def processOtherStructFields(objects, objectName, tags, indent):
     print "                    Coding fields for", objectName
     global localArgsAllocated
+    global fieldNamesAlreadyUsed
     globalFuncsAcc=''
     funcDefCodeAcc=''
     structCodeAcc=""
@@ -870,11 +867,17 @@ def processOtherStructFields(objects, objectName, tags, indent):
         globalFuncs=""
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
-        if(fieldType=='flag' or fieldType=='mode'): continue
-        fieldOwner=typeSpec['owner']
         fieldName =field['fieldName']
+        fieldOwner=typeSpec['owner']
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
+        if(fieldType=='flag' or fieldType=='mode'): 
+            if fieldName in fieldNamesAlreadyUsed: continue
+            else:fieldNamesAlreadyUsed[fieldName]=objectName
+            structCode = indent + processFlagAndModeFields(field, fieldName, tags)
+            structCodeAcc  += structCode 
+            print "structCodeAcc", structCodeAcc
+            continue
         if fieldName=='opAssign': fieldName='operator='
         #print "          TREEMAP: ", typeSpec
         convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
@@ -986,16 +989,11 @@ def generateAllObjectsButMain(objects, tags):
     #forwardDecls="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
-    needsFlagsVar=False;
     for objectName in objects[1]:
         if progSpec.isWrappedType(objects, objectName)!=None: continue
         if(objectName[0] != '!'):
             print "                [" + objectName+"]"
             currentObjName=objectName
-            [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags)
-            constsEnums+=strOut
-            if(needsFlagsVar):
-                progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
             if(objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
                 #forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
