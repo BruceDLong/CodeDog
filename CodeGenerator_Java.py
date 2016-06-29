@@ -661,16 +661,16 @@ def processAction(action, indent):
         fieldType = convertType(objectsRef, typeSpec)
 
         assignValue=''
-        if isinstance(fieldType, basestring):
+        if isinstance(typeSpec['fieldType'], basestring):
             if(fieldDef['value']):
                 [S2, rhsType]=codeExpr(fieldDef['value'][0])
                 RHS = S2
                 assignValue=' = '+ RHS + ';\n'
             else: assignValue=';\n'
         elif(fieldDef['value']):
-                [S2, rhsType]=codeExpr(fieldDef['value'][0])
-                RHS = S2
-                assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
+            [S2, rhsType]=codeExpr(fieldDef['value'][0])
+            RHS = S2
+            assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
         else:
             print "TYPE:", fieldType
             assignValue= " = new " + fieldType +"();\n"
@@ -877,6 +877,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
     funcDefCodeAcc=''
     structCodeAcc=""
     ObjectDef = objects[0][objectName]
+    #print ObjectDef['name']
     for field in ObjectDef['fields']:
         localArgsAllocated=[]
         funcDefCode=""
