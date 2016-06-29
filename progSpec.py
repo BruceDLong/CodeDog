@@ -122,7 +122,7 @@ def removeFieldFromObject (objects, objectName, fieldtoRemove):
     idx=0
     for field in fieldList: 
         if field["fieldName"] == fieldtoRemove:
-            print field["fieldName"], "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@S"
+            print "Removed: ", field["fieldName"]
             del fieldList[idx]
         idx+=1
     

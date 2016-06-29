@@ -1102,8 +1102,10 @@ def connectLibraries(objects, tags, libsToUse):
 def createInit_DeInit(objects, tags):
     initCode=''; deinitCode=''
 
-    if 'initCode'   in tags: initCode  = tags['initCode']
-    if 'deinitCode' in tags: deinitCode= tags['deinitCode']
+    if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
+    if 'deinitCode' in tags[0]: deinitCode= tags[0]['deinitCode']
+    if 'initCode'   in tags[1]: initCode  += tags[1]['initCode']
+    if 'deinitCode' in tags[1]: deinitCode += tags[1]['deinitCode']
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -1126,7 +1128,7 @@ def generate(objects, tags, libsToUse):
     global libInterfacesText
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
-    createInit_DeInit(objects, tags[0])
+    createInit_DeInit(objects, tags)
     libInterfacesText=connectLibraries(objects, tags, libsToUse)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)

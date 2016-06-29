@@ -1096,8 +1096,10 @@ def connectLibraries(objects, tags, libsToUse):
 def createInit_DeInit(objects, tags):
     initCode=''; deinitCode=''
 
-    if 'initCode'   in tags: initCode  = tags['initCode']
-    if 'deinitCode' in tags: deinitCode= tags['deinitCode']
+    if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
+    if 'deinitCode' in tags[0]: deinitCode= tags[0]['deinitCode']
+    if 'initCode'   in tags[1]: initCode  += tags[1]['initCode']
+    if 'deinitCode' in tags[1]: deinitCode += tags[1]['deinitCode']
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -1114,13 +1116,13 @@ struct GLOBAL{
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
 def generate(objects, tags, libsToUse):
-    #print "\nGenerating CPP code...\n"
+    #print "\nGenerating Java code...\n"
     global objectsRef
     global buildStr_libs
     global libInterfacesText
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
-    createInit_DeInit(objects, tags[0])
+    createInit_DeInit(objects, tags)
     libInterfacesText=connectLibraries(objects, tags, libsToUse)
     header = makeFileHeader(tags)
     [constsEnums, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags)
