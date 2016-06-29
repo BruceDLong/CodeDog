@@ -5,7 +5,7 @@ import datetime
 import pattern_Write_Main
 import codeDogParser
 
-buildStr_libs='g++ -g -std=gnu++11 '
+buildStr_libs=''
 
 
 def bitsNeeded(n):
@@ -25,10 +25,14 @@ def getContainerType(typeSpec):
     containerSpec=typeSpec['arraySpec']
     idxType=''
     if 'indexType' in containerSpec:
-        idxType= convertJavaType(containerSpec['indexType'])
+        idxType=containerSpec['indexType']
+    if idxType[0:4]=='uint': idxType = 'long'
+    elif idxType=='string': idxType = 'String'
+
     datastructID = containerSpec['datastructID']
-    if(datastructID=='list' and idxType[0:4]=='uint'): datastructID = "deque"
-    #print "datastructID, idxType",datastructID, idxType
+    if(datastructID=='list'): datastructID = "ArrayDeque"
+    elif(datastructID=='map'): datastructID = "TreeMap"
+    elif(datastructID=='multimap'): datastructID = "TreeMap"  # TODO: Implement true multmaps in java
     return [datastructID, idxType]
 
 def CheckBuiltinItems(itemName):
@@ -71,6 +75,7 @@ def CheckObjectVars(objName, itemName, level):
     ObjectDef = objectsRef[0][objName]
     for field in ObjectDef['fields']:
         fieldName=field['fieldName']
+        #print "--------------- FIELD:", fieldName
         if fieldName==itemName:
             return field
 
@@ -104,8 +109,8 @@ def CheckObjectVars(objName, itemName, level):
 def fetchItemsTypeSpec(itemName):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     # TODO: also search any libraries that are used.
-    #print "FETCHING:", itemName
     global currentObjName
+    #print "FETCHING:", itemName, currentObjName
     RefType=""
     REF=CheckBuiltinItems(itemName)
     if (REF):
@@ -135,50 +140,60 @@ def fetchItemsTypeSpec(itemName):
 ###### End of type tracking code
 
 def convertObjectNameToCPP(objName):
+    if objName[-5:]=='::mem': return objName[:-5]
     return objName.replace('::', '_')
 
-
-def processFlagAndModeFields(field, fieldName, tags):
-    #print "                    Coding flag or mode for:", fieldName, 
+fieldNamesAlreadyUsed={}
+def processFlagAndModeFields(objects, objectName, tags):
+    print "                    Coding flags and modes for:", objectName
+    global fieldNamesAlreadyUsed
     flagsVarNeeded = False
     bitCursor=0
     structEnums=""
-    fieldType=field['typeSpec']['fieldType'];
-    fieldName=field['fieldName'];
-    #print "                    ", field
-    if fieldType=='flag':
-        print "                        flag: ", fieldName
-        flagsVarNeeded=True
-        structEnums += "final int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
-        bitCursor += 1;
-    elif fieldType=='mode':
-        print "                        mode: ", fieldName, '[]'
-        print field
-        structEnums += "\n// For Mode "+fieldName+"\n"
-        flagsVarNeeded=True
-        # calculate field and bit position
-        enumSize= len(field['typeSpec']['enumList'])
-        numEnumBits=bitsNeeded(enumSize)
-        #field[3]=enumSize;
-        #field[4]=numEnumBits;
-        enumMask=((1 << numEnumBits) - 1) << bitCursor
+    ObjectDef = objects[0][objectName]
+    for field in ObjectDef['fields']:
+        fieldType=field['typeSpec']['fieldType'];
+        fieldName=field['fieldName'];
+        if fieldName in fieldNamesAlreadyUsed: continue
+        else:fieldNamesAlreadyUsed[fieldName]=objectName
+        #print "                    ", field
+        if fieldType=='flag':
+            print "                        flag: ", fieldName
+            flagsVarNeeded=True
+            structEnums += "final int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
+            bitCursor += 1;
+        elif fieldType=='mode':
+            #print "                        mode: ", fieldName, '[]'
+            #print field
+            structEnums += "\n// For Mode "+fieldName+"\n"
+            flagsVarNeeded=True
+            # calculate field and bit position
+            enumSize= len(field['typeSpec']['enumList'])
+            numEnumBits=bitsNeeded(enumSize)
+            #field[3]=enumSize;
+            #field[4]=numEnumBits;
+            enumMask=((1 << numEnumBits) - 1) << bitCursor
 
-        structEnums += "final int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
-        structEnums += "final int "+fieldName +"Mask = " + hex(enumMask) +";"
+            structEnums += "final int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
+            structEnums += "final int "+fieldName +"Mask = " + hex(enumMask) +";"
 
-        # enum
-        count=0
-        for enumName in field['typeSpec']['enumList']:
-            structEnums += "final int "+enumName+"="+hex(count)+";\n"
-            count=count+1
+            # enum
+            count=0
+            structEnums += "\n"
+            for enumName in field['typeSpec']['enumList']:
+                structEnums += "final int " + enumName+"="+hex(count)+";\n"
+                count=count+1
+                #if(count<enumSize): structEnums += ", "
+            structEnums += "\n";
 
-        structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
-        # read/write macros
-        structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
-        # str array and printer
+            structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
+            # read/write macros
+            structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
+            # str array and printer
 
-        bitCursor=bitCursor+numEnumBits;
-    return structEnums
+            bitCursor=bitCursor+numEnumBits;
+    if structEnums!="": structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'+structEnums
+    return [flagsVarNeeded, structEnums]
 
 typeDefMap={}
 ObjectsFieldTypeMap={}
@@ -186,10 +201,10 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
-def convertJavaType(fieldType):
+def convertToJavaType(fieldType):
     if(fieldType=='int32'):
         javaType='int'
-    elif(fieldType=='uint32' or fieldType=='uint32'):
+    elif(fieldType=='uint32' or fieldType=='uint64'):
         javaType='long'
     elif(fieldType=='int64'):
         javaType='long'
@@ -209,19 +224,19 @@ def convertType(objects, TypeSpec):
     fieldType=TypeSpec['fieldType']
     #print "fieldType: ", fieldType
     if not isinstance(fieldType, basestring):
-        if len(fieldType)>1: exit(2)
+        #if len(fieldType)>1: exit(2)
         fieldType=fieldType[0]
     baseType = progSpec.isWrappedType(objects, fieldType)
     if(baseType!=None):
         owner=baseType['owner']
         fieldType=baseType['fieldType']
-        if not isinstance(fieldType, basestring):
-            if len(fieldType)>1: exit(2)
-            fieldType=fieldType[0]
+
     cppType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     if(isinstance(fieldType, basestring)):
-        cppType= convertJavaType(fieldType)
+        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
+        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
+        cppType= convertToJavaType(fieldType)
     else: cppType=convertObjectNameToCPP(fieldType[0])
 
     kindOfField=owner
@@ -243,15 +258,12 @@ def convertType(objects, TypeSpec):
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
             [containerType, idxType]=getContainerType(TypeSpec)
-            if containerType=='deque':
-                cppType="deque< "+cppType+" >"
-            elif (containerType=='map') or (containerType=='multimap'):
-                if (idxType == "long"):
-                    idxType = "Long"
-                if (cppType != "blah"):
-                    #TODO search for cppType object
-                    cppType = "Object"
-                cppType="< "+idxType+', '+fieldType+" >"
+            if containerType=='ArrayDeque':
+                cppType="ArrayDeque< "+cppType+" >"
+            elif containerType=='TreeMap':
+                cppType="TreeMap< "+idxType+', '+cppType+" >"
+            elif containerType=='multimap':
+                cppType="multimap< "+idxType+', '+cppType+" >"
     return cppType
 
 
@@ -297,12 +309,12 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=getContainerType(typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
-        print "NAME:", name
+        #print "NAME:", name
         if(name[0]=='['):
             [S2, idxType] = codeExpr(name[1])
             S+= '[' + S2 +']'
             return [S, typeSpecOut]
-        if containerType=='deque':
+        if containerType=='ArrayDeque':
             if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='end' or  name=='rend': pass
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             elif name=='front'    : name='begin()'; paramList=None;
@@ -311,8 +323,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             elif name=='popLast'  : name='pop_back'
             elif name=='pushFirst': name='push_front'
             elif name=='pushLast' : name='push_back'
-            else: print "Unknown deque command:", name; exit(2);
-        elif containerType=='map':
+            else: print "Unknown ArrayDeque command:", name; exit(2);
+        elif containerType=='TreeMap':
             convertedIdxType=idxType
             convertedItmType=convertType(objectsRef, typeSpecOut)
             if name=='at' or name=='erase' or  name=='size': pass
@@ -347,7 +359,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         elif containerType=='filesystem': # TODO: Make filesystem work
             pass
         else: print "Unknown container type:", containerType; exit(2);
-        typeSpecOut={'owner':'me', 'fieldType': typeSpecIn['fieldType']}
 
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
@@ -355,7 +366,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         if(tmp!=''):
             S=tmp
             return [S, '']
-        typeSpecOut=fetchItemsTypeSpec(name)[0]
+        [typeSpecOut, SRC]=fetchItemsTypeSpec(name)
     else:
         fType=typeSpecIn['fieldType']
 
@@ -422,7 +433,6 @@ def codeItemRef(name, LorR_Val):
     for segSpec in name:
         #print "NameSeg:", segSpec
         segName=segSpec[0]
-        #print "segName: ", segName
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).
             connector='.'
@@ -430,12 +440,13 @@ def codeItemRef(name, LorR_Val):
                 #print "SEGTYPE:", segType
                 segOwner=segType['owner']
                 if(segOwner!='me'): connector='.'
+
         if segType!=None:
             [segStr, segType]=codeNameSeg(segSpec, segType, connector)
         else:
             segStr= codeUnknownNameSeg(segSpec)
-        S+=segStr
         prevLen=len(S)
+        S+=segStr
         segIDX+=1
 
     # Handle cases where seg's type is flag or mode
@@ -447,7 +458,6 @@ def codeItemRef(name, LorR_Val):
         elif fieldType=='mode':
             segName=segStr[len(connector):]
             S="((" + S[0:prevLen] + connector +  "flags&"+segName+"Mask)"+">>"+segName+"Offset)"
-
     return [S, segType]
 
 
@@ -587,7 +597,6 @@ def codeExpr(item):
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
-    #print "chooseVirtualRValOwner:", LVAL, "###", RVAL
     LeftOwner=LVAL['owner']
     RightOwner=RVAL['owner']
     if LeftOwner == RightOwner: return ["", ""]
@@ -611,12 +620,16 @@ def codeSpecialFunc(segSpec):
     S=''
     funcName=segSpec[0]
     if(funcName=='print'):
-        S+='System.out.println'
+        S+='System.out.print('
         if(len(segSpec)>2):
             paramList=segSpec[2]
+            count=0
             for P in paramList:
+                if(count!=0): S+=", "
+                count+=1
                 [S2, argType]=codeExpr(P[0])
-                S+= S2
+                S+=S2
+        S+=")"
     #elif(funcName=='break'):
     #elif(funcName=='return'):
     #elif(funcName==''):
@@ -711,7 +724,6 @@ def processAction(action, indent):
         elseBody = action['elseBody']
         if (elseBody):
             if (elseBody[0]=='if'):
-                #print 'ELSE IF:', elseBody
                 elseAction = elseBody[1]
                 elseText = processActionSeq(elseAction, indent)
                 actionText += indent + "else " + elseText.lstrip()
@@ -719,12 +731,13 @@ def processAction(action, indent):
                 elseAction = elseBody[1]['actionList']
                 elseText = processActionSeq(elseAction, indent)
                 actionText += indent + "else " + elseText.lstrip()
-            else: print"Unrecognized item after else"; exit(2);
+            else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
         repBody = action['repBody']
         repName = action['repName']
         traversalMode = action['traversalMode']
         rangeSpec = action['rangeSpec']
+        whileSpec = action['whileSpec']
         # TODO: add cases for traversing trees and graphs in various orders or ways.
         loopCounterName=''
         if(rangeSpec): # iterate over range
@@ -736,7 +749,10 @@ def processAction(action, indent):
                 actionText += indent + "for( long " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
             elif(traversalMode=='Backward'):
                 actionText += indent + "for( long " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
-
+            localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+        elif(whileSpec):
+            [whereExpr, whereConditionType] = codeExpr(whileSpec[2])
+            actionText += indent + "while(" + whereExpr + "){\n"
         else: # interate over a container
             #print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = codeExpr(action['repList'][0])
@@ -759,7 +775,7 @@ def processAction(action, indent):
             actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
                             + indent+indent+"auto "+repName+" = *"+repName+"Itr;\n")
 
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+            localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
 
         if action['whereExpr']:
             [whereExpr, whereConditionType] = codeExpr(action['whereExpr'])
@@ -795,6 +811,7 @@ def processAction(action, indent):
  #   print "actionText", actionText
     return actionText
 
+
 def processActionSeq(actSeq, indent):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
@@ -809,13 +826,13 @@ def processActionSeq(actSeq, indent):
         localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
-def generate_constructor(objects, ClassName, tags, indent):
+def generate_constructor(objects, ClassName, tags):
     baseType = progSpec.isWrappedType(objects, ClassName)
     if(baseType!=None): return ''
     if not ClassName in objects[0]: return ''
     print "                    Generating Constructor for:", ClassName
-    constructorInit=""
-    constructorArgs=indent + "public " + convertObjectNameToCPP(ClassName)+"("
+    constructorInit=":"
+    constructorArgs="    "+convertObjectNameToCPP(ClassName)+"("
     count=0
     ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
@@ -833,56 +850,47 @@ def generate_constructor(objects, ClassName, tags, indent):
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
                 print "                > ", fieldOwner, convertedType, fieldName
-                constructorArgs += convertedType + " _"+fieldName+"=0,"
+                constructorArgs += convertedType+" _"+fieldName+"=0,"
                 constructorInit += fieldName+"("+" _"+fieldName+"),"
                 count += 1
         elif (isinstance(fieldType, basestring)):
-            if(count > 0):
-                constructorArgs += ", "
-                constructorInit += "\n"
-            constructorArgs += convertedType + " _" + fieldName
-            constructorInit += indent + indent + fieldName + " =" + " _" + fieldName + ";"
-            count += 1
+            if(fieldType[0:3]=="int" or fieldType[0:4]=="uint"):
+                constructorArgs += convertedType+" _"+fieldName+"=0,"
+                constructorInit += fieldName+"("+" _"+fieldName+"),"
+                count += 1
+            elif(fieldType=="string"):
+                constructorArgs += convertedType+" _"+fieldName+'="",'
+                constructorInit += fieldName+"("+" _"+fieldName+"),"
+                count += 1
     if(count>0):
-        constructCode = constructorArgs+")" + "\n" + indent + "{\n" + constructorInit + "\n" + indent +  "}" + "\n"
-
+        constructorInit=constructorInit[0:-1]
+        constructorArgs=constructorArgs[0:-1]
+        constructCode = constructorArgs+")"+constructorInit+"{};\n"
     else: constructCode=''
     return constructCode
-
-fieldNamesAlreadyUsed={}
 
 def processOtherStructFields(objects, objectName, tags, indent):
     print "                    Coding fields for", objectName
     global localArgsAllocated
-    global fieldNamesAlreadyUsed
     globalFuncsAcc=''
     funcDefCodeAcc=''
     structCodeAcc=""
-    funcText=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
         localArgsAllocated=[]
         funcDefCode=""
         structCode=""
         globalFuncs=""
+        funcText=""
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
-        fieldName =field['fieldName']
+        if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=typeSpec['owner']
+        fieldName =field['fieldName']
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
-        if(fieldType=='flag' or fieldType=='mode'): 
-            if fieldName in fieldNamesAlreadyUsed: continue
-            else:fieldNamesAlreadyUsed[fieldName]=objectName
-            structCode = indent + processFlagAndModeFields(field, fieldName, tags)
-            structCodeAcc  += structCode 
-            print "structCodeAcc", structCodeAcc
-            continue
         if fieldName=='opAssign': fieldName='operator='
-        #print "          TREEMAP: ", typeSpec
         convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
-        #print "convertedType: ", convertedType
-
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         print "                       ", fieldType, fieldName
         if(fieldValue == None):fieldValueText=""
@@ -897,13 +905,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
         elif(fieldArglist==None):
-            if (convertedType[0]=="<"):
-                #TODO: check for string "Treemap"
-                #convertedType += " = new TreeMap()"
-                convertedType ="TreeMap " + convertedType + " " + fieldName + " = new TreeMap " + convertedType + " ()"
-            else:
-                convertedType += ' ' + fieldName
-            structCode += indent + convertedType + fieldValueText +';\n';
+            structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
         #################################################################
         else: # Arglist exists so this is a function.
             if(fieldType=='none'):
@@ -911,6 +913,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
             else:
                 #print convertedType
                 convertedType+=''
+
         ##### Generate function header for both decl and defn.
                 argList=field['typeSpec']['argList']
                 if len(argList)==0:
@@ -960,26 +963,18 @@ def processOtherStructFields(objects, objectName, tags, indent):
             else:
                 print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
-            if(False or objectName=='GLOBAL'):
-                if(fieldName=='main'):
-                    funcDefCode += funcText+"\n\n"
-                else: globalFuncs += funcText+"\n\n"
-            else: funcDefCode += funcText+"\n\n"
+
+            funcDefCode += funcText+"\n\n"
 
         funcDefCodeAcc += ""
         structCodeAcc  += structCode + funcDefCode
         globalFuncsAcc += globalFuncs
-        #print "structCode: " + structCode
-        #print "funcDefCode: " + funcDefCode
-    #print "funcDefCodeAcc: " + funcDefCodeAcc
-    #print "structCodeAcc: " + structCodeAcc
-    if(False and objectName=='GLOBAL'):
-        return [structCode, funcDefCode]
-    else:
-        #constructCode=generate_constructor(objects, objectName, tags, indent)
-        constructCode=""
-        structCodeAcc+=constructCode
-        return [structCodeAcc, funcDefCodeAcc]
+
+
+    #constructCode=generate_constructor(objects, objectName, tags, indent)
+    constructCode=""
+    structCodeAcc+=constructCode
+    return [structCodeAcc, funcDefCodeAcc]
 
 
 def generateAllObjectsButMain(objects, tags):
@@ -989,11 +984,16 @@ def generateAllObjectsButMain(objects, tags):
     #forwardDecls="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
+    needsFlagsVar=False;
     for objectName in objects[1]:
         if progSpec.isWrappedType(objects, objectName)!=None: continue
         if(objectName[0] != '!'):
             print "                [" + objectName+"]"
             currentObjName=objectName
+            [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags)
+            constsEnums+=strOut
+            if(needsFlagsVar):
+                progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
             if(objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
                 #forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
@@ -1002,6 +1002,7 @@ def generateAllObjectsButMain(objects, tags):
                 funcCodeAcc+=funcCode
         currentObjName=''
     return [constsEnums, structCodeAcc, funcCodeAcc]
+
 
 
 def processMain(objects, tags):
@@ -1059,6 +1060,7 @@ def makeFileHeader(tags):
     header += libInterfacesText
     header += addSpecialCode()
     return header
+
 
 def integrateLibraries(tags, libID):
     print '                Integrating', libID

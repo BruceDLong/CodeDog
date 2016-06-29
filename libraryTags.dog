@@ -62,7 +62,7 @@ libraries = {
         libFiles=[]
         headers=[signal.h, string, cstring, memory, cstdint, deque, map, cstdarg, iostream]
     }
-    
+
     Swing={
         useStatus='dynamic'
         description='Swing is a GUI widget toolkit for Java '
@@ -71,6 +71,6 @@ libraries = {
         bindings =[Java]
         CPUs     =[JavaVM]
         libFiles=[]
-        headers=[]
+        headers=[java.awt.*, java.awt.event.*, javax.swing.*]
     }
 }

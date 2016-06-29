@@ -723,8 +723,9 @@ def processAction(action, indent):
             [whereExpr, whereConditionType] = codeExpr(whileSpec[2])
             actionText += indent + "while(" + whereExpr + "){\n"
         else: # interate over a container
-            #print "ITERATE OVER", action['repList'][0]
+            print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = codeExpr(action['repList'][0])
+            print "CONTAINER-SPEC:", repContainer, containerType
             datastructID = containerType['arraySpec']['datastructID']
 
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
