@@ -171,12 +171,11 @@ def ChooseLibs(objects, buildSpec, tags):
 
     print "USING LIBS: ", libsToUse
     for Lib in libsToUse:
-        if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildSpec, tags, Platform)
-        elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildSpec, tags, Platform)
-        elif (Lib=="Java"): Lib_Java.use(objects, buildSpec, tags, Platform)
-        elif (Lib=="CPP"):  Lib_CPP.use(objects, buildSpec, tags, Platform)
-        elif (Lib=="Swing"):  Lib_Swing.use(objects, buildSpec, tags, Platform)
-
+        if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
+        elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
+        elif (Lib=="Java"): Lib_Java.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
+        elif (Lib=="CPP"):  Lib_CPP.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
+        elif (Lib=="Swing"):  Lib_Swing.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
 
     return libsToUse
 
@@ -190,6 +189,8 @@ def GenerateSystem(objects, buildSpecs, tags):
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]
         print "    Generating code for build", buildName
+        progSpec.removeFieldFromObject(objects, "GLOBAL",  "initialize");
+        progSpec.removeFieldFromObject(objects, "GLOBAL", "deinitialize");
         libsToUse=ChooseLibs(objects, buildSpec, tags)
         outStr = GenerateProgram(objects, buildSpec, tags, libsToUse)
         fileName = tagStore['FileName']

@@ -10,10 +10,8 @@ def createUtilityFunctions():
 
 def use(objects, buildSpec, tags, platform):
     print "USING Java"
-    progSpec.addCodeToInit(tags, "\nme bool: isOff\n");
-    progSpec.addCodeToInit(tags, "\nme bool: isOn\n");
-    #progSpec.addCodeToInit(tags, "Random javaRandomVar = new Random();/n");
-    #progSpec.addCodeToInit(tags, "private final static Logger logger = Logger.getLogger(className.class.getName());/n");
+    #progSpec.addCodeToInit(tags[1], "Random javaRandomVar = new Random();/n");
+    #progSpec.addCodeToInit(tags[1], "private final static Logger logger = Logger.getLogger(className.class.getName());/n");
 
     CODE="""
 

@@ -261,6 +261,7 @@ def convertType(objects, TypeSpec):
             if containerType=='ArrayDeque':
                 cppType="ArrayDeque< "+cppType+" >"
             elif containerType=='TreeMap':
+                idxType="Integer" # TODO: This is a hack.
                 cppType="TreeMap< "+idxType+', '+cppType+" >"
             elif containerType=='multimap':
                 cppType="multimap< "+idxType+', '+cppType+" >"
@@ -762,18 +763,19 @@ def processAction(action, indent):
             if(wrappedTypeSpec != None):
                 containerType=wrappedTypeSpec
 
-
-            ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType']}
+            containedType=containerType['fieldType']
+            ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
             if datastructID=='multimap' or datastructID=='map':
-                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType'], 'codeConverter':(repName+'.first')}
+                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
                 localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
                 ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
             elif datastructID=='list':
                 loopCounterName=repName+'_key'
-                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType']}
+                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
                 localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
-                            + indent+indent+"auto "+repName+" = *"+repName+"Itr;\n")
+            containedTypeStr=convertType(objectsRef, ctrlVarsTypeSpec)
+            print "ITEMS:", actionText, indent, containedType," " , repName,' :', repContainer
+            actionText += (indent + "for("+containedTypeStr+" " + repName+' :'+ repContainer+"){\n")
 
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
 

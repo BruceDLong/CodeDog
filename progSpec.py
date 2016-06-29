@@ -115,6 +115,17 @@ def setFeaturesNeeded(tags, featureIDs, neededBy):
 def addCodeToInit(tagStore, newInitCode):
     appendToStringTagValue(tagStore, "initCode", newInitCode + "\n");
     
+def removeFieldFromObject (objects, objectName, fieldtoRemove):
+    if not objectName in objects[0]:
+        return
+    fieldList=objects[0][objectName]["fields"]
+    idx=0
+    for field in fieldList: 
+        if field["fieldName"] == fieldtoRemove:
+            print field["fieldName"], "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@S"
+            del fieldList[idx]
+        idx+=1
+    
 ###############
 
 def isWrappedType(objMap, structname):
