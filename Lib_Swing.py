@@ -68,8 +68,8 @@ me GUI_menu: create_menu(me int32: depth) <- <%{
 }
 %>
 
-me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!setColor(color(%1, %2, %3, %4))%>
-me void: setRGB (me double: red, me double: green, me double: blue) <- <%!setColor(color(%1, %2, %3))%>
+me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!setColor(new Color(%1, %2, %3, %4))%>
+me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cr.gr.setColor(new Color(%1, %2, %3))%>
 me void: setLineWidth(me double: width) <- <%!cr.gr.setStroke(new BasicStroke(%1))%>
 me void: moveTo(me double: x, me double: y) <- <%!cr.GPath.moveTo(%1, %2)%>
 me void: lineTo(me double: x, me double: y) <- <%!cr.GPath.lineTo(%1, %2)%>
@@ -77,8 +77,8 @@ me void: moveRel(me double: dx, me double: dy) <- <%!cr.GPath.moveTo(cr.cur_x+%1
 me void: lineRel(me double: dx, me double: dy) <- <%!cr.GPath.lineTo(cr.cur_x+%1, cr.cur_y+%2)%>
 me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cr.GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cr.rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-me void: paintNow() <- <%!cr.gr.fill()%>
-me void: strokeNow() <- <%!cr.gr.draw()%>
+me void: paintNow() <- <%!cr.gr.fill(cr.GPath)%>
+me void: strokeNow() <- <%!cr.gr.draw(cr.GPath)%>
 
 me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(cr, %1.x1, %1.y1, %1.x2, %1.y2)%>
 me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
@@ -89,15 +89,7 @@ me GUI_item: newScrollingWindow() <- <%!new JScrollPane(0, 0)%>
 me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
 
-me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: callback) <- <% {
-    g_signal_connect(widget, eventID.data(), G_CALLBACK (callback), NULL);
-    if(eventID=="button-press-event"){
-        gtk_widget_set_events(widget, gtk_widget_get_events(widget) | GDK_BUTTON_PRESS_MASK);
-    }
-    if(eventID=="motion-notify-event"){
-        gtk_widget_set_events(widget, gtk_widget_get_events(widget) | GDK_POINTER_MOTION_MASK);
-    }
-} %>
+
 
 """
     return S
@@ -180,7 +172,6 @@ def use(objects, buildSpec, tags, platform):
             JFrame frame = new JFrame("HelloWorldSwing");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            //Add the ubiquitous "Hello World" label.
             JLabel label = new JLabel("Hello World");
             frame.getContentPane().add(label);
 
@@ -212,9 +203,9 @@ def use(objects, buildSpec, tags, platform):
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
 
     APP_UTILITY_CODE = createUtilityFunctions()
-    MENU_BAR_CODE = createMenubar()
-    MAIN_APP_CODE = createMainAppArea()
-    STATUS_BAR_CODE=createStatusBar()
+    MENU_BAR_CODE = ""# createMenubar()
+    MAIN_APP_CODE = ""#createMainAppArea()
+    STATUS_BAR_CODE= ""#createStatusBar()
 
 
     GLOBAL_CODE="""
@@ -222,19 +213,7 @@ def use(objects, buildSpec, tags, platform):
         me GUI_TK: gui_tk
         me thisApp: appFuncs
         %s
-        me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%%{
-  /*        GtkWidget *window;
-          GtkWidget *topBox;
 
-          window = gtk_application_window_new (app);
-          gtk_window_set_title (GTK_WINDOW (window), "Window");
-          gtk_window_set_default_size (GTK_WINDOW (window), 500, 700);
-          g_signal_connect (window, "destroy", G_CALLBACK (close_window), NULL);
-          gtk_container_set_border_width (GTK_CONTAINER (window), 0);
-
-          topBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-          gtk_container_add (GTK_CONTAINER (window), topBox);
-          gtk_widget_show (topBox);
           ////////////////////  A d d  A p p l i c a t i o n   M e n u
           %s
 
@@ -244,10 +223,6 @@ def use(objects, buildSpec, tags, platform):
           ////////////////////  A d d  S t a t u s   A r e a
           %s
 
-
-          gtk_widget_show_all (window);
-          */
-        }%%>
     }
 """ % (APP_UTILITY_CODE, MENU_BAR_CODE, MAIN_APP_CODE, STATUS_BAR_CODE)
 
