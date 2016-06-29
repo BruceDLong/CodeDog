@@ -948,10 +948,10 @@ def processOtherStructFields(objects, objectName, tags, indent):
             objPrefix=LangFormOfObjName
             if(objectName=='GLOBAL' and fieldName=='main'):
                 #funcDefCode += 'public static void main(String[] args)'
-                structCode += indent + "public static " + typeDefName +' ' + fieldName +"(String[] args);\n";
+                structCode += indent + "public static " + typeDefName +' ' + fieldName +"(String[] args)\n";
                 #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
             elif(objectName=='GLOBAL') :
-                structCode += indent + "public static " + typeDefName + ' ' + fieldName +"("+argListText+");\n"
+                structCode += indent + "public static " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
             else:
                 #funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
                 structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
@@ -974,6 +974,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 exit(1)
 
             funcDefCode += funcText+"\n\n"
+            print "funcDefCode*************\n", funcDefCode
 
         funcDefCodeAcc += ""
         structCodeAcc  += structCode + funcDefCode
