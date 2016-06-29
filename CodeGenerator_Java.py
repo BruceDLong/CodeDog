@@ -680,7 +680,7 @@ def processAction(action, indent):
                 RHS = S2
                 assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
         else:
-            print "TYPE:", fieldType
+            #print "TYPE:", fieldType
             assignValue= " = new " + fieldType +"();\n"
 
         actionText = indent + fieldType + " " + varName + assignValue
