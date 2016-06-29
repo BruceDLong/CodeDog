@@ -189,6 +189,8 @@ def GenerateSystem(objects, buildSpecs, tags):
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]
         print "    Generating code for build", buildName
+        progSpec.removeFieldFromObject(objects, "GLOBAL",  "initialize");
+        progSpec.removeFieldFromObject(objects, "GLOBAL", "deinitialize");
         libsToUse=ChooseLibs(objects, buildSpec, tags)
         outStr = GenerateProgram(objects, buildSpec, tags, libsToUse)
         fileName = tagStore['FileName']
