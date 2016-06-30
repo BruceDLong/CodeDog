@@ -453,7 +453,7 @@ def parseCodeDogString(inputString):
 
 def AddToObjectFromText(spec, objNames, inputStr):
     inputStr = comment_remover(inputStr)
-    #print '####################\n',inputStr, "\n######################^\n\n\n"
+    print '####################\n',inputStr, "\n######################^\n\n\n"
 
     # (map of objects, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
