@@ -71,6 +71,6 @@ libraries = {
         bindings =[Java]
         CPUs     =[JavaVM]
         libFiles=[]
-        headers=[java.awt.*, java.awt.event.*, javax.swing.*]
+        headers=[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*]
     }
 }
