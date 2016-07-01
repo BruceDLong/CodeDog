@@ -659,12 +659,14 @@ def processAction(action, indent):
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
         fieldType = convertType(objectsRef, typeSpec)
-
         assignValue=''
+        print "                                     Action newVar: ", varName
         if isinstance(typeSpec['fieldType'], basestring):
             if(fieldDef['value']):
+                print "                                         fieldDef['value']: "
                 [S2, rhsType]=codeExpr(fieldDef['value'][0])
                 RHS = S2
+                print "                                             RHS: ", RHS
                 assignValue=' = '+ RHS + ';\n'
             else: assignValue=';\n'
         elif(fieldDef['value']):
@@ -933,7 +935,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
             print "                         Const: ", fieldType, fieldName
         ################################################################
         elif(fieldArglist==None):                                           # This is not a function because no argList so just code as expression.
-            fieldValueText = " = "+ codeExpr(fieldValue[0])[0]
+            fieldValueText = " = new "+ codeExpr(fieldValue[0])[0]
             print "                         No argList:", fieldType, fieldName, fieldValueText
         ################################################################
         else: 
@@ -1014,7 +1016,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
             #### ACTION SEQUENCE FUNC BODY                                
             ############################################################
             elif field['value'][0]!='':
-                print "                                 Action Func Body: "+ fieldName                                   
+                print "                                 Action Func Body: "+ fieldName      
                 structCode += indent + processActionSeq(field['value'][0], '    ')+"\n"
             ################################################################
             #### ERROR 

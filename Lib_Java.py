@@ -5,7 +5,7 @@ import codeDogParser
 
 def createUtilityFunctions():
     S="""
-
+         
     """
     return S
 
@@ -32,11 +32,10 @@ def createStatusBar():
 def use(objects, buildSpec, tags, platform):
     print "USING Java"
     progSpec.addCodeToInit(tags[1], "me Random: javaRandomVar \n");
-    #static Random javaRandomVar = new Random();
     #progSpec.addCodeToInit(tags[1], "const Logger: log <- Logger.getLogger('log')\n");
 
     CODE="""
-        struct Random{me Random: Random}
+        struct random{me Random: random}
     """
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
 
@@ -47,12 +46,12 @@ def use(objects, buildSpec, tags, platform):
     
     GLOBAL_CODE="""
         struct GLOBAL{
-        me RANDOM: javaRandomVar <- Random()
+            me Random: javaRandomVar <- Random()
         
-        me int32: randInt(me int32: highVal)<-{
-            me int32: randomNumber <- javaRandomVar.nextInt(highVal + 1)
-            return (randomNumber)
-        }
+            me int32: getRandInt(me int32: highVal)<-{
+                me int32: randomNumber <- javaRandomVar.nextInt(highVal + 1)
+                return (randomNumber)
+            }
 
             // LOGGING INTERFACE:
         
