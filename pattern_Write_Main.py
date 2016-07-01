@@ -10,7 +10,6 @@ def apply(objects, tags, codeToRun):
 
     if 'runCode'    in tags: runCode   = tags['runCode']
 
-
     # TODO: Some deInitialize items should automatically run during abort().
     # TODO: Deinitialize items should happen in reverse order.
     mainFuncCode="""
@@ -18,8 +17,7 @@ def apply(objects, tags, codeToRun):
         initialize()
         """ + runCode + """
         deinitialize()
-        //endFunc(0);
-        return(0)
+        endFunc()
     } 
 
 """

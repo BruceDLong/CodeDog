@@ -4,7 +4,8 @@ import codeDogParser
 
 def createUtilityFunctions():
     S="""
-        me x: endFunc(0) <- <%!return(0);%>
+        me x: endFunc(me int: val) <- <%!return(0)%>
+        me x: randInt(me int: val) <- <%!(rand() % %1)%>
     """
     return S
 def createMenubar():
