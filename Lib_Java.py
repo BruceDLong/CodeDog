@@ -3,9 +3,13 @@
 import progSpec
 import codeDogParser
 
+#TODO: make conversion for rand to GLOBAL.getRandInt & main return(0)
 def createUtilityFunctions():
     S="""
-         
+        me x: endFunc(me int: val) <- <%!%>
+        me x: randInt(me int: val) <- <%!GLOBAL.getRandInt(%1)%>
+        me x: print(me string: s)<- <%!System.out(%1)%>
+        
     """
     return S
 
@@ -67,5 +71,6 @@ def use(objects, buildSpec, tags, platform):
           %s
         }
 """ % (APP_UTILITY_CODE, MENU_BAR_CODE, MAIN_APP_CODE, STATUS_BAR_CODE)
+    print "GLOBAL_CODE: ", GLOBAL_CODE
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
