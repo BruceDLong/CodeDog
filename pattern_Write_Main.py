@@ -8,18 +8,19 @@ def apply(objects, tags, codeToRun):
     # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
     runCode='';
 
-    if 'runCode'    in tags: runCode   = tags['runCode']+';'
+    if 'runCode'    in tags: runCode   = tags['runCode']
 
 
     # TODO: Some deInitialize items should automatically run during abort().
     # TODO: Deinitialize items should happen in reverse order.
     mainFuncCode="""
-me int32: main(me int32: argc, me int32: argv ) <- <%{
-    initialize();
-    """ + runCode + """
-    deinitialize();
-    return 0;
-} %>
+    me int32: main(me int32: argc, me int32: argv ) <- {
+        initialize()
+        """ + runCode + """
+        deinitialize()
+        //endFunc(0);
+        return(0)
+    } 
 
 """
 

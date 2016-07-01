@@ -659,12 +659,14 @@ def processAction(action, indent):
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
         fieldType = convertType(objectsRef, typeSpec)
-
         assignValue=''
+        print "                                     Action newVar: ", varName
         if isinstance(typeSpec['fieldType'], basestring):
             if(fieldDef['value']):
+                print "                                         fieldDef['value']: "
                 [S2, rhsType]=codeExpr(fieldDef['value'][0])
                 RHS = S2
+                print "                                             RHS: ", RHS
                 assignValue=' = '+ RHS + ';\n'
             else: assignValue=';\n'
         elif(fieldDef['value']):
@@ -680,6 +682,7 @@ def processAction(action, indent):
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
         LHS = codeStr
+        print "                                     assign: ", LHS
         [S2, rhsType]=codeExpr(action['RHS'][0])
         #print "RHS:", S2, typeSpec, rhsType
         #[leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
@@ -706,11 +709,12 @@ def processAction(action, indent):
     elif (typeOfAction =='swap'):
         LHS =  ".".join(action['LHS'])
         RHS =  ".".join(action['LHS'])
-        #print "swap: ", LHS, RHS
+        print "                                     swap: ", LHS, RHS
         actionText = indent + "swap (" + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='conditional'):
         [S2, conditionType] =  codeExpr(action['ifCondition'][0])
         ifCondition = S2
+        print "                                     conditional: ", ifCondition
         ifBodyText = genIfBody(action['ifBody'], indent)
         actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
         elseBodyText = ""
@@ -733,6 +737,7 @@ def processAction(action, indent):
         whileSpec = action['whileSpec']
         # TODO: add cases for traversing trees and graphs in various orders or ways.
         loopCounterName=''
+        print "                                     repetition: ", repName
         if(rangeSpec): # iterate over range
             [S_low, lowValType] = codeExpr(rangeSpec[2][0])
             [S_hi,   hiValType] = codeExpr(rangeSpec[4][0])
@@ -786,8 +791,8 @@ def processAction(action, indent):
             repBodyText += indent + "    " + "++" + loopCounterName + ";\n"
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
-        #print "\n########################################## FUNCTION CALL AS ACTION",action['calledFunc']
         calledFunc = action['calledFunc']
+        print "                                     funcCall", calledFunc[0][0]
         if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':
             print "\nERROR: It is not allowed to name a function", calledFunc[0][0]
             exit(2)
@@ -795,6 +800,7 @@ def processAction(action, indent):
     elif (typeOfAction =='actionSeq'):
         actionListIn = action['actionList']
         actionListText = ''
+        print "                                     actionSeq", actionSeq
         for action in actionListIn:
             actionListOut = processAction(action, indent + "    ")
             actionListText += actionListOut
@@ -871,14 +877,17 @@ def generate_constructor(objects, ClassName, tags):
     return constructCode
 
 def processOtherStructFields(objects, objectName, tags, indent):
-    print "                    Coding fields for", objectName
+    print "                    Coding fields for ", objectName, '.....................'
+    ####################################################################
     global localArgsAllocated
-    globalFuncsAcc=''
+    #globalFuncsAcc=''
     funcDefCodeAcc=''
     structCodeAcc=""
     ObjectDef = objects[0][objectName]
-    #print ObjectDef['name']
     for field in ObjectDef['fields']:
+        ################################################################
+        ### extracting FIELD data
+        ################################################################
         localArgsAllocated=[]
         funcDefCode=""
         structCode=""
@@ -887,6 +896,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
         fieldName = field['fieldName']
+
         if(fieldType=='flag' or fieldType=='mode'):
             if fieldName in fieldNamesAlreadyUsed: continue
             else:fieldNamesAlreadyUsed[fieldName]=objectName
@@ -894,42 +904,74 @@ def processOtherStructFields(objects, objectName, tags, indent):
             structCodeAcc  += structCode
             print "structCodeAcc", structCodeAcc
             continue
+
         fieldOwner=typeSpec['owner']
         fieldName =field['fieldName']
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
-        if fieldName=='opAssign': fieldName='operator='
         convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
-        print "                       ", fieldType, fieldName
-        if(fieldValue == None):fieldValueText=""
-        elif(fieldOwner=='const'):
-            if isinstance(fieldValue, basestring):
-                fieldValueText = ' = "'+ fieldValue + '"'
-            else: fieldValueText = " = "+ codeExpr(fieldValue)[0]
-        elif(fieldArglist==None):
-            fieldValueText = " = "+ codeExpr(fieldValue[0])[0]
-        else: fieldValueText = " = "+ str(fieldValue)
-        #registerType(objectName, fieldName, convertedType, "")
-        if(fieldOwner=='const'):
-            structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
-        elif(fieldArglist==None):
-            structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
-        #################################################################
-        else: # Arglist exists so this is a function.
-            if(fieldType=='none'):
-                convertedType=''
-            else:
-                #print convertedType
-                convertedType+=''
 
-        ##### Generate function header for both decl and defn.
-                argList=field['typeSpec']['argList']
-                if len(argList)==0:
-                    argListText='' #'void'
-                elif argList[0]=='<%':
+        ################################################################
+        ##CALCULATE FLAGS & MODES                                    MOVE THIS TO ITS OWN FUNC
+        ################################################################
+        if(fieldType=='flag' or fieldType=='mode'):
+            if fieldName in fieldNamesAlreadyUsed: continue
+            else:
+                fieldNamesAlreadyUsed[fieldName]=objectName
+            structCode = indent + processFlagAndModeFields(field, fieldName, tags)
+            structCodeAcc  += structCode
+            continue                                                    ### CONTINUE ###
+        ################################################################
+
+
+
+        ################################################################
+        ## ASSIGNMENTS
+        ################################################################
+        if fieldName=='opAssign': fieldName='operator='
+        print "                         opAssign: ", fieldType, fieldName
+        ################################################################
+        ##CALCULATE RHS                                                 ###CALCULATE RHS###
+        ################################################################
+        if(fieldValue == None):fieldValueText=" = new " + convertedType + "()"                        # FieldValueText is the RHS text.
+        ################################################################
+        elif(fieldOwner=='const'):                                          # Const always has Right hand side.
+            if isinstance(fieldValue, basestring):                              # Gave a literal value for the constant.
+                fieldValueText = ' = "'+ fieldValue + '"'
+            else:
+                fieldValueText = " = "+ codeExpr(fieldValue)[0]               # Gave an expresssion and needs to be coded.
+            print "                         Const: ", fieldType, fieldName
+        ################################################################
+        elif(fieldArglist==None):                                           # This is not a function because no argList so just code as expression.
+            fieldValueText = " = new "+ codeExpr(fieldValue[0])[0]
+            print "                         No argList:", fieldType, fieldName, fieldValueText
+        ################################################################
+        else:
+            fieldValueText = " = "+ str(fieldValue)                         # This hands other cases of RHS code gen.
+            print "                         Other: ", fieldType, fieldName
+        ################################################################
+        ##CALCULATE LHS + RHS                                           ###CALCULATE LHS + RHS###
+        ################################################################
+        #registerType(objectName, fieldName, convertedType, "")             # If its a constant.
+        if(fieldOwner=='const'):                                                # structCode is the whole field definition
+            structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+            print "                             Const : ", convertedType + fieldName
+        ###################################################################CODE FUNCTIONS###
+        elif(fieldArglist==None):                                           # If its not a function nor a constant.
+            structCode += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
+            print "                             Not Func or Const: ", convertedType, fieldName
+        else:                                                           ### CODE FUNCTIONS
+            if(fieldType=='none'):                                          # Arglist exists so this is a function.
+                convertedType=''                                            # No field type.
+            else:
+                convertedType+=''                                           # Has field type.
+                argList=field['typeSpec']['argList']                    ####### Generate function header for both declarations and definitions.
+                if len(argList)==0:                                             # No arguments
+                    argListText=''
+                elif argList[0]=='<%':                                          # Verbatim.
                     argListText=argList[1][0]
-                else:
+                else:                                                           # Print out argList.
                     argListText=""
                     count=0
                     for arg in argList:
@@ -938,27 +980,39 @@ def processOtherStructFields(objects, objectName, tags, indent):
                         argTypeSpec =arg['typeSpec']
                         argFieldName=arg['fieldName']
                         argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
-                        localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
+                        localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
-                if(fieldType[0] != '<%'):
+                if(fieldType[0] != '<%'):                                       # not verbatim field type
                     pass #registerType(objectName, fieldName, convertedType, typeDefName)
-                else: typeDefName=convertedType
+                else: typeDefName=convertedType                                 # grabbing typeDefName if not verbatim
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
             #structCode += indent + "public static " + typeDefName +' ' + fieldName +"("+argListText+")\n";
             objPrefix=LangFormOfObjName
+            ############################################################
+            #### GLOBAL main()                                          #### GLOBAL main()
+            ############################################################
             if(objectName=='GLOBAL' and fieldName=='main'):
-                #funcDefCode += 'public static void main(String[] args)'
-                structCode += indent + "public static " + typeDefName +' ' + fieldName +"(String[] args)\n";
+                print "                             GLOBAL main(): public static void ", fieldName
+                structCode += indent + "public static void " + fieldName +" (String[] args)\n";
                 #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
+            ############################################################
+            #### GLOBAL miscFuncs()                                     #### GLOBAL miscFuncs()
+            ############################################################
             elif(objectName=='GLOBAL') :
                 structCode += indent + "public static " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
+                print "                             GLOBAL miscFuncs(): public static ", typeDefName + " " + fieldName
+            ############################################################
+            #### OTHER FUNCTIONS                                        #### OTHER FUNCTIONS
+            ############################################################
             else:
                 #funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
-                structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
-
-            ##### Generate Function Body
+                structCode += indent + "public static " + typeDefName +' ' + fieldName +"("+argListText+")\n";
+                print "                             otherFuncs (): public static " + typeDefName + " " + fieldName
+            ############################################################
+            #### VERBATIM FUNC BODY
+            ############################################################
             verbatimText=field['value'][1]
-            if (verbatimText!=''): # This function body is 'verbatim'.
+            if (verbatimText!=''):                                      # This function body is 'verbatim'.
                 if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
                     structCode=""
                     funcText=""
@@ -966,24 +1020,32 @@ def processOtherStructFields(objects, objectName, tags, indent):
                     globalFuncs=""
                 else:
                     funcText=verbatimText
-            # No verbatim found so generate function text from action sequence
+                print "                                 Verbatim Func Body: " + fieldName
+            ############################################################
+            #### ACTION SEQUENCE FUNC BODY
+            ############################################################
             elif field['value'][0]!='':
+                print "                                 Action Func Body: "+ fieldName
                 structCode += indent + processActionSeq(field['value'][0], '    ')+"\n"
+            ################################################################
+            #### ERROR
+            ################################################################
             else:
                 print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
+            ################################################################
+            #### funcDefCode
+            ################################################################
+            #funcDefCode += funcText+"\n\n"
 
-            funcDefCode += funcText+"\n\n"
-            print "funcDefCode*************\n", funcDefCode
-
-        funcDefCodeAcc += ""
-        structCodeAcc  += structCode + funcDefCode
-        globalFuncsAcc += globalFuncs
+        #funcDefCodeAcc += ""
+        structCodeAcc  += structCode #+ funcDefCode
+        #globalFuncsAcc += globalFuncs
 
 
     #constructCode=generate_constructor(objects, objectName, tags, indent)
-    constructCode=""
-    structCodeAcc+=constructCode
+    #constructCode=""
+    #structCodeAcc+=constructCode
     return [structCodeAcc, funcDefCodeAcc]
 
 
