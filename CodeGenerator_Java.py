@@ -26,7 +26,7 @@ def getContainerType(typeSpec):
     idxType=''
     if 'indexType' in containerSpec:
         idxType=containerSpec['indexType']
-    if idxType[0:4]=='uint': idxType = 'long'
+    if idxType[0:4]=='uint': idxType = 'Long'
     elif idxType=='string': idxType = 'String'
 
     datastructID = containerSpec['datastructID']
@@ -253,7 +253,7 @@ def convertType(objects, TypeSpec):
             if containerType=='ArrayDeque':
                 cppType="ArrayDeque< "+cppType+" >"
             elif containerType=='TreeMap':
-                idxType="Integer" # TODO: This is a hack.
+                idxType="Long" # TODO: This is a hack.
                 cppType="TreeMap< "+idxType+', '+cppType+" >"
             elif containerType=='multimap':
                 cppType="multimap< "+idxType+', '+cppType+" >"
@@ -833,11 +833,11 @@ def generate_constructor(objects, ClassName, tags):
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
         fieldName = field['fieldName']
-        if(fieldType=='flag' or fieldType=='mode'): 
+        if(fieldType=='flag' or fieldType=='mode'):
             if fieldName in fieldNamesAlreadyUsed: continue
             else:fieldNamesAlreadyUsed[fieldName]=objectName
             structCode = indent + processFlagAndModeFields(field, fieldName, tags)
-            structCodeAcc  += structCode 
+            structCodeAcc  += structCode
             print "structCodeAcc", structCodeAcc
             continue
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
@@ -887,11 +887,11 @@ def processOtherStructFields(objects, objectName, tags, indent):
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
         fieldName = field['fieldName']
-        if(fieldType=='flag' or fieldType=='mode'): 
+        if(fieldType=='flag' or fieldType=='mode'):
             if fieldName in fieldNamesAlreadyUsed: continue
             else:fieldNamesAlreadyUsed[fieldName]=objectName
             structCode = indent + processFlagAndModeFields(field, fieldName, tags)
-            structCodeAcc  += structCode 
+            structCodeAcc  += structCode
             print "structCodeAcc", structCodeAcc
             continue
         fieldOwner=typeSpec['owner']
