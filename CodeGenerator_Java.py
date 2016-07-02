@@ -211,6 +211,12 @@ def convertToJavaType(fieldType):
     #print "javaType: ", javaType
     return javaType
 
+def varTypeIsJavaValueType(convertedType):
+    if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
+       or convertedType=='float' or convertedType=='double' or convertedType=='short'):
+        return True
+    return False
+
 def convertType(objects, TypeSpec):
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
@@ -934,7 +940,10 @@ def processOtherStructFields(objects, objectName, tags, indent):
         ################################################################
         ##CALCULATE RHS                                                 ###CALCULATE RHS###
         ################################################################
-        if(fieldValue == None):fieldValueText=" = new " + convertedType + "()"                        # FieldValueText is the RHS text.
+        if(fieldValue == None):
+            if not varTypeIsJavaValueType(convertedType):
+                fieldValueText=" = new " + convertedType + "()"                  # FieldValueText is the RHS text.
+            else: fieldValueText=""
         ################################################################
         elif(fieldOwner=='const'):                                          # Const always has Right hand side.
             if isinstance(fieldValue, basestring):                              # Gave a literal value for the constant.
@@ -944,11 +953,13 @@ def processOtherStructFields(objects, objectName, tags, indent):
             print "                         Const: ", fieldType, fieldName
         ################################################################
         elif(fieldArglist==None):                                           # This is not a function because no argList so just code as expression.
-            fieldValueText = " = new "+ codeExpr(fieldValue[0])[0]
+            if not varTypeIsJavaValueType(convertedType):
+                fieldValueText = " = new " + convertedType + "(" + codeExpr(fieldValue[0])[0] + ")"
+            else: fieldValueText = " = " + codeExpr(fieldValue[0])[0]
             print "                         No argList:", fieldType, fieldName, fieldValueText
         ################################################################
         else:
-            fieldValueText = " = "+ str(fieldValue)                         # This hands other cases of RHS code gen.
+            fieldValueText = " = "+ str(fieldValue)                         # This handles other cases of RHS code gen.
             print "                         Other: ", fieldType, fieldName
         ################################################################
         ##CALCULATE LHS + RHS                                           ###CALCULATE LHS + RHS###
@@ -1036,7 +1047,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
             ################################################################
             #### funcDefCode
             ################################################################
-            #funcDefCode += funcText+"\n\n"
+            structCode += funcText+"\n\n"
 
         #funcDefCodeAcc += ""
         structCodeAcc  += structCode #+ funcDefCode
