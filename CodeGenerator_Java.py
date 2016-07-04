@@ -256,10 +256,10 @@ def convertType(objects, TypeSpec):
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
             [containerType, idxType]=getContainerType(TypeSpec)
+            print "IDX-TYPe:", idxType
             if containerType=='ArrayDeque':
                 cppType="ArrayDeque< "+cppType+" >"
             elif containerType=='TreeMap':
-                idxType="Long" # TODO: This is a hack.
                 cppType="TreeMap< "+idxType+', '+cppType+" >"
             elif containerType=='multimap':
                 cppType="multimap< "+idxType+', '+cppType+" >"
@@ -673,7 +673,7 @@ def encodeConditionalStatement(action, indent):
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
-    
+
 def processAction(action, indent):
     #make a string and return it
     global localVarsAllocated
@@ -781,6 +781,9 @@ def processAction(action, indent):
             #print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = codeExpr(action['repList'][0])
             datastructID = containerType['arraySpec']['datastructID']
+            keyFieldType = containerType['arraySpec']['indexType']
+            [datastructID, keyFieldType]=getContainerType(containerType)
+            print "DATAID, KEYTYPE:", [datastructID, keyFieldType]
 
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):
@@ -788,17 +791,22 @@ def processAction(action, indent):
 
             containedType=containerType['fieldType']
             ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-            if datastructID=='multimap' or datastructID=='map':
-                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+            if datastructID=='TreeMap':
+                keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
                 localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-                ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+                ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
+                containedTypeStr=convertType(objectsRef, ctrlVarsTypeSpec)
+                indexTypeStr=convertType(objectsRef, keyVarSpec)
+                iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
+                repContainer+='.entrySet()'
             elif datastructID=='list':
                 loopCounterName=repName+'_key'
                 keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
                 localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-            containedTypeStr=convertType(objectsRef, ctrlVarsTypeSpec)
+                iteratorTypeStr=convertType(objectsRef, ctrlVarsTypeSpec)
+            else: iteratorTypeStr=convertType(objectsRef, ctrlVarsTypeSpec)
             print "ITEMS:", actionText, indent, containedType," " , repName,' :', repContainer
-            actionText += (indent + "for("+containedTypeStr+" " + repName+' :'+ repContainer+"){\n")
+            actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
 
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
 
