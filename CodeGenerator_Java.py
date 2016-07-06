@@ -259,7 +259,7 @@ def convertType(objects, TypeSpec):
             if containerType=='ArrayDeque':
                 cppType="ArrayDeque< "+cppType+" >"
             elif containerType=='TreeMap':
-                idxType="Long" # TODO: This is a hack.
+                #idxType="Long" # TODO: This is a hack.
                 cppType="TreeMap< "+idxType+', '+cppType+" >"
             elif containerType=='multimap':
                 cppType="multimap< "+idxType+', '+cppType+" >"
@@ -366,6 +366,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             S=tmp
             return [S, '']
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name)
+        if(SRC=="GLOBAL"): name = "GLOBAL."+name
     else:
         fType=typeSpecIn['fieldType']
 
@@ -673,7 +674,7 @@ def encodeConditionalStatement(action, indent):
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
-    
+
 def processAction(action, indent):
     #make a string and return it
     global localVarsAllocated

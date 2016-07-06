@@ -14,32 +14,32 @@ me void: close_window() <- {
  // gtk_main_quit()
 }
 
-me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <%{
-  GUI_menuItem menuitem;
+me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- {
+    me GUI_menuItem: menuitem
 
 //      menuitem = gtk_menu_item_new_with_label (label.data());
 //      //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
 //      gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
 //      gtk_widget_show (menuitem);
 
-  return menuitem;
-} %>
+  return(menuitem)
+}
 
-me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
-/*   GUI_menu SubMenu = gtk_menu_new ();
-   GUI_menuItem menuitem;
+me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- {
+    me GUI_menu: SubMenu
+    me GUI_menuItem: menuitem
 
-      menuitem = gtk_menu_item_new_with_label (label.data());
+/*      menuitem = gtk_menu_item_new_with_label (label.data());
       gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
       gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
       gtk_widget_show (menuitem);
 */
-  return 0;//SubMenu;
-} %>
+  return(SubMenu)
+}
 
-me GUI_menu: create_menu(me int32: depth) <- <%{
-/*  GtkWidget *menu;
-  GUI_menuItem menuitem;
+me GUI_menu: create_menu(me int32: depth) <- {
+    me GUI_menu: menu
+/*  GUI_menuItem menuitem;
   GSList *group;
   char buf[32];
   int i, j;
@@ -64,9 +64,9 @@ me GUI_menu: create_menu(me int32: depth) <- <%{
       gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), create_menu (depth - 1));
     }
 */
-  return 0;// menu;
+  return(menu)
 }
-%>
+
 
 me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!setColor(new Color(%1, %2, %3, %4))%>
 me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cr.gr.setColor(new Color(%1, %2, %3))%>
@@ -116,8 +116,7 @@ def createMenubar():
 
 def createMainAppArea():
     S="""
-      GtkWidget *frame;
-      GtkWidget *appArea;
+      jFrame appArea;
 
       frame = gtk_frame_new (NULL);
       gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
@@ -158,6 +157,7 @@ def use(objects, buildSpec, tags, platform):
     struct GUI_menuItem{me JMenuItem: GUI_menuItem}
     struct GUI_canvas{me jCanvas: GUI_canvas}
     struct GUI_container{me jFrame:GUI_container}
+    struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
 
     struct GUI_callback{me GCallback: GUI_callback}
 

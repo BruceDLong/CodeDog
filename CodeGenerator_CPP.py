@@ -634,6 +634,26 @@ def startPointOfNamesLastSegment(name):
         p-=1
     return p
 
+def encodeConditionalStatement(action, indent):
+    print "                                         conditional else if: "
+    [S2, conditionType] =  codeExpr(action['ifCondition'][0])
+    ifCondition = S2
+    ifBodyText = genIfBody(action['ifBody'], indent)
+    actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
+    elseBodyText = ""
+    elseBody = action['elseBody']
+    if (elseBody):
+        if (elseBody[0]=='if'):
+            elseAction = elseBody[1]
+            elseText = encodeConditionalStatement(elseAction[0], indent)
+            actionText += indent + "else " + elseText.lstrip()
+        elif (elseBody[0]=='action'):
+            elseAction = elseBody[1]['actionList']
+            elseText = processActionSeq(elseAction, indent)
+            actionText += indent + "else " + elseText.lstrip()
+        else:  print"Unrecognized item after else"; exit(2);
+    return actionText
+    
 def processAction(action, indent):
     #make a string and return it
     global localVarsAllocated
@@ -693,8 +713,8 @@ def processAction(action, indent):
         elseBody = action['elseBody']
         if (elseBody):
             if (elseBody[0]=='if'):
-                elseAction = elseBody[1]
-                elseText = processActionSeq(elseAction, indent)
+                elseAction = elseBody[1][0]
+                elseText = encodeConditionalStatement(elseAction, indent)
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
@@ -790,7 +810,7 @@ def processActionSeq(actSeq, indent):
         actionText = processAction(action, indent+'    ')
         #print actionText
         actSeqText += actionText
-    actSeqText += "\n" + indent + "}"
+    actSeqText += "\n" + indent + "} "
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()

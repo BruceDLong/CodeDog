@@ -100,6 +100,7 @@ me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(cr, &%1.
 me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(%1)%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
 me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
+me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
 me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
 me GUI_item: newScrollingWindow() <- <%!gtk_scrolled_window_new(0, 0)%>
 me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
@@ -176,6 +177,7 @@ def use(objects, buildSpec, tags, platform):
     struct GUI_menuItem{their GtkWidget: GUI_menuItem}
     struct GUI_canvas{their GtkWidget: GUI_canvas}
     struct GUI_container{their GtkContainer:GUI_container}
+    struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 
     struct GUI_callback{me GCallback: GUI_callback}
 
