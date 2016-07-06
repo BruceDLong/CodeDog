@@ -7,9 +7,9 @@ import codeDogParser
 def createUtilityFunctions():
     S="""
         me x: endFunc(me int: val) <- <%!%>
-        me x: randInt(me int: val) <- <%!GLOBAL.getRandInt(%1)%>
+        me x: randInt(me int: val) <- <%!GLOBAL.javaRandomVar.nextInt((int)(%1))%>
         me x: print(me string: s)<- <%!System.out(%1)%>
-        
+
     """
     return S
 
@@ -47,19 +47,14 @@ def use(objects, buildSpec, tags, platform):
     MENU_BAR_CODE = createMenubar()
     MAIN_APP_CODE = createMainAppArea()
     STATUS_BAR_CODE=createStatusBar()
-    
+
     GLOBAL_CODE="""
         struct GLOBAL{
-            me Random: javaRandomVar <- Random()
-        
-            me int32: getRandInt(me int32: highVal)<-{
-                me int32: randomNumber <- javaRandomVar.nextInt(highVal + 1)
-                return (randomNumber)
-            }
+            me Random: javaRandomVar
 
             // LOGGING INTERFACE:
-        
-        
+
+
          %s
         ////////////////////  A d d  A p p l i c a t i o n   M e n u
           %s
