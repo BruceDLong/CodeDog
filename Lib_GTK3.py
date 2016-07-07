@@ -53,36 +53,6 @@ me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
   return SubMenu;
 } %>
 
-me GUI_menu: create_menu(me gint: depth) <- <%{
-  GtkWidget *menu;
-  GtkWidget *menuitem;
-  GSList *group;
-  char buf[32];
-  int i, j;
-
-  if (depth < 1)
-    return NULL;
-
-  menu = gtk_menu_new ();
-  group = NULL;
-
-  for (i = 0, j = 1; i < 5; i++, j++)
-    {
-      sprintf (buf, "item %2d - %d", depth, j);
-      menuitem = gtk_radio_menu_item_new_with_label (group, buf);
-      group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menuitem));
-
-      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
-      gtk_widget_show (menuitem);
-      if (i == 3)
-        gtk_widget_set_sensitive (menuitem, FALSE);
-
-      gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), create_menu (depth - 1));
-    }
-
-  return menu;
-}
-%>
 
 me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(cr, %1, %2, %3, %4)%>
 me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(cr, %1, %2, %3)%>
@@ -148,8 +118,8 @@ def createMainAppArea():
       gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
       gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
 
-      appArea = appFuncs.createAppArea();
-      gtk_container_add (GTK_CONTAINER (frame), appArea);
+      appFuncs.createAppArea(frame);
+     // gtk_container_add (GTK_CONTAINER (frame), appArea);
 
 """
     return S
@@ -177,6 +147,7 @@ def use(objects, buildSpec, tags, platform):
     struct GUI_menuItem{their GtkWidget: GUI_menuItem}
     struct GUI_canvas{their GtkWidget: GUI_canvas}
     struct GUI_container{their GtkContainer:GUI_container}
+    struct GUI_frame{their GtkWidget:GUI_frame}
     struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 
     struct GUI_callback{me GCallback: GUI_callback}

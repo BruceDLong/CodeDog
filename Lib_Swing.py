@@ -37,36 +37,6 @@ me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- {
   return(SubMenu)
 }
 
-me GUI_menu: create_menu(me int32: depth) <- {
-    me GUI_menu: menu
-/*  GUI_menuItem menuitem;
-  GSList *group;
-  char buf[32];
-  int i, j;
-
-  if (depth < 1)
-    return NULL;
-
-  menu = gtk_menu_new ();
-  group = NULL;
-
-  for (i = 0, j = 1; i < 5; i++, j++)
-    {
-      sprintf (buf, "item %2d - %d", depth, j);
-      menuitem = gtk_radio_menu_item_new_with_label (group, buf);
-      group = gtk_radio_menu_item_get_group (GTK_RADIO_MENU_ITEM (menuitem));
-
-      gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
-      gtk_widget_show (menuitem);
-      if (i == 3)
-        gtk_widget_set_sensitive (menuitem, FALSE);
-
-      gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), create_menu (depth - 1));
-    }
-*/
-  return(menu)
-}
-
 
 me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!setColor(new Color(%1, %2, %3, %4))%>
 me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cr.gr.setColor(new Color(%1, %2, %3))%>
@@ -84,56 +54,17 @@ me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(cr, %1.x
 me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
 me GUI_item: newCanvas() <- <%!new jCanvas()%>
+me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setSize(%2, %3)%>
 me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
 me GUI_item: newScrollingWindow() <- <%!new JScrollPane(0, 0)%>
 me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
-me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
+me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%1.add(%2)%>
 
 
 
 """
     return S
 
-
-def createMenubar():
-    S="""
-   //   GtkWidget *boxForMenubar;
-      GUI_menuBar menubar <- new GUI_menuBar();
-
-
- //     boxForMenubar = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
- //     gtk_container_add (GTK_CONTAINER (topBox), boxForMenubar);
-      showWidget (boxForMenubar);
-
-    //  menubar = gtk_menu_bar_new ();
-    //  gtk_box_pack_start (GTK_BOX (boxForMenubar), menubar, TRUE, TRUE, 0);
-      showWidget (menubar);
-
-      appFuncs.createAppMenu(menubar);
-      """
-    return S
-
-
-def createMainAppArea():
-    S="""
-      jFrame appArea;
-
-      frame = gtk_frame_new (NULL);
-      gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
-      gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
-
-      appArea = appFuncs.createAppArea();
-      gtk_container_add (GTK_CONTAINER (frame), appArea);
-
-"""
-    return S
-
-
-def createStatusBar():
-    S="""
-    // Status bar code here
-"""
-    return S
 
 
 def use(objects, buildSpec, tags, platform):
@@ -155,8 +86,9 @@ def use(objects, buildSpec, tags, platform):
     struct GUI_menuBar{me JMenuBar: GUI_menuBar}
     struct GUI_menu{me JMenu: GUI_menu}
     struct GUI_menuItem{me JMenuItem: GUI_menuItem}
-    struct GUI_canvas{me jCanvas: GUI_canvas}
-    struct GUI_container{me jFrame:GUI_container}
+    struct GUI_canvas{me JPanel: GUI_canvas}
+    struct GUI_container{me JFrame:GUI_container}
+    struct GUI_frame{me JFrame:GUI_frame}
     struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
 
     struct GUI_callback{me GCallback: GUI_callback}
@@ -167,17 +99,19 @@ def use(objects, buildSpec, tags, platform):
 
         me uint32: GUI_Init() <- <%{return(0);}%>
 
-        me void: createAndShowGUI() <- <% {
+        me void: GUI_PopulateAndExec() <- <% {
             //Create and set up the window.
-            JFrame frame = new JFrame("HelloWorldSwing");
+            JFrame frame = new JFrame(GUI.title);
+            frame.setSize(650, 250);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-            JLabel label = new JLabel("Hello World");
-            frame.getContentPane().add(label);
+            GLOBAL.appFuncs.createAppMenu(frame);
 
-            //Display the window.
-            //frame.pack();
-            frame.setSize(650, 250);
+
+            GLOBAL.appFuncs.createAppArea(frame);
+
+
+
             frame.setVisible(true);
         } %>
 
@@ -186,7 +120,7 @@ def use(objects, buildSpec, tags, platform):
 
             javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                createAndShowGUI();
+                GUI_PopulateAndExec();
             }
             });
 
@@ -203,9 +137,6 @@ def use(objects, buildSpec, tags, platform):
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
 
     APP_UTILITY_CODE = createUtilityFunctions()
-    MENU_BAR_CODE = ""# createMenubar()
-    MAIN_APP_CODE = ""#createMainAppArea()
-    STATUS_BAR_CODE= ""#createStatusBar()
 
 
     GLOBAL_CODE="""
@@ -214,16 +145,8 @@ def use(objects, buildSpec, tags, platform):
         me thisApp: appFuncs
         %s
 
-          ////////////////////  A d d  A p p l i c a t i o n   M e n u
-          %s
-
-          ////////////////////  A d d   A p p l i c a t i o n   I t e m s
-          %s
-
-          ////////////////////  A d d  S t a t u s   A r e a
-          %s
 
     }
-""" % (APP_UTILITY_CODE, MENU_BAR_CODE, MAIN_APP_CODE, STATUS_BAR_CODE)
+""" % (APP_UTILITY_CODE)
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
