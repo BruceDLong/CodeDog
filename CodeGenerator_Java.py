@@ -1002,7 +1002,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
             print "                             Const : ", convertedType + fieldName
         ###################################################################CODE FUNCTIONS###
         elif(fieldArglist==None):                                           # If its not a function nor a constant.
-            structCode += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
+            structCode += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
             print "                             Not Func or Const: ", convertedType, fieldName
         else:                                                           ### CODE FUNCTIONS
             if(fieldType=='none'):                                          # Arglist exists so this is a function.
@@ -1029,28 +1029,28 @@ def processOtherStructFields(objects, objectName, tags, indent):
                     pass #registerType(objectName, fieldName, convertedType, typeDefName)
                 else: typeDefName=convertedType                                 # grabbing typeDefName if not verbatim
                 LangFormOfObjName = convertObjectNameToCPP(objectName)
-            #structCode += indent + "public static " + typeDefName +' ' + fieldName +"("+argListText+")\n";
+            #structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
             objPrefix=LangFormOfObjName
             ############################################################
             #### GLOBAL main()                                          #### GLOBAL main()
             ############################################################
             if(objectName=='GLOBAL' and fieldName=='main'):
-                print "                             GLOBAL main(): public static void ", fieldName
-                structCode += indent + "public static void " + fieldName +" (String[] args)\n";
+                print "                             GLOBAL main(): public void ", fieldName
+                structCode += indent + "public void " + fieldName +" (String[] args)\n";
                 #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
             ############################################################
             #### GLOBAL miscFuncs()                                     #### GLOBAL miscFuncs()
             ############################################################
             elif(objectName=='GLOBAL') :
-                structCode += indent + "public static " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
-                print "                             GLOBAL miscFuncs(): public static ", typeDefName + " " + fieldName
+                structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
+                print "                             GLOBAL miscFuncs(): public ", typeDefName + " " + fieldName
             ############################################################
             #### OTHER FUNCTIONS                                        #### OTHER FUNCTIONS
             ############################################################
             else:
                 #funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
-                structCode += indent + "public static " + typeDefName +' ' + fieldName +"("+argListText+")\n";
-                print "                             otherFuncs (): public static " + typeDefName + " " + fieldName
+                structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
+                print "                             otherFuncs (): public " + typeDefName + " " + fieldName
             ############################################################
             #### VERBATIM FUNC BODY
             ############################################################

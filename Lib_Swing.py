@@ -14,34 +14,7 @@ me void: close_window() <- {
  // gtk_main_quit()
 }
 
-me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- {
-    me GUI_menuItem: menuitem
 
-    menuitem <- GUI_menuItemWithLabel(label)
-    //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
-    addItemToMenu(ParentMenu, menuitem)
-    showWidget(menuitem)
-
-    return(menuitem)
-}
-
-me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- {
-    me GUI_menu: SubMenu
-    me GUI_menuItem: menuitem <- GUI_menuItemWithLabel (label)
-   //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
-    addItemToMenu(ParentMenu, menuitem)
-    showWidget(menuitem)
-    return(SubMenu)
-}
-
-me GUI_menu: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label) <- {
-    me GUI_menu: SubMenu
-    me GUI_menuItem: menuitem <- GUI_menuItemWithLabel (label)
-   //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
-    addItemToMenu(ParentMenu, menuitem)
-    showWidget(menuitem)
-    return(SubMenu)
-}
 
 
 me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!setColor(new Color(%1, %2, %3, %4))%>
@@ -68,6 +41,10 @@ me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%1.add(%2)%>
 me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%1.add(%2)%>
 me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%1.setJMenuBar(%2)%>
+me void: create_MenuItem()<- <%!gui.create_MenuItem(%1, %2)%>
+me void: create_TopSubMenu()<- <%!gui.create_TopSubMenu(%1, %2)%>
+me void: create_SubMenu()<- <%!gui.create_SubMenu(%1, %2)%>
+
 
 
 
@@ -104,29 +81,24 @@ def use(objects, buildSpec, tags, platform):
 
     struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-    struct GUI_TK{
+    struct GUI {
+        me GLOBAL: my_global
 
         me uint32: GUI_Init() <- <%{return(0);}%>
 
         me void: GUI_PopulateAndExec() <- <% {
             //Create and set up the window.
-            JFrame frame = new JFrame(GUI.title);
+            JFrame frame = new JFrame(GLOBAL.title);
             frame.setSize(650, 250);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-            GLOBAL.appFuncs.createAppMenu(frame);
-
-
-            GLOBAL.appFuncs.createAppArea(frame);
-
-
-
+            my_global.appFuncs.createAppMenu(frame, this);
+            my_global.appFuncs.createAppArea(frame, this);
             frame.setVisible(true);
         } %>
 
-        me uint32: GUI_Run() <- <% {
+        me uint32: GUI_Run(me GLOBAL: global) <- <% {
+            my_global = global;
             long status=0;
-
             javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 GUI_PopulateAndExec();
@@ -137,7 +109,36 @@ def use(objects, buildSpec, tags, platform):
         } %>
         me void: GUI_Deinit() <- {
 
-        }
+        }    
+        
+    me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- {
+        me GUI_menuItem: menuitem
+
+        menuitem <- GUI_menuItemWithLabel(label)
+        //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
+        addItemToMenu(ParentMenu, menuitem)
+        showWidget(menuitem)
+
+        return(menuitem)
+    }
+
+    me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- {
+        me GUI_menu: SubMenu
+        me GUI_menuItem: menuitem <- GUI_menuItemWithLabel (label)
+       //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
+        addItemToMenu(ParentMenu, menuitem)
+        showWidget(menuitem)
+        return(SubMenu)
+    }
+
+    me GUI_menu: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label) <- {
+        me GUI_menu: SubMenu
+        me GUI_menuItem: menuitem <- GUI_menuItemWithLabel (label)
+       //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
+        addItemToMenu(ParentMenu, menuitem)
+        showWidget(menuitem)
+        return(SubMenu)
+    }
 
     }
 
@@ -150,7 +151,7 @@ def use(objects, buildSpec, tags, platform):
 
     GLOBAL_CODE="""
     struct GLOBAL{
-        me GUI_TK: gui_tk
+        me GUI: gui_tk
         me thisApp: appFuncs
         %s
 
