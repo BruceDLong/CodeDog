@@ -48,6 +48,8 @@ me void: create_SubMenu()<- <%!gui.create_SubMenu(%1, %2)%>
 
 me void: setCallback() <- <%! ; %>
 
+me void: setCallback() <- <%! ; %>
+
 
 
 """
