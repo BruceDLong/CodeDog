@@ -471,6 +471,8 @@ def codeUserMesg(item):
         pos=m.end()
     fmtStr += item[pos:]
     fmtStr=fmtStr.replace('"', r'\"')
+    fmtStr=fmtStr.replace(r'%i', r'%d')
+    fmtStr=fmtStr.replace(r'%l', r'%d')
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
