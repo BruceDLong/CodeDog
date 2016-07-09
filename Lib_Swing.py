@@ -17,24 +17,30 @@ me void: close_window() <- {
 me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- {
     me GUI_menuItem: menuitem
 
-//      menuitem = gtk_menu_item_new_with_label (label.data());
-//      //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
-//      gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
-//      gtk_widget_show (menuitem);
+    menuitem <- GUI_menuItemWithLabel(label)
+    //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
+    addItemToMenu(ParentMenu, menuitem)
+    showWidget(menuitem)
 
-  return(menuitem)
+    return(menuitem)
 }
 
 me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- {
     me GUI_menu: SubMenu
-    me GUI_menuItem: menuitem
+    me GUI_menuItem: menuitem <- GUI_menuItemWithLabel (label)
+   //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
+    addItemToMenu(ParentMenu, menuitem)
+    showWidget(menuitem)
+    return(SubMenu)
+}
 
-/*      menuitem = gtk_menu_item_new_with_label (label.data());
-      gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
-      gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
-      gtk_widget_show (menuitem);
-*/
-  return(SubMenu)
+me GUI_menu: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label) <- {
+    me GUI_menu: SubMenu
+    me GUI_menuItem: menuitem <- GUI_menuItemWithLabel (label)
+   //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
+    addItemToMenu(ParentMenu, menuitem)
+    showWidget(menuitem)
+    return(SubMenu)
 }
 
 
@@ -53,12 +59,15 @@ me void: strokeNow() <- <%!cr.gr.draw(cr.GPath)%>
 me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(cr, %1.x1, %1.y1, %1.x2, %1.y2)%>
 me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
-me GUI_item: newCanvas() <- <%!new jCanvas()%>
+me GUI_item: newCanvas() <- <%!new JPanel()%>
+me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!new JMenuItem(%1)%>
 me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setSize(%2, %3)%>
 me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
 me GUI_item: newScrollingWindow() <- <%!new JScrollPane(0, 0)%>
 me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%1.add(%2)%>
+me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%1.add(%2)%>
+me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%1.setJMenuBar(%2)%>
 
 
 
@@ -72,7 +81,7 @@ def use(objects, buildSpec, tags, platform):
 
     CODE="""
     struct JavaGUICtxt{
-        me Graphics2D: gr
+        their Graphics2D: gr
         me GeneralPath: GPath
         me double: cur_x
         me double: cur_y

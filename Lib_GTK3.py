@@ -31,24 +31,24 @@ me void: close_window() <- {
 }
 
 me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <%{
-  GtkWidget *menuitem;
+    GtkWidget *menuitem;
 
-      menuitem = gtk_menu_item_new_with_label (label.data());
-      //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
-      gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
-      gtk_widget_show (menuitem);
+    menuitem = gtk_menu_item_new_with_label (label.data());
+    //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
+    gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
+    gtk_widget_show (menuitem);
 
   return menuitem;
 } %>
 
 me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
-  GtkWidget *SubMenu = gtk_menu_new ();
-  GtkWidget *menuitem;
+    GtkWidget *SubMenu = gtk_menu_new ();
+    GtkWidget *menuitem;
 
-      menuitem = gtk_menu_item_new_with_label (label.data());
-      gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
-      gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
-      gtk_widget_show (menuitem);
+    menuitem = gtk_menu_item_new_with_label (label.data());
+    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
+    gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
+    gtk_widget_show (menuitem);
 
   return SubMenu;
 } %>

@@ -239,7 +239,7 @@ def convertType(objects, TypeSpec):
 
     kindOfField=owner
     if kindOfField=='const':
-        cppType = "final "+cppType
+        cppType = "final static "+cppType
     elif kindOfField=='me':
         cppType = cppType
     elif kindOfField=='my':
@@ -374,7 +374,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             owner=typeSpecIn['owner']
             if(owner=='our'): S_alt=" = new "+fType[0]
             elif(owner=='my'): S_alt=" = new "+fType[0]
-            elif(owner=='their'): S_alt=" = new "+fType[0]
+            elif(owner=='their'): S_alt=""
             elif(owner=='me'): S_alt=" = new "+fType[0]
             elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
             else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
@@ -699,7 +699,9 @@ def processAction(action, indent):
         elif(fieldDef['value']):
             [S2, rhsType]=codeExpr(fieldDef['value'][0])
             RHS = S2
-            assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
+            if not varTypeIsJavaValueType(fieldType):
+                assignValue=' = '+ RHS + ';\n'
+            else:assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
         else:
             #print "TYPE:", fieldType
             assignValue= " = new " + fieldType +"();\n"
@@ -969,8 +971,9 @@ def processOtherStructFields(objects, objectName, tags, indent):
         ################################################################
         ##CALCULATE RHS                                                 ###CALCULATE RHS###
         ################################################################
+        fieldValueText=""
         if(fieldValue == None):
-            if not varTypeIsJavaValueType(convertedType):
+            if (not varTypeIsJavaValueType(convertedType) and fieldOwner!='their'):
                 fieldValueText=" = new " + convertedType + "()"                  # FieldValueText is the RHS text.
             else: fieldValueText=""
         ################################################################
@@ -983,7 +986,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         ################################################################
         elif(fieldArglist==None):                                           # This is not a function because no argList so just code as expression.
             if not varTypeIsJavaValueType(convertedType):
-                fieldValueText = " = new " + convertedType + "(" + codeExpr(fieldValue[0])[0] + ")"
+                fieldValueText = " = " + codeExpr(fieldValue[0])[0]
             else: fieldValueText = " = " + codeExpr(fieldValue[0])[0]
             print "                         No argList:", fieldType, fieldName, fieldValueText
         ################################################################

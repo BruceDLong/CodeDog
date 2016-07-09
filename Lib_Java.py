@@ -9,29 +9,10 @@ def createUtilityFunctions():
         me x: endFunc(me int: val) <- <%!%>
         me x: randInt(me int: val) <- <%!GLOBAL.javaRandomVar.nextInt((int)(%1))%>
         me x: print(me string: s)<- <%!System.out(%1)%>
-
+        me string: logMesg(me string: mesg) <- <%!System.out.println(%1)%>
     """
     return S
 
-def createMenubar():
-    S="""
-    // menu bar code here
-      """
-    return S
-
-
-def createMainAppArea():
-    S="""
-    // main app area code here
-"""
-    return S
-
-
-def createStatusBar():
-    S="""
-    // Status bar code here
-"""
-    return S
 
 def use(objects, buildSpec, tags, platform):
     print "USING Java"
@@ -44,9 +25,6 @@ def use(objects, buildSpec, tags, platform):
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
 
     APP_UTILITY_CODE = createUtilityFunctions()
-    MENU_BAR_CODE = createMenubar()
-    MAIN_APP_CODE = createMainAppArea()
-    STATUS_BAR_CODE=createStatusBar()
 
     GLOBAL_CODE="""
         struct GLOBAL{
@@ -56,16 +34,9 @@ def use(objects, buildSpec, tags, platform):
 
 
          %s
-        ////////////////////  A d d  A p p l i c a t i o n   M e n u
-          %s
 
-        ////////////////////  A d d   A p p l i c a t i o n   I t e m s
-          %s
-
-        ////////////////////  A d d  S t a t u s   A r e a
-          %s
         }
-""" % (APP_UTILITY_CODE, MENU_BAR_CODE, MAIN_APP_CODE, STATUS_BAR_CODE)
+""" % (APP_UTILITY_CODE)
     print "GLOBAL_CODE: ", GLOBAL_CODE
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
