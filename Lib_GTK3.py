@@ -154,7 +154,7 @@ def use(objects, buildSpec, tags, platform):
 
     struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-    struct GUI_TK{
+    struct GUI{
         their GtkApplication: app
         their GtkWidget: window
 
@@ -186,7 +186,7 @@ def use(objects, buildSpec, tags, platform):
 
     GLOBAL_CODE="""
     struct GLOBAL{
-        me GUI_TK: gui_tk
+        me GUI: gui_tk
         me thisApp: appFuncs
         %s
         me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%%{
