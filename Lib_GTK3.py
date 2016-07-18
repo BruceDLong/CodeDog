@@ -186,7 +186,7 @@ def use(objects, buildSpec, tags, platform):
 
     GLOBAL_CODE="""
     struct GLOBAL{
-        me GUI: gui_tk
+        //me GUI: static_gui_tk
         me thisApp: appFuncs
         %s
         me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%%{

@@ -86,8 +86,6 @@ def use(objects, buildSpec, tags, platform):
     struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
     struct GUI {
-        me GLOBAL: my_global
-
         me uint32: GUI_Init() <- <%{return(0);}%>
 
         me void: GUI_PopulateAndExec() <- <% {
@@ -95,13 +93,12 @@ def use(objects, buildSpec, tags, platform):
             JFrame frame = new JFrame(GLOBAL.title);
             frame.setSize(650, 250);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            my_global.appFuncs.createAppMenu(frame, this);
-            my_global.appFuncs.createAppArea(frame, this);
+            appFuncs.createAppMenu(frame, this);
+            appFuncs.createAppArea(frame, this);
             frame.setVisible(true);
         } %>
 
-        me uint32: GUI_Run(me GLOBAL: global) <- <% {
-            my_global = global;
+        me uint32: GUI_Run() <- <% {
             long status=0;
             javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
@@ -155,9 +152,9 @@ def use(objects, buildSpec, tags, platform):
 
     GLOBAL_CODE="""
     struct GLOBAL{
-        me GUI: gui_tk
+        me GUI: static_gui_tk
         me thisApp: appFuncs
-        %s
+    %s
 
 
     }

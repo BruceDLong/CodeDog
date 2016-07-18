@@ -292,9 +292,9 @@ def convertNameSeg(typeSpecOut, name, paramList):
 
 def codeNameSeg(segSpec, typeSpecIn, connector):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
-    #print "CODENAMESEG:", segSpec, typeSpecIn
     S=''
     S_alt=''
+    #namePrefix=''  # TODO: code for static_Global var
     typeSpecOut={'owner':''}
     paramList=None
     if len(segSpec) > 1 and segSpec[1]=='(':
@@ -304,11 +304,12 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             paramList=segSpec[2]
 
     name=segSpec[0]
+    print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=getContainerType(typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
-        #print "NAME:", name
+        print "                                                 arraySpec:"
         if(name[0]=='['):
             [S2, idxType] = codeExpr(name[1])
             S+= '[' + S2 +']'
@@ -367,6 +368,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             return [S, '']
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name)
         if(SRC=="GLOBAL"): name = "GLOBAL."+name
+        print "                                                 dummyType: ["+SRC+"] "+name
+        #if(SRC=="GLOBAL"): namePrefix = "GLOBAL.static_Global."
     else:
         fType=typeSpecIn['fieldType']
 
@@ -394,6 +397,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         [name, paramList]=convertNameSeg(typeSpecOut, name, paramList)
 
     if S_alt=='': S+=connector+name
+    #if S_alt=='': S+=namePrefix+connector+name
     else: S += S_alt
 
     # Add parameters if this is a function call
@@ -968,8 +972,9 @@ def processOtherStructFields(objects, objectName, tags, indent):
         ################################################################
         ## ASSIGNMENTS
         ################################################################
-        if fieldName=='opAssign': fieldName='operator='
-        print "                         opAssign: ", fieldType, fieldName
+        if fieldName=='opAssign': 
+            fieldName='operator='
+            print "                         opAssign: ", fieldType, fieldName
         ################################################################
         ##CALCULATE RHS                                                 ###CALCULATE RHS###
         ################################################################
@@ -1004,7 +1009,10 @@ def processOtherStructFields(objects, objectName, tags, indent):
             print "                             Const : ", convertedType + fieldName
         ###################################################################CODE FUNCTIONS###
         elif(fieldArglist==None):                                           # If its not a function nor a constant.
-            structCode += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
+            if (fieldName == "static_Global" or fieldName == "static_gui_tk"):  # TODO: make static_Global so it is not hard coded
+                structCode += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
+            else:
+                structCode += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
             print "                             Not Func or Const: ", convertedType, fieldName
         else:                                                           ### CODE FUNCTIONS
             if(fieldType=='none'):                                          # Arglist exists so this is a function.
@@ -1038,7 +1046,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
             ############################################################
             if(objectName=='GLOBAL' and fieldName=='main'):
                 print "                             GLOBAL main(): public void ", fieldName
-                structCode += indent + "public void " + fieldName +" (String[] args)\n";
+                structCode += indent + "public static void " + fieldName +" (String[] args)\n";
                 #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
             ############################################################
             #### GLOBAL miscFuncs()                                     #### GLOBAL miscFuncs()
