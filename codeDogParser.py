@@ -364,7 +364,7 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
 
 def extractBuildSpecs(buildSpecResults):
     resultBuildSpecs = []
-    print "^*^*^*^*^*^*^*^*^*buildSpecResults: ", buildSpecResults
+    print "buildSpecResults: ", buildSpecResults
     if (len(buildSpecResults)==0):
         resultBuildSpecs = [['LinuxBuild', {'': ''}]]
         print "len 0";
@@ -375,7 +375,7 @@ def extractBuildSpecs(buildSpecResults):
             resultBuildSpecs.append(spec)
             print "spec: ", spec,  localBuildSpecs.buildDefList
         print "len > 0: ", len(buildSpecResults);
-    print "^*^*^*^*^*^*^*^*^*resultBuildSpecs: ",resultBuildSpecs
+    print "resultBuildSpecs: ",resultBuildSpecs
     return resultBuildSpecs
 
 def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
@@ -384,15 +384,16 @@ def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
     configType="unknown"
     if(spec.sequenceEl): configType="SEQ"
     elif(spec.alternateEl):configType="ALT"
-    progSpec.addObject(ProgSpec, objNames, objectName, stateType, configType)
     ###########Grab optional Object Tags
     if spec.optionalTag:  #change so it generates an empty one if no field defs
-        #print "SSSSSSSSSSSSSSSSSSSSSSSSSspec.tagDefList = ",spec.tagDefList
+        #print "spec.tagDefList = ",spec.tagDefList
         objTags = extractTagDefs(spec.tagDefList)
         #fieldIDX = 4
     else:
         objTags = {}
         #fieldIDX = 3
+ #   if 'ctxTag' in objTags: objectName+="#"+objTags['ctxTag']
+    progSpec.addObject(ProgSpec, objNames, objectName, stateType, configType)
     progSpec.addObjTags(ProgSpec, objectName, objTags)
     ###########Grab field defs
     if(spec[2]=='auto'):

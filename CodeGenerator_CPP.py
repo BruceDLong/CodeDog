@@ -54,6 +54,12 @@ def CheckObjectVars(objName, itemName, level):
     if(not objName in objectsRef[0]):
         return 0  # Model def not found
     retVal=None
+    ObjectDef = objectsRef[0][objName]
+    for field in ObjectDef['fields']:
+        fieldName=field['fieldName']
+        if fieldName==itemName:
+            return field
+
     wrappedTypeSpec = progSpec.isWrappedType(objectsRef, objName)
     if(wrappedTypeSpec != None):
         actualFieldType=wrappedTypeSpec['fieldType']
@@ -67,12 +73,6 @@ def CheckObjectVars(objName, itemName, level):
             if 'fieldName' in wrappedTypeSpec and wrappedTypeSpec['fieldName']==itemName:
                 return wrappedTypeSpec
             else: return 0
-
-    ObjectDef = objectsRef[0][objName]
-    for field in ObjectDef['fields']:
-        fieldName=field['fieldName']
-        if fieldName==itemName:
-            return field
 
     # Not found so look a level deeper (Passive Inheritance)
     # Passive inheritance is disabled for now as it was slow to compile and not being used.
@@ -103,9 +103,8 @@ def CheckObjectVars(objName, itemName, level):
 
 def fetchItemsTypeSpec(itemName):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
-    # TODO: also search any libraries that are used.
-    #print "FETCHING:", itemName
     global currentObjName
+    #print "FETCHING:", itemName, currentObjName
     RefType=""
     REF=CheckBuiltinItems(itemName)
     if (REF):
@@ -134,7 +133,7 @@ def fetchItemsTypeSpec(itemName):
 
 ###### End of type tracking code
 
-def convertObjectNameToCPP(objName):
+def flattenObjectName(objName):
     if objName[-5:]=='::mem': return objName[:-5]
     return objName.replace('::', '_')
 
@@ -216,8 +215,8 @@ def convertType(objects, TypeSpec):
         if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
             cppType=fieldType+'_t'
         else:
-            cppType=convertObjectNameToCPP(fieldType)
-    else: cppType=convertObjectNameToCPP(fieldType[0])
+            cppType=flattenObjectName(fieldType)
+    else: cppType=flattenObjectName(fieldType[0])
 
     kindOfField=owner
     if kindOfField=='const':
@@ -426,7 +425,15 @@ def codeItemRef(name, LorR_Val):
         else:
             segStr= codeUnknownNameSeg(segSpec)
         prevLen=len(S)
-        S+=segStr
+
+        # Should this be called C style?
+        thisArgIDX=segStr.find("%0")
+        if(thisArgIDX >= 0):
+            if connector=='->': S="*("+S+")"
+            S=segStr.replace("%0", S)
+            S=S[len(connector):]
+        else: S+=segStr
+
         segIDX+=1
 
     # Handle cases where seg's type is flag or mode
@@ -438,7 +445,6 @@ def codeItemRef(name, LorR_Val):
         elif fieldType=='mode':
             segName=segStr[len(connector):]
             S="((" + S[0:prevLen] + connector +  "flags&"+segName+"Mask)"+">>"+segName+"Offset)"
-
     return [S, segType]
 
 
@@ -502,7 +508,7 @@ def codeTerm(item):
             if   (i[0] == '*'): S+=' * '
             elif (i[0] == '/'): S+=' / '
             elif (i[0] == '%'): S+=' % '
-            else: print "ERROR: One of '*', '/' or '%' expected in c++ code generator."; exit(2)
+            else: print "ERROR: One of '*', '/' or '%' expected in code generator."; exit(2)
             [S2, retType2] = codeFactor(i[1])
             S+=S2
     return [S, retType]
@@ -515,7 +521,7 @@ def codePlus(item):
             #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
             elif (i[0] == '-'): S+=' - '
-            else: print "ERROR: '+' or '-' expected in c++ code generator."; exit(2)
+            else: print "ERROR: '+' or '-' expected in code generator."; exit(2)
             [S2, retType2] = codeTerm(i[1])
             S+=S2
     return [S, retType]
@@ -530,7 +536,7 @@ def codeComparison(item):
             elif (i[0] == '>'): S+=' > '
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
-            else: print "ERROR: One of <, >, <= or >= expected in c++ code generator."; exit(2)
+            else: print "ERROR: One of <, >, <= or >= expected in code generator."; exit(2)
             [S2, retType] = codePlus(i[1])
             S+=S2
             retType='bool'
@@ -544,7 +550,7 @@ def codeIsEQ(item):
             #print '      IsEq ', i
             if   (i[0] == '=='): S+=' == '
             elif (i[0] == '!='): S+=' != '
-            else: print "ERROR: 'and' expected in c++ code generator."; exit(2)
+            else: print "ERROR: 'and' expected in code generator."; exit(2)
             [S2, retType] = codeComparison(i[1])
             S+=S2
             retType='bool'
@@ -559,7 +565,7 @@ def codeLogAnd(item):
             if (i[0] == 'and'):
                 [S2, retType] = codeIsEQ(i[1])
                 S+=' && ' + S2
-            else: print "ERROR: 'and' expected in c++ code generator."; exit(2)
+            else: print "ERROR: 'and' expected in code generator."; exit(2)
             retType='bool'
     return [S, retType]
 
@@ -571,7 +577,7 @@ def codeExpr(item):
             #print 'OR ', i
             if (i[0] == 'or'):
                 S+=' || ' + codeLogAnd(i[1])[0]
-            else: print "ERROR: 'or' expected in c++ code generator."; exit(2)
+            else: print "ERROR: 'or' expected in code generator."; exit(2)
             retType='bool'
     #print "S:",S
     return [S, retType]
@@ -653,7 +659,7 @@ def encodeConditionalStatement(action, indent):
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
-    
+
 def processAction(action, indent):
     #make a string and return it
     global localVarsAllocated
@@ -782,7 +788,6 @@ def processAction(action, indent):
             repBodyText += indent + "    " + "++" + loopCounterName + ";\n"
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
-        #print "\n########################################## FUNCTION CALL AS ACTION",action['calledFunc']
         calledFunc = action['calledFunc']
         if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':
             print "\nERROR: It is not allowed to name a function", calledFunc[0][0]
@@ -810,7 +815,7 @@ def processActionSeq(actSeq, indent):
         actionText = processAction(action, indent+'    ')
         #print actionText
         actSeqText += actionText
-    actSeqText += "\n" + indent + "} "
+    actSeqText += "\n" + indent + "} \n"
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
@@ -822,7 +827,7 @@ def generate_constructor(objects, ClassName, tags):
     if not ClassName in objects[0]: return ''
     print "                    Generating Constructor for:", ClassName
     constructorInit=":"
-    constructorArgs="    "+convertObjectNameToCPP(ClassName)+"("
+    constructorArgs="    "+flattenObjectName(ClassName)+"("
     count=0
     ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
@@ -860,13 +865,17 @@ def generate_constructor(objects, ClassName, tags):
     return constructCode
 
 def processOtherStructFields(objects, objectName, tags, indent):
-    print "                    Coding fields for", objectName
+    print "                    Coding fields for", objectName+ '...'
+    ####################################################################
     global localArgsAllocated
     globalFuncsAcc=''
     funcDefCodeAcc=''
     structCodeAcc=""
     ObjectDef = objects[0][objectName]
     for field in ObjectDef['fields']:
+        ################################################################
+        ### extracting FIELD data
+        ################################################################
         localArgsAllocated=[]
         funcDefCode=""
         structCode=""
@@ -879,7 +888,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         if fieldName=='opAssign': fieldName='operator='
-        convertedType = convertObjectNameToCPP(convertType(objects, typeSpec))
+        convertedType = flattenObjectName(convertType(objects, typeSpec))
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         print "                       ", fieldType, fieldName
         if(fieldValue == None):fieldValueText=""
@@ -949,7 +958,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
                 if(fieldType[0] != '<%'):
                     pass #registerType(objectName, fieldName, convertedType, typeDefName)
                 else: typeDefName=convertedType
-                LangFormOfObjName = convertObjectNameToCPP(objectName)
+                LangFormOfObjName = flattenObjectName(objectName)
                 structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
                 objPrefix=LangFormOfObjName +'::'
                 funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
@@ -999,6 +1008,29 @@ def generateAllObjectsButMain(objects, tags):
     for objectName in objects[1]:
         if progSpec.isWrappedType(objects, objectName)!=None: continue
         if(objectName[0] != '!'):
+
+            # The next 4 lines skip defining classes that will already be defined by a library
+            ObjectDef = objects[0][objectName]
+            ctxTag  =progSpec.searchATagStore(ObjectDef['tags'], 'ctxTag')
+            implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
+            if(ctxTag): ctxTag=ctxTag[0]
+            if(implMode): implMode=implMode[0]
+            if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit")):  # "useLibrary"
+                #print "SKIPPING:", objectName, ctxTag, implMode
+                continue
+            parentClass=''
+            if(implMode and implMode[:7]=="inherit"):
+                parentClass=implMode[8:]
+                parentClass=':'+parentClass+' '
+
+            #print "OBJNAME", objectName
+            #charIdx=objectName.find('#')
+            #if charIdx>=0:  # there is '#' denoting a library specific version ctxTag.
+                #thisCtxTag = objectName[charIdx+1:]
+                #if thisCtxTag in progSpec.libsToUse:
+                    #print "TAG",thisCtxTag
+                    #objectName = objectName[:charIdx-1]
+                #else:print "!TAG", thisCtxTag; continue
             print "                [" + objectName+"]"
             currentObjName=objectName
             [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags)
@@ -1006,10 +1038,10 @@ def generateAllObjectsButMain(objects, tags):
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
             if(objectName != 'GLOBAL' and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
-                LangFormOfObjName = convertObjectNameToCPP(objectName)
+                LangFormOfObjName = flattenObjectName(objectName)
                 forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ')
-                structCodeAcc += "\nstruct "+LangFormOfObjName+"{\n" + structCode + '};\n'
+                structCodeAcc += "\nstruct "+LangFormOfObjName+parentClass+"{\n" + structCode + '};\n'
                 funcCodeAcc+=funcCode
         currentObjName=''
     return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
@@ -1044,7 +1076,7 @@ def makeTagText(tags, tagName):
 
 def addSpecialCode():
     S='\n\n//////////// C++ specific code:\n'
-
+    S += "\n\nusing namespace std;\n\n"
     S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
 
     S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
@@ -1091,7 +1123,7 @@ def makeFileHeader(tags):
     header += "\n/*  " + makeTagText(tags, 'LicenseText') +'\n*/\n'
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
     header += "\n// Build Command: " +buildStr_libs+'\n'
-    header += libInterfacesText + "\n\nusing namespace std; \n\n"
+    header += libInterfacesText
     header += addSpecialCode()
     return header
 
@@ -1142,7 +1174,7 @@ struct GLOBAL{
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
 def generate(objects, tags, libsToUse):
-    #print "\nGenerating CPP code...\n"
+    #print "\nGenerating code...\n"
     global objectsRef
     global buildStr_libs
     global libInterfacesText

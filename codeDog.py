@@ -161,23 +161,23 @@ def ChooseLibs(objects, buildSpec, tags):
     # TODO: This should cause error if a need isn't met. And, it should resolve when multiple libraries can meet a need.
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
     print "Features Needed:", featuresNeeded
-    libsToUse={}
+    progSpec.libsToUse={}
     for need in featuresNeeded:
         print "    ", need
         for LIB in compatibleLibs:
             if(need in LIB[1]):
-                libsToUse[LIB[0]] = True
+                progSpec.libsToUse[LIB[0]] = True
                 print "        ", LIB[0]
 
-    print "USING LIBS: ", libsToUse
-    for Lib in libsToUse:
+    print "USING LIBS: ", progSpec.libsToUse
+    for Lib in progSpec.libsToUse:
         if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
         elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
         elif (Lib=="Java"): Lib_Java.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
         elif (Lib=="CPP"):  Lib_CPP.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
         elif (Lib=="Swing"):  Lib_Swing.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
 
-    return libsToUse
+    return progSpec.libsToUse
 
 def GenerateSystem(objects, buildSpecs, tags):
     print "\n\n######################   G E N E R A T I N G   S Y S T E M"

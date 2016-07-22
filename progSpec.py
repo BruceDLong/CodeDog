@@ -5,6 +5,7 @@ import re
 
 storeOfBaseTypesUsed={} # Registry of all types used
 codeHeader={} # e.g., codeHeader['cpp']="C++ header code"
+libsToUse={}
 
 def setCodeHeader(languageID, codeText):
     global codeHeader
@@ -114,26 +115,28 @@ def setFeaturesNeeded(tags, featureIDs, neededBy):
 
 def addCodeToInit(tagStore, newInitCode):
     appendToStringTagValue(tagStore, "initCode", newInitCode + "\n");
-    
+
 def removeFieldFromObject (objects, objectName, fieldtoRemove):
     if not objectName in objects[0]:
         return
     fieldList=objects[0][objectName]["fields"]
     idx=0
-    for field in fieldList: 
+    for field in fieldList:
         if field["fieldName"] == fieldtoRemove:
             print "Removed: ", field["fieldName"]
             del fieldList[idx]
         idx+=1
-    
+
 ###############
 
 def isWrappedType(objMap, structname):
-    if not structname in objMap[0]: return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
+    if not structname in objMap[0]:
+        #print "Struct "+structname+" not found"
+        return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
     structToSearch=objMap[0][structname]
     fieldListToSearch = structToSearch['fields']
     if not fieldListToSearch: return None
-    if len(fieldListToSearch)==1:
+    if len(fieldListToSearch)>0:
         theField=fieldListToSearch[0]
         if theField['fieldName']==structname:
             return theField['typeSpec']
