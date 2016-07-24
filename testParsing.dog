@@ -18,17 +18,17 @@ You should have received a copy of the GNU General Public License along with the
 featuresNeeded = {}
 
 runCode=`
-    EParser parser;
-    parser.populateGrammar();
-    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!']");
-    parser.doParse();
-    shared_ptr<stateRec> topItem = parser.resolve(parser.LastTopLevelItem, "");
-    parser.displayParse(topItem, "");
-    testParse TPM;
-    parser.ExtractStruct_testParse_str(topItem, &TPM);
+    me EParser: parser
+    parser.populateGrammar()
+    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!']")
+    parser.doParse()
+    our stateRec: topItem <- parser.resolve(parser.LastTopLevelItem, "")
+    parser.displayParse(topItem, "")
+    me testParse: TPM
+    parser.ExtractStruct_testParse_str(topItem, TPM)
 
-    cout<<"\n\nTMP.Mesg: "<<TPM.worldMesg<<"\n";
-    cout<<"TMP.numStr: "<<TPM.numbStr<<"\n";
+   print("\n\nTMP.Mesg: ", TPM.worldMesg, "\n")
+   print("TMP.numStr: ", TPM.numbStr, "\n")
 `
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`

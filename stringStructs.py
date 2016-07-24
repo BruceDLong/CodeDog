@@ -686,9 +686,11 @@ def Write_fieldExtracter(objects, field, memObjFields):
     if(toField==None):
         toFieldType = progSpec.TypeSpecsMinimumBaseType(objects, typeSpec)
         toTypeSpec=typeSpec
+        toFieldOwner=None
     else:
-        toTypeSpec = toField['typeSpec']
-        toFieldType= toTypeSpec['fieldType']
+        toTypeSpec   = toField['typeSpec']
+        toFieldType  = toTypeSpec['fieldType']
+        toFieldOwner = toTypeSpec['owner']
     print "        CONVERTING:", fieldName, toFieldType, typeSpec
     print "            TOFieldTYPE1:", toField
     print "            TOFieldTYPE :", toFieldType
@@ -703,8 +705,9 @@ def Write_fieldExtracter(objects, field, memObjFields):
         toIsList=True
     if(fieldIsNext==True):
         S+='        SRec <- getNextStateRec(SRec)\n'
-        if fieldOwner=='const':
-            pass
+        if fieldOwner=='const'and (toFieldOwner == None or toFieldOwner == 'const'):
+            print "CONST"
+            S+='print("'+fieldValue+'")\n'
         else:
             if toFieldType=='string':            codeStr="makeStr(SRec.child)"+"\n"
             elif toFieldType[0:4]=='uint':       codeStr="makeInt(SRec.child)"+"\n"
@@ -722,7 +725,7 @@ def Write_fieldExtracter(objects, field, memObjFields):
         pass
        # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
        # objFieldStr+= writeContextualSet(field)
-
+    print "CODESTR:", codeStr
     # if isOpt: pass else:
     if fromIsList and toIsList:
         S+='''
@@ -732,11 +735,11 @@ def Write_fieldExtracter(objects, field, memObjFields):
         ExtractStruct_numChar(childSRec.child.next,0)
         print("# ", makeStr(childSRec.child), "\\n")'''
         S+='\n            memStruct.'+fieldName+'.pushLast('+codeStr+')\n}\n'
-    elif fromIsALT:
+ #   elif fromIsALT:
         pass
     elif progSpec.isStruct(fieldType) and progSpec.isStruct(toFieldType):
         pass
-    elif ():
+    elif (True):
         if codeStr!="": S+='        memStruct.'+fieldName+' <- '+codeStr+"\n"
         elif finalCodeStr!="": S+=finalCodeStr;
     return S
