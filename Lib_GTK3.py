@@ -48,6 +48,7 @@ def use(objects, buildSpec, tags, platform):
 
 struct draw2D: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:cairo_t" {
     their cairo_t:draw2D
+    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, %1, %2, %3, %4)%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, %1, %2, %3)%>
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
@@ -125,7 +126,6 @@ me GUI_menu: create_TopSubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
 } %>
 
 
-me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(cr, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
 me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(%1)%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
 me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
