@@ -168,6 +168,14 @@ def isStruct(fieldType):
     if isinstance(fieldType, basestring): return False
     return True
 
+def isAltStruct(objects, fieldType):
+    if not isStruct(fieldType): return [False, [] ]
+    fieldObj=objects[0][fieldType[0]]
+    fieldObjConfig=fieldObj['configType']
+    Objfields=fieldObj['fields']
+    if (fieldObjConfig=='ALT'): return [True, Objfields]
+    else: return [False, [] ]
+
 def typeIsNumRange(fieldType):
     if isinstance(fieldType, basestring): return False
     if len(fieldType)==3:

@@ -673,6 +673,17 @@ def AddFields(objects, tags, listName, fields, SeqOrAlt):
     nameIn='parse_'+listName
     nameOut=appendRule(nameIn, "nonterm", SeqOrAlt, partIndexes)
 
+def fetchMemVersion(objects, objName):
+    # TODO: here we assume that the memory form has '::mem' using AutoAssigners, make this work with other forms.
+    seperatorIdx= objName.find("::")
+    #print "OBJNAME:", objName, seperatorIdx
+    memVersionName=objName
+    if seperatorIdx>=0:
+        memVersionName=objName[:objName.find("::")]+"::mem"
+    memObj=objects[0][memVersionName]
+    return [memObj, memVersionName]
+
+
 def Write_fieldExtracter(objects, field, memObjFields):
     S=''
     fieldName  =field['fieldName']
@@ -695,8 +706,12 @@ def Write_fieldExtracter(objects, field, memObjFields):
     print "            TOFieldTYPE1:", toField
     print "            TOFieldTYPE :", toFieldType
     print "FIELD-NAME/TYPE:", fieldName,'/', fieldType
+    fields=[]
+    fromIsOPT =False
+    fromIsStruct=progSpec.isStruct(fieldType)
+    [fromIsALT, fields] = progSpec.isAltStruct(objects, fieldType)
     fromIsList=False
-    toIsList=False
+    toIsList =False
     codeStr=''
     finalCodeStr=''
     if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
@@ -707,7 +722,7 @@ def Write_fieldExtracter(objects, field, memObjFields):
         S+='        SRec <- getNextStateRec(SRec)\n'
         if fieldOwner=='const'and (toFieldOwner == None or toFieldOwner == 'const'):
             print "CONST"
-            S+='print("'+fieldValue+'")\n'
+            S+='        print("'+fieldValue+'")\n'
         else:
             if toFieldType=='string':            codeStr="makeStr(SRec.child)"+"\n"
             elif toFieldType[0:4]=='uint':       codeStr="makeInt(SRec.child)"+"\n"
@@ -726,72 +741,45 @@ def Write_fieldExtracter(objects, field, memObjFields):
        # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
        # objFieldStr+= writeContextualSet(field)
     print "CODESTR:", codeStr
-    # if isOpt: pass else:
-    if fromIsList and toIsList:
+    if fromIsOPT: pass
+    elif fromIsList and toIsList:
         S+='''
     our stateRec: childSRec <- SRec.child
     withEach Cnt in WHILE(childSRec.next):{
         childSRec <- childSRec.next
-        ExtractStruct_numChar(childSRec.child.next,0)
+       // ExtractStruct_numChar(childSRec.child.next,0)
         print("# ", makeStr(childSRec.child), "\\n")'''
         S+='\n            memStruct.'+fieldName+'.pushLast('+codeStr+')\n}\n'
- #   elif fromIsALT:
-        pass
-    elif progSpec.isStruct(fieldType) and progSpec.isStruct(toFieldType):
+    elif fromIsALT:
+        [memObj, memVersionName]=fetchMemVersion(objects, fieldType[0])
+        memObjFields=memObj['fields']
+        S+="    me int32: ruleIDX <- SRec.child.next.child.productionID\n"  #SRec->child->next->child->productionI
+        count=0
+        for field in fields:
+            S+="    "
+            if(count>0): S+="else "
+            S+="if(ruleIDX == " + field['parseRule'] + "){\n"
+            S+="    "+Write_fieldExtracter(objects, field, memObjFields)
+            S+="    }"
+            count+=1
+
+    elif fromIsStruct and progSpec.isStruct(toFieldType):
         pass
     elif (True):
         if codeStr!="": S+='        memStruct.'+fieldName+' <- '+codeStr+"\n"
         elif finalCodeStr!="": S+=finalCodeStr;
     return S
 
-
-    if codeStr!="":
-        if fromIsList:
-            if toIsList:
-                S+='''
-    our stateRec: childSRec <- SRec.child
-    withEach Cnt in WHILE(childSRec.next):{
-        childSRec <- childSRec.next
-        ExtractStruct_numChar(childSRec.child.next,0)
-        print("# ", makeStr(childSRec.child), "\\n")'''
-                S+='\n            memStruct.'+fieldName+'.pushLast('+codeStr+')\n}\n'
-            else:
-                if toFieldType=='string':      S+='        memStruct.'+fieldName+' <- '+"heachStr(SRec)"+"\n"
-                elif toFieldType[0:4]=='uint': S+='        memStruct.'+fieldName+' <- '+"heachNum(SRec)"+"\n"
-                elif toFieldType[0:3]=='int':  S+='        memStruct.'+fieldName+' <- '+"heachNum(SRec)"+"\n"
-                else: print"\n\nRepetition extraction to a double field not yet coded.\n"; exit(2);
-        else:
-            print "MEMSTRUCT:", fieldName, codeStr
-            S+='        memStruct.'+fieldName+' <- '+codeStr+"\n"
-    elif finalCodeStr!="":
-        S+=finalCodeStr;
-
-    return S
-
-def Write_structExtracter(objects, tags, listName, fields, SeqOrAlt):
-    # TODO: here we assume that the memory form has '::mem' using AutoAssigners, make this work with other forms.
-    seperatorIdx= listName.find("::")
-    print "LISTNAME:", listName, seperatorIdx
-    memVersionName=listName
-    if seperatorIdx>=0:
-        memVersionName=listName[:listName.find("::")]+"::mem"
-    memObj=objects[0][memVersionName]
+def Write_structExtracter(objects, tags, objName, fields):
+    [memObj, memVersionName]=fetchMemVersion(objects, objName)
     memObjFields=memObj['fields']
+    print "OBJ FIELDS:",objName,  memObjFields
 
     S=''
-    if(SeqOrAlt=='parseALT'): S+="    me int32: ruleIDX <- SRec.child.productionID\n"
-    count=0
     for field in fields:
-        if(SeqOrAlt=='parseALT'):
-            if(count>0): S+="    else if(ruleIDX == " + field['parseRule'] + "){\n"
-            else: S+="    if(ruleIDX == " + field['parseRule'] + "){\n"
-            S+="    "+Write_fieldExtracter(objects, field, memObjFields)
-            S+="    }"
-        else:
-            S+=Write_fieldExtracter(objects, field, memObjFields)
-        count+=1
+        S+=Write_fieldExtracter(objects, field, memObjFields)
 
-    seqExtracter =  "\n    me bool: ExtractStruct_"+listName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
+    seqExtracter =  "\n    me bool: ExtractStruct_"+objName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     return seqExtracter
 
 
@@ -807,20 +795,6 @@ def CreateStructsForStringModels(objects, tags):
     populateBaseRules()
 
     ExtracterCode="""
-    me string: heachStr(our stateRec: SRec) <- {
-        me string: S
-        me uint64: startPos <- SRec.child.originPos
-        me uint64: endPos <- SRec.next.crntPos
-        withEach i in RANGE(startPos .. endPos):{
-            S <- S+textToParse[i]
-        }
-        return(S)
-    }
-     me int64: heachNum(our stateRec: SRec) <- {
-        me string: S <- heachStr(SRec)
-        me int64: N <- atoi(S.data())
-        return(N)
-    }
 
     me string: makeStr(our stateRec: SRec) <- {
         me string: S
@@ -861,7 +835,8 @@ def CreateStructsForStringModels(objects, tags):
             # Write the rules for all the fields, and a parent rule which is either SEQ or ALT, and REP/OPT as needed.
             AddFields(objects, tags, objectName.replace('::', '_'), fields, SeqOrAlt)
 
-            ExtracterCode += Write_structExtracter(objects, tags, objectName, fields, SeqOrAlt)
+            if SeqOrAlt=='parseSEQ':
+                ExtracterCode += Write_structExtracter(objects, tags, objectName, fields)
 
     if numStringStructs==0: return
 
