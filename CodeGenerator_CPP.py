@@ -584,7 +584,7 @@ def codeExpr(item):
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
-    LeftOwner=LVAL['owner']
+    LeftOwner =LVAL['owner']
     RightOwner=RVAL['owner']
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner=='me' and (RightOwner=='my' or RightOwner=='our' or RightOwner=='their'): return ["(*", ")"]
@@ -683,11 +683,12 @@ def processAction(action, indent):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL')
         LHS = codeStr
         [S2, rhsType]=codeExpr(action['RHS'][0])
-        #print "RHS:", S2, typeSpec, rhsType
+        #print "LHS / RHS:", LHS, ' / ', S2, typeSpec, rhsType
         [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
         RHS = leftMod+S2+rightMod
         assignTag = action['assignTag']
         #print "Assign: ", LHS, RHS, typeSpec
+        if not isinstance (typeSpec, dict): print 'Problem: typeSpec is', typeSpec, '\n'; exit(1);
         LHS_FieldType=typeSpec['fieldType']
         if assignTag == '':
             if LHS_FieldType=='flag':

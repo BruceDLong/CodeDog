@@ -684,7 +684,22 @@ def fetchMemVersion(objects, objName):
     return [memObj, memVersionName]
 
 
-def Write_fieldExtracter(objects, field, memObjFields):
+def Write_ALT_Extracter(objects, field, memObjFields, fields, VarTag):
+    S=""
+    S+='        me int32: ruleIDX <- '+VarTag+'.child.next.child.productionID\n'
+    count=0
+    for altField in fields:
+        S+="    "
+        if(count>0): S+="else "
+        S+="    if(ruleIDX == " + altField['parseRule'] + "){\n"
+        S+="    "+Write_fieldExtracter(objects, altField, memObjFields, VarTag)
+        S+="        }"
+        count+=1
+    return S
+
+def Write_fieldExtracter(objects, field, memObjFields, VarTag):
+
+    ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
     S=''
     fieldName  =field['fieldName']
     fieldIsNext=field['isNext']
@@ -704,70 +719,91 @@ def Write_fieldExtracter(objects, field, memObjFields):
         toFieldOwner = toTypeSpec['owner']
     print "        CONVERTING:", fieldName, toFieldType, typeSpec
     print "            TOFieldTYPE1:", toField
-    print "            TOFieldTYPE :", toFieldType
+    print "            TOFieldTYPE :", toFieldOwner, toFieldType
     print "FIELD-NAME/TYPE:", fieldName,'/', fieldType
     fields=[]
     fromIsOPT =False
     fromIsStruct=progSpec.isStruct(fieldType)
+    toIsStruct=progSpec.isStruct(toFieldType)
     [fromIsALT, fields] = progSpec.isAltStruct(objects, fieldType)
     fromIsList=False
     toIsList =False
-    codeStr=''
+    if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:      fromIsList=True
+    if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:  toIsList=True
+
+    ###################   W r i t e   R V A L   C o d e
     finalCodeStr=''
-    if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
-        fromIsList=True
-    if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:
-        toIsList=True
+    CodeMode='ConstToConst'  # Or 'AnyToBaseType' or 'StructToStruct' or 'ByCoFactual'
+    CODE_LVAR= 'memStruct.'+fieldName
+    CODE_RVAL=''
+    objName=''
     if(fieldIsNext==True):
-        S+='        SRec <- getNextStateRec(SRec)\n'
+        S+='        '+VarTag+' <- getNextStateRec('+VarTag+')\n'
         if fieldOwner=='const'and (toFieldOwner == None or toFieldOwner == 'const'):
+            CodeMode='ConstToConst'
             print "CONST"
-            S+='        print("'+fieldValue+'")\n'
+            #  print("'+fieldValue+'")\n'
         else:
-            if toFieldType=='string':            codeStr="makeStr(SRec.child)"+"\n"
-            elif toFieldType[0:4]=='uint':       codeStr="makeInt(SRec.child)"+"\n"
-            elif toFieldType[0:3]=='int':        codeStr="makeInt(SRec.child)"+"\n"
-            elif toFieldType[0:6]=='double':     codeStr="makeDblFromStr(SRec->child)"+"\n"
-            elif toFieldType[0:4]=='char':       codeStr="crntStr[0]"+"\n"
-            elif toFieldType[0:4]=='bool':       codeStr='crntStr=="true"'+"\n"
-            elif progSpec.isStruct(toFieldType):
+            CodeMode='AnyToBaseType'
+            if toFieldType=='string':            CODE_RVAL='makeStr('+VarTag+'.child)'+"\n"
+            elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child)'+"\n"
+            elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child)'+"\n"
+            elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child)'+"\n"
+            elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
+            elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
+            elif toIsStruct:
                 objName=toFieldType[0]
                 if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
-                    codeStr="makeStr(SRec.child)"
+                    CODE_RVAL="makeStr('+VarTag+'.child)"
+                    toIsStruct=false; # false because it is really a base type.
+                    CodeMode='AnyToBaseType'
                 else:
-                    finalCodeStr='        ExtractStruct_'+fieldType[0].replace('::', '_')+'(SRec.child, memStruct.'+fieldName+')\n'
+                    finalCodeStr='        ExtractStruct_'+fieldType[0].replace('::', '_')+'('+VarTag+'.child, '+CODE_LVAR+')\n'
+                    CodeMode='StructToStruct'
     else:
-        pass
-       # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
-       # objFieldStr+= writeContextualSet(field)
-    print "CODESTR:", codeStr
+        # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
+        # objFieldStr+= writeContextualSet(field)
+        CodeMode='ByCoFactual'
+    print "CODE_RVAL:", CODE_RVAL
+
+    ###################   W r i t e   a s s i g n m e n t   c o d e
+
+
+
+    ###################   H a n d l e   o p t i o n a l   a n d   r e p e t i t i o n   c a s e s
+    gatherFieldCode=''
     if fromIsOPT: pass
     elif fromIsList and toIsList:
-        S+='''
-    our stateRec: childSRec <- SRec.child
-    withEach Cnt in WHILE(childSRec.next):{
-        childSRec <- childSRec.next
-       // ExtractStruct_numChar(childSRec.child.next,0)
-        print("# ", makeStr(childSRec.child), "\\n")'''
-        S+='\n            memStruct.'+fieldName+'.pushLast('+codeStr+')\n}\n'
-    elif fromIsALT:
-        [memObj, memVersionName]=fetchMemVersion(objects, fieldType[0])
-        memObjFields=memObj['fields']
-        S+="    me int32: ruleIDX <- SRec.child.next.child.productionID\n"  #SRec->child->next->child->productionI
-        count=0
-        for field in fields:
-            S+="    "
-            if(count>0): S+="else "
-            S+="if(ruleIDX == " + field['parseRule'] + "){\n"
-            S+="    "+Write_fieldExtracter(objects, field, memObjFields)
-            S+="    }"
-            count+=1
+        gatherFieldCode+='\nour stateRec: childSRec <- '+VarTag+'.child.next\n    withEach Cnt in WHILE(childSRec):{\n'
+        if fromIsALT:
+            [memObj, memVersionName]=fetchMemVersion(objects, fieldType[0])
+            InnerMemObjFields=memObj['fields']
+            gatherFieldCode+=Write_ALT_Extracter(objects, field, InnerMemObjFields, fields, 'childSRec')
+        elif(CodeMode=='AnyToBaseType'):
+            gatherFieldCode+='\n            '+CODE_LVAR+'.pushLast('+codeStr+')'
+        else:
+            gatherFieldCode+='\n            '+'me '+toFieldType+': tmpVar'
+            gatherFieldCode+='\n            '+'ExtractStruct_'+fieldType[0].replace('::', '_')+'(childSRec.child, '+tmpVar+')\n'
+            gatherFieldCode+='\n            '+CODE_LVAR+'.pushLast(tmpVar)'
 
-    elif fromIsStruct and progSpec.isStruct(toFieldType):
-        pass
-    elif (True):
-        if codeStr!="": S+='        memStruct.'+fieldName+' <- '+codeStr+"\n"
-        elif finalCodeStr!="": S+=finalCodeStr;
+        gatherFieldCode+='\n    }\n'
+    else:
+        assignerCode=''
+        if fromIsALT:
+            [memObj, memVersionName]=fetchMemVersion(objects, fieldType[0])
+            InnerMemObjFields=memObj['fields']
+            assignerCode+=Write_ALT_Extracter(objects, field, InnerMemObjFields, fields, VarTag)
+
+        elif fromIsStruct and toIsStruct:
+            assignerCode+=finalCodeStr;
+        else:
+            if CODE_RVAL!="": assignerCode+='        '+CODE_LVAR+' <- '+CODE_RVAL+"\n"
+            elif finalCodeStr!="": assignerCode+=finalCodeStr;
+        gatherFieldCode = assignerCode
+
+    S+=gatherFieldCode
+    print "ASSIGN_CODE", S
+
     return S
 
 def Write_structExtracter(objects, tags, objName, fields):
@@ -777,7 +813,7 @@ def Write_structExtracter(objects, tags, objName, fields):
 
     S=''
     for field in fields:
-        S+=Write_fieldExtracter(objects, field, memObjFields)
+        S+=Write_fieldExtracter(objects, field, memObjFields, 'SRec')
 
     seqExtracter =  "\n    me bool: ExtractStruct_"+objName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     return seqExtracter
