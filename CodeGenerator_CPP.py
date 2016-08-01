@@ -381,7 +381,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             if name != 'return' and name!='break' and name!='continue':
                 S+="()"
         else:
-            S+= '('+codeParameterList(paramList)+')'
+            modelParams=None
+            if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList']
+            S+= '('+codeParameterList(paramList, modelParams)+')'
     return [S,  typeSpecOut]
 
 def codeUnknownNameSeg(segSpec):
@@ -399,7 +401,7 @@ def codeUnknownNameSeg(segSpec):
         if(len(paramList)==0):
             S+="()"
         else:
-            S+= '('+codeParameterList(paramList)+')'
+            S+= '('+codeParameterList(paramList, None)+')'
     return S;
 
 def codeItemRef(name, LorR_Val):
@@ -584,23 +586,32 @@ def codeExpr(item):
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
+    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
     LeftOwner =LVAL['owner']
     RightOwner=RVAL['owner']
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner=='me' and (RightOwner=='my' or RightOwner=='our' or RightOwner=='their'): return ["(*", ")"]
     if (LeftOwner=='my' or LeftOwner=='our' or LeftOwner=='their') and RightOwner=='me': return ["&", '']
     # TODO: Verify these and other combinations. e.g., do we need something like ['', '.get()'] ?
+    return ['','']
 
-def codeParameterList(paramList):
+def codeParameterList(paramList, modelParams):
     S=''
+    if(modelParams):
+        print "CODE-PARAMS:", len(paramList),"=",len(modelParams)
     count = 0
     for P in paramList:
         if(count>0): S+=', '
-        count+=1
-        #print "PARAM",P
         [S2, argType]=codeExpr(P[0])
+        print "    PARAM",P, '<',argType,'>'
+    #    print "    MODEL", modelParams[count], '\n'
+        if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
+            [leftMod, rightMod]=chooseVirtualRValOwner(modelParams[count]['typeSpec'], argType)
+            S += leftMod+S2+rightMod
+        else: S += S2
+        count+=1
         # TODO: get arg's type and call chooseVirtualRValOwner()
-        S+=S2
+
     return S
 
 def codeSpecialFunc(segSpec):
@@ -628,7 +639,6 @@ def codeFuncCall(funcCallSpec):
        # if(tmpStr != ''):
        #     return tmpStr
     [codeStr, typeSpec]=codeItemRef(funcCallSpec, 'RVAL')
-    # We could check type of parameters here.
     S+=codeStr
     return S
 
@@ -688,8 +698,10 @@ def processAction(action, indent):
         RHS = leftMod+S2+rightMod
         assignTag = action['assignTag']
         #print "Assign: ", LHS, RHS, typeSpec
-        if not isinstance (typeSpec, dict): print 'Problem: typeSpec is', typeSpec, '\n'; exit(1);
-        LHS_FieldType=typeSpec['fieldType']
+        if not isinstance (typeSpec, dict):
+            print 'Problem: typeSpec is', typeSpec, '\n'; #exit(1);
+            LHS_FieldType='string'
+        else: LHS_FieldType=typeSpec['fieldType']
         if assignTag == '':
             if LHS_FieldType=='flag':
                 divPoint=startPointOfNamesLastSegment(LHS)
