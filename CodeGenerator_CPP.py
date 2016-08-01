@@ -597,13 +597,12 @@ def chooseVirtualRValOwner(LVAL, RVAL):
 
 def codeParameterList(paramList, modelParams):
     S=''
-    if(modelParams):
-        print "CODE-PARAMS:", len(paramList),"=",len(modelParams)
+    #if(modelParams):  print "CODE-PARAMS:", len(paramList),"=",len(modelParams)
     count = 0
     for P in paramList:
         if(count>0): S+=', '
         [S2, argType]=codeExpr(P[0])
-        print "    PARAM",P, '<',argType,'>'
+    #    print "    PARAM",P, '<',argType,'>'
     #    print "    MODEL", modelParams[count], '\n'
         if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
             [leftMod, rightMod]=chooseVirtualRValOwner(modelParams[count]['typeSpec'], argType)

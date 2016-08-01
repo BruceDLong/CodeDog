@@ -748,8 +748,7 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
         if advancePtr:
             S+=indent+VarTag+' <- getNextStateRec('+VarTag+')\n'
         else: doNextSuffix='.next'
-        if fieldOwner=='const'and (toFieldOwner == None): # or toFieldOwner == 'const'):
-            print "CONST"
+        if fieldOwner=='const'and (toFieldOwner == None):
             finalCodeStr += VarTag+'_tmpStr'+' <- makeStr('+VarTag+'.child)\n'
             #  print("'+fieldValue+'")\n'
 
@@ -783,6 +782,7 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
         if fromIsALT:
             childRecName='childSRec'
             gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, 'tmpVar_tmpStr', indent+'    ')
+            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast(tmpVar_tmpStr)'
             gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
         elif fromIsStruct and toIsStruct:
             gatherFieldCode+='\n'+indent+'me '+toFieldType+': tmpVar_tmpStr'
@@ -797,6 +797,7 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
         assignerCode=''
         if fromIsALT:
             assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
+            assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
 
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr;
@@ -807,7 +808,7 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
         gatherFieldCode = assignerCode
 
     S+=gatherFieldCode
-    print "ASSIGN_CODE", S
+    #print "ASSIGN_CODE", S
 
     return S
 

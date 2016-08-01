@@ -27,8 +27,12 @@ runCode=`
     me testParse: TPM
     parser.ExtractStruct_testParse_str(topItem, TPM)
 
-   print("\n\nTMP.Mesg: ", TPM.worldMesg, "\n")
-  // print("TMP.numStr: ", TPM.numbStr, "\n")
+    print("\n\nTPM.Mesg: ", TPM.worldMesg, "\n")
+    print("Birthday:", TPM.birthday.month, "-", TPM.birthday.day, "-", TPM.birthday.year, "\n")
+    withEach num in TPM.numbStr:{
+        print(num, "\n")
+   }
+   print("TPM.myNUm: ", TPM.myNum, "\n")
 `
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`
