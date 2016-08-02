@@ -657,7 +657,7 @@ def fetchOrWriteParseRule(modelName, field):
         if idxType[0:4]=='uint': pass
         if(datastructID=='list'):
             nameOut=appendRule(nameOut+'REP', "nonterm", "parseREP", [nameOut, 0, 0])
-        elif datastructID=='opt':
+        elif datastructID=='OPT':
             nameOut=appendRule(nameOut+'OPT', "nonterm", "parseREP", [nameOut, 0, 1])
     field['parseRule']=nameOut
     return nameOut
@@ -726,13 +726,16 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
     print "            TOFieldTYPE :", toFieldOwner, toFieldType
     print "FIELD-NAME/TYPE:", fieldName,'/', fieldType
     fields=[]
-    fromIsOPT =False
     fromIsStruct=progSpec.isStruct(fieldType)
     toIsStruct=progSpec.isStruct(toFieldType)
     [fromIsALT, fields] = progSpec.isAltStruct(objects, fieldType)
+    fromIsOPT =False
     fromIsList=False
-    toIsList =False
-    if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:      fromIsList=True
+    toIsList  =False
+    if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+        fromIsList=True
+        datastructID = typeSpec['arraySpec']['datastructID']
+        if datastructID=='OPT': fromIsOPT=True;
     if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:  toIsList=True
 
     ###################   W r i t e   R V A L   C o d e
@@ -776,20 +779,25 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
 
     ###################   H a n d l e   o p t i o n a l   a n d   r e p e t i t i o n   a n d   a s s i g n m e n t   c a s e s
     gatherFieldCode=''
-    if fromIsOPT: pass
-    elif fromIsList and toIsList:
+    if fromIsList and toIsList:
+        CODE_RVAL='tmpVar_tmpStr'
         gatherFieldCode+='\nour stateRec: childSRec <- '+VarTag+'.child.next\n    withEach Cnt in WHILE(childSRec):{\n'
         if fromIsALT:
             childRecName='childSRec'
             gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, 'tmpVar_tmpStr', indent+'    ')
-            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast(tmpVar_tmpStr)'
             gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
+
         elif fromIsStruct and toIsStruct:
             gatherFieldCode+='\n'+indent+'me '+toFieldType+': tmpVar_tmpStr'
             gatherFieldCode+='\n'+indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'(childSRec.child, '+tmpVar+')\n'
-            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast(tmpVar_tmpStr)'
         else:
-            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+codeStr+')'
+            CODE_RVAL='childSRec.child'
+
+        # Now code to push the chosen alternative into the data field
+        if(fromIsOPT):
+            gatherFieldCode+='if'
+        else: # This is a LIST, not and OPT:
+            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
 
         gatherFieldCode+='\n'+indent+'}\n'
     else:
