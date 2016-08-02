@@ -3,11 +3,8 @@
 import progSpec
 import codeDogParser
 
-def createUtilityFunctions():
-    S="""
-
-
-
+def use(objects, buildSpec, tags, platform):
+    CODE="""
 model draw2D{
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
     me void: setRGB (me double: red, me double: green, me double: blue)
@@ -21,9 +18,6 @@ model draw2D{
     me void: paintNow()
     me void: strokeNow()
 }
-
-
-
 struct JavaGUICtxt{
     their Graphics2D: gr
     me GeneralPath: GPath
@@ -33,8 +27,6 @@ struct JavaGUICtxt{
 struct GUI_ctxt{their JavaGUICtxt:GUI_ctxt}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
-
-
 struct GUI_item{me Object: GUI_item}
 struct GUI_menuBar{me JMenuBar: GUI_menuBar}
 struct GUI_menu{me JMenu: GUI_menu}
@@ -43,11 +35,8 @@ struct GUI_canvas{me JPanel: GUI_canvas}
 struct GUI_container{me JFrame:GUI_container}
 struct GUI_frame{me JFrame:GUI_frame}
 struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
-
 struct GUI_callback{me GCallback: GUI_callback}
-
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
-
 struct GUI {
     me GLOBAL: my_global
 
@@ -106,20 +95,13 @@ struct GUI {
         showWidget(menuitem)
         return(SubMenu)
     }
-
 }
-
-
 struct GLOBAL{
     me GUI: gui_tk
     me thisApp: appFuncs
-
-
     me void: close_window() <- {
-
          // gtk_main_quit()
     }
-
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!;%>
@@ -135,12 +117,8 @@ struct GLOBAL{
     me void: create_MenuItem()<- <%!gui.create_MenuItem(%1, %2)%>
     me void: create_TopSubMenu()<- <%!gui.create_TopSubMenu(%1, %2)%>
     me void: create_SubMenu()<- <%!gui.create_SubMenu(%1, %2)%>
-
-
     me void: setCallback() <- <%! ; %>
 }
-
-
 struct draw2D: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!setColor(new Color(%1, %2, %3, %4))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cr.gr.setColor(new Color(%1, %2, %3))%>
@@ -154,8 +132,6 @@ struct draw2D: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMod
     me void: paintNow() <- <%!cr.gr.fill(cr.GPath)%>
     me void: strokeNow() <- <%!cr.gr.draw(cr.GPath)%>
 }
-
-
     """
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
