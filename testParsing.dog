@@ -2,7 +2,7 @@
 
 LinuxBuild: CPU='amd64' Lang='CPP' optimize='speed';
 
-BuildCmd = `g++ -g -std=gnu++11 `pkg-config --cflags gtk+-3.0` testParse.cpp `pkg-config --libs gtk+-3.0` -o testParse`
+BuildCmd = "g++ -g -std=gnu++11 `pkg-config --cflags gtk+-3.0` testParse.cpp `pkg-config --libs gtk+-3.0` -o testParse"
 Title = "CodeDog parsing test"
 FileName = "testParse"
 Version = "0.8"
