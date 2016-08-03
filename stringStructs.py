@@ -29,6 +29,7 @@ def codeDogTypeToString(objects, tags, field):
 
 rules=[]
 constDefs=[]
+globalFieldCount=0
 
 def genParserCode():
     global rules
@@ -129,7 +130,7 @@ struct EParser{
             print('SLOT: %i`crntPos` (%s`ch.data()`) - size:%i`(int)SSet->stateRecs.size()`\n')
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
-                print('    (%p`SRec` -> cause: %p`SRec->cause`, pred:%p`SRec->prev`): ')
+                //print('    (%p`SRec` -> cause: %p`SRec->cause`, pred:%p`SRec->prev`): ')
                 prod.print(SRec.SeqPosition, SRec.originPos)
                 print("\n")
             }
@@ -701,8 +702,10 @@ def Write_ALT_Extracter(objects, field, structName, fields, VarTag, VarName, ind
         count+=1
     return S
 
+
 def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advancePtr, indent):
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
+    global  globalFieldCount
     S=''
     fieldName  =field['fieldName']
     fieldIsNext=field['isNext']
@@ -781,26 +784,39 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
     gatherFieldCode=''
     if fromIsList and toIsList:
         CODE_RVAL='tmpVar_tmpStr'
-        gatherFieldCode+='\nour stateRec: childSRec <- '+VarTag+'.child.next\n    withEach Cnt in WHILE(childSRec):{\n'
+        globalFieldCount +=1
+        childRecName='childSRec' + str(globalFieldCount)
+        gatherFieldCode+='\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next\n    withEach Cnt in WHILE('+childRecName+'):{\n'
         if fromIsALT:
-            childRecName='childSRec'
             gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, 'tmpVar_tmpStr', indent+'    ')
             gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
 
         elif fromIsStruct and toIsStruct:
-            gatherFieldCode+='\n'+indent+'me '+toFieldType+': tmpVar_tmpStr'
-            gatherFieldCode+='\n'+indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'(childSRec.child, '+tmpVar+')\n'
+            gatherFieldCode+='\n'+indent+'me '+progSpec.baseStructName(toFieldType[0])+': tmpVar_tmpStr'
+            gatherFieldCode+='\n'+indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'('+childRecName+'.child, tmpVar_tmpStr)\n'
         else:
-            CODE_RVAL='childSRec.child'
+            CODE_RVAL=childRecName+'.child'
 
-        # Now code to push the chosen alternative into the data field
-        if(fromIsOPT):
-            gatherFieldCode+='if'
-        else: # This is a LIST, not and OPT:
-            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
+        # Now code to push the chosen alternative into the data field# This is a LIST, not and OPT:
+        gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
 
         gatherFieldCode+='\n'+indent+'}\n'
-    else:
+        """if(fromIsOPT):
+            gatherFieldCode+=indent+'me uint32: altSize <- '+CODE_LVAR+'.size()'
+            gatherFieldCode+=indent+'if(altSize==0){}'
+            gatherFieldCode+=indent+'else if(altSize==1){'
+            assignerCode=''
+            if fromIsALT:
+                assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
+                assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
+            elif fromIsStruct and toIsStruct:
+                assignerCode+=finalCodeStr;
+            else:
+               # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
+                if CODE_RVAL!="": assignerCode+='        '+CODE_LVAR+' <- '+CODE_RVAL+"\n"
+                elif finalCodeStr!="": assignerCode+=finalCodeStr;
+            gatherFieldCode+=indent+'}'"""
+    else: 
         if toIsList: print "Error: parsing a non-list to a list is not supported.\n"; exit(1);
         assignerCode=''
         if fromIsALT:

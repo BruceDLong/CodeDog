@@ -20,7 +20,7 @@ featuresNeeded = {}
 runCode=`
     me EParser: parser
     parser.populateGrammar()
-    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1]")
+    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1 2/22/1922 ]")
     parser.doParse()
     our stateRec: topItem <- parser.resolve(parser.LastTopLevelItem, "")
     parser.displayParse(topItem, "")
@@ -64,6 +64,7 @@ string date::str {
      "/"
     > int32:day "/"
     > int32:year
+    " "
 }
 //do makeGUI(listMgr)
 
@@ -84,15 +85,18 @@ model testParse{
     me date: birthday
     me string: worldMesg
     me numChar: myNum
+    me date[list]: birthdays
 }
 
 string testParse::str{
     "["
     "Robert" " "
     > numChar[list]: numbStr " "
-    > date::str: birthday " "
+    > date::str: birthday
     > me string: worldMesg
-    > me numChar: myNum
+    //> their numChar[OPT]: optNum ","
+    > me numChar: myNum " "
+    > me date::str[list]: birthdays 
     "]"
 }
 
