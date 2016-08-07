@@ -20,9 +20,13 @@ featuresNeeded = {}
 runCode=`
     me EParser: parser
     parser.populateGrammar()
-    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1]")
+    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1]")   // "[Robert 234 4/19/1967 'Hello World!'1]")
     parser.doParse()
-    our stateRec: topItem <- parser.resolve(parser.LastTopLevelItem, "")
+    if(parser.doesParseHaveError()){
+        print("\nParse Error:", parser.errorMesg, " at line ", parser.errLineNum,":", parser.errCharPos, "\n")
+        exit(2)
+    }
+    our stateRec: topItem <- parser.resolve(parser.lastTopLevelItem, "")
     parser.displayParse(topItem, "")
     me testParse: TPM
     parser.ExtractStruct_testParse_str(topItem, TPM)

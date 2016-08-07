@@ -102,7 +102,10 @@ struct EParser{
     me stateSets[list uint32]: SSets
     me production[list uint32]: grammar
     me bool: parseFound
-    our stateRec: LastTopLevelItem
+    our stateRec: lastTopLevelItem
+    me string: errorMesg
+    me uint32: errLineNum
+    me uint32: errCharPos
 
     void: clearGrammar() <- {grammar.clear()}
     void: addTerminalProd(me string: name, me uint32: ProdType, me string: s) <- {
@@ -168,7 +171,7 @@ struct EParser{
         if(ProdType == parseSEQ or ProdType == parseREP or ProdType == parseALT or ProdType == parseAUTO){
             prod.print(SeqPos, origin)
             our stateRec: newStateRecPtr newStateRecPtr.allocate(productionID, SeqPos, origin, crntPos, prev, cause)
-            if(thisIsTopLevelItem) {LastTopLevelItem <- newStateRecPtr}
+            if(thisIsTopLevelItem) {lastTopLevelItem <- newStateRecPtr}
             SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
             print(' ADDED \n')
         }
@@ -363,26 +366,6 @@ struct EParser{
         return(0)
     }
 
-    void: displayParse(our stateRec: SRec, me string: indent) <- {
-        their production: prod <- grammar[SRec.productionID]
-        if(prod.isTerm){
-            print(indent, "'")
-            withEach i in RANGE(SRec.originPos .. SRec.crntPos):{
-                print(textToParse[i])
-            }
-            print("'\n")
-        } else {
-           // print(indent) SRec.print(prod) print("\n")
-            if(SRec.child){
-                displayParse(SRec.child, indent+"   | ")
-            }
-            if(SRec.next){
-                displayParse(SRec.next, indent)
-            }
-        }
-    }
-
-
     me bool: complete(our stateRec: SRec, me int32: crntPos) <- {
         print('        COMPLETING: check items at origin %i`SRec->originPos`... \n')
         their stateSets: SSet  <- SSets[SRec.originPos]
@@ -482,6 +465,62 @@ struct EParser{
         dump()
     }
 
+    void: countLinesToCharPos(me uint32: charPos) <- {
+        errLineNum <- 1
+        me uint32: lastLinePos <- 0
+        withEach C in RANGE(0..charPos):{
+            me uint32: LHS <- textToParse[C]
+            if(LHS == 13){
+                errLineNum <- errLineNum+1
+                lastLinePos <- C
+            }
+        }
+        errCharPos <- charPos-lastLinePos+1
+    }
+
+    me bool: doesParseHaveError() <- {
+        print("\n\nChecking for Parse Errors...\n")
+        errorMesg <- ""
+        me uint32: lastSSetIDX <- SSets.size()
+        me uint32: lastPosWithItems <- 0
+        withEach ssetIDX in Backward RANGE(0 .. lastSSetIDX):{
+            their stateSets: SSet <- SSets[ssetIDX]
+            me uint32: numItems <- SSet.stateRecs.size()
+            if(numItems>0 and lastPosWithItems==0){lastPosWithItems <- ssetIDX}
+            print("Position ", ssetIDX, " has ", numItems, "items.\n")
+        }
+        print("lastPosWithItems:", lastPosWithItems, "\n")
+
+        their stateSets: lastSSet <- SSets[lastPosWithItems]
+
+        me uint32: lastSRecIDX <- lastSSet.stateRecs.size()-1
+        our stateRec: lastSRec // <- lastSSet.stateRecs[lastSRecIDX]
+        their production: prod
+        me uint32: ProdType
+        me uint32: isTerminal
+        me uint32: seqPos
+      //  lastSRec.print(prod) print("\n----\n")
+
+        withEach SRec in lastSSet.stateRecs:{
+            lastSRec <- SRec
+            prod <- grammar[SRec.productionID]
+            ProdType <- prod.prodType
+            isTerminal <- prod.isTerm
+            seqPos <- SRec.SeqPosition
+            SRec.print(prod) print(" ", seqPos, ' - ', SRec.prev, "\n")
+        }
+
+        lastSRec.print(prod) print("\n----\n", seqPos)
+        if(isTerminal){
+            if(seqPos==0){
+                errorMesg <- "Expected '" + prod.constStr + "'"
+                countLinesToCharPos(lastPosWithItems)
+            }
+        }
+        if(errorMesg=="") {return(false)}
+        else {return(true)}
+    }
+
     our stateRec: resolve(our stateRec: LastTopLevelItem, me string: indent) <- {
         if(!LastTopLevelItem){print("\nStateRecPtr is null.\n\n") exit(1)}
         our stateRec: crntRec <- LastTopLevelItem
@@ -504,6 +543,26 @@ struct EParser{
         if(indent==""){print("\nRESOLVED\n\n")}
         return(crntRec)
     }
+
+    void: displayParse(our stateRec: SRec, me string: indent) <- {
+        their production: prod <- grammar[SRec.productionID]
+        if(prod.isTerm){
+            print(indent, "'")
+            withEach i in RANGE(SRec.originPos .. SRec.crntPos):{
+                print(textToParse[i])
+            }
+            print("'\n")
+        } else {
+           // print(indent) SRec.print(prod) print("\n")
+            if(SRec.child){
+                displayParse(SRec.child, indent+"   | ")
+            }
+            if(SRec.next){
+                displayParse(SRec.next, indent)
+            }
+        }
+    }
+
 }
     """
     code=code.replace('#CONST_CODE_HERE', ConstList, 1)

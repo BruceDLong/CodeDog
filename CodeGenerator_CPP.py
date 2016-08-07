@@ -294,7 +294,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             S+= '[' + S2 +']'
             return [S, typeSpecOut]
         if containerType=='deque':
-            if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='end' or  name=='rend': pass
+            if name=='at' or name=='insert' or name=='erase' or name=='end' or  name=='rend': pass
+            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             elif name=='front'    : name='begin()'; paramList=None;
             elif name=='back'     : name='rbegin()'; paramList=None;
@@ -306,7 +307,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         elif containerType=='map':
             convertedIdxType=idxType
             convertedItmType=convertType(objectsRef, typeSpecOut)
-            if name=='at' or name=='erase' or  name=='size': pass
+            if name=='at' or name=='erase': pass
+            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
             elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             elif name=='front': name='begin()->second'; paramList=None;
@@ -317,7 +319,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         elif containerType=='multimap':
             convertedIdxType=idxType
             convertedItmType=convertType(objectsRef, typeSpecOut)
-            if name=='at' or name=='erase' or  name=='size': pass
+            if name=='at' or name=='erase': pass
+            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
             elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             elif name=='front': name='begin()->second'; paramList=None;
@@ -326,11 +329,13 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             elif name=='popLast'  : name='pop_back'
             else: print "Unknown multimap command:", name; exit(2);
         elif containerType=='tree': # TODO: Make trees work
-            if name=='insert' or name=='erase' or  name=='size': pass
+            if name=='insert' or name=='erase': pass
+            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             else: print "Unknown tree command:", name; exit(2)
         elif containerType=='graph': # TODO: Make graphs work
-            if name=='insert' or name=='erase' or  name=='size': pass
+            if name=='insert' or name=='erase': pass
+            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
             else: print "Unknown graph command:", name; exit(2);
         elif containerType=='stream': # TODO: Make stream work
