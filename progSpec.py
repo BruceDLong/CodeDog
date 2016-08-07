@@ -164,6 +164,11 @@ def findModelOf(objMap, structName):
     modelName=structName[0:colonIndex]
     return objMap[0][modelName]
 
+def baseStructName(structName):
+    colonIndex=structName.find('::')
+    if(colonIndex==-1): return structName
+    return structName[0:colonIndex]
+
 def isStruct(fieldType):
     if isinstance(fieldType, basestring): return False
     return True

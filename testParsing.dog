@@ -2,7 +2,7 @@
 
 LinuxBuild: CPU='amd64' Lang='CPP' optimize='speed';
 
-BuildCmd = `g++ -std=gnu++11 testParse.cpp -o test`
+BuildCmd = "g++ -g -std=gnu++11 `pkg-config --cflags gtk+-3.0` testParse.cpp `pkg-config --libs gtk+-3.0` -o testParse"
 Title = "CodeDog parsing test"
 FileName = "testParse"
 Version = "0.8"
@@ -21,6 +21,8 @@ runCode=`
     me EParser: parser
     parser.populateGrammar()
     parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1]")   // "[Robert 234 4/19/1967 'Hello World!'1]")
+  //  parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1 2/22/1922 ]")
+
     parser.doParse()
     if(parser.doesParseHaveError()){
         print("\nParse Error:", parser.errorMesg, " at line ", parser.errLineNum,":", parser.errCharPos, "\n")
@@ -68,6 +70,7 @@ string date::str {
      "/"
     > int32:day "/"
     > int32:year
+    " "
 }
 //do makeGUI(listMgr)
 
@@ -88,15 +91,18 @@ model testParse{
     me date: birthday
     me string: worldMesg
     me numChar: myNum
+    me date[list]: birthdays
 }
 
 string testParse::str{
     "["
     "Robert" " "
     > numChar[list]: numbStr " "
-    > date::str: birthday " "
+    > date::str: birthday
     > me string: worldMesg
-    > me numChar: myNum
+    //> their numChar[OPT]: optNum ","
+    > me numChar: myNum " "
+    > me date::str[list]: birthdays
     "]"
 }
 

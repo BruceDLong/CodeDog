@@ -4,9 +4,6 @@ import progSpec
 import codeDogParser
 
 import pattern_Write_Main
-import pattern_Gen_ParsePrint
-import pattern_Gen_EventHandler
-import pattern_BigNums
 import pattern_GUI_Toolkit
 #import pattern_Gen_GUI
 
