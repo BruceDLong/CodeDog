@@ -346,7 +346,14 @@ def extractActSeqToFunc(funcName, funcBodyIn):
 def extractFuncBody(localObjectName,funcName, funcBodyIn):
     if funcBodyIn[0] == "<%":
         funcBodyOut = ""
-        funcTextVerbatim = funcBodyIn[1][0]
+        if len(funcBodyIn)== 3: # handles new pyparsing
+            funcTextVerbatim = funcBodyIn[1]
+        elif len(funcBodyIn)== 2: # handles old pyparsing
+            funcTextVerbatim = funcBodyIn[1][0]
+        else:
+            print "len(funcBodyIn): ", len(funcBodyIn)
+            exit(1)
+        print "error in funcTextVerbatim: ", funcTextVerbatim
     else:
         funcBodyOut = extractActSeqToFunc(funcName, funcBodyIn)
         funcTextVerbatim = ""
