@@ -54,7 +54,7 @@ def CheckFunctionsLocalVarArgList(itemName):
     return 0
 
 def CheckObjectVars(objName, itemName, level):
-    #print "Searching",objName,"for", itemName
+    print "Searching",objName,"for", itemName
     if(not objName in objectsRef[0]):
         return 0  # Model def not found
     retVal=None
@@ -62,13 +62,13 @@ def CheckObjectVars(objName, itemName, level):
     if(wrappedTypeSpec != None):
         actualFieldType=wrappedTypeSpec['fieldType']
         if not isinstance(actualFieldType, basestring):
-            #print "'actualFieldType", wrappedTypeSpec, actualFieldType, objName
             retVal = CheckObjectVars(actualFieldType[0], itemName, 0)
-            if retVal==0: return 0
-            retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
-            return retVal
+            if retVal!=0:
+                retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
+                return retVal
         else:
             if 'fieldName' in wrappedTypeSpec and wrappedTypeSpec['fieldName']==itemName:
+                #print "WRAPPED FIELDNAME:", itemName
                 return wrappedTypeSpec
             else: return 0
 
@@ -76,6 +76,7 @@ def CheckObjectVars(objName, itemName, level):
     for field in ObjectDef['fields']:
         fieldName=field['fieldName']
         if fieldName==itemName:
+            print "Found", itemName
             return field
 
     # Not found so look a level deeper (Passive Inheritance)
@@ -124,7 +125,7 @@ def fetchItemsTypeSpec(itemName):
             REF=CheckObjectVars(currentObjName, itemName, 1)
             if (REF):
                 RefType="OBJVAR"
-
+                if(currentObjName=='GLOBAL'): RefType="GLOBAL"
             else:
                 REF=CheckObjectVars("GLOBAL", itemName, 0)
                 if (REF):
@@ -366,9 +367,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             S=tmp
             return [S, '']
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name)
-        #if(SRC=="GLOBAL"): name = "GLOBAL.static_Global"+name
-        print "                                                 dummyType: ["+SRC+"] "+name
         if(SRC=="GLOBAL"): namePrefix = "GLOBAL.static_Global."
+        print "                                                 dummyType: ["+SRC+"] "+name, namePrefix
     else:
         fType=typeSpecIn['fieldType']
 
@@ -394,6 +394,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [name, paramList]=convertNameSeg(typeSpecOut, name, paramList)
+        callAsGlobal=name.find("%G")
+        if(callAsGlobal >= 0): namePrefix=''
 
    # if S_alt=='': S+=connector+name
     if S_alt=='': S+=namePrefix+connector+name
@@ -449,7 +451,25 @@ def codeItemRef(name, LorR_Val):
         else:
             segStr= codeUnknownNameSeg(segSpec)
         prevLen=len(S)
-        S+=segStr
+
+
+        # Should this be called as a global?
+        callAsGlobal=segStr.find("%G")
+        if(callAsGlobal >= 0):
+            S=''
+            prevLen=0
+            segStr=segStr.replace("%G", '')
+            segStr=segStr[len(connector):]
+            connector=''
+
+        # Should this be called C style?
+        thisArgIDX=segStr.find("%0")
+        if(thisArgIDX >= 0):
+            if connector=='->': S="*("+S+")"
+            S=segStr.replace("%0", S)
+            S=S[len(connector):]
+        else: S+=segStr
+
         segIDX+=1
 
     # Handle cases where seg's type is flag or mode

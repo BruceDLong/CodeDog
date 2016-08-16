@@ -41,12 +41,11 @@ struct GUI {
     me uint32: GUI_Init() <- <%{return(0);}%>
 
     me void: GUI_PopulateAndExec() <- <% {
-        //Create and set up the window.
         JFrame frame = new JFrame(title);
         frame.setSize(650, 250);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        appFuncs.createAppMenu(frame);
-        appFuncs.createAppArea(frame);
+        GLOBAL.static_Global.appFuncs.createAppMenu(frame);
+        GLOBAL.static_Global.appFuncs.createAppArea(frame);
         frame.setVisible(true);
     } %>
 
@@ -105,14 +104,15 @@ struct GUI{
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!;%>
-    me GUI_item: newCanvas() <- <%!new JPanel()%>
-    me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!new JMenuItem(%1)%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setSize(%2, %3)%>
+    me GUI_item: newCanvas() <- <%!%Gnew JPanel()%>
+    me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
+    me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew JMenuItem(%1)%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setSize(%2, %3)%>
     me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
-    me GUI_item: newScrollingWindow() <- <%!new JScrollPane()%>
+    me GUI_item: newScrollingWindow() <- <%!%Gnew JScrollPane()%>
     me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%1.add(%2)%>
-    me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%1.add(%2)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.add(%2)%>
+    me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%G%1.add(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%1.setJMenuBar(%2)%>
     me void: create_MenuItem()<- <%!gui.create_MenuItem(%1, %2)%>
     me void: create_TopSubMenu()<- <%!gui.create_TopSubMenu(%1, %2)%>
@@ -120,18 +120,18 @@ struct GUI{
     me void: setCallback() <- <%! ; %>
 }
 
-struct draw2D: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!setColor(new Color(%1, %2, %3, %4))%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cr.gr.setColor(new Color(%1, %2, %3))%>
-    me void: setLineWidth(me double: width) <- <%!cr.gr.setStroke(new BasicStroke(%1))%>
-    me void: moveTo(me double: x, me double: y) <- <%!cr.GPath.moveTo(%1, %2)%>
-    me void: lineTo(me double: x, me double: y) <- <%!cr.GPath.lineTo(%1, %2)%>
-    me void: moveRel(me double: dx, me double: dy) <- <%!cr.GPath.moveTo(cr.cur_x+%1, cr.cur_y+%2)%>
-    me void: lineRel(me double: dx, me double: dy) <- <%!cr.GPath.lineTo(cr.cur_x+%1, cr.cur_y+%2)%>
-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cr.GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cr.rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    me void: paintNow() <- <%!cr.gr.fill(cr.GPath)%>
-    me void: strokeNow() <- <%!cr.gr.draw(cr.GPath)%>
+struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!gr.setColor(new Color(%1, %2, %3, %4))%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!gr.setColor(new Color(%1, %2, %3))%>
+    me void: setLineWidth(me double: width) <- <%!gr.setStroke(new BasicStroke(%1))%>
+    me void: moveTo(me double: x, me double: y) <- <%!GPath.moveTo(%1, %2)%>
+    me void: lineTo(me double: x, me double: y) <- <%!GPath.lineTo(%1, %2)%>
+    me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo(cr.cur_x+%1, cr.cur_y+%2)%>
+    me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo(cr.cur_x+%1, cr.cur_y+%2)%>
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
+    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
+    me void: paintNow() <- <%!gr.fill(cr.GPath)%>
+    me void: strokeNow() <- <%!gr.draw(cr.GPath)%>
 }
     """
 

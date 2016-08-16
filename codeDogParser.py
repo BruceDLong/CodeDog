@@ -351,9 +351,8 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
         elif len(funcBodyIn)== 2: # handles old pyparsing
             funcTextVerbatim = funcBodyIn[1][0]
         else:
-            print "len(funcBodyIn): ", len(funcBodyIn)
+            print "error in funcTextVerbatim: ", "len(funcBodyIn): ", len(funcBodyIn)
             exit(1)
-        print "error in funcTextVerbatim: ", funcTextVerbatim
     else:
         funcBodyOut = extractActSeqToFunc(funcName, funcBodyIn)
         funcTextVerbatim = ""

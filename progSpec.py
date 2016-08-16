@@ -50,6 +50,7 @@ def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgL
     codeConverter=None
     packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec,'argList':thisArgList}, 'fieldName':thisName,  'value':thisValue}
     if( thisValue!=None and (not isinstance(thisValue, basestring)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
+        # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
         codeConverter = thisValue[1][1:]
         packedField['typeSpec']['codeConverter']=codeConverter
     return packedField

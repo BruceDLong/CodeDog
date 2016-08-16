@@ -50,29 +50,31 @@ def CheckFunctionsLocalVarArgList(itemName):
     return 0
 
 def CheckObjectVars(objName, itemName, level):
-    #print "Searching",objName,"for", itemName
+    print "Searching",objName,"for", itemName
     if(not objName in objectsRef[0]):
         return 0  # Model def not found
     retVal=None
-    ObjectDef = objectsRef[0][objName]
-    for field in ObjectDef['fields']:
-        fieldName=field['fieldName']
-        if fieldName==itemName:
-            return field
-
     wrappedTypeSpec = progSpec.isWrappedType(objectsRef, objName)
     if(wrappedTypeSpec != None):
         actualFieldType=wrappedTypeSpec['fieldType']
         if not isinstance(actualFieldType, basestring):
             #print "'actualFieldType", wrappedTypeSpec, actualFieldType, objName
             retVal = CheckObjectVars(actualFieldType[0], itemName, 0)
-            if retVal==0: return 0
-            retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
-            return retVal
+            if retVal!=0:
+                retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
+                return retVal
         else:
             if 'fieldName' in wrappedTypeSpec and wrappedTypeSpec['fieldName']==itemName:
+                print "WRAPPED FIELDNAME:", itemName
                 return wrappedTypeSpec
             else: return 0
+
+    ObjectDef = objectsRef[0][objName]
+    for field in ObjectDef['fields']:
+        fieldName=field['fieldName']
+        if fieldName==itemName:
+            print "Found", itemName
+            return field
 
     # Not found so look a level deeper (Passive Inheritance)
     # Passive inheritance is disabled for now as it was slow to compile and not being used.
@@ -443,6 +445,14 @@ def codeItemRef(name, LorR_Val):
         else:
             segStr= codeUnknownNameSeg(segSpec)
         prevLen=len(S)
+
+
+        # Should this be called as a global?
+        callAsGlobal=segStr.find("%G")
+        if(callAsGlobal >= 0):
+            S=''
+            prevLen=0
+            segStr=segStr.replace("%G", '')
 
         # Should this be called C style?
         thisArgIDX=segStr.find("%0")
