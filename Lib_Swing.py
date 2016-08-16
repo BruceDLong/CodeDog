@@ -38,22 +38,19 @@ struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct GUI {
-    me GLOBAL: my_global
-
     me uint32: GUI_Init() <- <%{return(0);}%>
 
     me void: GUI_PopulateAndExec() <- <% {
         //Create and set up the window.
-        JFrame frame = new JFrame(GLOBAL.title);
+        JFrame frame = new JFrame(title);
         frame.setSize(650, 250);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        my_global.appFuncs.createAppMenu(frame, this);
-        my_global.appFuncs.createAppArea(frame, this);
+        appFuncs.createAppMenu(frame);
+        appFuncs.createAppArea(frame);
         frame.setVisible(true);
     } %>
 
-    me uint32: GUI_Run(me GLOBAL: global) <- <% {
-        my_global = global;
+    me uint32: GUI_Run() <- <% {
         long status=0;
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
         public void run() {
@@ -97,11 +94,14 @@ struct GUI {
     }
 }
 struct GLOBAL{
-    me GUI: gui_tk
+
     me thisApp: appFuncs
     me void: close_window() <- {
          // gtk_main_quit()
     }
+}
+
+struct GUI{
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!;%>
@@ -119,6 +119,7 @@ struct GLOBAL{
     me void: create_SubMenu()<- <%!gui.create_SubMenu(%1, %2)%>
     me void: setCallback() <- <%! ; %>
 }
+
 struct draw2D: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!setColor(new Color(%1, %2, %3, %4))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cr.gr.setColor(new Color(%1, %2, %3))%>

@@ -5,9 +5,9 @@ import codeDogParser
 
 
 def apply(objects, tags):
-    progSpec.appendToStringTagValue(tags, 'initCode', 'gui_tk.GUI_Init()')
-    progSpec.appendToStringTagValue(tags, 'runCode', 'gui_tk.GUI_Run()')
-    progSpec.appendToStringTagValue(tags, 'deinitCode', 'gui_tk.GUI_Deinit()')
+    progSpec.appendToStringTagValue(tags, 'initCode', 'appFuncs.gui.GUI_Init()')
+    progSpec.appendToStringTagValue(tags, 'runCode', 'appFuncs.gui.GUI_Run()')
+    progSpec.appendToStringTagValue(tags, 'deinitCode', 'appFuncs.gui.GUI_Deinit()')
 
     # Based on tags, choose a set of libraries and mark-activate them.
     progSpec.setFeaturesNeeded(tags, ['GUI_ToolKit', 'Mouse', 'Keyboard', 'Audio', 'Locale', 'Unicode'], 'GUI_PATTERN')

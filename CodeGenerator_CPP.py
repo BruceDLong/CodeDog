@@ -246,6 +246,22 @@ def convertType(objects, TypeSpec):
     return cppType
 
 
+def codeAllocater(typeSpec):
+    S=''
+    owner=typeSpec['owner']
+    fType=typeSpec['fieldType']
+    if isinstance(fType, basestring): varTypeStr=fType;
+    else: varTypeStr=fType[0]
+
+    if(owner=='our'): S="make_shared<"+varTypeStr+">"
+    elif(owner=='my'): S="make_unique<"+varTypeStr+">"
+    elif(owner=='their'): S="new "+varTypeStr
+    elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
+    elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
+    else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
+
+    return S
+
 def genIfBody(ifBody, indent):
     ifBodyText = ""
     for ifAction in ifBody:
@@ -353,23 +369,18 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
         typeSpecOut=fetchItemsTypeSpec(name)[0]
     else:
         fType=typeSpecIn['fieldType']
+        owner=typeSpecIn['owner']
 
         if(name=='allocate'):
-            owner=typeSpecIn['owner']
-            if(owner=='our'): S_alt=" = make_shared<"+fType[0]+">"
-            elif(owner=='my'): S_alt=" = make_unique<"+fType[0]+">"
-            elif(owner=='their'): S_alt=" = new "+fType[0]
-            elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
-            elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
-            else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
+            S_alt=' = '+codeAllocater(typeSpecIn)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif(name[0]=='[' and fType=='string'):
-            typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
+            typeSpecOut={'owner':owner, 'fieldType': fType}
             [S2, idxType] = codeExpr(name[1])
             S+= '[' + S2 +']'
             return [S, typeSpecOut]
         else:
-            typeSpecOut=CheckObjectVars(typeSpecIn['fieldType'][0], name, 1)
+            typeSpecOut=CheckObjectVars(fType[0], name, 1)
             if typeSpecOut!=0:
                 name=typeSpecOut['fieldName']
                 typeSpecOut=typeSpecOut['typeSpec']
@@ -630,6 +641,18 @@ def codeSpecialFunc(segSpec):
                 [S2, argType]=codeExpr(P[0])
                 S+=' << '+S2
             S+=" << flush"
+    elif(funcName=='AllocateOrClear'):
+        if(len(segSpec)>2):
+            print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
+            paramList=segSpec[2]
+            [varName,  varTypeSpec]=codeExpr(paramList[0][0])
+            S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec)+";}"
+            print ">>>:", S
+    elif(funcName=='Allocate'):
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            [varName,  varTypeSpec]=codeExpr(paramList[0][0])
+            S+=varName+" = "+codeAllocater(varTypeSpec)+";"
     #elif(funcName=='break'):
     #elif(funcName=='return'):
     #elif(funcName==''):
@@ -1026,7 +1049,7 @@ def generateAllObjectsButMain(objects, tags):
         if progSpec.isWrappedType(objects, objectName)!=None: continue
         if(objectName[0] != '!'):
 
-            # The next 4 lines skip defining classes that will already be defined by a library
+            # The next lines skip defining classes that will already be defined by a library
             ObjectDef = objects[0][objectName]
             ctxTag  =progSpec.searchATagStore(ObjectDef['tags'], 'ctxTag')
             implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')

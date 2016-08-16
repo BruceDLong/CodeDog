@@ -20,7 +20,7 @@ featuresNeeded = {}
 runCode=`
     me EParser: parser
     parser.populateGrammar()
-    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1]")   // "[Robert 234 4/19/1967 'Hello World!'1]")
+    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1 ]")   // "[Robert 234 4/19/1967 'Hello World!'1]")
   //  parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1 2/22/1922 ]")
 
     parser.doParse()
@@ -102,10 +102,18 @@ string testParse::str{
     > me string: worldMesg
     //> their numChar[OPT]: optNum ","
     > me numChar: myNum " "
-    > me date::str[list]: birthdays
+   // > me date::str[list]: birthdays
     "]"
 }
 
-struct testParse::mem auto
+//struct testParse::mem auto
+struct testParse::mem{
+    "Robert"
+    me string[list]: numbStr
+    me date: birthday
+    their string: worldMesg
+    me string: myNum
+    me date[list]: birthdays
+}
 
 do Write_Main(xyz)

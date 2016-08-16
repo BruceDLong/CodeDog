@@ -683,7 +683,7 @@ def fetchOrWriteParseRule(modelName, field):
         else:
             print "Unusable const type in fetchOrWriteParseRule():", fieldType; exit(2);
 
-    elif fieldOwner=='me':
+    elif fieldOwner=='me' or  fieldOwner=='their':
         if fieldType=='string':        nameOut='quotedStr1'
         elif fieldType[0:4]=='uint':   nameOut='uintSeq'
         elif fieldType[0:3]=='int':    nameOut='intSeq'
@@ -875,7 +875,7 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
                 if CODE_RVAL!="": assignerCode+='        '+CODE_LVAR+' <- '+CODE_RVAL+"\n"
                 elif finalCodeStr!="": assignerCode+=finalCodeStr;
             gatherFieldCode+=indent+'}'"""
-    else: 
+    else:
         if toIsList: print "Error: parsing a non-list to a list is not supported.\n"; exit(1);
         assignerCode=''
         if fromIsALT:
@@ -889,6 +889,9 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
             if CODE_RVAL!="": assignerCode+='        '+CODE_LVAR+' <- '+CODE_RVAL+"\n"
             elif finalCodeStr!="": assignerCode+=finalCodeStr;
         gatherFieldCode = assignerCode
+
+    if toFieldOwner == 'their' or toFieldOwner == 'our' or toFieldOwner == 'my': # LVAL is a pointer and should be allocated or cleared.
+        S+= indent + 'AllocateOrClear(' +CODE_LVAR +')\n'
 
     S+=gatherFieldCode
     #print "ASSIGN_CODE", S

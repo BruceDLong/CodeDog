@@ -293,7 +293,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
     S=''
     S_alt=''
-    #namePrefix=''  # TODO: code for static_Global var
+    namePrefix=''  # TODO: code for static_Global var
     typeSpecOut={'owner':''}
     paramList=None
     if len(segSpec) > 1 and segSpec[1]=='(':
@@ -366,9 +366,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
             S=tmp
             return [S, '']
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name)
-        if(SRC=="GLOBAL"): name = "GLOBAL."+name
+        #if(SRC=="GLOBAL"): name = "GLOBAL.static_Global"+name
         print "                                                 dummyType: ["+SRC+"] "+name
-        #if(SRC=="GLOBAL"): namePrefix = "GLOBAL.static_Global."
+        if(SRC=="GLOBAL"): namePrefix = "GLOBAL.static_Global."
     else:
         fType=typeSpecIn['fieldType']
 
@@ -395,8 +395,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector):
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [name, paramList]=convertNameSeg(typeSpecOut, name, paramList)
 
-    if S_alt=='': S+=connector+name
-    #if S_alt=='': S+=namePrefix+connector+name
+   # if S_alt=='': S+=connector+name
+    if S_alt=='': S+=namePrefix+connector+name
     else: S += S_alt
 
     # Add parameters if this is a function call
@@ -967,7 +967,7 @@ def processOtherStructFields(objects, objectName, tags, indent):
         ################################################################
         ## ASSIGNMENTS
         ################################################################
-        if fieldName=='opAssign': 
+        if fieldName=='opAssign':
             fieldName='operator='
             print "                         opAssign: ", fieldType, fieldName
         ################################################################
