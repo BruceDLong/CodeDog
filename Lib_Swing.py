@@ -18,13 +18,13 @@ model draw2D{
     me void: paintNow()
     me void: strokeNow()
 }
-struct JavaGUICtxt{
+struct JavaGUI_ctxt{
     their Graphics2D: gr
     me GeneralPath: GPath
     me double: cur_x
     me double: cur_y
 }
-struct GUI_ctxt{their JavaGUICtxt:GUI_ctxt}
+struct GUI_ctxt{their JavaGUI_ctxt:GUI_ctxt}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me Object: GUI_item}
@@ -52,9 +52,9 @@ struct GUI {
     me uint32: GUI_Run() <- <% {
         long status=0;
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
-        public void run() {
-            GUI_PopulateAndExec();
-        }
+            public void run() {
+                GUI_PopulateAndExec();
+            }
         });
 
         return(status);
@@ -65,9 +65,7 @@ struct GUI {
 
     me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- {
         me GUI_menuItem: menuitem
-
         menuitem <- GUI_menuItemWithLabel(label)
-        //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
         addItemToMenu(ParentMenu, menuitem)
         showWidget(menuitem)
 
@@ -76,19 +74,15 @@ struct GUI {
 
     me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- {
         me GUI_menu: SubMenu
-        me GUI_menuItem: menuitem <- GUI_menuItemWithLabel (label)
-       //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
-        addItemToMenu(ParentMenu, menuitem)
-        showWidget(menuitem)
+        SubMenu <- GUI_menuWithLabel(label)
+        addItemToMenu(ParentMenu, SubMenu)
         return(SubMenu)
     }
 
     me GUI_menu: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label) <- {
         me GUI_menu: SubMenu
-        me GUI_menuItem: menuitem <- GUI_menuItemWithLabel (label)
-       //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu)
-        addItemToMenu(ParentMenu, menuitem)
-        showWidget(menuitem)
+        SubMenu <- GUI_menuWithLabel(label)
+        addItemToMenu(ParentMenu, SubMenu)
         return(SubMenu)
     }
 }
@@ -103,21 +97,22 @@ struct GLOBAL{
 struct GUI{
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!;%>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G %>
     me GUI_item: newCanvas() <- <%!%Gnew JPanel()%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew JMenuItem(%1)%>
+    me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew JMenu(%1)%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setSize(%2, %3)%>
     me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
     me GUI_item: newScrollingWindow() <- <%!%Gnew JScrollPane()%>
     me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.add(%2)%>
     me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%G%1.add(%2)%>
-    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%1.setJMenuBar(%2)%>
+    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%1.setJMenuBar(%2)%>
     me void: create_MenuItem()<- <%!gui.create_MenuItem(%1, %2)%>
     me void: create_TopSubMenu()<- <%!gui.create_TopSubMenu(%1, %2)%>
     me void: create_SubMenu()<- <%!gui.create_SubMenu(%1, %2)%>
-    me void: setCallback() <- <%! ; %>
+    me void: setCallback() <- <%!%G %>
 }
 
 struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
