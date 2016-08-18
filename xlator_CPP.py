@@ -1,6 +1,8 @@
 #xlator_CPP.py
 from CodeGenerator_CPP import *
 
+######################################################   E X P R E S S I O N   C O D I N G
+
 def codeFactor(item, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
     #print '                  factor: ', item
@@ -122,8 +124,19 @@ def codeExpr(item, xlator):
     #print "S:",S
     return [S, retType]
 
+#######################################################
+
+def includeDirective(libHdr):
+    S = '#include <'+libHdr+'>\n'
+    return S
+
 def fetchXlators():
     xlators = {}
-    xlators["codeExpr"] = codeExpr
+
+    xlators['LanguageName']     = "C++"
+    xlators['BuildStrPrefix']   = "g++ -g -std=gnu++14  "
+    xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
+    xlators['codeExpr']         = codeExpr
+    xlators['includeDirective'] = includeDirective
 
     return(xlators)

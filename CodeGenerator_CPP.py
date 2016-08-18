@@ -1,11 +1,11 @@
-# CodeGenerator_CPP.py
+# CodeGenerator.py
 import progSpec
 import re
 import datetime
 import pattern_Write_Main
 import codeDogParser
 
-buildStr_libs='g++ -g -std=gnu++14 '
+buildStr_libs=''
 
 
 def bitsNeeded(n):
@@ -65,7 +65,7 @@ def CheckObjectVars(objName, itemName, level):
                 return retVal
         else:
             if 'fieldName' in wrappedTypeSpec and wrappedTypeSpec['fieldName']==itemName:
-                print "WRAPPED FIELDNAME:", itemName
+                #print "WRAPPED FIELDNAME:", itemName
                 return wrappedTypeSpec
             else: return 0
 
@@ -121,7 +121,7 @@ def fetchItemsTypeSpec(itemName):
             REF=CheckObjectVars(currentObjName, itemName, 1)
             if (REF):
                 RefType="OBJVAR"
-
+                if(currentObjName=='GLOBAL'): RefType="GLOBAL"
             else:
                 REF=CheckObjectVars("GLOBAL", itemName, 0)
                 if (REF):
@@ -293,6 +293,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
     #print "CODENAMESEG:", segSpec, typeSpecIn
     S=''
     S_alt=''
+    namePrefix=''  # For static_Global vars
     typeSpecOut={'owner':''}
     paramList=None
     if len(segSpec) > 1 and segSpec[1]=='(':
@@ -302,11 +303,12 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             paramList=segSpec[2]
 
     name=segSpec[0]
+    print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=getContainerType(typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
-        #print "NAME:", name
+        print "                                                 arraySpec:"
         if(name[0]=='['):
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
             S+= '[' + S2 +']'
@@ -368,7 +370,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
         if(tmp!=''):
             S=tmp
             return [S, '']
-        typeSpecOut=fetchItemsTypeSpec(name)[0]
+        [typeSpecOut, SRC]=fetchItemsTypeSpec(name)
+        if(SRC=="GLOBAL"): namePrefix = ''
     else:
         fType=typeSpecIn['fieldType']
         owner=typeSpecIn['owner']
@@ -389,8 +392,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [name, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
+        callAsGlobal=name.find("%G")
+        if(callAsGlobal >= 0): namePrefix=''
 
-    if S_alt=='': S+=connector+name
+    if S_alt=='': S+=namePrefix+connector+name
     else: S += S_alt
 
     # Add parameters if this is a function call
@@ -419,7 +424,7 @@ def codeUnknownNameSeg(segSpec, xlator):
         if(len(paramList)==0):
             S+="()"
         else:
-            S+= '('+codeParameterList(paramList, None)+')'
+            S+= '('+codeParameterList(paramList, None, xlator)+')'
     return S;
 
 def codeItemRef(name, LorR_Val, xlator):
@@ -438,7 +443,7 @@ def codeItemRef(name, LorR_Val, xlator):
             if(segType): # This is where to detect type of vars not found to determine whether to use '.' or '->'
                 #print "SEGTYPE:", segType
                 segOwner=segType['owner']
-                if(segOwner!='me'): connector='->'
+                if(segOwner!='me'): connector = xlator['PtrConnector']
 
         if segType!=None:
             [segStr, segType]=codeNameSeg(segSpec, segType, connector, xlator)
@@ -494,7 +499,7 @@ def codeUserMesg(item, xlator):
 def chooseVirtualRValOwner(LVAL, RVAL):
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
     if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
-    LeftOwner =LVAL['owner']
+    LeftOwner=LVAL['owner']
     RightOwner=RVAL['owner']
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner=='me' and (RightOwner=='my' or RightOwner=='our' or RightOwner=='their'): return ["(*", ")"]
@@ -516,8 +521,6 @@ def codeParameterList(paramList, modelParams, xlator):
             S += leftMod+S2+rightMod
         else: S += S2
         count+=1
-        # TODO: get arg's type and call chooseVirtualRValOwner()
-
     return S
 
 def codeSpecialFunc(segSpec, xlator):
@@ -538,7 +541,6 @@ def codeSpecialFunc(segSpec, xlator):
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec)+";}"
-            print ">>>:", S
     elif(funcName=='Allocate'):
         if(len(segSpec)>2):
             paramList=segSpec[2]
@@ -610,6 +612,7 @@ def processAction(action, indent, xlator):
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL', xlator)
         LHS = codeStr
+        print "                                     assign: ", LHS
         [S2, rhsType]=xlator['codeExpr'](action['RHS'][0], xlator)
         #print "LHS / RHS:", LHS, ' / ', S2, typeSpec, rhsType
         [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
@@ -639,7 +642,7 @@ def processAction(action, indent, xlator):
     elif (typeOfAction =='swap'):
         LHS =  ".".join(action['LHS'])
         RHS =  ".".join(action['LHS'])
-        #print "swap: ", LHS, RHS
+        print "                                     swap: ", LHS, RHS
         actionText = indent + "swap (" + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='conditional'):
         [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], xlator)
@@ -680,9 +683,9 @@ def processAction(action, indent, xlator):
             [whereExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
             actionText += indent + "while(" + whereExpr + "){\n"
         else: # interate over a container
-            print "ITERATE OVER", action['repList'][0]
+            #print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], xlator)
-            print "CONTAINER-SPEC:", repContainer, containerType
+            #print "CONTAINER-SPEC:", repContainer, containerType
             datastructID = containerType['arraySpec']['datastructID']
 
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
@@ -875,7 +878,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                     argListText='' #'void'
                 elif argList[0]=='<%':
                     argListText=argList[1][0]
-                else:
+                else:                                                           # Print out argList.
                     argListText=""
                     count=0
                     for arg in argList:
@@ -884,11 +887,11 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                         argTypeSpec =arg['typeSpec']
                         argFieldName=arg['fieldName']
                         argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
-                        localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
+                        localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
-                if(fieldType[0] != '<%'):
+                if(fieldType[0] != '<%'):                                       # not verbatim field type
                     pass #registerType(objectName, fieldName, convertedType, typeDefName)
-                else: typeDefName=convertedType
+                else: typeDefName=convertedType                                 # grabbing typeDefName if not verbatim
                 LangFormOfObjName = flattenObjectName(objectName)
                 structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
                 objPrefix=LangFormOfObjName +'::'
@@ -896,7 +899,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
 
             ##### Generate Function Body
             verbatimText=field['value'][1]
-            if (verbatimText!=''): # This function body is 'verbatim'.
+            if (verbatimText!=''):                                      # This function body is 'verbatim'.
                 if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
                     structCode=""
                     funcText=""
@@ -1036,7 +1039,6 @@ def addSpecialCode():
         return std::string(formatted.get());
     }
     """
-
     return S
 
 libInterfacesText=''
@@ -1059,7 +1061,7 @@ def makeFileHeader(tags):
     return header
 
 
-def integrateLibraries(tags, libID):
+def integrateLibraries(tags, libID, xlator):
     print '                Integrating', libID
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
     libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
@@ -1070,16 +1072,16 @@ def integrateLibraries(tags, libID):
         buildStr_libs+=' -l'+libFile
     libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
     for libHdr in libHeaders:
-        headerStr += '#include <'+libHdr+'>\n'
+        headerStr += xlator['includeDirective'](libHdr)
         #print "Added header", libHdr
     #print 'BUILD STR', buildStr_libs
     return headerStr
 
-def connectLibraries(objects, tags, libsToUse):
+def connectLibraries(objects, tags, libsToUse, xlator):
     print "\n            Choosing Libaries to link..."
     headerStr = ''
     for lib in libsToUse:
-        headerStr += integrateLibraries(tags, lib)
+        headerStr += integrateLibraries(tags, lib, xlator)
     return headerStr
 
 def createInit_DeInit(objects, tags):
@@ -1109,10 +1111,11 @@ def generate(objects, tags, libsToUse, xlator):
     global objectsRef
     global buildStr_libs
     global libInterfacesText
+    buildStr_libs = xlator['BuildStrPrefix']
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     createInit_DeInit(objects, tags)
-    libInterfacesText=connectLibraries(objects, tags, libsToUse)
+    libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags, xlator)
     topBottomStrings = processMain(objects, tags, xlator)
