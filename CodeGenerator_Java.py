@@ -128,48 +128,53 @@ def fetchItemsTypeSpec(itemName):
 
 
 fieldNamesAlreadyUsed={}
-def processFlagAndModeFields(field, fieldName, tags):
-    #print "                    Coding flags and modes for:", fieldName
+def processFlagAndModeFields(objects, objectName, tags):
+    print "                    Coding flags and modes for:", objectName
     global fieldNamesAlreadyUsed
     flagsVarNeeded = False
     bitCursor=0
     structEnums=""
-    fieldType=field['typeSpec']['fieldType'];
-    fieldName=field['fieldName'];
-    #print "                    ", field
-    if fieldType=='flag':
-        print "                        flag: ", fieldName
-        flagsVarNeeded=True
-        structEnums += "final int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
-        bitCursor += 1;
-    elif fieldType=='mode':
-        print "                        mode: ", fieldName, '[]'
-        print field
-        structEnums += "\n// For Mode "+fieldName+"\n"
-        flagsVarNeeded=True
-        # calculate field and bit position
-        enumSize= len(field['typeSpec']['enumList'])
-        numEnumBits=bitsNeeded(enumSize)
-        #field[3]=enumSize;
-        #field[4]=numEnumBits;
-        enumMask=((1 << numEnumBits) - 1) << bitCursor
+    ObjectDef = objects[0][objectName]
+    for field in ObjectDef['fields']:
+        fieldType=field['typeSpec']['fieldType'];
+        fieldName=field['fieldName'];
+        if fieldName in fieldNamesAlreadyUsed: continue
+        else:fieldNamesAlreadyUsed[fieldName]=objectName
+        #print "                    ", field
+        if fieldType=='flag':
+            print "                        flag: ", fieldName
+            flagsVarNeeded=True
+            structEnums += "final int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
+            bitCursor += 1;
+        elif fieldType=='mode':
+            print "                        mode: ", fieldName, '[]'
+            print field
+            structEnums += "\n// For Mode "+fieldName+"\n"
+            flagsVarNeeded=True
+            # calculate field and bit position
+            enumSize= len(field['typeSpec']['enumList'])
+            numEnumBits=bitsNeeded(enumSize)
+            #field[3]=enumSize;
+            #field[4]=numEnumBits;
+            enumMask=((1 << numEnumBits) - 1) << bitCursor
 
-        structEnums += "final int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
-        structEnums += "final int "+fieldName +"Mask = " + hex(enumMask) +";"
+            structEnums += "final int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
+            structEnums += "final int "+fieldName +"Mask = " + hex(enumMask) +";"
 
-        # enum
-        count=0
-        for enumName in field['typeSpec']['enumList']:
-            structEnums += "final int "+enumName+"="+hex(count)+";\n"
-            count=count+1
+            # enum
+            count=0
+            for enumName in field['typeSpec']['enumList']:
+                structEnums += "final int "+enumName+"="+hex(count)+";\n"
+                count=count+1
 
-        structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
-        # read/write macros
-        structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
-        # str array and printer
+            structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
+            # read/write macros
+            structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
+            # str array and printer
 
-        bitCursor=bitCursor+numEnumBits;
-    return structEnums
+            bitCursor=bitCursor+numEnumBits;
+    if structEnums!="": structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'+structEnums
+    return [flagsVarNeeded, structEnums]
 
 typeDefMap={}
 ObjectsFieldTypeMap={}
@@ -727,14 +732,7 @@ def generate_constructor(objects, ClassName, tags, xlator):
     for field in ObjectDef['fields']:
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
-        fieldName = field['fieldName']
-        if(fieldType=='flag' or fieldType=='mode'):
-            if fieldName in fieldNamesAlreadyUsed: continue
-            else:fieldNamesAlreadyUsed[fieldName]=objectName
-            structCode = indent + processFlagAndModeFields(field, fieldName, tags)
-            structCodeAcc  += structCode
-            print "structCodeAcc", structCodeAcc
-            continue
+        if(fieldType=='flag' or fieldType=='mode'): continue
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
         if(typeSpec['arraySpec'] or typeSpec['arraySpec']!=None): continue
         fieldOwner=typeSpec['owner']
@@ -784,34 +782,13 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
         funcText=""
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
-        fieldName = field['fieldName']
-
-        if(fieldType=='flag' or fieldType=='mode'):
-            if fieldName in fieldNamesAlreadyUsed: continue
-            else:fieldNamesAlreadyUsed[fieldName]=objectName
-            structCode = indent + processFlagAndModeFields(field, fieldName, tags)
-            structCodeAcc  += structCode
-            print "structCodeAcc", structCodeAcc
-            continue
-
+        if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=typeSpec['owner']
         fieldName =field['fieldName']
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, xlator))
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
-
-        ################################################################
-        ##CALCULATE FLAGS & MODES                                    MOVE THIS TO ITS OWN FUNC
-        ################################################################
-        if(fieldType=='flag' or fieldType=='mode'):
-            if fieldName in fieldNamesAlreadyUsed: continue
-            else:
-                fieldNamesAlreadyUsed[fieldName]=objectName
-            structCode = indent + processFlagAndModeFields(field, fieldName, tags)
-            structCodeAcc  += structCode
-            continue                                                    ### CONTINUE ###
-        ################################################################
 
 
 
@@ -967,10 +944,18 @@ def generateAllObjectsButMain(objects, tags, xlator):
                 parentClass=implMode[8:]
                 parentClass=' extends '+parentClass+' '
 
+            #print "OBJNAME", objectName
+            #charIdx=objectName.find('#')
+            #if charIdx>=0:  # there is '#' denoting a library specific version ctxTag.
+                #thisCtxTag = objectName[charIdx+1:]
+                #if thisCtxTag in progSpec.libsToUse:
+                    #print "TAG",thisCtxTag
+                    #objectName = objectName[:charIdx-1]
+                #else:print "!TAG", thisCtxTag; continue
             print "                [" + objectName+"]"
             currentObjName=objectName
-            #[needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags, xlator)
-            #constsEnums+=strOut
+            [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags, xlator)
+            constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
             if(objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
