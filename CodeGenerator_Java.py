@@ -144,7 +144,7 @@ def flattenObjectName(objName):
     return objName.replace('::', '_')
 
 fieldNamesAlreadyUsed={}
-def processFlagAndModeFields(objects, objectName, tags):
+def processFlagAndModeFields(objects, objectName, tags, xlator):
     print "                    Coding flags and modes for:", objectName
     global fieldNamesAlreadyUsed
     flagsVarNeeded = False
@@ -164,7 +164,7 @@ def processFlagAndModeFields(objects, objectName, tags):
             bitCursor += 1;
         elif fieldType=='mode':
             print "                        mode: ", fieldName, '[]'
-            print field
+            #print field
             structEnums += "\n// For Mode "+fieldName+"\n"
             flagsVarNeeded=True
             # calculate field and bit position
@@ -558,7 +558,7 @@ def codeSpecialFunc(segSpec, xlator):
             print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
-            S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec)+";}"
+            S+='if('+varName+'){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec)+";}"
     elif(funcName=='Allocate'):
         if(len(segSpec)>2):
             paramList=segSpec[2]
@@ -1012,10 +1012,6 @@ def generateAllObjectsButMain(objects, tags, xlator):
             if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit")):  # "useLibrary"
                 #print "SKIPPING:", objectName, ctxTag, implMode
                 continue
-            parentClass=''
-            if(implMode and implMode[:7]=="inherit"):
-                parentClass=implMode[8:]
-                parentClass=' extends '+parentClass+' '
 
             #print "OBJNAME", objectName
             #charIdx=objectName.find('#')
@@ -1025,6 +1021,7 @@ def generateAllObjectsButMain(objects, tags, xlator):
                     #print "TAG",thisCtxTag
                     #objectName = objectName[:charIdx-1]
                 #else:print "!TAG", thisCtxTag; continue
+
             print "                [" + objectName+"]"
             currentObjName=objectName
             [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags, xlator)
@@ -1033,6 +1030,10 @@ def generateAllObjectsButMain(objects, tags, xlator):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
             if(objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = flattenObjectName(objectName)
+                parentClass=''
+                if(implMode and implMode[:7]=="inherit"):
+                    parentClass=implMode[8:]
+                    parentClass=' extends '+parentClass+' '
                 #forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ', xlator)
                 structCodeAcc += "\nclass "+LangFormOfObjName+parentClass+"{\n" + structCode + '};\n'
