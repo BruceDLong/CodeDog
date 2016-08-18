@@ -1,5 +1,72 @@
 #xlator_CPP.py
-from CodeGenerator_CPP import *
+import progSpec
+from CodeGenerator_CPP import codeItemRef, codeUserMesg, processOtherStructFields
+
+###### Routines to track types of identifiers and to look up type based on identifier.
+def getContainerType(typeSpec):
+    containerSpec=typeSpec['arraySpec']
+    idxType=''
+    if 'indexType' in containerSpec:
+        idxType=containerSpec['indexType']
+    datastructID = containerSpec['datastructID']
+    if idxType[0:4]=='uint': idxType+='_t'
+    if(datastructID=='list'): datastructID = "deque"
+    return [datastructID, idxType]
+
+def convertType(objects, TypeSpec, xlator):
+    owner=TypeSpec['owner']
+    fieldType=TypeSpec['fieldType']
+    #print "fieldType: ", fieldType
+    if not isinstance(fieldType, basestring):
+        #if len(fieldType)>1: exit(2)
+        fieldType=fieldType[0]
+    baseType = progSpec.isWrappedType(objects, fieldType)
+    if(baseType!=None):
+        owner=baseType['owner']
+        fieldType=baseType['fieldType']
+
+    langType="TYPE ERROR"
+    if(fieldType=='<%'): return fieldType[1][0]
+    return xlateLangType(TypeSpec,owner, fieldType, xlator)
+
+def xlateLangType(TypeSpec,owner, fieldType, xlator):
+    if(isinstance(fieldType, basestring)):
+        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
+        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
+        if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
+            langType=fieldType+'_t'
+        else:
+            langType=progSpec.flattenObjectName(fieldType)
+    else: langType=progSpec.flattenObjectName(fieldType[0])
+
+    if owner=='const':
+        langType = "const "+langType
+    elif owner=='me':
+        langType = langType
+    elif owner=='my':
+        langType="unique_ptr<"+langType + '> '
+    elif owner=='our':
+        langType="shared_ptr<"+langType + '> '
+    elif owner=='their':
+        langType += '*'
+    else:
+        print "ERROR: Owner of type not valid '" + owner + "'"
+        exit(1)
+    if langType=='TYPE ERROR': print langType, owner, fieldType;
+
+    if 'arraySpec' in TypeSpec:
+        arraySpec=TypeSpec['arraySpec']
+        if(arraySpec): # Make list, map, etc
+            [containerType, idxType]=getContainerType(TypeSpec)
+            if containerType=='deque':
+                langType="deque< "+langType+" >"
+            elif containerType=='map':
+                langType="map< "+idxType+', '+langType+" >"
+            elif containerType=='multimap':
+                langType="multimap< "+idxType+', '+langType+" >"
+    return langType
+
+
 
 ######################################################   E X P R E S S I O N   C O D I N G
 
@@ -123,6 +190,60 @@ def codeExpr(item, xlator):
             retType='bool'
     #print "S:",S
     return [S, retType]
+############################################
+def processMain(objects, tags, xlator):
+    print "\n            Generating GLOBAL..."
+    if("GLOBAL" in objects[1]):
+        if(objects[0]["GLOBAL"]['stateType'] != 'struct'):
+            print "ERROR: GLOBAL must be a 'struct'."
+            exit(2)
+        [structCode, funcCode, globalFuncs]=processOtherStructFields(objects, "GLOBAL", tags, '', xlator)
+        if(funcCode==''): funcCode="// No main() function.\n"
+        if(structCode==''): structCode="// No Main Globals.\n"
+        return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
+    return ["// No Main Globals.\n", "// No main() function defined.\n"]
+
+def produceTypeDefs(typeDefMap, xlator):
+    typeDefCode="\n// Typedefs:\n"
+    for key in typeDefMap:
+        val=typeDefMap[key]
+        #sprint '['+key+']='+val+']'
+        if(val != '' and val != key):
+            typeDefCode += 'typedef '+key+' '+val+';\n'
+    return typeDefCode
+
+def addSpecialCode():
+    S='\n\n//////////// C++ specific code:\n'
+    S += "\n\nusing namespace std;\n\n"
+    S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
+
+    S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
+    S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
+
+    S+="""
+    // Thanks to Erik Aronesty via stackoverflow.com
+    // Like printf but returns a string.
+    // #include <memory>, #include <cstdarg>
+    inline std::string strFmt(const std::string fmt_str, ...) {
+        int final_n, n = fmt_str.size() * 2; /* reserve 2 times as much as the length of the fmt_str */
+        std::string str;
+        std::unique_ptr<char[]> formatted;
+        va_list ap;
+        while(1) {
+            formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
+            strcpy(&formatted[0], fmt_str.c_str());
+            va_start(ap, fmt_str);
+            final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
+            va_end(ap);
+            if (final_n < 0 || final_n >= n)
+                n += abs(final_n - n + 1);
+            else
+                break;
+        }
+        return std::string(formatted.get());
+    }
+    """
+    return S
 
 #######################################################
 
@@ -138,5 +259,11 @@ def fetchXlators():
     xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
     xlators['codeExpr']         = codeExpr
     xlators['includeDirective'] = includeDirective
+    xlators['processMain']      = processMain
+    xlators['produceTypeDefs']  = produceTypeDefs
+    xlators['addSpecialCode']   = addSpecialCode
+    xlators['convertType']      = convertType
+    xlators['xlateLangType']    = xlateLangType
+    xlators['getContainerType'] = getContainerType
 
     return(xlators)

@@ -220,6 +220,9 @@ def TypeSpecsMinimumBaseType(objects, typeSpec):
             return retType
     return fieldType
 
+def flattenObjectName(objName):
+    if objName[-5:]=='::mem': return objName[:-5]
+    return objName.replace('::', '_')
 
 """
 def getNameSegInfo(objMap, structName, fieldName):
