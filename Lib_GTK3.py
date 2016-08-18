@@ -58,8 +58,9 @@ struct GUI{
     me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
     me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!%Ggtk_viewport_new(%1, %2)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
+    me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
    // me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%G%1.add(%2)%>
-    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G )%>
+    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     me void: create_MenuItem()<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu()<- <%!%Gcreate_TopSubMenu(%1, %2)%>
     me void: create_SubMenu()<- <%!%Gcreate_SubMenu(%1, %2)%>
@@ -69,6 +70,7 @@ struct GUI{
 struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:cairo_t" {
    their cairo_t:GUI_ctxt
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
+    me void: reset() <- <%!%G %>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, %1, %2, %3, %4)%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, %1, %2, %3)%>
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
