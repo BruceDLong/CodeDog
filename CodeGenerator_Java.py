@@ -128,7 +128,7 @@ def fetchItemsTypeSpec(itemName):
 
 
 fieldNamesAlreadyUsed={}
-def processFlagAndModeFields(objects, objectName, tags):
+def processFlagAndModeFields(objects, objectName, tags, xlator):
     print "                    Coding flags and modes for:", objectName
     global fieldNamesAlreadyUsed
     flagsVarNeeded = False
@@ -193,7 +193,7 @@ def varTypeIsJavaValueType(convertedType):
 
 
 
-        
+
 
 
 
