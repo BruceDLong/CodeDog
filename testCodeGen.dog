@@ -1,9 +1,10 @@
 // Test dog file
 
-LinuxBuild: CPU='amd64' Lang='CPP' optimize='speed';
+//LinuxBuild: CPU='amd64' Lang='CPP' optimize='speed';
 //AndroidBuild: CPU='arm7' Lang='java' optimize='speed';
 //AppleBuild: CPU='i386' Lang='objectiveC' optimize='clarity';
 // g++ -g -std=gnu++11 `pkg-config --cflags gtk+-3.0` test.cpp
+SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 
 BuildCmd = `g++ -std=gnu++11 test.cpp -o test`
 Title = "CodeDog test suite"
@@ -26,9 +27,9 @@ TestMap = {abc=123 def='hi' LST=[12, 34, 56] MP = {a=b c=d}}
 
 testEventHandling = {ID='testEvH' maxEvents='100000' types=[GUI, LogicAtom] runFromMain=1}
 
-initCode='me bool: isOn'
-runCode=''
-deinitCode='me char: ste'
+initCode=''
+runCode='testFunc()'
+deinitCode=''
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <cstdarg>, <iostream>, <deque>`
 
@@ -36,18 +37,57 @@ Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <map>, <
 
 
 
-// test class 
-struct testClass  {
-    me string: address
-    me bool: isOn
-    me char: ste
-    me bool: testFunc (me int32: arg1) <- {
-        me int32: X <- 12
-        if (X == 1){X <- 2}
-        else if(X == 2 ){X <- 3}
+// test class
+struct GLOBAL  {
+    me void: testFunc() <- {
+        me string: myMessage <- "Hello, World!"
+        logMesg(myMessage)
 
-        else {X <- 5}
-        return(false)
+        me uint32: numItems <- 8
+        countRange(numItems)
+
+        //me studentManager: studentMgr
+        //studentMgr.fillStudentInfo(8)
+    }
+
+    me void: countRange(me uint32: numItems) <- {
+        me uint32: i <- 0
+        withEach item in RANGE(0 .. numItems):{
+            logMesg(i)
+            i <- i + 1
+        }
+    }
+
+    me void: printMessage(me string: myMessage) <- {
+        logMesg(myMessage)
     }
 }
+
+struct test{
+    me string: testSubject
+    me double: testNumber
+    me float: testScore
+}
+
+struct student{
+    me string: studentName
+    me string: email
+    me test[multimap uint32]: studentTests
+
+
+}
+
+struct dataStudentPtr{our dataStudent: dataStudentPtr}
+
+struct studentManager{
+
+    me string[list uint32]: studentDisplayOrder
+
+}
+
+struct thisApp{
+    me studentManager: studentMgr
+
+}
+
 do Write_Main(eventLoop)
