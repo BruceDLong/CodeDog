@@ -18,6 +18,8 @@ import Lib_Swing
 
 import CodeGenerator_CPP
 import CodeGenerator_Java
+import xlator_CPP
+import xlator_Java
 #import CodeGenerator_JavaScript
 #import CodeGenerator_ObjectiveC
 
@@ -117,10 +119,12 @@ def GenerateProgram(objects, buildSpec, tags, libsToUse):
     langGenTag = buildSpec[1]['Lang']
     if(langGenTag == 'CPP'):
         print "\n\n######################  G E N E R A T I N G   C + +   P R O G R A M . . ."
-        result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]], libsToUse)
+        xlator = xlator_CPP.fetchXlators()
+        result=CodeGenerator_CPP.generate(objects, [tags, buildSpec[1]], libsToUse, xlator)
     elif(langGenTag == 'Java'):
         print "\n\n######################  G E N E R A T I N G   J A V A   P R O G R A M . . ."
-        result=CodeGenerator_Java.generate(objects, [tags, buildSpec[1]], libsToUse)
+        xlator = xlator_Java.fetchXlators()
+        result=CodeGenerator_Java.generate(objects, [tags, buildSpec[1]], libsToUse, xlator)
     else:
         print "ERROR: No language generator found for ", langGenTag
     return result
