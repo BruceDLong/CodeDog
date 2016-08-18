@@ -21,16 +21,6 @@ localVarsAllocated = []   # Format: [varName, typeSpec]
 localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
 
-def getContainerType(typeSpec):
-    containerSpec=typeSpec['arraySpec']
-    idxType=''
-    if 'indexType' in containerSpec:
-        idxType=containerSpec['indexType']
-    datastructID = containerSpec['datastructID']
-    if idxType[0:4]=='uint': idxType+='_t'
-    if(datastructID=='list'): datastructID = "deque"
-    return [datastructID, idxType]
-
 def CheckBuiltinItems(itemName):
     if(itemName=='print'):  return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
     if(itemName=='return'): return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
@@ -135,9 +125,6 @@ def fetchItemsTypeSpec(itemName):
 
 ###### End of type tracking code
 
-def flattenObjectName(objName):
-    if objName[-5:]=='::mem': return objName[:-5]
-    return objName.replace('::', '_')
 
 fieldNamesAlreadyUsed={}
 def processFlagAndModeFields(objects, objectName, tags, xlator):
@@ -197,55 +184,8 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
-def convertType(objects, TypeSpec):
-    owner=TypeSpec['owner']
-    fieldType=TypeSpec['fieldType']
-    #print "fieldType: ", fieldType
-    if not isinstance(fieldType, basestring):
-        #if len(fieldType)>1: exit(2)
-        fieldType=fieldType[0]
-    baseType = progSpec.isWrappedType(objects, fieldType)
-    if(baseType!=None):
-        owner=baseType['owner']
-        fieldType=baseType['fieldType']
 
-    cppType="TYPE ERROR"
-    if(fieldType=='<%'): return fieldType[1][0]
-    if(isinstance(fieldType, basestring)):
-        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
-        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
-            cppType=fieldType+'_t'
-        else:
-            cppType=flattenObjectName(fieldType)
-    else: cppType=flattenObjectName(fieldType[0])
 
-    kindOfField=owner
-    if kindOfField=='const':
-        cppType = "const "+cppType
-    elif kindOfField=='me':
-        cppType = cppType
-    elif kindOfField=='my':
-        cppType="unique_ptr<"+cppType + '> '
-    elif kindOfField=='our':
-        cppType="shared_ptr<"+cppType + '> '
-    elif kindOfField=='their':
-        cppType += '*'
-    else:
-        print "ERROR: Owner of type not valid '" + owner + "'"
-        exit(1)
-    if cppType=='TYPE ERROR': print cppType, owner, fieldType;
-    if 'arraySpec' in TypeSpec:
-        arraySpec=TypeSpec['arraySpec']
-        if(arraySpec): # Make list, map, etc
-            [containerType, idxType]=getContainerType(TypeSpec)
-            if containerType=='deque':
-                cppType="deque< "+cppType+" >"
-            elif containerType=='map':
-                cppType="map< "+idxType+', '+cppType+" >"
-            elif containerType=='multimap':
-                cppType="multimap< "+idxType+', '+cppType+" >"
-    return cppType
 
 
 def codeAllocater(typeSpec):
@@ -306,7 +246,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
     print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
-        [containerType, idxType]=getContainerType(typeSpecIn)
+        [containerType, idxType]=xlator['getContainerType'](typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
         print "                                                 arraySpec:"
         if(name[0]=='['):
@@ -326,7 +266,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             else: print "Unknown deque command:", name; exit(2);
         elif containerType=='map':
             convertedIdxType=idxType
-            convertedItmType=convertType(objectsRef, typeSpecOut)
+            convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
             if name=='at' or name=='erase': pass
             elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
             elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -338,7 +278,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             else: print "Unknown map command:", name; exit(2);
         elif containerType=='multimap':
             convertedIdxType=idxType
-            convertedItmType=convertType(objectsRef, typeSpecOut)
+            convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
             if name=='at' or name=='erase': pass
             elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
             elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -600,7 +540,7 @@ def processAction(action, indent, xlator):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
-        fieldType = convertType(objectsRef, typeSpec)
+        fieldType = xlator['convertType'](objectsRef, typeSpec, xlator)
         assignValue=''
         if(fieldDef['value']):
             [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], xlator)
@@ -755,13 +695,13 @@ def processActionSeq(actSeq, indent, xlator):
         localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
-def generate_constructor(objects, ClassName, tags):
+def generate_constructor(objects, ClassName, tags, xlator):
     baseType = progSpec.isWrappedType(objects, ClassName)
     if(baseType!=None): return ''
     if not ClassName in objects[0]: return ''
     print "                    Generating Constructor for:", ClassName
     constructorInit=":"
-    constructorArgs="    "+flattenObjectName(ClassName)+"("
+    constructorArgs="    "+progSpec.flattenObjectName(ClassName)+"("
     count=0
     ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
@@ -772,7 +712,7 @@ def generate_constructor(objects, ClassName, tags):
         if(typeSpec['arraySpec'] or typeSpec['arraySpec']!=None): continue
         fieldOwner=typeSpec['owner']
         if(fieldOwner=='const'): continue
-        convertedType = convertType(objects, typeSpec)
+        convertedType = xlator['convertType'](objects, typeSpec, xlator)
         fieldName=field['fieldName']
 
         #print "                        Constructing:", ClassName, fieldName, fieldType, convertedType
@@ -822,7 +762,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         if fieldName=='opAssign': fieldName='operator='
-        convertedType = flattenObjectName(convertType(objects, typeSpec))
+        convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, xlator))
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         print "                       ", fieldType, fieldName
         if(fieldValue == None):fieldValueText=""
@@ -868,7 +808,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                                 count+=1
                                 argTypeSpec =arg['typeSpec']
                                 argFieldName=arg['fieldName']
-                                argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
+                                argListText+= xlator['convertType'](objects, argTypeSpec, xlator) + ' ' + argFieldName
                                 localArgsAllocated.append([argFieldName, argTypeSpec])  # Tracking function argumets for scope
 
                     globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")"
@@ -886,13 +826,13 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                         count+=1
                         argTypeSpec =arg['typeSpec']
                         argFieldName=arg['fieldName']
-                        argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
+                        argListText+= xlator['convertType'](objects, argTypeSpec, xlator) + ' ' + argFieldName
                         localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
                 if(fieldType[0] != '<%'):                                       # not verbatim field type
                     pass #registerType(objectName, fieldName, convertedType, typeDefName)
                 else: typeDefName=convertedType                                 # grabbing typeDefName if not verbatim
-                LangFormOfObjName = flattenObjectName(objectName)
+                LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
                 objPrefix=LangFormOfObjName +'::'
                 funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
@@ -927,7 +867,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
     if(objectName=='GLOBAL'):
         return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
     else:
-        constructCode=generate_constructor(objects, objectName, tags)
+        constructCode=generate_constructor(objects, objectName, tags, xlator)
         structCodeAcc+=constructCode
         return [structCodeAcc, funcDefCodeAcc]
 
@@ -969,7 +909,7 @@ def generateAllObjectsButMain(objects, tags, xlator):
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
             if(objectName != 'GLOBAL' and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
-                LangFormOfObjName = flattenObjectName(objectName)
+                LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):
                     parentClass=implMode[8:]
@@ -981,69 +921,13 @@ def generateAllObjectsButMain(objects, tags, xlator):
         currentObjName=''
     return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
 
-
-
-def processMain(objects, tags, xlator):
-    print "\n            Generating GLOBAL..."
-    if("GLOBAL" in objects[1]):
-        if(objects[0]["GLOBAL"]['stateType'] != 'struct'):
-            print "ERROR: GLOBAL must be a 'struct'."
-            exit(2)
-        [structCode, funcCode, globalFuncs]=processOtherStructFields(objects, "GLOBAL", tags, '', xlator)
-        if(funcCode==''): funcCode="// No main() function.\n"
-        if(structCode==''): structCode="// No Main Globals.\n"
-        return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
-    return ["// No Main Globals.\n", "// No main() function defined.\n"]
-
-def produceTypeDefs(typeDefMap):
-    typeDefCode="\n// Typedefs:\n"
-    for key in typeDefMap:
-        val=typeDefMap[key]
-        #sprint '['+key+']='+val+']'
-        if(val != '' and val != key):
-            typeDefCode += 'typedef '+key+' '+val+';\n'
-    return typeDefCode
-
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
     if tagVal==None: return "Tag '"+tagName+"' is not set in the dog file."
     return tagVal
 
-def addSpecialCode():
-    S='\n\n//////////// C++ specific code:\n'
-    S += "\n\nusing namespace std;\n\n"
-    S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
-
-    S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
-    S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
-
-    S+="""
-    // Thanks to Erik Aronesty via stackoverflow.com
-    // Like printf but returns a string.
-    // #include <memory>, #include <cstdarg>
-    inline std::string strFmt(const std::string fmt_str, ...) {
-        int final_n, n = fmt_str.size() * 2; /* reserve 2 times as much as the length of the fmt_str */
-        std::string str;
-        std::unique_ptr<char[]> formatted;
-        va_list ap;
-        while(1) {
-            formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
-            strcpy(&formatted[0], fmt_str.c_str());
-            va_start(ap, fmt_str);
-            final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
-            va_end(ap);
-            if (final_n < 0 || final_n >= n)
-                n += abs(final_n - n + 1);
-            else
-                break;
-        }
-        return std::string(formatted.get());
-    }
-    """
-    return S
-
 libInterfacesText=''
-def makeFileHeader(tags):
+def makeFileHeader(tags, xlator):
     global buildStr_libs
     global libInterfacesText
 
@@ -1058,9 +942,8 @@ def makeFileHeader(tags):
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
     header += "\n// Build Command: " +buildStr_libs+'\n'
     header += libInterfacesText
-    header += addSpecialCode()
+    header += xlator['addSpecialCode']()
     return header
-
 
 def integrateLibraries(tags, libID, xlator):
     print '                Integrating', libID
@@ -1117,10 +1000,10 @@ def generate(objects, tags, libsToUse, xlator):
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     createInit_DeInit(objects, tags)
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
-    header = makeFileHeader(tags)
+    header = makeFileHeader(tags, xlator)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags, xlator)
-    topBottomStrings = processMain(objects, tags, xlator)
-    typeDefCode = produceTypeDefs(typeDefMap)
+    topBottomStrings = xlator['processMain'](objects, tags, xlator)
+    typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
     outputStr = header + constsEnums + forwardDecls + codeHeader + typeDefCode + structCodeAcc + topBottomStrings[0] + funcCodeAcc + topBottomStrings[1]

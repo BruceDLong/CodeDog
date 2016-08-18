@@ -21,20 +21,6 @@ localVarsAllocated = []   # Format: [varName, typeSpec]
 localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
 
-def getContainerType(typeSpec):
-    containerSpec=typeSpec['arraySpec']
-    idxType=''
-    if 'indexType' in containerSpec:
-        idxType=containerSpec['indexType']
-    if idxType[0:4]=='uint': idxType = 'Long'
-    elif idxType=='string': idxType = 'String'
-
-    datastructID = containerSpec['datastructID']
-    if(datastructID=='list'): datastructID = "ArrayDeque"
-    elif(datastructID=='map'): datastructID = "TreeMap"
-    elif(datastructID=='multimap'): datastructID = "TreeMap"  # TODO: Implement true multmaps in java
-    return [datastructID, idxType]
-
 def CheckBuiltinItems(itemName):
     if(itemName=='print'):  return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
     if(itemName=='return'): return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
@@ -139,9 +125,7 @@ def fetchItemsTypeSpec(itemName):
 
 ###### End of type tracking code
 
-def flattenObjectName(objName):
-    if objName[-5:]=='::mem': return objName[:-5]
-    return objName.replace('::', '_')
+
 
 fieldNamesAlreadyUsed={}
 def processFlagAndModeFields(objects, objectName, tags, xlator):
@@ -198,23 +182,6 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
-def convertToJavaType(fieldType):
-    if(fieldType=='int32'):
-        javaType='int'
-    elif(fieldType=='uint32' or fieldType=='uint64'):
-        javaType='long'
-    elif(fieldType=='int64'):
-        javaType='long'
-    elif(fieldType=='char' ):
-        javaType='byte'
-    elif(fieldType=='bool' ):
-        javaType='boolean'
-    elif(fieldType=='string' ):
-        javaType='String'
-    else:
-        javaType=flattenObjectName(fieldType)
-    #print "javaType: ", javaType
-    return javaType
 
 def varTypeIsJavaValueType(convertedType):
     if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
@@ -222,53 +189,13 @@ def varTypeIsJavaValueType(convertedType):
         return True
     return False
 
-def convertType(objects, TypeSpec):
-    owner=TypeSpec['owner']
-    fieldType=TypeSpec['fieldType']
-    #print "fieldType: ", fieldType
-    if not isinstance(fieldType, basestring):
-        #if len(fieldType)>1: exit(2)
-        fieldType=fieldType[0]
-    baseType = progSpec.isWrappedType(objects, fieldType)
-    if(baseType!=None):
-        owner=baseType['owner']
-        fieldType=baseType['fieldType']
 
-    cppType="TYPE ERROR"
-    if(fieldType=='<%'): return fieldType[1][0]
-    if(isinstance(fieldType, basestring)):
-        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
-        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        cppType= convertToJavaType(fieldType)
-    else: cppType=flattenObjectName(fieldType[0])
 
-    kindOfField=owner
-    if kindOfField=='const':
-        cppType = "final static "+cppType
-    elif kindOfField=='me':
-        cppType = cppType
-    elif kindOfField=='my':
-        cppType = cppType
-    elif kindOfField=='our':
-        cppType = cppType
-    elif kindOfField=='their':
-        cppType = cppType
-    else:
-        print "ERROR: Owner of type not valid '" + owner + "'"
-        exit(1)
-    if cppType=='TYPE ERROR': print cppType, owner, fieldType;
-    if 'arraySpec' in TypeSpec:
-        arraySpec=TypeSpec['arraySpec']
-        if(arraySpec): # Make list, map, etc
-            [containerType, idxType]=getContainerType(TypeSpec)
-            print "IDX-TYPe:", idxType
-            if containerType=='ArrayDeque':
-                cppType="ArrayDeque< "+cppType+" >"
-            elif containerType=='TreeMap':
-                cppType="TreeMap< "+idxType+', '+cppType+" >"
-            elif containerType=='multimap':
-                cppType="multimap< "+idxType+', '+cppType+" >"
-    return cppType
+
+
+
+
+
 
 
 def codeAllocater(typeSpec):
@@ -325,7 +252,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
     print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
-        [containerType, idxType]=getContainerType(typeSpecIn)
+        [containerType, idxType]=xlator['getContainerType'](typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
         print "                                                 arraySpec:"
         if(name[0]=='['):
@@ -344,7 +271,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             else: print "Unknown ArrayDeque command:", name; exit(2);
         elif containerType=='TreeMap':
             convertedIdxType=idxType
-            convertedItmType=convertType(objectsRef, typeSpecOut)
+            convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
             if name=='at' or name=='erase' or  name=='size': pass
             elif name=='insert'   : name='put';
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -355,7 +282,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             else: print "Unknown map command:", name; exit(2);
         elif containerType=='multimap':
             convertedIdxType=idxType
-            convertedItmType=convertType(objectsRef, typeSpecOut)
+            convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
             if name=='at' or name=='erase' or  name=='size': pass
             elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
             elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -618,7 +545,7 @@ def processAction(action, indent, xlator):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
-        fieldType = convertType(objectsRef, typeSpec)
+        fieldType = xlator['convertType'](objectsRef, typeSpec, xlator)
         assignValue=''
         print "                                     Action newVar: ", varName
         if isinstance(typeSpec['fieldType'], basestring):
@@ -717,7 +644,7 @@ def processAction(action, indent, xlator):
             #print "CONTAINER-SPEC:", repContainer, containerType
             datastructID = containerType['arraySpec']['datastructID']
             keyFieldType = containerType['arraySpec']['indexType']
-            [datastructID, keyFieldType]=getContainerType(containerType)
+            [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
             print "DATAID, KEYTYPE:", [datastructID, keyFieldType]
 
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
@@ -730,16 +657,16 @@ def processAction(action, indent, xlator):
                 keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
                 localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
                 ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-                containedTypeStr=convertType(objectsRef, ctrlVarsTypeSpec)
-                indexTypeStr=convertType(objectsRef, keyVarSpec)
+                containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
+                indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, xlator)
                 iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
                 repContainer+='.entrySet()'
             elif datastructID=='list':
                 loopCounterName=repName+'_key'
                 keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
                 localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-                iteratorTypeStr=convertType(objectsRef, ctrlVarsTypeSpec)
-            else: iteratorTypeStr=convertType(objectsRef, ctrlVarsTypeSpec)
+                iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
+            else: iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
             print "ITEMS:", actionText, indent, containedType," " , repName,' :', repContainer
             actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
 
@@ -793,13 +720,13 @@ def processActionSeq(actSeq, indent, xlator):
         localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
-def generate_constructor(objects, ClassName, tags):
+def generate_constructor(objects, ClassName, tags, xlator):
     baseType = progSpec.isWrappedType(objects, ClassName)
     if(baseType!=None): return ''
     if not ClassName in objects[0]: return ''
     print "                    Generating Constructor for:", ClassName
     constructorInit=":"
-    constructorArgs="    "+flattenObjectName(ClassName)+"("
+    constructorArgs="    "+progSpec.flattenObjectName(ClassName)+"("
     count=0
     ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
@@ -810,7 +737,7 @@ def generate_constructor(objects, ClassName, tags):
         if(typeSpec['arraySpec'] or typeSpec['arraySpec']!=None): continue
         fieldOwner=typeSpec['owner']
         if(fieldOwner=='const'): continue
-        convertedType = convertType(objects, typeSpec)
+        convertedType = xlator['convertType'](objects, typeSpec, xlator)
         fieldName=field['fieldName']
 
         #print "                        Constructing:", ClassName, fieldName, fieldType, convertedType
@@ -860,7 +787,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
         fieldName =field['fieldName']
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
-        convertedType = flattenObjectName(convertType(objects, typeSpec))
+        convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, xlator))
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
 
 
@@ -928,13 +855,13 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                         count+=1
                         argTypeSpec =arg['typeSpec']
                         argFieldName=arg['fieldName']
-                        argListText+= convertType(objects, argTypeSpec) + ' ' + argFieldName
+                        argListText+= xlator['convertType'](objects, argTypeSpec, xlator) + ' ' + argFieldName
                         localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
                 #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
                 if(fieldType[0] != '<%'):                                       # not verbatim field type
                     pass #registerType(objectName, fieldName, convertedType, typeDefName)
                 else: typeDefName=convertedType                                 # grabbing typeDefName if not verbatim
-                LangFormOfObjName = flattenObjectName(objectName)
+                LangFormOfObjName = progSpec.flattenObjectName(objectName)
             #structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
             objPrefix=LangFormOfObjName
             ############################################################
@@ -1029,7 +956,7 @@ def generateAllObjectsButMain(objects, tags, xlator):
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
             if(objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
-                LangFormOfObjName = flattenObjectName(objectName)
+                LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):
                     parentClass=implMode[8:]
@@ -1040,11 +967,6 @@ def generateAllObjectsButMain(objects, tags, xlator):
                 funcCodeAcc+=funcCode
         currentObjName=''
     return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
-
-
-
-def processMain(objects, tags, xlator):
-    return ["", ""]
 
 def produceTypeDefs(typeDefMap):
     return ''
@@ -1138,7 +1060,7 @@ def generate(objects, tags, libsToUse, xlator):
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
     header = makeFileHeader(tags)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags, xlator)
-    topBottomStrings = processMain(objects, tags, xlator)
+    topBottomStrings = xlator['processMain'](objects, tags, xlator)
     typeDefCode = produceTypeDefs(typeDefMap)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
