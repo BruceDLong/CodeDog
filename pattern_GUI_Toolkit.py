@@ -5,7 +5,7 @@ import codeDogParser
 
 
 def apply(objects, tags):
-    progSpec.appendToStringTagValue(tags, 'initCode', 'Allocate(appFuncs.gui) \n appFuncs.gui.GUI_Init()')
+    progSpec.appendToStringTagValue(tags, 'initCode', ' appFuncs.gui.GUI_Init()') #Allocate(appFuncs.gui) \n appFuncs.gui.GUI_Init()')
     progSpec.appendToStringTagValue(tags, 'runCode', 'appFuncs.gui.GUI_Run()')
     progSpec.appendToStringTagValue(tags, 'deinitCode', 'appFuncs.gui.GUI_Deinit()')
 

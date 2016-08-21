@@ -126,7 +126,6 @@ def fetchItemsTypeSpec(itemName):
 ###### End of type tracking code
 
 
-
 fieldNamesAlreadyUsed={}
 def processFlagAndModeFields(objects, objectName, tags, xlator):
     print "                    Coding flags and modes for:", objectName
@@ -182,21 +181,11 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
-
 def varTypeIsJavaValueType(convertedType):
     if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
        or convertedType=='float' or convertedType=='double' or convertedType=='short'):
         return True
     return False
-
-
-
-
-
-
-
-
-
 
 def codeAllocater(typeSpec):
     S=''
@@ -389,7 +378,7 @@ def codeItemRef(name, LorR_Val, xlator):
         if segType!=None:
             [segStr, segType]=codeNameSeg(segSpec, segType, connector, xlator)
         else:
-            segStr= codeUnknownNameSeg(segSpec)
+            segStr= codeUnknownNameSeg(segSpec, xlator)
         prevLen=len(S)
 
 
@@ -434,9 +423,7 @@ def codeUserMesg(item, xlator):
         pos=m.end()
     fmtStr += item[pos:]
     fmtStr=fmtStr.replace('"', r'\"')
-    fmtStr=fmtStr.replace(r'%i', r'%d')
-    fmtStr=fmtStr.replace(r'%l', r'%d')
-    S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
+    S=xlator['langStringFormatterCommand'](fmtStr, argStr)
     return S
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -623,6 +610,7 @@ def processAction(action, indent, xlator):
         traversalMode = action['traversalMode']
         rangeSpec = action['rangeSpec']
         whileSpec = action['whileSpec']
+        ctrType=xlator['typeForCounterInt']
         # TODO: add cases for traversing trees and graphs in various orders or ways.
         loopCounterName=''
         if(rangeSpec): # iterate over range
@@ -631,9 +619,9 @@ def processAction(action, indent, xlator):
             #print "RANGE:", S_low, "..", S_hi
             ctrlVarsTypeSpec = lowValType
             if(traversalMode=='Forward' or traversalMode==None):
-                actionText += indent + "for( long " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
+                actionText += indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
             elif(traversalMode=='Backward'):
-                actionText += indent + "for( long " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+                actionText += indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
             [whereExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
@@ -683,7 +671,7 @@ def processAction(action, indent, xlator):
             actionOut = processAction(repAction, indent + "    ", xlator)
             repBodyText += actionOut
         if loopCounterName!='':
-            actionText=indent + "long " + loopCounterName + "=0;\n" + actionText
+            actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
             repBodyText += indent + "    " + "++" + loopCounterName + ";\n"
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
@@ -968,23 +956,13 @@ def generateAllObjectsButMain(objects, tags, xlator):
         currentObjName=''
     return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
 
-def produceTypeDefs(typeDefMap):
-    return ''
-
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
     if tagVal==None: return "Tag '"+tagName+"' is not set in the dog file."
     return tagVal
 
-def addSpecialCode():
-    S='\n\n//////////// Java specific code:\n'
-    S+="""
-
-    """
-    return S
-
 libInterfacesText=''
-def makeFileHeader(tags):
+def makeFileHeader(tags, xlator):
     global buildStr_libs
     global libInterfacesText
 
@@ -999,9 +977,8 @@ def makeFileHeader(tags):
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
     header += "\n// Build Command: " +buildStr_libs+'\n'
     header += libInterfacesText
-    header += addSpecialCode()
+    header += xlator['addSpecialCode']()
     return header
-
 
 def integrateLibraries(tags, libID, xlator):
     print '                Integrating', libID
@@ -1058,10 +1035,10 @@ def generate(objects, tags, libsToUse, xlator):
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     createInit_DeInit(objects, tags)
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
-    header = makeFileHeader(tags)
+    header = makeFileHeader(tags, xlator)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags, xlator)
     topBottomStrings = xlator['processMain'](objects, tags, xlator)
-    typeDefCode = produceTypeDefs(typeDefMap)
+    typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
     outputStr = header + constsEnums + forwardDecls + codeHeader + typeDefCode + structCodeAcc + topBottomStrings[0] + funcCodeAcc + topBottomStrings[1]

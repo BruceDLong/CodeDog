@@ -66,7 +66,9 @@ def xlateLangType(TypeSpec,owner, fieldType, xlator):
                 langType="multimap< "+idxType+', '+langType+" >"
     return langType
 
-
+def langStringFormatterCommand(fmtStr, argStr):
+    S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
+    return S
 
 ######################################################   E X P R E S S I O N   C O D I N G
 
@@ -256,6 +258,8 @@ def fetchXlators():
 
     xlators['LanguageName']     = "C++"
     xlators['BuildStrPrefix']   = "g++ -g -std=gnu++14  "
+    xlators['typeForCounterInt']= "int64_t"
+    xlators['GlobalVarPrefix']  = ""
     xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
     xlators['codeExpr']         = codeExpr
     xlators['includeDirective'] = includeDirective
@@ -265,5 +269,6 @@ def fetchXlators():
     xlators['convertType']      = convertType
     xlators['xlateLangType']    = xlateLangType
     xlators['getContainerType'] = getContainerType
+    xlators['langStringFormatterCommand'] = langStringFormatterCommand
 
     return(xlators)

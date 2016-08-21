@@ -14,6 +14,7 @@ import Lib_GTK3
 import Lib_Java
 import Lib_CPP
 import Lib_Swing
+import Lib_Android
 
 
 import CodeGenerator_CPP
@@ -177,6 +178,7 @@ def ChooseLibs(objects, buildSpec, tags):
         elif (Lib=="Java"): Lib_Java.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
         elif (Lib=="CPP"):  Lib_CPP.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
         elif (Lib=="Swing"):  Lib_Swing.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
+        elif (Lib=="Android"):  Lib_Android.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
 
     return progSpec.libsToUse
 

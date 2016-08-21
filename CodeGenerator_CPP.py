@@ -185,9 +185,6 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     typeDefMap[typeOfField]=typeDefTag
 
 
-
-
-
 def codeAllocater(typeSpec):
     S=''
     owner=typeSpec['owner']
@@ -388,7 +385,7 @@ def codeItemRef(name, LorR_Val, xlator):
         if segType!=None:
             [segStr, segType]=codeNameSeg(segSpec, segType, connector, xlator)
         else:
-            segStr= codeUnknownNameSeg(segSpec)
+            segStr= codeUnknownNameSeg(segSpec, xlator)
         prevLen=len(S)
 
 
@@ -433,7 +430,7 @@ def codeUserMesg(item, xlator):
         pos=m.end()
     fmtStr += item[pos:]
     fmtStr=fmtStr.replace('"', r'\"')
-    S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
+    S=xlator['langStringFormatterCommand'](fmtStr, argStr)
     return S
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -607,6 +604,7 @@ def processAction(action, indent, xlator):
         traversalMode = action['traversalMode']
         rangeSpec = action['rangeSpec']
         whileSpec = action['whileSpec']
+        ctrType=xlator['typeForCounterInt']
         # TODO: add cases for traversing trees and graphs in various orders or ways.
         loopCounterName=''
         if(rangeSpec): # iterate over range
@@ -615,9 +613,9 @@ def processAction(action, indent, xlator):
             #print "RANGE:", S_low, "..", S_hi
             ctrlVarsTypeSpec = lowValType
             if(traversalMode=='Forward' or traversalMode==None):
-                actionText += indent + "for( int64_t " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
+                actionText += indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
             elif(traversalMode=='Backward'):
-                actionText += indent + "for( int64_t " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+                actionText += indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
             [whereExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
@@ -658,7 +656,7 @@ def processAction(action, indent, xlator):
             actionOut = processAction(repAction, indent + "    ", xlator)
             repBodyText += actionOut
         if loopCounterName!='':
-            actionText=indent + "uint64_t " + loopCounterName + "=0;\n" + actionText
+            actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
             repBodyText += indent + "    " + "++" + loopCounterName + ";\n"
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):

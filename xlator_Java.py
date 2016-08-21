@@ -87,6 +87,12 @@ def xlateLangType(TypeSpec,owner, fieldType, xlator):
                 langType="multimap< "+idxType+', '+langType+" >"
     return langType
 
+def langStringFormatterCommand(fmtStr, argStr):
+    fmtStr=fmtStr.replace(r'%i', r'%d')
+    fmtStr=fmtStr.replace(r'%l', r'%d')
+    S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
+    return S
+
 ######################################################   E X P R E S S I O N   C O D I N G
 
 def codeFactor(item, xlator):
@@ -234,6 +240,8 @@ def fetchXlators():
 
     xlators['LanguageName']     = "Java"
     xlators['BuildStrPrefix']   = "Javac "
+    xlators['typeForCounterInt']= "long"
+    xlators['GlobalVarPrefix']  = "GLOBAL.static_Global."
     xlators['PtrConnector']     = "."                      # Name segment connector for pointers.
     xlators["codeExpr"]         = codeExpr
     xlators['includeDirective'] = includeDirective
@@ -243,5 +251,6 @@ def fetchXlators():
     xlators['convertType']      = convertType
     xlators['xlateLangType']    = xlateLangType
     xlators['getContainerType'] = getContainerType
+    xlators['langStringFormatterCommand'] = langStringFormatterCommand
 
     return(xlators)
