@@ -1,6 +1,6 @@
 #xlator_CPP.py
 import progSpec
-from CodeGenerator_CPP import codeItemRef, codeUserMesg, processOtherStructFields
+from CodeGenerator_CPP import codeItemRef, codeUserMesg, processOtherStructFields, codeAllocater
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -69,6 +69,29 @@ def xlateLangType(TypeSpec,owner, fieldType, xlator):
 def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
+
+def getCodeAllocStr(varTypeStr, owner):
+    if(owner=='our'): S="make_shared<"+varTypeStr+">()"
+    elif(owner=='my'): S="make_unique<"+varTypeStr+">()"
+    elif(owner=='their'): S="new "+varTypeStr
+    elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
+    elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
+    else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
+    return S
+
+def getConstIntFieldStr():
+    S= "const int "+fieldName+ " = " + fieldValue+ ";"
+    return(S)
+
+def getEnumStr():
+    S = "\nenum " + fieldName +" {"
+    count=0
+    for enumName in field['typeSpec']['enumList']:
+        S += enumName+"="+hex(count)
+        count=count+1
+        if(count<enumSize): S += ", "
+    S += "};\n";
+    return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
 
@@ -192,6 +215,35 @@ def codeExpr(item, xlator):
             retType='bool'
     #print "S:",S
     return [S, retType]
+
+def codeSpecialFunc(segSpec, xlator):
+    S=''
+    funcName=segSpec[0]
+    if(funcName=='print'):
+        # TODO: have a tag to choose cout vs printf()
+        S+='cout'
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            for P in paramList:
+                [S2, argType]=xlator['codeExpr'](P[0], xlator)
+                S+=' << '+S2
+            S+=" << flush"
+    elif(funcName=='AllocateOrClear'):
+        if(len(segSpec)>2):
+            print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
+            paramList=segSpec[2]
+            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
+            S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+";}"
+    elif(funcName=='Allocate'):
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
+            S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+";"
+    #elif(funcName=='break'):
+    #elif(funcName=='return'):
+    #elif(funcName==''):
+
+    return S
 ############################################
 def processMain(objects, tags, xlator):
     print "\n            Generating GLOBAL..."
@@ -270,5 +322,8 @@ def fetchXlators():
     xlators['xlateLangType']    = xlateLangType
     xlators['getContainerType'] = getContainerType
     xlators['langStringFormatterCommand'] = langStringFormatterCommand
+    xlators['getCodeAllocStr']  = getCodeAllocStr
+    xlators['codeSpecialFunc']  = codeSpecialFunc
+    xlators['getConstIntFieldStr'] = getConstIntFieldStr
 
     return(xlators)

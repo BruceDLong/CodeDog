@@ -143,7 +143,7 @@ def processFlagAndModeFields(objects, objectName, tags, xlator):
         if fieldType=='flag':
             print "                        flag: ", fieldName
             flagsVarNeeded=True
-            structEnums += "const int "+fieldName +" = " + hex(1<<bitCursor) +"; \t// Flag: "+fieldName+"\n"
+            structEnums += xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
             bitCursor += 1;
         elif fieldType=='mode':
             print "                        mode: ", fieldName, '[]'
@@ -157,17 +157,11 @@ def processFlagAndModeFields(objects, objectName, tags, xlator):
             #field[4]=numEnumBits;
             enumMask=((1 << numEnumBits) - 1) << bitCursor
 
-            structEnums += "const int "+fieldName +"Offset = " + hex(bitCursor) +";\n"
-            structEnums += "const int "+fieldName +"Mask = " + hex(enumMask) +";"
+            structEnums += xlator['getConstIntFieldStr'](fieldName+"Offset", hex(bitCursor)) + "\n"
+            structEnums += xlator['getConstIntFieldStr'](fieldName+"Mask",   hex(enumMask))
 
             # enum
-            count=0
-            structEnums += "\nenum " + fieldName +" {"
-            for enumName in field['typeSpec']['enumList']:
-                structEnums += enumName+"="+hex(count)
-                count=count+1
-                if(count<enumSize): structEnums += ", "
-            structEnums += "};\n";
+            structEnums += xlator['getEnumStr'](fieldName, field['typeSpec']['enumList'])
 
             structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
             # read/write macros
@@ -185,20 +179,13 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     typeDefMap[typeOfField]=typeDefTag
 
 
-def codeAllocater(typeSpec):
+def codeAllocater(typeSpec, xlator):
     S=''
     owner=typeSpec['owner']
     fType=typeSpec['fieldType']
     if isinstance(fType, basestring): varTypeStr=fType;
     else: varTypeStr=fType[0]
-
-    if(owner=='our'): S="make_shared<"+varTypeStr+">()"
-    elif(owner=='my'): S="make_unique<"+varTypeStr+">()"
-    elif(owner=='their'): S="new "+varTypeStr
-    elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
-    elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
-    else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
-
+    S= xlator['getCodeAllocStr'](varTypeStr, owner);
     return S
 
 def genIfBody(ifBody, indent, xlator):
@@ -303,7 +290,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
 
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
-        tmp=codeSpecialFunc(segSpec, xlator)   # Check if it's a special function like 'print'
+        tmp=xlator['codeSpecialFunc'](segSpec, xlator)   # Check if it's a special function like 'print'
         if(tmp!=''):
             S=tmp
             return [S, '']
@@ -314,7 +301,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
         owner=typeSpecIn['owner']
 
         if(name=='allocate'):
-            S_alt=' = '+codeAllocater(typeSpecIn)
+            S_alt=' = '+codeAllocater(typeSpecIn, xlator)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif(name[0]=='[' and fType=='string'):
             typeSpecOut={'owner':owner, 'fieldType': fType}
@@ -460,39 +447,11 @@ def codeParameterList(paramList, modelParams, xlator):
         count+=1
     return S
 
-def codeSpecialFunc(segSpec, xlator):
-    S=''
-    funcName=segSpec[0]
-    if(funcName=='print'):
-        # TODO: have a tag to choose cout vs printf()
-        S+='cout'
-        if(len(segSpec)>2):
-            paramList=segSpec[2]
-            for P in paramList:
-                [S2, argType]=xlator['codeExpr'](P[0], xlator)
-                S+=' << '+S2
-            S+=" << flush"
-    elif(funcName=='AllocateOrClear'):
-        if(len(segSpec)>2):
-            print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
-            paramList=segSpec[2]
-            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
-            S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec)+";}"
-    elif(funcName=='Allocate'):
-        if(len(segSpec)>2):
-            paramList=segSpec[2]
-            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
-            S+=varName+" = "+codeAllocater(varTypeSpec)+";"
-    #elif(funcName=='break'):
-    #elif(funcName=='return'):
-    #elif(funcName==''):
-
-    return S
 
 def codeFuncCall(funcCallSpec, xlator):
     S=''
    # if(len(funcCallSpec)==1):
-       # tmpStr=codeSpecialFunc(funcCallSpec)
+       # tmpStr=xlator['codeSpecialFunc'](funcCallSpec)
        # if(tmpStr != ''):
        #     return tmpStr
     [codeStr, typeSpec]=codeItemRef(funcCallSpec, 'RVAL', xlator)

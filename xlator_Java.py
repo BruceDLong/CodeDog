@@ -1,5 +1,5 @@
 import progSpec
-from CodeGenerator_Java import codeItemRef, codeUserMesg
+from CodeGenerator_Java import codeItemRef, codeUserMesg, codeAllocater
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -92,6 +92,24 @@ def langStringFormatterCommand(fmtStr, argStr):
     fmtStr=fmtStr.replace(r'%l', r'%d')
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
+
+
+def getCodeAllocStr(varTypeStr, owner):
+    if(owner!='const'):  S="new "+varTypeStr+'()'
+    else: print "ERROR: Cannot allocate a 'const' variable."; exit(1);
+    return S
+
+def getConstIntFieldStr(fieldName, fieldValue):
+    S= "final int "+fieldName + " = " + fieldValue+ ";"
+    return(S)
+
+def getEnumStr(fieldName, enumList):
+    S = ""
+    count=0
+    for enumName in field['typeSpec']['enumList']:
+        S += getConstIntFieldStr(enumName,hex(count))+"\n"
+        count=count+1
+    return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
 
@@ -215,6 +233,39 @@ def codeExpr(item, xlator):
             retType='bool'
     #print "S:",S
     return [S, retType]
+
+def codeSpecialFunc(segSpec, xlator):
+    S=''
+    funcName=segSpec[0]
+    if(funcName=='print'):
+        S+='System.out.print('
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            count=0
+            for P in paramList:
+                if(count!=0): S+=", "
+                count+=1
+                [S2, argType]=xlator['codeExpr'](P[0], xlator)
+                S+=S2
+        S+=")"
+    elif(funcName=='AllocateOrClear'):
+        if(len(segSpec)>2):
+            print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
+            paramList=segSpec[2]
+            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
+            S+='if('+varName+'){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+";}"
+    elif(funcName=='Allocate'):
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
+            S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+";"
+    #elif(funcName=='break'):
+    #elif(funcName=='return'):
+    #elif(funcName==''):
+
+    return S
+
+
 ################################################
 def processMain(objects, tags, xlator):
     return ["", ""]
@@ -252,5 +303,8 @@ def fetchXlators():
     xlators['xlateLangType']    = xlateLangType
     xlators['getContainerType'] = getContainerType
     xlators['langStringFormatterCommand'] = langStringFormatterCommand
+    xlators['getCodeAllocStr']  = getCodeAllocStr
+    xlators['codeSpecialFunc']  = codeSpecialFunc
+    xlators['getConstIntFieldStr'] = getConstIntFieldStr
 
     return(xlators)
