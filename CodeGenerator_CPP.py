@@ -295,7 +295,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             S=tmp
             return [S, '']
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name)
-        if(SRC=="GLOBAL"): namePrefix = ''
+        if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
     else:
         fType=typeSpecIn['fieldType']
         owner=typeSpecIn['owner']
@@ -832,7 +832,7 @@ def generateAllObjectsButMain(objects, tags, xlator):
     print "\n            Generating Objects..."
     global currentObjName
     constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
-    forwardDecls="\n";
+    forwardDeclsAcc="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
     needsFlagsVar=False;
@@ -865,18 +865,18 @@ def generateAllObjectsButMain(objects, tags, xlator):
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
-            if(objectName != 'GLOBAL' and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
+            if((not (xlator['doesLangHaveGlobals']) or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):
                     parentClass=implMode[8:]
-                    parentClass=':'+parentClass+' '
-                forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ', xlator)
-                structCodeAcc += "\nstruct "+LangFormOfObjName+parentClass+"{\n" + structCode + '};\n'
+                [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](parentClass, LangFormOfObjName, structCode)
+                structCodeAcc += structCodeOut
+                forwardDeclsAcc += forwardDeclsOut
                 funcCodeAcc+=funcCode
         currentObjName=''
-    return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
+    return [constsEnums, forwardDeclsAcc, structCodeAcc, funcCodeAcc]
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)

@@ -95,6 +95,59 @@ def getEnumStr():
 
 ######################################################   E X P R E S S I O N   C O D I N G
 
+def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
+    if containerType=='deque':
+        if name=='at' or name=='insert' or name=='erase' or name=='end' or  name=='rend': pass
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='front'    : name='begin()'; paramList=None;
+        elif name=='back'     : name='rbegin()'; paramList=None;
+        elif name=='popFirst' : name='pop_front'
+        elif name=='popLast'  : name='pop_back'
+        elif name=='pushFirst': name='push_front'
+        elif name=='pushLast' : name='push_back'
+        else: print "Unknown deque command:", name; exit(2);
+    elif containerType=='map':
+        convertedIdxType=idxType
+        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
+        if name=='at' or name=='erase': pass
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='front': name='begin()->second'; paramList=None;
+        elif name=='back': name='rbegin()->second'; paramList=None;
+        elif name=='popFirst' : name='pop_front'
+        elif name=='popLast'  : name='pop_back'
+        else: print "Unknown map command:", name; exit(2);
+    elif containerType=='multimap':
+        convertedIdxType=idxType
+        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
+        if name=='at' or name=='erase': pass
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='front': name='begin()->second'; paramList=None;
+        elif name=='back': name='rbegin()->second'; paramList=None;
+        elif name=='popFirst' : name='pop_front'
+        elif name=='popLast'  : name='pop_back'
+        else: print "Unknown multimap command:", name; exit(2);
+    elif containerType=='tree': # TODO: Make trees work
+        if name=='insert' or name=='erase': pass
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        else: print "Unknown tree command:", name; exit(2)
+    elif containerType=='graph': # TODO: Make graphs work
+        if name=='insert' or name=='erase': pass
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        else: print "Unknown graph command:", name; exit(2);
+    elif containerType=='stream': # TODO: Make stream work
+        pass
+    elif containerType=='filesystem': # TODO: Make filesystem work
+        pass
+    else: print "Unknown container type:", containerType; exit(2);
+    return(name, typeSpecOut, paramList, convertedIdxType)
+
 def codeFactor(item, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
     #print '                  factor: ', item
@@ -257,6 +310,14 @@ def processMain(objects, tags, xlator):
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
+def codeStructText(parentClass, structName, structCode):
+    if parentClass != "":
+        parentClass=':'+parentClass+' '
+    S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
+    forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
+    return([S,forwardDecls])
+
+
 def produceTypeDefs(typeDefMap, xlator):
     typeDefCode="\n// Typedefs:\n"
     for key in typeDefMap:
@@ -325,5 +386,8 @@ def fetchXlators():
     xlators['getCodeAllocStr']  = getCodeAllocStr
     xlators['codeSpecialFunc']  = codeSpecialFunc
     xlators['getConstIntFieldStr'] = getConstIntFieldStr
+    xlators['doesLangHaveGlobals'] = "True"
+    xlators['codeStructText'] = codeStructText
+    xlators['getContainerTypeInfo'] = getContainerTypeInfo
 
     return(xlators)

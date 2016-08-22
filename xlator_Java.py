@@ -112,6 +112,53 @@ def getEnumStr(fieldName, enumList):
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
+def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
+    if containerType=='ArrayDeque':
+        if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='end' or  name=='rend': pass
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='front'    : name='begin()'; paramList=None;
+        elif name=='back'     : name='rbegin()'; paramList=None;
+        elif name=='popFirst' : name='pop_front'
+        elif name=='popLast'  : name='pop_back'
+        elif name=='pushFirst': name='push_front'
+        elif name=='pushLast' : name='push_back'
+        else: print "Unknown ArrayDeque command:", name; exit(2);
+    elif containerType=='TreeMap':
+        convertedIdxType=idxType
+        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
+        if name=='at' or name=='erase' or  name=='size': pass
+        elif name=='insert'   : name='put';
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='front': name='firstEntry().getValue()'; paramList=None;
+        elif name=='back': name='lastEntry().getValue()'; paramList=None;
+        elif name=='popFirst' : name='pop_front'
+        elif name=='popLast'  : name='pop_back'
+        else: print "Unknown map command:", name; exit(2);
+    elif containerType=='multimap':
+        convertedIdxType=idxType
+        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
+        if name=='at' or name=='erase' or  name=='size': pass
+        elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='front': name='firstEntry().getValue()'; paramList=None;
+        elif name=='back': name='lastEntry().getValue()'; paramList=None;
+        elif name=='popFirst' : name='pop_front'
+        elif name=='popLast'  : name='pop_back'
+        else: print "Unknown multimap command:", name; exit(2);
+    elif containerType=='tree': # TODO: Make trees work
+        if name=='insert' or name=='erase' or  name=='size': pass
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        else: print "Unknown tree command:", name; exit(2)
+    elif containerType=='graph': # TODO: Make graphs work
+        if name=='insert' or name=='erase' or  name=='size': pass
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        else: print "Unknown graph command:", name; exit(2);
+    elif containerType=='stream': # TODO: Make stream work
+        pass
+    elif containerType=='filesystem': # TODO: Make filesystem work
+        pass
+    else: print "Unknown container type:", containerType; exit(2);
+    return(name, typeSpecOut, paramList, convertedIdxType)
 
 def codeFactor(item, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
@@ -270,6 +317,13 @@ def codeSpecialFunc(segSpec, xlator):
 def processMain(objects, tags, xlator):
     return ["", ""]
 
+def codeStructText(parentClass, structName, structCode):
+    if parentClass != "":
+        parentClass=' extends '+parentClass+' '
+    S= "\nclass "+structName+parentClass+"{\n" + structCode + '};\n'
+    return([S,""])
+
+
 def produceTypeDefs(typeDefMap, xlator):
     return ''
 
@@ -306,5 +360,8 @@ def fetchXlators():
     xlators['getCodeAllocStr']  = getCodeAllocStr
     xlators['codeSpecialFunc']  = codeSpecialFunc
     xlators['getConstIntFieldStr'] = getConstIntFieldStr
+    xlators['doesLangHaveGlobals'] = "False"
+    xlators['codeStructText'] = codeStructText
+    xlators['getContainerTypeInfo'] = getContainerTypeInfo
 
     return(xlators)

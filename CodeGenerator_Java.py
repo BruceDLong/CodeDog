@@ -242,52 +242,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
             S+= '[' + S2 +']'
             return [S, typeSpecOut]
-        if containerType=='ArrayDeque':
-            if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='end' or  name=='rend': pass
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front'    : name='begin()'; paramList=None;
-            elif name=='back'     : name='rbegin()'; paramList=None;
-            elif name=='popFirst' : name='pop_front'
-            elif name=='popLast'  : name='pop_back'
-            elif name=='pushFirst': name='push_front'
-            elif name=='pushLast' : name='push_back'
-            else: print "Unknown ArrayDeque command:", name; exit(2);
-        elif containerType=='TreeMap':
-            convertedIdxType=idxType
-            convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
-            if name=='at' or name=='erase' or  name=='size': pass
-            elif name=='insert'   : name='put';
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front': name='firstEntry().getValue()'; paramList=None;
-            elif name=='back': name='lastEntry().getValue()'; paramList=None;
-            elif name=='popFirst' : name='pop_front'
-            elif name=='popLast'  : name='pop_back'
-            else: print "Unknown map command:", name; exit(2);
-        elif containerType=='multimap':
-            convertedIdxType=idxType
-            convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
-            if name=='at' or name=='erase' or  name=='size': pass
-            elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front': name='firstEntry().getValue()'; paramList=None;
-            elif name=='back': name='lastEntry().getValue()'; paramList=None;
-            elif name=='popFirst' : name='pop_front'
-            elif name=='popLast'  : name='pop_back'
-            else: print "Unknown multimap command:", name; exit(2);
-        elif containerType=='tree': # TODO: Make trees work
-            if name=='insert' or name=='erase' or  name=='size': pass
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            else: print "Unknown tree command:", name; exit(2)
-        elif containerType=='graph': # TODO: Make graphs work
-            if name=='insert' or name=='erase' or  name=='size': pass
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            else: print "Unknown graph command:", name; exit(2);
-        elif containerType=='stream': # TODO: Make stream work
-            pass
-        elif containerType=='filesystem': # TODO: Make filesystem work
-            pass
-        else: print "Unknown container type:", containerType; exit(2);
-
+        [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator)
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
         tmp=xlator['codeSpecialFunc'](segSpec, xlator)   # Check if it's a special function like 'print'
@@ -295,7 +250,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             S=tmp
             return [S, '']
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name)
-        if(SRC=="GLOBAL"): namePrefix = 'GLOBAL.static_Global.'
+        if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
     else:
         fType=typeSpecIn['fieldType']
         owner=typeSpecIn['owner']
@@ -874,7 +829,7 @@ def generateAllObjectsButMain(objects, tags, xlator):
     print "\n            Generating Objects..."
     global currentObjName
     constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
-    forwardDecls="\n";
+    forwardDeclsAcc="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
     needsFlagsVar=False;
@@ -907,18 +862,18 @@ def generateAllObjectsButMain(objects, tags, xlator):
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
-            if(objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
+            if((not (xlator['doesLangHaveGlobals']) or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):
                     parentClass=implMode[8:]
-                    parentClass=' extends '+parentClass+' '
-                #forwardDecls+="struct " + LangFormOfObjName + ";  \t// Forward declaration\n"
                 [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ', xlator)
-                structCodeAcc += "\nclass "+LangFormOfObjName+parentClass+"{\n" + structCode + '};\n'
+                [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](parentClass, LangFormOfObjName, structCode)
+                structCodeAcc += structCodeOut
+                forwardDeclsAcc += forwardDeclsOut
                 funcCodeAcc+=funcCode
         currentObjName=''
-    return [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]
+    return [constsEnums, forwardDeclsAcc, structCodeAcc, funcCodeAcc]
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
