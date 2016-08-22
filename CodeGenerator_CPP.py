@@ -237,57 +237,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
             S+= '[' + S2 +']'
             return [S, typeSpecOut]
-        if containerType=='deque':
-            if name=='at' or name=='insert' or name=='erase' or name=='end' or  name=='rend': pass
-            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front'    : name='begin()'; paramList=None;
-            elif name=='back'     : name='rbegin()'; paramList=None;
-            elif name=='popFirst' : name='pop_front'
-            elif name=='popLast'  : name='pop_back'
-            elif name=='pushFirst': name='push_front'
-            elif name=='pushLast' : name='push_back'
-            else: print "Unknown deque command:", name; exit(2);
-        elif containerType=='map':
-            convertedIdxType=idxType
-            convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
-            if name=='at' or name=='erase': pass
-            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-            elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front': name='begin()->second'; paramList=None;
-            elif name=='back': name='rbegin()->second'; paramList=None;
-            elif name=='popFirst' : name='pop_front'
-            elif name=='popLast'  : name='pop_back'
-            else: print "Unknown map command:", name; exit(2);
-        elif containerType=='multimap':
-            convertedIdxType=idxType
-            convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
-            if name=='at' or name=='erase': pass
-            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-            elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            elif name=='front': name='begin()->second'; paramList=None;
-            elif name=='back': name='rbegin()->second'; paramList=None;
-            elif name=='popFirst' : name='pop_front'
-            elif name=='popLast'  : name='pop_back'
-            else: print "Unknown multimap command:", name; exit(2);
-        elif containerType=='tree': # TODO: Make trees work
-            if name=='insert' or name=='erase': pass
-            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            else: print "Unknown tree command:", name; exit(2)
-        elif containerType=='graph': # TODO: Make graphs work
-            if name=='insert' or name=='erase': pass
-            elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-            elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-            else: print "Unknown graph command:", name; exit(2);
-        elif containerType=='stream': # TODO: Make stream work
-            pass
-        elif containerType=='filesystem': # TODO: Make filesystem work
-            pass
-        else: print "Unknown container type:", containerType; exit(2);
-
+        [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator)
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
         tmp=xlator['codeSpecialFunc'](segSpec, xlator)   # Check if it's a special function like 'print'
