@@ -376,7 +376,6 @@ def codeUserMesg(item, xlator):
     return S
 
 
-
 def codeParameterList(paramList, modelParams, xlator):
     S=''
     #if(modelParams):  print "CODE-PARAMS:", len(paramList),"=",len(modelParams)
@@ -639,7 +638,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
     print "                    Coding fields for", objectName+ '...'
     ####################################################################
     global localArgsAllocated
-    #globalFuncsAcc=''
+    globalFuncsAcc=''
     funcDefCodeAcc=''
     structCodeAcc=""
     ObjectDef = objects[0][objectName]
@@ -662,52 +661,54 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
         convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, xlator))
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
 
-
-
-        ################################################################
-        ## ASSIGNMENTS
+        ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
             fieldName='operator='
             print "                         opAssign: ", fieldType, fieldName
-        ################################################################
-        ##CALCULATE RHS
+
+        ##CALCULATE RHS###############################################
         fieldValueText=""
         if(fieldValue == None):
             if (not varTypeIsJavaValueType(convertedType) and fieldOwner!='their'):
-                fieldValueText=" = new " + convertedType + "()"                  # FieldValueText is the RHS text.
+                fieldValueText=" = new " + convertedType + "()"
             else: fieldValueText=""
-        ################################################################
-        elif(fieldOwner=='const'):                                          # Const always has Right hand side.
-            if isinstance(fieldValue, basestring):                              # Gave a literal value for the constant.
+
+        ##CONST#########################################################
+        elif(fieldOwner=='const'):
+            if isinstance(fieldValue, basestring):
                 fieldValueText = ' = "'+ fieldValue + '"'
             else:
-                fieldValueText = " = "+ xlator['codeExpr'](fieldValue, xlator)[0]               # Gave an expresssion and needs to be coded.
+                fieldValueText = " = "+ xlator['codeExpr'](fieldValue, xlator)[0]
             print "                         Const: ", fieldType, fieldName
+
         ################################################################
-        elif(fieldArglist==None):                                           # This is not a function because no argList so just code as expression.
+        elif(fieldArglist==None):
             if not varTypeIsJavaValueType(convertedType):
                 fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
             else: fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
             print "                         No argList:", fieldType, fieldName, fieldValueText
+
         ################################################################
         else:
-            fieldValueText = " = "+ str(fieldValue)                         # This handles other cases of RHS code gen.
+            fieldValueText = " = "+ str(fieldValue)
             print "                         Other: ", fieldType, fieldName
-        ################################################################
-        ##CALCULATE LHS + RHS                                           ###CALCULATE LHS + RHS###
-        ################################################################
+
+        ##CALCULATE LHS + RHS ###########################################               
         #registerType(objectName, fieldName, convertedType, "")             # If its a constant.
-        if(fieldOwner=='const'):                                                # structCode is the whole field definition
+        if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
             print "                             Const : ", convertedType + fieldName
-        ###################################################################CODE FUNCTIONS###
-        elif(fieldArglist==None):                                           # If its not a function nor a constant.
+
+        ############CODE FUNCTIONS##########################################################
+        elif(fieldArglist==None):
             if (fieldName == "static_Global" or fieldName == "static_gui_tk"):  # TODO: make static_Global so it is not hard coded
                 structCode += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
             else:
                 structCode += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
             print "                             Not Func or Const: ", convertedType, fieldName
-        else:                                                           ### CODE FUNCTIONS
+
+        ###### Arglist exists so this is a function.###########
+        else:
             if(fieldType=='none'):                                          # Arglist exists so this is a function.
                 convertedType=''                                            # No field type.
             else:
@@ -734,6 +735,8 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                 LangFormOfObjName = progSpec.flattenObjectName(objectName)
             #structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
             objPrefix=LangFormOfObjName
+
+        ##### Generate function header for both decl and defn.
             #### GLOBAL main()##########################################
             if(objectName=='GLOBAL' and fieldName=='main'):
                 print "                             GLOBAL main(): public void ", fieldName
@@ -743,11 +746,13 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
             elif(objectName=='GLOBAL') :
                 structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
                 print "                             GLOBAL miscFuncs(): public ", typeDefName + " " + fieldName
+
             #### OTHER FUNCTIONS########################################
             else:
                 #funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
                 structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
                 print "                             otherFuncs (): public " + typeDefName + " " + fieldName
+
             #### VERBATIM FUNC BODY######################################
             verbatimText=field['value'][1]
             if (verbatimText!=''):                                      # This function body is 'verbatim'.
