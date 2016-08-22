@@ -375,16 +375,7 @@ def codeUserMesg(item, xlator):
     S=xlator['langStringFormatterCommand'](fmtStr, argStr)
     return S
 
-def chooseVirtualRValOwner(LVAL, RVAL):
-    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
-    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
-    LeftOwner=LVAL['owner']
-    RightOwner=RVAL['owner']
-    if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner=='me' and (RightOwner=='my' or RightOwner=='our' or RightOwner=='their'): return ["(*", ")"]
-    if (LeftOwner=='my' or LeftOwner=='our' or LeftOwner=='their') and RightOwner=='me': return ["&", '']
-    # TODO: Verify these and other combinations. e.g., do we need something like ['', '.get()'] ?
-    return ['','']
+
 
 def codeParameterList(paramList, modelParams, xlator):
     S=''
@@ -396,7 +387,7 @@ def codeParameterList(paramList, modelParams, xlator):
     #    print "    PARAM",P, '<',argType,'>'
     #    print "    MODEL", modelParams[count], '\n'
         if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
-            [leftMod, rightMod]=chooseVirtualRValOwner(modelParams[count]['typeSpec'], argType)
+            [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](modelParams[count]['typeSpec'], argType)
             S += leftMod+S2+rightMod
         else: S += S2
         count+=1
@@ -454,37 +445,23 @@ def processAction(action, indent, xlator):
         fieldType = xlator['convertType'](objectsRef, typeSpec, xlator)
         assignValue=''
         print "                                     Action newVar: ", varName
-        if isinstance(typeSpec['fieldType'], basestring):
-            if(fieldDef['value']):
-                print "                                         fieldDef['value']: "
-                [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], xlator)
-                RHS = S2
-                print "                                             RHS: ", RHS
-                assignValue=' = '+ RHS + ';\n'
-            else: assignValue=';\n'
-        elif(fieldDef['value']):
-            [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], xlator)
-            RHS = S2
-            if not varTypeIsJavaValueType(fieldType):
-                assignValue=' = '+ RHS + ';\n'
-            else:assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
-        else:
-            #print "TYPE:", fieldType
-            assignValue= " = new " + fieldType +"();\n"
-
-        actionText = indent + fieldType + " " + varName + assignValue
+        assignValue = xlator['codeNewVarStr'](typeSpec, fieldDef, fieldType, xlator)
+        actionText = indent + fieldType + " " + varName + assignValue + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL', xlator)
         LHS = codeStr
         print "                                     assign: ", LHS
         [S2, rhsType]=xlator['codeExpr'](action['RHS'][0], xlator)
-        #print "RHS:", S2, typeSpec, rhsType
-        #[leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
-        RHS = S2 #leftMod+S2+rightMod
+        #print "LHS / RHS:", LHS, ' / ', S2, typeSpec, rhsType
+        [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](typeSpec, rhsType)
+        RHS = leftMod+S2+rightMod
         assignTag = action['assignTag']
         #print "Assign: ", LHS, RHS, typeSpec
-        LHS_FieldType=typeSpec['fieldType']
+        if not isinstance (typeSpec, dict):
+            print 'Problem: typeSpec is', typeSpec, '\n';
+            LHS_FieldType='string'
+        else: LHS_FieldType=typeSpec['fieldType']
         if assignTag == '':
             if LHS_FieldType=='flag':
                 divPoint=startPointOfNamesLastSegment(LHS)
@@ -550,6 +527,7 @@ def processAction(action, indent, xlator):
             [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], xlator)
             #print "CONTAINER-SPEC:", repContainer, containerType
             datastructID = containerType['arraySpec']['datastructID']
+
             keyFieldType = containerType['arraySpec']['indexType']
             [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
             print "DATAID, KEYTYPE:", [datastructID, keyFieldType]
@@ -559,24 +537,11 @@ def processAction(action, indent, xlator):
                 containerType=wrappedTypeSpec
 
             containedType=containerType['fieldType']
-            ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-            if datastructID=='TreeMap':
-                keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
-                localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-                ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-                containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-                indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, xlator)
-                iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
-                repContainer+='.entrySet()'
-            elif datastructID=='list':
-                loopCounterName=repName+'_key'
-                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-                localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-                iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-            else: iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-            print "ITEMS:", actionText, indent, containedType," " , repName,' :', repContainer
-            actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
-
+            containedOwner=containerType['owner']
+            ctrlVarsTypeSpec = {'owner':containedOwner, 'fieldType':containedType}
+            [actionTextAppend,localVarsAllocData] = xlator['iterateContainerStr'](datastructID, containedType, ctrlVarsTypeSpec, containedOwner, repName, indent, repContainer, keyFieldType, objectsRef, xlator)
+            actionText += actionTextAppend
+            localVarsAllocated.append(localVarsAllocData)  # Tracking local vars for scope
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
 
         if action['whereExpr']:
@@ -701,13 +666,11 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
 
         ################################################################
         ## ASSIGNMENTS
-        ################################################################
         if fieldName=='opAssign':
             fieldName='operator='
             print "                         opAssign: ", fieldType, fieldName
         ################################################################
-        ##CALCULATE RHS                                                 ###CALCULATE RHS###
-        ################################################################
+        ##CALCULATE RHS
         fieldValueText=""
         if(fieldValue == None):
             if (not varTypeIsJavaValueType(convertedType) and fieldOwner!='their'):
@@ -771,29 +734,21 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                 LangFormOfObjName = progSpec.flattenObjectName(objectName)
             #structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
             objPrefix=LangFormOfObjName
-            ############################################################
-            #### GLOBAL main()                                          #### GLOBAL main()
-            ############################################################
+            #### GLOBAL main()##########################################
             if(objectName=='GLOBAL' and fieldName=='main'):
                 print "                             GLOBAL main(): public void ", fieldName
                 structCode += indent + "public static void " + fieldName +" (String[] args)\n";
                 #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
-            ############################################################
-            #### GLOBAL miscFuncs()                                     #### GLOBAL miscFuncs()
-            ############################################################
+            #### GLOBAL miscFuncs()
             elif(objectName=='GLOBAL') :
                 structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
                 print "                             GLOBAL miscFuncs(): public ", typeDefName + " " + fieldName
-            ############################################################
-            #### OTHER FUNCTIONS                                        #### OTHER FUNCTIONS
-            ############################################################
+            #### OTHER FUNCTIONS########################################
             else:
                 #funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
                 structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
                 print "                             otherFuncs (): public " + typeDefName + " " + fieldName
-            ############################################################
-            #### VERBATIM FUNC BODY
-            ############################################################
+            #### VERBATIM FUNC BODY######################################
             verbatimText=field['value'][1]
             if (verbatimText!=''):                                      # This function body is 'verbatim'.
                 if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.

@@ -70,6 +70,17 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
+def chooseVirtualRValOwner(LVAL, RVAL):
+    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
+    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
+    LeftOwner=LVAL['owner']
+    RightOwner=RVAL['owner']
+    if LeftOwner == RightOwner: return ["", ""]
+    if LeftOwner=='me' and (RightOwner=='my' or RightOwner=='our' or RightOwner=='their'): return ["(*", ")"]
+    if (LeftOwner=='my' or LeftOwner=='our' or LeftOwner=='their') and RightOwner=='me': return ["&", '']
+    # TODO: Verify these and other combinations. e.g., do we need something like ['', '.get()'] ?
+    return ['','']
+
 def getCodeAllocStr(varTypeStr, owner):
     if(owner=='our'): S="make_shared<"+varTypeStr+">()"
     elif(owner=='my'): S="make_unique<"+varTypeStr+">()"
@@ -297,6 +308,30 @@ def codeSpecialFunc(segSpec, xlator):
     #elif(funcName==''):
 
     return S
+
+def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
+    assignValue=''
+    if(fieldDef['value']):
+        [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], xlator)
+        [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
+        RHS = leftMod+S2+rightMod
+        assignValue=' = '+ RHS
+
+    return(assignValue)
+
+def iterateContainerStr(datastructID, containedType, ctrlVarsTypeSpec, containedOwner, repName, indent, repContainer, keyFieldType, objectsRef, xlator):
+    if datastructID=='multimap' or datastructID=='map':
+        keyVarSpec = {'owner':containedOwner, 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        localVarsAllocData=([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+    elif datastructID=='list':
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        localVarsAllocData=([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+    actionText = (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+                    + indent+indent+"auto "+repName+" = *"+repName+"Itr;\n")
+    return (actionText, localVarsAllocData)
+
 ############################################
 def processMain(objects, tags, xlator):
     print "\n            Generating GLOBAL..."
@@ -382,12 +417,15 @@ def fetchXlators():
     xlators['convertType']      = convertType
     xlators['xlateLangType']    = xlateLangType
     xlators['getContainerType'] = getContainerType
-    xlators['langStringFormatterCommand'] = langStringFormatterCommand
-    xlators['getCodeAllocStr']  = getCodeAllocStr
-    xlators['codeSpecialFunc']  = codeSpecialFunc
-    xlators['getConstIntFieldStr'] = getConstIntFieldStr
-    xlators['doesLangHaveGlobals'] = "True"
-    xlators['codeStructText'] = codeStructText
-    xlators['getContainerTypeInfo'] = getContainerTypeInfo
+    xlators['langStringFormatterCommand']   = langStringFormatterCommand
+    xlators['getCodeAllocStr']              = getCodeAllocStr
+    xlators['codeSpecialFunc']              = codeSpecialFunc
+    xlators['getConstIntFieldStr']          = getConstIntFieldStr
+    xlators['doesLangHaveGlobals']          = "True"
+    xlators['codeStructText']               = codeStructText
+    xlators['getContainerTypeInfo']         = getContainerTypeInfo
+    xlators['codeNewVarStr']                = codeNewVarStr
+    xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
+    xlators['iterateContainerStr']          = iterateContainerStr
 
     return(xlators)

@@ -1,5 +1,5 @@
 import progSpec
-from CodeGenerator_Java import codeItemRef, codeUserMesg, codeAllocater
+from CodeGenerator_Java import codeItemRef, codeUserMesg, codeAllocater, varTypeIsJavaValueType
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -33,8 +33,6 @@ def convertToJavaType(fieldType):
         javaType=progSpec.flattenObjectName(fieldType)
     #print "javaType: ", javaType
     return javaType
-
-
 
 def convertType(objects, TypeSpec, xlator):
     owner=TypeSpec['owner']
@@ -93,6 +91,8 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
+def chooseVirtualRValOwner(LVAL, RVAL):
+    return ['','']
 
 def getCodeAllocStr(varTypeStr, owner):
     if(owner!='const'):  S="new "+varTypeStr+'()'
@@ -334,6 +334,49 @@ def addSpecialCode():
     """
     return S
 
+def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
+    if isinstance(typeSpec['fieldType'], basestring):
+        if(fieldDef['value']):
+            print "                                         fieldDef['value']: "
+            [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
+            RHS = S2
+            print "                                             RHS: ", RHS
+            assignValue=' = '+ RHS + ';\n'
+        else: assignValue=';\n'
+    elif(fieldDef['value']):
+        [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
+        RHS = S2
+        if not varTypeIsJavaValueType(fieldType):
+            assignValue=' = '+ RHS + ';\n'
+        else:assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
+    else:
+        #print "TYPE:", fieldType
+        assignValue= " = new " + fieldType +"();\n"
+
+    return(assignValue)
+
+def iterateContainerStr(datastructID, containedType, ctrlVarsTypeSpec, containedOwner, repName, indent, repContainer, keyFieldType, objectsRef, xlator):
+    actionText = ""
+    if datastructID=='TreeMap':
+        keyVarSpec = {'owner':containedOwner, 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
+        localVarsAllocData=([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+        ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
+        containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
+        indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, xlator)
+        iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
+        repContainer+='.entrySet()'
+    elif datastructID=='list':
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':containedOwner, 'fieldType':containedType}
+        localVarsAllocData=([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
+    else: iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
+
+    actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
+    print "ITEMS:", actionText, indent, containedType," " , repName,' :', repContainer
+
+    return (actionText, localVarsAllocData)
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -356,12 +399,15 @@ def fetchXlators():
     xlators['convertType']      = convertType
     xlators['xlateLangType']    = xlateLangType
     xlators['getContainerType'] = getContainerType
-    xlators['langStringFormatterCommand'] = langStringFormatterCommand
-    xlators['getCodeAllocStr']  = getCodeAllocStr
-    xlators['codeSpecialFunc']  = codeSpecialFunc
-    xlators['getConstIntFieldStr'] = getConstIntFieldStr
-    xlators['doesLangHaveGlobals'] = "False"
-    xlators['codeStructText'] = codeStructText
-    xlators['getContainerTypeInfo'] = getContainerTypeInfo
+    xlators['langStringFormatterCommand']   = langStringFormatterCommand
+    xlators['getCodeAllocStr']              = getCodeAllocStr
+    xlators['codeSpecialFunc']              = codeSpecialFunc
+    xlators['getConstIntFieldStr']          = getConstIntFieldStr
+    xlators['doesLangHaveGlobals']          = "False"
+    xlators['codeStructText']               = codeStructText
+    xlators['getContainerTypeInfo']         = getContainerTypeInfo
+    xlators['codeNewVarStr']                = codeNewVarStr
+    xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
+    xlators['iterateContainerStr']          = iterateContainerStr
 
     return(xlators)
