@@ -106,13 +106,14 @@ def getConstIntFieldStr(fieldName, fieldValue):
 def getEnumStr(fieldName, enumList):
     S = ""
     count=0
-    for enumName in field['typeSpec']['enumList']:
+    for enumName in enumList:
         S += getConstIntFieldStr(enumName,hex(count))+"\n"
         count=count+1
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
 def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
+    convertedIdxType = ""
     if containerType=='ArrayDeque':
         if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='end' or  name=='rend': pass
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -355,25 +356,9 @@ def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
 
     return(assignValue)
 
-def iterateContainerStr(datastructID, containedType, ctrlVarsTypeSpec, containedOwner, repName, indent, repContainer, keyFieldType, objectsRef, xlator):
+def iterateContainerStr(xlator):
     actionText = ""
-    if datastructID=='TreeMap':
-        keyVarSpec = {'owner':containedOwner, 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
-        localVarsAllocData=([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-        ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-        containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-        indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, xlator)
-        iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
-        repContainer+='.entrySet()'
-    elif datastructID=='list':
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':containedOwner, 'fieldType':containedType}
-        localVarsAllocData=([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-    else: iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-
-    actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
-    print "ITEMS:", actionText, indent, containedType," " , repName,' :', repContainer
+    localVarsAllocData = ""
 
     return (actionText, localVarsAllocData)
 
@@ -409,5 +394,6 @@ def fetchXlators():
     xlators['codeNewVarStr']                = codeNewVarStr
     xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
     xlators['iterateContainerStr']          = iterateContainerStr
+    xlators['getEnumStr']                   = getEnumStr
 
     return(xlators)

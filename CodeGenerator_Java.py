@@ -426,7 +426,7 @@ def encodeConditionalStatement(action, indent):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = processActionSeq(elseAction, indent)
+            elseText = processActionSeq(elseAction, indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -496,7 +496,7 @@ def processAction(action, indent, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = processActionSeq(elseAction, indent)
+                elseText = processActionSeq(elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -535,13 +535,27 @@ def processAction(action, indent, xlator):
             if(wrappedTypeSpec != None):
                 containerType=wrappedTypeSpec
 
+            # TODO: add xlator iterateContainerStr()
             containedType=containerType['fieldType']
-            containedOwner=containerType['owner']
-            ctrlVarsTypeSpec = {'owner':containedOwner, 'fieldType':containedType}
-            [actionTextAppend,localVarsAllocData] = xlator['iterateContainerStr'](datastructID, containedType, ctrlVarsTypeSpec, containedOwner, repName, indent, repContainer, keyFieldType, objectsRef, xlator)
-            actionText += actionTextAppend
-            localVarsAllocated.append(localVarsAllocData)  # Tracking local vars for scope
-            localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+            ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+            if datastructID=='TreeMap':
+                keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
+                localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+                ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
+                containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
+                indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, xlator)
+                iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
+                repContainer+='.entrySet()'
+            elif datastructID=='list':
+                loopCounterName=repName+'_key'
+                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+                localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+                iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
+            else: iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
+            print "ITEMS:", actionText, indent, containedType," " , repName,' :', repContainer
+            actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
+
+            localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
 
         if action['whereExpr']:
             [whereExpr, whereConditionType] = xlator['codeExpr'](action['whereExpr'], xlator)

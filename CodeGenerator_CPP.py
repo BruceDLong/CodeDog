@@ -406,22 +406,22 @@ def startPointOfNamesLastSegment(name):
         p-=1
     return p
 
-def encodeConditionalStatement(action, indent):
+def encodeConditionalStatement(action, indent, xlator):
     print "                                         conditional else if: "
     [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], xlator)
     ifCondition = S2
-    ifBodyText = genIfBody(action['ifBody'], indent)
+    ifBodyText = genIfBody(action['ifBody'], indent, xlator)
     actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
     elseBodyText = ""
     elseBody = action['elseBody']
     if (elseBody):
         if (elseBody[0]=='if'):
             elseAction = elseBody[1]
-            elseText = encodeConditionalStatement(elseAction[0], indent)
+            elseText = encodeConditionalStatement(elseAction[0], indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = processActionSeq(elseAction, indent)
+            elseText = processActionSeq(elseAction, indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -487,11 +487,11 @@ def processAction(action, indent, xlator):
         if (elseBody):
             if (elseBody[0]=='if'):
                 elseAction = elseBody[1][0]
-                elseText = encodeConditionalStatement(elseAction, indent)
+                elseText = encodeConditionalStatement(elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = processActionSeq(elseAction, indent)
+                elseText = processActionSeq(elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -522,21 +522,24 @@ def processAction(action, indent, xlator):
             #print "CONTAINER-SPEC:", repContainer, containerType
             datastructID = containerType['arraySpec']['datastructID']
 
-            keyFieldType = containerType['arraySpec']['indexType']
-            [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
-            print "DATAID, KEYTYPE:", [datastructID, keyFieldType]
-
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):
                 containerType=wrappedTypeSpec
 
-            containedType=containerType['fieldType']
-            containedOwner=containerType['owner']
-            ctrlVarsTypeSpec = {'owner':containedOwner, 'fieldType':containedType}
-            [actionTextAppend,localVarsAllocData] = xlator['iterateContainerStr'](datastructID, containedType, ctrlVarsTypeSpec, containedOwner, repName, indent, repContainer, keyFieldType, objectsRef, xlator)
-            actionText += actionTextAppend
-            localVarsAllocated.append(localVarsAllocData)  # Tracking local vars for scope
-            localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+            # TODO: add xlator iterateContainerStr()
+            ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType']}
+            if datastructID=='multimap' or datastructID=='map':
+                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType'], 'codeConverter':(repName+'.first')}
+                localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+                ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+            elif datastructID=='list':
+                loopCounterName=repName+'_key'
+                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containerType['fieldType']}
+                localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+                            + indent+indent+"auto "+repName+" = *"+repName+"Itr;\n")
+
+            localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
 
         if action['whereExpr']:
             [whereExpr, whereConditionType] = xlator['codeExpr'](action['whereExpr'], xlator)

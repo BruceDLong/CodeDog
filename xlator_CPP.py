@@ -90,14 +90,15 @@ def getCodeAllocStr(varTypeStr, owner):
     else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
     return S
 
-def getConstIntFieldStr():
+def getConstIntFieldStr(fieldName, fieldValue):
     S= "const int "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
-def getEnumStr():
+def getEnumStr(fieldName, enumList):
     S = "\nenum " + fieldName +" {"
+    enumSize = len (enumList)
     count=0
-    for enumName in field['typeSpec']['enumList']:
+    for enumName in enumList:
         S += enumName+"="+hex(count)
         count=count+1
         if(count<enumSize): S += ", "
@@ -107,6 +108,7 @@ def getEnumStr():
 ######################################################   E X P R E S S I O N   C O D I N G
 
 def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
+    convertedIdxType = ""
     if containerType=='deque':
         if name=='at' or name=='insert' or name=='erase' or name=='end' or  name=='rend': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -319,17 +321,10 @@ def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
 
     return(assignValue)
 
-def iterateContainerStr(datastructID, containedType, ctrlVarsTypeSpec, containedOwner, repName, indent, repContainer, keyFieldType, objectsRef, xlator):
-    if datastructID=='multimap' or datastructID=='map':
-        keyVarSpec = {'owner':containedOwner, 'fieldType':containedType, 'codeConverter':(repName+'.first')}
-        localVarsAllocData=([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
-    elif datastructID=='list':
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-        localVarsAllocData=([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-    actionText = (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
-                    + indent+indent+"auto "+repName+" = *"+repName+"Itr;\n")
+def iterateContainerStr(xlator):
+    localVarsAllocData = ''
+    actionText = ''
+
     return (actionText, localVarsAllocData)
 
 ############################################
@@ -427,5 +422,6 @@ def fetchXlators():
     xlators['codeNewVarStr']                = codeNewVarStr
     xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
     xlators['iterateContainerStr']          = iterateContainerStr
+    xlators['getEnumStr']                   = getEnumStr
 
     return(xlators)
