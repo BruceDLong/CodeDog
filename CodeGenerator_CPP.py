@@ -40,7 +40,7 @@ def CheckFunctionsLocalVarArgList(itemName):
     return 0
 
 def CheckObjectVars(objName, itemName, level):
-    print "Searching",objName,"for", itemName
+    #print "Searching",objName,"for", itemName
     if(not objName in objectsRef[0]):
         return 0  # Model def not found
     retVal=None
@@ -63,7 +63,7 @@ def CheckObjectVars(objName, itemName, level):
     for field in ObjectDef['fields']:
         fieldName=field['fieldName']
         if fieldName==itemName:
-            print "Found", itemName
+            #print "Found", itemName
             return field
 
     # Not found so look a level deeper (Passive Inheritance)

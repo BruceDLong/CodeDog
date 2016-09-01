@@ -40,7 +40,7 @@ def CheckFunctionsLocalVarArgList(itemName):
     return 0
 
 def CheckObjectVars(objName, itemName, level):
-    print "Searching",objName,"for", itemName
+    #print "Searching",objName,"for", itemName
     if(not objName in objectsRef[0]):
         return 0  # Model def not found
     retVal=None
@@ -63,7 +63,7 @@ def CheckObjectVars(objName, itemName, level):
     for field in ObjectDef['fields']:
         fieldName=field['fieldName']
         if fieldName==itemName:
-            print "Found", itemName
+            #print "Found", itemName
             return field
 
     # Not found so look a level deeper (Passive Inheritance)
@@ -411,18 +411,18 @@ def startPointOfNamesLastSegment(name):
         p-=1
     return p
 
-def encodeConditionalStatement(action, indent):
+def encodeConditionalStatement(action, indent, xlator):
     print "                                         conditional else if: "
     [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], xlator)
     ifCondition = S2
-    ifBodyText = genIfBody(action['ifBody'], indent)
+    ifBodyText = genIfBody(action['ifBody'], indent, xlator)
     actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
     elseBodyText = ""
     elseBody = action['elseBody']
     if (elseBody):
         if (elseBody[0]=='if'):
             elseAction = elseBody[1]
-            elseText = encodeConditionalStatement(elseAction[0], indent)
+            elseText = encodeConditionalStatement(elseAction[0], indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
@@ -492,7 +492,7 @@ def processAction(action, indent, xlator):
         if (elseBody):
             if (elseBody[0]=='if'):
                 elseAction = elseBody[1][0]
-                elseText = encodeConditionalStatement(elseAction, indent)
+                elseText = encodeConditionalStatement(elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
@@ -529,7 +529,7 @@ def processAction(action, indent, xlator):
 
             keyFieldType = containerType['arraySpec']['indexType']
             [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
-            print "DATAID, KEYTYPE:", [datastructID, keyFieldType]
+            #print "DATAID, KEYTYPE:", [datastructID, keyFieldType]
 
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):
@@ -830,13 +830,13 @@ def generateAllObjectsButMain(objects, tags, xlator):
                     #objectName = objectName[:charIdx-1]
                 #else:print "!TAG", thisCtxTag; continue
 
-            print "                [" + objectName+"]"
+            print "                OBJECT: [" + objectName+"]"
             currentObjName=objectName
             [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags, xlator)
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
-            if((not (xlator['doesLangHaveGlobals']) or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
+            if(objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):
