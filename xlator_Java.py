@@ -95,7 +95,7 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     return ['','']
 
 def getCodeAllocStr(varTypeStr, owner):
-    if(owner!='const'):  S="new "+varTypeStr+'()'
+    if(owner!='const'):  S="new "+varTypeStr
     else: print "ERROR: Cannot allocate a 'const' variable."; exit(1);
     return S
 
@@ -195,7 +195,7 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType]= codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType]=codeItemRef(item0, 'RVAL', xlator)
             S+=codeStr                                # Code variable reference or function call
     return [S, retType]
 
@@ -306,7 +306,13 @@ def codeSpecialFunc(segSpec, xlator):
         if(len(segSpec)>2):
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
-            S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+";"
+            S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
+            count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
+            for P in paramList[1:]:
+                if(count>0): S+=', '
+                [S2, argType]=xlator['codeExpr'](P[0], xlator)
+                S+=S2
+            S+=")"
     #elif(funcName=='break'):
     #elif(funcName=='return'):
     #elif(funcName==''):

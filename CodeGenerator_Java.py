@@ -707,7 +707,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
             fieldValueText = " = "+ str(fieldValue)
             print "                         Other: ", fieldType, fieldName
 
-        ##CALCULATE LHS + RHS ###########################################               
+        ##CALCULATE LHS + RHS ###########################################
         #registerType(objectName, fieldName, convertedType, "")             # If its a constant.
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
@@ -830,13 +830,13 @@ def generateAllObjectsButMain(objects, tags, xlator):
                     #objectName = objectName[:charIdx-1]
                 #else:print "!TAG", thisCtxTag; continue
 
-            print "                OBJECT: [" + objectName+"]"
+            print "                [" + objectName+"]"
             currentObjName=objectName
             [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags, xlator)
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
-            if(objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
+            if((not (xlator['doesLangHaveGlobals']) or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):

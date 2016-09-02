@@ -681,10 +681,11 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
             print "                         No argList:", fieldType, fieldName, fieldValueText
 
         ################################################################
-        else: fieldValueText = " = "+ str(fieldValue)
-        #registerType(objectName, fieldName, convertedType, "")
+        else:
+            fieldValueText = " = "+ str(fieldValue)
+            print "                         Other: ", fieldType, fieldName
 
-        ##CALCULATE LHS + RHS ###########################################               
+        ##CALCULATE LHS + RHS ###########################################
         #registerType(objectName, fieldName, convertedType, "")             # If its a constant.
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';

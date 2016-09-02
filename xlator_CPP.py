@@ -304,7 +304,13 @@ def codeSpecialFunc(segSpec, xlator):
         if(len(segSpec)>2):
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
-            S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+";"
+            S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
+            count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
+            for P in paramList[1:]:
+                if(count>0): S+=', '
+                [S2, argType]=xlator['codeExpr'](P[0], xlator)
+                S+=S2
+            S+=")"
     #elif(funcName=='break'):
     #elif(funcName=='return'):
     #elif(funcName==''):
