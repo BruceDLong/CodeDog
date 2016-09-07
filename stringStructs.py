@@ -753,6 +753,7 @@ def Write_ALT_Extracter(objects, field, structName, fields, VarTag, VarName, ind
         S+=' me string: '+VarName+'\n'
     count=0
     for altField in fields:
+        print "ALTFIELD", altField
         S+=indent
         if(count>0): S+="else "
         S+="if(ruleIDX == " + altField['parseRule'] + "){\n"
@@ -772,6 +773,8 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
     typeSpec   =field['typeSpec']
     fieldType  =typeSpec['fieldType']
     fieldOwner =typeSpec['owner']
+    fromIsEmbeddedAlt = (not isinstance(fieldType, basestring) and fieldType[0]=='[')
+    fromIsEmbeddedSeq = (not isinstance(fieldType, basestring) and fieldType[0]=='{')
 
     toField = progSpec.fetchFieldByName(memObjFields, fieldName)
     if(toField==None):
@@ -804,8 +807,12 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
     finalCodeStr=''
     if VarName=='' or VarName=='memStruct':  # Default to the target argument name
         VarName='memStruct'
-        CODE_LVAR= VarName+'.'+fieldName
-    else: CODE_LVAR=VarName
+        if(fieldName==None):
+            globalFieldCount+=1
+            CODE_LVAR = 'me string: S'+str(globalFieldCount)
+        else:
+            CODE_LVAR = VarName+'.'+fieldName
+    else: CODE_LVAR = VarName
     CODE_RVAL=''
     objName=''
     doNextSuffix=''
@@ -828,7 +835,7 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
                 objName=toFieldType[0]
                 if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
                     CODE_RVAL='makeStr('+VarTag+'.child'+doNextSuffix+')'
-                    toIsStruct=false; # false because it is really a base type.
+                    toIsStruct=False; # false because it is really a base type.
                 else:
                     finalCodeStr=indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'('+VarTag+'.child, '+CODE_LVAR+')\n'
 
@@ -878,8 +885,12 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
     else:
         if toIsList: print "Error: parsing a non-list to a list is not supported.\n"; exit(1);
         assignerCode=''
-        if fromIsALT:
-            assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
+        if fromIsALT or fromIsEmbeddedAlt:
+            if(fromIsEmbeddedAlt):
+                print "FIELDSDIG:", typeSpec
+                assignerCode+=Write_ALT_Extracter(objects, field,  'infon::str', typeSpec['fieldType']["fieldDefs"], VarTag, VarName+'X', indent+'    ')
+            else:
+                assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
             assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
 
         elif fromIsStruct and toIsStruct:

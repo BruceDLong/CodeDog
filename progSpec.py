@@ -175,7 +175,7 @@ def isStruct(fieldType):
     return True
 
 def isAltStruct(objects, fieldType):
-    if not isStruct(fieldType): return [False, [] ]
+    if not isStruct(fieldType) or not(fieldType[0] in objects[0]): return [False, [] ]
     fieldObj=objects[0][fieldType[0]]
     fieldObjConfig=fieldObj['configType']
     Objfields=fieldObj['fields']
@@ -211,7 +211,7 @@ def TypeSpecsMinimumBaseType(objects, typeSpec):
             else:  return "flexInt"
         else: # Handle signed values (int)
             return "int64"
-    elif isStruct(fieldType):
+    elif isStruct(fieldType) and (fieldType[0] in objects[0]):
         fieldObj=objects[0][fieldType[0]]
         fieldObjConfig=fieldObj['configType']
         if(fieldObjConfig=='ALT'):

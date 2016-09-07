@@ -101,7 +101,7 @@ string testParse::str{
     > numChar[list]: numbStr " "
     > date::str: birthday
     > me string: worldMesg
-    //> me numChar[OPT]: optNum ","
+    //> me numChar[opt]: optNum ","
     > me numChar: myNum " "
    // > me date::str[list]: birthdays
     "]"
