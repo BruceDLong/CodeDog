@@ -659,14 +659,17 @@ def populateBaseRules():
 
 
 
-
-def fetchOrWriteParseRule(modelName, field):
-    fieldName  =field['fieldName']
-    fieldValue =field['value']
+nextParseNameID=0 # Global used to uniquify sub-seqs and sub-alts in a struct parse. E.g.: ruleName: parse_myStruct_sub1
+def fetchOrWriteTerminalParseRule(modelName, field):
+    global nextParseNameID
+    print "FIELD_IN:", modelName, field
+    fieldName='N/A'
+    fieldValue=''
+    if 'value' in field: fieldValue =field['value']
     typeSpec   =field['typeSpec']
     fieldType  =typeSpec['fieldType']
     fieldOwner =typeSpec['owner']
-
+    if 'fieldName' in field: fieldName  =field['fieldName']
     print "WRITE PARSE RULE:", modelName, fieldName
 
     nameIn=None
@@ -681,7 +684,7 @@ def fetchOrWriteParseRule(modelName, field):
         elif fieldType[0:4]=='char':   nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
         else:
-            print "Unusable const type in fetchOrWriteParseRule():", fieldType; exit(2);
+            print "Unusable const type in fetchOrWriteTerminalParseRule():", fieldType; exit(2);
 
     elif fieldOwner=='me' or  fieldOwner=='their':
         if fieldType=='string':        nameOut='quotedStr1'
@@ -696,7 +699,10 @@ def fetchOrWriteParseRule(modelName, field):
             if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
                 nameOut=objName
             else:
-                nameOut='parse_'+fieldType[0]
+                if objName=='[' or objName=='{': # This is an ALT or SEQ sub structure
+                    print "ERROR: These should be handled in writeNonTermParseRule().\n"
+                    exit(1)
+                else: nameOut='parse_'+objName
         elif progSpec.isAlt(fieldType):
             pass
         elif progSpec.isOpt(fieldType):
@@ -704,8 +710,8 @@ def fetchOrWriteParseRule(modelName, field):
         elif progSpec.isCofactual(fieldType):
             pass
         else:
-            print "Unusable type in fetchOrWriteParseRule():", fieldType; exit(2);
-    else: print "Pointer types not yet handled in fetchOrWriteParseRule():", fieldType; exit(2);
+            print "Unusable type in fetchOrWriteTerminalParseRule():", fieldType; exit(2);
+    else: print "Pointer types not yet handled in fetchOrWriteTerminalParseRule():", fieldType; exit(2);
 
     if('arraySpec' in typeSpec and typeSpec['arraySpec']):
         global rules
@@ -722,16 +728,36 @@ def fetchOrWriteParseRule(modelName, field):
     field['parseRule']=nameOut
     return nameOut
 
-def AddFields(objects, tags, listName, fields, SeqOrAlt):
+def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix):
+    global nextParseNameID
+    nextParseNameID=0
+    nameIn='parse_'+modelName+nameSuffix
+
+    # Allocate or fetch a rule identifier for each '>' field.
     partIndexes=[]
     for field in fields:
         fname=field['fieldName']
         if(field['isNext']==True):
-            ruleIdxStr = fetchOrWriteParseRule(listName, field)
+            firstItm=field['typeSpec']['fieldType'][0]
+            if firstItm=='[' or firstItm=='{': # Handle an ALT or SEQ sub structure
+                nextParseNameID+=1
+                if firstItm=='[':
+                    innerSeqOrAlt='parseALT'
+                    newNameSuffix = nameSuffix+'_ALT'+str(nextParseNameID)
+                else:
+                    innerSeqOrAlt='parseSEQ'
+                    newNameSuffix = nameSuffix+'_SEQ'+str(nextParseNameID)
+                innerFields=field['innerDefs']
+                ruleIdxStr = writeNonTermParseRule(objects, tags, modelName, innerFields, innerSeqOrAlt, newNameSuffix)
+            else:
+                ruleIdxStr = fetchOrWriteTerminalParseRule(modelName, field)
+
             partIndexes.append(ruleIdxStr)
-        else: pass;
-    nameIn='parse_'+listName
+        else: pass; # These fields probably have corresponding cofactuals
+
     nameOut=appendRule(nameIn, "nonterm", SeqOrAlt, partIndexes)
+    field['parseRule']=nameOut
+    return nameOut
 
 def fetchMemVersion(objects, objName):
     # TODO: here we assume that the memory form has '::mem' using AutoAssigners, make this work with other forms.
@@ -745,6 +771,10 @@ def fetchMemVersion(objects, objName):
 
 
 def Write_ALT_Extracter(objects, field, structName, fields, VarTag, VarName, indent):
+    # Structname should be the name of the structure being parsed. It will be converted to the mem version to get 'to' fields.
+    # Fields is the list of alternates.
+    # VarTag is a string used to create local variables.
+    # VarName is the LVAL variable name.
     [memObj, memVersionName]=fetchMemVersion(objects, structName)
     InnerMemObjFields=memObj['fields']
     S=""
@@ -789,7 +819,10 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
     print "        CONVERTING:", fieldName, toFieldType, typeSpec
     print "            TOFieldTYPE1:", toField
     print "            TOFieldTYPE :", toFieldOwner, toFieldType
-    print "FIELD-NAME/TYPE:", fieldName,'/', fieldType
+    print "       memObjFields:", memObjFields
+    if(fieldName=='tag'): exit(2)
+
+
     fields=[]
     fromIsStruct=progSpec.isStruct(fieldType)
     toIsStruct=progSpec.isStruct(toFieldType)
@@ -887,12 +920,13 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
         assignerCode=''
         if fromIsALT or fromIsEmbeddedAlt:
             if(fromIsEmbeddedAlt):
-                print "FIELDSDIG:", typeSpec
-                assignerCode+=Write_ALT_Extracter(objects, field,  'infon::str', typeSpec['fieldType']["fieldDefs"], VarTag, VarName+'X', indent+'    ')
+                assignerCode+=Write_ALT_Extracter(objects, field,  'infon::str', field['innerDefs'], VarTag, VarName+'X', indent+'    ')
             else:
                 assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
             assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
-
+        elif fromIsEmbeddedSeq:
+            for innerField in field['innerDefs']:
+                assignerCode+=Write_fieldExtracter(objects, innerField, memObjFields, 'SRec', '', True, '    ')
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr;
         else:
@@ -972,7 +1006,7 @@ def CreateStructsForStringModels(objects, tags):
             elif configType=='ALT': SeqOrAlt='parseALT'
 
             # Write the rules for all the fields, and a parent rule which is either SEQ or ALT, and REP/OPT as needed.
-            AddFields(objects, tags, objectName.replace('::', '_'), fields, SeqOrAlt)
+            ruleID = writeNonTermParseRule(objects, tags, objectName.replace('::', '_'), fields, SeqOrAlt, '')
 
             if SeqOrAlt=='parseSEQ':
                 ExtracterCode += Write_structExtracter(objects, tags, objectName, fields)

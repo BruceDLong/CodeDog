@@ -173,7 +173,9 @@ def packFieldDef(fieldResult, ObjectName, indent):
     else: owner='me';
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType;
-        #if isinstance(fieldType, basestring): fieldType=[fieldType]
+        if not isinstance(fieldType, basestring) and (fieldType[0]=='[' or fieldType[0]=='{'):
+            print "FIELDTYPE is an inline SEQ or ALT:", fieldResult
+
     else: fieldType=None;
     if(fieldResult.arraySpec): arraySpec=fieldResult.arraySpec;
     else: arraySpec=None;
@@ -229,6 +231,8 @@ def packFieldDef(fieldResult, ObjectName, indent):
     else:
         print "Error in packing FieldDefs:", fieldResult
         exit(1)
+    if 'innerDefs' in fieldResult:
+        fieldDef['innerDefs']=fieldResult.innerDefs
     return fieldDef
 
 def extractActSeqToActSeq(funcName, childActSeq):
@@ -359,10 +363,34 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
     #print funcBodyOut
     return funcBodyOut, funcTextVerbatim
 
+def extractAnonFieldDefs(ProgSpec, fieldSpec):
+    innerDefs=[]
+    #print "FIELD is an inline SEQ or ALT:", fieldSpec
+    for innerField in fieldSpec:
+        # First, if needed, recurse to get nested anon fields:
+        if 'fieldType' in innerField:
+            fieldType=innerField.fieldType
+            if not isinstance(fieldType, basestring):
+                inner2Defs=[]
+                if fieldType[0]=='[':
+                    inner2Defs=extractAnonFieldDefs(ProgSpec, fieldType[1])
+                elif fieldType[0]=='{':
+                    inner2Defs=extractAnonFieldDefs(ProgSpec, fieldType[1:-1])
+                innerField['innerDefs']=inner2Defs
+
+
+        fieldDef=packFieldDef(innerField, 'inner', 'XYZ')
+        innerDefs.append(fieldDef)
+    return innerDefs
+
 def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
     print "    EXTRACTING Field Defs for", ObjectName
     #print fieldResults
     for fieldResult in fieldResults:
+        fieldType=fieldResult.fieldType
+        if not isinstance(fieldType, basestring) and (fieldType[0]=='[' or fieldType[0]=='{'):
+            innerDefs=extractAnonFieldDefs(ProgSpec, fieldType[1])
+            fieldResult['innerDefs']=innerDefs
         fieldDef=packFieldDef(fieldResult, ObjectName, '')
         progSpec.addField(ProgSpec, ObjectName, fieldDef)
 
