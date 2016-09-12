@@ -21,7 +21,7 @@ featuresNeeded = {}
 runCode=`
     me EParser: parser
     parser.populateGrammar()
-    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1 ]")   // "[Robert 234 4/19/1967 'Hello World!'1]")
+    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 1234321 4/19/1967 'Hello World!'1 ]")   // "[Robert 234 4/19/1967 'Hello World!'1]")
   //  parser.initPosStateSets(parser.parse_testParse_str, "[Robert 234 4/19/1967 'Hello World!'1 2/22/1922 ]")
 
     parser.doParse()
@@ -34,12 +34,47 @@ runCode=`
     me testParse: TPM
     parser.ExtractStruct_testParse_str(topItem, TPM)
 
-    print("\n\nTPM.Mesg: ", TPM.worldMesg, "\n")
-    print("Birthday:", TPM.birthday.month, "-", TPM.birthday.day, "-", TPM.birthday.year, "\n")
-    withEach num in TPM.numbStr:{
-        print(num, "\n")
-   }
-   print("TPM.myNUm: ", TPM.myNum, "\n")
+    if(TPM.worldMesg == 'Hello World!'){
+        print("\n\nTest Passed TPM.Mesg: ", TPM.worldMesg, "\n")
+    }
+    else{
+        print("\nTest Failed: worldMesg\n\n")
+        exit(2)
+    }
+    
+    
+    if(TPM.birthday.month == 4 and TPM.birthday.day == 19 and TPM.birthday.year == 1967){
+        print("Test Passed Birthday: ", TPM.birthday.month, "-", TPM.birthday.day, "-", TPM.birthday.year, "\n")
+    }
+    else{
+        print("\nTest Failed: Birthday\n\n")
+        exit(2)
+    }
+    
+    
+    if(TPM.numbStr[0] == '1' and TPM.numbStr[1] == '2' and TPM.numbStr[2] == '3'and TPM.numbStr[3] == '4'and TPM.numbStr[4] == '3'and TPM.numbStr[5] == '2' and TPM.numbStr[6] == '1' ){
+        print('Test Passed numbStr:\n' )
+        withEach num in TPM.numbStr:{
+            print('   ', num, ", ")
+        }
+        print('\n')
+    }
+    else{
+        print("\nTest Failed: TPM.numbStr")
+        withEach num in TPM.numbStr:{
+            print('   ', num, ", ")
+        }
+        print('\n')
+        //exit(2)
+    }
+    
+    if(TPM.myNum == '1' ){
+        print("Test Passed TPM.myNum: ", TPM.myNum, "\n")
+    }
+    else{
+        print("\nTest Failed: myNum\n\n")
+        exit(2)
+    }
 `
 
 Include=`<memory>, <fstream>, <cstdint>, <string>, <cstring>, <vector>, <deque>, <map>, <cstdarg>, <iostream>`
