@@ -696,7 +696,6 @@ def fetchOrWriteTerminalParseRule(modelName, field):
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif progSpec.isStruct(fieldType):
             objName=fieldType[0]
-            print 'OBJNAME:', objName
             if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
                 nameOut=objName
             else:
@@ -771,12 +770,12 @@ def fetchMemVersion(objects, objName):
     return [memObj, memVersionName]
 
 
-def Write_ALT_Extracter(objects, field, structName, fields, VarTag, VarName, indent):
+def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarName, indent):
     # Structname should be the name of the structure being parsed. It will be converted to the mem version to get 'to' fields.
     # Fields is the list of alternates.
     # VarTag is a string used to create local variables.
     # VarName is the LVAL variable name.
-    [memObj, memVersionName]=fetchMemVersion(objects, structName)
+    [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     InnerMemObjFields=memObj['fields']
     S=""
     S+='        me int32: ruleIDX <- '+VarTag+'.child.next.child.productionID\n'
@@ -788,7 +787,6 @@ def Write_ALT_Extracter(objects, field, structName, fields, VarTag, VarName, ind
         S+=indent
         if(count>0): S+="else "
         S+="if(ruleIDX == " + altField['parseRule'] + "){\n"
-        print "################# ENTERING FROM ALT:", InnerMemObjFields
         coFactualCode=''
         if 'coFactuals' in altField:
             #Extract field and cofactsList
@@ -796,14 +794,14 @@ def Write_ALT_Extracter(objects, field, structName, fields, VarTag, VarName, ind
             for coFact in altField['coFactuals']:
                 coFactualCode+= indent + VarName + '.' + coFact[0] + ' <- ' + coFact[2] + "\n"
 
-        S+=Write_fieldExtracter(objects, altField, InnerMemObjFields, VarTag, VarName, False, indent+'    ')
+        S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTag, VarName, False, indent+'    ')
         S+=coFactualCode
         S+=indent+"}"
         count+=1
     return S
 
 
-def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advancePtr, indent):
+def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag, VarName, advancePtr, indent):
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
     global  globalFieldCount
     S=''
@@ -815,6 +813,8 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
     fieldOwner =typeSpec['owner']
     fromIsEmbeddedAlt = (not isinstance(fieldType, basestring) and fieldType[0]=='[')
     fromIsEmbeddedSeq = (not isinstance(fieldType, basestring) and fieldType[0]=='{')
+
+    [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
 
     toField = progSpec.fetchFieldByName(memObjFields, fieldName)
     if(toField==None):
@@ -842,7 +842,8 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
     if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
         fromIsList=True
         datastructID = typeSpec['arraySpec']['datastructID']
-        if datastructID=='OPT': fromIsOPT=True;
+        if datastructID=='opt': fromIsOPT=True;
+
     if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:  toIsList=True
 
     ###################   W r i t e   R V A L   C o d e
@@ -888,14 +889,13 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
 
     #print "CODE_RVAL:", CODE_RVAL
 
-   # if(fieldName=='tag'): exit(2)
     ###################   H a n d l e   o p t i o n a l   a n d   r e p e t i t i o n   a n d   a s s i g n m e n t   c a s e s
     gatherFieldCode=''
     if fromIsList and toIsList:
         CODE_RVAL='tmpVar_tmpStr'
         globalFieldCount +=1
         childRecName='childSRec' + str(globalFieldCount)
-        gatherFieldCode+='\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next\n    withEach Cnt in WHILE('+childRecName+'):{\n'
+        gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next\n    withEach Cnt in WHILE('+childRecName+'):{\n'
         if fromIsALT:
             gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, 'tmpVar_tmpStr', indent+'    ')
             gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
@@ -910,40 +910,55 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
         gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
 
         gatherFieldCode+='\n'+indent+'}\n'
-        """if(fromIsOPT):
-            gatherFieldCode+=indent+'me uint32: altSize <- '+CODE_LVAR+'.size()'
-            gatherFieldCode+=indent+'if(altSize==0){}'
-            gatherFieldCode+=indent+'else if(altSize==1){'
-            assignerCode=''
-            if fromIsALT:
-                assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
-                assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
-            elif fromIsStruct and toIsStruct:
-                assignerCode+=finalCodeStr;
-            else:
-               # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
-                if CODE_RVAL!="": assignerCode+='        '+CODE_LVAR+' <- '+CODE_RVAL+"\n"
-                elif finalCodeStr!="": assignerCode+=finalCodeStr;
-            gatherFieldCode+=indent+'}'"""
+        if(fromIsOPT):
+            print "Handle when the optional item is a list.";
+            exit(2)
     else:
         if toIsList: print "Error: parsing a non-list to a list is not supported.\n"; exit(1);
         assignerCode=''
+        oldIndent=indent
+        if (fromIsOPT):
+            print "OPT:", fieldName, toFieldOwner
+            setTrueCode=''
+            assignerCode+='\n'+indent+'if('+VarTag+'.child.next'+'==0){'
+            if toFieldOwner=='me':
+                # First, create a new flag field
+                newFieldsName='has_'+fieldName
+                fieldDef=progSpec.packField(False, 'me', 'flag', None, newFieldsName, None, None)
+                progSpec.addField(objects[0], memVersionName, fieldDef)
+
+                # Second, generate the code to set the flag
+                assignerCode+='\n'+indent+'    '+VarName+'.'+newFieldsName+' <- false'
+                setTrueCode += VarName+'.'+newFieldsName+' <- true'
+            elif toFieldOwner=='my' or toFieldOwner=='our' or toFieldOwner=='their':
+                assignerCode+='\n'+indent+'    '+CODE_LVAR+' <- 0'
+            else:
+                print"ERROR: OPTional fields must not be '"+toFieldOwner+"'.\n"
+                exit(1)
+            assignerCode+='\n'+indent+'} else {\n'
+            indent+='    '
+            assignerCode+=indent+setTrueCode+'\n'
         if fromIsALT or fromIsEmbeddedAlt:
             if(fromIsEmbeddedAlt):
-                assignerCode+=Write_ALT_Extracter(objects, field,  'infon::str', field['innerDefs'], VarTag, VarName, indent+'    ')
+                assignerCode+=Write_ALT_Extracter(objects, field,  parentStructName, field['innerDefs'], VarTag, VarName, indent+'    ')
             else:
                 assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
                 assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
         elif fromIsEmbeddedSeq:
             for innerField in field['innerDefs']:
-                print "################# ENTERING FROM EmbeddedSEQ:", memObjFields
-                assignerCode+=Write_fieldExtracter(objects, innerField, memObjFields, 'SRec', '', True, '    ')
+                assignerCode+=Write_fieldExtracter(objects, parentStructName, innerField, memObjFields, 'SRec', '', True, '    ')
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr;
         else:
            # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
             if CODE_RVAL!="": assignerCode+='        '+CODE_LVAR+' <- '+CODE_RVAL+"\n"
             elif finalCodeStr!="": assignerCode+=finalCodeStr;
+
+        if (fromIsOPT):
+            indent=oldIndent
+            assignerCode += indent+'}\n'
+            print '######################\n'+assignerCode, memVersionName, '\n'
+           # exit(2)
         gatherFieldCode = assignerCode
 
     if toFieldOwner == 'their' or toFieldOwner == 'our' or toFieldOwner == 'my': # LVAL is a pointer and should be allocated or cleared.
@@ -954,16 +969,15 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
 
     return S
 
-def Write_structExtracter(objects, tags, objName, fields):
-    [memObj, memVersionName]=fetchMemVersion(objects, objName)
+def Write_structExtracter(objects, tags, parentStructName, fields):
+    [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     memObjFields=memObj['fields']
-    print "OBJ FIELDS:",objName,  memObj
+    #print "OBJ FIELDS:",parentStructName,  memObj
     S='    me string: SRec_tmpStr'
     for field in fields:
-        print "################# ENTERING FROM TOP:", memObjFields
-        S+=Write_fieldExtracter(objects, field, memObjFields, 'SRec', '', True, '    ')
+        S+=Write_fieldExtracter(objects, parentStructName, field, memObjFields, 'SRec', '', True, '    ')
 
-    seqExtracter =  "\n    me bool: ExtractStruct_"+objName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
+    seqExtracter =  "\n    me bool: ExtractStruct_"+parentStructName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     return seqExtracter
 
 

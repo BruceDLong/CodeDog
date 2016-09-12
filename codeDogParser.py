@@ -181,7 +181,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType;
         if not isinstance(fieldType, basestring) and (fieldType[0]=='[' or fieldType[0]=='{'):
-            print "FIELDTYPE is an inline SEQ or ALT:", fieldResult
+            print "FIELDTYPE is an inline SEQ or ALT:"
 
     else: fieldType=None;
     if(fieldResult.arraySpec): arraySpec=fieldResult.arraySpec;
@@ -375,7 +375,7 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
 
 def extractAnonFieldDefs(ProgSpec, fieldSpec, ObjectName):
     innerDefs=[]
-    print "FIELD is an inline SEQ or ALT:", fieldSpec, ">>>>", ObjectName
+    #print "FIELD is an inline SEQ or ALT:", fieldSpec, ">>>>", ObjectName
     for innerField in fieldSpec:
         # First, if needed, recurse to get nested anon fields:
         if 'fieldType' in innerField:
@@ -387,7 +387,7 @@ def extractAnonFieldDefs(ProgSpec, fieldSpec, ObjectName):
                 elif fieldType[0]=='{':
                     inner2Defs=extractAnonFieldDefs(ProgSpec, fieldType[1:-1], ObjectName)
                 innerField['innerDefs']=inner2Defs
-        print "OBJNAME:", ObjectName
+
         fieldDef=packFieldDef(innerField, ObjectName, 'XYZ')
         innerDefs.append(fieldDef)
     return innerDefs

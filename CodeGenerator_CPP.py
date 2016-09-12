@@ -459,15 +459,15 @@ def processAction(action, indent, xlator):
         if assignTag == '':
             if LHS_FieldType=='flag':
                 divPoint=startPointOfNamesLastSegment(LHS)
-                LHS_Left=LHS[0:divPoint]
+                LHS_Left=LHS[0:divPoint+1] # The '+1' makes this get the connector too. e.g. '.' or '->'
                 bitMask =LHS[divPoint+1:]
-                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+", "+ RHS + ");\n"
-                #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS
+                actionText=indent + "SetBits("+LHS_Left+"flags, "+bitMask+", "+ RHS + ");\n"
+                #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
             elif LHS_FieldType=='mode':
                 divPoint=startPointOfNamesLastSegment(LHS)
-                LHS_Left=LHS[0:divPoint]
+                LHS_Left=LHS[0:divPoint+1]
                 bitMask =LHS[divPoint+1:]
-                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+"Mask, "+ RHS+"<<" +bitMask+"Offset"+");\n"
+                actionText=indent + "SetBits("+LHS_Left+"flags, "+bitMask+"Mask, "+ RHS+"<<" +bitMask+"Offset"+");\n"
             else:
                 actionText = indent + LHS + " = " + RHS + ";\n"
         else:
