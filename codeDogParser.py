@@ -111,8 +111,8 @@ baseType = (cppType | numRange)("baseType")
 #########################################   O B J E C T   D E S C R I P T I O N S
 objectName = Combine(CID + Optional('::' + CID))("objectName")
 fieldDefs = ZeroOrMore(fieldDef)("fieldDefs")
-SetFieldStmt = Group(lValue + '=' + rValue)
-coFactualEl  = (Literal("(") + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEl")
+SetFieldStmt = Group(Word(alphas + nums + "_.") + '=' + Word(alphas + nums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
+coFactualEl  = Group(Literal("(") + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEl")
 sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
 alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
 anonModel = (sequenceEl | alternateEl) ("anonModel")
@@ -165,6 +165,13 @@ def extractTagDefs(tagResults):
 nameIDX=1
 def packFieldDef(fieldResult, ObjectName, indent):
     global nameIDX
+    #  ['(', [['>', 'me', ['CID'], [':', 'tag']], '<=>', [[[['hasTag']], '=', [[[[[[[['54321'], []], []], []], []], []], []]]]]], ')']
+    coFactuals=None
+    if fieldResult[0]=='(':             # Reorganize Cofactuals if they are here
+        coFactuals = fieldResult[1][2]
+        fieldResult= fieldResult[1][0]
+        print"        ##", fieldResult, "{", ObjectName, "}"
+
     fieldDef={}
     argList=[]
     isNext=False;
@@ -204,6 +211,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
         fieldName=None;
 
 
+
     if(fieldResult.flagDef):
         print indent+"        FLAG: ", fieldResult
         if(arraySpec): print"Lists of flags are not allowed.\n"; exit(2);
@@ -233,6 +241,8 @@ def packFieldDef(fieldResult, ObjectName, indent):
         exit(1)
     if 'innerDefs' in fieldResult:
         fieldDef['innerDefs']=fieldResult.innerDefs
+    if coFactuals!=None:
+        fieldDef['coFactuals']=coFactuals
     return fieldDef
 
 def extractActSeqToActSeq(funcName, childActSeq):
@@ -363,9 +373,9 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
     #print funcBodyOut
     return funcBodyOut, funcTextVerbatim
 
-def extractAnonFieldDefs(ProgSpec, fieldSpec):
+def extractAnonFieldDefs(ProgSpec, fieldSpec, ObjectName):
     innerDefs=[]
-    #print "FIELD is an inline SEQ or ALT:", fieldSpec
+    print "FIELD is an inline SEQ or ALT:", fieldSpec, ">>>>", ObjectName
     for innerField in fieldSpec:
         # First, if needed, recurse to get nested anon fields:
         if 'fieldType' in innerField:
@@ -373,13 +383,12 @@ def extractAnonFieldDefs(ProgSpec, fieldSpec):
             if not isinstance(fieldType, basestring):
                 inner2Defs=[]
                 if fieldType[0]=='[':
-                    inner2Defs=extractAnonFieldDefs(ProgSpec, fieldType[1])
+                    inner2Defs=extractAnonFieldDefs(ProgSpec, fieldType[1], ObjectName)
                 elif fieldType[0]=='{':
-                    inner2Defs=extractAnonFieldDefs(ProgSpec, fieldType[1:-1])
+                    inner2Defs=extractAnonFieldDefs(ProgSpec, fieldType[1:-1], ObjectName)
                 innerField['innerDefs']=inner2Defs
-
-
-        fieldDef=packFieldDef(innerField, 'inner', 'XYZ')
+        print "OBJNAME:", ObjectName
+        fieldDef=packFieldDef(innerField, ObjectName, 'XYZ')
         innerDefs.append(fieldDef)
     return innerDefs
 
@@ -389,7 +398,7 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
     for fieldResult in fieldResults:
         fieldType=fieldResult.fieldType
         if not isinstance(fieldType, basestring) and (fieldType[0]=='[' or fieldType[0]=='{'):
-            innerDefs=extractAnonFieldDefs(ProgSpec, fieldType[1])
+            innerDefs=extractAnonFieldDefs(ProgSpec, fieldType[1], ObjectName)
             fieldResult['innerDefs']=innerDefs
         fieldDef=packFieldDef(fieldResult, ObjectName, '')
         progSpec.addField(ProgSpec, ObjectName, fieldDef)

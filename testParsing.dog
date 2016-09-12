@@ -93,6 +93,7 @@ model testParse{
     me string: worldMesg
     me numChar: myNum
     me date[list]: birthdays
+    me string: tag
 }
 
 string testParse::str{
@@ -105,6 +106,14 @@ string testParse::str{
     > me numChar: myNum " "
    // > me date::str[list]: birthdays
     "]"
+/*
+   >[   "?"
+    |   "%W"
+    |   "%this"
+    |   >me CID: tag
+    |   >{ "*" >me ws "+"}
+    ]
+*/
 }
 
 //struct testParse::mem auto

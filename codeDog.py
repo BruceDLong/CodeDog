@@ -185,8 +185,8 @@ def ChooseLibs(objects, buildSpec, tags):
 def GenerateSystem(objects, buildSpecs, tags):
     print "\n\n######################   G E N E R A T I N G   S Y S T E M"
     ScanAndApplyPatterns(objects, tags)
-    stringStructs.CreateStructsForStringModels(objects, tags)
     AutoGenerateStructsFromModels(objects, tags)
+    stringStructs.CreateStructsForStringModels(objects, tags)
     GroomTags([tags, buildSpecs])
 
     for buildSpec in buildSpecs:

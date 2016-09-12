@@ -1,6 +1,7 @@
 # CodeDog Program Maker
 #   This file is code to convert "string" style structures into 'struct' style structures.
 
+import re
 import progSpec
 import codeDogParser
 
@@ -787,7 +788,16 @@ def Write_ALT_Extracter(objects, field, structName, fields, VarTag, VarName, ind
         S+=indent
         if(count>0): S+="else "
         S+="if(ruleIDX == " + altField['parseRule'] + "){\n"
+        print "################# ENTERING FROM ALT:", InnerMemObjFields
+        coFactualCode=''
+        if 'coFactuals' in altField:
+            #Extract field and cofactsList
+            coFactualCode="\n"
+            for coFact in altField['coFactuals']:
+                coFactualCode+= indent + VarName + '.' + coFact[0] + ' <- ' + coFact[2] + "\n"
+
         S+=Write_fieldExtracter(objects, altField, InnerMemObjFields, VarTag, VarName, False, indent+'    ')
+        S+=coFactualCode
         S+=indent+"}"
         count+=1
     return S
@@ -820,7 +830,6 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
     print "            TOFieldTYPE1:", toField
     print "            TOFieldTYPE :", toFieldOwner, toFieldType
     print "       memObjFields:", memObjFields
-    if(fieldName=='tag'): exit(2)
 
 
     fields=[]
@@ -879,6 +888,7 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
 
     #print "CODE_RVAL:", CODE_RVAL
 
+   # if(fieldName=='tag'): exit(2)
     ###################   H a n d l e   o p t i o n a l   a n d   r e p e t i t i o n   a n d   a s s i g n m e n t   c a s e s
     gatherFieldCode=''
     if fromIsList and toIsList:
@@ -920,12 +930,13 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
         assignerCode=''
         if fromIsALT or fromIsEmbeddedAlt:
             if(fromIsEmbeddedAlt):
-                assignerCode+=Write_ALT_Extracter(objects, field,  'infon::str', field['innerDefs'], VarTag, VarName+'X', indent+'    ')
+                assignerCode+=Write_ALT_Extracter(objects, field,  'infon::str', field['innerDefs'], VarTag, VarName, indent+'    ')
             else:
                 assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
-            assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
+                assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
         elif fromIsEmbeddedSeq:
             for innerField in field['innerDefs']:
+                print "################# ENTERING FROM EmbeddedSEQ:", memObjFields
                 assignerCode+=Write_fieldExtracter(objects, innerField, memObjFields, 'SRec', '', True, '    ')
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr;
@@ -946,10 +957,10 @@ def Write_fieldExtracter(objects, field, memObjFields, VarTag, VarName, advanceP
 def Write_structExtracter(objects, tags, objName, fields):
     [memObj, memVersionName]=fetchMemVersion(objects, objName)
     memObjFields=memObj['fields']
-    print "OBJ FIELDS:",objName,  memObjFields
-
+    print "OBJ FIELDS:",objName,  memObj
     S='    me string: SRec_tmpStr'
     for field in fields:
+        print "################# ENTERING FROM TOP:", memObjFields
         S+=Write_fieldExtracter(objects, field, memObjFields, 'SRec', '', True, '    ')
 
     seqExtracter =  "\n    me bool: ExtractStruct_"+objName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
