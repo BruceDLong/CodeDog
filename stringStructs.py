@@ -756,7 +756,6 @@ def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix
         else: pass; # These fields probably have corresponding cofactuals
 
     nameOut=appendRule(nameIn, "nonterm", SeqOrAlt, partIndexes)
-    field['parseRule']=nameOut
     return nameOut
 
 def fetchMemVersion(objects, objName):
