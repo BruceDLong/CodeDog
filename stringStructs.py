@@ -902,6 +902,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
         elif fromIsStruct and toIsStruct:
             gatherFieldCode+='\n'+indent+'me '+progSpec.baseStructName(toFieldType[0])+': tmpVar_tmpStr'
             gatherFieldCode+='\n'+indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'('+childRecName+'.child, tmpVar_tmpStr)\n'
+            gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
         else:
             CODE_RVAL=childRecName+'.child'
 
