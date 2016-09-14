@@ -2,6 +2,7 @@
 
 import progSpec
 import codeDogParser
+import builder
 
 import pattern_Write_Main
 import pattern_GUI_Toolkit
@@ -204,6 +205,7 @@ def GenerateSystem(objects, buildSpecs, tags):
             print "ERROR: unrecognized language ", langGenTag
         writeFile(buildName, fileName, outStr)
         #GenerateBuildSystem()
+        buildStr = builder.build()
     # GenerateTests()
     # GenerateDocuments()
     return outStr
