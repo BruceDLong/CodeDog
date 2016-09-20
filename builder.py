@@ -22,11 +22,10 @@ def build(Lang, debugMode, minLangVersion, fileName, libFiles, buildName):
                 libStr += "`"
             else:
                 libStr += libFile
-            print "libStr: ", libStr
-        
+            #print "libStr: " + libStr
         currentDirectory = currentWD = os.getcwd()
         workingDirectory = currentDirectory + "/" + buildName
-    if Lang == 'Java':
+    elif Lang == 'Java':
         langStr = 'javac '
         minLangStr = ''
         fileStr = fileName + '.java'
@@ -35,12 +34,11 @@ def build(Lang, debugMode, minLangVersion, fileName, libFiles, buildName):
         
         for libFile in libFiles:
             libStr += libFile
-            print "libStr: ", libStr
-        
+            #print "libStr: " + libStr
         currentDirectory = currentWD = os.getcwd()
         workingDirectory = currentDirectory + "/" + buildName
     else: 
-        print "Error: build string not generated for: ", Lang
+        print "Builer.py error: build string not generated for "+ Lang
         exit(2)
  
     buildStr = langStr + debugMode + " " + minLangStr + fileStr + libStr + " " + outputFileStr
