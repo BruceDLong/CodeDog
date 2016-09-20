@@ -70,7 +70,15 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
+def derefPtr(varRef, itemTypeSpec):
+    if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
+        owner=itemTypeSpec['owner']
+        if owner=='their' or owner=='our' or owner=='my':
+            return '(*'+varRef+')'
+    return varRef
+
 def chooseVirtualRValOwner(LVAL, RVAL):
+    # Returns left and right text decorations for RHS of function arguments, return values, etc.
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
     if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
     LeftOwner=LVAL['owner']
@@ -80,6 +88,22 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     if (LeftOwner=='my' or LeftOwner=='our' or LeftOwner=='their') and RightOwner=='me': return ["&", '']
     # TODO: Verify these and other combinations. e.g., do we need something like ['', '.get()'] ?
     return ['','']
+
+def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
+    # Returns left and right text decorations for both LHS and RHS of assignment
+    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
+    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['','',  '','']
+    LeftOwner=LVAL['owner']
+    RightOwner=RVAL['owner']
+    if LeftOwner == RightOwner: return ['','',  '','']
+    if LeftOwner=='me' and (RightOwner=='my' or RightOwner=='our' or RightOwner=='their'): return ['','',  "(*", ")"]
+    if (LeftOwner=='my' or LeftOwner=='our' or LeftOwner=='their') and RightOwner=='me':
+        if assignTag=='deep' :return ['(*',')',  '', '']
+        else: return ['','',  "&", '']
+
+    # TODO: Verify these and other combinations. e.g., do we need something like ['', '.get()'] ?
+    return ['','',  '','']
+
 
 def getCodeAllocStr(varTypeStr, owner):
     if(owner=='our'): S="make_shared<"+varTypeStr+">"
@@ -202,7 +226,8 @@ def codeFactor(item, xlator):
 def codeTerm(item, xlator):
     #print '               term item:', item
     [S, retType]=codeFactor(item[0], xlator)
-    if (not(isinstance(item, basestring))) and (len(item) > 1):
+    if (not(isinstance(item, basestring))) and (len(item) > 1) and len(item[1])>0:
+        S=derefPtr(S, retType)
         for i in item[1]:
             #print '               term:', i
             if   (i[0] == '*'): S+=' * '
@@ -210,26 +235,30 @@ def codeTerm(item, xlator):
             elif (i[0] == '%'): S+=' % '
             else: print "ERROR: One of '*', '/' or '%' expected in code generator."; exit(2)
             [S2, retType2] = codeFactor(i[1], xlator)
+            S2=derefPtr(S2, retType2)
             S+=S2
     return [S, retType]
 
 def codePlus(item, xlator):
     #print '            plus item:', item
     [S, retType]=codeTerm(item[0], xlator)
-    if len(item) > 1:
+    if len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retType)
         for  i in item[1]:
             #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
             elif (i[0] == '-'): S+=' - '
             else: print "ERROR: '+' or '-' expected in code generator."; exit(2)
             [S2, retType2] = codeTerm(i[1], xlator)
+            S2=derefPtr(S2, retType2)
             S+=S2
     return [S, retType]
 
 def codeComparison(item, xlator):
     #print '         Comp item', item
     [S, retType]=codePlus(item[0], xlator)
-    if len(item) > 1:
+    if len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retType)
         for  i in item[1]:
             #print '         comp ', i
             if   (i[0] == '<'): S+=' < '
@@ -238,6 +267,7 @@ def codeComparison(item, xlator):
             elif (i[0] == '>='): S+=' >= '
             else: print "ERROR: One of <, >, <= or >= expected in code generator."; exit(2)
             [S2, retType] = codePlus(i[1], xlator)
+            S2=derefPtr(S2, retType)
             S+=S2
             retType='bool'
     return [S, retType]
@@ -245,13 +275,15 @@ def codeComparison(item, xlator):
 def codeIsEQ(item, xlator):
     #print '      IsEq item:', item
     [S, retType]=codeComparison(item[0], xlator)
-    if len(item) > 1:
+    if len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retType)
         for i in item[1]:
             #print '      IsEq ', i
             if   (i[0] == '=='): S+=' == '
             elif (i[0] == '!='): S+=' != '
             else: print "ERROR: 'and' expected in code generator."; exit(2)
             [S2, retType] = codeComparison(i[1], xlator)
+            S2=derefPtr(S2, retType)
             S+=S2
             retType='bool'
     return [S, retType]
@@ -259,11 +291,13 @@ def codeIsEQ(item, xlator):
 def codeLogAnd(item, xlator):
     #print '   And item:', item
     [S, retType] = codeIsEQ(item[0], xlator)
-    if len(item) > 1:
+    if len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retType)
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
                 [S2, retType] = codeIsEQ(i[1], xlator)
+                S2=derefPtr(S2, retType)
                 S+=' && ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)
             retType='bool'
@@ -272,11 +306,14 @@ def codeLogAnd(item, xlator):
 def codeExpr(item, xlator):
     #print 'Or item:', item
     [S, retType]=codeLogAnd(item[0], xlator)
-    if not isinstance(item, basestring) and len(item) > 1:
+    if not isinstance(item, basestring) and len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retType)
         for i in item[1]:
             #print 'OR ', i
             if (i[0] == 'or'):
-                S+=' || ' + codeLogAnd(i[1], xlator)[0]
+                [S2, retType] = codeLogAnd(i[1], xlator)
+                S2=derefPtr(S2, retType)
+                S+=' || ' + S2
             else: print "ERROR: 'or' expected in code generator."; exit(2)
             retType='bool'
     #print "S:",S
@@ -292,6 +329,7 @@ def codeSpecialFunc(segSpec, xlator):
             paramList=segSpec[2]
             for P in paramList:
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
+                S2=derefPtr(S2, argType)
                 S+=' << '+S2
             S+=" << flush"
     elif(funcName=='AllocateOrClear'):
@@ -427,6 +465,7 @@ def fetchXlators():
     xlators['getContainerTypeInfo']         = getContainerTypeInfo
     xlators['codeNewVarStr']                = codeNewVarStr
     xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
+    xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
 

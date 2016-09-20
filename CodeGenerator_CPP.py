@@ -444,13 +444,14 @@ def processAction(action, indent, xlator):
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL', xlator)
+        assignTag = action['assignTag']
         LHS = codeStr
         print "                                     assign: ", LHS
         [S2, rhsType]=xlator['codeExpr'](action['RHS'][0], xlator)
         #print "LHS / RHS:", LHS, ' / ', S2, typeSpec, rhsType
-        [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](typeSpec, rhsType)
-        RHS = leftMod+S2+rightMod
-        assignTag = action['assignTag']
+        [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](typeSpec, rhsType, assignTag)
+        LHS = LHS_leftMod+LHS+LHS_rightMod
+        RHS = RHS_leftMod+S2+RHS_rightMod
         #print "Assign: ", LHS, RHS, typeSpec
         if not isinstance (typeSpec, dict):
             print 'Problem: typeSpec is', typeSpec, '\n';
@@ -471,7 +472,10 @@ def processAction(action, indent, xlator):
             else:
                 actionText = indent + LHS + " = " + RHS + ";\n"
         else:
-            actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
+            if(assignTag=='deep'):
+                actionText = indent + LHS + " = " + RHS + ";\n"
+            else:
+                actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='swap'):
         LHS =  ".".join(action['LHS'])
         RHS =  ".".join(action['LHS'])

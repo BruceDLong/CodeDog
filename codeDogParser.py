@@ -64,7 +64,7 @@ logAnd = Group( isEQ  + Group(Optional(OneOrMore(Group('and' + isEQ )))))
 expr <<= Group( logAnd + Group(Optional(OneOrMore(Group('or' + logAnd )))))("expr")
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
-assign = (lValue + Combine(Literal("<") + Optional(Word(alphas + nums + '_')("assignTag")) + Literal("-"))("assignID") + rValue)("assign")
+assign = (lValue + Combine(Literal("<") + (Optional(Word(alphas + nums + '_')("assignTag"))) + Literal("-"))("assignID") + rValue)("assign")
 parameters <<= (Literal("(") + Optional(Group(delimitedList(rValue, ','))) + Literal(")").suppress())("parameters")
 
 ########################################   F U N C T I O N S
@@ -315,8 +315,10 @@ def extractActItem(funcName, actionItem):
         RHS = parseResultToArray(actionItem.rValue)
         LHS = parseResultToArray(actionItem.lValue)
         assignTag = ''
-        if (actionItem.assignTag):
-            assignTag = actionItem.assignTag
+        if (actionItem.assign[1] != '<-'):
+            assignTag = actionItem.assign[1][0][1:-1]
+            print "assignTag:",assignTag
+
         #print RHS, LHS
         thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS, 'assignTag':assignTag}
     # Swap

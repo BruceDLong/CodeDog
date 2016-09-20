@@ -30,6 +30,7 @@ def codeDogTypeToString(objects, tags, field):
 
 rules=[]
 constDefs=[]
+ruleSet={}      # Used to track duplicates
 globalFieldCount=0
 
 def genParserCode():
@@ -135,6 +136,7 @@ struct EParser{
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
                 //print('    (%p`SRec` -> cause: %p`SRec->cause`, pred:%p`SRec->prev`): ')
+                print("    ")
                 prod.print(SRec.SeqPosition, SRec.originPos)
                 print("\n")
             }
@@ -489,7 +491,7 @@ struct EParser{
             their stateSets: SSet <- SSets[ssetIDX]
             me uint32: numItems <- SSet.stateRecs.size()
             if(numItems>0 and lastPosWithItems==0){lastPosWithItems <- ssetIDX}
-            print("Position ", ssetIDX, " has ", numItems, "items.\n")
+         //   print("Position ", ssetIDX, " has ", numItems, "items.\n")
         }
         print("lastPosWithItems:", lastPosWithItems, "\n")
 
@@ -509,7 +511,7 @@ struct EParser{
             ProdType <- prod.prodType
             isTerminal <- prod.isTerm
             seqPos <- SRec.SeqPosition
-            SRec.print(prod) print(" ", seqPos, ' - ', SRec.prev, "\n")
+            SRec.print(prod) //print(" ", seqPos, ' - ', SRec.prev, "\n")
         }
 
         lastSRec.print(prod) print("\n----\n", seqPos)
@@ -533,7 +535,7 @@ struct EParser{
         crntRec.print(Prod)
         print("\n", indent, "\n")
         if(Prod.isTerm){
-        } else{
+        } else if(seqPos>0){
             withEach subItem in Backward RANGE(0 .. seqPos):{
                 print(indent, "   item #", subItem, ": \n")
                 crntRec.child <- resolve(crntRec.cause, indent+"     | ")
@@ -614,11 +616,11 @@ def writeContextualSet(field):
 def appendRule(ruleName, termOrNot, pFlags, prodData):
     global rules
     global constDefs
+    global ruleSet
     # If rule already exists, return the name rather than recreate it
     # is there a rule with the same term, flags, and prodData? (Only care about term+parseSEQ+data)
-    ruleExists=False
-    if (ruleExists):
-        ruleName = 'XXXX'
+    if (ruleName in ruleSet):
+        ruleSet[ruleName]+=1
     else:
         thisIDX=len(rules)
         if not isinstance(ruleName, basestring):
@@ -628,6 +630,7 @@ def appendRule(ruleName, termOrNot, pFlags, prodData):
         if isinstance(prodData, list):
             prodData='['+(', '.join(map(str,prodData))) + ']'
         rules.append([ruleName, termOrNot, pFlags, prodData])
+        ruleSet[ruleName]=0
     return ruleName
 
 
@@ -644,18 +647,18 @@ def populateBaseRules():
         definedRules[pair[0]]=pair[1]
 
     # Define common string formats
-    appendRule('alphaSeq',  'term', 'parseAUTO', "alphabetic string")
-    appendRule('uintSeq',   'term', 'parseAUTO', '(0123456789)[]')
-    appendRule('intSeq',    'term', 'parseAUTO', '+-(0123456789)[]')
-    appendRule('RdxSeq',    'term', 'parseAUTO', '+-(0123456789)[].(0123456789)[]')
-    appendRule('alphaNumSeq',  'term', 'parseAUTO', "alpha-numeric string")
-    appendRule('ws',        'term', 'parseAUTO', 'white space[]')
-    appendRule('quotedStr1','term', 'parseAUTO', "Single quoted string with escapes")
-    appendRule('quotedStr2','term', 'parseAUTO', "Double quoted string with escapes")
-    appendRule('CID',       'term', 'parseAUTO', 'C-like identifier')
-    appendRule('UniID',     'term', 'parseAUTO', 'Unicode identifier. Uses current Locale.')
-    appendRule('printables','term', 'parseAUTO', "Seq of printable ascii chars")
-    appendRule('toEOL',     'term', 'parseAUTO', "Read chars to End Of Line, including EOL.")
+    appendRule('alphaSeq',  'term', 'parseAUTO', "an alphabetic string")
+    appendRule('uintSeq',   'term', 'parseAUTO', 'an unsigned integer')
+    appendRule('intSeq',    'term', 'parseAUTO', 'an integer')
+    appendRule('RdxSeq',    'term', 'parseAUTO', 'a number')
+    appendRule('alphaNumSeq',  'term', 'parseAUTO', "an alpha-numeric string")
+    appendRule('ws',        'term', 'parseAUTO', 'white space')
+    appendRule('quotedStr1','term', 'parseAUTO', "a single quoted string with escapes")
+    appendRule('quotedStr2','term', 'parseAUTO', "a double quoted string with escapes")
+    appendRule('CID',       'term', 'parseAUTO', 'a C-like identifier')
+    appendRule('UniID',     'term', 'parseAUTO', 'a unicode identifier for the current locale')
+    appendRule('printables','term', 'parseAUTO', "a seqence of printable chars")
+    appendRule('toEOL',     'term', 'parseAUTO', "to read chars to End Of Line, including EOL.")
     # TODO: delimited List, keyWord
 
 
@@ -800,6 +803,16 @@ def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarNam
     return S
 
 
+def CodeRValExpr(toFieldType, VarTag, doNextSuffix):
+    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child'+doNextSuffix+')'+"\n"
+    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child'+doNextSuffix+')'+"\n"
+    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child'+doNextSuffix+')'+"\n"
+    elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child'+doNextSuffix+')'+"\n"
+    elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
+    elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
+    return CODE_RVAL
+
+
 def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag, VarName, advancePtr, indent):
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
     global  globalFieldCount
@@ -813,6 +826,8 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
     fromIsEmbeddedAlt = (not isinstance(fieldType, basestring) and fieldType[0]=='[')
     fromIsEmbeddedSeq = (not isinstance(fieldType, basestring) and fieldType[0]=='{')
 
+    if(fieldIsNext!=True): return '' # This field isn't in the parse stream.
+
     [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
 
     toField = progSpec.fetchFieldByName(memObjFields, fieldName)
@@ -825,6 +840,10 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
         toTypeSpec   = toField['typeSpec']
         toFieldType  = toTypeSpec['fieldType']
         toFieldOwner = toTypeSpec['owner']
+
+    if toFieldOwner == 'their' or toFieldOwner == 'our' or toFieldOwner == 'my': LHS_IsPointer=True
+    else: LHS_IsPointer=False
+
     print "        CONVERTING:", fieldName, toFieldType, typeSpec
     print "            TOFieldTYPE1:", toField
     print "            TOFieldTYPE :", toFieldOwner, toFieldType
@@ -845,46 +864,41 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
 
     if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:  toIsList=True
 
-    ###################   W r i t e   R V A L   C o d e
+    ###################   W r i t e   L V A L   R e f e r e n c e
     finalCodeStr=''
     if VarName=='' or VarName=='memStruct':  # Default to the target argument name
         VarName='memStruct'
-        if(fieldName==None):
+        if(fieldName==None): # String fpr hasn't a name so in memory it's a cofactual or this is a parser marker.
             globalFieldCount+=1
             CODE_LVAR = 'me string: S'+str(globalFieldCount)
         else:
             CODE_LVAR = VarName+'.'+fieldName
     else: CODE_LVAR = VarName
+
+    ###################   W r i t e   R V A L   C o d e
     CODE_RVAL=''
     objName=''
     doNextSuffix=''
-    if(fieldIsNext==True):
-        if advancePtr:
-            S+=indent+VarTag+' <- getNextStateRec('+VarTag+')\n'
-        else: doNextSuffix='.next'
-        if fieldOwner=='const'and (toFieldOwner == None):
-            finalCodeStr += VarTag+'_tmpStr'+' <- makeStr('+VarTag+'.child)\n'
-            #  print("'+fieldValue+'")\n'
+    if advancePtr:
+        S+=indent+VarTag+' <- getNextStateRec('+VarTag+')\n'
+    else: doNextSuffix='.next'
 
-        else:
-            if toFieldType=='string':            CODE_RVAL='makeStr('+VarTag+'.child'+doNextSuffix+')'+"\n"
-            elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child'+doNextSuffix+')'+"\n"
-            elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child'+doNextSuffix+')'+"\n"
-            elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child'+doNextSuffix+')'+"\n"
-            elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
-            elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
-            elif toIsStruct:
-                objName=toFieldType[0]
-                if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
-                    CODE_RVAL='makeStr('+VarTag+'.child'+doNextSuffix+')'
-                    toIsStruct=False; # false because it is really a base type.
-                else:
-                    finalCodeStr=indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'('+VarTag+'.child, '+CODE_LVAR+')\n'
+
+    if fieldOwner=='const'and (toFieldOwner == None):
+        finalCodeStr += VarTag+'_tmpStr'+' <- makeStr('+VarTag+'.child)\n'
+        #  print("'+fieldValue+'")\n'
 
     else:
-        pass
-        # objFieldStr+= writeContextualGet(field) #'    func int: '+fname+'_get(){}\n'
-        # objFieldStr+= writeContextualSet(field)
+        if toIsStruct:
+            objName=toFieldType[0]
+            if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
+                CODE_RVAL='makeStr('+VarTag+'.child'+doNextSuffix+')'
+                toIsStruct=False; # false because it is really a base type.
+            else:
+                finalCodeStr=indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'('+VarTag+'.child, '+CODE_LVAR+')\n'
+        else:
+            CODE_RVAL = CodeRValExpr(toFieldType, VarTag, doNextSuffix)
+
 
     #print "CODE_RVAL:", CODE_RVAL
 
@@ -897,17 +911,19 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
         gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next\n    withEach Cnt in WHILE('+childRecName+'):{\n'
         if fromIsALT:
             gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, 'tmpVar_tmpStr', indent+'    ')
-            gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
 
         elif fromIsStruct and toIsStruct:
             gatherFieldCode+='\n'+indent+'me '+progSpec.baseStructName(toFieldType[0])+': tmpVar_tmpStr'
             gatherFieldCode+='\n'+indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'('+childRecName+'.child, tmpVar_tmpStr)\n'
-            gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
-        else:
-            CODE_RVAL=childRecName+'.child'
 
-        # Now code to push the chosen alternative into the data field# This is a LIST, not and OPT:
+        else:
+            CODE_RVAL = CodeRValExpr(toFieldType, childRecName, '')
+            #CODE_RVAL=childRecName+'.child'
+
+        # Now code to push the chosen alternative into the data field# This is a LIST, not an OPT:
         gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
+
+        gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
 
         gatherFieldCode+='\n'+indent+'}\n'
         if(fromIsOPT):
@@ -930,7 +946,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
                 # Second, generate the code to set the flag
                 assignerCode+='\n'+indent+'    '+VarName+'.'+newFieldsName+' <- false'
                 setTrueCode += VarName+'.'+newFieldsName+' <- true'
-            elif toFieldOwner=='my' or toFieldOwner=='our' or toFieldOwner=='their':
+            elif LHS_IsPointer: # If owner if my, our or their
                 assignerCode+='\n'+indent+'    '+CODE_LVAR+' <- 0'
             else:
                 print"ERROR: OPTional fields must not be '"+toFieldOwner+"'.\n"
@@ -951,7 +967,10 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
             assignerCode+=finalCodeStr;
         else:
            # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
-            if CODE_RVAL!="": assignerCode+='        '+CODE_LVAR+' <- '+CODE_RVAL+"\n"
+            if CODE_RVAL!="":
+                if LHS_IsPointer:
+                    assignerCode+='        '+CODE_LVAR+' <deep- '+CODE_RVAL+"\n"
+                else: assignerCode+='        '+CODE_LVAR+' <- '+CODE_RVAL+"\n"
             elif finalCodeStr!="": assignerCode+=finalCodeStr;
 
         if (fromIsOPT):
@@ -961,7 +980,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
            # exit(2)
         gatherFieldCode = assignerCode
 
-    if toFieldOwner == 'their' or toFieldOwner == 'our' or toFieldOwner == 'my': # LVAL is a pointer and should be allocated or cleared.
+    if LHS_IsPointer: # LVAL is a pointer and should be allocated or cleared.
         S+= indent + 'AllocateOrClear(' +CODE_LVAR +')\n'
 
     S+=gatherFieldCode
@@ -974,7 +993,7 @@ def Write_structExtracter(objects, tags, parentStructName, fields):
     memObjFields=memObj['fields']
     #print "OBJ FIELDS:",parentStructName,  memObj
     S='    me string: SRec_tmpStr'
-    for field in fields:
+    for field in fields: # Extract all the fields in the string version.
         S+=Write_fieldExtracter(objects, parentStructName, field, memObjFields, 'SRec', '', True, '    ')
 
     seqExtracter =  "\n    me bool: ExtractStruct_"+parentStructName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"

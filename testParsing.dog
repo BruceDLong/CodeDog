@@ -21,15 +21,17 @@ featuresNeeded = {}
 runCode=`
     me EParser: parser
     parser.populateGrammar()
-    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 1234321 4/19/1967 'Hello World!'1 1/01/1901 2/02/1902 3/03/1903 4/04/1904 'X' 'testName' 7 ]")   // "[Robert 234 4/19/1967 'Hello World!'1]")
+    parser.initPosStateSets(parser.parse_testParse_str, "[Robert 1234321 'sally''bob''alice'  4/19/1967 'Hello World!' 1 1/01/1901 2/02/1902 3/03/1903 4/04/1904 'X' 'testName' 27 ]")   // "[Robert 234 4/19/1967 'Hello World!'1]")
   //  parser.initPosStateSets(parser.parse_testParse_str, "[Robert 1234321 'testNamesList1' 'testNamesList2' 'testNamesList3' 4/19/1967 'Hello World!'1 6/07/1967 3/04/1934 ]")
 
     parser.doParse()
     if(parser.doesParseHaveError()){
         print("\nParse Error:", parser.errorMesg, " at line ", parser.errLineNum,":", parser.errCharPos, "\n")
+        exit(1)
     }
     our stateRec: topItem <- parser.resolve(parser.lastTopLevelItem, "")
     parser.displayParse(topItem, "")
+    print("=======================\n")
     me testParse: TPM
     parser.ExtractStruct_testParse_str(topItem, TPM)
 
@@ -80,24 +82,20 @@ runCode=`
         print("TEST FAILED: birthdays\n")
     }
 
-    if(TPM.favoriteDates[0].month == 6 and TPM.favoriteDates[0].day == 07 and TPM.favoriteDates[0].year == 1967 and TPM.favoriteDates[1].month == 3 and TPM.favoriteDates[1].day == 04 and TPM.favoriteDates[1].year == 1934 and TPM.favoriteDates.size() == 2){
-        print("test passed TPM.favoriteDates: ")
-        withEach date in TPM.favoriteDates:{
-            print(date.month, "-", date.day, "-", date.year, ", ")
-        }
-        print('\n')
+    if(TPM.favoriteDates.size() == 0){
+        print("test passed TPM.favoriteDates: None\n")
     }
     else{
         print("TEST FAILED: favoriteDates\n")
     }
 
-    if(TPM.name == 'testName' ){
+    if(TPM.name == "testName" ){
         print("test passed TPM.name: ", TPM.name, "\n")
     }
     else{
         print("TEST FAILED: name\n")
     }
-
+/*
     if(TPM.namesList[0] == 'testNamesList1' and TPM.namesList[1] == 'testNamesList2' and TPM.namesList[2] == 'testNamesList3' and TPM.namesList.size() == 3){
         print("test passed TPM.namesList: ")
         withEach name in TPM.namesList:{
@@ -108,8 +106,8 @@ runCode=`
     else{
         print("TEST FAILED: namesList\n")
     }
-
-    if(TPM.age == 7 ){
+*/
+    if(TPM.age == 27 ){
         print("test passed TPM.age: ", TPM.age, "\n")
     }
     else{
@@ -137,8 +135,7 @@ string date::str {
     > int32:month
      "/"
     > int32:day "/"
-    > int32:year
-    " "
+    > int32:year            >me ws
 }
 
 string numChar["1" | "2" | "3" | "4"]
@@ -146,41 +143,40 @@ string numChar["1" | "2" | "3" | "4"]
 model testParse{
     "Robert"
     numChar[list]: numbStr
-    me string[list]: namesList " "
+    me string[list]: namesList
     me date: birthday
     me string: worldMesg
     me numChar: myNum
-    me date[list]: birthdays " "
+    me date[list]: birthdays
     me string: x1
-    me date[list]: favoriteDates " "
-    me string: x2
+    me date[list]: favoriteDates
+
     //TODO: change name to their
-    me string: name
+    their string: name
     // TODO: change age to my
     me int32: age
     // TODO: get this working then convert this to their
     me date: anniversary
-    
+
 //    me string: tag
 }
 
 string testParse::str{
     "["
-    "Robert" " "
-    > numChar[list]: numbStr " "
+    "Robert"                                    >me ws
+    > numChar[list]: numbStr                    >me ws
     //TODo: get names list working then change to our
-//      > me string[list]: namesList
-    > date::str: birthday
-    > me string: worldMesg
+      > me string[list]: namesList              >me ws
+    > me date::str: birthday
+    > me string: worldMesg                      >me ws
     //> me numChar[opt]: optNum ","
-    > me numChar: myNum " "
-    > me date::str[list]: birthdays 
-    > me string: x1 " "
-//    > me date::str[list]: favoriteDates
-//    > me string: x2 " "
+    > me numChar: myNum                         >me ws
+    > me date::str[list]: birthdays
+    > me string: x1                             >me ws
+    > me date::str[list]: favoriteDates
+
     > me string: name " "
     > me int32: age " "
-//    > me date::str: anniversary " "
     "]"
 /*
    >[   "?"
@@ -196,15 +192,15 @@ string testParse::str{
 struct testParse::mem{
     "Robert"
     me string[list]: numbStr
-    me string[list]: namesList 
+    me string[list]: namesList
     me date: birthday
     me string: worldMesg
     me string: myNum
     me date[list]: birthdays
-    me string: x1 
+    me string: x1
     me date[list]: favoriteDates
-    me string: x2 
-    me string: name
+
+    their string: name
     me int32: age
     me date: anniversary
 }
