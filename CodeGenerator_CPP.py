@@ -690,10 +690,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
 
         ###### Arglist exists so this is a function.###########
         else:
-            if(fieldType=='none'):                                          # Arglist exists so this is a function.
-                convertedType=''                                            # No field type.
-            else:
-                convertedType+=''
+            if(fieldType=='none'): convertedType=''
 
         ##### Generate function header for both decl and defn.
             if(objectName=='GLOBAL'):
@@ -722,13 +719,13 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
 
                     globalFuncs += "\n" + convertedType  +' '+ fieldName +"("+argListText+")"
             else:
-                #convertedType+=''                                           # Has field type.
-                argList=field['typeSpec']['argList']                    ####### Generate function header for both declarations and definitions.
+                #convertedType+=''
+                argList=field['typeSpec']['argList']
                 if len(argList)==0:                                             # No arguments
                     argListText='' #'void'
-                elif argList[0]=='<%':                                          # Verbatim.
+                elif argList[0]=='<%':                                          # Verbatim.arguments
                     argListText=argList[1][0]
-                else:                                                           # Print out argList.
+                else:
                     argListText=""
                     count=0
                     for arg in argList:

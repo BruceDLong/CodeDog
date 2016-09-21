@@ -690,30 +690,29 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
 
         ###### Arglist exists so this is a function.###########
         else:
-            if(fieldType=='none'):                                          # Arglist exists so this is a function.
-                convertedType=''                                            # No field type.
+            if(fieldType=='none'): convertedType=''
+
+            argList=field['typeSpec']['argList']
+            if len(argList)==0:                                             # No arguments
+                argListText='' #'void'
+            elif argList[0]=='<%':                                          # Verbatim.arguments
+                argListText=argList[1][0]
             else:
-                convertedType+=''                                           # Has field type.
-                argList=field['typeSpec']['argList']                    ####### Generate function header for both declarations and definitions.
-                if len(argList)==0:                                             # No arguments
-                    argListText=''
-                elif argList[0]=='<%':                                          # Verbatim.
-                    argListText=argList[1][0]
-                else:                                                           # Print out argList.
-                    argListText=""
-                    count=0
-                    for arg in argList:
-                        if(count>0): argListText+=", "
-                        count+=1
-                        argTypeSpec =arg['typeSpec']
-                        argFieldName=arg['fieldName']
-                        argListText+= xlator['convertType'](objects, argTypeSpec, xlator) + ' ' + argFieldName
-                        localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
-                #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
-                if(fieldType[0] != '<%'):                                       # not verbatim field type
-                    pass #registerType(objectName, fieldName, convertedType, typeDefName)
-                else: typeDefName=convertedType                                 # grabbing typeDefName if not verbatim
-                LangFormOfObjName = progSpec.flattenObjectName(objectName)
+                argListText=""
+                count=0
+                for arg in argList:
+                    if(count>0): argListText+=", "
+                    count+=1
+                    argTypeSpec =arg['typeSpec']
+                    argFieldName=arg['fieldName']
+                    argListText+= xlator['convertType'](objects, argTypeSpec, xlator) + ' ' + argFieldName
+                    localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
+            #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
+            if(fieldType[0] != '<%'):                                       # not verbatim field type
+                pass #registerType(objectName, fieldName, convertedType, typeDefName)
+            else: typeDefName=convertedType                                 # grabbing typeDefName if not verbatim
+            LangFormOfObjName = progSpec.flattenObjectName(objectName)
+
             #structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
             objPrefix=LangFormOfObjName
 
@@ -759,6 +758,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
         #funcDefCodeAcc += ""
         structCodeAcc  += structCode #+ funcDefCode
         #globalFuncsAcc += globalFuncs
+
 
 
     #constructCode=generate_constructor(objects, objectName, tags, indent)
