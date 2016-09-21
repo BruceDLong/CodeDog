@@ -355,21 +355,7 @@ def codeSpecialFunc(segSpec, xlator):
 
     return S
 
-def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
-    assignValue=''
-    if(fieldDef['value']):
-        [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], xlator)
-        [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
-        RHS = leftMod+S2+rightMod
-        assignValue=' = '+ RHS
 
-    return(assignValue)
-
-def iterateContainerStr(xlator):
-    localVarsAllocData = ''
-    actionText = ''
-
-    return (actionText, localVarsAllocData)
 
 ############################################
 def processMain(objects, tags, xlator):
@@ -434,6 +420,42 @@ def addSpecialCode():
     """
     return S
 
+def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
+    assignValue=''
+    if(fieldDef['value']):
+        [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], xlator)
+        [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
+        RHS = leftMod+S2+rightMod
+        assignValue=' = '+ RHS
+    return(assignValue)
+
+def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+    actionText = ""
+    containedType=containerType['fieldType']
+    ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+    if datastructID=='multimap' or datastructID=='map':
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+    elif datastructID=='list':
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+
+    localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+    actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+    return (actionText)
+
+def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
+    fieldValueText=""
+    return fieldValueText
+
+def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):
+    S=indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
+    return S
+
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -448,6 +470,7 @@ def fetchXlators():
     xlators['typeForCounterInt']= "int64_t"
     xlators['GlobalVarPrefix']  = ""
     xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
+    xlators['doesLangHaveGlobals'] = "True"
     xlators['codeExpr']         = codeExpr
     xlators['includeDirective'] = includeDirective
     xlators['processMain']      = processMain
@@ -460,7 +483,6 @@ def fetchXlators():
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['codeSpecialFunc']              = codeSpecialFunc
     xlators['getConstIntFieldStr']          = getConstIntFieldStr
-    xlators['doesLangHaveGlobals']          = "True"
     xlators['codeStructText']               = codeStructText
     xlators['getContainerTypeInfo']         = getContainerTypeInfo
     xlators['codeNewVarStr']                = codeNewVarStr
@@ -468,5 +490,7 @@ def fetchXlators():
     xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
+    xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
+    xlators['codeVarField_Str']             = codeVarField_Str
 
     return(xlators)

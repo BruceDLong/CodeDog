@@ -178,11 +178,6 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
-def varTypeIsJavaValueType(convertedType):
-    if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
-       or convertedType=='float' or convertedType=='double' or convertedType=='short'):
-        return True
-    return False
 
 def codeAllocater(typeSpec, xlator):
     S=''
@@ -449,13 +444,14 @@ def processAction(action, indent, xlator):
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL', xlator)
+        assignTag = action['assignTag']
         LHS = codeStr
         print "                                     assign: ", LHS
         [S2, rhsType]=xlator['codeExpr'](action['RHS'][0], xlator)
         #print "LHS / RHS:", LHS, ' / ', S2, typeSpec, rhsType
-        [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](typeSpec, rhsType)
-        RHS = leftMod+S2+rightMod
-        assignTag = action['assignTag']
+        [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](typeSpec, rhsType, assignTag)
+        LHS = LHS_leftMod+LHS+LHS_rightMod
+        RHS = RHS_leftMod+S2+RHS_rightMod
         #print "Assign: ", LHS, RHS, typeSpec
         if not isinstance (typeSpec, dict):
             print 'Problem: typeSpec is', typeSpec, '\n';
@@ -464,19 +460,22 @@ def processAction(action, indent, xlator):
         if assignTag == '':
             if LHS_FieldType=='flag':
                 divPoint=startPointOfNamesLastSegment(LHS)
-                LHS_Left=LHS[0:divPoint]
+                LHS_Left=LHS[0:divPoint+1] # The '+1' makes this get the connector too. e.g. '.' or '->'
                 bitMask =LHS[divPoint+1:]
-                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+", "+ RHS + ");\n"
-                #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS
+                actionText=indent + "SetBits("+LHS_Left+"flags, "+bitMask+", "+ RHS + ");\n"
+                #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
             elif LHS_FieldType=='mode':
                 divPoint=startPointOfNamesLastSegment(LHS)
-                LHS_Left=LHS[0:divPoint]
+                LHS_Left=LHS[0:divPoint+1]
                 bitMask =LHS[divPoint+1:]
-                actionText=indent + "SetBits("+LHS_Left+"."+"flags, "+bitMask+"Mask, "+ RHS+"<<" +bitMask+"Offset"+");\n"
+                actionText=indent + "SetBits("+LHS_Left+"flags, "+bitMask+"Mask, "+ RHS+"<<" +bitMask+"Offset"+");\n"
             else:
                 actionText = indent + LHS + " = " + RHS + ";\n"
         else:
-            actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
+            if(assignTag=='deep'):
+                actionText = indent + LHS + " = " + RHS + ";\n"
+            else:
+                actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='swap'):
         LHS =  ".".join(action['LHS'])
         RHS =  ".".join(action['LHS'])
@@ -524,38 +523,14 @@ def processAction(action, indent, xlator):
         else: # interate over a container
             #print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], xlator)
-            #print "CONTAINER-SPEC:", repContainer, containerType
-            datastructID = containerType['arraySpec']['datastructID']
-
-            keyFieldType = containerType['arraySpec']['indexType']
             [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
-            #print "DATAID, KEYTYPE:", [datastructID, keyFieldType]
 
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):
                 containerType=wrappedTypeSpec
 
-            # TODO: add xlator iterateContainerStr()
-            containedType=containerType['fieldType']
-            ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-            if datastructID=='TreeMap':
-                keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
-                localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-                ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-                containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-                indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, xlator)
-                iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
-                repContainer+='.entrySet()'
-            elif datastructID=='list':
-                loopCounterName=repName+'_key'
-                keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-                localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-                iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-            else: iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-            print "ITEMS:", actionText, indent, containedType," " , repName,' :', repContainer
-            actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
+            actionText += xlator['iterateContainerStr'](objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator)
 
-            localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
 
         if action['whereExpr']:
             [whereExpr, whereConditionType] = xlator['codeExpr'](action['whereExpr'], xlator)
@@ -681,11 +656,8 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
             print "                         opAssign: ", fieldType, fieldName
 
         ##CALCULATE RHS###############################################
-        fieldValueText=""
         if(fieldValue == None):
-            if (not varTypeIsJavaValueType(convertedType) and fieldOwner!='their'):
-                fieldValueText=" = new " + convertedType + "()"
-            else: fieldValueText=""
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldValue, convertedType, fieldOwner)
 
         ##CONST#########################################################
         elif(fieldOwner=='const'):
@@ -697,9 +669,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
 
         ################################################################
         elif(fieldArglist==None):
-            if not varTypeIsJavaValueType(convertedType):
-                fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
-            else: fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
+            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
             print "                         No argList:", fieldType, fieldName, fieldValueText
 
         ################################################################
@@ -713,13 +683,10 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
             print "                             Const : ", convertedType + fieldName
 
-        ############CODE FUNCTIONS##########################################################
+        ############CODE VARIABLE##########################################################
         elif(fieldArglist==None):
-            if (fieldName == "static_Global" or fieldName == "static_gui_tk"):  # TODO: make static_Global so it is not hard coded
-                structCode += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-            else:
-                structCode += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-            print "                             Not Func or Const: ", convertedType, fieldName
+            structCode += xlator['codeVarField_Str'](convertedType, fieldName, fieldValueText, indent)
+            print "                            Variable: ", convertedType, fieldName
 
         ###### Arglist exists so this is a function.###########
         else:
@@ -836,7 +803,7 @@ def generateAllObjectsButMain(objects, tags, xlator):
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
-            if((not (xlator['doesLangHaveGlobals']) or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
+            if(((xlator['doesLangHaveGlobals']=='False') or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):
