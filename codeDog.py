@@ -2,6 +2,7 @@
 
 import progSpec
 import codeDogParser
+import builder
 
 import pattern_Write_Main
 import pattern_GUI_Toolkit
@@ -30,13 +31,14 @@ import sys
 import errno
 import platform
 import copy
+import subprocess
 
-def writeFile(path, fileName, outStr):
+def writeFile(path, fileName, outStr, fileExtension):
     try:
         os.makedirs(path)
     except OSError as exception:
         if exception.errno != errno.EEXIST: raise
-
+    fileName += fileExtension
     fo=open(path + os.sep + fileName, 'w')
     fo.write(outStr)
     fo.close()
@@ -197,12 +199,23 @@ def GenerateSystem(objects, buildSpecs, tags):
         outStr = GenerateProgram(objects, buildSpec, tags, libsToUse)
         fileName = tagStore['FileName']
         langGenTag = buildSpec[1]['Lang']
-        if(langGenTag == 'CPP'): fileName+='.cpp'
-        elif(langGenTag == 'Java'):  fileName+='.java'
-        else:
-            print "ERROR: unrecognized language ", langGenTag
-        writeFile(buildName, fileName, outStr)
-        #GenerateBuildSystem()
+        if(langGenTag == 'CPP'): fileExtension='.cpp'
+        elif(langGenTag == 'Java'): fileExtension='.java'
+        else: print "ERROR: unrecognized language ", langGenTag
+        writeFile(buildName, fileName, outStr, fileExtension)
+        #GenerateBuildSystem()###################################################
+        libFiles=[]
+        for lib in libsToUse:
+            tmpLibFiles=(progSpec.fetchTagValue([tags, buildSpecs], 'libraries.'+ lib +'.libFiles'))
+            libFiles+=tmpLibFiles
+        #TODO: need debug mode and minimum version
+        [buildStr, workingDirectory] = builder.build(langGenTag, "-g", '14',  fileName, libFiles, buildName)
+        print "buildStr: ", buildStr
+        print "workingDirectory: ", workingDirectory
+        pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = pipe.communicate()
+        print "Result: ",out
+        print "Error: ", err
     # GenerateTests()
     # GenerateDocuments()
     return outStr
