@@ -1,5 +1,5 @@
 import progSpec
-from CodeGenerator_Java import codeItemRef, codeUserMesg, codeAllocater
+from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -409,6 +409,18 @@ def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
     return S
 
+def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+    structCode=''; funcDefCode=''; globalFuncs='';
+    if(objectName=='GLOBAL'):
+        if fieldName=='main':
+            structCode += indent + "public static void " + fieldName +" (String[] args)\n";
+            #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
+        else:
+            structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
+
+    else:
+        structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
+    return [structCode, funcDefCode, globalFuncs]
 
 #######################################################
 
@@ -425,6 +437,9 @@ def fetchXlators():
     xlators['GlobalVarPrefix']  = "GLOBAL.static_Global."
     xlators['PtrConnector']     = "."                      # Name segment connector for pointers.
     xlators['doesLangHaveGlobals'] = "False"
+    xlators['funcBodyIndent']   = "    "
+    xlators['funcsDefInClass']  = "True"
+    xlators['MakeConstructors'] = "False"
     xlators['codeExpr']         = codeExpr
     xlators['includeDirective'] = includeDirective
     xlators['processMain']      = processMain
@@ -446,5 +461,6 @@ def fetchXlators():
     xlators['getEnumStr']                   = getEnumStr
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
+    xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
 
     return(xlators)

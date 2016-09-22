@@ -627,6 +627,9 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
     print "                    Coding fields for", objectName+ '...'
     ####################################################################
     global localArgsAllocated
+    funcBodyIndent   = xlator['funcBodyIndent']
+    funcsDefInClass  = xlator['funcsDefInClass']
+    MakeConstructors = xlator['MakeConstructors']
     globalFuncsAcc=''
     funcDefCodeAcc=''
     structCodeAcc=""
@@ -692,6 +695,7 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
         else:
             if(fieldType=='none'): convertedType=''
 
+            #### Generate ArgListTest from function arguments
             argList=field['typeSpec']['argList']
             if len(argList)==0:                                             # No arguments
                 argListText='' #'void'
@@ -707,33 +711,18 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                     argFieldName=arg['fieldName']
                     argListText+= xlator['convertType'](objects, argTypeSpec, xlator) + ' ' + argFieldName
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
-            #print "FUNCTION:",convertedType, fieldName, '(', argListText, ') '
-            if(fieldType[0] != '<%'):                                       # not verbatim field type
+
+
+            # Textify return type
+            if(fieldType[0] != '<%'):
                 pass #registerType(objectName, fieldName, convertedType, typeDefName)
-            else: typeDefName=convertedType                                 # grabbing typeDefName if not verbatim
-            LangFormOfObjName = progSpec.flattenObjectName(objectName)
+            else: typeDefName=convertedType
 
-            #structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
-            objPrefix=LangFormOfObjName
 
-        ##### Generate function header for both decl and defn.
-            #### GLOBAL main()##########################################
-            if(objectName=='GLOBAL' and fieldName=='main'):
-                print "                             GLOBAL main(): public void ", fieldName
-                structCode += indent + "public static void " + fieldName +" (String[] args)\n";
-                #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
-            #### GLOBAL miscFuncs()
-            elif(objectName=='GLOBAL') :
-                structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
-                print "                             GLOBAL miscFuncs(): public ", typeDefName + " " + fieldName
+            ##### Generate function header for both decl and defn.
+            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent)
 
-            #### OTHER FUNCTIONS########################################
-            else:
-                #funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
-                structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
-                print "                             otherFuncs (): public " + typeDefName + " " + fieldName
-
-            #### VERBATIM FUNC BODY######################################
+            #### FUNC BODY ######################################
             verbatimText=field['value'][1]
             if (verbatimText!=''):                                      # This function body is 'verbatim'.
                 if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
@@ -745,26 +734,28 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                     funcText=verbatimText
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                print "                                 Action Func Body: "+ fieldName
-                structCode += indent + processActionSeq(field['value'][0], '    ', xlator)+"\n"
+                funcText = funcBodyIndent + processActionSeq(field['value'][0], funcBodyIndent, xlator)
             else:
                 print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
                 exit(1)
-            ################################################################
-            #### funcDefCode
-            ################################################################
-            structCode += funcText+"\n\n"
 
-        #funcDefCodeAcc += ""
-        structCodeAcc  += structCode #+ funcDefCode
-        #globalFuncsAcc += globalFuncs
+            funcText+="\n\n"
+            if(funcsDefInClass=='True'):
+                structCode += funcText
+            elif(objectName=='GLOBAL'):
+                if(fieldName=='main'):
+                    funcDefCode += funcText+"\n\n"
+                else: globalFuncs += funcText+"\n\n"
+            else: funcDefCode += funcText+"\n\n"
 
+        structCodeAcc  += structCode
+        funcDefCodeAcc += funcDefCode
+        globalFuncsAcc += globalFuncs
 
-
-    #constructCode=generate_constructor(objects, objectName, tags, indent)
-    #constructCode=""
-    #structCodeAcc+=constructCode
-    return [structCodeAcc, funcDefCodeAcc]
+    if MakeConstructors=='True' and (objectName!='GLOBAL'):
+        constructCode=generate_constructor(objects, objectName, tags, xlator)
+        structCodeAcc+=constructCode
+    return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
 def generateAllObjectsButMain(objects, tags, xlator):
     print "\n            Generating Objects..."
@@ -808,7 +799,7 @@ def generateAllObjectsButMain(objects, tags, xlator):
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):
                     parentClass=implMode[8:]
-                [structCode, funcCode]=processOtherStructFields(objects, objectName, tags, '    ', xlator)
+                [structCode, funcCode, globalCode]=processOtherStructFields(objects, objectName, tags, '    ', xlator)
                 [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](parentClass, LangFormOfObjName, structCode)
                 structCodeAcc += structCodeOut
                 forwardDeclsAcc += forwardDeclsOut

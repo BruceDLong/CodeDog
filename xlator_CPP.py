@@ -1,6 +1,6 @@
 #xlator_CPP.py
 import progSpec
-from CodeGenerator_CPP import codeItemRef, codeUserMesg, processOtherStructFields, codeAllocater
+from CodeGenerator import codeItemRef, codeUserMesg, processOtherStructFields, codeAllocater
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -455,6 +455,20 @@ def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):
     S=indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
     return S
 
+def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+    structCode=''; funcDefCode=''; globalFuncs='';
+    if(objectName=='GLOBAL'):
+        if fieldName=='main':
+            funcDefCode += 'int main(int argc, char *argv[])'
+            localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
+            localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
+        else:
+            globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
+    else:
+        structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
+        objPrefix = progSpec.flattenObjectName(objectName) +'::'
+        funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+    return [structCode, funcDefCode, globalFuncs]
 
 #######################################################
 
@@ -471,6 +485,9 @@ def fetchXlators():
     xlators['GlobalVarPrefix']  = ""
     xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
     xlators['doesLangHaveGlobals'] = "True"
+    xlators['funcBodyIndent']   = ""
+    xlators['funcsDefInClass']  = "False"
+    xlators['MakeConstructors'] = "True"
     xlators['codeExpr']         = codeExpr
     xlators['includeDirective'] = includeDirective
     xlators['processMain']      = processMain
@@ -492,5 +509,6 @@ def fetchXlators():
     xlators['getEnumStr']                   = getEnumStr
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
+    xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
 
     return(xlators)
