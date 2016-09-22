@@ -21,8 +21,8 @@ import Lib_Android
 import CodeGenerator
 import xlator_CPP
 import xlator_Java
-#import CodeGenerator_JavaScript
-#import CodeGenerator_ObjectiveC
+#import xlator_JavaScript
+#import xlator_Swift
 
 
 import re
