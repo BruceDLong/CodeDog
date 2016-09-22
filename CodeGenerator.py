@@ -876,8 +876,22 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
+def clearBuild():
+    global localVarsAllocated
+    global localArgsAllocated
+    global currentObjName
+    global libInterfacesText
+    global fieldNamesAlreadyUsed
+
+    localVarsAllocated = []
+    localArgsAllocated = []
+    fieldNamesAlreadyUsed={}
+    currentObjName=''
+    libInterfacesText=''
+
 def generate(objects, tags, libsToUse, xlator):
     #print "\nGenerating code...\n"
+    clearBuild()
     global objectsRef
     global buildStr_libs
     global libInterfacesText

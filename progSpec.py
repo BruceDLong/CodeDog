@@ -7,6 +7,30 @@ storeOfBaseTypesUsed={} # Registry of all types used
 codeHeader={} # e.g., codeHeader['cpp']="C++ header code"
 libsToUse={}
 
+#########################
+# Variables to store what objects and fields were added after a marked point (When MarkItems=True).
+# So that they can be "rolled back" later. (For rolling back libaries, etc.)
+
+MarkItems=False
+MarkedObjects={}
+MarkedFields=[]
+
+def rollBack(objSpecs):
+    global MarkedObjects
+    global MarkedFields
+
+    for ObjToDel in MarkedObjects.keys():
+        del objSpecs[0][ObjToDel]
+        objSpecs[1].remove(ObjToDel)
+
+    for fieldToDel in MarkedFields:
+        removeFieldFromObject(objSpecs, fieldToDel[0],  fieldToDel[1])
+
+    MarkedObjects={}
+    MarkedFields=[]
+
+#########################
+
 def setCodeHeader(languageID, codeText):
     global codeHeader
     if not languageID in codeHeader: codeHeader[languageID]='';
@@ -33,12 +57,15 @@ def addPattern(objSpecs, objectNameList, name, patternList):
     print "ADDED PATTERN", name, patternName
 
 def addObject(objSpecs, objectNameList, name, stateType, configType):
+    global MarkItems
+    global MarkedObjects
     # Config type is [unknown | SEQ | ALT]
     if(name in objSpecs):
         print "Note: The struct '", name, "' is being added but already exists."
         return
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], 'stateType':stateType, 'configType':configType}
     objectNameList.append(name)
+    if MarkItems: MarkedObjects[name]=1
     print "ADDED STRUCT: ", name
 
 def addObjTags(objSpecs, objectName, objTags):
@@ -56,10 +83,19 @@ def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgL
     return packedField
 
 def addField(objSpecs, objectName, packedField):
+    global MarkItems
+    global MarkedObjects
+    global MarkedFields
+    thisName=packedField['fieldName']
     if(packedField['fieldName'] in objSpecs[objectName]["fields"]):
         print "Note: The field '", objectName, '::', thisName, "' already exists. Not re-adding"
         return
     objSpecs[objectName]["fields"].append(packedField)
+
+    if MarkItems:
+        if not (objectName in MarkedObjects):
+            MarkedFields.append([objectName, thisName])
+
     #if(thisOwner!='flag' and thisOwner!='mode'):
         #print "FIX THIS COMMENTED OUT PART", thisType, objectName #registerBaseType(thisType, objectName)
 
