@@ -211,6 +211,7 @@ def GenerateSystem(objects, buildSpecs, tags):
             tmpLibFiles=(progSpec.fetchTagValue([tags, buildSpecs], 'libraries.'+ lib +'.libFiles'))
             libFiles+=tmpLibFiles
         #TODO: need debug mode and minimum version
+        """
         [buildStr, workingDirectory] = builder.build(langGenTag, "-g", '14',  fileName, libFiles, buildName)
         print "buildStr: ", buildStr
         print "workingDirectory: ", workingDirectory
@@ -218,6 +219,7 @@ def GenerateSystem(objects, buildSpecs, tags):
         out, err = pipe.communicate()
         print "Result: ",out
         print "Error: ", err
+        """
         progSpec.rollBack(objects)
     # GenerateTests()
     # GenerateDocuments()

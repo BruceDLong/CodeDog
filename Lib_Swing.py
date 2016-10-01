@@ -49,7 +49,7 @@ struct GUI {
 
     me void: GUI_PopulateAndExec() <- <% {
         JFrame frame = new JFrame(title);
-        frame.setSize(650, 250);
+        frame.setSize(500, 700);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         GLOBAL.static_Global.appFuncs.createAppMenu(frame);
         GLOBAL.static_Global.appFuncs.createAppArea(frame);

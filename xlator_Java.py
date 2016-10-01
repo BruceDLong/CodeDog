@@ -325,7 +325,7 @@ def codeSpecialFunc(segSpec, xlator):
 
 
 ################################################
-def processMain(objects, tags, xlator):
+def codeMain(objects, tags, xlator):
     return ["", ""]
 
 def codeStructText(parentClass, structName, structCode):
@@ -367,6 +367,7 @@ def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
 
 def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     actionText = ""
+    loopCounterName=""
     containedType=containerType['fieldType']
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if datastructID=='TreeMap':
@@ -386,7 +387,7 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
 
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
-    return (actionText)
+    return [actionText, loopCounterName]
 
 def varTypeIsJavaValueType(convertedType):
     if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
@@ -442,7 +443,7 @@ def fetchXlators():
     xlators['MakeConstructors'] = "False"
     xlators['codeExpr']         = codeExpr
     xlators['includeDirective'] = includeDirective
-    xlators['processMain']      = processMain
+    xlators['codeMain']         = codeMain
     xlators['produceTypeDefs']  = produceTypeDefs
     xlators['addSpecialCode']   = addSpecialCode
     xlators['convertType']      = convertType

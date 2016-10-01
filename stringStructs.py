@@ -41,7 +41,7 @@ def genParserCode():
         if rule[1]=='term':
             RuleList+='        addTerminalProd("' + rule[0] +'", ' + rule[2] + ', "' + str(rule[3]).replace('::','_') + '")\n'
         elif rule[1]=='nonterm':
-            RuleList+='        addNon_TermProd("' + rule[0] +'", ' + rule[2] + ', ' + str(rule[3]).replace('::','_') + ')\n'
+            RuleList+='        addNon_TermProd("' + rule[0] +'", ' + rule[2] + ', ' + str(rule[3]).replace('::','_')  + ')\n'
 
     ConstList=''
     for C in constDefs:
@@ -53,7 +53,7 @@ struct production{
     flag: isTerm
     mode[parseSEQ, parseALT, parseREP, parseOPT, parseAUTO]: prodType
     me string: constStr
-    me uint32[list uint32]: items
+    me uint32[list]: items
     void: print(me uint32: SeqPos, me uint32: originPos) <- {
         me uint32: ProdType <- prodType
         print("[")
@@ -94,7 +94,7 @@ struct stateRec{
 struct stateRecPtr{our stateRec: stateRecPtr}
 
 struct stateSets{
-    me stateRecPtr[list uint32]: stateRecs
+    me stateRecPtr[list]: stateRecs
     me uint64: flags
     //stateSets():flags(0){}
 }
@@ -102,8 +102,8 @@ struct stateSets{
 struct EParser{
     me string: textToParse
     me uint64: startProduction
-    me stateSets[list uint32]: SSets
-    me production[list uint32]: grammar
+    me stateSets[list]: SSets
+    me production[list]: grammar
     me bool: parseFound
     our stateRec: lastTopLevelItem
     me string: errorMesg
@@ -118,7 +118,7 @@ struct EParser{
         P.constStr <- s
         grammar.pushLast(P)
     }
-    void: addNon_TermProd(me string: name, me uint32: ProdType, me uint32[list uint32]: terms) <- {
+    void: addNon_TermProd(me string: name, me uint32: ProdType, me uint32[list]: terms) <- {
         me production: P
         P.prodType <- ProdType
         P.items <- terms
@@ -705,7 +705,7 @@ def fetchOrWriteTerminalParseRule(modelName, field):
                 if objName=='[' or objName=='{': # This is an ALT or SEQ sub structure
                     print "ERROR: These should be handled in writeNonTermParseRule().\n"
                     exit(1)
-                else: nameOut='parse_'+objName
+                else: nameOut='parse_'+objName+'_str'
         elif progSpec.isAlt(fieldType):
             pass
         elif progSpec.isOpt(fieldType):
@@ -895,7 +895,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
                 CODE_RVAL='makeStr('+VarTag+'.child'+doNextSuffix+')'
                 toIsStruct=False; # false because it is really a base type.
             else:
-                finalCodeStr=indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'('+VarTag+'.child, '+CODE_LVAR+')\n'
+                finalCodeStr=indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'_str'+'('+VarTag+'.child, '+CODE_LVAR+')\n'
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, VarTag, doNextSuffix)
 
@@ -914,7 +914,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
 
         elif fromIsStruct and toIsStruct:
             gatherFieldCode+='\n'+indent+'me '+progSpec.baseStructName(toFieldType[0])+': tmpVar_tmpStr'
-            gatherFieldCode+='\n'+indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'('+childRecName+'.child, tmpVar_tmpStr)\n'
+            gatherFieldCode+='\n'+indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+_str+'('+childRecName+'.child, tmpVar_tmpStr)\n'
 
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, '')

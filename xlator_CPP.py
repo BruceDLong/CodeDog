@@ -1,6 +1,6 @@
 #xlator_CPP.py
 import progSpec
-from CodeGenerator import codeItemRef, codeUserMesg, processOtherStructFields, codeAllocater
+from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -358,13 +358,13 @@ def codeSpecialFunc(segSpec, xlator):
 
 
 ############################################
-def processMain(objects, tags, xlator):
+def codeMain(objects, tags, xlator):
     print "\n            Generating GLOBAL..."
     if("GLOBAL" in objects[1]):
         if(objects[0]["GLOBAL"]['stateType'] != 'struct'):
             print "ERROR: GLOBAL must be a 'struct'."
             exit(2)
-        [structCode, funcCode, globalFuncs]=processOtherStructFields(objects, "GLOBAL", tags, '', xlator)
+        [structCode, funcCode, globalFuncs]=codeStructFields(objects, "GLOBAL", tags, '', xlator)
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
@@ -431,21 +431,24 @@ def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
 
 def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     actionText = ""
+    loopCounterName = ""
     containedType=containerType['fieldType']
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if datastructID=='multimap' or datastructID=='map':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
-    elif datastructID=='list':
+    elif datastructID=='list' or datastructID=='deque':
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-
+    else:
+        print "DSID:",datastructID,containerType
+        exit(2)
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
-    return (actionText)
+    return [actionText, loopCounterName]
 
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
     fieldValueText=""
@@ -490,7 +493,7 @@ def fetchXlators():
     xlators['MakeConstructors'] = "True"
     xlators['codeExpr']         = codeExpr
     xlators['includeDirective'] = includeDirective
-    xlators['processMain']      = processMain
+    xlators['codeMain']         = codeMain
     xlators['produceTypeDefs']  = produceTypeDefs
     xlators['addSpecialCode']   = addSpecialCode
     xlators['convertType']      = convertType

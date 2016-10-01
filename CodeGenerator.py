@@ -127,7 +127,7 @@ def fetchItemsTypeSpec(itemName):
 
 
 fieldNamesAlreadyUsed={}
-def processFlagAndModeFields(objects, objectName, tags, xlator):
+def codeFlagAndModeFields(objects, objectName, tags, xlator):
     print "                    Coding flags and modes for:", objectName
     global fieldNamesAlreadyUsed
     flagsVarNeeded = False
@@ -191,7 +191,7 @@ def codeAllocater(typeSpec, xlator):
 def genIfBody(ifBody, indent, xlator):
     ifBodyText = ""
     for ifAction in ifBody:
-        actionOut = processAction(ifAction, indent + "    ", xlator)
+        actionOut = codeAction(ifAction, indent + "    ", xlator)
         #print "If action: ", actionOut
         ifBodyText += actionOut
     return ifBodyText
@@ -421,12 +421,12 @@ def encodeConditionalStatement(action, indent, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = processActionSeq(elseAction, indent, xlator)
+            elseText = codeActionSeq(elseAction, indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
 
-def processAction(action, indent, xlator):
+def codeAction(action, indent, xlator):
     #make a string and return it
     global localVarsAllocated
     actionText = ""
@@ -495,7 +495,7 @@ def processAction(action, indent, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = processActionSeq(elseAction, indent, xlator)
+                elseText = codeActionSeq(elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -529,8 +529,8 @@ def processAction(action, indent, xlator):
             if(wrappedTypeSpec != None):
                 containerType=wrappedTypeSpec
 
-            actionText += xlator['iterateContainerStr'](objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator)
-
+            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator)
+            actionText += actionTextOut
 
         if action['whereExpr']:
             [whereExpr, whereConditionType] = xlator['codeExpr'](action['whereExpr'], xlator)
@@ -540,7 +540,7 @@ def processAction(action, indent, xlator):
             actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
         repBodyText = ''
         for repAction in repBody:
-            actionOut = processAction(repAction, indent + "    ", xlator)
+            actionOut = codeAction(repAction, indent + "    ", xlator)
             repBodyText += actionOut
         if loopCounterName!='':
             actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
@@ -556,22 +556,22 @@ def processAction(action, indent, xlator):
         actionListIn = action['actionList']
         actionListText = ''
         for action in actionListIn:
-            actionListOut = processAction(action, indent + "    ")
+            actionListOut = codeAction(action, indent + "    ")
             actionListText += actionListOut
         #print "actionSeq: ", actionListText
         actionText += indent + "{\n" + actionListText + indent + '}\n'
     else:
-        print "error in processAction: ", action
+        print "error in codeAction: ", action
  #   print "actionText", actionText
     return actionText
 
 
-def processActionSeq(actSeq, indent, xlator):
+def codeActionSeq(actSeq, indent, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = "{\n"
     for action in actSeq:
-        actionText = processAction(action, indent+'    ', xlator)
+        actionText = codeAction(action, indent+'    ', xlator)
         #print actionText
         actSeqText += actionText
     actSeqText += "\n" + indent + "} \n"
@@ -580,7 +580,7 @@ def processActionSeq(actSeq, indent, xlator):
         localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
-def generate_constructor(objects, ClassName, tags, xlator):
+def codeConstructor(objects, ClassName, tags, xlator):
     baseType = progSpec.isWrappedType(objects, ClassName)
     if(baseType!=None): return ''
     if not ClassName in objects[0]: return ''
@@ -623,7 +623,7 @@ def generate_constructor(objects, ClassName, tags, xlator):
     else: constructCode=''
     return constructCode
 
-def processOtherStructFields(objects, objectName, tags, indent, xlator):
+def codeStructFields(objects, objectName, tags, indent, xlator):
     print "                    Coding fields for", objectName+ '...'
     ####################################################################
     global localArgsAllocated
@@ -734,9 +734,9 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
                     funcText=verbatimText
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                funcText = funcBodyIndent + processActionSeq(field['value'][0], funcBodyIndent, xlator)
+                funcText = funcBodyIndent + codeActionSeq(field['value'][0], funcBodyIndent, xlator)
             else:
-                print "ERROR: In processOtherFields: no funcText or funcTextVerbatim found"
+                print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                 exit(1)
 
             funcText+="\n\n"
@@ -753,11 +753,11 @@ def processOtherStructFields(objects, objectName, tags, indent, xlator):
         globalFuncsAcc += globalFuncs
 
     if MakeConstructors=='True' and (objectName!='GLOBAL'):
-        constructCode=generate_constructor(objects, objectName, tags, xlator)
+        constructCode=codeConstructor(objects, objectName, tags, xlator)
         structCodeAcc+=constructCode
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
-def generateAllObjectsButMain(objects, tags, xlator):
+def codeAllNonGlobalStructs(objects, tags, xlator):
     print "\n            Generating Objects..."
     global currentObjName
     constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
@@ -790,7 +790,7 @@ def generateAllObjectsButMain(objects, tags, xlator):
 
             print "                [" + objectName+"]"
             currentObjName=objectName
-            [needsFlagsVar, strOut]=processFlagAndModeFields(objects, objectName, tags, xlator)
+            [needsFlagsVar, strOut]=codeFlagAndModeFields(objects, objectName, tags, xlator)
             constsEnums+=strOut
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
@@ -799,7 +799,7 @@ def generateAllObjectsButMain(objects, tags, xlator):
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):
                     parentClass=implMode[8:]
-                [structCode, funcCode, globalCode]=processOtherStructFields(objects, objectName, tags, '    ', xlator)
+                [structCode, funcCode, globalCode]=codeStructFields(objects, objectName, tags, '    ', xlator)
                 [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](parentClass, LangFormOfObjName, structCode)
                 structCodeAcc += structCodeOut
                 forwardDeclsAcc += forwardDeclsOut
@@ -901,8 +901,8 @@ def generate(objects, tags, libsToUse, xlator):
     createInit_DeInit(objects, tags)
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
     header = makeFileHeader(tags, xlator)
-    [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=generateAllObjectsButMain(objects, tags, xlator)
-    topBottomStrings = xlator['processMain'](objects, tags, xlator)
+    [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=codeAllNonGlobalStructs(objects, tags, xlator)
+    topBottomStrings = xlator['codeMain'](objects, tags, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
