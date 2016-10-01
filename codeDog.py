@@ -31,7 +31,6 @@ import sys
 import errno
 import platform
 import copy
-import subprocess
 
 def writeFile(path, fileName, outStr, fileExtension):
     try:
@@ -211,15 +210,8 @@ def GenerateSystem(objects, buildSpecs, tags):
             tmpLibFiles=(progSpec.fetchTagValue([tags, buildSpecs], 'libraries.'+ lib +'.libFiles'))
             libFiles+=tmpLibFiles
         #TODO: need debug mode and minimum version
-        """
-        [buildStr, workingDirectory] = builder.build(langGenTag, "-g", '14',  fileName, libFiles, buildName)
-        print "buildStr: ", buildStr
-        print "workingDirectory: ", workingDirectory
-        pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = pipe.communicate()
-        print "Result: ",out
-        print "Error: ", err
-        """
+
+        builder.build("-g", '14',  fileName, libFiles, buildName)
         progSpec.rollBack(objects)
     # GenerateTests()
     # GenerateDocuments()
