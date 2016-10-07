@@ -103,6 +103,11 @@ def getCodeAllocStr(varTypeStr, owner):
     else: print "ERROR: Cannot allocate a 'const' variable."; exit(1);
     return S
 
+def getCodeAllocSetStr(varTypeStr, owner, value):
+    S=getCodeAllocStr(varTypeStr, owner)
+    S+='('+value+')'
+    return S
+
 def getConstIntFieldStr(fieldName, fieldValue):
     S= "final int "+fieldName + " = " + fieldValue+ ";"
     return(S)
@@ -451,6 +456,7 @@ def fetchXlators():
     xlators['getContainerType'] = getContainerType
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
     xlators['getCodeAllocStr']              = getCodeAllocStr
+    xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
     xlators['codeSpecialFunc']              = codeSpecialFunc
     xlators['getConstIntFieldStr']          = getConstIntFieldStr
     xlators['codeStructText']               = codeStructText

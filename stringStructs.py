@@ -666,7 +666,7 @@ def populateBaseRules():
 nextParseNameID=0 # Global used to uniquify sub-seqs and sub-alts in a struct parse. E.g.: ruleName: parse_myStruct_sub1
 def fetchOrWriteTerminalParseRule(modelName, field):
     global nextParseNameID
-    print "FIELD_IN:", modelName, field
+    #print "FIELD_IN:", modelName, field
     fieldName='N/A'
     fieldValue=''
     if 'value' in field: fieldValue =field['value']
@@ -690,7 +690,7 @@ def fetchOrWriteTerminalParseRule(modelName, field):
         else:
             print "Unusable const type in fetchOrWriteTerminalParseRule():", fieldType; exit(2);
 
-    elif fieldOwner=='me' or  fieldOwner=='their':
+    elif fieldOwner=='me' or  fieldOwner=='their' or  fieldOwner=='our':
         if fieldType=='string':        nameOut='quotedStr1'
         elif fieldType[0:4]=='uint':   nameOut='uintSeq'
         elif fieldType[0:3]=='int':    nameOut='intSeq'
@@ -752,6 +752,7 @@ def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix
                     newNameSuffix = nameSuffix+'_SEQ'+str(nextParseNameID)
                 innerFields=field['innerDefs']
                 ruleIdxStr = writeNonTermParseRule(objects, tags, modelName, innerFields, innerSeqOrAlt, newNameSuffix)
+                field['parseRule']=ruleIdxStr
             else:
                 ruleIdxStr = fetchOrWriteTerminalParseRule(modelName, field)
 
@@ -785,7 +786,6 @@ def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarNam
         S+=' me string: '+VarName+'\n'
     count=0
     for altField in fields:
-        print "ALTFIELD", altField
         S+=indent
         if(count>0): S+="else "
         S+="if(ruleIDX == " + altField['parseRule'] + "){\n"
@@ -841,13 +841,14 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
         toFieldType  = toTypeSpec['fieldType']
         toFieldOwner = toTypeSpec['owner']
 
-    if toFieldOwner == 'their' or toFieldOwner == 'our' or toFieldOwner == 'my': LHS_IsPointer=True
-    else: LHS_IsPointer=False
+    LHS_IsPointer=progSpec.typeIsPointer(toTypeSpec)
 
-    print "        CONVERTING:", fieldName, toFieldType, typeSpec
+    if fieldName=="items": LHS_IsPointer=False
+
+    print "        CONVERTING:", fieldName, str(toFieldType)[:100]+'... ', str(typeSpec)[:100]+'... '
     print "            TOFieldTYPE1:", toField
     print "            TOFieldTYPE :", toFieldOwner, toFieldType
-    print "       memObjFields:", memObjFields
+    #print "       memObjFields:", memObjFields
 
 
     fields=[]
@@ -868,7 +869,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
     finalCodeStr=''
     if VarName=='' or VarName=='memStruct':  # Default to the target argument name
         VarName='memStruct'
-        if(fieldName==None): # String fpr hasn't a name so in memory it's a cofactual or this is a parser marker.
+        if(fieldName==None): # Field hasn't a name so in memory it's a cofactual or this is a parser marker.
             globalFieldCount+=1
             CODE_LVAR = 'me string: S'+str(globalFieldCount)
         else:
@@ -913,8 +914,11 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
             gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, 'tmpVar_tmpStr', indent+'    ')
 
         elif fromIsStruct and toIsStruct:
-            gatherFieldCode+='\n'+indent+'me '+progSpec.baseStructName(toFieldType[0])+': tmpVar_tmpStr'
-            gatherFieldCode+='\n'+indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+_str+'('+childRecName+'.child, tmpVar_tmpStr)\n'
+            print "toFieldType:", toFieldType
+            gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpVar_tmpStr'
+            if toFieldOwner!='me':
+                gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
+            gatherFieldCode+='\n'+indent+'ExtractStruct_'+fieldType[0].replace('::', '_')+'_str'+'('+childRecName+'.child, tmpVar_tmpStr)\n'
 
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, '')
@@ -934,7 +938,6 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
         assignerCode=''
         oldIndent=indent
         if (fromIsOPT):
-            print "OPT:", fieldName, toFieldOwner
             setTrueCode=''
             assignerCode+='\n'+indent+'if('+VarTag+'.child.next'+'==0){'
             if toFieldOwner=='me':
@@ -946,7 +949,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
                 # Second, generate the code to set the flag
                 assignerCode+='\n'+indent+'    '+VarName+'.'+newFieldsName+' <- false'
                 setTrueCode += VarName+'.'+newFieldsName+' <- true'
-            elif LHS_IsPointer: # If owner if my, our or their
+            elif LHS_IsPointer: # If owner is my, our or their
                 assignerCode+='\n'+indent+'    '+CODE_LVAR+' <- 0'
             else:
                 print"ERROR: OPTional fields must not be '"+toFieldOwner+"'.\n"
@@ -961,8 +964,12 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
                 assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
                 assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
         elif fromIsEmbeddedSeq:
+            globalFieldCount +=1
+            childRecName='childSRec' + str(globalFieldCount)
+            assignerCode+='\n'+indent+'\nme string: '+childRecName+'_tmpStr'
+            assignerCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next.child\n'
             for innerField in field['innerDefs']:
-                assignerCode+=Write_fieldExtracter(objects, parentStructName, innerField, memObjFields, 'SRec', '', True, '    ')
+                assignerCode+=Write_fieldExtracter(objects, parentStructName, innerField, memObjFields, childRecName, '', True, '    ')
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr;
         else:
@@ -991,7 +998,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
 def Write_structExtracter(objects, tags, parentStructName, fields):
     [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     memObjFields=memObj['fields']
-    #print "OBJ FIELDS:",parentStructName,  memObj
+    print "OBJ FIELDS:",parentStructName,  memObj
     S='    me string: SRec_tmpStr'
     for field in fields: # Extract all the fields in the string version.
         S+=Write_fieldExtracter(objects, parentStructName, field, memObjFields, 'SRec', '', True, '    ')

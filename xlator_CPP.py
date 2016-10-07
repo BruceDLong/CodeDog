@@ -72,8 +72,7 @@ def langStringFormatterCommand(fmtStr, argStr):
 
 def derefPtr(varRef, itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-        owner=itemTypeSpec['owner']
-        if owner=='their' or owner=='our' or owner=='my':
+        if progSpec.typeIsPointer(itemTypeSpec):
             return '(*'+varRef+')'
     return varRef
 
@@ -84,9 +83,9 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     LeftOwner=LVAL['owner']
     RightOwner=RVAL['owner']
     if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner=='me' and (RightOwner=='my' or RightOwner=='our' or RightOwner=='their'): return ["(*", ")"]
-    if (LeftOwner=='my' or LeftOwner=='our' or LeftOwner=='their') and RightOwner=='me': return ["&", '']
-    # TODO: Verify these and other combinations. e.g., do we need something like ['', '.get()'] ?
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", ")"]
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ["&", '']
+    if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
 
 def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
@@ -96,12 +95,13 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     LeftOwner=LVAL['owner']
     RightOwner=RVAL['owner']
     if LeftOwner == RightOwner: return ['','',  '','']
-    if LeftOwner=='me' and (RightOwner=='my' or RightOwner=='our' or RightOwner=='their'): return ['','',  "(*", ")"]
-    if (LeftOwner=='my' or LeftOwner=='our' or LeftOwner=='their') and RightOwner=='me':
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ['','',  "(*", ")"]
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
         if assignTag=='deep' :return ['(*',')',  '', '']
         else: return ['','',  "&", '']
 
-    # TODO: Verify these and other combinations. e.g., do we need something like ['', '.get()'] ?
+    if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
+
     return ['','',  '','']
 
 
@@ -112,6 +112,11 @@ def getCodeAllocStr(varTypeStr, owner):
     elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
     elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
     else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
+    return S
+
+def getCodeAllocSetStr(varTypeStr, owner, value):
+    S=getCodeAllocStr(varTypeStr, owner)
+    S+='('+value+')'
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
@@ -501,6 +506,7 @@ def fetchXlators():
     xlators['getContainerType'] = getContainerType
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
     xlators['getCodeAllocStr']              = getCodeAllocStr
+    xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
     xlators['codeSpecialFunc']              = codeSpecialFunc
     xlators['getConstIntFieldStr']          = getConstIntFieldStr
     xlators['codeStructText']               = codeStructText

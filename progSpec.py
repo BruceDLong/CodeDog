@@ -166,6 +166,14 @@ def removeFieldFromObject (objects, objectName, fieldtoRemove):
 
 ###############
 
+def typeIsPointer(typeSpec):
+    owner=typeSpec['owner']
+    if owner == 'their' or owner == 'our' or owner == 'my':
+        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None: isPointer=False
+        else: isPointer=True
+    else: isPointer=False
+    return isPointer
+
 def isWrappedType(objMap, structname):
     if not structname in objMap[0]:
         #print "Struct "+structname+" not found"

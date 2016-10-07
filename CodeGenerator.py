@@ -183,6 +183,7 @@ def codeAllocater(typeSpec, xlator):
     S=''
     owner=typeSpec['owner']
     fType=typeSpec['fieldType']
+    arraySpec=typeSpec['arraySpec']
     if isinstance(fType, basestring): varTypeStr=fType;
     else: varTypeStr=fType[0]
     S= xlator['getCodeAllocStr'](varTypeStr, owner);
@@ -214,7 +215,7 @@ def convertNameSeg(typeSpecOut, name, paramList, xlator):
 
 def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
-    #print "CODENAMESEG:", segSpec, typeSpecIn
+    #print "CODENAMESEG:", segSpec, "TSI:",typeSpecIn
     S=''
     S_alt=''
     namePrefix=''  # For static_Global vars
@@ -227,12 +228,13 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             paramList=segSpec[2]
 
     name=segSpec[0]
-    print "                                             CODENAMESEG:", name
+
+    #print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=xlator['getContainerType'](typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
-        print "                                                 arraySpec:"
+        #print "                                                 arraySpec:",typeSpecOut
         if(name[0]=='['):
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
             S+= '[' + S2 +']'
@@ -315,9 +317,8 @@ def codeItemRef(name, LorR_Val, xlator):
             # Detect connector to use '.' '->', '', (*...).
             connector='.'
             if(segType): # This is where to detect type of vars not found to determine whether to use '.' or '->'
-                #print "SEGTYPE:", segType
-                segOwner=segType['owner']
-                if(segOwner!='me'): connector = xlator['PtrConnector']
+                if progSpec.typeIsPointer(segType):
+                    connector = xlator['PtrConnector']
 
         if segType!=None:
             [segStr, segType]=codeNameSeg(segSpec, segType, connector, xlator)

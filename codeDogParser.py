@@ -234,7 +234,8 @@ def packFieldDef(fieldResult, ObjectName, indent):
         print indent+"        NameAndVal: ", fieldResult
         fieldDef=progSpec.packField(None, None, None, arraySpec, fieldName, argList, givenValue)
     elif(fieldResult.fullFieldDef):
-        print indent+"        FULL FIELD: ", [isNext, owner, fieldType, arraySpec, fieldName]
+        fieldTypeStr=str(fieldType)[:50]
+        print indent+"        FULL FIELD: ", [isNext, owner, fieldTypeStr+'... ', arraySpec, fieldName]
         fieldDef=progSpec.packField(isNext, owner, fieldType, arraySpec, fieldName, argList, givenValue)
     else:
         print "Error in packing FieldDefs:", fieldResult
@@ -390,7 +391,7 @@ def extractAnonFieldDefs(ProgSpec, fieldSpec, ObjectName):
                     inner2Defs=extractAnonFieldDefs(ProgSpec, fieldType[1:-1], ObjectName)
                 innerField['innerDefs']=inner2Defs
 
-        fieldDef=packFieldDef(innerField, ObjectName, 'XYZ')
+        fieldDef=packFieldDef(innerField, ObjectName, '')
         innerDefs.append(fieldDef)
     return innerDefs
 
