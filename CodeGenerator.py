@@ -289,6 +289,7 @@ def codeUnknownNameSeg(segSpec, xlator):
     S=''
     paramList=None
     segName=segSpec[0]
+    #print "SEGNAME:", segName
     S += '.'+ segName
     if len(segSpec) > 1 and segSpec[1]=='(':
         if(len(segSpec)==2):
@@ -437,7 +438,7 @@ def codeAction(action, indent, xlator):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
-        fieldType = xlator['convertType'](objectsRef, typeSpec, xlator)
+        fieldType = xlator['convertType'](objectsRef, typeSpec, 'var', xlator)
         assignValue=''
         print "                                     Action newVar: ", varName
         assignValue = xlator['codeNewVarStr'](typeSpec, fieldDef, fieldType, xlator)
@@ -505,6 +506,7 @@ def codeAction(action, indent, xlator):
         traversalMode = action['traversalMode']
         rangeSpec = action['rangeSpec']
         whileSpec = action['whileSpec']
+        fileSpec  = False #action['fileSpec']
         ctrType=xlator['typeForCounterInt']
         # TODO: add cases for traversing trees and graphs in various orders or ways.
         loopCounterName=''
@@ -519,8 +521,14 @@ def codeAction(action, indent, xlator):
                 actionText += indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
-            [whereExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
-            actionText += indent + "while(" + whereExpr + "){\n"
+            [whileExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
+            actionText += indent + "while(" + whileExpr + "){\n"
+        elif(fileSpec):
+            [filenameExpr, filenameType] = xlator['codeExpr'](fileSpec[2], xlator)
+            if filenameType!='string':
+                print "Filename must be a string.\n"; exit(1);
+            print "File iteration not implemeted yet.\n"
+            exit(2)
         else: # interate over a container
             #print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], xlator)
@@ -598,7 +606,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
         if(typeSpec['arraySpec'] or typeSpec['arraySpec']!=None): continue
         fieldOwner=typeSpec['owner']
         if(fieldOwner=='const'): continue
-        convertedType = xlator['convertType'](objects, typeSpec, xlator)
+        convertedType = xlator['convertType'](objects, typeSpec, 'var', xlator)
         fieldName=field['fieldName']
 
         #print "                        Constructing:", ClassName, fieldName, fieldType, convertedType
@@ -651,7 +659,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         fieldName =field['fieldName']
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
-        convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, xlator))
+        convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, 'var', xlator))
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
 
         ## ASSIGNMENTS###############################################
@@ -710,7 +718,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     count+=1
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
-                    argListText+= xlator['convertType'](objects, argTypeSpec, xlator) + ' ' + argFieldName
+                    argListText+= xlator['convertType'](objects, argTypeSpec, 'arg', xlator) + ' ' + argFieldName
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
 
 

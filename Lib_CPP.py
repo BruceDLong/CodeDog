@@ -9,6 +9,13 @@ def use(objects, buildSpec, tags, platform):
    # progSpec.addCodeToInit(tags, "sync_with_stdio(false)");  #std::ios_base::sync_with_stdio(false)"
 
     CODE="""
+    struct stream{
+        me void: open(me string: filename) <- <%!open(%1)%>
+        me int: getChar() <- <%!get()%>
+        me void: getLine(me string: S) <- <%!getLine(%1)%>
+        me bool: EOF() <- <%!eof()%>
+    }
+
     struct GLOBAL{
         me x: endFunc(me int: val) <- <%!return(0)%>
         me x: randInt(me int: val) <- <%!(rand() % %1)%>

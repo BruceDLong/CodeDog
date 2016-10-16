@@ -13,7 +13,8 @@ def getContainerType(typeSpec):
     if(datastructID=='list'): datastructID = "deque"
     return [datastructID, idxType]
 
-def convertType(objects, TypeSpec, xlator):
+def convertType(objects, TypeSpec, varMode, xlator):
+    # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
     #print "fieldType: ", fieldType
@@ -27,9 +28,10 @@ def convertType(objects, TypeSpec, xlator):
 
     langType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
-    return xlateLangType(TypeSpec,owner, fieldType, xlator)
+    return xlateLangType(TypeSpec, owner, fieldType, varMode, xlator)
 
-def xlateLangType(TypeSpec,owner, fieldType, xlator):
+def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
+    # varMode is 'var' or 'arg'. Large items are passed as pointers
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
@@ -58,12 +60,17 @@ def xlateLangType(TypeSpec,owner, fieldType, xlator):
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
             [containerType, idxType]=getContainerType(TypeSpec)
+            if 'owner' in TypeSpec['arraySpec']:
+                containerOwner=TypeSpec['arraySpec']['owner']
+            else: containerOwner='me'
             if containerType=='deque':
                 langType="deque< "+langType+" >"
+                print "TYPESPEC:", TypeSpec, ">>>", containerOwner
             elif containerType=='map':
                 langType="map< "+idxType+', '+langType+" >"
             elif containerType=='multimap':
                 langType="multimap< "+idxType+', '+langType+" >"
+            if containerOwner=='their': langType+='&' # Pass these as references
     return langType
 
 def langStringFormatterCommand(fmtStr, argStr):
@@ -151,7 +158,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown deque command:", name; exit(2);
     elif containerType=='map':
         convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
+        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -163,7 +170,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
+        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -226,6 +233,8 @@ def codeFactor(item, xlator):
         else:
             [codeStr, retType]=codeItemRef(item0, 'RVAL', xlator)
             S+=codeStr                                # Code variable reference or function call
+            if(codeStr=="NULL"):
+                retType={'owner':"PTR"}
     return [S, retType]
 
 def codeTerm(item, xlator):
@@ -263,6 +272,7 @@ def codeComparison(item, xlator):
     #print '         Comp item', item
     [S, retType]=codePlus(item[0], xlator)
     if len(item) > 1 and len(item[1])>0:
+        if len(item[1])>1: print "Error: Chained comparisons.\n"; exit(1);
         S=derefPtr(S, retType)
         for  i in item[1]:
             #print '         comp ', i
@@ -281,15 +291,17 @@ def codeIsEQ(item, xlator):
     #print '      IsEq item:', item
     [S, retType]=codeComparison(item[0], xlator)
     if len(item) > 1 and len(item[1])>0:
-        S=derefPtr(S, retType)
+        if len(item[1])>1: print "Error: Chained == or !=.\n"; exit(1);
+        S_derefd = derefPtr(S, retType)
         for i in item[1]:
             #print '      IsEq ', i
-            if   (i[0] == '=='): S+=' == '
-            elif (i[0] == '!='): S+=' != '
-            else: print "ERROR: 'and' expected in code generator."; exit(2)
+            if   (i[0] == '=='): op=' == '
+            elif (i[0] == '!='): op=' != '
+            else: print "ERROR: '==' or '!=' expected in code generator."; exit(2)
             [S2, retType] = codeComparison(i[1], xlator)
+            if S2!='NULL': S=S_derefd
             S2=derefPtr(S2, retType)
-            S+=S2
+            S+= op+S2
             retType='bool'
     return [S, retType]
 
@@ -342,7 +354,7 @@ def codeSpecialFunc(segSpec, xlator):
             print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
-            S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+";}"
+            S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
     elif(funcName=='Allocate'):
         if(len(segSpec)>2):
             paramList=segSpec[2]
@@ -421,6 +433,17 @@ def addSpecialCode():
                 break;
         }
         return std::string(formatted.get());
+    }
+    """
+    S+="""
+    bool slurpFile(string filename, string &S){
+        std::ifstream file(filename);
+        if(file.eof() || file.fail()) {S=""; return true;}
+        file.seekg(0, std::ios::end);
+        S.resize(file.tellg());
+        file.seekg(0, std::ios::beg);
+        file.read((char*)S.c_str(), S.length());
+        return false;  //No errors
     }
     """
     return S
