@@ -393,7 +393,7 @@ struct EParser{
                     print(" ADVANCING REP: ")
                     addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
                 } else{print(" TOO MANY REPS\n")}
-            } else if(prodTypeFlag==parseSEQ){
+            } else if(prodTypeFlag==parseSEQ or prodTypeFlag==parseALT){
                 if(backSRecSeqPos < backProd.items.size() and backProd.items[backSRecSeqPos] == SRec.productionID){
                     print(" ADVANCING SEQ: ")
                     addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
@@ -402,7 +402,7 @@ struct EParser{
                 withEach backAltProdID in backProd.items:{
                     if(backSRecSeqPos == 0 and backAltProdID==SRec.productionID){
                         print(" ADVANCING ALT: ")
-                        addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
+    //                    addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
                     } else {if(backAltProdID_key) {print("                                  ")} print(" SKIP ALT\n")}
                 }
             } else {print(" NOTHING for prodType ", prodTypeFlag, "\n")}
