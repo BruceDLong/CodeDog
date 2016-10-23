@@ -809,6 +809,7 @@ def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix
     partIndexes=[]
     for field in fields:
         fname=field['fieldName']
+        typeSpec   =field['typeSpec']
         if(field['isNext']==True):
             firstItm=field['typeSpec']['fieldType'][0]
             if firstItm=='[' or firstItm=='{': # Handle an ALT or SEQ sub structure
@@ -822,6 +823,20 @@ def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix
                 innerFields=field['innerDefs']
                 ruleIdxStr = writeNonTermParseRule(objects, tags, modelName, innerFields, innerSeqOrAlt, newNameSuffix)
                 field['parseRule']=ruleIdxStr
+
+
+                if('arraySpec' in typeSpec and typeSpec['arraySpec']):
+                    global rules
+                    containerSpec=typeSpec['arraySpec']
+                    idxType=''
+                    if 'indexType' in containerSpec:
+                        idxType=containerSpec['indexType']
+                    datastructID = containerSpec['datastructID']
+                    if idxType[0:4]=='uint': pass
+                    if(datastructID=='list'):
+                        ruleIdxStr=appendRule(ruleIdxStr+'_REP', "nonterm", "parseREP", [ruleIdxStr, 0, 0])
+                    elif datastructID=='opt':
+                        ruleIdxStr=appendRule(ruleIdxStr+'_OPT', "nonterm", "parseREP", [ruleIdxStr, 0, 1])
             else:
                 ruleIdxStr = fetchOrWriteTerminalParseRule(modelName, field)
 
@@ -948,9 +963,12 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
     CODE_RVAL=''
     objName=''
     doNextSuffix=''
+    fetchSuffix=''
     if advancePtr:
         S+=indent+VarTag+' <- getNextStateRec('+VarTag+')\n'
-    else: doNextSuffix='.next'
+    else:
+        doNextSuffix='.next'
+        fetchSuffix=".child.next"
 
 
     if fieldOwner=='const'and (toField == None):
@@ -964,7 +982,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
                 CODE_RVAL='makeStr('+VarTag+'.child'+doNextSuffix+')'
                 toIsStruct=False; # false because it is really a base type.
             else:
-                finalCodeStr=indent+'Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+VarTag+'.child, '+CODE_LVAR+')\n'
+                finalCodeStr=indent+'Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+VarTag+fetchSuffix+'.child, '+CODE_LVAR+')\n'
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, VarTag, doNextSuffix)
 
@@ -1026,6 +1044,8 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
             assignerCode+='\n'+indent+'} else {\n'
             indent+='    '
             assignerCode+=indent+setTrueCode+'\n'
+
+
         if fromIsALT or fromIsEmbeddedAlt:
             if(fromIsEmbeddedAlt):
                 assignerCode+=Write_ALT_Extracter(objects, field,  parentStructName, field['innerDefs'], VarTag, VarName, indent+'    ')
