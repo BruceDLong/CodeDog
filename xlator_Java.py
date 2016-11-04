@@ -34,7 +34,7 @@ def convertToJavaType(fieldType):
     #print "javaType: ", javaType
     return javaType
 
-def convertType(objects, TypeSpec, xlator):
+def convertType(objects, TypeSpec, varMode, xlator):
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
     #print "fieldType: ", fieldType
@@ -48,9 +48,10 @@ def convertType(objects, TypeSpec, xlator):
 
     langType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
-    return xlateLangType(TypeSpec,owner, fieldType, xlator)
+    return xlateLangType(TypeSpec,owner, fieldType, varMode, xlator)
 
-def xlateLangType(TypeSpec,owner, fieldType, xlator):
+def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
+    # varMode is 'var' or 'arg'.
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
@@ -103,6 +104,11 @@ def getCodeAllocStr(varTypeStr, owner):
     else: print "ERROR: Cannot allocate a 'const' variable."; exit(1);
     return S
 
+def getCodeAllocSetStr(varTypeStr, owner, value):
+    S=getCodeAllocStr(varTypeStr, owner)
+    S+='('+value+')'
+    return S
+
 def getConstIntFieldStr(fieldName, fieldValue):
     S= "final int "+fieldName + " = " + fieldValue+ ";"
     return(S)
@@ -130,7 +136,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown ArrayDeque command:", name; exit(2);
     elif containerType=='TreeMap':
         convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
+        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase' or  name=='size': pass
         elif name=='insert'   : name='put';
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -141,7 +147,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, xlator)
+        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase' or  name=='size': pass
         elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -325,7 +331,7 @@ def codeSpecialFunc(segSpec, xlator):
 
 
 ################################################
-def processMain(objects, tags, xlator):
+def codeMain(objects, tags, xlator):
     return ["", ""]
 
 def codeStructText(parentClass, structName, structCode):
@@ -367,26 +373,27 @@ def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
 
 def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     actionText = ""
+    loopCounterName=""
     containedType=containerType['fieldType']
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if datastructID=='TreeMap':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-        containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-        indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, xlator)
+        containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
+        indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, 'var', xlator)
         iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
         repContainer+='.entrySet()'
     elif datastructID=='list':
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
-    else: iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, xlator)
+        iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
+    else: iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
 
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
-    return (actionText)
+    return [actionText, loopCounterName]
 
 def varTypeIsJavaValueType(convertedType):
     if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
@@ -442,7 +449,7 @@ def fetchXlators():
     xlators['MakeConstructors'] = "False"
     xlators['codeExpr']         = codeExpr
     xlators['includeDirective'] = includeDirective
-    xlators['processMain']      = processMain
+    xlators['codeMain']         = codeMain
     xlators['produceTypeDefs']  = produceTypeDefs
     xlators['addSpecialCode']   = addSpecialCode
     xlators['convertType']      = convertType
@@ -450,6 +457,7 @@ def fetchXlators():
     xlators['getContainerType'] = getContainerType
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
     xlators['getCodeAllocStr']              = getCodeAllocStr
+    xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
     xlators['codeSpecialFunc']              = codeSpecialFunc
     xlators['getConstIntFieldStr']          = getConstIntFieldStr
     xlators['codeStructText']               = codeStructText

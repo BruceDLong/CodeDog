@@ -81,8 +81,9 @@ conditionalAction <<= Group(
 traversalModes = (Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative"))
 rangeSpec = Group(Keyword("RANGE") + '(' + rValue + ".." + rValue + ')')
 whileSpec = Group(Keyword('WHILE') + '(' + expr + ')')
+fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | rValue("repList"))('itemsToIter') + ":"
+            Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + ":"
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
@@ -102,7 +103,7 @@ nameAndVal = Group(
     )("nameAndVal")
 
 datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph"))('datastructID')
-arraySpec = Group (Literal('[') + datastructID + Optional(intNum | varType)('indexType') + Literal(']'))("arraySpec")
+arraySpec = Group (Literal('[')  + Optional(owners)('owner') + datastructID + Optional(intNum | varType)('indexType') + Literal(']'))("arraySpec")
 meOrMy = (Keyword("me") | Keyword("my"))
 modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
 flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") + nameAndVal )("flagDef")
@@ -118,7 +119,7 @@ alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Option
 anonModel = (sequenceEl | alternateEl) ("anonModel")
 owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their"))
 fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | Group(anonModel))('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
-fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | quotedString()('constStr') | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
+fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
 doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
@@ -224,6 +225,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
+        if(len(fieldResult)>1 and fieldResult[1]=='[opt]'): arraySpec={'datastructID': 'opt'}
         givenValue=fieldResult.constStr[1:-1]
         fieldDef=progSpec.packField(True, 'const', 'string', arraySpec, fieldName, None, givenValue)
     elif(fieldResult.constNum):
@@ -234,7 +236,8 @@ def packFieldDef(fieldResult, ObjectName, indent):
         print indent+"        NameAndVal: ", fieldResult
         fieldDef=progSpec.packField(None, None, None, arraySpec, fieldName, argList, givenValue)
     elif(fieldResult.fullFieldDef):
-        print indent+"        FULL FIELD: ", [isNext, owner, fieldType, arraySpec, fieldName]
+        fieldTypeStr=str(fieldType)[:50]
+        print indent+"        FULL FIELD: ", [isNext, owner, fieldTypeStr+'... ', arraySpec, fieldName]
         fieldDef=progSpec.packField(isNext, owner, fieldType, arraySpec, fieldName, argList, givenValue)
     else:
         print "Error in packing FieldDefs:", fieldResult
@@ -390,7 +393,7 @@ def extractAnonFieldDefs(ProgSpec, fieldSpec, ObjectName):
                     inner2Defs=extractAnonFieldDefs(ProgSpec, fieldType[1:-1], ObjectName)
                 innerField['innerDefs']=inner2Defs
 
-        fieldDef=packFieldDef(innerField, ObjectName, 'XYZ')
+        fieldDef=packFieldDef(innerField, ObjectName, '')
         innerDefs.append(fieldDef)
     return innerDefs
 

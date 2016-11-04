@@ -60,7 +60,7 @@ libraries = {
         bindings =[C, CPP, perl, python]
         CPUs     =[i386, amd64, arm7]
         libFiles=[]
-        headers=[signal.h, string, cstring, memory, cstdint, deque, map, cstdarg, iostream]
+        headers=[signal.h, string, cstring, memory, cstdint, deque, map, cstdarg, iostream, fstream]
     }
 
     Swing={

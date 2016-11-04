@@ -210,6 +210,7 @@ def GenerateSystem(objects, buildSpecs, tags):
             tmpLibFiles=(progSpec.fetchTagValue([tags, buildSpecs], 'libraries.'+ lib +'.libFiles'))
             libFiles+=tmpLibFiles
         #TODO: need debug mode and minimum version
+
         builder.build("-g", '14',  fileName, libFiles, buildName)
         progSpec.rollBack(objects)
     # GenerateTests()

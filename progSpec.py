@@ -160,11 +160,19 @@ def removeFieldFromObject (objects, objectName, fieldtoRemove):
     idx=0
     for field in fieldList:
         if field["fieldName"] == fieldtoRemove:
-            print "Removed: ", field["fieldName"]
+           # print "Removed: ", field["fieldName"]
             del fieldList[idx]
         idx+=1
 
 ###############
+
+def typeIsPointer(typeSpec):
+    owner=typeSpec['owner']
+    if owner == 'their' or owner == 'our' or owner == 'my':
+        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None: isPointer=False
+        else: isPointer=True
+    else: isPointer=False
+    return isPointer
 
 def isWrappedType(objMap, structname):
     if not structname in objMap[0]:
