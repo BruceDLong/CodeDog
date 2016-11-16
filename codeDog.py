@@ -2,7 +2,7 @@
 
 import progSpec
 import codeDogParser
-import builder
+import buildDog
 
 import pattern_Write_Main
 import pattern_GUI_Toolkit
@@ -16,7 +16,7 @@ import Lib_Java
 import Lib_CPP
 import Lib_Swing
 import Lib_Android
-
+import Lib_AndroidGUI
 
 import CodeGenerator
 import xlator_CPP
@@ -32,6 +32,7 @@ import errno
 import platform
 import copy
 
+'''
 def writeFile(path, fileName, outStr, fileExtension):
     try:
         os.makedirs(path)
@@ -41,6 +42,7 @@ def writeFile(path, fileName, outStr, fileExtension):
     fo=open(path + os.sep + fileName, 'w')
     fo.write(outStr)
     fo.close()
+    '''
 
 def stringFromFile(filename):
     f=open(filename)
@@ -179,6 +181,7 @@ def ChooseLibs(objects, buildSpec, tags):
         elif (Lib=="CPP"):  Lib_CPP.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
         elif (Lib=="Swing"):  Lib_Swing.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
         elif (Lib=="Android"):  Lib_Android.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
+        elif (Lib=="AndroidGUI"):  Lib_AndroidGUI.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
 
     return progSpec.libsToUse
 
@@ -203,7 +206,7 @@ def GenerateSystem(objects, buildSpecs, tags):
         if(langGenTag == 'CPP'): fileExtension='.cpp'
         elif(langGenTag == 'Java'): fileExtension='.java'
         else: print "ERROR: unrecognized language ", langGenTag
-        writeFile(buildName, fileName, outStr, fileExtension)
+#        writeFile(buildName, fileName, outStr, fileExtension)
         #GenerateBuildSystem()###################################################
         libFiles=[]
         for lib in libsToUse:
@@ -211,7 +214,7 @@ def GenerateSystem(objects, buildSpecs, tags):
             libFiles+=tmpLibFiles
         #TODO: need debug mode and minimum version
 
-        builder.build("-g", '14',  fileName, libFiles, buildName)
+        buildDog.build("-g", '14',  fileName, libFiles, buildName, outStr)
         progSpec.rollBack(objects)
     # GenerateTests()
     # GenerateDocuments()
