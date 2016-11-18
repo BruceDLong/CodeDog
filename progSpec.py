@@ -69,8 +69,15 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     print "ADDED STRUCT: ", name
 
 def addObjTags(objSpecs, objectName, objTags):
-    objSpecs[objectName]["tags"]=objTags
-    print "    ADDED Tags to "+objectName+".\t"
+    startTags = {}
+    if ('tags' in objSpecs[objectName]):
+        startTags = objSpecs[objectName]['tags']
+        # append tags here
+        objSpecs[objectName]['tags'].update(objTags)
+        print "    APPENDED Tags to "+objectName+".\t"
+    else: 
+        objSpecs[objectName]['tags']=objTags
+        print "    ADDED Tags to "+objectName+".\t"
 
 
 def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, thisValue):

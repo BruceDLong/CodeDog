@@ -73,4 +73,26 @@ libraries = {
         libFiles=[]
         headers=[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*]
     }
+    
+    AndroidGUI={
+        useStatus='dynamic'
+        description='Misc for Android '
+        features=[GUI_ToolKit]
+        platforms=[Android]
+        bindings =[Java]
+        CPUs     =[ARM]
+        libFiles=[]
+        headers=[android.view.View, android.widget.LinearLayout, android.content.Context, android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.view.Menu, android.graphics.Path, android.widget.ScrollView  ]
+    }
+    
+    Android={
+        useStatus='dynamic'
+        description='GUI widget toolkit for Android '
+        features=[GUI_ToolKit]
+        platforms=[Android]
+        bindings =[Java]
+        CPUs     =[ARM]
+        libFiles=[]
+        headers=[android.app.Activity, android.os.Bundle, java.util.TreeMap, java.util.Map, java.util.ArrayDeque, java.util.Random, android.app.Application]
+    }
 }
