@@ -458,6 +458,7 @@ def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
     return(assignValue)
 
 def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+    willBeModifiedSuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
     containedType=containerType['fieldType']
@@ -466,16 +467,32 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
-    elif datastructID=='list' or datastructID=='deque':
+
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+
+    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedSuringTraversal):
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+    elif datastructID=='deque' and willBeModifiedSuringTraversal:
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        lvName=repName+"Itr"
+        actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+'.size();' +" ++"+lvName+" ){\n"
+                    + indent+"    "+"auto &"+repName+" = "+repContainer+"["+lvName+"];\n")
     else:
         print "DSID:",datastructID,containerType
         exit(2)
-    localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-    actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
-                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+
     return [actionText, loopCounterName]
 
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):

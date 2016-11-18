@@ -137,38 +137,37 @@ def codeFlagAndModeFields(objects, objectName, tags, xlator):
     for field in ObjectDef['fields']:
         fieldType=field['typeSpec']['fieldType'];
         fieldName=field['fieldName'];
-        if fieldName in fieldNamesAlreadyUsed: continue
-        else:fieldNamesAlreadyUsed[fieldName]=objectName
-        #print "                    ", field
-        if fieldType=='flag':
-            print "                        flag: ", fieldName
+        if fieldType=='flag' or fieldType=='mode':
             flagsVarNeeded=True
-            structEnums += xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
-            bitCursor += 1;
-        elif fieldType=='mode':
-            print "                        mode: ", fieldName, '[]'
-            #print field
-            structEnums += "\n// For Mode "+fieldName+"\n"
-            flagsVarNeeded=True
-            # calculate field and bit position
-            enumSize= len(field['typeSpec']['enumList'])
-            numEnumBits=bitsNeeded(enumSize)
-            #field[3]=enumSize;
-            #field[4]=numEnumBits;
-            enumMask=((1 << numEnumBits) - 1) << bitCursor
+            if fieldName in fieldNamesAlreadyUsed: continue
+            else:fieldNamesAlreadyUsed[fieldName]=objectName
+            if fieldType=='flag':
+                print "                        flag: ", fieldName
+                structEnums += xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
+                bitCursor += 1;
+            elif fieldType=='mode':
+                print "                        mode: ", fieldName, '[]'
+                #print field
+                structEnums += "\n// For Mode "+fieldName+"\n"
+                # calculate field and bit position
+                enumSize= len(field['typeSpec']['enumList'])
+                numEnumBits=bitsNeeded(enumSize)
+                #field[3]=enumSize;
+                #field[4]=numEnumBits;
+                enumMask=((1 << numEnumBits) - 1) << bitCursor
 
-            structEnums += xlator['getConstIntFieldStr'](fieldName+"Offset", hex(bitCursor)) + "\n"
-            structEnums += xlator['getConstIntFieldStr'](fieldName+"Mask",   hex(enumMask))
+                structEnums += xlator['getConstIntFieldStr'](fieldName+"Offset", hex(bitCursor)) + "\n"
+                structEnums += xlator['getConstIntFieldStr'](fieldName+"Mask",   hex(enumMask))
 
-            # enum
-            structEnums += xlator['getEnumStr'](fieldName, field['typeSpec']['enumList'])
+                # enum
+                structEnums += xlator['getEnumStr'](fieldName, field['typeSpec']['enumList'])
 
-            structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
-            # read/write macros
-            structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
-            # str array and printer
+                structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
+                # read/write macros
+                structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
+                # str array and printer
 
-            bitCursor=bitCursor+numEnumBits;
+                bitCursor=bitCursor+numEnumBits;
     if structEnums!="": structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'+structEnums
     return [flagsVarNeeded, structEnums]
 
