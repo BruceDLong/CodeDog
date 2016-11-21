@@ -92,10 +92,17 @@ def CheckObjectVars(objName, itemName, level):
 
     return 0 # Field not found in model
 
+StaticMemberVars={} # Used to find parent-class of const and enums
 
-def fetchItemsTypeSpec(itemName):
+def staticVarNamePrefix(staticVarName, xlator):
+    if staticVarName in StaticMemberVars:
+        return progSpec.baseStructName(StaticMemberVars[staticVarName]) + xlator['ObjConnector']
+    else: return ''
+
+def fetchItemsTypeSpec(itemName, xlator):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     global currentObjName
+    global StaticMemberVars
     #print "FETCHING:", itemName, currentObjName
     RefType=""
     REF=CheckBuiltinItems(itemName)
@@ -117,6 +124,11 @@ def fetchItemsTypeSpec(itemName):
                 if (REF):
                     RefType="GLOBAL"
                 else:
+                    if(itemName in StaticMemberVars):
+                        parentClassName = staticVarNamePrefix(itemName, xlator)
+                        crntBaseName = progSpec.baseStructName(currentObjName)
+                        if(parentClassName[: len(crntBaseName)] != crntBaseName):
+                            return [None, "STATIC:"+parentClassName]
                     #print "\nVariable", itemName, "could not be found."
                     #exit(1)
                     return [None, "LIB"]
@@ -130,6 +142,7 @@ fieldNamesAlreadyUsed={}
 def codeFlagAndModeFields(objects, objectName, tags, xlator):
     print "                    Coding flags and modes for:", objectName
     global fieldNamesAlreadyUsed
+    global StaticMemberVars
     flagsVarNeeded = False
     bitCursor=0
     structEnums=""
@@ -144,6 +157,7 @@ def codeFlagAndModeFields(objects, objectName, tags, xlator):
             if fieldType=='flag':
                 print "                        flag: ", fieldName
                 structEnums += xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
+                StaticMemberVars[fieldName]  =objectName
                 bitCursor += 1;
             elif fieldType=='mode':
                 print "                        mode: ", fieldName, '[]'
@@ -156,16 +170,20 @@ def codeFlagAndModeFields(objects, objectName, tags, xlator):
                 #field[4]=numEnumBits;
                 enumMask=((1 << numEnumBits) - 1) << bitCursor
 
-                structEnums += xlator['getConstIntFieldStr'](fieldName+"Offset", hex(bitCursor)) + "\n"
-                structEnums += xlator['getConstIntFieldStr'](fieldName+"Mask",   hex(enumMask))
+                offsetVarName = fieldName+"Offset"
+                maskVarName   = fieldName+"Mask"
+                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor))
+                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask)) + "\n"
 
                 # enum
-                structEnums += xlator['getEnumStr'](fieldName, field['typeSpec']['enumList'])
+                enumList=field['typeSpec']['enumList']
+                structEnums += xlator['getEnumStr'](fieldName, enumList)
 
-                structEnums += 'string ' + fieldName+'Strings[] = {"'+('", "'.join(field['typeSpec']['enumList']))+'"};\n'
-                # read/write macros
-                structEnums += "#define "+fieldName+"is(VAL) ((inf)->flags & )\n"
-                # str array and printer
+                # Record the utility vars' parent-classes
+                StaticMemberVars[offsetVarName]=objectName
+                StaticMemberVars[maskVarName]  =objectName
+                for eItem in enumList:
+                    StaticMemberVars[eItem]=objectName
 
                 bitCursor=bitCursor+numEnumBits;
     if structEnums!="": structEnums="\n\n// *** Code for manipulating "+objectName+' flags and modes ***\n'+structEnums
@@ -245,8 +263,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
         if(tmp!=''):
             S=tmp
             return [S, '']
-        [typeSpecOut, SRC]=fetchItemsTypeSpec(name)
+        [typeSpecOut, SRC]=fetchItemsTypeSpec(name, xlator)
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
+        if(SRC[:6]=='STATIC'): namePrefix = SRC[7:]
     else:
         fType=typeSpecIn['fieldType']
         owner=typeSpecIn['owner']
@@ -307,6 +326,7 @@ def codeItemRef(name, LorR_Val, xlator):
     S=''
     segStr=''
     segType={'owner':'', 'dummyType':True}
+    LHSParentType=''
     connector=''
     prevLen=len(S)
     segIDX=0
@@ -321,6 +341,8 @@ def codeItemRef(name, LorR_Val, xlator):
                     connector = xlator['PtrConnector']
 
         if segType!=None:
+            if segType and 'fieldType' in segType:
+                LHSParentType=segType['fieldType'][0]
             [segStr, segType]=codeNameSeg(segSpec, segType, connector, xlator)
         else:
             segStr= codeUnknownNameSeg(segSpec, xlator)
@@ -351,11 +373,13 @@ def codeItemRef(name, LorR_Val, xlator):
         fieldType=segType['fieldType']
         if fieldType=='flag':
             segName=segStr[len(connector):]
-            S='(' + S[0:prevLen] + connector + 'flags & ' + segName + ')' # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
+            prefix = staticVarNamePrefix(segName, xlator)
+            S='(' + S[0:prevLen] + connector + 'flags & ' + prefix+segName + ')' # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
         elif fieldType=='mode':
             segName=segStr[len(connector):]
-            S="((" + S[0:prevLen] + connector +  "flags&"+segName+"Mask)"+">>"+segName+"Offset)"
-    return [S, segType]
+            prefix = staticVarNamePrefix(segName+"Mask", xlator)
+            S="((" + S[0:prevLen] + connector +  "flags&"+prefix+segName+"Mask)"+">>"+prefix+segName+"Offset)"
+    return [S, segType, LHSParentType]
 
 
 def codeUserMesg(item, xlator):
@@ -395,7 +419,7 @@ def codeFuncCall(funcCallSpec, xlator):
        # tmpStr=xlator['codeSpecialFunc'](funcCallSpec)
        # if(tmpStr != ''):
        #     return tmpStr
-    [codeStr, typeSpec]=codeItemRef(funcCallSpec, 'RVAL', xlator)
+    [codeStr, typeSpec, LHSParentType]=codeItemRef(funcCallSpec, 'RVAL', xlator)
     S+=codeStr
     return S
 
@@ -444,7 +468,7 @@ def codeAction(action, indent, xlator):
         actionText = indent + fieldType + " " + varName + assignValue + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
-        [codeStr, typeSpec] = codeItemRef(action['LHS'], 'LVAL', xlator)
+        [codeStr, typeSpec, LHSParentType] = codeItemRef(action['LHS'], 'LVAL', xlator)
         assignTag = action['assignTag']
         LHS = codeStr
         print "                                     assign: ", LHS
@@ -463,13 +487,15 @@ def codeAction(action, indent, xlator):
                 divPoint=startPointOfNamesLastSegment(LHS)
                 LHS_Left=LHS[0:divPoint+1] # The '+1' makes this get the connector too. e.g. '.' or '->'
                 bitMask =LHS[divPoint+1:]
-                actionText=indent + "SetBits("+LHS_Left+"flags, "+bitMask+", "+ RHS + ");\n"
+                prefix = staticVarNamePrefix(bitMask, xlator)
+                actionText=indent + "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS + ");\n"
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
             elif LHS_FieldType=='mode':
                 divPoint=startPointOfNamesLastSegment(LHS)
                 LHS_Left=LHS[0:divPoint+1]
                 bitMask =LHS[divPoint+1:]
-                actionText=indent + "SetBits("+LHS_Left+"flags, "+bitMask+"Mask, "+ RHS+"<<" +bitMask+"Offset"+");\n"
+                prefix = staticVarNamePrefix(bitMask+"Mask", xlator)
+                actionText=indent + "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
             else:
                 actionText = indent + LHS + " = " + RHS + ";\n"
         else:
@@ -773,6 +799,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
     needsFlagsVar=False;
+    constFieldAccs={}
     for objectName in objects[1]:
         if progSpec.isWrappedType(objects, objectName)!=None: continue
         if(objectName[0] != '!'):
@@ -797,9 +824,13 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                 #else:print "!TAG", thisCtxTag; continue
 
             print "                [" + objectName+"]"
+
             currentObjName=objectName
             [needsFlagsVar, strOut]=codeFlagAndModeFields(objects, objectName, tags, xlator)
-            constsEnums+=strOut
+            objectNameBase=progSpec.baseStructName(objectName)
+            if not objectNameBase in constFieldAccs: constFieldAccs[objectNameBase]=""
+            constFieldAccs[objectNameBase]+=strOut
+
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
             if(((xlator['doesLangHaveGlobals']=='False') or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
@@ -808,6 +839,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                 if(implMode and implMode[:7]=="inherit"):
                     parentClass=implMode[8:]
                 [structCode, funcCode, globalCode]=codeStructFields(objects, objectName, tags, '    ', xlator)
+                structCode+= constFieldAccs[objectNameBase]
                 [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](parentClass, LangFormOfObjName, structCode)
                 structCodeAcc += structCodeOut
                 forwardDeclsAcc += forwardDeclsOut
@@ -890,12 +922,14 @@ def clearBuild():
     global currentObjName
     global libInterfacesText
     global fieldNamesAlreadyUsed
+    global StaticMemberVars
 
     localVarsAllocated = []
     localArgsAllocated = []
     fieldNamesAlreadyUsed={}
     currentObjName=''
     libInterfacesText=''
+    StaticMemberVars={}
 
 def generate(objects, tags, libsToUse, xlator):
     #print "\nGenerating code...\n"

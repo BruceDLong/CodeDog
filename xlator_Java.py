@@ -110,15 +110,16 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "final int "+fieldName + " = " + fieldValue+ ";"
+    S= "public static final int "+fieldName + " = " + fieldValue+ ";\n"
     return(S)
 
 def getEnumStr(fieldName, enumList):
-    S = ""
+    S=''
     count=0
     for enumName in enumList:
-        S += getConstIntFieldStr(enumName,hex(count))+"\n"
+        S += getConstIntFieldStr(enumName, str(count))
         count=count+1
+    S += "\n"
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
@@ -189,13 +190,15 @@ def codeFactor(item, xlator):
             [S2, retType] = codeExpr(item[1], xlator)
             S+='-' + S2
         elif item0=='[':
+            count=0
             tmp="{"
             for expr in item[1:-1]:
+                count+=1
                 [S2, retType] = codeExpr(expr, xlator)
-                if len(tmp)>1: tmp+=", "
+                if count>1: tmp+=", "
                 tmp+=S2
             tmp+="}"
-            S+=tmp
+            S+="new "+"long"+'[]'+tmp   # ToDo: make this handle things other than long.
         else:
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)
@@ -205,7 +208,7 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType]=codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType, prntType]=codeItemRef(item0, 'RVAL', xlator)
             S+=codeStr                                # Code variable reference or function call
     return [S, retType]
 
@@ -301,7 +304,7 @@ def codeSpecialFunc(segSpec, xlator):
             paramList=segSpec[2]
             count=0
             for P in paramList:
-                if(count!=0): S+=", "
+                if(count!=0): S+=" + "
                 count+=1
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
@@ -311,7 +314,7 @@ def codeSpecialFunc(segSpec, xlator):
             print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
-            S+='if('+varName+'){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+";}"
+            S+='if('+varName+'){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
     elif(funcName=='Allocate'):
         if(len(segSpec)>2):
             paramList=segSpec[2]
@@ -443,6 +446,7 @@ def fetchXlators():
     xlators['typeForCounterInt']= "long"
     xlators['GlobalVarPrefix']  = "GLOBAL.static_Global."
     xlators['PtrConnector']     = "."                      # Name segment connector for pointers.
+    xlators['ObjConnector']     = "."                      # Name segment connector for classes.
     xlators['doesLangHaveGlobals'] = "False"
     xlators['funcBodyIndent']   = "    "
     xlators['funcsDefInClass']  = "True"

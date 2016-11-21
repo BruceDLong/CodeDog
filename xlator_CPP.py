@@ -127,11 +127,11 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "const int "+fieldName+ " = " + fieldValue+ ";"
+    S= "static const int "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
 def getEnumStr(fieldName, enumList):
-    S = "\nenum " + fieldName +" {"
+    S = "\n    enum " + fieldName +" {"
     enumSize = len (enumList)
     count=0
     for enumName in enumList:
@@ -139,6 +139,7 @@ def getEnumStr(fieldName, enumList):
         count=count+1
         if(count<enumSize): S += ", "
     S += "};\n";
+    S += 'string ' + fieldName+'Strings['+str(len(enumList))+'] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
@@ -231,7 +232,7 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType]=codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType, prntType]=codeItemRef(item0, 'RVAL', xlator)
             S+=codeStr                                # Code variable reference or function call
             if(codeStr=="NULL"):
                 retType={'owner':"PTR"}
@@ -532,6 +533,7 @@ def fetchXlators():
     xlators['typeForCounterInt']= "int64_t"
     xlators['GlobalVarPrefix']  = ""
     xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
+    xlators['ObjConnector']     = "::"                      # Name segment connector for classes.
     xlators['doesLangHaveGlobals'] = "True"
     xlators['funcBodyIndent']   = ""
     xlators['funcsDefInClass']  = "False"
