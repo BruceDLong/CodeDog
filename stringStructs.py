@@ -71,7 +71,7 @@ struct production{
             if(ProdType==parseALT and SeqPos==0) {print(" > ")}
             withEach p in items:{
                 if(ProdType == parseSEQ and p_key == SeqPos){ print(" > ")}
-                if(p_key){
+                if(p_key!=0){
                     if(ProdType==parseALT){print("| ")}
                 }
                 if(ProdType==parseREP and p_key>0){ print(p, " ")}
@@ -136,6 +136,7 @@ struct EParser{
     }
 
     void: dump() <- {
+    /*
          withEach crntPos in RANGE(0 .. SSets.size()):{
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
@@ -152,6 +153,7 @@ struct EParser{
         }
         if(parseFound){print("\nPARSE PASSED!\n\n")}
         else {print("\nPARSE failed.\n\n")}
+    */
     }
 
 #CONST_CODE_HERE

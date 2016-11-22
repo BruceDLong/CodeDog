@@ -519,6 +519,16 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
         funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
     return [structCode, funcDefCode, globalFuncs]
 
+def codeArrayIndex(idx, containerType):
+    S= '[' + idx +']'
+    return S
+
+def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):
+    if (LHS_FieldType =='flag' ):
+        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS + ");\n"
+    elif (LHS_FieldType =='mode' ):
+        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -561,5 +571,7 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['codeArrayIndex']               = codeArrayIndex
+    xlators['codeSetBits']                  = codeSetBits
 
     return(xlators)
