@@ -248,8 +248,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
 
     #print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
-    if (typeSpecIn['fieldType']=="string" and name == "size"):
-        name = "length"
+    if ('fieldType' in typeSpecIn and isinstance(typeSpecIn['fieldType'], basestring)):
+        if (typeSpecIn['fieldType']=="string" and name == "size"):
+            name = "length"
 
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=xlator['getContainerType'](typeSpecIn)
