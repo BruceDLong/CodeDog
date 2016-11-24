@@ -17,7 +17,8 @@ def createUtilityFunctions():
         me bool: isalpha(me char: ch) <- <%!%GCharacter.isLetter(%1)%>
         me bool: isspace(me char: ch) <- <%!%GCharacter.isWhitespace(%1)%>
         me bool: isalnum(me char: ch) <- <%!%GCharacter.isLetterOrDigit(%1)%>
-        me int64: atoi(me string: str) <- <%!%GInteger.parseInt(%1)%>
+        me int64: stoi(me string: str) <- <%!%GInteger.parseInt(%1)%>
+        me bool: isprint(me char: ch) <- <%!%GCharacter.isISOControl(%1)%>
 
     """
     return S

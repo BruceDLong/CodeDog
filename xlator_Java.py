@@ -191,14 +191,15 @@ def codeFactor(item, xlator):
             S+='-' + S2
         elif item0=='[':
             count=0
-            tmp="{"
+            tmp="(Arrays.asList("
             for expr in item[1:-1]:
                 count+=1
                 [S2, retType] = codeExpr(expr, xlator)
                 if count>1: tmp+=", "
                 tmp+=S2
-            tmp+="}"
-            S+="new "+"long"+'[]'+tmp   # ToDo: make this handle things other than long.
+            tmp+="))"
+            S+="new "+"ArrayList<>"+tmp   # ToDo: make this handle things other than long.
+
         else:
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)

@@ -49,7 +49,7 @@ libraries = {
         bindings =[Java]
         CPUs     =[JavaVM]
         libFiles=[]
-        headers=[java.lang.String, java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.Map, java.util.TreeMap, java.util.ArrayList]
+        headers=[java.lang.String, java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.Map, java.util.TreeMap, java.util.ArrayList, java.util.Arrays]
     }
 
     CPP={
