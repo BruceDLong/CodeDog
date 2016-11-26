@@ -65,13 +65,13 @@ struct production{
         print(ProdStr, " from slot:", originPos, ": ")
         if(isTerm){
             if(SeqPos==0) {print(" > ")}
-            print('"%s`constStr.data()`"')
+            print('"', constStr,'"')
             if(SeqPos>0) {print(" > ")}
         } else {
             if(ProdType==parseALT and SeqPos==0) {print(" > ")}
             withEach p in items:{
                 if(ProdType == parseSEQ and p_key == SeqPos){ print(" > ")}
-                if(p_key){
+                if(p_key!=0){
                     if(ProdType==parseALT){print("| ")}
                 }
                 if(ProdType==parseREP and p_key>0){ print(p, " ")}
@@ -136,6 +136,7 @@ struct EParser{
     }
 
     void: dump() <- {
+    /*
          withEach crntPos in RANGE(0 .. SSets.size()):{
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
@@ -152,6 +153,7 @@ struct EParser{
         }
         if(parseFound){print("\nPARSE PASSED!\n\n")}
         else {print("\nPARSE failed.\n\n")}
+    */
     }
 
 #CONST_CODE_HERE
@@ -169,9 +171,9 @@ struct EParser{
         withEach item in SSets[crntPos].stateRecs:{ // Don't add duplicates.
             // TODO: change this to be faster. Not a linear search.
             if(item.productionID==productionID and item.originPos==origin){
-            print ("POSES", item.SeqPosition, ', ', SeqPos, "::")
+          //  print ("POSES", item.SeqPosition, ', ', SeqPos, "::")
                 if(item.SeqPosition==SeqPos or (ProdType==parseREP and item.SeqPosition+1 == SeqPos)){
-                    print("############ DUPLICATE rule#", productionID, " at slot ", crntPos, ", POS:", SeqPos, "\n")
+          //          print("############ DUPLICATE rule#", productionID, " at slot ", crntPos, ", POS:", SeqPos, "\n")
                     Duplicate <- true
                 }
             }
@@ -191,17 +193,17 @@ struct EParser{
                 our stateRec: newStateRecPtr newStateRecPtr.allocate(productionID, SeqPos, origin, crntPos, prev, cause)
                 if(thisIsTopLevelItem) {lastTopLevelItem <- newStateRecPtr}
                 SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
-                print("############ ADDING To SLOT ", crntPos, ":")
-                newStateRecPtr.print(this)
+  //              print("############ ADDING To SLOT ", crntPos, ":")
+  //              newStateRecPtr.print(this)
                 applyPartialCompletion(newStateRecPtr)
-                print("\n")
-            } else {print("  Unknown ProductionType:", ProdType, "\n")}
+  //              print("\n")
+            } //else {print("  Unknown ProductionType:", ProdType, "\n")}
         }
 
         if(ProdType == parseALT and SeqPos==0){
            // print("  ALT-LIST\n")
             withEach AltProd in prod.items:{
-                print("                                  ALT: ")
+   //             print("                                  ALT: ")
                 addProductionToStateSet(crntPos, AltProd, 0, origin, prev, cause)
             }
         } else if(ProdType == parseAUTO and productionID == ws and SeqPos==0){  // Whitespace is nullable
@@ -210,7 +212,7 @@ struct EParser{
     }
 
     me void: initPosStateSets(me uint64: startProd, me string: txt) <- {
-        print('Will parse "%s`txt.data()` with rule %i`startProd`.\n')
+        print('Will parse "', txt, '" with rule ', startProd, '.\n')
         startProduction <- startProd
         textToParse <- txt
         SSets.clear()
@@ -226,9 +228,12 @@ struct EParser{
         me uint32: L <- s.size()
         if(pos+L > textToParse.size()){print("                                 chkStr FAILED (target string too short)\n") return(-1)}
         withEach i in RANGE(0 .. L):{
-            if( s[i] != textToParse[pos+i]) {print("                                 chkStr FAILED\n") return(-1)}
+            if( s[i] != textToParse[pos+i]) {
+  //              print("                                 chkStr FAILED\n")
+                return(-1)
+            }
         }
-        print("                                 chkStr PASSED\n")
+  //      print("                                 chkStr PASSED\n")
         return(L)
     }
 
@@ -364,12 +369,12 @@ struct EParser{
     }
     me int64: textMatches(me uint32: ProdID, me uint32: pos) <- {
         their production: Prod <- grammar[ProdID]
-        print('    MATCHING "%s`Prod->constStr.data()`"... ')
+ //       print('    MATCHING "%s`Prod->constStr.data()`"... ')
         me uint32: prodType <- Prod.prodType
         if(prodType==parseSEQ){ //prod is simple text match
             return(chkStr(pos, Prod.constStr))
         } else{if(prodType==parseAUTO){
-            print("\n")
+ //           print("\n")
             if(ProdID==alphaSeq)    {return(scrapeAlphaSeq(pos))}
             if(ProdID==uintSeq)     {return(scrapeUintSeq(pos))}
             if(ProdID==alphaNumSeq) {return(scrapeAlphaNumSeq(pos))}
@@ -412,66 +417,66 @@ struct EParser{
                 if(prodTypeFlag==parseREP){
                     me uint32: MAX_ITEMS  <- backProd.items[2]
                     if((backSRecSeqPos < MAX_ITEMS or MAX_ITEMS==0) and backProd.items[0] == SRec.productionID ){
-                        print(" ADVANCING REP: ")
+    //                    print(" ADVANCING REP: ")
                         addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
-                    } else{print(" TOO MANY REPS\n")}
+                    }// else{print(" TOO MANY REPS\n")}
                 } else if(prodTypeFlag==parseSEQ){
                     if(backSRecSeqPos < backProd.items.size() and backProd.items[backSRecSeqPos] == SRec.productionID){
-                        print(" ADVANCING SEQ: ")
+     //                   print(" ADVANCING SEQ: ")
                         addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
-                    } else {print(" SEQ is NOT ADVANCING  \n")}
+                    }// else {print(" SEQ is NOT ADVANCING  \n")}
                 } else if(prodTypeFlag==parseALT){
                     if(backSRecSeqPos == 0){
                         withEach backAltProdID in backProd.items:{
                             if(backAltProdID==SRec.productionID){
-                                print(" ADVANCING ALT: ")
+    //                            print(" ADVANCING ALT: ")
                                 addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
                                 break()
-                            } else {if(backAltProdID_key) {print("                                  ")} print(" SKIP ALT\n")}
+                            } //else {if(backAltProdID_key) {print("                                  ")} print(" SKIP ALT\n")}
                         }
                     }
-                } else {print(" NOTHING for prodType ", prodTypeFlag, "\n")}
-            } else {print("Triggering Item... Skipping.\n")}
+                } //else {print(" NOTHING for prodType ", prodTypeFlag, "\n")}
+            } //else {print("Triggering Item... Skipping.\n")}
         }
     }
 
     /////////////////////////////////////
 
     me bool: complete(our stateRec: SRec, me int32: crntPos) <- {
-        print('        COMPLETING: check items at origin %i`SRec->originPos`... \n')
+    //    print('        COMPLETING: check items at origin %i`SRec->originPos`... \n')
         registerCompletion(SRec)
         their stateSets: SSet  <- SSets[SRec.originPos]
         withEach backSRec in SSet.stateRecs:{
             their production: backProd <- grammar[backSRec.productionID]
-            print('                Checking Item #%i`backSRec_key`: ')
+    //        print('                Checking Item #%i`backSRec_key`: ')
             me uint32: prodTypeFlag <- backProd.prodType
             me uint32: backSRecSeqPos <- backSRec.SeqPosition
             if(!(crntPos==SRec.originPos and backSRec.productionID==SRec.productionID and backSRec.SeqPosition==SRec.SeqPosition and backSRec.originPos==SRec.originPos)){
                 if(prodTypeFlag==parseREP){
                     me uint32: MAX_ITEMS  <- backProd.items[2]
                     if((backSRecSeqPos < MAX_ITEMS or MAX_ITEMS==0) and backProd.items[0] == SRec.productionID ){
-                        print(" ADVANCING REP: ")
+    //                    print(" ADVANCING REP: ")
                         addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
-                    } else{print(" TOO MANY REPS\n")}
+                    } //else{print(" TOO MANY REPS\n")}
                 } else if(prodTypeFlag==parseSEQ){
                     if(backSRecSeqPos < backProd.items.size() and backProd.items[backSRecSeqPos] == SRec.productionID){
-                        print(" ADVANCING SEQ: ")
+     //                   print(" ADVANCING SEQ: ")
                         addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
-                    } else {print(" SEQ is NOT ADVANCING  \n")}
+                    }// else {print(" SEQ is NOT ADVANCING  \n")}
                 } else if(prodTypeFlag==parseALT){
                     if(backSRecSeqPos == 0){
                         withEach backAltProdID in backProd.items:{
                             if(backAltProdID==SRec.productionID){
-                                print(" ADVANCING ALT: ")
+     //                           print(" ADVANCING ALT: ")
                                 addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
                                 break()
-                            } else {if(backAltProdID_key) {print("                                  ")} print(" SKIP ALT\n")}
+                            } //else {if(backAltProdID_key) {print("                                  ")} print(" SKIP ALT\n")}
                         }
                     }
-                } else {print(" NOTHING for prodType ", prodTypeFlag, "\n")}
-            } else {print("Triggering Item... Skipping.\n")}
+                }// else {print(" NOTHING for prodType ", prodTypeFlag, "\n")}
+            } //else {print("Triggering Item... Skipping.\n")}
         }
-        print("\n")
+    //    print("\n")
     }
 
     me bool: ruleIsDone(me bool: isTerminal, me uint32: seqPos, me uint32: ProdType, me uint32: numItems)<-{
@@ -491,19 +496,19 @@ struct EParser{
             if(crntPos+1 != SSets.size()) {
                 ch <- textToParse[crntPos]
             }
-            print('\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: %i`crntPos` "%s`ch.data()`"   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n')
+    //        print('\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: %i`crntPos` "%s`ch.data()`"   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n')
             resetCompletions(crntPos)
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
                 me uint32: ProdType <- prod.prodType
                 me uint32: isTerminal <- prod.isTerm
                 me uint32: seqPos <- SRec.SeqPosition
-                print('    PROCESSING-RECORD #%i`SRec_key`:')
-                SRec.print(this)
+     //           print('    PROCESSING-RECORD #%i`SRec_key`:')
+    //            SRec.print(this)
                 if(ruleIsDone(isTerminal, seqPos, ProdType, prod.items.size())){             // COMPLETER
                     complete(SRec, crntPos)  // Notate that SEQ is finished, actually add parent's follower.
                 }else{
-                    if(isTerminal){       // SCANNER
+                    if(isTerminal != 0){       // SCANNER
                         // print("SCANNING for matching termiinal...\n") // Scanning means Testing for a Matching terminal
                         me int64: len <- textMatches(SRec.productionID, crntPos)
                         if(len>=0){ // if match succeeded
@@ -518,14 +523,14 @@ struct EParser{
                             me bool: cannot_be <- seqPos > MAX_ITEMS and (MAX_ITEMS!=0)
                             if(!must_be){
                                 complete(SRec, crntPos)
-                                print("         REP (TENT): ")
+     //                           print("         REP (TENT): ")
                                 addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, SRec, 0) // Tentative
                             } else {if(!cannot_be){
-                                print("         REP: ")
+     //                           print("         REP: ")
                                 addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, SRec, 0)
                             }}
                         } else { // Not a REP
-                            print("         SEQ|ALT: ")
+    //                        print("         SEQ|ALT: ")
                             addProductionToStateSet(crntPos, prod.items[seqPos], 0, crntPos, SRec, 0)  // Add a cause SEQ with cursor at the very beginning. (0)
                         }
                     }
@@ -533,7 +538,7 @@ struct EParser{
             }
         }
         print("\n\n#####################################\n")
-        dump()
+  //      dump()
     }
 
     void: countLinesToCharPos(me uint32: charPos) <- {
@@ -578,11 +583,15 @@ struct EParser{
             ProdType <- prod.prodType
             isTerminal <- prod.isTerm
             seqPos <- SRec.SeqPosition
-            SRec.print(this) //print(" ", seqPos, ' - ', SRec.prev, "\n")
+            if (SRec.productionID==startProduction and SRec.originPos==0 and ((lastPosWithItems+1)==lastSSetIDX) and seqPos==prod.items.size()){
+                print("Passed\n")
+                return(false)
+            }
+            //SRec.print(this) //print(" ", seqPos, ' - ', SRec.prev, "\n")
         }
 
-        lastSRec.print(this) print("\n----\n", seqPos)
-        if(isTerminal){
+        //lastSRec.print(this) print("\n----\n", seqPos)
+        if(isTerminal!=0){
             if(seqPos==0){
                 errorMesg <- "Expected '" + prod.constStr + "'"
                 countLinesToCharPos(lastPosWithItems)
@@ -602,17 +611,17 @@ struct EParser{
         me uint32: seqPos <- crntRec.SeqPosition
         me uint32: prodID <- crntRec.productionID
         their production: Prod <- grammar[prodID]
-        print(indent+'grammar[%i`prodID`] = ')
-        crntRec.print(this)
-        print("\n", indent, "\n")
+   //     print(indent+'grammar[%i`prodID`] = ')
+   //     crntRec.print(this)
+   //     print("\n", indent, "\n")
         if(Prod.isTerm){
         } else if(seqPos>0){
             withEach subItem in Backward RANGE(0 .. seqPos):{
-                print(indent, "   item #", subItem, ": \n")
+             //   print(indent, "   item #", subItem, ": \n")
                 crntRec.child <- resolve(crntRec.cause, indent+"     | ")
                 crntRec.prev.next <- crntRec
                 crntRec <- crntRec.prev
-                print(indent, "############# ") crntRec.print(this) print("\n")
+            //    print(indent, "############# ") crntRec.print(this) print("\n")
             }
         }
         if(indent==""){print("\nRESOLVED\n\n")}
@@ -802,13 +811,14 @@ def fetchOrWriteTerminalParseRule(modelName, field):
 
 def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix):
     global nextParseNameID
-    nextParseNameID=0
     nameIn=modelName+nameSuffix
 
     # Allocate or fetch a rule identifier for each '>' field.
     partIndexes=[]
     for field in fields:
         fname=field['fieldName']
+        if fname==None: fname=''
+        else: fname='_'+fname
         typeSpec   =field['typeSpec']
         if(field['isNext']==True):
             firstItm=field['typeSpec']['fieldType'][0]
@@ -816,10 +826,10 @@ def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix
                 nextParseNameID+=1
                 if firstItm=='[':
                     innerSeqOrAlt='parseALT'
-                    newNameSuffix = nameSuffix+'_ALT'+str(nextParseNameID)
+                    newNameSuffix = nameSuffix+fname+'_ALT'+str(nextParseNameID)
                 else:
                     innerSeqOrAlt='parseSEQ'
-                    newNameSuffix = nameSuffix+'_SEQ'+str(nextParseNameID)
+                    newNameSuffix = nameSuffix+fname+'_SEQ'+str(nextParseNameID)
                 innerFields=field['innerDefs']
                 ruleIdxStr = writeNonTermParseRule(objects, tags, modelName, innerFields, innerSeqOrAlt, newNameSuffix)
                 field['parseRule']=ruleIdxStr
@@ -857,15 +867,18 @@ def fetchMemVersion(objects, objName):
     return [memObj, memVersionName]
 
 
-def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarName, indent):
+def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarName, indent, level):
     # Structname should be the name of the structure being parsed. It will be converted to the mem version to get 'to' fields.
     # Fields is the list of alternates.
     # VarTag is a string used to create local variables.
     # VarName is the LVAL variable name.
     [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     InnerMemObjFields=memObj['fields']
+    nxtLvlString=''
+    for lvl in range(0,level): nxtLvlString+='.next.child'
     S=""
-    S+='        me int32: ruleIDX <- '+VarTag+'.child.next.child.productionID\n'
+    S+='        me int32: ruleIDX <- '+VarTag+'.child'+nxtLvlString+'.productionID\n'
+    print "RULEIDX:", indent, parentStructName
     if VarName!='memStruct':
         S+=' me string: '+VarName+'\n'
     count=0
@@ -879,8 +892,8 @@ def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarNam
             coFactualCode="\n"
             for coFact in altField['coFactuals']:
                 coFactualCode+= indent + VarName + '.' + coFact[0] + ' <- ' + coFact[2] + "\n"
-
-        S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTag, VarName, False, indent+'    ')
+        print indent,"    GOING TO WRITE FIELD:", count
+        S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTag, VarName, False, indent+'    ', level)
         S+=coFactualCode
         S+=indent+"}"
         count+=1
@@ -897,7 +910,7 @@ def CodeRValExpr(toFieldType, VarTag, doNextSuffix):
     return CODE_RVAL
 
 
-def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag, VarName, advancePtr, indent):
+def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag, VarName, advancePtr, indent, level):
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
     global  globalFieldCount
     S=''
@@ -997,7 +1010,8 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
         childRecName='childSRec' + str(globalFieldCount)
         gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next\n    withEach Cnt in WHILE('+childRecName+'):{\n'
         if fromIsALT:
-            gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, 'tmpVar_tmpStr', indent+'    ')
+            print "ALT-#1"
+            gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, 'tmpVar_tmpStr', indent+'    ', level)
 
         elif fromIsStruct and toIsStruct:
             print "toFieldType:", toFieldOwner, ">>>", toFieldType
@@ -1028,7 +1042,6 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
             assignerCode+='\n'+indent+'if('+VarTag+'.child.next'+' == NULL){'
             if toFieldOwner=='me':
                 # First, create a new flag field
-                print "FIEKDNAME:", fieldName
                 newFieldsName='has_'+fieldName
                 fieldDef=progSpec.packField(False, 'me', 'flag', None, newFieldsName, None, None)
                 progSpec.addField(objects[0], memVersionName, fieldDef)
@@ -1048,9 +1061,11 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
 
         if fromIsALT or fromIsEmbeddedAlt:
             if(fromIsEmbeddedAlt):
-                assignerCode+=Write_ALT_Extracter(objects, field,  parentStructName, field['innerDefs'], VarTag, VarName, indent+'    ')
+                print "ALT-#2"
+                assignerCode+=Write_ALT_Extracter(objects, field,  parentStructName, field['innerDefs'], VarTag, VarName, indent+'    ', level+1)
             else:
-                assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ')
+                print "ALT-#3"
+                assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ', level)
                 assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
         elif fromIsEmbeddedSeq:
             globalFieldCount +=1
@@ -1058,7 +1073,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
             assignerCode+='\n'+indent+'\nme string: '+childRecName+'_tmpStr'
             assignerCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next.child\n'
             for innerField in field['innerDefs']:
-                assignerCode+=Write_fieldExtracter(objects, parentStructName, innerField, memObjFields, childRecName, '', True, '    ')
+                assignerCode+=Write_fieldExtracter(objects, parentStructName, innerField, memObjFields, childRecName, '', True, '    ', level)
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr;
         else:
@@ -1087,10 +1102,10 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
 def Write_structExtracter(objects, tags, parentStructName, fields):
     [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     memObjFields=memObj['fields']
-    print "OBJ FIELDS:",parentStructName,  memObj
+    #print "OBJ FIELDS:",parentStructName,  memObj
     S='    me string: SRec_tmpStr'
     for field in fields: # Extract all the fields in the string version.
-        S+=Write_fieldExtracter(objects, parentStructName, field, memObjFields, 'SRec', '', True, '    ')
+        S+=Write_fieldExtracter(objects, parentStructName, field, memObjFields, 'SRec', '', True, '    ', 0)
 
     seqExtracter =  "\n    me bool: Extract_"+parentStructName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     return seqExtracter
@@ -1125,12 +1140,14 @@ def CreateStructsForStringModels(objects, tags):
     }
     me uint64: makeInt(our stateRec: SRec) <- {
         me string: S <- makeStr(SRec)
-        me int64: N <- atoi(S.data())
+        me int64: N <- stoi(S)
         return(N)
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(0) }
     """
 
+    global nextParseNameID
+    nextParseNameID=0
     numStringStructs=0
     for objectName in objects[1]:
         if objectName[0] == '!': continue

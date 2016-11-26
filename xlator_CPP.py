@@ -127,11 +127,11 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "const int "+fieldName+ " = " + fieldValue+ ";"
+    S= "static const int "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
 def getEnumStr(fieldName, enumList):
-    S = "\nenum " + fieldName +" {"
+    S = "\n    enum " + fieldName +" {"
     enumSize = len (enumList)
     count=0
     for enumName in enumList:
@@ -139,6 +139,7 @@ def getEnumStr(fieldName, enumList):
         count=count+1
         if(count<enumSize): S += ", "
     S += "};\n";
+    S += 'string ' + fieldName+'Strings['+str(len(enumList))+'] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
@@ -231,7 +232,7 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType]=codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType, prntType]=codeItemRef(item0, 'RVAL', xlator)
             S+=codeStr                                # Code variable reference or function call
             if(codeStr=="NULL"):
                 retType={'owner':"PTR"}
@@ -366,6 +367,18 @@ def codeSpecialFunc(segSpec, xlator):
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
             S+=")"
+    elif(funcName=='callPeriodically'):
+        if(len(segSpec)>2):
+            # Call gtk_threads_add_timeout()
+            paramList=segSpec[2]
+            [objName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
+            [interval,  intSpec]   =xlator['codeExpr'](paramList[1][0], xlator)
+            varTypeSpec='RandomGen'
+            wrapperName="cb_wraps_"+varTypeSpec
+            S+='gtk_threads_add_timeout('+interval+', '+wrapperName+', '+objName+')'
+
+            # Create a global function wrapping the class
+            fn='bool '+wrapperName+'(void* data){'+varTypeSpec+'* self = data; return self->run(data);}\n'
     #elif(funcName=='break'):
     #elif(funcName=='return'):
     #elif(funcName==''):
@@ -458,6 +471,7 @@ def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
     return(assignValue)
 
 def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+    willBeModifiedSuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
     containedType=containerType['fieldType']
@@ -466,16 +480,32 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
-    elif datastructID=='list' or datastructID=='deque':
+
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+
+    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedSuringTraversal):
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+    elif datastructID=='deque' and willBeModifiedSuringTraversal:
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        lvName=repName+"Itr"
+        actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+'.size();' +" ++"+lvName+" ){\n"
+                    + indent+"    "+"auto &"+repName+" = "+repContainer+"["+lvName+"];\n")
     else:
         print "DSID:",datastructID,containerType
         exit(2)
-    localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-    actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
-                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+
     return [actionText, loopCounterName]
 
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
@@ -501,6 +531,16 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
         funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
     return [structCode, funcDefCode, globalFuncs]
 
+def codeArrayIndex(idx, containerType):
+    S= '[' + idx +']'
+    return S
+
+def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):
+    if (LHS_FieldType =='flag' ):
+        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS + ");\n"
+    elif (LHS_FieldType =='mode' ):
+        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -515,6 +555,7 @@ def fetchXlators():
     xlators['typeForCounterInt']= "int64_t"
     xlators['GlobalVarPrefix']  = ""
     xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
+    xlators['ObjConnector']     = "::"                      # Name segment connector for classes.
     xlators['doesLangHaveGlobals'] = "True"
     xlators['funcBodyIndent']   = ""
     xlators['funcsDefInClass']  = "False"
@@ -542,5 +583,7 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['codeArrayIndex']               = codeArrayIndex
+    xlators['codeSetBits']                  = codeSetBits
 
     return(xlators)

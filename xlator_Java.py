@@ -7,11 +7,11 @@ def getContainerType(typeSpec):
     idxType=''
     if 'indexType' in containerSpec:
         idxType=containerSpec['indexType']
-    if idxType[0:4]=='uint': idxType = 'Long'
+    if idxType[0:4]=='uint': idxType = 'int'
     elif idxType=='string': idxType = 'String'
 
     datastructID = containerSpec['datastructID']
-    if(datastructID=='list'): datastructID = "ArrayDeque"
+    if(datastructID=='list'): datastructID = "ArrayList"
     elif(datastructID=='map'): datastructID = "TreeMap"
     elif(datastructID=='multimap'): datastructID = "TreeMap"  # TODO: Implement true multmaps in java
     return [datastructID, idxType]
@@ -20,11 +20,11 @@ def convertToJavaType(fieldType):
     if(fieldType=='int32'):
         javaType='int'
     elif(fieldType=='uint32' or fieldType=='uint64'):
-        javaType='long'
+        javaType='int'  # these should be long but Java won't allow
     elif(fieldType=='int64'):
-        javaType='long'
+        javaType='int'
     elif(fieldType=='char' ):
-        javaType='byte'
+        javaType='char'
     elif(fieldType=='bool' ):
         javaType='boolean'
     elif(fieldType=='string' ):
@@ -78,8 +78,8 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
         if(arraySpec): # Make list, map, etc
             [containerType, idxType]=getContainerType(TypeSpec)
             print "IDX-TYPe:", idxType
-            if containerType=='ArrayDeque':
-                langType="ArrayDeque< "+langType+" >"
+            if containerType=='ArrayList':
+                langType="ArrayList< "+langType+" >"
             elif containerType=='TreeMap':
                 langType="TreeMap< "+idxType+', '+langType+" >"
             elif containerType=='multimap':
@@ -110,21 +110,22 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "final int "+fieldName + " = " + fieldValue+ ";"
+    S= "public static final int "+fieldName + " = " + fieldValue+ ";\n"
     return(S)
 
 def getEnumStr(fieldName, enumList):
-    S = ""
+    S=''
     count=0
     for enumName in enumList:
-        S += getConstIntFieldStr(enumName,hex(count))+"\n"
+        S += getConstIntFieldStr(enumName, str(count))
         count=count+1
+    S += "\n"
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
 def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
     convertedIdxType = ""
-    if containerType=='ArrayDeque':
+    if containerType=='ArrayList':
         if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='end' or  name=='rend': pass
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='front'    : name='begin()'; paramList=None;
@@ -132,8 +133,8 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front'
-        elif name=='pushLast' : name='push_back'
-        else: print "Unknown ArrayDeque command:", name; exit(2);
+        elif name=='pushLast' : name='add'
+        else: print "Unknown ArrayList command:", name; exit(2);
     elif containerType=='TreeMap':
         convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
@@ -189,13 +190,16 @@ def codeFactor(item, xlator):
             [S2, retType] = codeExpr(item[1], xlator)
             S+='-' + S2
         elif item0=='[':
-            tmp="{"
+            count=0
+            tmp="(Arrays.asList("
             for expr in item[1:-1]:
+                count+=1
                 [S2, retType] = codeExpr(expr, xlator)
-                if len(tmp)>1: tmp+=", "
+                if count>1: tmp+=", "
                 tmp+=S2
-            tmp+="}"
-            S+=tmp
+            tmp+="))"
+            S+="new "+"ArrayList<>"+tmp   # ToDo: make this handle things other than long.
+
         else:
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)
@@ -205,7 +209,7 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType]=codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType, prntType]=codeItemRef(item0, 'RVAL', xlator)
             S+=codeStr                                # Code variable reference or function call
     return [S, retType]
 
@@ -301,7 +305,7 @@ def codeSpecialFunc(segSpec, xlator):
             paramList=segSpec[2]
             count=0
             for P in paramList:
-                if(count!=0): S+=", "
+                if(count!=0): S+=" + "
                 count+=1
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
@@ -311,7 +315,7 @@ def codeSpecialFunc(segSpec, xlator):
             print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
-            S+='if('+varName+'){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+";}"
+            S+='if('+varName+'){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
     elif(funcName=='Allocate'):
         if(len(segSpec)>2):
             paramList=segSpec[2]
@@ -329,6 +333,14 @@ def codeSpecialFunc(segSpec, xlator):
 
     return S
 
+def codeArrayIndex(idx, containerType):
+    if (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
+        S= '.get(' + idx + ')'
+    elif (containerType== 'string'):
+        S= '.charAt(' + idx + ')'
+    else:
+        S= '[' + idx +']'
+    return S
 
 ################################################
 def codeMain(objects, tags, xlator):
@@ -389,7 +401,11 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
-    else: iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
+    else:
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
 
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
@@ -429,6 +445,20 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
         structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
     return [structCode, funcDefCode, globalFuncs]
 
+def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):
+    if (RHS == 'true'):RHS= '1'
+    elif (RHS == 'false'):RHS= '0'
+    if (LHS_FieldType =='flag' ):
+        item = LHS_Left+"flags"
+        mask = prefix+bitMask
+        val = RHS
+    elif (LHS_FieldType =='mode' ):
+        item = LHS_Left+"flags"
+        mask = prefix+bitMask+"Mask"
+        val = RHS+"<<"+prefix+bitMask+"Offset"
+    return "{"+item+" &= ~"+mask+"; "+item+" |= ("+val+");}\n"
+
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -440,9 +470,10 @@ def fetchXlators():
 
     xlators['LanguageName']     = "Java"
     xlators['BuildStrPrefix']   = "Javac "
-    xlators['typeForCounterInt']= "long"
+    xlators['typeForCounterInt']= "int"
     xlators['GlobalVarPrefix']  = "GLOBAL.static_Global."
     xlators['PtrConnector']     = "."                      # Name segment connector for pointers.
+    xlators['ObjConnector']     = "."                      # Name segment connector for classes.
     xlators['doesLangHaveGlobals'] = "False"
     xlators['funcBodyIndent']   = "    "
     xlators['funcsDefInClass']  = "True"
@@ -470,5 +501,7 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['codeArrayIndex']               = codeArrayIndex
+    xlators['codeSetBits']                  = codeSetBits
 
     return(xlators)
