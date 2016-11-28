@@ -12,6 +12,13 @@ def createUtilityFunctions():
         me string: logMesg(me string: mesg) <- <%!%GSystem.out.println(%1)%>
         me void: initialize() <- <%!initialize()%>
         me void: deinitialize() <- <%!deinitialize()%>
+        me void: exit(me int: val) <- <%!%GSystem.exit(%1)%>
+        me bool: isdigit(me char: ch) <- <%!%GCharacter.isDigit(%1)%>
+        me bool: isalpha(me char: ch) <- <%!%GCharacter.isLetter(%1)%>
+        me bool: isspace(me char: ch) <- <%!%GCharacter.isWhitespace(%1)%>
+        me bool: isalnum(me char: ch) <- <%!%GCharacter.isLetterOrDigit(%1)%>
+        me int64: stoi(me string: str) <- <%!%GInteger.parseInt(%1)%>
+        me bool: isprint(me char: ch) <- <%!%GCharacter.isISOControl(%1)%>
 
     """
     return S
@@ -32,9 +39,11 @@ def use(objects, buildSpec, tags, platform):
             me GLOBAL: static_Global
             me Random: javaRandomVar
             // LOGGING INTERFACE:
-         %s
+""" + (APP_UTILITY_CODE) + """
         }
-""" % (APP_UTILITY_CODE)
+"""
+
+
     print "GLOBAL_CODE: ", GLOBAL_CODE
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )

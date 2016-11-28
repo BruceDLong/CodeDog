@@ -367,6 +367,18 @@ def codeSpecialFunc(segSpec, xlator):
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
             S+=")"
+    elif(funcName=='callPeriodically'):
+        if(len(segSpec)>2):
+            # Call gtk_threads_add_timeout()
+            paramList=segSpec[2]
+            [objName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
+            [interval,  intSpec]   =xlator['codeExpr'](paramList[1][0], xlator)
+            varTypeSpec='RandomGen'
+            wrapperName="cb_wraps_"+varTypeSpec
+            S+='gtk_threads_add_timeout('+interval+', '+wrapperName+', '+objName+')'
+
+            # Create a global function wrapping the class
+            fn='bool '+wrapperName+'(void* data){'+varTypeSpec+'* self = data; return self->run(data);}\n'
     #elif(funcName=='break'):
     #elif(funcName=='return'):
     #elif(funcName==''):
@@ -437,15 +449,18 @@ def addSpecialCode():
     }
     """
     S+="""
-    bool slurpFile(string filename, string &S){
+class GLOBAL{
+    string readFileAsString(string filename){
+        string S="";
         std::ifstream file(filename);
-        if(file.eof() || file.fail()) {S=""; return true;}
+        if(file.eof() || file.fail()) {return "";}
         file.seekg(0, std::ios::end);
         S.resize(file.tellg());
         file.seekg(0, std::ios::beg);
         file.read((char*)S.c_str(), S.length());
-        return false;  //No errors
+        return S;  //No errors
     }
+}
     """
     return S
 
@@ -519,6 +534,16 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
         funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
     return [structCode, funcDefCode, globalFuncs]
 
+def codeArrayIndex(idx, containerType):
+    S= '[' + idx +']'
+    return S
+
+def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):
+    if (LHS_FieldType =='flag' ):
+        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS + ");\n"
+    elif (LHS_FieldType =='mode' ):
+        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -561,5 +586,7 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['codeArrayIndex']               = codeArrayIndex
+    xlators['codeSetBits']                  = codeSetBits
 
     return(xlators)

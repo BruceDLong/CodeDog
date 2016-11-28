@@ -248,13 +248,17 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
 
     #print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
+    if ('fieldType' in typeSpecIn and isinstance(typeSpecIn['fieldType'], basestring)):
+        if (typeSpecIn['fieldType']=="string" and name == "size"):
+            name = "length"
+
     if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=xlator['getContainerType'](typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
         #print "                                                 arraySpec:",typeSpecOut
         if(name[0]=='['):
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
-            S+= '[' + S2 +']'
+            S += xlator['codeArrayIndex'](S2, containerType)
             return [S, typeSpecOut]
         [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator)
 
@@ -273,10 +277,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif(name[0]=='[' and fType=='string'):
+        elif(name[0]=='[' and fType=='string'):     #todo atChar(0)
             typeSpecOut={'owner':owner, 'fieldType': fType}
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
-            S+= '[' + S2 +']'
+            S += xlator['codeArrayIndex'](S2, 'string')
             return [S, typeSpecOut]
         else:
             typeSpecOut=CheckObjectVars(fType[0], name, 1)
@@ -488,14 +492,16 @@ def codeAction(action, indent, xlator):
                 LHS_Left=LHS[0:divPoint+1] # The '+1' makes this get the connector too. e.g. '.' or '->'
                 bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask, xlator)
-                actionText=indent + "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS + ");\n"
+                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS)
+                actionText=indent + setBits
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
             elif LHS_FieldType=='mode':
                 divPoint=startPointOfNamesLastSegment(LHS)
                 LHS_Left=LHS[0:divPoint+1]
                 bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask+"Mask", xlator)
-                actionText=indent + "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
+                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS)
+                actionText=indent + setBits
             else:
                 actionText = indent + LHS + " = " + RHS + ";\n"
         else:
@@ -590,7 +596,7 @@ def codeAction(action, indent, xlator):
         actionListIn = action['actionList']
         actionListText = ''
         for action in actionListIn:
-            actionListOut = codeAction(action, indent + "    ")
+            actionListOut = codeAction(action, indent + "    ", xlator)
             actionListText += actionListOut
         #print "actionSeq: ", actionListText
         actionText += indent + "{\n" + actionListText + indent + '}\n'

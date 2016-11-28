@@ -65,13 +65,13 @@ struct production{
         print(ProdStr, " from slot:", originPos, ": ")
         if(isTerm){
             if(SeqPos==0) {print(" > ")}
-            print('"%s`constStr.data()`"')
+            print('"', constStr,'"')
             if(SeqPos>0) {print(" > ")}
         } else {
             if(ProdType==parseALT and SeqPos==0) {print(" > ")}
             withEach p in items:{
                 if(ProdType == parseSEQ and p_key == SeqPos){ print(" > ")}
-                if(p_key){
+                if(p_key!=0){
                     if(ProdType==parseALT){print("| ")}
                 }
                 if(ProdType==parseREP and p_key>0){ print(p, " ")}
@@ -136,6 +136,7 @@ struct EParser{
     }
 
     void: dump() <- {
+    /*
          withEach crntPos in RANGE(0 .. SSets.size()):{
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
@@ -152,6 +153,7 @@ struct EParser{
         }
         if(parseFound){print("\nPARSE PASSED!\n\n")}
         else {print("\nPARSE failed.\n\n")}
+    */
     }
 
 #CONST_CODE_HERE
@@ -210,7 +212,7 @@ struct EParser{
     }
 
     me void: initPosStateSets(me uint64: startProd, me string: txt) <- {
-        print('Will parse "%s`txt.data()` with rule %i`startProd`.\n')
+        print('Will parse "', txt, '" with rule ', startProd, '.\n')
         startProduction <- startProd
         textToParse <- txt
         SSets.clear()
@@ -506,7 +508,7 @@ struct EParser{
                 if(ruleIsDone(isTerminal, seqPos, ProdType, prod.items.size())){             // COMPLETER
                     complete(SRec, crntPos)  // Notate that SEQ is finished, actually add parent's follower.
                 }else{
-                    if(isTerminal){       // SCANNER
+                    if(isTerminal != 0){       // SCANNER
                         // print("SCANNING for matching termiinal...\n") // Scanning means Testing for a Matching terminal
                         me int64: len <- textMatches(SRec.productionID, crntPos)
                         if(len>=0){ // if match succeeded
@@ -589,7 +591,7 @@ struct EParser{
         }
 
         //lastSRec.print(this) print("\n----\n", seqPos)
-        if(isTerminal){
+        if(isTerminal!=0){
             if(seqPos==0){
                 errorMesg <- "Expected '" + prod.constStr + "'"
                 countLinesToCharPos(lastPosWithItems)
@@ -1138,7 +1140,7 @@ def CreateStructsForStringModels(objects, tags):
     }
     me uint64: makeInt(our stateRec: SRec) <- {
         me string: S <- makeStr(SRec)
-        me int64: N <- atoi(S.data())
+        me int64: N <- stoi(S)
         return(N)
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(0) }
