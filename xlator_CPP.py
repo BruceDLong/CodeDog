@@ -1,6 +1,6 @@
 #xlator_CPP.py
 import progSpec
-from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater
+from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -371,14 +371,16 @@ def codeSpecialFunc(segSpec, xlator):
         if(len(segSpec)>2):
             # Call gtk_threads_add_timeout()
             paramList=segSpec[2]
-            [objName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
+            [objName,  retType]=xlator['codeExpr'](paramList[0][0], xlator)
             [interval,  intSpec]   =xlator['codeExpr'](paramList[1][0], xlator)
-            varTypeSpec='RandomGen'
+            varTypeSpec= retType['fieldType'][0]
             wrapperName="cb_wraps_"+varTypeSpec
             S+='gtk_threads_add_timeout('+interval+', '+wrapperName+', '+objName+')'
 
             # Create a global function wrapping the class
-            fn='bool '+wrapperName+'(void* data){'+varTypeSpec+'* self = data; return self->run(data);}\n'
+            decl='\nbool '+wrapperName+'(void* data)'
+            defn='{'+varTypeSpec+'* self = ('+varTypeSpec+')data; return self->run(data);}\n\n'
+            appendGlobalFuncAcc(decl, defn)
     #elif(funcName=='break'):
     #elif(funcName=='return'):
     #elif(funcName==''):
@@ -460,7 +462,8 @@ class GLOBAL{
         file.read((char*)S.c_str(), S.length());
         return S;  //No errors
     }
-}
+};
+
     """
     return S
 

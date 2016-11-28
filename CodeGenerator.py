@@ -6,8 +6,16 @@ import pattern_Write_Main
 import codeDogParser
 
 buildStr_libs=''
+globalFuncDeclAcc=''
+globalFuncDefnAcc=''
 
 
+def appendGlobalFuncAcc(decl, defn):
+    global globalFuncDefnAcc
+    global globalFuncDeclAcc
+    globalFuncDeclAcc+=decl+';'
+    globalFuncDefnAcc+=decl+defn
+     
 def bitsNeeded(n):
     if n <= 1:
         return 0
@@ -929,6 +937,8 @@ def clearBuild():
     global libInterfacesText
     global fieldNamesAlreadyUsed
     global StaticMemberVars
+    global  globalFuncDeclAcc
+    global  globalFuncDefnAcc
 
     localVarsAllocated = []
     localArgsAllocated = []
@@ -936,6 +946,8 @@ def clearBuild():
     currentObjName=''
     libInterfacesText=''
     StaticMemberVars={}
+    globalFuncDeclAcc=''
+    globalFuncDefnAcc=''
 
 def generate(objects, tags, libsToUse, xlator):
     #print "\nGenerating code...\n"
@@ -943,6 +955,8 @@ def generate(objects, tags, libsToUse, xlator):
     global objectsRef
     global buildStr_libs
     global libInterfacesText
+    global globalFuncDeclAcc
+    global globalFuncDefnAcc
     buildStr_libs = xlator['BuildStrPrefix']
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
@@ -954,5 +968,7 @@ def generate(objects, tags, libsToUse, xlator):
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
     if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
     else: codeHeader=''
+    forwardDecls += globalFuncDeclAcc
+    funcCodeAcc += globalFuncDefnAcc
     outputStr = header + constsEnums + forwardDecls + codeHeader + typeDefCode + structCodeAcc + topBottomStrings[0] + funcCodeAcc + topBottomStrings[1]
     return outputStr
