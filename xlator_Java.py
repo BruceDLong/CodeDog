@@ -359,7 +359,18 @@ def produceTypeDefs(typeDefMap, xlator):
 def addSpecialCode():
     S='\n\n//////////// Java specific code:\n'
     S+="""
-
+    public static String readFileAsString(String filePath) throws IOException {
+        DataInputStream dis = new DataInputStream(new FileInputStream(filePath));
+        try {
+            long len = new File(filePath).length();
+            if (len > Integer.MAX_VALUE) throw new IOException("File "+filePath+" too large, was "+len+" bytes.");
+            byte[] bytes = new byte[(int) len];
+            dis.readFully(bytes);
+            return new String(bytes, "UTF-8");
+        } finally {
+            dis.close();
+        }
+    }
     """
     return S
 

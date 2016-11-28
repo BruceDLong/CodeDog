@@ -437,15 +437,18 @@ def addSpecialCode():
     }
     """
     S+="""
-    bool slurpFile(string filename, string &S){
+class GLOBAL{
+    string readFileAsString(string filename){
+        string S="";
         std::ifstream file(filename);
-        if(file.eof() || file.fail()) {S=""; return true;}
+        if(file.eof() || file.fail()) {return "";}
         file.seekg(0, std::ios::end);
         S.resize(file.tellg());
         file.seekg(0, std::ios::beg);
         file.read((char*)S.c_str(), S.length());
-        return false;  //No errors
+        return S;  //No errors
     }
+}
     """
     return S
 
