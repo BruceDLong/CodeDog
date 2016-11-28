@@ -367,6 +367,18 @@ def codeSpecialFunc(segSpec, xlator):
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
             S+=")"
+    elif(funcName=='callPeriodically'):
+        if(len(segSpec)>2):
+            # Call gtk_threads_add_timeout()
+            paramList=segSpec[2]
+            [objName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
+            [interval,  intSpec]   =xlator['codeExpr'](paramList[1][0], xlator)
+            varTypeSpec='RandomGen'
+            wrapperName="cb_wraps_"+varTypeSpec
+            S+='gtk_threads_add_timeout('+interval+', '+wrapperName+', '+objName+')'
+
+            # Create a global function wrapping the class
+            fn='bool '+wrapperName+'(void* data){'+varTypeSpec+'* self = data; return self->run(data);}\n'
     #elif(funcName=='break'):
     #elif(funcName=='return'):
     #elif(funcName==''):

@@ -596,7 +596,7 @@ def codeAction(action, indent, xlator):
         actionListIn = action['actionList']
         actionListText = ''
         for action in actionListIn:
-            actionListOut = codeAction(action, indent + "    ")
+            actionListOut = codeAction(action, indent + "    ", xlator)
             actionListText += actionListOut
         #print "actionSeq: ", actionListText
         actionText += indent + "{\n" + actionListText + indent + '}\n'
