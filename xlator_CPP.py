@@ -369,17 +369,17 @@ def codeSpecialFunc(segSpec, xlator):
             S+=")"
     elif(funcName=='callPeriodically'):
         if(len(segSpec)>2):
-            # Call gtk_threads_add_timeout()
+            # Call g_timeout_add()
             paramList=segSpec[2]
             [objName,  retType]=xlator['codeExpr'](paramList[0][0], xlator)
             [interval,  intSpec]   =xlator['codeExpr'](paramList[1][0], xlator)
             varTypeSpec= retType['fieldType'][0]
             wrapperName="cb_wraps_"+varTypeSpec
-            S+='gtk_threads_add_timeout('+interval+', '+wrapperName+', '+objName+')'
+            S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+'.get())'
 
             # Create a global function wrapping the class
-            decl='\nbool '+wrapperName+'(void* data)'
-            defn='{'+varTypeSpec+'* self = ('+varTypeSpec+')data; return self->run(data);}\n\n'
+            decl='\nint '+wrapperName+'(void* data)'
+            defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; return self->run();}\n\n'
             appendGlobalFuncAcc(decl, defn)
     #elif(funcName=='break'):
     #elif(funcName=='return'):
@@ -450,9 +450,9 @@ def addSpecialCode():
         return std::string(formatted.get());
     }
     """
-    S+="""
-class GLOBAL{
-    string readFileAsString(string filename){
+
+    decl ="string readFileAsString(string filename)"
+    defn="""{
         string S="";
         std::ifstream file(filename);
         if(file.eof() || file.fail()) {return "";}
@@ -461,10 +461,9 @@ class GLOBAL{
         file.seekg(0, std::ios::beg);
         file.read((char*)S.c_str(), S.length());
         return S;  //No errors
-    }
-};
+    }"""
+    appendGlobalFuncAcc(decl, defn)
 
-    """
     return S
 
 def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
