@@ -89,6 +89,9 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     struct GLOBAL{
         me GUI: gui_tk
         me thisApp: appFuncs
+        
+    // TIME ROUTINES:
+    me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
     // LOGGING INTERFACE:
     me void: logMesg(me string: s) <- <%!g_message(%1)%>
