@@ -57,7 +57,7 @@ struct GUI {
     } %>
 
     me uint32: GUI_Run() <- <% {
-        long status=0;
+        int status=0;
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 GUI_PopulateAndExec();

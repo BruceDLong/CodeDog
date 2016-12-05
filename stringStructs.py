@@ -220,7 +220,7 @@ struct EParser{
             me stateSets: newSSet
             SSets.pushLast(newSSet)
         }
-        addProductionToStateSet(0, startProduction, 0, 0, 0,0)
+        addProductionToStateSet(0, startProduction, 0, 0, NULL, NULL)
     }
 
 
@@ -492,27 +492,24 @@ struct EParser{
         parseFound <- false
         withEach crntPos in RANGE(0 .. SSets.size()):{
             their stateSets: SSet <- SSets[crntPos]
-            me string: ch <- "x"
-            if(crntPos+1 != SSets.size()) {
-                ch <- textToParse[crntPos]
-            }
+
     //        print('\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: %i`crntPos` "%s`ch.data()`"   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n')
             resetCompletions(crntPos)
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
                 me uint32: ProdType <- prod.prodType
-                me uint32: isTerminal <- prod.isTerm
+                me bool  : isTerminal <- (prod.isTerm != 0)
                 me uint32: seqPos <- SRec.SeqPosition
      //           print('    PROCESSING-RECORD #%i`SRec_key`:')
     //            SRec.print(this)
                 if(ruleIsDone(isTerminal, seqPos, ProdType, prod.items.size())){             // COMPLETER
                     complete(SRec, crntPos)  // Notate that SEQ is finished, actually add parent's follower.
                 }else{
-                    if(isTerminal != 0){       // SCANNER
+                    if(isTerminal){       // SCANNER
                         // print("SCANNING for matching termiinal...\n") // Scanning means Testing for a Matching terminal
                         me int64: len <- textMatches(SRec.productionID, crntPos)
                         if(len>=0){ // if match succeeded
-                            addProductionToStateSet(crntPos+len, SRec.productionID, 1, crntPos, SRec, 0)  // Notate that terminal is finished, mark for adding parent's follower.
+                            addProductionToStateSet(crntPos+len, SRec.productionID, 1, crntPos, SRec, NULL)  // Notate that terminal is finished, mark for adding parent's follower.
                         }
                     }else{ // non-terminal                           // PREDICTOR
                         //print("NON_TERMINAL \n")
@@ -524,14 +521,14 @@ struct EParser{
                             if(!must_be){
                                 complete(SRec, crntPos)
      //                           print("         REP (TENT): ")
-                                addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, SRec, 0) // Tentative
+                                addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, SRec, NULL) // Tentative
                             } else {if(!cannot_be){
      //                           print("         REP: ")
-                                addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, SRec, 0)
+                                addProductionToStateSet(crntPos, prod.items[0], 0, crntPos, SRec, NULL)
                             }}
                         } else { // Not a REP
     //                        print("         SEQ|ALT: ")
-                            addProductionToStateSet(crntPos, prod.items[seqPos], 0, crntPos, SRec, 0)  // Add a cause SEQ with cursor at the very beginning. (0)
+                            addProductionToStateSet(crntPos, prod.items[seqPos], 0, crntPos, SRec, NULL)  // Add a cause SEQ with cursor at the very beginning. (0)
                         }
                     }
                 }
@@ -606,7 +603,7 @@ struct EParser{
     }
 
     our stateRec: resolve(our stateRec: LastTopLevelItem, me string: indent) <- {
-        if(!LastTopLevelItem){print("\nStateRecPtr is null.\n\n") exit(1)}
+        if(LastTopLevelItem == NULL){print("\nStateRecPtr is null.\n\n") exit(1)}
         our stateRec: crntRec <- LastTopLevelItem
         me uint32: seqPos <- crntRec.SeqPosition
         me uint32: prodID <- crntRec.productionID
@@ -877,7 +874,8 @@ def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarNam
     nxtLvlString=''
     for lvl in range(0,level): nxtLvlString+='.next.child'
     S=""
-    S+='        me int32: ruleIDX <- '+VarTag+'.child'+nxtLvlString+'.productionID\n'
+    loopVarName = "ruleIDX"+str(level)
+    S+='        me int32: '+loopVarName+' <- '+VarTag+'.child'+nxtLvlString+'.productionID\n'
     print "RULEIDX:", indent, parentStructName
     if VarName!='memStruct':
         S+=' me string: '+VarName+'\n'
@@ -885,7 +883,7 @@ def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarNam
     for altField in fields:
         S+=indent
         if(count>0): S+="else "
-        S+="if(ruleIDX == " + altField['parseRule'] + "){\n"
+        S+="if("+loopVarName+" == " + altField['parseRule'] + "){\n"
         coFactualCode=''
         if 'coFactuals' in altField:
             #Extract field and cofactsList
@@ -1143,7 +1141,7 @@ def CreateStructsForStringModels(objects, tags):
         me int64: N <- stoi(S)
         return(N)
     }
-    our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(0) }
+    our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(NULL) }
     """
 
     global nextParseNameID

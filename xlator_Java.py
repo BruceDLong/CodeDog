@@ -1,3 +1,11 @@
+
+"""
+This file, along with Lib_Java.py specify to the CodeGenerater how to compile CodeDog source code into Java source code.
+
+
+
+"""
+
 import progSpec
 from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater
 
@@ -77,7 +85,8 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
             [containerType, idxType]=getContainerType(TypeSpec)
-            print "IDX-TYPe:", idxType
+            if idxType=='int': idxType = "Integer"
+            if langType=='int': langType = "Integer"
             if containerType=='ArrayList':
                 langType="ArrayList< "+langType+" >"
             elif containerType=='TreeMap':
@@ -209,7 +218,8 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType, prntType]=codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', xlator)
+            if(codeStr=="NULL"): codeStr="null"
             S+=codeStr                                # Code variable reference or function call
     return [S, retType]
 
@@ -296,6 +306,16 @@ def codeExpr(item, xlator):
     #print "S:",S
     return [S, retType]
 
+def adjustIfConditional(S2, conditionType):
+    print "CONDITIONTYPE:", conditionType, '[', S2, ']'
+    if not isinstance(conditionType, basestring):
+        if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my':
+            S2+=" != null"
+        elif conditionType['owner']=='me' and conditionType['fieldType']=='flag':
+            S2+=" != 0"
+        conditionType='bool'
+    return [S2, conditionType]
+
 def codeSpecialFunc(segSpec, xlator):
     S=''
     funcName=segSpec[0]
@@ -315,7 +335,7 @@ def codeSpecialFunc(segSpec, xlator):
             print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
-            S+='if('+varName+'){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
+            S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
     elif(funcName=='Allocate'):
         if(len(segSpec)>2):
             paramList=segSpec[2]
@@ -333,13 +353,21 @@ def codeSpecialFunc(segSpec, xlator):
 
     return S
 
-def codeArrayIndex(idx, containerType):
-    if (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
-        S= '.get(' + idx + ')'
-    elif (containerType== 'string'):
-        S= '.charAt(' + idx + ')'
-    else:
-        S= '[' + idx +']'
+def codeArrayIndex(idx, containerType, LorR_Val):
+    if LorR_Val=='RVAL':
+        if (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
+            S= '.get(' + idx + ')'
+        elif (containerType== 'string'):
+            S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
+        else:
+            S= '[' + idx +']'
+    else: S= '[' + idx +']'
+    return S
+
+
+def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
+    # Check for string A[x] = B;  If so, render A.put(B,x)
+    S=AltIDXFormat[0] + '.put(' + AltIDXFormat[1] + ', ' + RHS + ');'
     return S
 
 ################################################
@@ -359,22 +387,29 @@ def produceTypeDefs(typeDefMap, xlator):
 def addSpecialCode():
     S='\n\n//////////// Java specific code:\n'
     S+="""
-    public static String readFileAsString(String filePath) throws IOException {
-        DataInputStream dis = new DataInputStream(new FileInputStream(filePath));
-        try {
-            long len = new File(filePath).length();
-            if (len > Integer.MAX_VALUE) throw new IOException("File "+filePath+" too large, was "+len+" bytes.");
-            byte[] bytes = new byte[(int) len];
-            dis.readFully(bytes);
-            return new String(bytes, "UTF-8");
-        } finally {
-            dis.close();
+    class funcs{
+        public static String readFileAsString(String filePath){
+            try {
+                DataInputStream dis = new DataInputStream(new FileInputStream(filePath));
+                try {
+                    long len = new File(filePath).length();
+                    if (len > Integer.MAX_VALUE) return "";
+                    byte[] bytes = new byte[(int) len];
+                    dis.readFully(bytes);
+                    return new String(bytes, "UTF-8");
+                } finally {
+                    dis.close();
+                }
+            } catch (IOException ioe) {
+                System.out.println("Connot read file " + ioe.getMessage());
+                return "";
+            }
         }
     }
     """
     return S
 
-def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     if isinstance(typeSpec['fieldType'], basestring):
         if(fieldDef['value']):
             print "                                         fieldDef['value']: "
@@ -386,12 +421,19 @@ def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
     elif(fieldDef['value']):
         [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
         RHS = S2
-        if not varTypeIsJavaValueType(fieldType):
+        if varTypeIsJavaValueType(fieldType):
             assignValue=' = '+ RHS + ';\n'
-        else:assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
+        else:
+            constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
+            if (constructorExists):
+                assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
+            else:
+                assignValue=' = new ' + fieldType +'();  ' + varName+' = '+RHS+';\n'
     else:
         #print "TYPE:", fieldType
-        assignValue= " = new " + fieldType +"();\n"
+        if varTypeIsJavaValueType(fieldType):
+            assignValue='\n'
+        else:assignValue= " = new " + fieldType +"();\n"
     return(assignValue)
 
 def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
@@ -405,6 +447,7 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
         containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
         indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, 'var', xlator)
+        if indexTypeStr=='int': indexTypeStr = "Integer"
         iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
         repContainer+='.entrySet()'
     elif datastructID=='list':
@@ -489,18 +532,20 @@ def fetchXlators():
     xlators['funcBodyIndent']   = "    "
     xlators['funcsDefInClass']  = "True"
     xlators['MakeConstructors'] = "False"
-    xlators['codeExpr']         = codeExpr
-    xlators['includeDirective'] = includeDirective
-    xlators['codeMain']         = codeMain
-    xlators['produceTypeDefs']  = produceTypeDefs
-    xlators['addSpecialCode']   = addSpecialCode
-    xlators['convertType']      = convertType
-    xlators['xlateLangType']    = xlateLangType
-    xlators['getContainerType'] = getContainerType
+    xlators['codeExpr']                     = codeExpr
+    xlators['adjustIfConditional']          = adjustIfConditional
+    xlators['includeDirective']             = includeDirective
+    xlators['codeMain']                     = codeMain
+    xlators['produceTypeDefs']              = produceTypeDefs
+    xlators['addSpecialCode']               = addSpecialCode
+    xlators['convertType']                  = convertType
+    xlators['xlateLangType']                = xlateLangType
+    xlators['getContainerType']             = getContainerType
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
     xlators['codeSpecialFunc']              = codeSpecialFunc
+    xlators['checkIfSpecialAssignmentFormIsNeeded'] = checkIfSpecialAssignmentFormIsNeeded
     xlators['getConstIntFieldStr']          = getConstIntFieldStr
     xlators['codeStructText']               = codeStructText
     xlators['getContainerTypeInfo']         = getContainerTypeInfo
