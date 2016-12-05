@@ -232,10 +232,10 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType, prntType]=codeItemRef(item0, 'RVAL', xlator)
-            S+=codeStr                                # Code variable reference or function call
+            [codeStr, retType, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', xlator)
             if(codeStr=="NULL"):
                 retType={'owner':"PTR"}
+            S+=codeStr                                # Code variable reference or function call
     return [S, retType]
 
 def codeTerm(item, xlator):
@@ -337,6 +337,9 @@ def codeExpr(item, xlator):
     #print "S:",S
     return [S, retType]
 
+def adjustIfConditional(S2, conditionType):
+    return [S2, conditionType]
+
 def codeSpecialFunc(segSpec, xlator):
     S=''
     funcName=segSpec[0]
@@ -379,7 +382,7 @@ def codeSpecialFunc(segSpec, xlator):
 
             # Create a global function wrapping the class
             decl='\nint '+wrapperName+'(void* data)'
-            defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; return self->run();}\n\n'
+            defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; self->run(); return true;}\n\n'
             appendGlobalFuncAcc(decl, defn)
     #elif(funcName=='break'):
     #elif(funcName=='return'):
@@ -387,7 +390,8 @@ def codeSpecialFunc(segSpec, xlator):
 
     return S
 
-
+def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
+    return ""
 
 ############################################
 def codeMain(objects, tags, xlator):
@@ -466,7 +470,7 @@ def addSpecialCode():
 
     return S
 
-def codeNewVarStr (typeSpec, fieldDef, fieldType, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     assignValue=''
     if(fieldDef['value']):
         [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], xlator)
@@ -536,7 +540,7 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
         funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
     return [structCode, funcDefCode, globalFuncs]
 
-def codeArrayIndex(idx, containerType):
+def codeArrayIndex(idx, containerType, LorR_Val):
     S= '[' + idx +']'
     return S
 
@@ -565,18 +569,20 @@ def fetchXlators():
     xlators['funcBodyIndent']   = ""
     xlators['funcsDefInClass']  = "False"
     xlators['MakeConstructors'] = "True"
-    xlators['codeExpr']         = codeExpr
-    xlators['includeDirective'] = includeDirective
-    xlators['codeMain']         = codeMain
-    xlators['produceTypeDefs']  = produceTypeDefs
-    xlators['addSpecialCode']   = addSpecialCode
-    xlators['convertType']      = convertType
-    xlators['xlateLangType']    = xlateLangType
-    xlators['getContainerType'] = getContainerType
+    xlators['codeExpr']                     = codeExpr
+    xlators['adjustIfConditional']          = adjustIfConditional
+    xlators['includeDirective']             = includeDirective
+    xlators['codeMain']                     = codeMain
+    xlators['produceTypeDefs']              = produceTypeDefs
+    xlators['addSpecialCode']               = addSpecialCode
+    xlators['convertType']                  = convertType
+    xlators['xlateLangType']                = xlateLangType
+    xlators['getContainerType']             = getContainerType
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
     xlators['codeSpecialFunc']              = codeSpecialFunc
+    xlators['checkIfSpecialAssignmentFormIsNeeded'] = checkIfSpecialAssignmentFormIsNeeded
     xlators['getConstIntFieldStr']          = getConstIntFieldStr
     xlators['codeStructText']               = codeStructText
     xlators['getContainerTypeInfo']         = getContainerTypeInfo

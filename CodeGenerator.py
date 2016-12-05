@@ -15,7 +15,7 @@ def appendGlobalFuncAcc(decl, defn):
     global globalFuncDeclAcc
     globalFuncDeclAcc+=decl+';'
     globalFuncDefnAcc+=decl+defn
-     
+
 def bitsNeeded(n):
     if n <= 1:
         return 0
@@ -238,7 +238,7 @@ def convertNameSeg(typeSpecOut, name, paramList, xlator):
 
 ################################  C o d e   E x p r e s s i o n s
 
-def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
+def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
     #print "CODENAMESEG:", segSpec, "TSI:",typeSpecIn
     S=''
@@ -266,15 +266,15 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
         #print "                                                 arraySpec:",typeSpecOut
         if(name[0]=='['):
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
-            S += xlator['codeArrayIndex'](S2, containerType)
-            return [S, typeSpecOut]
+            S += xlator['codeArrayIndex'](S2, containerType, LorR_Val)
+            return [S, typeSpecOut, S2]
         [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator)
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
         tmp=xlator['codeSpecialFunc'](segSpec, xlator)   # Check if it's a special function like 'print'
         if(tmp!=''):
             S=tmp
-            return [S, '']
+            return [S, '', None]
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name, xlator)
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:]
@@ -285,11 +285,11 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif(name[0]=='[' and fType=='string'):     #todo atChar(0)
+        elif(name[0]=='[' and fType=='string'):
             typeSpecOut={'owner':owner, 'fieldType': fType}
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
-            S += xlator['codeArrayIndex'](S2, 'string')
-            return [S, typeSpecOut]
+            S += xlator['codeArrayIndex'](S2, 'string', LorR_Val)
+            return [S, typeSpecOut, S2]  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
             typeSpecOut=CheckObjectVars(fType[0], name, 1)
             if typeSpecOut!=0:
@@ -313,7 +313,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, xlator):
             modelParams=None
             if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList']
             S+= '('+codeParameterList(paramList, modelParams, xlator)+')'
-    return [S,  typeSpecOut]
+    return [S,  typeSpecOut, None]
 
 def codeUnknownNameSeg(segSpec, xlator):
     S=''
@@ -342,6 +342,8 @@ def codeItemRef(name, LorR_Val, xlator):
     connector=''
     prevLen=len(S)
     segIDX=0
+    AltFormat=None
+    AltIDXFormat=''
     for segSpec in name:
         #print "NameSeg:", segSpec
         segName=segSpec[0]
@@ -352,10 +354,13 @@ def codeItemRef(name, LorR_Val, xlator):
                 if progSpec.typeIsPointer(segType):
                     connector = xlator['PtrConnector']
 
+        AltFormat=None
         if segType!=None:
             if segType and 'fieldType' in segType:
                 LHSParentType=segType['fieldType'][0]
-            [segStr, segType]=codeNameSeg(segSpec, segType, connector, xlator)
+            [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, xlator)
+            if AltIDXFormat!=None:
+                AltFormat=[S, AltIDXFormat]   # This is in case of an alternate index format such as Java's string.put(idx, val)
         else:
             segStr= codeUnknownNameSeg(segSpec, xlator)
         prevLen=len(S)
@@ -391,7 +396,7 @@ def codeItemRef(name, LorR_Val, xlator):
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName+"Mask", xlator)
             S="((" + S[0:prevLen] + connector +  "flags&"+prefix+segName+"Mask)"+">>"+prefix+segName+"Offset)"
-    return [S, segType, LHSParentType]
+    return [S, segType, LHSParentType, AltFormat]
 
 
 def codeUserMesg(item, xlator):
@@ -431,7 +436,7 @@ def codeFuncCall(funcCallSpec, xlator):
        # tmpStr=xlator['codeSpecialFunc'](funcCallSpec)
        # if(tmpStr != ''):
        #     return tmpStr
-    [codeStr, typeSpec, LHSParentType]=codeItemRef(funcCallSpec, 'RVAL', xlator)
+    [codeStr, typeSpec, LHSParentType, AltIDXFormat]=codeItemRef(funcCallSpec, 'RVAL', xlator)
     S+=codeStr
     return S
 
@@ -476,11 +481,17 @@ def codeAction(action, indent, xlator):
         fieldType = xlator['convertType'](objectsRef, typeSpec, 'var', xlator)
         assignValue=''
         print "                                     Action newVar: ", varName
-        assignValue = xlator['codeNewVarStr'](typeSpec, fieldDef, fieldType, xlator)
+        assignValue = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, xlator)
         actionText = indent + fieldType + " " + varName + assignValue + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
-        [codeStr, typeSpec, LHSParentType] = codeItemRef(action['LHS'], 'LVAL', xlator)
+        print "PREASSIGN:", action['LHS']
+        # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
+  #              specialAssign=xlator['checkIfSpecialAssignmentFormIsNeeded'](LHS, LHSParentType, RHS, rhsType)
+  #              if(specialAssign != ""): actionText=specialAssign
+  #              else:
+
+        [codeStr, typeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', xlator)
         assignTag = action['assignTag']
         LHS = codeStr
         print "                                     assign: ", LHS
@@ -511,7 +522,13 @@ def codeAction(action, indent, xlator):
                 setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS)
                 actionText=indent + setBits
             else:
-                actionText = indent + LHS + " = " + RHS + ";\n"
+                if AltIDXFormat!=None:
+                    # Handle special forms of assignment such as LVal(idx, RVal)
+                    actionText = xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsType)
+                if actionText=="":
+                    # Handle the normal assignment case
+                    actionText = indent + LHS + " = " + RHS + ";\n"
+
         else:
             if(assignTag=='deep'):
                 actionText = indent + LHS + " = " + RHS + ";\n"
@@ -524,7 +541,10 @@ def codeAction(action, indent, xlator):
         actionText = indent + "swap (" + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='conditional'):
         [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], xlator)
+        [S2, conditionType] =  xlator['adjustIfConditional'](S2, conditionType)
         ifCondition = S2
+
+
         ifBodyText = genIfBody(action['ifBody'], indent, xlator)
         actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
         elseBodyText = ""
@@ -561,6 +581,7 @@ def codeAction(action, indent, xlator):
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
             [whileExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
+            [whileExpr, whereConditionType] =  xlator['adjustIfConditional'](whileExpr, whereConditionType)
             actionText += indent + "while(" + whileExpr + "){\n"
         elif(fileSpec):
             [filenameExpr, filenameType] = xlator['codeExpr'](fileSpec[2], xlator)
