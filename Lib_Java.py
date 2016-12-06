@@ -32,7 +32,10 @@ def use(objects, buildSpec, tags, platform):
     #progSpec.addCodeToInit(tags[1], "me Random: javaRandomVar \n");
     #progSpec.addCodeToInit(tags[1], "const Logger: log <- Logger.getLogger('log')\n");
 
-    CODE="""struct random{me Random: random}"""
+    CODE="""
+        struct random{me Random: random}
+        struct timeValue{me long: timeValue}
+        """
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
 
     APP_UTILITY_CODE = createUtilityFunctions()
