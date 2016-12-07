@@ -101,8 +101,8 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     # Returns left and right text decorations for RHS of function arguments, return values, etc.
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
     if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
-    LeftOwner=LVAL['owner']
-    RightOwner=RVAL['owner']
+    LeftOwner =progSpec.getTypeSpecOwner(LVAL)
+    RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", ")"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ["&", '']
@@ -113,8 +113,8 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     # Returns left and right text decorations for both LHS and RHS of assignment
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
     if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['','',  '','']
-    LeftOwner=LVAL['owner']
-    RightOwner=RVAL['owner']
+    LeftOwner =progSpec.getTypeSpecOwner(LVAL)
+    RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if LeftOwner == RightOwner: return ['','',  '','']
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ['','',  "(*", ")"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
