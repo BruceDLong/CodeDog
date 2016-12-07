@@ -75,7 +75,7 @@ def addObjTags(objSpecs, objectName, objTags):
         # append tags here
         objSpecs[objectName]['tags'].update(objTags)
         print "    APPENDED Tags to "+objectName+".\t"
-    else: 
+    else:
         objSpecs[objectName]['tags']=objTags
         print "    ADDED Tags to "+objectName+".\t"
 
@@ -173,11 +173,16 @@ def removeFieldFromObject (objects, objectName, fieldtoRemove):
 
 ###############
 
+def getTypeSpecOwner(typeSpec):
+    if "arraySpec" in typeSpec and typeSpec['arraySpec']!=None:
+        if "owner" in typeSpec['arraySpec']:
+            return typeSpec['arraySpec']['owner']
+        else: return 'me'
+    return typeSpec['owner']
+
 def typeIsPointer(typeSpec):
-    owner=typeSpec['owner']
-    if owner == 'their' or owner == 'our' or owner == 'my':
-        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None: isPointer=False
-        else: isPointer=True
+    owner=getTypeSpecOwner(typeSpec)
+    if owner == 'their' or owner == 'our' or owner == 'my': isPointer=True
     else: isPointer=False
     return isPointer
 
@@ -194,7 +199,6 @@ def isWrappedType(objMap, structname):
             return theField['typeSpec']
     return None
 
-
 def createTypedefName(ItmType):
     if(isinstance(ItmType, basestring)):
         return ItmType
@@ -207,7 +211,6 @@ def createTypedefName(ItmType):
         elif(typeHead=='our'): suffix='SPtr'
         elif(typeHead=='my'): suffix='UPtr'
         return baseType+suffix
-
 
 def findModelOf(objMap, structName):
     # returns None or ref to the model. E.g. for date:HR, the model would be 'date'

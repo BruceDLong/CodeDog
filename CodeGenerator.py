@@ -206,11 +206,13 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
 
 def codeAllocater(typeSpec, xlator):
     S=''
-    owner=typeSpec['owner']
+    owner=progSpec.getTypeSpecOwner(typeSpec)
     fType=typeSpec['fieldType']
     arraySpec=typeSpec['arraySpec']
     if isinstance(fType, basestring): varTypeStr=fType;
     else: varTypeStr=fType[0]
+
+    varTypeStr = xlator['convertType'](objectsRef, typeSpec, 'alloc', xlator)
     S= xlator['getCodeAllocStr'](varTypeStr, owner);
     return S
 
@@ -280,7 +282,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:]
     else:
         fType=typeSpecIn['fieldType']
-        owner=typeSpecIn['owner']
+      #  owner=typeSpecIn['owner']
+        owner=progSpec.getTypeSpecOwner(typeSpecIn)
 
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
@@ -352,6 +355,7 @@ def codeItemRef(name, LorR_Val, xlator):
             connector='.'
             if(segType): # This is where to detect type of vars not found to determine whether to use '.' or '->'
                 if progSpec.typeIsPointer(segType):
+                    print "PTRTYPE:", segName, ':  ', segType
                     connector = xlator['PtrConnector']
 
         AltFormat=None
@@ -373,6 +377,11 @@ def codeItemRef(name, LorR_Val, xlator):
             prevLen=0
             segStr=segStr.replace("%G", '')
             segStr=segStr[len(connector):]
+            connector=''
+
+        # Handle case where LeftName is connected by '->' but the next segment is '[...]'. So we need '(*left)[...]'
+        if connector=='->' and segStr[0]=='[':
+            S='(*'+S+')'
             connector=''
 
         # Should this be called C style?

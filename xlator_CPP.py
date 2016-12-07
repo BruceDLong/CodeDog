@@ -13,6 +13,63 @@ def getContainerType(typeSpec):
     if(datastructID=='list'): datastructID = "deque"
     return [datastructID, idxType]
 
+def adjustBaseTypes(fieldType):
+    if(isinstance(fieldType, basestring)):
+        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
+        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
+        if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
+            langType=fieldType+'_t'
+        else:
+            langType=progSpec.flattenObjectName(fieldType)
+    else: langType=progSpec.flattenObjectName(fieldType[0])
+    return langType
+
+def applyOwner(owner, langType, varMode):
+    if owner=='const':
+        langType = "const "+langType
+    elif owner=='me':
+        langType = langType
+    elif owner=='my':
+        langType="unique_ptr<"+langType + ' >'
+    elif owner=='our':
+        langType="shared_ptr<"+langType + ' >'
+    elif owner=='their':
+        langType += '*'
+    else:
+        print "ERROR: Owner of type not valid '" + owner + "'"
+        exit(1)
+    return langType
+
+def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
+    # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
+
+    langType = adjustBaseTypes(fieldType)
+    if varMode != 'alloc':
+        langType = applyOwner(owner, langType, varMode)
+
+    if 'arraySpec' in TypeSpec:
+        arraySpec=TypeSpec['arraySpec']
+        if(arraySpec): # Make list, map, etc
+            [containerType, idxType]=getContainerType(TypeSpec)
+            if 'owner' in TypeSpec['arraySpec']:
+                containerOwner=TypeSpec['arraySpec']['owner']
+            else: containerOwner='me'
+            idxType=adjustBaseTypes(idxType)
+
+            if containerType=='deque':
+                langType="deque< "+langType+" >"
+                print "TYPESPEC:", TypeSpec, ">>>", containerOwner
+            elif containerType=='map':
+                langType="map< "+idxType+', '+langType+" >"
+            elif containerType=='multimap':
+                langType="multimap< "+idxType+', '+langType+" >"
+
+            if varMode != 'alloc':
+                #if varMode=='arg' and containerOwner=='their': langType+='&' # Pass these as references
+                #else:
+                    langType=applyOwner(containerOwner, langType, varMode)
+    return langType
+
 def convertType(objects, TypeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=TypeSpec['owner']
@@ -29,49 +86,6 @@ def convertType(objects, TypeSpec, varMode, xlator):
     langType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     return xlateLangType(TypeSpec, owner, fieldType, varMode, xlator)
-
-def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
-    # varMode is 'var' or 'arg'. Large items are passed as pointers
-    if(isinstance(fieldType, basestring)):
-        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
-        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
-            langType=fieldType+'_t'
-        else:
-            langType=progSpec.flattenObjectName(fieldType)
-    else: langType=progSpec.flattenObjectName(fieldType[0])
-
-    if owner=='const':
-        langType = "const "+langType
-    elif owner=='me':
-        langType = langType
-    elif owner=='my':
-        langType="unique_ptr<"+langType + '> '
-    elif owner=='our':
-        langType="shared_ptr<"+langType + '> '
-    elif owner=='their':
-        langType += '*'
-    else:
-        print "ERROR: Owner of type not valid '" + owner + "'"
-        exit(1)
-    if langType=='TYPE ERROR': print langType, owner, fieldType;
-
-    if 'arraySpec' in TypeSpec:
-        arraySpec=TypeSpec['arraySpec']
-        if(arraySpec): # Make list, map, etc
-            [containerType, idxType]=getContainerType(TypeSpec)
-            if 'owner' in TypeSpec['arraySpec']:
-                containerOwner=TypeSpec['arraySpec']['owner']
-            else: containerOwner='me'
-            if containerType=='deque':
-                langType="deque< "+langType+" >"
-                print "TYPESPEC:", TypeSpec, ">>>", containerOwner
-            elif containerType=='map':
-                langType="map< "+idxType+', '+langType+" >"
-            elif containerType=='multimap':
-                langType="multimap< "+idxType+', '+langType+" >"
-            if containerOwner=='their': langType+='&' # Pass these as references
-    return langType
 
 def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
