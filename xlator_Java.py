@@ -87,12 +87,15 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
             [containerType, idxType]=getContainerType(TypeSpec)
             if idxType=='int': idxType = "Integer"
             if langType=='int': langType = "Integer"
+            if idxType=='long': idxType = "Long"
+            if langType=='long': langType = "Long"
+            if idxType=='timeValue': idxType = "Long" # this is hack and should be removed ASAP
             if containerType=='ArrayList':
-                langType="ArrayList< "+langType+" >"
+                langType="ArrayList<"+langType+">"
             elif containerType=='TreeMap':
-                langType="TreeMap< "+idxType+', '+langType+" >"
+                langType="TreeMap<"+idxType+', '+langType+">"
             elif containerType=='multimap':
-                langType="multimap< "+idxType+', '+langType+" >"
+                langType="multimap<"+idxType+', '+langType+">"
     return langType
 
 def langStringFormatterCommand(fmtStr, argStr):
@@ -416,24 +419,24 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
             [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
             RHS = S2
             print "                                             RHS: ", RHS
-            assignValue=' = '+ RHS + ';\n'
-        else: assignValue=';\n'
+            assignValue=' = '+ RHS 
+        else: assignValue=''
     elif(fieldDef['value']):
         [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
         RHS = S2
         if varTypeIsJavaValueType(fieldType):
-            assignValue=' = '+ RHS + ';\n'
+            assignValue=' = '+ RHS
         else:
             constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
             if (constructorExists):
-                assignValue=' = new ' + fieldType +'('+ RHS + ');\n'
+                assignValue=' = new ' + fieldType +'('+ RHS + ')'
             else:
-                assignValue=' = new ' + fieldType +'();  ' + varName+' = '+RHS+';\n'
+                assignValue=' = new ' + fieldType +'();  ' + varName+' = '+RHS
     else:
         #print "TYPE:", fieldType
         if varTypeIsJavaValueType(fieldType):
-            assignValue='\n'
-        else:assignValue= " = new " + fieldType +"();\n"
+            assignValue=''
+        else:assignValue= " = new " + fieldType +"()"
     return(assignValue)
 
 def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
@@ -473,9 +476,9 @@ def varTypeIsJavaValueType(convertedType):
 
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
     fieldValueText=""
-    if(fieldValue == None):
-        if (not varTypeIsJavaValueType(convertedType) and fieldOwner!='their'):
-            fieldValueText=" = new " + convertedType + "()"
+    #if(fieldValue == None):
+        #if (not varTypeIsJavaValueType(convertedType) and fieldOwner!='their'):
+            #fieldValueText=" = new " + convertedType + "();;;"
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):
@@ -490,13 +493,13 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
     structCode=''; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
         if fieldName=='main':
-            structCode += indent + "public static void " + fieldName +" (String[] args)\n";
+            structCode += indent + "public static void " + fieldName +" (String[] args)";
             #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
         else:
-            structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")\n"
+            structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")"
 
     else:
-        structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")\n";
+        structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")";
     return [structCode, funcDefCode, globalFuncs]
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):

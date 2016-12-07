@@ -84,6 +84,8 @@ def build(debugMode, minLangVersion, fileName, libFiles, buildName, outStr):
     pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
     if out: print "Result: ",out
-    if err: print "Error: ", err
+    if err: 
+        print "Error: ", err
+        exit(2)
     return 
 
