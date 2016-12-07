@@ -56,7 +56,7 @@ struct production{
     me uint32[list]: items
     void: print(me uint32: SeqPos, me uint32: originPos, me string[their list]: rnames) <- {
         me uint32: ProdType <- prodType
-        me string: ProdStr
+        me string: ProdStr <- ""
         print("[")
         if     (ProdType==parseALT) {ProdStr<-"ALT"}
         else if(ProdType==parseAUTO){ProdStr<-"Aut"}
@@ -190,7 +190,13 @@ struct EParser{
 
         if(!Duplicate){
             if(ProdType == parseSEQ or ProdType == parseREP or ProdType == parseALT or ProdType == parseAUTO){
-                our stateRec: newStateRecPtr newStateRecPtr.allocate(productionID, SeqPos, origin, crntPos, prev, cause)
+                our stateRec: newStateRecPtr Allocate(newStateRecPtr)
+                newStateRecPtr.productionID <- productionID
+                newStateRecPtr.SeqPosition <- SeqPos
+                newStateRecPtr.originPos <- origin
+                newStateRecPtr.crntPos <- crntPos
+                newStateRecPtr.prev <- prev
+                newStateRecPtr.cause <- cause
                 if(thisIsTopLevelItem) {lastTopLevelItem <- newStateRecPtr}
                 SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
   //              print("############ ADDING To SLOT ", crntPos, ":")
@@ -250,7 +256,8 @@ struct EParser{
 
     me int64: escapedScrapeUntil(me uint32:pos, me string:endChar) <- {
         me char: ch
-        me char: prevChar
+        me string: prevCharStr <- " "
+        me char: prevChar <- prevCharStr[0]
         me char: ender <- endChar[0]
         me uint32: txtSize <- textToParse.size()
         me string: escCharStr <- "\\ "
@@ -442,7 +449,7 @@ struct EParser{
 
     /////////////////////////////////////
 
-    me bool: complete(our stateRec: SRec, me int32: crntPos) <- {
+    void: complete(our stateRec: SRec, me int32: crntPos) <- {
     //    print('        COMPLETING: check items at origin %i`SRec->originPos`... \n')
         registerCompletion(SRec)
         their stateSets: SSet  <- SSets[SRec.originPos]
@@ -488,7 +495,7 @@ struct EParser{
         return(false)
     }
 
-    me bool: doParse() <- {
+    void: doParse() <- {
         parseFound <- false
         withEach crntPos in RANGE(0 .. SSets.size()):{
             their stateSets: SSet <- SSets[crntPos]
@@ -496,6 +503,9 @@ struct EParser{
     //        print('\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: %i`crntPos` "%s`ch.data()`"   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n')
             resetCompletions(crntPos)
             withEach SRec in SSet.stateRecs:{
+//TODO: above loop tracker doesn't work in Java and below doesn't work in C++ without removing the *
+            //withEach crntSRec in RANGE(0 .. SSet.stateRecs.size()):{
+                //our stateRec: SRec <- SSet.stateRecs[crntSRec]
                 their production: prod <- grammar[SRec.productionID]
                 me uint32: ProdType <- prod.prodType
                 me bool  : isTerminal <- (prod.isTerm != 0)
@@ -569,9 +579,9 @@ struct EParser{
         me uint32: lastSRecIDX <- lastSSet.stateRecs.size()-1
         our stateRec: lastSRec // <- lastSSet.stateRecs[lastSRecIDX]
         their production: prod
-        me uint32: ProdType
-        me uint32: isTerminal
-        me uint32: seqPos
+        me uint32: ProdType <- 0
+        me uint32: isTerminal<- 0
+        me uint32: seqPos<- 0
       //  lastSRec.print(this) print("\n----\n")
 
         withEach SRec in lastSSet.stateRecs:{
@@ -1105,7 +1115,7 @@ def Write_structExtracter(objects, tags, parentStructName, fields):
     for field in fields: # Extract all the fields in the string version.
         S+=Write_fieldExtracter(objects, parentStructName, field, memObjFields, 'SRec', '', True, '    ', 0)
 
-    seqExtracter =  "\n    me bool: Extract_"+parentStructName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
+    seqExtracter =  "\n    void: Extract_"+parentStructName.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     return seqExtracter
 
 
@@ -1123,7 +1133,7 @@ def CreateStructsForStringModels(objects, tags):
     ExtracterCode="""
 
     me string: makeStr(our stateRec: SRec) <- {
-        me string: S
+        me string: S <- ""
         me uint64: startPos <- SRec.originPos
         me uint64: endPos <- SRec.crntPos
         me uint32: prod <- SRec.productionID

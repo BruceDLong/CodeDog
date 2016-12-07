@@ -87,6 +87,8 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
             [containerType, idxType]=getContainerType(TypeSpec)
             if idxType=='int': idxType = "Integer"
             if langType=='int': langType = "Integer"
+            if idxType=='long': idxType = "Long"
+            if langType=='long': langType = "Long"
             if idxType=='timeValue': idxType = "Long" # this is hack and should be removed ASAP
             if containerType=='ArrayList':
                 langType="ArrayList<"+langType+">"
@@ -474,9 +476,9 @@ def varTypeIsJavaValueType(convertedType):
 
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
     fieldValueText=""
-    if(fieldValue == None):
-        if (not varTypeIsJavaValueType(convertedType) and fieldOwner!='their'):
-            fieldValueText=" = new " + convertedType + "()"
+    #if(fieldValue == None):
+        #if (not varTypeIsJavaValueType(convertedType) and fieldOwner!='their'):
+            #fieldValueText=" = new " + convertedType + "();;;"
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):
