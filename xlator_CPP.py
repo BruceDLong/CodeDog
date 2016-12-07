@@ -494,7 +494,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     return(assignValue)
 
 def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
-    willBeModifiedSuringTraversal=True   # TODO: Set this programatically leter.
+    willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
     containedType=containerType['fieldType']
@@ -508,7 +508,7 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
 
-    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedSuringTraversal):
+    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
@@ -516,7 +516,7 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
-    elif datastructID=='deque' and willBeModifiedSuringTraversal:
+    elif datastructID=='deque' and willBeModifiedDuringTraversal:
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope

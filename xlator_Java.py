@@ -419,7 +419,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
             [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
             RHS = S2
             print "                                             RHS: ", RHS
-            assignValue=' = '+ RHS 
+            assignValue=' = '+ RHS
         else: assignValue=''
     elif(fieldDef['value']):
         [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
@@ -451,6 +451,7 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
         indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, 'var', xlator)
         if indexTypeStr=='int': indexTypeStr = "Integer"
+        elif indexTypeStr=='long': indexTypeStr = "Long"
         iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
         repContainer+='.entrySet()'
     elif datastructID=='list':
