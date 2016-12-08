@@ -20,7 +20,7 @@ def createUtilityFunctions():
         me int64: stoi(me string: str) <- <%!%GInteger.parseInt(%1)%>
         me bool: isprint(me char: ch) <- <%!%GCharacter.isISOControl(%1)%>
         me long: getCurrentTimeStamp() <- <%!date.getTime()%>
-        me timeOutID: callPeriodically() <- <%!%GscheduleAtFixedRate(%1, 0, %2, TimeUnit.MILLISECONDS)%>
+        me timeOutID: callPeriodically() <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%1, 0, %2, TimeUnit.MILLISECONDS)%>
         me string: readFileAsString(me string: fileName) <- <%!%Gfuncs.readFileAsString(%1)%>
 
     """

@@ -5,19 +5,8 @@ import codeDogParser
 
 def use(objects, buildSpec, tags, platform):
     CODE="""
-model draw2D{
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
-    me void: setRGB (me double: red, me double: green, me double: blue)
-    me void: setLineWidth(me double: width)
-    me void: moveTo(me double: x, me double: y)
-    me void: lineTo(me double: x, me double: y)
-    me void: moveRel(me double: dx, me double: dy)
-    me void: lineRel(me double: dx, me double: dy)
-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3)
-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3)
-    me void: paintNow()
-    me void: strokeNow()
-}
+
+
 struct JavaGUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
     their Graphics2D: gr
     me GeneralPath: GPath
@@ -104,7 +93,7 @@ struct GLOBAL{
 struct GUI{
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G %>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!;%>
     me GUI_item: newCanvas() <- <%!%Gnew JavaGUI_ctxt()%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew JMenuItem(%1)%>

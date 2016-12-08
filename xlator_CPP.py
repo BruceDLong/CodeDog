@@ -55,6 +55,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 containerOwner=TypeSpec['arraySpec']['owner']
             else: containerOwner='me'
             idxType=adjustBaseTypes(idxType)
+            if idxType=='timeValue': idxType = 'int64_t'
 
             if containerType=='deque':
                 langType="deque< "+langType+" >"
@@ -172,7 +173,8 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         elif name=='pushLast' : name='push_back'
         else: print "Unknown deque command:", name; exit(2);
     elif containerType=='map':
-        convertedIdxType=idxType
+        if idxType=='timeValue': convertedIdxType = 'int64_t'
+        else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -184,7 +186,8 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         elif name=='popLast'  : name='pop_back'
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
-        convertedIdxType=idxType
+        if idxType=='timeValue': convertedIdxType = 'int64_t'
+        else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}

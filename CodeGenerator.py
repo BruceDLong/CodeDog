@@ -601,8 +601,8 @@ def codeAction(action, indent, xlator):
             exit(2)
         elif(keyRange):
             [repContainer, containerType] = xlator['codeExpr'](keyRange[0][0], xlator)
-            [StartKey, lowValType] = xlator['codeExpr'](keyRange[2][0], xlator)
-            [EndKey,   hiValType] = xlator['codeExpr'](keyRange[4][0], xlator)
+            [StartKey, StartType] = xlator['codeExpr'](keyRange[2][0], xlator)
+            [EndKey,   EndType] = xlator['codeExpr'](keyRange[4][0], xlator)
 
             [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
