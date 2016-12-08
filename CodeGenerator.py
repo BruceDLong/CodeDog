@@ -574,6 +574,7 @@ def codeAction(action, indent, xlator):
         traversalMode = action['traversalMode']
         rangeSpec = action['rangeSpec']
         whileSpec = action['whileSpec']
+        keyRange  = action['keyRange']
         fileSpec  = False #action['fileSpec']
         ctrType=xlator['typeForCounterInt']
         # TODO: add cases for traversing trees and graphs in various orders or ways.
@@ -598,14 +599,25 @@ def codeAction(action, indent, xlator):
                 print "Filename must be a string.\n"; exit(1);
             print "File iteration not implemeted yet.\n"
             exit(2)
+        elif(keyRange):
+            [repContainer, containerType] = xlator['codeExpr'](keyRange[0][0], xlator)
+            [StartKey, lowValType] = xlator['codeExpr'](keyRange[2][0], xlator)
+            [EndKey,   hiValType] = xlator['codeExpr'](keyRange[4][0], xlator)
+
+            [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
+            wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
+            if(wrappedTypeSpec != None):containerType=wrappedTypeSpec
+
+            [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](objectsRef,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator)
+            actionText += actionTextOut
+
         else: # interate over a container
             #print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], xlator)
             [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
 
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
-            if(wrappedTypeSpec != None):
-                containerType=wrappedTypeSpec
+            if(wrappedTypeSpec != None):containerType=wrappedTypeSpec
 
             [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator)
             actionText += actionTextOut

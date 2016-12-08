@@ -82,8 +82,9 @@ traversalModes = (Keyword("Forward") | Keyword("Backward") | Keyword("Preorder")
 rangeSpec = Group(Keyword("RANGE") + '(' + rValue + ".." + rValue + ')')
 whileSpec = Group(Keyword('WHILE') + '(' + expr + ')')
 fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
+keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + ":"
+            Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + ":"
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
@@ -305,6 +306,9 @@ def extractActItem(funcName, actionItem):
         rangeSpec=None
         if actionItem.rangeSpec:
             rangeSpec = actionItem.rangeSpec
+        keyRange=None
+        if actionItem.keyRange:
+            keyRange = actionItem.keyRange
         whereExpr = ''
         untilExpr = ''
         if actionItem.whereExpr:
@@ -312,7 +316,7 @@ def extractActItem(funcName, actionItem):
         if actionItem.untilExpr:
             untilExpr = actionItem.untilExpr
         thisActionItem = {'typeOfAction':"repetition" ,'repName':repName, 'whereExpr':whereExpr, 'untilExpr':untilExpr, 'repBody':repBodyOut,
-                            'repList':repList, 'traversalMode':traversalMode, 'rangeSpec':rangeSpec, 'whileSpec':whileSpec}
+                            'repList':repList, 'traversalMode':traversalMode, 'rangeSpec':rangeSpec, 'whileSpec':whileSpec, 'keyRange':keyRange}
     # Action sequence
     elif actionItem.actSeqID:
         actionListIn = actionItem

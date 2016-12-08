@@ -493,6 +493,32 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
         assignValue=' = '+ RHS
     return(assignValue)
 
+def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+    willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
+    actionText = ""
+    loopCounterName = ""
+    containedType=containerType['fieldType']
+    ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+
+    if datastructID=='multimap' or datastructID=='map':
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'->lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + repContainer+'->upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+
+    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
+        pass;
+    elif datastructID=='deque' and willBeModifiedDuringTraversal:
+        pass;
+    else:
+        print "DSID:",datastructID,containerType
+        exit(2)
+
+    return [actionText, loopCounterName]
+
 def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
@@ -603,6 +629,7 @@ def fetchXlators():
     xlators['codeNewVarStr']                = codeNewVarStr
     xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
     xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
+    xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
