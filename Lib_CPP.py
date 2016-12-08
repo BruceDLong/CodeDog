@@ -21,6 +21,6 @@ def use(objects, buildSpec, tags, platform):
         me x: randInt(me int: val) <- <%!(rand() % %1)%>
 
     }
-    struct timeValue{me uint64: timeValue}
+    struct timeValue{me int64: timeValue}
 """
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
