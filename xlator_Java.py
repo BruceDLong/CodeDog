@@ -22,6 +22,11 @@ def getContainerType(typeSpec):
     if(datastructID=='list'): datastructID = "ArrayList"
     elif(datastructID=='map'): datastructID = "TreeMap"
     elif(datastructID=='multimap'): datastructID = "TreeMap"  # TODO: Implement true multmaps in java
+    if (idxType == 'timeValue'):
+        if(typeSpec['arraySpec']!= None):
+            idxType = 'Long'
+        else:
+            idxType = 'long'
     return [datastructID, idxType]
 
 def convertToJavaType(fieldType):

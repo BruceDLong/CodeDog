@@ -88,12 +88,13 @@ struct GLOBAL{
     me void: close_window() <- {
          // gtk_main_quit()
     }
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
 }
 
 struct GUI{
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!;%>
+
     me GUI_item: newCanvas() <- <%!%Gnew JavaGUI_ctxt()%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew JMenuItem(%1)%>
