@@ -315,7 +315,7 @@ def codeExpr(item, xlator):
     return [S, retType]
 
 def adjustIfConditional(S2, conditionType):
-    print "CONDITIONTYPE:", conditionType, '[', S2, ']'
+    #print "CONDITIONTYPE:", conditionType, '[', S2, ']'
     if not isinstance(conditionType, basestring):
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my':
             S2+=" != null"
@@ -485,6 +485,10 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         elif indexTypeStr=='long': indexTypeStr = "Long"
         iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
         repContainer+='.entrySet()'
+
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
+        return [actionText, loopCounterName]
     elif datastructID=='list':
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
@@ -497,7 +501,8 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
 
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-    actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
+    loopVarName=repName+"Idx";
+    actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + repContainer+'.size(); ' + loopVarName+' += 1){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
     return [actionText, loopCounterName]
 
 def varTypeIsJavaValueType(convertedType):
@@ -508,9 +513,9 @@ def varTypeIsJavaValueType(convertedType):
 
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
     fieldValueText=""
-    #if(fieldValue == None):
-        #if (not varTypeIsJavaValueType(convertedType) and fieldOwner!='their'):
-            #fieldValueText=" = new " + convertedType + "();;;"
+    if(fieldValue == None):
+        if (not varTypeIsJavaValueType(convertedType) and fieldOwner=='me'):
+            fieldValueText=" = new " + convertedType + "();"
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):

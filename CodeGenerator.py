@@ -355,7 +355,7 @@ def codeItemRef(name, LorR_Val, xlator):
             connector='.'
             if(segType): # This is where to detect type of vars not found to determine whether to use '.' or '->'
                 if progSpec.typeIsPointer(segType):
-                    print "PTRTYPE:", segName, ':  ', segType
+                    #print "PTRTYPE:", segName, ':  ', segType
                     connector = xlator['PtrConnector']
 
         AltFormat=None
@@ -494,11 +494,8 @@ def codeAction(action, indent, xlator):
         actionText = indent + fieldType + " " + varName + assignValue + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
-        print "PREASSIGN:", action['LHS']
+        #print "PREASSIGN:", action['LHS']
         # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
-  #              specialAssign=xlator['checkIfSpecialAssignmentFormIsNeeded'](LHS, LHSParentType, RHS, rhsType)
-  #              if(specialAssign != ""): actionText=specialAssign
-  #              else:
 
         [codeStr, typeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', xlator)
         assignTag = action['assignTag']
@@ -736,7 +733,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
-        fieldOwner=typeSpec['owner']
+        fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']

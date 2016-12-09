@@ -344,13 +344,13 @@ struct EParser{
         return(sLen+2)
     }
     me int64: scrapeCID(me uint32: pos) <- {
-        me char: ch <- textToParse[pos]
         me uint32: txtSize <- textToParse.size()
         me string: chars <- "_"
         if(pos >= txtSize){
             // Set I/O Error: Read past EOS
             return(-1)
         }
+        me char: ch <- textToParse[pos]
         if(isalpha(ch) or ch==chars[0]){
             return(scrapeAlphaNum_Seq(pos)+1)
         } else {return(-1)}

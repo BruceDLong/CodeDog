@@ -88,13 +88,13 @@ struct GLOBAL{
     me void: close_window() <- {
          // gtk_main_quit()
     }
-    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.repaint(%2, %3, %4, %5)%>
+    me long: ticksPerSec() <- <%!%G1000%>
 }
 
 struct GUI{
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-
     me GUI_item: newCanvas() <- <%!%Gnew JavaGUI_ctxt()%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew JMenuItem(%1)%>
@@ -126,6 +126,7 @@ struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implM
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: paintNow() <- <%!gr.fill(cr.GPath)%>
     me void: strokeNow() <- <%!gr.draw(cr.GPath)%>
+    me void: renderFrame() <- <%!repaint()%>
 }
     """
 

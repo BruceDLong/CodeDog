@@ -80,6 +80,7 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
     me void: paintNow() <- <%!cairo_paint(%0)%>
     me void: strokeNow() <- <%!cairo_stroke(%0)%>
+    //me void: renderFrame() <- <%!%G ;%>
 }
 
 
@@ -158,6 +159,7 @@ me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lowe
 me GUI_item: newScrollingWindow() <- <%!gtk_scrolled_window_new(0, 0)%>
 me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
+me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
 me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: callback) <- <% {
     g_signal_connect(widget, eventID.data(), G_CALLBACK (callback), NULL);

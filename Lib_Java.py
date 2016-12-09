@@ -19,7 +19,7 @@ def createUtilityFunctions():
         me bool: isalnum(me char: ch) <- <%!%GCharacter.isLetterOrDigit(%1)%>
         me int64: stoi(me string: str) <- <%!%GInteger.parseInt(%1)%>
         me bool: isprint(me char: ch) <- <%!%GCharacter.isISOControl(%1)%>
-        me long: getCurrentTimeStamp() <- <%!date.getTime()%>
+        me long: getCurrentTimeStamp() <- <%!%Gnew Date().getTime()%>
         me string: readFileAsString(me string: fileName) <- <%!%Gfuncs.readFileAsString(%1)%>
         me timeOutID: callPeriodically(): cmd="addImplementsToClass" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%1, 0, %2, TimeUnit.MILLISECONDS)%>
 
@@ -44,7 +44,6 @@ def use(objects, buildSpec, tags, platform):
         struct GLOBAL{
             me GLOBAL: static_Global
             me Random: javaRandomVar
-            me Date: date
             // LOGGING INTERFACE:
 """ + (APP_UTILITY_CODE) + """
         }
