@@ -14,10 +14,12 @@ libsToUse={}
 MarkItems=False
 MarkedObjects={}
 MarkedFields=[]
+ModifierCommands=[]
 
 def rollBack(objSpecs):
     global MarkedObjects
     global MarkedFields
+    global ModifierCommands
 
     for ObjToDel in MarkedObjects.keys():
         del objSpecs[0][ObjToDel]
@@ -25,6 +27,13 @@ def rollBack(objSpecs):
 
     for fieldToDel in MarkedFields:
         removeFieldFromObject(objSpecs, fieldToDel[0],  fieldToDel[1])
+
+    idx=0
+    while(idx<len(ModifierCommands)):
+        if ModifierCommands[idx][3]==True:
+            del ModifierCommands[idx]
+        else: idx+=1
+
 
     MarkedObjects={}
     MarkedFields=[]
@@ -79,6 +88,10 @@ def addObjTags(objSpecs, objectName, objTags):
         objSpecs[objectName]['tags']=objTags
         print "    ADDED Tags to "+objectName+".\t"
 
+def addModifierCommand(objSpecs, objName, funcName, commandStr):
+    global MarkItems
+    global ModifierCommands
+    ModifierCommands.append([objName, funcName, commandStr, MarkItems])
 
 def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, thisValue):
     codeConverter=None
@@ -93,6 +106,7 @@ def addField(objSpecs, objectName, packedField):
     global MarkItems
     global MarkedObjects
     global MarkedFields
+    global ModifierCommands
     thisName=packedField['fieldName']
     if(packedField['fieldName'] in objSpecs[objectName]["fields"]):
         print "Note: The field '", objectName, '::', thisName, "' already exists. Not re-adding"
@@ -171,7 +185,7 @@ def removeFieldFromObject (objects, objectName, fieldtoRemove):
             del fieldList[idx]
         idx+=1
 
-###############
+###############  Various type-handling functions
 
 def getTypeSpecOwner(typeSpec):
     if "arraySpec" in typeSpec and typeSpec['arraySpec']!=None:

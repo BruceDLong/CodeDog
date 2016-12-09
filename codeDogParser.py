@@ -97,7 +97,7 @@ funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
-          (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + "<-" + funcBody )         # Function Definition
+          (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" + funcBody )         # Function Definition
         | (Literal(":") + CID("fieldName")  + "<-" + rValue("givenValue"))
         | (Literal(":") + "<-" + (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
@@ -177,6 +177,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
     fieldDef={}
     argList=[]
     innerDefs=[]
+    optionalTags=None
     isNext=False;
     if(fieldResult.isNext): isNext=True
     if(fieldResult.owner): owner=fieldResult.owner;
@@ -215,6 +216,8 @@ def packFieldDef(fieldResult, ObjectName, indent):
             for argSpec in nameAndVal.argList:
                 argList.append(packFieldDef(argSpec[0], ObjectName, indent+"    "))
         else: argList=None;
+
+        if(nameAndVal.optionalTag): optionalTags=extractTagDefs(nameAndVal.tagDefList)
     else:
         givenValue=None;
         fieldName=None;
@@ -254,6 +257,8 @@ def packFieldDef(fieldResult, ObjectName, indent):
         fieldDef['innerDefs']=innerDefs
     if coFactuals!=None:
         fieldDef['coFactuals']=coFactuals
+    if optionalTags!=None:
+        fieldDef['optionalTags']=optionalTags
     return fieldDef
 
 def extractActSeqToActSeq(funcName, childActSeq):

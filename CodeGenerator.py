@@ -979,8 +979,8 @@ def clearBuild():
     global libInterfacesText
     global fieldNamesAlreadyUsed
     global StaticMemberVars
-    global  globalFuncDeclAcc
-    global  globalFuncDefnAcc
+    global globalFuncDeclAcc
+    global globalFuncDefnAcc
 
     localVarsAllocated = []
     localArgsAllocated = []
