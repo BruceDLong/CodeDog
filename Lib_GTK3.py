@@ -47,7 +47,6 @@ def use(objects, buildSpec, tags, platform):
     }
 
 struct GUI{
-    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%Ggtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
     me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
     me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
   //  me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
