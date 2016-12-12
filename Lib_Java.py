@@ -21,7 +21,7 @@ def createUtilityFunctions():
         me bool: isprint(me char: ch) <- <%!%GCharacter.isISOControl(%1)%>
         me long: getCurrentTimeStamp() <- <%!%Gnew Date().getTime()%>
         me string: readFileAsString(me string: fileName) <- <%!%Gfuncs.readFileAsString(%1)%>
-        me timeOutID: callPeriodically(): cmd="addImplementsToClass" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%1, 0, %2, TimeUnit.MILLISECONDS)%>
+        me timeOutID: callPeriodically(me string: funcToCall, me int:microSecs): COMMAND_addImplements="Runnable:ToClass:%1" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%1, 0, %2, TimeUnit.MILLISECONDS)%>
 
     """
     return S

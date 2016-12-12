@@ -16,6 +16,7 @@ struct JavaGUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" i
 
     me void: paintComponent(me Graphics: g) <- <%    {
         super.paintComponent(g);
+        GPath.reset();
         gr=(Graphics2D)(g);
         GLOBAL.static_Global.drawAppArea_cb(this, this);
     }%>

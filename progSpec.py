@@ -92,6 +92,9 @@ def addModifierCommand(objSpecs, objName, funcName, commandStr):
     global MarkItems
     global ModifierCommands
     ModifierCommands.append([objName, funcName, commandStr, MarkItems])
+    print  "MODCMD:", [objName, funcName, commandStr, MarkItems]
+    exit(2)
+
 
 def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, thisValue):
     codeConverter=None
@@ -120,6 +123,11 @@ def addField(objSpecs, objectName, packedField):
     #if(thisOwner!='flag' and thisOwner!='mode'):
         #print "FIX THIS COMMENTED OUT PART", thisType, objectName #registerBaseType(thisType, objectName)
 
+    if 'optionalTags' in packedField:
+        for tag in packedField['optionalTags']:
+            if tag[:7]=='COMMAND':
+                newCommand = packedField['optionalTags'][tag]
+                addModifierCommand(objSpecs, objectName, thisName, newCommand)
 
 def markStructAuto(objSpecs, objectName):
     objSpecs[objectName]["autoGen"]='yes'
