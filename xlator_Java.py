@@ -7,6 +7,8 @@ This file, along with Lib_Java.py specify to the CodeGenerater how to compile Co
 """
 
 import progSpec
+import codeDogParser
+import Lib_Android
 from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
@@ -560,6 +562,31 @@ def includeDirective(libHdr):
     S = 'import '+libHdr+';\n'
     return S
 
+
+
+def generateMainFunctionality(objects, tags):
+    # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
+    # TODO: Some deInitialize items should automatically run during abort().
+    # TODO: Deinitialize items should happen in reverse order.
+
+    runCode = progSpec.fetchTagValue(tags, 'runCode')
+    Platform = progSpec.fetchTagValue(tags, 'Platform')
+    if Platform == 'Android':
+        lib_Android.GenerateMainActivity(objects, tags, runCode)
+    else:
+        mainFuncCode="""
+        me void: main( ) <- {
+            initialize()
+            """ + runCode + """
+            deinitialize()
+            endFunc()
+        }
+
+    """
+        progSpec.addObject(objects[0], objects[1], 'GLOBAL', 'struct', 'SEQ')
+        codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ))
+
+
 def fetchXlators():
     xlators = {}
 
@@ -601,5 +628,6 @@ def fetchXlators():
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
+    xlators['generateMainFunctionality']    = generateMainFunctionality
 
     return(xlators)

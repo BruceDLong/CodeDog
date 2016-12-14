@@ -1,5 +1,6 @@
 #xlator_CPP.py
 import progSpec
+import codeDogParser
 from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
@@ -599,6 +600,25 @@ def includeDirective(libHdr):
     S = '#include <'+libHdr+'>\n'
     return S
 
+def generateMainFunctionality(objects, tags):
+    # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
+    # TODO: Some deInitialize items should automatically run during abort().
+    # TODO: Deinitialize items should happen in reverse order.
+
+    runCode = progSpec.fetchTagValue(tags, 'runCode')
+    mainFuncCode="""
+    me int32: main(me int32: argc, me int32: argv ) <- {
+        initialize()
+        """ + runCode + """
+        deinitialize()
+        endFunc()
+    }
+
+"""
+    progSpec.addObject(objects[0], objects[1], 'GLOBAL', 'struct', 'SEQ')
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ))
+
+
 def fetchXlators():
     xlators = {}
 
@@ -640,5 +660,6 @@ def fetchXlators():
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
+    xlators['generateMainFunctionality']    = generateMainFunctionality
 
     return(xlators)

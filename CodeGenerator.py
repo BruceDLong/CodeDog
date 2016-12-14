@@ -879,9 +879,9 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
 
             print "                [" + objectName+"]"
             if (objectName in structsNeedingModification):
-                print "                    structsNeedingModification:", structsNeedingModification[objectName]  
-                [classToModify, modificationMode, interfaceImplemented]=structsNeedingModification[objectName] 
-                implMode='implement:' + interfaceImplemented 
+                print "                    structsNeedingModification:", structsNeedingModification[objectName]
+                [classToModify, modificationMode, interfaceImplemented]=structsNeedingModification[objectName]
+                implMode='implement:' + interfaceImplemented
 
             currentObjName=objectName
             [needsFlagsVar, strOut]=codeFlagAndModeFields(objects, objectName, tags, xlator)
@@ -897,7 +897,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                 if(implMode and implMode[:7]=="inherit"):
                     parentClass=implMode[8:]
                 elif(implMode and implMode[:9]=="implement"):
-                    parentClass='!' + implMode[10:]    
+                    parentClass='!' + implMode[10:]
                 [structCode, funcCode, globalCode]=codeStructFields(objects, objectName, tags, '    ', xlator)
                 structCode+= constFieldAccs[objectNameBase]
                 [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](parentClass, LangFormOfObjName, structCode)
@@ -933,7 +933,7 @@ def codeStructureCommands(objects, tags, xlator):
                 interfaceImplemented=commandArgs[:firstColonPos]
                 classToModify=commandArgs[secondColonPos+1:]
                 structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented]
-                print "          impl: ", structsNeedingModification[classToModify] 
+                print "          impl: ", structsNeedingModification[classToModify]
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
@@ -1004,6 +1004,9 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
+def generateBuildSpecificMainFunctionality(objects, tags, xlator):
+    xlator['generateMainFunctionality'](objects, tags)
+
 def clearBuild():
     global localVarsAllocated
     global localArgsAllocated
@@ -1036,6 +1039,7 @@ def generate(objects, tags, libsToUse, xlator):
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     createInit_DeInit(objects, tags)
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
+    if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program": generateBuildSpecificMainFunctionality(objects, tags, xlator)
     header = makeFileHeader(tags, xlator)
     codeStructureCommands(objects, tags, xlator)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=codeAllNonGlobalStructs(objects, tags, xlator)

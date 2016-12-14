@@ -14,12 +14,12 @@ def createUtilityFunctions():
         javaRandomVar = new Random();
         initialize();
     }%>
-    
+
     me void: onTerminate() <- <%{
         super.onTerminate();
         deinitialize();
     }%>
-    
+
     me GLOBAL: getInstance() <- <%{
         return static_Global;
     }%>
@@ -43,3 +43,6 @@ def use(objects, buildSpec, tags, platform):
     print "GLOBAL_CODE: ", GLOBAL_CODE
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+
+def GenerateMainActivity(objects, tags, runCode):
+    pass
