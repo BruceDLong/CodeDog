@@ -4,11 +4,11 @@ import os
 import subprocess
 import errno
 
-def writeFile(currentDir, packageDir, fileName, outStr, fileExt):
+def writeFile(workingDir, packageDir, fileName, outStr, fileExt):
     #print "Path:", packageDir 
-    makeDir(currentDir+packageDir)
+    makeDir(workingDir+packageDir)
     fileName += fileExt
-    fo=open(currentDir+packageDir + os.sep + fileName, 'w')
+    fo=open(workingDir+packageDir + os.sep + fileName, 'w')
     fo.write(outStr)
     fo.close()
 
@@ -73,7 +73,6 @@ def generateAndroid(workingDir):
 
 def compileAndroid(buildName):
     print '    Compiling with Jack toolchain'
-    print"@@@@@@@@"
     classpath = '--classpath "$ANDROID_HOME/platforms/android-23/android.jar" '
     importTag = ''
     outputTag = '--output-dex ' + buildName + '/out ' + buildName + '/src/ ' + buildName + '/gen/ '
@@ -145,9 +144,8 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, out
     
     print 'Building for Android' 
     pathAndroid(workingDir, dirsToGen)
-    writeFile(currentDir, packageDir, fileName, outStr, fileExt)
+    writeFile(workingDir, packageDir, fileName, outStr, fileExt)
     androidManifest(topDomain, domain, fileName, workingDir)
-    #exit(2)
     generateAndroid(workingDir)
     compileAndroid(buildName)
     packageAndroid(fileName, buildName, workingDir)

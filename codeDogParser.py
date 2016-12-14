@@ -358,7 +358,7 @@ def extractActItem(funcName, actionItem):
         calledFuncName = calledFuncLastSegment[0]
         if(len(calledFuncLastSegment)<=2): calledFuncParams=[]
         else: 
-            print 'calledFuncLastSegment', calledFuncLastSegment, ', len:', 
+            #print 'calledFuncLastSegment', calledFuncLastSegment, ', len:', 
             calledFuncParams = calledFuncLastSegment[2]
             
         progSpec.appendToFuncsCalled(calledFuncName, calledFuncParams)

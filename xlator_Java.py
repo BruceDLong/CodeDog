@@ -317,7 +317,7 @@ def codeExpr(item, xlator):
     return [S, retType]
 
 def adjustIfConditional(S2, conditionType):
-    #print "CONDITIONTYPE:", conditionType, '[', S2, ']'
+    print "CONDITIONTYPE:", conditionType, '[', S2, ']'
     if not isinstance(conditionType, basestring):
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my':
             S2+=" != null"
@@ -572,7 +572,7 @@ def generateMainFunctionality(objects, tags):
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if Platform == 'Android':
-        lib_Android.GenerateMainActivity(objects, tags, runCode)
+        Lib_Android.GenerateMainActivity(objects, tags, runCode)
     else:
         mainFuncCode="""
         me void: main( ) <- {
