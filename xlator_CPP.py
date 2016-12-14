@@ -391,8 +391,8 @@ def codeSpecialFunc(segSpec, xlator):
         if(len(segSpec)>2):
             # Call g_timeout_add()
             paramList=segSpec[2]
-            [objName,  retType]=xlator['codeExpr'](paramList[0][0], xlator)
-            [interval,  intSpec]   =xlator['codeExpr'](paramList[1][0], xlator)
+            [objName,  retType]=xlator['codeExpr'](paramList[1][0], xlator)
+            [interval,  intSpec]   =xlator['codeExpr'](paramList[2][0], xlator)
             varTypeSpec= retType['fieldType'][0]
             wrapperName="cb_wraps_"+varTypeSpec
             S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+'.get())'

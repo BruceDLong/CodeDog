@@ -384,7 +384,8 @@ def codeMain(objects, tags, xlator):
 
 def codeStructText(parentClass, structName, structCode):
     if parentClass != "":
-        parentClass=' extends '+parentClass+' '
+        if parentClass[0]=="!": parentClass=' implements '+parentClass[1:]+' '
+        else: parentClass=' extends '+parentClass+' '
     S= "\nclass "+structName+parentClass+"{\n" + structCode + '};\n'
     return([S,""])
 

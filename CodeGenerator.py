@@ -8,6 +8,7 @@ import codeDogParser
 buildStr_libs=''
 globalFuncDeclAcc=''
 globalFuncDefnAcc=''
+structsNeedingModification={}
 
 
 def appendGlobalFuncAcc(decl, defn):
@@ -652,7 +653,6 @@ def codeAction(action, indent, xlator):
  #   print "actionText", actionText
     return actionText
 
-
 def codeActionSeq(actSeq, indent, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
@@ -847,6 +847,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
 def codeAllNonGlobalStructs(objects, tags, xlator):
     print "\n            Generating Objects..."
     global currentObjName
+    global structsNeedingModification;
     constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
     forwardDeclsAcc="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
@@ -877,6 +878,10 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                 #else:print "!TAG", thisCtxTag; continue
 
             print "                [" + objectName+"]"
+            if (objectName in structsNeedingModification):
+                print "                    structsNeedingModification:", structsNeedingModification[objectName]  
+                [classToModify, modificationMode, interfaceImplemented]=structsNeedingModification[objectName] 
+                implMode='implement:' + interfaceImplemented 
 
             currentObjName=objectName
             [needsFlagsVar, strOut]=codeFlagAndModeFields(objects, objectName, tags, xlator)
@@ -891,6 +896,8 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):
                     parentClass=implMode[8:]
+                elif(implMode and implMode[:9]=="implement"):
+                    parentClass='!' + implMode[10:]    
                 [structCode, funcCode, globalCode]=codeStructFields(objects, objectName, tags, '    ', xlator)
                 structCode+= constFieldAccs[objectNameBase]
                 [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](parentClass, LangFormOfObjName, structCode)
@@ -899,6 +906,34 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                 funcCodeAcc+=funcCode
         currentObjName=''
     return [constsEnums, forwardDeclsAcc, structCodeAcc, funcCodeAcc]
+
+def codeStructureCommands(objects, tags, xlator):
+    global ModifierCommands
+    global funcsCalled
+    for command in progSpec.ModifierCommands:
+        if (command[3] == 'addImplements'):
+            calledFuncName = command[1]
+            calledFuncInstances = progSpec.funcsCalled[calledFuncName]
+            print '     addImplements:'
+            #print '          calledFuncName:', calledFuncName
+            for funcCalledParams in calledFuncInstances:
+                #print '\n funcCalledParams:',funcCalledParams
+                paramList = funcCalledParams[0]
+                commandArgs = command[2]
+                if paramList != None:
+                    count=1
+                    for P in paramList:
+                        oldTextTag='%'+str(count)
+                        [newText, argType]=xlator['codeExpr'](P[0], xlator)
+                        commandArgs=commandArgs.replace(oldTextTag, newText)
+                        count+=1
+                    #print commandArgs
+                firstColonPos=commandArgs.find(':')
+                secondColonPos=commandArgs.find(':', firstColonPos+1)
+                interfaceImplemented=commandArgs[:firstColonPos]
+                classToModify=commandArgs[secondColonPos+1:]
+                structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented]
+                print "          impl: ", structsNeedingModification[classToModify] 
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
@@ -1002,6 +1037,7 @@ def generate(objects, tags, libsToUse, xlator):
     createInit_DeInit(objects, tags)
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
     header = makeFileHeader(tags, xlator)
+    codeStructureCommands(objects, tags, xlator)
     [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=codeAllNonGlobalStructs(objects, tags, xlator)
     topBottomStrings = xlator['codeMain'](objects, tags, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
