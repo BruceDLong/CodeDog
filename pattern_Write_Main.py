@@ -18,7 +18,7 @@ def apply(objects, tags, codeToRun):
         """ + runCode + """
         deinitialize()
         endFunc()
-    } 
+    }
 
 """
 
