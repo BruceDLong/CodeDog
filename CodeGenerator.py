@@ -848,7 +848,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
     print "\n            Generating Objects..."
     global currentObjName
     global structsNeedingModification;
-    constsEnums="\n//////////////////////////////////////////////////////////\n////   F l a g   a n d   M o d e   D e f i n i t i o n s\n\n"
+    constsEnums=""
     forwardDeclsAcc="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
@@ -1035,6 +1035,7 @@ def generate(objects, tags, libsToUse, xlator):
     global libInterfacesText
     global globalFuncDeclAcc
     global globalFuncDefnAcc
+
     buildStr_libs = xlator['BuildStrPrefix']
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
