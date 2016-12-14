@@ -15,6 +15,7 @@ MarkItems=False
 MarkedObjects={}
 MarkedFields=[]
 ModifierCommands=[]
+funcsCalled={}
 
 def rollBack(objSpecs):
     global MarkedObjects
@@ -88,12 +89,18 @@ def addObjTags(objSpecs, objectName, objTags):
         objSpecs[objectName]['tags']=objTags
         print "    ADDED Tags to "+objectName+".\t"
 
-def addModifierCommand(objSpecs, objName, funcName, commandStr):
+def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems
     global ModifierCommands
-    ModifierCommands.append([objName, funcName, commandStr, MarkItems])
-    print  "MODCMD:", [objName, funcName, commandStr, MarkItems]
-    exit(2)
+    ModifierCommands.append([objName, funcName, commandStr, commandArg, MarkItems])
+
+def appendToFuncsCalled(funcName,funcParams):
+    global MarkItems
+    global funcsCalled
+    print  "     appendToFuncsCalled:", funcName
+    if not(funcName in funcsCalled):
+        funcsCalled[funcName]= []
+    funcsCalled[funcName].append([funcParams, MarkItems])
 
 
 def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, thisValue):
@@ -127,7 +134,8 @@ def addField(objSpecs, objectName, packedField):
         for tag in packedField['optionalTags']:
             if tag[:7]=='COMMAND':
                 newCommand = packedField['optionalTags'][tag]
-                addModifierCommand(objSpecs, objectName, thisName, newCommand)
+                commandArg = tag[8:]
+                addModifierCommand(objSpecs, objectName, thisName, commandArg, newCommand)
 
 def markStructAuto(objSpecs, objectName):
     objSpecs[objectName]["autoGen"]='yes'

@@ -273,6 +273,7 @@ def parseResultToArray(parseSegment):
 
 
 def extractActItem(funcName, actionItem):
+    global funcsCalled
     thisActionItem='error'
     #print "ACTIONITEM:", actionItem
     if actionItem.fieldDef:
@@ -348,11 +349,19 @@ def extractActItem(funcName, actionItem):
     # Function Call
     elif actionItem.funcCall:
         calledFunc = (actionItem.funcCall)
-        #print "FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL...FUNC_CALL: <", calledFunc, '>\n\n'
         # TODO: Verify that calledFunc is a function and error out if not. (The last segment should have '(' as its second item.)
-        if len(calledFunc[-1])<2 or calledFunc[-1][1] != '(':
-            print "Expected a function, not a variable:", calledFunc[-1]; exit(2)
+        calledFuncLastSegment = calledFunc[-1]
+        if len(calledFuncLastSegment)<2 or calledFuncLastSegment[1] != '(':
+            print "Expected a function, not a variable:", calledFuncLastSegment; exit(2)
         thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc}
+        
+        calledFuncName = calledFuncLastSegment[0]
+        if(len(calledFuncLastSegment)<=2): calledFuncParams=[]
+        else: 
+            print 'calledFuncLastSegment', calledFuncLastSegment, ', len:', 
+            calledFuncParams = calledFuncLastSegment[2]
+            
+        progSpec.appendToFuncsCalled(calledFuncName, calledFuncParams)
     else:
         print "error in extractActItem"
         print "actionItem", str(actionItem)
