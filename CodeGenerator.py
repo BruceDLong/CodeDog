@@ -880,7 +880,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             print "                [" + objectName+"]"
             if (objectName in structsNeedingModification):
                 print "                    structsNeedingModification:", structsNeedingModification[objectName]
-                [classToModify, modificationMode, interfaceImplemented]=structsNeedingModification[objectName]
+                [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[objectName]
                 implMode='implement:' + interfaceImplemented
 
             currentObjName=objectName
@@ -910,6 +910,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
 def codeStructureCommands(objects, tags, xlator):
     global ModifierCommands
     global funcsCalled
+    global MarkItems
     for command in progSpec.ModifierCommands:
         if (command[3] == 'addImplements'):
             calledFuncName = command[1]
@@ -932,7 +933,7 @@ def codeStructureCommands(objects, tags, xlator):
                 secondColonPos=commandArgs.find(':', firstColonPos+1)
                 interfaceImplemented=commandArgs[:firstColonPos]
                 classToModify=commandArgs[secondColonPos+1:]
-                structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented]
+                structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented, progSpec.MarkItems]
                 print "          impl: ", structsNeedingModification[classToModify]
 
 def makeTagText(tags, tagName):

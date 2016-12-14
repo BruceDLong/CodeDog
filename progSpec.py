@@ -29,13 +29,26 @@ def rollBack(objSpecs):
     for fieldToDel in MarkedFields:
         removeFieldFromObject(objSpecs, fieldToDel[0],  fieldToDel[1])
 
+    # Delete platform-specific ModifierCommands
     idx=0
     while(idx<len(ModifierCommands)):
         if ModifierCommands[idx][3]==True:
             del ModifierCommands[idx]
         else: idx+=1
 
+    # Delete platform-specific funcsCalled
+    for FC_ListKey in funcsCalled:
+        idx=0
+        FC_List=funcsCalled[FC_ListKey]
+        while(idx<len(FC_List)):
+            if FC_List[idx][1]==True:
+                del FC_List[idx]
+            else: idx+=1
 
+    # Delete platform-specific items in CodeGenerator.structsNeedingModification {}
+    # TODO Delete items in structsNeedingModification with MarkItems==True
+
+    # Clear other variables
     MarkedObjects={}
     MarkedFields=[]
 
