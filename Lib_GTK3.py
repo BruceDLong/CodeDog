@@ -69,8 +69,8 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
    their cairo_t:GUI_ctxt
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
     me void: reset() <- <%!%G %>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, %1, %2, %3, %4)%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, %1, %2, %3)%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, %1, %2 /256, %3 /256, %4 /256)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, %1 /256, %2 /256, %3 /256)%>
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
     me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(%0, %1, %2)%>
     me void: lineTo(me double: x, me double: y) <- <%!cairo_line_to(%0, %1, %2)%>
