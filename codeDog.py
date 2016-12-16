@@ -101,14 +101,14 @@ def AutoGenerateStructsFromModels(objects, tags):
 
 def GroomTags(tags):
     # Set tag defaults as needed
-    tags[0]['featuresNeeded']['System'] = 'system'
+    tags['featuresNeeded']['System'] = 'system'
     # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
-    if not ('Platform' in tags[0]):
+    if not ('Platform' in tags):
         platformID=platform.system()
         if platformID=='Darwin': platformID="OSX_Devices"
-        tags[0]['Platform']=platformID
-    if not ('Language' in tags[0]):
-        tags[0]['Language']="CPP"
+        tags['Platform']=platformID
+    if not ('Language' in tags):
+        tags['Language']="CPP"
 
     # Find any needed features based on types used
     for typeName in progSpec.storeOfBaseTypesUsed:
@@ -117,28 +117,28 @@ def GroomTags(tags):
             progSpec.setFeatureNeeded(tags, 'largeNumbers', progSpec.storeOfBaseTypesUsed[typeName])
 
 
-def GenerateProgram(objects, buildSpec, tags, libsToUse):
-    result='No Language Generator Found for '+buildSpec[1]['Lang']
-    langGenTag = buildSpec[1]['Lang']
+def GenerateProgram(objects, buildTags, tags, libsToUse):
+    result='No Language Generator Found for '+buildTags['Lang']
+    langGenTag = buildTags['Lang']
     if(langGenTag == 'CPP'):
         print "\n\n######################  G E N E R A T I N G   C + +   P R O G R A M . . ."
         xlator = xlator_CPP.fetchXlators()
-        result=CodeGenerator.generate(objects, [tags, buildSpec[1]], libsToUse, xlator)
+        result=CodeGenerator.generate(objects, [tags, buildTags], libsToUse, xlator)
     elif(langGenTag == 'Java'):
         print "\n\n######################  G E N E R A T I N G   J A V A   P R O G R A M . . ."
         xlator = xlator_Java.fetchXlators()
-        result=CodeGenerator.generate(objects, [tags, buildSpec[1]], libsToUse, xlator)
+        result=CodeGenerator.generate(objects, [tags, buildTags], libsToUse, xlator)
     else:
         print "ERROR: No language generator found for ", langGenTag
     return result
 
-def ChooseLibs(objects, buildSpec, tags):
+def ChooseLibs(objects, buildTags, tags):
     print "\n\n######################   C H O O S I N G   L I B R A R I E S"
     # TODO: Why is fetchTagValue called with tags, not [tags]?
     libList = progSpec.fetchTagValue([tags], 'libraries')
-    Platform= progSpec.fetchTagValue([tags, buildSpec[1]], 'Platform')
-    Language= progSpec.fetchTagValue([tags, buildSpec[1]], 'Lang')
-    CPU     = progSpec.fetchTagValue([tags, buildSpec[1]], 'CPU')
+    Platform= progSpec.fetchTagValue([tags, buildTags], 'Platform')
+    Language= progSpec.fetchTagValue([tags, buildTags], 'Lang')
+    CPU     = progSpec.fetchTagValue([tags, buildTags], 'CPU')
     print "PLATFORM, LANGUAGE, CPU:", Platform, ',', Language, ',', CPU
 
     compatibleLibs=[]
@@ -175,13 +175,13 @@ def ChooseLibs(objects, buildSpec, tags):
 
     print "USING LIBS: ", progSpec.libsToUse
     for Lib in progSpec.libsToUse:
-        if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
-        elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
-        elif (Lib=="Java"): Lib_Java.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
-        elif (Lib=="CPP"):  Lib_CPP.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
-        elif (Lib=="Swing"):  Lib_Swing.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
-        elif (Lib=="Android"):  Lib_Android.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
-        elif (Lib=="AndroidGUI"):  Lib_AndroidGUI.use(objects, buildSpec, [tags, buildSpec[1]], Platform)
+        if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildTags, [tags, buildTags], Platform)
+        elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildTags, [tags, buildTags], Platform)
+        elif (Lib=="Java"): Lib_Java.use(objects, buildTags, [tags, buildTags], Platform)
+        elif (Lib=="CPP"):  Lib_CPP.use(objects, buildTags, [tags, buildTags], Platform)
+        elif (Lib=="Swing"):  Lib_Swing.use(objects, buildTags, [tags, buildTags], Platform)
+        elif (Lib=="Android"):  Lib_Android.use(objects, buildTags, [tags, buildTags], Platform)
+        elif (Lib=="AndroidGUI"):  Lib_AndroidGUI.use(objects, buildTags, [tags, buildTags], Platform)
 
     return progSpec.libsToUse
 
@@ -190,35 +190,34 @@ def GenerateSystem(objects, buildSpecs, tags):
     ScanAndApplyPatterns(objects, tags)
     AutoGenerateStructsFromModels(objects, tags)
     stringStructs.CreateStructsForStringModels(objects, tags)
-    GroomTags([tags, buildSpecs])
+    GroomTags(tags)
 
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]
+        buildTags=buildSpec[1]
         print "    Generating code for build", buildName
-
-  #      progSpec.removeFieldFromObject(objects, "GLOBAL",  "initialize");
-  #      progSpec.removeFieldFromObject(objects, "GLOBAL", "deinitialize");
         progSpec.MarkItems=True
-        libsToUse=ChooseLibs(objects, buildSpec, tags)
-        outStr = GenerateProgram(objects, buildSpec, tags, libsToUse)
+        libsToUse=ChooseLibs(objects, buildTags, tags)
+        fileSpecs = GenerateProgram(objects, buildTags, tags, libsToUse)
         fileName = tagStore['FileName']
-        langGenTag = buildSpec[1]['Lang']
+        langGenTag = buildTags['Lang']
         if(langGenTag == 'CPP'): fileExtension='.cpp'
         elif(langGenTag == 'Java'): fileExtension='.java'
         else: print "ERROR: unrecognized language ", langGenTag
-#        writeFile(buildName, fileName, outStr, fileExtension)
+
         #GenerateBuildSystem()###################################################
         libFiles=[]
         for lib in libsToUse:
-            tmpLibFiles=(progSpec.fetchTagValue([tags, buildSpecs], 'libraries.'+ lib +'.libFiles'))
+            tmpLibFiles=(progSpec.fetchTagValue([tags, buildTags], 'libraries.'+ lib +'.libFiles'))
             libFiles+=tmpLibFiles
         #TODO: need debug mode and minimum version
-
-        buildDog.build("-g", '14',  fileName, libFiles, buildName, outStr)
+        platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
+        print "LEN:", len(fileSpecs)
+        for f in fileSpecs: print "   FS:", f[0]
+        buildDog.build("-g", '14',  fileName, libFiles, buildName, platform, fileSpecs)
         progSpec.rollBack(objects)
     # GenerateTests()
     # GenerateDocuments()
-    return outStr
 
 
 #############################################    L o a d / P a r s e   P r o g r a m   S p e c
@@ -237,5 +236,5 @@ print "######################   P A R S I N G   S Y S T E M  (", file_name, ")"
 [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)
 tagStore['dogFilename']=file_name
 
-outputScript = GenerateSystem(objectSpecs, buildSpecs, tagStore)
+GenerateSystem(objectSpecs, buildSpecs, tagStore)
 print "\n\n######################   D O N E"

@@ -4,11 +4,11 @@ import re
 import datetime
 import pattern_Write_Main
 import codeDogParser
+from progSpec import structsNeedingModification
 
 buildStr_libs=''
 globalFuncDeclAcc=''
 globalFuncDefnAcc=''
-structsNeedingModification={}
 
 
 def appendGlobalFuncAcc(decl, defn):
@@ -847,13 +847,15 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
 def codeAllNonGlobalStructs(objects, tags, xlator):
     print "\n            Generating Objects..."
     global currentObjName
-    global structsNeedingModification;
+    global structsNeedingModification
     constsEnums=""
     forwardDeclsAcc="\n";
     structCodeAcc='\n////////////////////////////////////////////\n//   O b j e c t   D e c l a r a t i o n s\n\n';
     funcCodeAcc="\n//////////////////////////////////////\n//   M e m b e r   F u n c t i o n s\n\n"
     needsFlagsVar=False;
     constFieldAccs={}
+    fileSpecs=[]
+    dependancies=[]
     for objectName in objects[1]:
         if progSpec.isWrappedType(objects, objectName)!=None: continue
         if(objectName[0] != '!'):
@@ -901,11 +903,13 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                 [structCode, funcCode, globalCode]=codeStructFields(objects, objectName, tags, '    ', xlator)
                 structCode+= constFieldAccs[objectNameBase]
                 [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](parentClass, LangFormOfObjName, structCode)
-                structCodeAcc += structCodeOut
-                forwardDeclsAcc += forwardDeclsOut
-                funcCodeAcc+=funcCode
+
+              #  structCodeAcc += structCodeOut
+               # forwardDeclsAcc += forwardDeclsOut
+              #  funcCodeAcc+=funcCode
+                fileSpecs.append([constsEnums, forwardDeclsOut, structCodeOut, funcCode, objectName, dependancies])
         currentObjName=''
-    return [constsEnums, forwardDeclsAcc, structCodeAcc, funcCodeAcc]
+    return fileSpecs
 
 def codeStructureCommands(objects, tags, xlator):
     global ModifierCommands
@@ -942,20 +946,20 @@ def makeTagText(tags, tagName):
     return tagVal
 
 libInterfacesText=''
-def makeFileHeader(tags, xlator):
+def makeFileHeader(tags, filename, xlator):
     global buildStr_libs
     global libInterfacesText
 
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
     header += "// " + makeTagText(tags, 'CopyrightMesg') +'\n'
-    header += "// This file: " + makeTagText(tags, 'FileName') +'\n'
+    header += "// This file: " + filename +'\n'
     header += "// Dog File: " + makeTagText(tags, 'dogFilename') +'\n'
     header += "// Authors of CodeDog file: " + makeTagText(tags, 'Authors') +'\n'
     header += "// Build time: " + datetime.datetime.today().strftime('%c') + '\n'
     header += "\n// " + makeTagText(tags, 'Description') +'\n'
     header += "\n/*  " + makeTagText(tags, 'LicenseText') +'\n*/\n'
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
-    header += "\n// Build Command: " +buildStr_libs+'\n'
+    header += "\n// Build Command: " +buildStr_libs+'\n\n'
     header += libInterfacesText
     header += xlator['addSpecialCode']()
     return header
@@ -1008,6 +1012,36 @@ struct GLOBAL{
 def generateBuildSpecificMainFunctionality(objects, tags, xlator):
     xlator['generateMainFunctionality'](objects, tags)
 
+def pieceTogetherTheSourceFiles(tags, oneFileTF, fileSpecs, headerInfo, MainTopBottom, xlator):
+    fileSpecsOut=[]
+    fileExtension=xlator['fileExtension']
+    if oneFileTF: # Generate a single source file
+        filename = makeTagText(tags, 'FileName')+fileExtension
+        header = makeFileHeader(tags, filename, xlator)
+        [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc] = ['', '', '', '']
+        for fileSpec in fileSpecs:
+            constsEnums   += fileSpec[0]
+            forwardDecls  += fileSpec[1]
+            structCodeAcc += fileSpec[2]
+            funcCodeAcc   += fileSpec[3]
+
+        forwardDecls += globalFuncDeclAcc
+        funcCodeAcc  += globalFuncDefnAcc
+
+        outputStr = header + constsEnums + forwardDecls + structCodeAcc + MainTopBottom[0] + funcCodeAcc + MainTopBottom[1]
+        filename = progSpec.fetchTagValue(tags, "FileName")
+        fileSpecsOut.append([filename, outputStr])
+
+    else: # Generate a file for each class
+        for fileSpec in fileSpecs:
+            [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc, objectName, dependancies]  = fileSpec
+            filename = objectName+fileExtension
+            header = makeFileHeader(tags, filename, xlator)
+            outputStr = header + constsEnums + forwardDecls + structCodeAcc + funcCodeAcc
+            fileSpecsOut.append([filename, outputStr])
+
+    return fileSpecsOut
+
 def clearBuild():
     global localVarsAllocated
     global localArgsAllocated
@@ -1042,14 +1076,12 @@ def generate(objects, tags, libsToUse, xlator):
     createInit_DeInit(objects, tags)
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
     if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program": generateBuildSpecificMainFunctionality(objects, tags, xlator)
-    header = makeFileHeader(tags, xlator)
+
     codeStructureCommands(objects, tags, xlator)
-    [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc]=codeAllNonGlobalStructs(objects, tags, xlator)
+    fileSpecs=codeAllNonGlobalStructs(objects, tags, xlator)
     topBottomStrings = xlator['codeMain'](objects, tags, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
-    if('cpp' in progSpec.codeHeader): codeHeader=progSpec.codeHeader['cpp']
-    else: codeHeader=''
-    forwardDecls += globalFuncDeclAcc
-    funcCodeAcc += globalFuncDefnAcc
-    outputStr = header + constsEnums + forwardDecls + codeHeader + typeDefCode + structCodeAcc + topBottomStrings[0] + funcCodeAcc + topBottomStrings[1]
-    return outputStr
+
+    fileSpecStrings = pieceTogetherTheSourceFiles(tags, True, fileSpecs, [], topBottomStrings, xlator)
+
+    return fileSpecStrings

@@ -317,7 +317,7 @@ def codeExpr(item, xlator):
     return [S, retType]
 
 def adjustIfConditional(S2, conditionType):
-    print "CONDITIONTYPE:", conditionType, '[', S2, ']'
+    #print "CONDITIONTYPE:", conditionType, '[', S2, ']'
     if not isinstance(conditionType, basestring):
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my':
             S2+=" != null"
@@ -342,7 +342,7 @@ def codeSpecialFunc(segSpec, xlator):
         S+=")"
     elif(funcName=='AllocateOrClear'):
         if(len(segSpec)>2):
-            print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
+            #print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
             S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
@@ -412,7 +412,7 @@ def addSpecialCode():
                     dis.close();
                 }
             } catch (IOException ioe) {
-                System.out.println("Connot read file " + ioe.getMessage());
+                System.out.println("Cannot read file " + ioe.getMessage());
                 return "";
             }
         }
@@ -592,6 +592,7 @@ def fetchXlators():
 
     xlators['LanguageName']     = "Java"
     xlators['BuildStrPrefix']   = "Javac "
+    xlators['fileExtension']     = ".java"
     xlators['typeForCounterInt']= "int"
     xlators['GlobalVarPrefix']  = "GLOBAL.static_Global."
     xlators['PtrConnector']     = "."                      # Name segment connector for pointers.

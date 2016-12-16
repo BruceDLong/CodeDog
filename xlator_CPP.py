@@ -373,7 +373,7 @@ def codeSpecialFunc(segSpec, xlator):
             S+=" << flush"
     elif(funcName=='AllocateOrClear'):
         if(len(segSpec)>2):
-            print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
+            #print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
             paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
@@ -421,6 +421,7 @@ def codeMain(objects, tags, xlator):
         [structCode, funcCode, globalFuncs]=codeStructFields(objects, "GLOBAL", tags, '', xlator)
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
+        funcCode = "\n\n"+funcCode
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
@@ -624,6 +625,7 @@ def fetchXlators():
 
     xlators['LanguageName']     = "C++"
     xlators['BuildStrPrefix']   = "g++ -g -std=gnu++14  "
+    xlators['fileExtension']     = ".cpp"
     xlators['typeForCounterInt']= "int64_t"
     xlators['GlobalVarPrefix']  = ""
     xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.

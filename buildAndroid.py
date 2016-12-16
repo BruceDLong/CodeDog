@@ -5,7 +5,7 @@ import subprocess
 import errno
 
 def writeFile(workingDir, packageDir, fileName, outStr, fileExt):
-    #print "Path:", packageDir 
+    #print "Path:", packageDir
     makeDir(workingDir+packageDir)
     fileName += fileExt
     fo=open(workingDir+packageDir + os.sep + fileName, 'w')
@@ -40,7 +40,7 @@ def pathAndroid(workingDir, dirsToGen):
 
 def androidManifest(topDomain, domain, appName, workingDir):
     manifestName = "AndroidManifest.xml"
-    
+
     outStr = '<?xml version="1.0" encoding="utf-8"?>\n' \
             '<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n' \
             '    package="' + topDomain + '.' + domain + '.' + appName + '">\n' \
@@ -53,7 +53,7 @@ def androidManifest(topDomain, domain, appName, workingDir):
             '        </activity>\n' \
             '    </application>\n' \
             '</manifest>\n' \
-    
+
     fo=open(workingDir + os.sep + manifestName, 'w')
     fo.write(outStr)
     fo.close()
@@ -64,10 +64,10 @@ def generateAndroid(workingDir):
     creatOutDir = "-m "
     pathToDrawablesAndLayouts = "-S " + workingDir + "/res/ "
     pathToAndroidJar = '-I "$ANDROID_HOME/platforms/android-23/android.jar" '
-    pathToManifest = "-M AndroidManifest.xml " 
+    pathToManifest = "-M AndroidManifest.xml "
     forceOverwrite = "-f "
-    
-    myCMD = 'aapt package ' + forceOverwrite + pathToManifest + pathToAndroidJar + pathToDrawablesAndLayouts + outputDir + creatOutDir 
+
+    myCMD = 'aapt package ' + forceOverwrite + pathToManifest + pathToAndroidJar + pathToDrawablesAndLayouts + outputDir + creatOutDir
     [out, err] = runCMD(myCMD, workingDir)
     #TODO: if error "The type ClassName cannot be found in source files" try clean then build
 
@@ -77,7 +77,7 @@ def compileAndroid(buildName):
     importTag = ''
     outputTag = '--output-dex ' + buildName + '/out ' + buildName + '/src/ ' + buildName + '/gen/ '
     jack = 'java -jar "$ANDROID_HOME/build-tools/24.0.2/jack.jar" '
-    myCMD = jack + classpath + importTag + outputTag 
+    myCMD = jack + classpath + importTag + outputTag
     [out, err] = runCMD(myCMD, '.')
 
 def packageAndroid(appName, buildName, workingDir):
@@ -86,13 +86,13 @@ def packageAndroid(appName, buildName, workingDir):
     creatOutDir = "-m "
     pathToDrawablesAndLayouts = '-S ' + buildName + '/res/ '
     pathToAndroidJar = '-I "$ANDROID_HOME/platforms/android-23/android.jar" '
-    pathToManifest = '-M ' + buildName + '/AndroidManifest.xml ' 
+    pathToManifest = '-M ' + buildName + '/AndroidManifest.xml '
     forceOverwrite = "-f "
     apkOutFile = '-F ' + buildName + '/' + appName +'.apk '
-    
+
     myCMD = 'aapt package ' + forceOverwrite + pathToManifest + pathToAndroidJar + pathToDrawablesAndLayouts + apkOutFile
     [out, err] = runCMD(myCMD, '.')
-    
+
     myCMD = 'aapt add ' + appName + '.apk ' + buildName + '/out/classes.dex'
     [out, err] = runCMD(myCMD, workingDir)
 
@@ -103,8 +103,8 @@ def signAndroid(appName, buildName):
     keyPassword = '-keypass android '
     outFile = buildName + '/' + appName +'.apk '
     keyAlias = 'androiddebugkey '
-    
-    myCMD = 'jarsigner -verbose ' + keystoreTag + keystorePassword + keyPassword + outFile + keyAlias 
+
+    myCMD = 'jarsigner -verbose ' + keystoreTag + keystorePassword + keyPassword + outFile + keyAlias
     [out, err] = runCMD(myCMD, '.')
 
 def zipalignAndroid(appName, buildName):
@@ -113,26 +113,26 @@ def zipalignAndroid(appName, buildName):
     allignmentTag = '4 '
     inFile = buildName + '/' + appName +'.apk  '
     outFile = buildName + '/' + appName +'-aligned.apk '
-    
+
     myCMD = 'zipalign ' + forceOverwrite + allignmentTag + inFile + outFile
     [out, err] = runCMD(myCMD, '.')
-    
+
 def uploadAndroid(appName, buildName):
     print '    Uploading APK'
     replaceExistingApp = '-r '
     pathToAPK = buildName + '/' + appName +'-aligned.apk'
-    
+
     myCMD = 'adb install ' + replaceExistingApp + pathToAPK
     [out, err] = runCMD(myCMD, '.')
 
 def runAndroid(packageName):
     print '    Running '
-    
-    
+
+
     myCMD = 'adb shell am start ' + packageName +'/.MainActivity'
     [out, err] = runCMD(myCMD, '.')
 
-def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, outStr):
+def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, outStr):
     topDomain = "com"
     domain = "infomage"
     currentDir = os.getcwd()
@@ -141,8 +141,8 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, out
     packageName = topDomain+'.'+domain+'.'+fileName
     dirsToGen = ['/gen', '/libs', '/out', '/res/drawable-xhdpi', '/res/layout', packageDir]
     fileExt = '.java'
-    
-    print 'Building for Android' 
+
+    print 'Building for Android'
     pathAndroid(workingDir, dirsToGen)
     writeFile(workingDir, packageDir, fileName, outStr, fileExt)
     androidManifest(topDomain, domain, fileName, workingDir)

@@ -4,7 +4,7 @@
 import re
 
 storeOfBaseTypesUsed={} # Registry of all types used
-codeHeader={} # e.g., codeHeader['cpp']="C++ header code"
+
 libsToUse={}
 
 #########################
@@ -16,11 +16,13 @@ MarkedObjects={}
 MarkedFields=[]
 ModifierCommands=[]
 funcsCalled={}
+structsNeedingModification={}
 
 def rollBack(objSpecs):
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
+    global structsNeedingModification
 
     for ObjToDel in MarkedObjects.keys():
         del objSpecs[0][ObjToDel]
@@ -46,18 +48,17 @@ def rollBack(objSpecs):
             else: idx+=1
 
     # Delete platform-specific items in CodeGenerator.structsNeedingModification {}
-    # TODO Delete items in structsNeedingModification with MarkItems==True
+    itemsToDelete=[]
+    for itm in structsNeedingModification:
+        if structsNeedingModification[itm][3] == True:
+            itemsToDelete.append(itm)
+    for itm in itemsToDelete: del(structsNeedingModification[itm])
 
     # Clear other variables
     MarkedObjects={}
     MarkedFields=[]
 
 #########################
-
-def setCodeHeader(languageID, codeText):
-    global codeHeader
-    if not languageID in codeHeader: codeHeader[languageID]='';
-    codeHeader[languageID]+='\n'+codeText
 
 def getTypesBase(typeSpec):
     if isinstance(typeSpec, basestring):
