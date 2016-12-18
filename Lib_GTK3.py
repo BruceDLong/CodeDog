@@ -26,6 +26,8 @@ def use(objects, buildSpec, tags, platform):
 
     struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
+    struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
+
     struct GUI{
         their GtkApplication: app
         their GtkWidget: window
@@ -101,6 +103,12 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     me void: logDebug(me string: s) <- <%!g_debug(%1)%>
     //me void: assert(condition) <- {}
 
+
+    // DRAWING ROUTINES:
+    me INK_Image[me string: map]: InkImgCache
+    me void: displayImage() <- {
+        me INK_Image: pic <- NULL
+    }
 
 // GUI INTERFACE:
 
