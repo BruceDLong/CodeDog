@@ -118,7 +118,7 @@ coFactualEl  = Group(Literal("(") + Group(fieldDef + "<=>" + Group(OneOrMore(Set
 sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
 alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
 anonModel = (sequenceEl | alternateEl) ("anonModel")
-owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their"))
+owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("itr"))
 fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | Group(anonModel))('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
@@ -354,13 +354,13 @@ def extractActItem(funcName, actionItem):
         if len(calledFuncLastSegment)<2 or calledFuncLastSegment[1] != '(':
             print "Expected a function, not a variable:", calledFuncLastSegment; exit(2)
         thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc}
-        
+
         calledFuncName = calledFuncLastSegment[0]
         if(len(calledFuncLastSegment)<=2): calledFuncParams=[]
-        else: 
-            #print 'calledFuncLastSegment', calledFuncLastSegment, ', len:', 
+        else:
+            #print 'calledFuncLastSegment', calledFuncLastSegment, ', len:',
             calledFuncParams = calledFuncLastSegment[2]
-            
+
         progSpec.appendToFuncsCalled(calledFuncName, calledFuncParams)
     else:
         print "error in extractActItem"

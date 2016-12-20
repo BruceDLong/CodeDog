@@ -218,6 +218,7 @@ def removeFieldFromObject (objects, objectName, fieldtoRemove):
 ###############  Various type-handling functions
 
 def getTypeSpecOwner(typeSpec):
+    if typeSpec==None or isinstance(typeSpec, basestring): return 'me'
     if "arraySpec" in typeSpec and typeSpec['arraySpec']!=None:
         if "owner" in typeSpec['arraySpec']:
             return typeSpec['arraySpec']['owner']
@@ -226,7 +227,7 @@ def getTypeSpecOwner(typeSpec):
 
 def typeIsPointer(typeSpec):
     owner=getTypeSpecOwner(typeSpec)
-    if owner == 'their' or owner == 'our' or owner == 'my': isPointer=True
+    if owner == 'their' or owner == 'our' or owner == 'my' or owner == 'itr': isPointer=True
     else: isPointer=False
     return isPointer
 

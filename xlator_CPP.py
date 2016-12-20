@@ -36,6 +36,8 @@ def applyOwner(owner, langType, varMode):
         langType="shared_ptr<"+langType + ' >'
     elif owner=='their':
         langType += '*'
+    elif owner=='itr':
+        langType += '::iterator'
     else:
         print "ERROR: Owner of type not valid '" + owner + "'"
         exit(1)
@@ -96,7 +98,7 @@ def langStringFormatterCommand(fmtStr, argStr):
 def derefPtr(varRef, itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
         if progSpec.typeIsPointer(itemTypeSpec):
-            return '(*'+varRef+')'
+            return '(   *'+varRef+')'
     return varRef
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -163,11 +165,15 @@ def getEnumStr(fieldName, enumList):
 def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
     convertedIdxType = ""
     if containerType=='deque':
-        if name=='at' or name=='insert' or name=='erase' or name=='end' or  name=='rend': pass
+        if name=='at' or name=='insert' or name=='erase': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='front'    : name='begin()'; paramList=None;
-        elif name=='back'     : name='rbegin()'; paramList=None;
+        elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='first'    : name='begin()->second';  paramList=None;
+        elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front'
@@ -178,11 +184,16 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='front': name='begin()->second'; paramList=None;
-        elif name=='back': name='rbegin()->second'; paramList=None;
+        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='find'     : name='find';     typeSpecOut['owner']='itr';
+        elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='first'    : name='begin()->second';  paramList=None;
+        elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         else: print "Unknown map command:", name; exit(2);
@@ -191,11 +202,15 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='front': name='begin()->second'; paramList=None;
-        elif name=='back': name='rbegin()->second'; paramList=None;
+        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='first'    : name='begin()->second';  paramList=None;
+        elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         else: print "Unknown multimap command:", name; exit(2);
@@ -311,6 +326,7 @@ def codeIsEQ(item, xlator):
     [S, retType]=codeComparison(item[0], xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print "Error: Chained == or !=.\n"; exit(1);
+        leftOwner=owner=progSpec.getTypeSpecOwner(retType)
         S_derefd = derefPtr(S, retType)
         for i in item[1]:
             #print '      IsEq ', i
@@ -318,8 +334,10 @@ def codeIsEQ(item, xlator):
             elif (i[0] == '!='): op=' != '
             else: print "ERROR: '==' or '!=' expected in code generator."; exit(2)
             [S2, retType] = codeComparison(i[1], xlator)
-            if S2!='NULL': S=S_derefd
-            S2=derefPtr(S2, retType)
+            rightOwner=progSpec.getTypeSpecOwner(retType)
+            if not( leftOwner=='itr' and rightOwner=='itr'):
+                if S2!='NULL': S=S_derefd
+                S2=derefPtr(S2, retType)
             S+= op+S2
             retType='bool'
     return [S, retType]
