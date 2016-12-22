@@ -6,23 +6,23 @@ import codeDogParser
 def createUtilityFunctions():
     S="""
     me x: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
-    me void: initialize() <- <%!initialize()%>
-    me void: deinitialize() <- <%!deinitialize()%>
-    me void: onCreate() <- <%{
-        super.onCreate();
-        static_Global = this;
-        javaRandomVar = new Random();
-        initialize();
-    }%>
+//    me void: initialize() <- <%!initialize()%>
+//    me void: deinitialize() <- <%!deinitialize()%>
+//    me void: onCreate() <- <%{
+//        super.onCreate();
+//        static_Global = this;
+//        javaRandomVar = new Random();
+//        initialize();
+//    }%>
 
-    me void: onTerminate() <- <%{
-        super.onTerminate();
-        deinitialize();
-    }%>
+//    me void: onTerminate() <- <%{
+//        super.onTerminate();
+//        deinitialize();
+//    }%>
 
-    me GLOBAL: getInstance() <- <%{
-        return static_Global;
-    }%>
+//    me GLOBAL: getInstance() <- <%{
+//        return static_Global;
+//    }%>
     """
     return S
 
@@ -46,11 +46,12 @@ def GenerateMainActivity(objects, tags, runCode):
 
     GLOBAL_CODE="""
     struct GLOBAL: ctxTag="Android" Platform='Android' Lang='Java' LibReq="Android" implMode="inherit:Activity" {
-        me GLOBAL: static_Global
-        me Random: javaRandomVar
+//        me GLOBAL: static_Global
+//        me Random: javaRandomVar
 
         me void: onCreate(me Bundle: savedInstanceState) <- {
             super.onCreate(savedInstanceState)
+            GLOBAL.static_Global <- this
             initialize()
         }
 

@@ -780,8 +780,6 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
 
         ###### Arglist exists so this is a function.###########
         else:
-            if(fieldType=='none'): convertedType=''
-
             #### Generate ArgListTest from function arguments
             argList=field['typeSpec']['argList']
             if len(argList)==0:                                             # No arguments
@@ -804,7 +802,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
             if(fieldType[0] != '<%'):
                 pass #registerType(objectName, fieldName, convertedType, typeDefName)
             else: typeDefName=convertedType
-
+            if(typeDefName=='none'): typeDefName=''
 
             ##### Generate function header for both decl and defn.
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent)

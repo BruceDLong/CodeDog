@@ -518,7 +518,8 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
     fieldValueText=""
     if(fieldValue == None):
         if (not varTypeIsJavaValueType(convertedType) and fieldOwner=='me'):
-            fieldValueText=" = new " + convertedType + "();"
+            #fieldValueText=" = new " + convertedType + "()"
+            pass
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):
