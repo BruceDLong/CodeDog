@@ -4,10 +4,9 @@ import os
 import subprocess
 import errno
 
-def writeFile(topDomain, domain, workingDir, packageDir, fileName, outStr, fileExt):
+def writeFile(workingDir, packageDir, fileName, outStr, fileExt):
     #print "Path:", packageDir 
     makeDir(workingDir+packageDir)
-    outStr = 'package ' + topDomain+'.'+domain+'.'+fileName +';\n'+ outStr
     fileName += fileExt
     fo=open(workingDir+packageDir + os.sep + fileName, 'w')
     fo.write(outStr)
@@ -39,14 +38,14 @@ def pathAndroid(workingDir, dirsToGen):
     for dirToGen in dirsToGen:
         makeDir(workingDir + dirToGen)
 
-def androidManifest(mainActivityName, topDomain, domain, appName, workingDir):
+def androidManifest(topDomain, domain, appName, workingDir):
     manifestName = "AndroidManifest.xml"
     
     outStr = '<?xml version="1.0" encoding="utf-8"?>\n' \
             '<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n' \
             '    package="' + topDomain + '.' + domain + '.' + appName + '">\n' \
             '    <application android:label="' + appName + '">\n' \
-            '        <activity android:name="'+ mainActivityName +'">\n' \
+            '        <activity android:name="MainActivity">\n' \
             '            <intent-filter>\n' \
             '                <action android:name="android.intent.action.MAIN" />\n' +\
             '                <category android:name="android.intent.category.LAUNCHER" />\n' \
@@ -126,15 +125,14 @@ def uploadAndroid(appName, buildName):
     myCMD = 'adb install ' + replaceExistingApp + pathToAPK
     [out, err] = runCMD(myCMD, '.')
 
-def runAndroid(packageName, mainActivityName):
+def runAndroid(packageName):
     print '    Running '
     
     
-    myCMD = 'adb shell am start ' + packageName +'/.' + mainActivityName
+    myCMD = 'adb shell am start ' + packageName +'/.MainActivity'
     [out, err] = runCMD(myCMD, '.')
 
 def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, outStr):
-    fileName='GLOBAL'
     topDomain = "com"
     domain = "infomage"
     currentDir = os.getcwd()
@@ -143,12 +141,11 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, out
     packageName = topDomain+'.'+domain+'.'+fileName
     dirsToGen = ['/gen', '/libs', '/out', '/res/drawable-xhdpi', '/res/layout', packageDir]
     fileExt = '.java'
-    mainActivityName = fileName
     
     print 'Building for Android' 
     pathAndroid(workingDir, dirsToGen)
-    writeFile(topDomain, domain, workingDir, packageDir, fileName, outStr, fileExt)
-    androidManifest(mainActivityName, topDomain, domain, fileName, workingDir)
+    writeFile(workingDir, packageDir, fileName, outStr, fileExt)
+    androidManifest(topDomain, domain, fileName, workingDir)
     generateAndroid(workingDir)
     compileAndroid(buildName)
     packageAndroid(fileName, buildName, workingDir)

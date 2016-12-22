@@ -26,6 +26,8 @@ def use(objects, buildSpec, tags, platform):
 
     struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
+    struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
+
     struct GUI{
         their GtkApplication: app
         their GtkWidget: window
@@ -66,7 +68,7 @@ struct GUI{
 }
 
 struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:cairo_t" {
-   their cairo_t:GUI_ctxt
+    their cairo_t:GUI_ctxt
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
     me void: reset() <- <%!%G %>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, %1, %2 /256, %3 /256, %4 /256)%>
@@ -101,6 +103,18 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     me void: logDebug(me string: s) <- <%!g_debug(%1)%>
     //me void: assert(condition) <- {}
 
+
+    // DRAWING ROUTINES:
+    me INK_Image[map string]: InkImgCache
+    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- {
+        me INK_Image: pic <- NULL
+        me INK_Image[itr map string]: picPtr <- InkImgCache.find(filename)
+        if (picPtr==InkImgCache.end()) {
+            pic <- cairo_image_surface_create_from_png(filename)
+            InkImgCache[filename] <- pic
+        }
+        else {pic <- picPtr}
+    }
 
 // GUI INTERFACE:
 
