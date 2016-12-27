@@ -39,7 +39,7 @@ struct GUI {
 
     me void: GUI_PopulateAndExec() <- <% {
         JFrame frame = new JFrame(title);
-        frame.setSize(500, 700);
+        frame.setSize(1000, 700);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         GLOBAL.static_Global.appFuncs.createAppMenu(frame);
         GLOBAL.static_Global.appFuncs.createAppArea(frame);
@@ -83,9 +83,59 @@ struct GUI {
         return(SubMenu)
     }
 }
+
+struct tm{
+    me Calendar: tm
+}
+struct timeStringer{
+    me String: time12Hour() <- <%{
+        Calendar timeRec = Calendar.getInstance();
+        String AmPm = "am";
+        int hours = timeRec.get(Calendar.HOUR);
+        //if (hours>=12) {hours = hours-12; AmPm="pm";}
+        if (timeRec.get(Calendar.AM_PM)==Calendar.PM){AmPm="pm";}
+        if (hours==0) {hours = 12;}
+        String SH = (Integer.toString(hours)+":");
+        int min = timeRec.get(Calendar.MINUTE);
+        if (min<10){SH = SH+"0";}
+        SH = SH + Integer.toString(min);
+
+        SH=SH+":";
+        int sec = timeRec.get(Calendar.SECOND);
+        if (sec<10){SH = SH+"0";}
+        SH = SH + Integer.toString(sec);
+        SH=SH+AmPm;
+        return(SH);
+    } %>
+}
+
+
+struct INK_Image{me BufferedImage: INK_Image}
 struct GLOBAL{
 
     me thisApp: appFuncs
+
+    // DRAWING ROUTINES:
+
+    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
+        cr.gr.setFont(new Font(fontName, Font.PLAIN, (int)(fontSize*1.4)));
+        cr.gr.drawString(text, (int)cr.cur_x, (int)cr.cur_y);
+    } %>
+
+
+
+    me INK_Image[map string]: InkImgCache
+    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
+        BufferedImage picPtr=InkImgCache.get(filename);
+        if (picPtr==null) {
+            try{
+                picPtr=ImageIO.read(new File(filename));
+            } catch(IOException ioe){System.out.println("Cannot read image file " + ioe.getMessage()); System.exit(2);}
+            InkImgCache.put(filename, picPtr);
+            }
+        cr.gr.drawImage(picPtr, null, 0,0);
+    } %>
+
     me void: close_window() <- {
          // gtk_main_quit()
     }
@@ -119,14 +169,15 @@ struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implM
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!gr.setColor(new Color(%1, %2, %3, %4))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!gr.setColor(new Color(%1, %2, %3))%>
     me void: setLineWidth(me double: width) <- <%!gr.setStroke(new BasicStroke(%1))%>
-    me void: moveTo(me double: x, me double: y) <- <%!GPath.moveTo(%1, %2)%>
-    me void: lineTo(me double: x, me double: y) <- <%!GPath.lineTo(%1, %2)%>
+    me void: moveTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo(%1, %2)%>
+    me void: lineTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo(%1, %2)%>
     me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo(cr.cur_x+%1, cr.cur_y+%2)%>
     me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo(cr.cur_x+%1, cr.cur_y+%2)%>
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: paintNow() <- <%!gr.fill(cr.GPath)%>
     me void: strokeNow() <- <%!gr.draw(cr.GPath)%>
+    me void: fillNow() <- <%!gr.fill(cr.GPath)%>
     me void: renderFrame() <- <%!repaint()%>
 }
     """

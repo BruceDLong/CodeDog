@@ -49,7 +49,7 @@ libraries = {
         bindings =[Java]
         CPUs     =[JavaVM]
         libFiles=[]
-        headers=[java.lang.String, java.io.*, java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.Date, java.util.Map, java.util.TreeMap, java.util.ArrayList, java.util.Arrays, java.util.concurrent.*]
+        headers=[java.lang.String, java.io.*, java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.Calendar, java.util.Date, java.util.Map, java.util.TreeMap, java.util.ArrayList, java.util.Arrays, java.util.concurrent.*]
     }
 
     CPP={
@@ -71,7 +71,7 @@ libraries = {
         bindings =[Java]
         CPUs     =[JavaVM]
         libFiles=[]
-        headers=[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*]
+        headers=[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*, java.awt.Font, java.awt.image.BufferedImage, java.awt.Graphics, java.awt.Graphics2D, javax.imageio.ImageIO]
     }
 
     AndroidGUI={

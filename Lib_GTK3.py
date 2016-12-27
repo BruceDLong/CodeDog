@@ -71,8 +71,8 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     their cairo_t:GUI_ctxt
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
     me void: reset() <- <%!%G %>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, %1, %2 /256, %3 /256, %4 /256)%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, %1 /256, %2 /256, %3 /256)%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
     me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(%0, %1, %2)%>
     me void: lineTo(me double: x, me double: y) <- <%!cairo_line_to(%0, %1, %2)%>
@@ -82,7 +82,41 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
     me void: paintNow() <- <%!cairo_paint(%0)%>
     me void: strokeNow() <- <%!cairo_stroke(%0)%>
+    me void: fillNow() <- <%!cairo_fill(%0)%>
     //me void: renderFrame() <- <%!%G ;%>
+}
+
+struct tm{
+    me tm: tm
+    me int: tm_hour
+    me int: tm_min
+    me int: tm_sec
+}
+struct timeStringer{
+    me tm: timeRec
+    me none: timeStringer() <- <%{
+        time_t rawtime;
+        time (&rawtime);
+        timeRec = *localtime(&rawtime);
+    } %>
+
+    me string: time12Hour() <- <%{
+        string AmPm = "am";
+        int hours = timeRec.tm_hour;
+        if (hours>=12) {hours = hours-12; AmPm="pm";}
+        if (hours==0) {hours = 12;}
+        string SH = (to_string(hours)+":");
+        int min = timeRec.tm_min;
+        if (min<10){SH = SH+"0";}
+        SH = SH + to_string(min);
+
+        SH=SH+":";
+        int sec = timeRec.tm_sec;
+        if (sec<10){SH = SH+"0";}
+        SH = SH + to_string(sec);
+        SH=SH+AmPm;
+        return(SH);
+    } %>
 }
 
 
@@ -105,16 +139,53 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
 
 
     // DRAWING ROUTINES:
+
+    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
+        PangoLayout *layout=pango_cairo_create_layout(cr);
+        pango_layout_set_text(layout, text.data(), -1);
+
+        string fontDesc=fontName+' '+ std::to_string(fontSize);
+        PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
+        pango_layout_set_font_description(layout, desc);
+        pango_font_description_free(desc);
+
+        cairo_set_line_width(cr, 0.5);
+        pango_cairo_update_layout(cr, layout);
+        pango_cairo_show_layout_line (cr, pango_layout_get_line (layout, 0));
+       // pango_cairo_layout_path(cr, layout);
+        g_object_unref(layout);
+        cairo_fill(cr);
+    } %>
+
+
+    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
+        cairo_move_to(cr,x+r,y);                      //# Move to A
+        cairo_line_to(cr,x+w-r,y);                    //# Straight line to B
+        cairo_curve_to(cr,x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
+        cairo_line_to(cr,x+w,y+h-r);                  //# Move to D
+        cairo_curve_to(cr,x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cairo_line_to(cr,x+r,y+h);                    //# Line to F
+        cairo_curve_to(cr,x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cairo_line_to(cr,x,y+r);                      //# Line to H
+        cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
+    } %>
+
     me INK_Image[map string]: InkImgCache
-    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- {
-        me INK_Image: pic <- NULL
-        me INK_Image[itr map string]: picPtr <- InkImgCache.find(filename)
+    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
+        map< string, cairo_surface_t* >::iterator picPtr=InkImgCache.find(filename);
+        cairo_surface_t* pic=0;
         if (picPtr==InkImgCache.end()) {
-            pic <- cairo_image_surface_create_from_png(filename)
-            InkImgCache[filename] <- pic
-        }
-        else {pic <- picPtr}
-    }
+            pic=cairo_image_surface_create_from_png(filename.data());
+            InkImgCache[filename]=pic;
+            }
+        else pic=picPtr->second;
+
+        cairo_save(cr);
+        cairo_scale(cr,1/scale,1/scale);
+        cairo_set_source_surface(cr,pic,x*scale,y*scale);
+        cairo_paint(cr);
+cairo_restore(cr);
+    } %>
 
 // GUI INTERFACE:
 
@@ -191,7 +262,7 @@ me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: c
 
           window = gtk_application_window_new (app);
           gtk_window_set_title (GTK_WINDOW (window), "Window");
-          gtk_window_set_default_size (GTK_WINDOW (window), 500, 700);
+          gtk_window_set_default_size (GTK_WINDOW (window), 1000, 700);
           g_signal_connect (window, "destroy", G_CALLBACK (close_window), NULL);
           gtk_container_set_border_width (GTK_CONTAINER (window), 0);
 

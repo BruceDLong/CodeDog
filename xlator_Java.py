@@ -145,10 +145,15 @@ def getEnumStr(fieldName, enumList):
 def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
     convertedIdxType = ""
     if containerType=='ArrayList':
-        if name=='at' or name=='insert' or name=='erase' or  name=='size' or name=='end' or  name=='rend': pass
+        if name=='at' or name=='insert' or name=='erase': pass
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='front'    : name='begin()'; paramList=None;
-        elif name=='back'     : name='rbegin()'; paramList=None;
+        elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='first'    : name='get(0)';   paramList=None;
+        elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front'
@@ -157,31 +162,43 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
     elif containerType=='TreeMap':
         convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
-        if name=='at' or name=='erase' or  name=='size': pass
+        if name=='at' or name=='erase': pass
+        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put';
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='front': name='firstEntry().getValue()'; paramList=None;
-        elif name=='back': name='lastEntry().getValue()'; paramList=None;
+        elif name=='find'     : name='find';     typeSpecOut['owner']='itr';
+        elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='first'    : name='get(0)';   paramList=None;
+        elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
-        if name=='at' or name=='erase' or  name=='size': pass
+        if name=='at' or name=='erase': pass
+        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='front': name='firstEntry().getValue()'; paramList=None;
-        elif name=='back': name='lastEntry().getValue()'; paramList=None;
+        elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         else: print "Unknown multimap command:", name; exit(2);
     elif containerType=='tree': # TODO: Make trees work
-        if name=='insert' or name=='erase' or  name=='size': pass
+        if name=='insert' or name=='erase': pass
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
         else: print "Unknown tree command:", name; exit(2)
     elif containerType=='graph': # TODO: Make graphs work
-        if name=='insert' or name=='erase' or  name=='size': pass
+        if name=='insert' or name=='erase': pass
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
         else: print "Unknown graph command:", name; exit(2);
     elif containerType=='stream': # TODO: Make stream work
@@ -518,7 +535,8 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
     fieldValueText=""
     if(fieldValue == None):
         if (not varTypeIsJavaValueType(convertedType) and fieldOwner=='me'):
-            fieldValueText=" = new " + convertedType + "();"
+            fieldValueText=" = new " + convertedType + "()"
+            #pass
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):

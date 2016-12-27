@@ -22,7 +22,7 @@ def createUtilityFunctions():
         me long: getCurrentTimeStamp() <- <%!%Gnew Date().getTime()%>
         me string: readFileAsString(me string: fileName) <- <%!%Gfuncs.readFileAsString(%1)%>
         me timeOutID: callPeriodically(me string: varClass, me string: funcToCall, me int:microSecs): COMMAND_addImplements="Runnable:ToClass:%1" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%2, 0, %3, TimeUnit.MILLISECONDS)%>
-
+        me string: toString(me int: val) <- <%!%GInteger.toString(%1)%>
     """
     return S
 

@@ -3,41 +3,41 @@
 import progSpec
 import codeDogParser
 
-def createUtilityFunctions():
-    S="""
-    me x: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
-    me void: initialize() <- <%!initialize()%>
-    me void: deinitialize() <- <%!deinitialize()%>
-    me void: onCreate() <- <%{
-        super.onCreate();
-        static_Global = this;
-        javaRandomVar = new Random();
-        initialize();
-    }%>
 
-    me void: onTerminate() <- <%{
-        super.onTerminate();
-        deinitialize();
-    }%>
-
-    me GLOBAL: getInstance() <- <%{
-        return static_Global;
-    }%>
-    """
-    return S
 
 
 def use(objects, buildSpec, tags, platform):
     CODE="""struct random{me Random: random}"""
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
 
-    APP_UTILITY_CODE = createUtilityFunctions()
 
     GLOBAL_CODE="""
     struct GLOBAL{
-    %s
+        // DRAWING ROUTINES:
+
+    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
+        cr.gr.setFont(new Font(fontName, Font.PLAIN, fontSize));
+        cr.gr.drawString(text, (int)cr.cur_x, (int)cr.cur_y);
+    } %>
+
+
+
+    me INK_Image[map string]: InkImgCache
+    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
+        BufferedImage picPtr=InkImgCache.get(filename);
+        if (picPtr==null) {
+            try{
+                picPtr=ImageIO.read(new File(filename));
+            } catch(IOException ioe){System.out.println("Cannot read image file " + ioe.getMessage()); System.exit(2);}
+            InkImgCache.put(filename, picPtr);
+            }
+        cr.gr.drawImage(picPtr, null, 0,0);
+    } %>
+
+
+
     }
-""" % (APP_UTILITY_CODE)
+"""
     print "GLOBAL_CODE: ", GLOBAL_CODE
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )

@@ -95,11 +95,20 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def derefPtr(varRef, itemTypeSpec):
+def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
         if progSpec.typeIsPointer(itemTypeSpec):
-            return '(   *'+varRef+')'
-    return varRef
+            owner=progSpec.getTypeSpecOwner(itemTypeSpec)
+            if owner=='itr':
+                containerType = itemTypeSpec['arraySpec'][2]
+                if containerType =='map' or containerType == 'multimap':
+                    return ['', '->second']
+            return ['(*', ')']
+    return ['', '']
+
+def derefPtr(varRef, itemTypeSpec):
+    [leftMod, rightMod] = getTheDerefPtrMods(itemTypeSpec)
+    return leftMod + varRef + rightMod
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     # Returns left and right text decorations for RHS of function arguments, return values, etc.
@@ -120,7 +129,9 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if LeftOwner == RightOwner: return ['','',  '','']
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ['','',  "(*", ")"]
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
+        [leftMod, rightMod] = getTheDerefPtrMods(RVAL)
+        return ['','',  leftMod, rightMod]  # ['', '', "(*", ")"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
         if assignTag=='deep' :return ['(*',')',  '', '']
         else: return ['','',  "&", '']
@@ -414,7 +425,7 @@ def codeSpecialFunc(segSpec, xlator):
             [interval,  intSpec]   =xlator['codeExpr'](paramList[2][0], xlator)
             varTypeSpec= retType['fieldType'][0]
             wrapperName="cb_wraps_"+varTypeSpec
-            S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+'.get())'
+            S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
 
             # Create a global function wrapping the class
             decl='\nint '+wrapperName+'(void* data)'
