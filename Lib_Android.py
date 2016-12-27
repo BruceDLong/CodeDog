@@ -4,17 +4,15 @@ import progSpec
 import codeDogParser
 
 
-
-
 def use(objects, buildSpec, tags, platform):
-    CODE="""struct random{me Random: random}"""
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
-
-
     GLOBAL_CODE="""
+    struct random{me Random: random}
     struct GLOBAL{
-        // DRAWING ROUTINES:
 
+        me x: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
+
+        // DRAWING ROUTINES:
+        
     me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
         cr.gr.setFont(new Font(fontName, Font.PLAIN, fontSize));
         cr.gr.drawString(text, (int)cr.cur_x, (int)cr.cur_y);
@@ -30,7 +28,7 @@ def use(objects, buildSpec, tags, platform):
                 picPtr=ImageIO.read(new File(filename));
             } catch(IOException ioe){System.out.println("Cannot read image file " + ioe.getMessage()); System.exit(2);}
             InkImgCache.put(filename, picPtr);
-            }
+    }
         cr.gr.drawImage(picPtr, null, 0,0);
     } %>
 
@@ -46,11 +44,10 @@ def GenerateMainActivity(objects, tags, runCode):
 
     GLOBAL_CODE="""
     struct GLOBAL: ctxTag="Android" Platform='Android' Lang='Java' LibReq="Android" implMode="inherit:Activity" {
-        me GLOBAL: static_Global
-        me Random: javaRandomVar
 
         me void: onCreate(me Bundle: savedInstanceState) <- {
             super.onCreate(savedInstanceState)
+            GLOBAL.static_Global <- this
             initialize()
         }
 

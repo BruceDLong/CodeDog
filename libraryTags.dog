@@ -82,7 +82,7 @@ libraries = {
         bindings =[Java]
         CPUs     =[ARM]
         libFiles=[]
-        headers=[android.view.View, android.widget.LinearLayout, android.content.Context, android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.view.Menu, android.graphics.Path, android.widget.ScrollView, android.view.MenuItem, android.view.SubMenu  ]
+        headers=[android.view.View, android.widget.LinearLayout, android.content.Context, android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.view.Menu, android.graphics.Path, android.widget.ScrollView, android.widget.HorizontalScrollView, android.view.MenuItem, android.view.SubMenu, android.widget.LinearLayout.LayoutParams  ]
     }
 
     Android={
