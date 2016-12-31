@@ -101,6 +101,7 @@ nameAndVal = Group(
         | (Literal(":") + CID("fieldName")  + "<-" + rValue("givenValue"))
         | (Literal(":") + "<-" + (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
+        | (Literal("::") + CID("fieldName")  + parameters("parameters"))
     )("nameAndVal")
 
 datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph"))('datastructID')
@@ -176,6 +177,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
 
     fieldDef={}
     argList=[]
+    paramList=[]
     innerDefs=[]
     optionalTags=None
     isNext=False;
@@ -216,6 +218,10 @@ def packFieldDef(fieldResult, ObjectName, indent):
             for argSpec in nameAndVal.argList:
                 argList.append(packFieldDef(argSpec[0], ObjectName, indent+"    "))
         else: argList=None;
+        if 'parameters' in nameAndVal:
+            for param in nameAndVal.parameters[1]:
+                paramList.append(param)
+        else: paramList=None
 
         if(nameAndVal.optionalTag): optionalTags=extractTagDefs(nameAndVal.tagDefList)
     else:
@@ -227,29 +233,29 @@ def packFieldDef(fieldResult, ObjectName, indent):
     if(fieldResult.flagDef):
         print indent+"        FLAG: ", fieldResult
         if(arraySpec): print"Lists of flags are not allowed.\n"; exit(2);
-        fieldDef=progSpec.packField(False, owner, 'flag', arraySpec, fieldName, None, givenValue)
+        fieldDef=progSpec.packField(False, owner, 'flag', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.modeDef):
         print indent+"        MODE: ", fieldResult
         modeList=fieldResult.modeList
         if(arraySpec): print"Lists of modes are not allowed.\n"; exit(2);
-        fieldDef=progSpec.packField(False, owner, 'mode', arraySpec, fieldName, None, givenValue)
+        fieldDef=progSpec.packField(False, owner, 'mode', arraySpec, fieldName, None, paramList, givenValue)
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
         if(len(fieldResult)>1 and fieldResult[1]=='[opt]'): arraySpec={'datastructID': 'opt'}
         givenValue=fieldResult.constStr[1:-1]
-        fieldDef=progSpec.packField(True, 'const', 'string', arraySpec, fieldName, None, givenValue)
+        fieldDef=progSpec.packField(True, 'const', 'string', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.constNum):
         print indent+"        CONST Num: ", fieldResult
         if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
-        fieldDef=progSpec.packField(True, 'const', 'int', arraySpec, fieldName, None, givenValue)
+        fieldDef=progSpec.packField(True, 'const', 'int', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.nameVal):
         print indent+"        NameAndVal: ", fieldResult
-        fieldDef=progSpec.packField(None, None, None, arraySpec, fieldName, argList, givenValue)
+        fieldDef=progSpec.packField(None, None, None, arraySpec, fieldName, argList, paramList, givenValue)
     elif(fieldResult.fullFieldDef):
         fieldTypeStr=str(fieldType)[:50]
         print indent+"        FULL FIELD: ", [isNext, owner, fieldTypeStr+'... ', arraySpec, fieldName]
-        fieldDef=progSpec.packField(isNext, owner, fieldType, arraySpec, fieldName, argList, givenValue)
+        fieldDef=progSpec.packField(isNext, owner, fieldType, arraySpec, fieldName, argList, paramList, givenValue)
     else:
         print "Error in packing FieldDefs:", fieldResult
         exit(1)

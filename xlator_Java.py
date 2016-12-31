@@ -9,7 +9,7 @@ This file, along with Lib_Java.py specify to the CodeGenerater how to compile Co
 import progSpec
 import codeDogParser
 import Lib_Android
-from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater
+from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -440,10 +440,8 @@ def addSpecialCode():
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     if isinstance(typeSpec['fieldType'], basestring):
         if(fieldDef['value']):
-            print "                                         fieldDef['value']: "
             [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
             RHS = S2
-            print "                                             RHS: ", RHS
             assignValue=' = '+ RHS
         else: assignValue=''
     elif(fieldDef['value']):
@@ -457,12 +455,22 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
                 assignValue=' = new ' + fieldType +'('+ RHS + ')'
             else:
                 assignValue=' = new ' + fieldType +'();  ' + varName+' = '+RHS
-    else:
+    else: # If no value was given:
         #print "TYPE:", fieldType
-        if varTypeIsJavaValueType(fieldType):
+        if fieldDef['paramList'] != None:
+            # Code the constructor's arguments
+            [CPL, paramTypeList] = codeParameterList(fieldDef['paramList'], None, xlator)
+            if len(paramTypeList)==1:
+                theParam=paramTypeList[0]['fieldType']
+                if not isinstance(theParam, basestring) and fieldType==theParam[0]:
+                    assignValue = " = " + CPL   # Act like a copy constructor
+                else: assignValue = " = new " + fieldType + CPL
+            else: assignValue = " = new " + fieldType + CPL
+        elif varTypeIsJavaValueType(fieldType):
             assignValue=''
-        else:assignValue= " = new " + fieldType +"()"
-    return(assignValue)
+        else:assignValue= " = new " + fieldType + "()"
+    varDeclareStr= fieldType + " " + varName + assignValue
+    return(varDeclareStr)
 
 def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
@@ -531,11 +539,15 @@ def varTypeIsJavaValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
+def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
     if(fieldValue == None):
         if (not varTypeIsJavaValueType(convertedType) and fieldOwner=='me'):
-            fieldValueText=" = new " + convertedType + "();"
+            if paramList!=None:
+                [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+                fieldValueText=" = new " + convertedType + CPL
+            else:
+                fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):

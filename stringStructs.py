@@ -1051,7 +1051,7 @@ def Write_fieldExtracter(objects, parentStructName, field, memObjFields, VarTag,
             if toFieldOwner=='me':
                 # First, create a new flag field
                 newFieldsName='has_'+fieldName
-                fieldDef=progSpec.packField(False, 'me', 'flag', None, newFieldsName, None, None)
+                fieldDef=progSpec.packField(False, 'me', 'flag', None, newFieldsName, None, None, None)
                 progSpec.addField(objects[0], memVersionName, fieldDef)
 
                 # Second, generate the code to set the flag

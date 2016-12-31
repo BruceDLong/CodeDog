@@ -1,7 +1,7 @@
 #xlator_CPP.py
 import progSpec
 import codeDogParser
-from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc
+from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -519,13 +519,26 @@ def addSpecialCode():
     return S
 
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
+    varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):
         [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], xlator)
         [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
-        RHS = leftMod+S2+rightMod
-        assignValue=' = '+ RHS
-    return(assignValue)
+        assignValue = " = " + leftMod+S2+rightMod
+
+    else: # If no value was given:
+        if fieldDef['paramList'] != None:
+            # Code the constructor's arguments
+            [CPL, paramTypeList] = codeParameterList(fieldDef['paramList'], None, xlator)
+            if len(paramTypeList)==1:
+                theParam=paramTypeList[0]['fieldType']
+
+                # TODO: Remove the 'True' and make this check object heirarchies or similar solution
+                if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
+                    assignValue = " = " + CPL   # Act like a copy constructor
+
+    varDeclareStr= fieldType + " " + varName + assignValue
+    return(varDeclareStr)
 
 def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
@@ -591,8 +604,11 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
 
     return [actionText, loopCounterName]
 
-def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner):
+def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
+    if paramList!=None:
+        [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+        fieldValueText += CPL
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):

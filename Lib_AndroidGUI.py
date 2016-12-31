@@ -5,15 +5,14 @@ import codeDogParser
 
 def use(objects, buildSpec, tags, platform):
     CODE="""
-struct CanvasView: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:View" {
-    me double: cur_x
-    me double: cur_y
+struct CanvasView: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="" implMode="inherit:View" {
+
     me GUI_ctxt: xCanvas
-    
+
     me none: CanvasView(me Context: context ) <- <%{
         super(context);
     }%>
-    
+
     me none: CanvasView() <- <%{
         super(GLOBAL.static_Global);
     }%>
@@ -24,15 +23,8 @@ struct CanvasView: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" imp
     }%>
 }
 
-struct thisApp {
-    me none: thisApp() <- <%{}%>
-    
-    //me void: createAppArea(me LinearLayout: frame) <- <%{
-        //ScrollView scroller = GLOBAL.static_Global.appFuncs.gui.vScroller;
-    //}%>
-}
 
-//struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
+struct GUI_rect{me Rect: GUI_rect}
 //struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me Object: GUI_item}
 //struct GUI_menuBar{me Menu: GUI_menuBar}
@@ -44,17 +36,19 @@ struct GUI_frame{me LinearLayout:GUI_frame}
 struct GUI_ScrollingWindow{me ScrollView: GUI_ScrollingWindow}
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
+struct INK_Image{their Paint: INK_Image}      // How will the ink look?
+
 struct GUI: {
-    me LinearLayout: drawingArea
-    me ScrollView: vScroller
-    me HorizontalScrollView: hScroller
-    
+    me LinearLayout:: drawingArea(GLOBAL.static_Global)
+    me ScrollView:: vScroller(GLOBAL.static_Global)
+    me HorizontalScrollView:: hScroller(GLOBAL.static_Global)
+
     me uint32: GUI_Init() <- <%{return(0);}%>
-    me ScrollView: newScrollingWindow(me Context: cr) <- <%{
-        ScrollView vScroller = new ScrollView(cr);
-        HorizontalScrollView hScroller = new HorizontalScrollView(cr);
+    me ScrollView: newScrollingWindow(me Long: A, me Long:B) <- <%{
+        ScrollView vScroller = new ScrollView(GLOBAL.static_Global);
+        HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
         vScroller.addView(hScroller);
-        LinearLayout layoutArea = new LinearLayout(cr);
+        LinearLayout layoutArea = new LinearLayout(GLOBAL.static_Global);
         layoutArea.setOrientation(LinearLayout.VERTICAL);
         hScroller.addView(layoutArea);
         return(vScroller);
@@ -100,15 +94,41 @@ struct GUI: {
     }
 */
 }
+
+struct tm{
+    me Calendar: tm
+}
+struct timeStringer{
+    me String: time12Hour() <- <%{
+        Calendar timeRec = Calendar.getInstance();
+        String AmPm = "am";
+        int hours = timeRec.get(Calendar.HOUR);
+        //if (hours>=12) {hours = hours-12; AmPm="pm";}
+        if (timeRec.get(Calendar.AM_PM)==Calendar.PM){AmPm="pm";}
+        if (hours==0) {hours = 12;}
+        String SH = (Integer.toString(hours)+":");
+        int min = timeRec.get(Calendar.MINUTE);
+        if (min<10){SH = SH+"0";}
+        SH = SH + Integer.toString(min);
+
+        SH=SH+":";
+        int sec = timeRec.get(Calendar.SECOND);
+        if (sec<10){SH = SH+"0";}
+        SH = SH + Integer.toString(sec);
+        SH=SH+AmPm;
+        return(SH);
+    } %>
+}
+
 struct GLOBAL{
 
-    me thisApp: appFuncs <- Allocate(thisApp)
+    me thisApp: appFuncs
     me void: close_window() <- {
          // gtk_main_quit()
     }
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.invalidate(%2, %3, %4, %5)%>
     me long: ticksPerSec() <- <%!%G1000%>
-    
+
     //me bool: drawAppArea_cb (me GUI_item: widget, me GUI_ctxt: cr) <- <%!drawAppArea_cb(me GUI_ctxt: cr)%>
 }
 
@@ -120,9 +140,6 @@ struct GUI{
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
     me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
-//    me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
-//    me GUI_item: newScrollingWindow() <- <%!%newScrollingWindow(GLOBAL.static_Global)%>
-//    me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%G%1.add(%2)%>
@@ -138,29 +155,30 @@ struct GUI_ctxt: implMode="inherit:Canvas"{
     me Canvas: Gcanvas
     me Paint: paint
     me Path: GPath
-    
+
     me none: GUI_ctxt () <- {}
-    
+
     me none: GUI_ctxt (me Canvas: canvas) <- {
         Gcanvas <- canvas
         Allocate(paint)
-        Allocate(GPath) 
+        Allocate(GPath)
     }
 }
 
 struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:Canvas" {
 //    me void: reset() <- <%!GPath = new Path()%>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!paint.setColor(Color.rgba(%1, %2, %3, %4))%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!paint.setColor(Color.argb(%4, %1, %2, %3))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!paint.setColor(Color.rgb(%1, %2, %3))%>
     me void: setLineWidth(me double: width) <- <%!paint.setStrokeWidth(%1)%>
-    me void: moveTo(me double: x, me double: y) <- <%!GPath.moveTo(%1, %2)%>
+    me void: moveTo(me double: x, me double: y) <- <%!GPath.moveTo((float)(%1), (float)(%2))%>
     me void: lineTo(me double: x, me double: y) <- <%!GPath.lineTo((float)(%1), (float)(%2))%>
-//    me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo(cr.cur_x+%1, cr.cur_y+%2)%>
+//    me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo((float)cr.cur_x+%1, (float)cr.cur_y+%2)%>
 //    me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo(cr.cur_x+%1, cr.cur_y+%2)%>
 //    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 //    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 //    me void: paintNow() <- <%!gr.fill(cr.GPath)%>
     me void: strokeNow() <- <%!Gcanvas.drawPath(cr.GPath, cr.paint)%>
+    me void: fillNow() <- <%!Gcanvas.drawPath(cr.GPath, cr.paint)%>
 //    me void: renderFrame() <- <%!repaint()%>
 }
     """

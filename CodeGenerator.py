@@ -316,7 +316,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
         else:
             modelParams=None
             if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList']
-            S+= '('+codeParameterList(paramList, modelParams, xlator)+')'
+            [CPL, paramTypeList] = codeParameterList(paramList, modelParams, xlator)
+            S+= CPL
     return [S,  typeSpecOut, None]
 
 def codeUnknownNameSeg(segSpec, xlator):
@@ -335,7 +336,8 @@ def codeUnknownNameSeg(segSpec, xlator):
         if(len(paramList)==0):
             S+="()"
         else:
-            S+= '('+codeParameterList(paramList, None, xlator)+')'
+            [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+            S+= CPL
     return S;
 
 def codeItemRef(name, LorR_Val, xlator):
@@ -427,9 +429,11 @@ def codeParameterList(paramList, modelParams, xlator):
     S=''
     #if(modelParams):  print "CODE-PARAMS:", len(paramList),"=",len(modelParams)
     count = 0
+    paramTypeList=[]
     for P in paramList:
         if(count>0): S+=', '
         [S2, argType]=xlator['codeExpr'](P[0], xlator)
+        paramTypeList.append(argType)
     #    print "    PARAM",P, '<',argType,'>'
     #    print "    MODEL", modelParams[count], '\n'
         if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
@@ -437,7 +441,8 @@ def codeParameterList(paramList, modelParams, xlator):
             S += leftMod+S2+rightMod
         else: S += S2
         count+=1
-    return S
+    S='(' + S + ')'
+    return [S, paramTypeList]
 
 
 def codeFuncCall(funcCallSpec, xlator):
@@ -489,10 +494,10 @@ def codeAction(action, indent, xlator):
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
         fieldType = xlator['convertType'](objectsRef, typeSpec, 'var', xlator)
-        assignValue=''
+        varDeclareStr=''
         print "                                     Action newVar: ", varName
-        assignValue = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, xlator)
-        actionText = indent + fieldType + " " + varName + assignValue + ";\n"
+        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, xlator)
+        actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         #print "PREASSIGN:", action['LHS']
@@ -747,7 +752,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
 
         ##CALCULATE RHS###############################################
         if(fieldValue == None):
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldValue, convertedType, fieldOwner)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldValue, convertedType, fieldOwner, field['paramList'], xlator)
 
         ##CONST#########################################################
         elif(fieldOwner=='const'):
@@ -755,23 +760,19 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                 fieldValueText = ' = "'+ fieldValue + '"'
             else:
                 fieldValueText = " = "+ xlator['codeExpr'](fieldValue, xlator)[0]
-            print "                         Const: ", fieldType, fieldName
 
         ################################################################
         elif(fieldArglist==None):
             fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
-            print "                         No argList:", fieldType, fieldName, fieldValueText
 
         ################################################################
         else:
             fieldValueText = " = "+ str(fieldValue)
-            print "                         Other: ", fieldType, fieldName
 
         ##CALCULATE LHS + RHS ###########################################
         #registerType(objectName, fieldName, convertedType, "")             # If its a constant.
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
-            print "                             Const : ", convertedType + fieldName
 
         ############CODE VARIABLE##########################################################
         elif(fieldArglist==None):
@@ -890,7 +891,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             constFieldAccs[objectNameBase]+=strOut
 
             if(needsFlagsVar):
-                progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None))
+                progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None, None))
             if(((xlator['doesLangHaveGlobals']=='False') or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 parentClass=''
