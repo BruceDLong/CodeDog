@@ -11,29 +11,6 @@ def use(objects, buildSpec, tags, platform):
 
         me x: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
 
-        // DRAWING ROUTINES:
-        
-    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
-        cr.gr.setFont(new Font(fontName, Font.PLAIN, fontSize));
-        cr.gr.drawString(text, (int)cr.cur_x, (int)cr.cur_y);
-    } %>
-
-
-
-    me INK_Image[map string]: InkImgCache
-    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
-        BufferedImage picPtr=InkImgCache.get(filename);
-        if (picPtr==null) {
-            try{
-                picPtr=ImageIO.read(new File(filename));
-            } catch(IOException ioe){System.out.println("Cannot read image file " + ioe.getMessage()); System.exit(2);}
-            InkImgCache.put(filename, picPtr);
-    }
-        cr.gr.drawImage(picPtr, null, 0,0);
-    } %>
-
-
-
     }
 """
     print "GLOBAL_CODE: ", GLOBAL_CODE
