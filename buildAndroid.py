@@ -76,7 +76,8 @@ def compileAndroid(buildName):
     classpath = '--classpath "$ANDROID_HOME/platforms/android-23/android.jar" '
     importTag = ''
     outputTag = '--output-dex ' + buildName + '/out ' + buildName + '/src/ ' + buildName + '/gen/ '
-    jack = 'java -jar "$ANDROID_HOME/build-tools/24.0.1/jack.jar" '
+    #jack = 'java -jar "$ANDROID_HOME/build-tools/24.0.1/jack.jar" '
+    jack = 'java -jar "$ANDROID_HOME/build-tools/24.0.2/jack.jar" '
     myCMD = jack + classpath + importTag + outputTag
     [out, err] = runCMD(myCMD, '.')
 
@@ -137,6 +138,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     domain = "infomage"
     currentDir = os.getcwd()
     workingDir = currentDir + '/' + buildName
+    //fileName = 'GLOBAL'
     packageDir = '/src/'+topDomain+'/'+domain+'/'+fileName
     packageName = topDomain+'.'+domain+'.'+fileName
     dirsToGen = ['/gen', '/libs', '/out', '/res/drawable-xhdpi', '/res/layout', packageDir]
