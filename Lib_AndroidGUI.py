@@ -8,14 +8,14 @@ def use(objects, buildSpec, tags, platform):
 
 struct DroidView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMode="inherit:View" {
     me Path: GPath
-    me double: cur_x
-    me double: cur_y
+  //  me double: cur_x
+   // me double: cur_y
 
-
-    me void: onDraw(me Canvas: canvas) <- <%    {
-        cur_x=0; cur_y=0;
-        GPath.reset();
-        GLOBAL.static_Global.drawAppArea_cb(this, this);
+    me none: DroidView() <- {super(NULL)}
+    me void: onDraw(me GUI_ctxt: cr) <- <%    {
+        cr.cur_x=0; cr.cur_y=0;
+        cr.GPath.reset();
+        GLOBAL.static_Global.drawAppArea_cb(this, cr);
     }%>
 }
 
@@ -25,7 +25,7 @@ struct GUI_item{me Object: GUI_item}
 //struct GUI_menuBar{me Menu: GUI_menuBar}
 //struct GUI_menu{me Menu: GUI_subMenu}
 //struct GUI_menuItem{me MenuItem: GUI_menuItem}
-struct GUI_canvas{me GUI_ctxt: GUI_canvas}
+struct GUI_canvas{me DroidView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
 struct GUI_frame{me LinearLayout:GUI_frame}
 struct GUI_ScrollingWindow{me ScrollView: GUI_ScrollingWindow}
@@ -155,7 +155,7 @@ struct GLOBAL{
 struct GUI{
 //    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-    me GUI_item: newCanvas() <- <%!%Gnew GUI_ctxt()%>
+    me GUI_item: newCanvas() <- <%!%Gnew DroidView()%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
     me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
