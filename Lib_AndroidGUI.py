@@ -7,9 +7,7 @@ def use(objects, buildSpec, tags, platform):
     CODE="""
 
 struct DroidView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMode="inherit:View" {
-    me Path: GPath
-  //  me double: cur_x
-   // me double: cur_y
+    me GUI_ctxt: cr
 
     me none: DroidView() <- {super(NULL)}
     me void: onDraw(me GUI_ctxt: cr) <- <%    {
@@ -52,7 +50,7 @@ struct GUI: {
         LinearLayout frame = new LinearLayout(GLOBAL.static_Global);
         frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
 //        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
-//        GLOBAL.static_Global.appFuncs.createAppMenu(frame);
+//        GLOBAL.static_Global.appFuncs.createAppMenu(menubar);
         GLOBAL.static_Global.appFuncs.createAppArea(frame);
 //        frame.setVisible(true);
     } %>
@@ -65,21 +63,14 @@ struct GUI: {
     me void: GUI_Deinit() <- {
 
     }
-
-    me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- {
-        me MenuItem:  menuitem <- parentMenu.add(label)
-//        me GUI_menuItem: menuitem
-//        menuitem <- GUI_menuItemWithLabel(label)
-//        addItemToMenu(ParentMenu, menuitem)
-        showWidget(menuitem)
-
+/*
+    me GUI_menuItem: create_MenuItem(me GUI_menu: parentMenu, me string: label) <- {
+        me MenuItem: menuitem <- parentMenu.add(label)
         return(menuitem)
     }
 
-    me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- {
-        me GUI_menu: subMenu
-        subMenu <- GUI_menuWithLabel(label)
-        addItemToMenu(ParentMenu, SubMenu)
+    me GUI_menu: create_SubMenu(me GUI_menu: parentMenu, me string: label) <- {
+        me SubMenu: subMenu <- parentMenu.addSubMenu(label)
         return(subMenu)
     }
 
@@ -87,7 +78,7 @@ struct GUI: {
         me SubMenu: subMenu <- menuBar.addSubMenu(label)
         return(subMenu)
     }
-
+*/
 }
 
 struct tm{
@@ -150,6 +141,11 @@ struct GLOBAL{
     me long: ticksPerSec() <- <%!%G1000%>
 
     //me bool: drawAppArea_cb (me GUI_item: widget, me GUI_ctxt: cr) <- <%!drawAppArea_cb(me GUI_ctxt: cr)%>
+    me boolean: onCreateOptionsMenu(me Menu: menubar) <- {
+        super.onCreateOptionsMenu(menubar)
+        //this.menu <- menubar 
+        return (true)
+    }
 }
 
 struct GUI{
@@ -168,7 +164,7 @@ struct GUI{
     me SubMenu: create_TopSubMenu()<- <%!%G%1.addSubMenu(%2)%>
     me void: create_SubMenu()<- <%!%G%1.addSubMenu(%2)%>
     me void: setCallback() <- <%!%G %>
-    me void: createAppMenu(me GUI_frame: frame) <- <%!me bool: onCreateOptionsMenu(Menu menubar)%>
+//    me void: createAppMenu(me GUI_frame: frame) <- <%!me bool: onCreateOptionsMenu(Menu menubar)%>
 }
 
 struct GUI_ctxt: implMode="inherit:Canvas"{

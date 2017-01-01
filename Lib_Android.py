@@ -55,12 +55,6 @@ def GenerateMainActivity(objects, tags, runCode):
             super.onDestroy()
             deinitialize()
         }
-
-        me bool: onCreateOptionsMenu(me Menu: menu) <- {
-
-            return(true)
-        }
-
     }
 """
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )

@@ -138,7 +138,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     domain = "infomage"
     currentDir = os.getcwd()
     workingDir = currentDir + '/' + buildName
-    //fileName = 'GLOBAL'
+    #fileName = 'GLOBAL'
     packageDir = '/src/'+topDomain+'/'+domain+'/'+fileName
     packageName = topDomain+'.'+domain+'.'+fileName
     dirsToGen = ['/gen', '/libs', '/out', '/res/drawable-xhdpi', '/res/layout', packageDir]
