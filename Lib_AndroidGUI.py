@@ -22,9 +22,9 @@ struct DroidView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMod
 struct GUI_rect{me Rect: GUI_rect}
 //struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me Object: GUI_item}
-//struct GUI_menuBar{me Menu: GUI_menuBar}
-//struct GUI_menu{me Menu: GUI_subMenu}
-//struct GUI_menuItem{me MenuItem: GUI_menuItem}
+struct GUI_menuBar{me Menu: GUI_menuBar}
+struct GUI_menu{me SubMenu: GUI_menu}
+struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me DroidView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
 struct GUI_frame{me LinearLayout:GUI_frame}
@@ -65,7 +65,7 @@ struct GUI: {
     me void: GUI_Deinit() <- {
 
     }
-/*
+
     me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- {
         me MenuItem:  menuitem <- parentMenu.add(label)
 //        me GUI_menuItem: menuitem
@@ -87,7 +87,7 @@ struct GUI: {
         me SubMenu: subMenu <- menuBar.addSubMenu(label)
         return(subMenu)
     }
-*/
+
 }
 
 struct tm{

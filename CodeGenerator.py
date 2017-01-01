@@ -863,8 +863,11 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             ObjectDef = objects[0][objectName]
             ctxTag  =progSpec.searchATagStore(ObjectDef['tags'], 'ctxTag')
             implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
+            classAttrs=progSpec.searchATagStore(ObjectDef['tags'], 'attrs')
             if(ctxTag): ctxTag=ctxTag[0]
             if(implMode): implMode=implMode[0]
+            if(classAttrs): classAttrs=classAttrs[0]+' '
+            else: classAttrs=''
             if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit")):  # "useLibrary"
                 #print "SKIPPING:", objectName, ctxTag, implMode
                 continue
@@ -901,7 +904,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                     parentClass='!' + implMode[10:]
                 [structCode, funcCode, globalCode]=codeStructFields(objects, objectName, tags, '    ', xlator)
                 structCode+= constFieldAccs[objectNameBase]
-                [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](parentClass, LangFormOfObjName, structCode)
+                [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, LangFormOfObjName, structCode)
 
               #  structCodeAcc += structCodeOut
                # forwardDeclsAcc += forwardDeclsOut
@@ -980,7 +983,7 @@ def integrateLibraries(tags, libID, xlator):
     return headerStr
 
 def connectLibraries(objects, tags, libsToUse, xlator):
-    print "\n            Choosing Libaries to link..."
+    print "\n            Choosing Libraries to link..."
     headerStr = ''
     for lib in libsToUse:
         headerStr += integrateLibraries(tags, lib, xlator)

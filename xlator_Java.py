@@ -401,11 +401,11 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
 def codeMain(objects, tags, xlator):
     return ["", ""]
 
-def codeStructText(parentClass, structName, structCode):
+def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         if parentClass[0]=="!": parentClass=' implements '+parentClass[1:]+' '
         else: parentClass=' extends '+parentClass+' '
-    S= "\nclass "+structName+parentClass+"{\n" + structCode + '};\n'
+    S= "\n"+classAttrs +"class "+structName+parentClass+"{\n" + structCode + '};\n'
     return([S,""])
 
 

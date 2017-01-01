@@ -454,7 +454,7 @@ def codeMain(objects, tags, xlator):
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeStructText(parentClass, structName, structCode):
+def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'

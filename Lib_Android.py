@@ -20,7 +20,7 @@ def use(objects, buildSpec, tags, platform):
 def GenerateMainActivity(objects, tags, runCode):
 
     GLOBAL_CODE="""
-    struct GLOBAL: ctxTag="Android" Platform='Android' Lang='Java' LibReq="Android" implMode="inherit:Activity" {
+    struct GLOBAL: ctxTag="Android" Platform='Android' Lang='Java' LibReq="Android" attrs="public" implMode="inherit:Activity" {
 
         me void: onCreate(me Bundle: savedInstanceState) <- {
             super.onCreate(savedInstanceState)
@@ -56,6 +56,10 @@ def GenerateMainActivity(objects, tags, runCode):
             deinitialize()
         }
 
+        me bool: onCreateOptionsMenu(me Menu: menu) <- {
+
+            return(true)
+        }
 
     }
 """
