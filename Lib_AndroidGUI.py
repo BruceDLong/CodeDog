@@ -6,11 +6,12 @@ import codeDogParser
 def use(objects, buildSpec, tags, platform):
     CODE="""
 
-struct DroidView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMode="inherit:View" {
+struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMode="inherit:View" {
     me GUI_ctxt: cr
 
-    me none: DroidView() <- {super(NULL)}
-    me void: onDraw(me GUI_ctxt: cr) <- <%    {
+    me none: CanvasView() <- {super(GLOBAL.static_Global)}
+    me void: onDraw(me Canvas: canvas) <- <%    {
+        cr = new GUI_ctxt(); 
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
         GLOBAL.static_Global.drawAppArea_cb(this, cr);
@@ -20,10 +21,10 @@ struct DroidView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMod
 struct GUI_rect{me Rect: GUI_rect}
 //struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me Object: GUI_item}
-struct GUI_menuBar{me Menu: GUI_menuBar}
-struct GUI_menu{me SubMenu: GUI_menu}
+struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
+struct GUI_menu{me ourSubMenu: GUI_menu}
 struct GUI_menuItem{me MenuItem: GUI_menuItem}
-struct GUI_canvas{me DroidView: GUI_canvas}
+struct GUI_canvas{me CanvasView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
 struct GUI_frame{me LinearLayout:GUI_frame}
 struct GUI_ScrollingWindow{me ScrollView: GUI_ScrollingWindow}
@@ -31,17 +32,17 @@ struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct INK_Image{their Paint: INK_Image}      // How will the ink look?
 
-struct GUI: {
-    me LinearLayout:: drawingArea(GLOBAL.static_Global)
-    me ScrollView:: vScroller(GLOBAL.static_Global)
-    me HorizontalScrollView:: hScroller(GLOBAL.static_Global)
-
+struct GUI: implMode="inherit:LinearLayout" {
+    me LinearLayout:: frame(GLOBAL.static_Global)
+    me LinearLayout:: layoutArea(GLOBAL.static_Global)
+    
+    me none: GUI() <- {super(GLOBAL.static_Global)}
     me uint32: GUI_Init() <- <%{return(0);}%>
     me ScrollView: newScrollingWindow(me Long: A, me Long:B) <- <%{
         ScrollView vScroller = new ScrollView(GLOBAL.static_Global);
         HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
         vScroller.addView(hScroller);
-        LinearLayout layoutArea = new LinearLayout(GLOBAL.static_Global);
+        layoutArea = new LinearLayout(GLOBAL.static_Global);
         layoutArea.setOrientation(LinearLayout.VERTICAL);
         hScroller.addView(layoutArea);
         return(vScroller);
@@ -50,7 +51,7 @@ struct GUI: {
         LinearLayout frame = new LinearLayout(GLOBAL.static_Global);
         frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
 //        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
-//        GLOBAL.static_Global.appFuncs.createAppMenu(menubar);
+        GLOBAL.static_Global.setContentView(frame);
         GLOBAL.static_Global.appFuncs.createAppArea(frame);
 //        frame.setVisible(true);
     } %>
@@ -63,22 +64,6 @@ struct GUI: {
     me void: GUI_Deinit() <- {
 
     }
-/*
-    me GUI_menuItem: create_MenuItem(me GUI_menu: parentMenu, me string: label) <- {
-        me MenuItem: menuitem <- parentMenu.add(label)
-        return(menuitem)
-    }
-
-    me GUI_menu: create_SubMenu(me GUI_menu: parentMenu, me string: label) <- {
-        me SubMenu: subMenu <- parentMenu.addSubMenu(label)
-        return(subMenu)
-    }
-
-    me SubMenu: create_TopSubMenu(me Menu: menuBar, me string: label) <- {
-        me SubMenu: subMenu <- menuBar.addSubMenu(label)
-        return(subMenu)
-    }
-*/
 }
 
 struct tm{
@@ -109,6 +94,7 @@ struct timeStringer{
 struct GLOBAL{
 
     me thisApp: appFuncs
+    me ourSubMenu: menubar
     me void: close_window() <- {
          // gtk_main_quit()
     }
@@ -141,30 +127,49 @@ struct GLOBAL{
     me long: ticksPerSec() <- <%!%G1000%>
 
     //me bool: drawAppArea_cb (me GUI_item: widget, me GUI_ctxt: cr) <- <%!drawAppArea_cb(me GUI_ctxt: cr)%>
-    me boolean: onCreateOptionsMenu(me Menu: menubar) <- {
-        super.onCreateOptionsMenu(menubar)
-        //this.menu <- menubar 
+    me boolean: onCreateOptionsMenu(me Menu: androidMenu) <- {
+        super.onCreateOptionsMenu(androidMenu)
+        appFuncs.createAppMenu(appFuncs.gui.frame)
+        addAndroidMenu(androidMenu)
         return (true)
     }
+    
+    me void: addAndroidMenu(me Menu: androidMenu) <- {
+        withEach thisSubMenu in menubar.items:{
+            if (thisSubMenu.items.size()==0){
+                androidMenu.add(thisSubMenu.name)
+            }
+            else{
+                androidMenu.addSubMenu(thisSubMenu.name)
+                withEach item in thisSubMenu.items:{
+                    androidMenu.add(item.name)
+                }
+            }
+        }
+     }
 }
 
-struct GUI{
+struct GUI: implMode="inherit:LinearLayout"{
 //    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-    me GUI_item: newCanvas() <- <%!%Gnew DroidView()%>
+    me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
     me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
-    me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
-    me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%G%1.add(%2)%>
-    me void: addMenuBar(me Menu: menubar) <- <%!%G%1.setJMenuBar(%2)%>
-    me void: create_MenuItem()<- <%!gui.create_MenuItem(%1, %2)%>
-    me SubMenu: create_TopSubMenu()<- <%!%G%1.addSubMenu(%2)%>
-    me void: create_SubMenu()<- <%!%G%1.addSubMenu(%2)%>
+    me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggui.layoutArea.addView(%2)%>      // dog file: gui.addToViewport(scroller, drawing_area)
     me void: setCallback() <- <%!%G %>
-//    me void: createAppMenu(me GUI_frame: frame) <- <%!me bool: onCreateOptionsMenu(Menu menubar)%>
+    me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenuBar, me string: text) <- {
+        me GUI_menuBar:: subMenu(text)
+        menubar.items.pushLast(subMenu)
+        return(subMenu)
+    }
+    me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
+        our ourSubMenu:: thisMenuItem(menuLabel)
+        menubar.items.pushLast(thisMenuItem)
+    }
+    me void: addMenuBar(me LinearLayout: frame, our GUI_menuBar: menubar) <- {}
 }
 
 struct GUI_ctxt: implMode="inherit:Canvas"{
@@ -179,7 +184,7 @@ struct GUI_ctxt: implMode="inherit:Canvas"{
     }
 }
 
-struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:Canvas" {
+struct GUI_ctxt: ctxTag="Android" Platform='Android' Lang='Java' LibReq="swing" implMode="inherit:Canvas" {
 //    me void: reset() <- <%!GPath = new Path()%>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!paint.setColor(Color.argb(%4, %1, %2, %3))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!paint.setColor(Color.rgb(%1, %2, %3))%>
@@ -188,13 +193,25 @@ struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implM
     me void: lineTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo((float)(%1), (float)(%2))%>
     me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
     me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
-
 //    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 //    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 //    me void: paintNow() <- <%!gr.fill(cr.GPath)%>
     me void: strokeNow() <- <%!drawPath(cr.GPath, cr.paint)%>
     me void: fillNow() <- <%!drawPath(cr.GPath, cr.paint)%>
 //    me void: renderFrame() <- <%!repaint()%>
+}
+
+struct thisApp: implMode="inherit:LinearLayout"{
+    me none: thisApp() <- {super(GLOBAL.static_Global)}
+}
+
+struct ourSubMenu{
+    me string: name
+    me ourSubMenu[list]: items
+    me none: ourSubMenu(me string: menuLabel) <- {
+        name <- menuLabel
+    }
+    me none: ourSubMenu() <- {}
 }
     """
 

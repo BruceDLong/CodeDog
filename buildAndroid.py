@@ -4,12 +4,14 @@ import os
 import subprocess
 import errno
 
-def writeFile(workingDir, packageDir, fileName, outStr, fileExt):
+def writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName):
     #print "Path:", packageDir
     makeDir(workingDir+packageDir)
     fileName += fileExt
     fo=open(workingDir+packageDir + os.sep + fileName, 'w')
-    fo.write(outStr[0][1])
+    packageHeader = "package " + packageName + ";\n\n"
+    outStr =  packageHeader +  outStr[0][1]
+    fo.write(outStr)
     fo.close()
 
 def runCMD(myCMD, myDir):
@@ -45,7 +47,7 @@ def androidManifest(topDomain, domain, appName, workingDir):
             '<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n' \
             '    package="' + topDomain + '.' + domain + '.' + appName + '">\n' \
             '    <application android:label="' + appName + '">\n' \
-            '        <activity android:name="MainActivity">\n' \
+            '        <activity android:name="' + appName + '">\n' \
             '            <intent-filter>\n' \
             '                <action android:name="android.intent.action.MAIN" />\n' +\
             '                <category android:name="android.intent.category.LAUNCHER" />\n' \
@@ -146,7 +148,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
 
     print 'Building for Android'
     pathAndroid(workingDir, dirsToGen)
-    writeFile(workingDir, packageDir, fileName, outStr, fileExt)
+    writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName)
     androidManifest(topDomain, domain, fileName, workingDir)
     generateAndroid(workingDir)
     compileAndroid(buildName)
