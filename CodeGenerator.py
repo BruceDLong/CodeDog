@@ -752,6 +752,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
+        print "					FieldName:", fieldName
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, 'var', xlator))
