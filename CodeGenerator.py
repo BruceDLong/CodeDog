@@ -257,13 +257,26 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
 
     name=segSpec[0]
 
+    owner=progSpec.getTypeSpecOwner(typeSpecIn)
+
+
     #print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
     if ('fieldType' in typeSpecIn and isinstance(typeSpecIn['fieldType'], basestring)):
         if (typeSpecIn['fieldType']=="string" and name == "size"):
             name = "length"
 
-    if('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
+    if owner=='itr':
+        if name=='goNext':
+            typeSpecOut['codeConverter']='%0++'
+        elif name=='goPrev':
+            typeSpecOut['codeConverter']='--%0'
+        elif name=='key':
+            typeSpecOut['codeConverter']='%0->first'
+        elif name=='val':
+            typeSpecOut['codeConverter']='%0->second'
+
+    elif('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType]=xlator['getContainerType'](typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
         #print "                                                 arraySpec:",typeSpecOut
@@ -283,8 +296,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:]
     else:
         fType=typeSpecIn['fieldType']
-      #  owner=typeSpecIn['owner']
-        owner=progSpec.getTypeSpecOwner(typeSpecIn)
 
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
@@ -352,6 +363,7 @@ def codeItemRef(name, LorR_Val, xlator):
     AltIDXFormat=''
     for segSpec in name:
         #print "NameSeg:", segSpec
+        owner=progSpec.getTypeSpecOwner(segType)
         segName=segSpec[0]
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).
@@ -390,7 +402,7 @@ def codeItemRef(name, LorR_Val, xlator):
         # Should this be called C style?
         thisArgIDX=segStr.find("%0")
         if(thisArgIDX >= 0):
-            if connector=='->': S="*("+S+")"
+            if connector=='->' and owner!='itr': S="*("+S+")"
             S=segStr.replace("%0", S)
             S=S[len(connector):]
         else: S+=segStr

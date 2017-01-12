@@ -62,7 +62,6 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
 
             if containerType=='deque':
                 langType="deque< "+langType+" >"
-                print "TYPESPEC:", TypeSpec, ">>>", containerOwner
             elif containerType=='map':
                 langType="map< "+idxType+', '+langType+" >"
             elif containerType=='multimap':
@@ -117,7 +116,8 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", ")"]
+    if LeftOwner!='itr' and RightOwner=='itr': return ["", "->second"]
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", "   )"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ["&", '']
     if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
