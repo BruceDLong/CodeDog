@@ -789,7 +789,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
 
         ############CODE VARIABLE##########################################################
         elif(fieldArglist==None):
-            structCode += xlator['codeVarField_Str'](convertedType, fieldName, fieldValueText, indent)
+            structCode += xlator['codeVarField_Str'](convertedType, fieldName, fieldValueText, objectName, tags, indent)
             print "                            Variable: ", convertedType, fieldName
 
         ###### Arglist exists so this is a function.###########

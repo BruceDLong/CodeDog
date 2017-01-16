@@ -611,7 +611,7 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
         fieldValueText += CPL
     return fieldValueText
 
-def codeVarField_Str(convertedType, fieldName, fieldValueText, indent):
+def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
     S=indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
     return S
 

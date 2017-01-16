@@ -67,18 +67,7 @@ def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     buildStr = langStr + debugMode + " " + minLangStr + fileStr + libStr + " " + outputFileStr
     return [workingDirectory, buildStr]
 
-def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
-    if platform == 'Linux':
-        [workingDirectory, buildStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-    elif platform == 'Java':
-        [workingDirectory, buildStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-    elif platform == 'Android':
-        [workingDirectory, buildStr] = buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-        #                              AndroidBuilder(lang, platform, sourceFiles, libs, homePath, fileName )
-    else:
-        print "Builer.py error: build string not generated for "+ buildName
-        exit(2)
-
+def printResults(workingDirectory, buildStr):
     print "buildStr: ", buildStr
     print "workingDirectory: ", workingDirectory
     pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -86,5 +75,18 @@ def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fi
     if out: print "Result: ",out
     if err:
         print "Error: ", err
+        exit(2)
+
+def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+    if platform == 'Linux':
+        [workingDirectory, buildStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        printResults(workingDirectory, buildStr)
+    elif platform == 'Java':
+        [workingDirectory, buildStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        printResults(workingDirectory, buildStr)
+    elif platform == 'Android':
+        buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+    else:
+        print "Builer.py error: build string not generated for "+ buildName
         exit(2)
     return

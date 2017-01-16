@@ -15,16 +15,15 @@ def writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName):
     fo.close()
 
 def runCMD(myCMD, myDir):
-    #print "        myCMD: ", myCMD
-    #print "        myDir: ", myDir
+    print "        COMMAND: ", myCMD, "\n"
     pipe = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
     if out:
         print "        Result: ",out
     if err:
-        print "Error: ", err
-        print "        myCMD: ", myCMD
-        exit(1)
+        print "\n\n", err
+        if err.find("ERROR") >= 0:
+            exit(1)
     return [out, err]
 
 def makeDir(dirToGen):
@@ -35,12 +34,13 @@ def makeDir(dirToGen):
         if exception.errno != errno.EEXIST: raise
 
 def pathAndroid(workingDir, dirsToGen):
-    print '    Generating folder structure'
+    print '--------------------------------   G e n e r a t i n g   F o l d e r   S t r u c t u r e \n'
     makeDir(workingDir)
     for dirToGen in dirsToGen:
         makeDir(workingDir + dirToGen)
 
 def androidManifest(topDomain, domain, appName, workingDir):
+    print '--------------------------------   G e n e r a t i n g   M a n i f e s t \n'
     manifestName = "AndroidManifest.xml"
 
     outStr = '<?xml version="1.0" encoding="utf-8"?>\n' \
@@ -61,7 +61,7 @@ def androidManifest(topDomain, domain, appName, workingDir):
     fo.close()
 
 def generateAndroid(workingDir):
-    print '    Generating R.java'
+    print '--------------------------------   G e n e r a t i n g   R . j a v a'
     outputDir = "-J gen/ "
     creatOutDir = "-m "
     pathToDrawablesAndLayouts = "-S " + workingDir + "/res/ "
@@ -74,7 +74,7 @@ def generateAndroid(workingDir):
     #TODO: if error "The type ClassName cannot be found in source files" try clean then build
 
 def compileAndroid(buildName):
-    print '    Compiling with Jack toolchain'
+    print '--------------------------------   C o m p i l i n g   w i t h   J a c k   T o o l c h a i n'
     classpath = '--classpath "$ANDROID_HOME/platforms/android-23/android.jar" '
     importTag = ''
     outputTag = '--output-dex ' + buildName + '/out ' + buildName + '/src/ ' + buildName + '/gen/ '
@@ -84,7 +84,7 @@ def compileAndroid(buildName):
     [out, err] = runCMD(myCMD, '.')
 
 def packageAndroid(appName, buildName, workingDir):
-    print '    Packaging APK '
+    print '--------------------------------   P a c k a g i n g   A P K'
     outputDir = '-J ' + buildName + '/gen/ '
     creatOutDir = "-m "
     pathToDrawablesAndLayouts = '-S ' + buildName + '/res/ '
@@ -100,7 +100,7 @@ def packageAndroid(appName, buildName, workingDir):
     [out, err] = runCMD(myCMD, workingDir)
 
 def signAndroid(appName, buildName):
-    print '    Signing APK'
+    print '--------------------------------   S i g n i n g   A P K'
     keystoreTag = '-keystore ~/.android/debug.keystore '
     keystorePassword = '-storepass android '
     keyPassword = '-keypass android '
@@ -111,7 +111,7 @@ def signAndroid(appName, buildName):
     [out, err] = runCMD(myCMD, '.')
 
 def zipalignAndroid(appName, buildName):
-    print '    Zipaligning APK'
+    print '--------------------------------   Z i p a l i g n i n g   A P K'
     forceOverwrite = "-f "
     allignmentTag = '4 '
     inFile = buildName + '/' + appName +'.apk  '
@@ -121,7 +121,7 @@ def zipalignAndroid(appName, buildName):
     [out, err] = runCMD(myCMD, '.')
 
 def uploadAndroid(appName, buildName):
-    print '    Uploading APK'
+    print '--------------------------------   U p l o a d i n g   A P K'
     replaceExistingApp = '-r '
     pathToAPK = buildName + '/' + appName +'-aligned.apk'
 
@@ -129,10 +129,10 @@ def uploadAndroid(appName, buildName):
     [out, err] = runCMD(myCMD, '.')
 
 def runAndroid(packageName):
-    print '    Running '
+    print '--------------------------------   R u n n i n g'
 
 
-    myCMD = 'adb shell am start ' + packageName +'/.MainActivity'
+    myCMD = 'adb shell am start ' + packageName +'/.GLOBAL'
     [out, err] = runCMD(myCMD, '.')
 
 def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, outStr):
@@ -140,7 +140,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     domain = "infomage"
     currentDir = os.getcwd()
     workingDir = currentDir + '/' + buildName
-    #fileName = 'GLOBAL'
+    fileName = 'GLOBAL'
     packageDir = '/src/'+topDomain+'/'+domain+'/'+fileName
     packageName = topDomain+'.'+domain+'.'+fileName
     dirsToGen = ['/gen', '/libs', '/out', '/res/drawable-xhdpi', '/res/layout', packageDir]

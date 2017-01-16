@@ -25,7 +25,7 @@ def GenerateMainActivity(objects, tags, runCode):
         me void: onCreate(me Bundle: savedInstanceState) <- {
             super.onCreate(savedInstanceState)
             GLOBAL.static_Global <- this
-            GLOBAL.static_Global.appFuncs <- thisApp()
+            Allocate(appFuncs)
             initialize()
         }
 
