@@ -21,8 +21,8 @@ def runCMD(myCMD, myDir):
     if out:
         print "        Result: ",out
     if err:
-        print "\n\n", err
-        if err.find("ERROR") >= 0:
+        print "\n", err
+        if (err.find("ERROR") or err.find("Error") ) >= 0:
             exit(1)
     return [out, err]
 
@@ -75,6 +75,7 @@ def generateAndroid(workingDir):
 
 def compileAndroid(buildName):
     print '--------------------------------   C o m p i l i n g   w i t h   J a c k   T o o l c h a i n'
+    # generates out/classes.dex  file
     classpath = '--classpath "$ANDROID_HOME/platforms/android-23/android.jar" '
     importTag = ''
     outputTag = '--output-dex ' + buildName + '/out ' + buildName + '/src/ ' + buildName + '/gen/ '
@@ -84,19 +85,27 @@ def compileAndroid(buildName):
     [out, err] = runCMD(myCMD, '.')
 
 def packageAndroid(appName, buildName, workingDir):
+    # Android Asset Packaging Tool
     print '--------------------------------   P a c k a g i n g   A P K'
+    # First, we create the initial package file with the manifest and resources
     outputDir = '-J ' + buildName + '/gen/ '
     creatOutDir = "-m "
     pathToDrawablesAndLayouts = '-S ' + buildName + '/res/ '
     pathToAndroidJar = '-I "$ANDROID_HOME/platforms/android-23/android.jar" '
     pathToManifest = '-M ' + buildName + '/AndroidManifest.xml '
     forceOverwrite = "-f "
-    apkOutFile = '-F ' + buildName + '/' + appName +'.apk '
+    apkOutFile = '-F ' + buildName + '/out/' + appName +'.apk '
 
     myCMD = 'aapt package ' + forceOverwrite + pathToManifest + pathToAndroidJar + pathToDrawablesAndLayouts + apkOutFile
     [out, err] = runCMD(myCMD, '.')
+    print '--------------------------------   A d d i n g   c l a s s e s . d e x'
+    # Now we add our compiled classes.dex
+    # change to /out directory
+    workingDir = workingDir + "/out"
+    apkFile = appName + '.apk '
+    dexFile = 'classes.dex'
 
-    myCMD = 'aapt add ' + appName + '.apk ' + buildName + '/out/classes.dex'
+    myCMD = 'aapt add ' + apkFile + dexFile
     [out, err] = runCMD(myCMD, workingDir)
 
 def signAndroid(appName, buildName):
@@ -104,7 +113,7 @@ def signAndroid(appName, buildName):
     keystoreTag = '-keystore ~/.android/debug.keystore '
     keystorePassword = '-storepass android '
     keyPassword = '-keypass android '
-    outFile = buildName + '/' + appName +'.apk '
+    outFile = buildName + '/out/' + appName +'.apk '
     keyAlias = 'androiddebugkey '
 
     myCMD = 'jarsigner -verbose ' + keystoreTag + keystorePassword + keyPassword + outFile + keyAlias
@@ -114,8 +123,8 @@ def zipalignAndroid(appName, buildName):
     print '--------------------------------   Z i p a l i g n i n g   A P K'
     forceOverwrite = "-f "
     allignmentTag = '4 '
-    inFile = buildName + '/' + appName +'.apk  '
-    outFile = buildName + '/' + appName +'-aligned.apk '
+    inFile = buildName + '/out/' + appName +'.apk  '
+    outFile = buildName + '/out/' + appName +'-aligned.apk '
 
     myCMD = 'zipalign ' + forceOverwrite + allignmentTag + inFile + outFile
     [out, err] = runCMD(myCMD, '.')
@@ -123,15 +132,13 @@ def zipalignAndroid(appName, buildName):
 def uploadAndroid(appName, buildName):
     print '--------------------------------   U p l o a d i n g   A P K'
     replaceExistingApp = '-r '
-    pathToAPK = buildName + '/' + appName +'-aligned.apk'
+    pathToAPK = buildName + '/out/' + appName +'-aligned.apk'
 
     myCMD = 'adb install ' + replaceExistingApp + pathToAPK
     [out, err] = runCMD(myCMD, '.')
 
 def runAndroid(packageName):
     print '--------------------------------   R u n n i n g'
-
-
     myCMD = 'adb shell am start ' + packageName +'/.GLOBAL'
     [out, err] = runCMD(myCMD, '.')
 

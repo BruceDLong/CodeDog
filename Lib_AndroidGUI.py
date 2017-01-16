@@ -96,7 +96,6 @@ struct timeStringer{
 struct GLOBAL{
 
     me thisApp: appFuncs
-    me ourSubMenu: menubar
     me void: close_window() <- {
          // gtk_main_quit()
     }
@@ -137,7 +136,7 @@ struct GLOBAL{
     }
 
     me void: addAndroidMenu(me Menu: androidMenu) <- {
-        withEach thisSubMenu in menubar.items:{
+        withEach thisSubMenu in appFuncs.menubar.items:{
             if (thisSubMenu.items.size()==0){
                 androidMenu.add(thisSubMenu.name)
             }
@@ -146,7 +145,7 @@ struct GLOBAL{
 
                 androidMenu.addSubMenu(thisSubMenu.name)
                 withEach item in thisSubMenu.items:{
-                    androidMenu.add(item.name)
+                    parentMenu.add(item.name)
                 }
             }
         }
@@ -164,14 +163,14 @@ struct GUI: implMode="inherit:LinearLayout"{
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggui.layoutArea.addView(%2)%>      // dog file: gui.addToViewport(scroller, drawing_area)
     me void: setCallback() <- <%!%G %>
-    me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenuBar, me string: text) <- {
-        me GUI_menuBar:: subMenu(text)
-        menubar.items.pushLast(subMenu)
+    me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenubar, me string: text) <- {
+        me ourSubMenu:: subMenu(text)
+        GLOBAL.static_Global.appFuncs.menubar.items.add(subMenu)
         return(subMenu)
     }
     me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
         our ourSubMenu:: thisMenuItem(menuLabel)
-        menubar.items.pushLast(thisMenuItem)
+        menu.items.pushLast(thisMenuItem)
     }
     me void: addMenuBar(me LinearLayout: frame, our GUI_menuBar: menubar) <- {}
 }
@@ -207,15 +206,14 @@ struct GUI_ctxt: ctxTag="Android" Platform='Android' Lang='Java' LibReq="swing" 
 
 struct thisApp: implMode="inherit:LinearLayout"{
     me none: thisApp() <- {super(GLOBAL.static_Global)}
+    me ourSubMenu:: menubar("menubar")
 }
 
 struct ourSubMenu{
     me string: name
     me ourSubMenu[list]: items
-    me none: ourSubMenu(me string: menuLabel) <- {
-        name <- menuLabel
-    }
-    me none: ourSubMenu() <- {}
+    me none: ourSubMenu(me string: menuLabel) <- {name <- menuLabel}
+    me none: ourSubMenu() <- {Allocate(items)}
 }
     """
 
