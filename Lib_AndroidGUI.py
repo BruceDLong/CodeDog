@@ -11,12 +11,14 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
 
     me none: CanvasView() <- {super(GLOBAL.static_Global)}
     me void: onDraw(me Canvas: canvas) <- <%    {
-        cr = new GUI_ctxt(); 
+        cr = new GUI_ctxt();
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
         GLOBAL.static_Global.drawAppArea_cb(this, cr);
     }%>
 }
+
+struct Menu{me Menu: addSubMenu(me string: title) <- <%!addSubmenu(%1)%>}
 
 struct GUI_rect{me Rect: GUI_rect}
 //struct GUI_offset{their GtkAdjustment:GUI_offset}
@@ -35,7 +37,7 @@ struct INK_Image{their Paint: INK_Image}      // How will the ink look?
 struct GUI: implMode="inherit:LinearLayout" {
     me LinearLayout:: frame(GLOBAL.static_Global)
     me LinearLayout:: layoutArea(GLOBAL.static_Global)
-    
+
     me none: GUI() <- {super(GLOBAL.static_Global)}
     me uint32: GUI_Init() <- <%{return(0);}%>
     me ScrollView: newScrollingWindow(me Long: A, me Long:B) <- <%{
@@ -133,13 +135,15 @@ struct GLOBAL{
         addAndroidMenu(androidMenu)
         return (true)
     }
-    
+
     me void: addAndroidMenu(me Menu: androidMenu) <- {
         withEach thisSubMenu in menubar.items:{
             if (thisSubMenu.items.size()==0){
                 androidMenu.add(thisSubMenu.name)
             }
             else{
+                me SubMenu:: parentMenu (androidMenu.addSubMenu(thisSubMenu.name))
+
                 androidMenu.addSubMenu(thisSubMenu.name)
                 withEach item in thisSubMenu.items:{
                     androidMenu.add(item.name)

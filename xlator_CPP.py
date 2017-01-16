@@ -531,6 +531,10 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
             # Code the constructor's arguments
             [CPL, paramTypeList] = codeParameterList(fieldDef['paramList'], None, xlator)
             if len(paramTypeList)==1:
+                if not isinstance(paramTypeList[0], dict):
+                    print "\nPROBLEM: The return type of the parameter '", CPL, "' cannot be found and is needed. Try to define it.\n"
+                    exit(1)
+
                 theParam=paramTypeList[0]['fieldType']
 
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
