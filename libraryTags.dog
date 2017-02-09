@@ -60,7 +60,7 @@ libraries = {
         bindings =[C, CPP, perl, python]
         CPUs     =[i386, amd64, arm7]
         libFiles=[]
-        headers=[signal.h, string, cstring, memory, cstdint, deque, map, cstdarg, iostream, fstream]
+        headers=[signal.h, string, cstring, memory, cstdint, deque, map, cstdarg, iostream, fstream, sys/stat.h]
     }
 
     Swing={
@@ -71,7 +71,7 @@ libraries = {
         bindings =[Java]
         CPUs     =[JavaVM]
         libFiles=[]
-        headers=[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*, java.awt.Font, java.awt.image.BufferedImage, java.awt.Graphics, java.awt.Graphics2D, javax.imageio.ImageIO]
+        headers=[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*, java.awt.Font, java.awt.image.BufferedImage, java.awt.Graphics, java.awt.Graphics2D, javax.imageio.ImageIO, java.nio.file.Paths]
     }
 
     AndroidGUI={
@@ -93,6 +93,6 @@ libraries = {
         bindings =[Java]
         CPUs     =[ARM]
         libFiles=[]
-        headers=[android.app.Activity, android.os.Bundle]
+        headers=[android.app.Activity, android.os.Bundle, android.content.Context, android.util.Log]
     }
 }

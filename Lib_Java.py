@@ -20,7 +20,7 @@ def createUtilityFunctions():
         me int64: stoi(me string: str) <- <%!%GInteger.parseInt(%1)%>
         me bool: isprint(me char: ch) <- <%!%GCharacter.isISOControl(%1)%>
         me long: getCurrentTimeStamp() <- <%!%Gnew Date().getTime()%>
-        me string: readFileAsString(me string: fileName) <- <%!%Gfuncs.readFileAsString(%1)%>
+        me string: readFileAsString(me string: fileName) <- <%!%readFileAsString(%1)%>
         me timeOutID: callPeriodically(me string: varClass, me string: funcToCall, me int:microSecs): COMMAND_addImplements="Runnable:ToClass:%1" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%2, 0, %3, TimeUnit.MILLISECONDS)%>
         me string: toString(me int: val) <- <%!%GInteger.toString(%1)%>
     """
@@ -43,7 +43,32 @@ def use(objects, buildSpec, tags, platform):
     GLOBAL_CODE="""
         struct GLOBAL{
             me GLOBAL: static_Global
-            me Random: javaRandomVar
+            me Random: javaRandomVar    
+            me string: readFileAsString(me string: filePath)<- <%{
+                try {
+                    DataInputStream dis = new DataInputStream(new FileInputStream(filePath));
+                    try {
+                        long len = new File(filePath).length();
+                        if (len > Integer.MAX_VALUE) return "";
+                        byte[] bytes = new byte[(int) len];
+                        dis.readFully(bytes);
+                        return new String(bytes, "UTF-8");
+                    } finally {
+                        dis.close();
+                    }
+                } catch (IOException ioe) {
+                    System.out.println("Cannot read file " + ioe.getMessage());
+                    return "";
+                }
+            }%>
+            
+            me bool: doesFileExist(me string: filePath)<- <%{
+                File f = new File(filePath);
+                if(f.exists() && f.isFile()) { 
+                    return true;
+                }
+                return false;
+            }%>
             // LOGGING INTERFACE:
 """ + (APP_UTILITY_CODE) + """
         }

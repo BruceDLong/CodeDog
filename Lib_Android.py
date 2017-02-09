@@ -8,10 +8,32 @@ def use(objects, buildSpec, tags, platform):
     GLOBAL_CODE="""
     struct random{me Random: random}
     struct GLOBAL{
-
+        me void: logMesg()<- <%!%GLog.v("GLOBAL", %1)%>
         me x: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
+        me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
+            try {
+                InputStream inStream = GLOBAL.static_Global.getAssets().open(fromPath);
+                OutputStream outStream = GLOBAL.static_Global.openFileOutput(toPath, Context.MODE_PRIVATE);
 
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = inStream.read(buf)) > 0) {
+                    outStream.write(buf, 0, len);
+                }
+                outStream.close();
+                inStream.close();
+            } catch (Exception e) {
+                System.out.print(e.getMessage());
+            }
+        }%>
+        
+                    
+        me string: getFilesDirAsString()<- <%{
+            File file = GLOBAL.static_Global.getFilesDir();
+            return file.getAbsolutePath();
+        }%>
     }
+    
 """
     print "GLOBAL_CODE: ", GLOBAL_CODE
 
