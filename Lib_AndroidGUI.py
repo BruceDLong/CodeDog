@@ -18,8 +18,6 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
     }%>
 }
 
-struct Menu{me Menu: addSubMenu(me string: title) <- <%!addSubmenu(%1)%>}
-
 struct GUI_rect{me Rect: GUI_rect}
 //struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me Object: GUI_item}
@@ -55,7 +53,6 @@ struct GUI: implMode="inherit:LinearLayout" {
 //        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
         GLOBAL.static_Global.setContentView(frame);
         GLOBAL.static_Global.appFuncs.createAppArea(frame);
-//        frame.setVisible(true);
     } %>
 
     me uint32: GUI_Run() <- <% {
@@ -94,14 +91,14 @@ struct timeStringer{
 }
 
 struct GLOBAL{
-
+    me SubMenu: parentMenu
     me thisApp: appFuncs
     me void: close_window() <- {
          // gtk_main_quit()
     }
 
     // DRAWING ROUTINES:
-
+/*
     me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
        // cr.paint.setStyle(Style.FILL);
         cr.paint.setTextSize(fontSize);
@@ -113,21 +110,20 @@ struct GLOBAL{
 
     me INK_Image[map string]: InkImgCache
     me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
-     /*   BufferedImage picPtr=InkImgCache.get(filename);
+        BufferedImage picPtr=InkImgCache.get(filename);
         if (picPtr==null) {
             try{
                 picPtr=ImageIO.read(new File(filename));
             } catch(IOException ioe){System.out.println("Cannot read image file " + ioe.getMessage()); System.exit(2);}
             InkImgCache.put(filename, picPtr);
             }
-        cr.gr.drawImage(picPtr, null, 0,0);  */
+        cr.gr.drawImage(picPtr, null, 0,0);  
     } %>
-
+*/
 
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
     me long: ticksPerSec() <- <%!%G1000%>
 
-    //me bool: drawAppArea_cb (me GUI_item: widget, me GUI_ctxt: cr) <- <%!drawAppArea_cb(me GUI_ctxt: cr)%>
     me boolean: onCreateOptionsMenu(me Menu: androidMenu) <- {
         super.onCreateOptionsMenu(androidMenu)
         appFuncs.createAppMenu(appFuncs.gui.frame)
@@ -141,9 +137,7 @@ struct GLOBAL{
                 androidMenu.add(thisSubMenu.name)
             }
             else{
-                me SubMenu:: parentMenu (androidMenu.addSubMenu(thisSubMenu.name))
-
-                androidMenu.addSubMenu(thisSubMenu.name)
+                parentMenu <- androidMenu.addSubMenu(thisSubMenu.name)
                 withEach item in thisSubMenu.items:{
                     parentMenu.add(item.name)
                 }

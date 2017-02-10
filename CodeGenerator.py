@@ -964,6 +964,7 @@ libInterfacesText=''
 def makeFileHeader(tags, filename, xlator):
     global buildStr_libs
     global libInterfacesText
+    filename = makeTagText(tags, 'FileName')
 
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
     header += "// " + makeTagText(tags, 'CopyrightMesg') +'\n'
@@ -976,7 +977,7 @@ def makeFileHeader(tags, filename, xlator):
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
     header += "\n// Build Command: " +buildStr_libs+'\n\n'
     header += libInterfacesText
-    header += xlator['addSpecialCode']()
+    header += xlator['addSpecialCode'](filename)
     return header
 
 def integrateLibraries(tags, libID, xlator):
@@ -1002,7 +1003,8 @@ def connectLibraries(objects, tags, libsToUse, xlator):
         headerStr += integrateLibraries(tags, lib, xlator)
     return headerStr
 
-def createInit_DeInit(objects, tags):
+def addGLOBALSpecialCode(objects, tags, xlator):
+    xlator['addGLOBALSpecialCode'](objects, tags, xlator)
     initCode=''; deinitCode=''
 
     if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
@@ -1088,7 +1090,7 @@ def generate(objects, tags, libsToUse, xlator):
     buildStr_libs = xlator['BuildStrPrefix']
     objectsRef=objects
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
-    createInit_DeInit(objects, tags)
+    addGLOBALSpecialCode(objects, tags, xlator)
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
     if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program": generateBuildSpecificMainFunctionality(objects, tags, xlator)
 

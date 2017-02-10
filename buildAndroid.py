@@ -22,7 +22,7 @@ def runCMD(myCMD, myDir):
         print "        Result: ",out
     if err:
         print "\n", err
-        if (err.find("ERROR") or err.find("Error") ) >= 0:
+        if (err.find("ERROR")) >= 0:
             exit(1)
     return [out, err]
 
@@ -61,15 +61,15 @@ def androidManifest(topDomain, domain, appName, workingDir):
     fo.close()
 
 def generateAndroid(workingDir):
-    print '--------------------------------   G e n e r a t i n g   R . j a v a'
+    print '--------------------------------   G e n e r a t i n g   R . j a v a   f o r   R e s o u r c e s'
     outputDir = "-J gen/ "
     creatOutDir = "-m "
-    pathToDrawablesAndLayouts = "-S " + workingDir + "/res/ "
+    pathToResources = "-S " + workingDir + "/res/ "
     pathToAndroidJar = '-I "$ANDROID_HOME/platforms/android-23/android.jar" '
     pathToManifest = "-M AndroidManifest.xml "
     forceOverwrite = "-f "
 
-    myCMD = 'aapt package ' + forceOverwrite + pathToManifest + pathToAndroidJar + pathToDrawablesAndLayouts + outputDir + creatOutDir
+    myCMD = 'aapt package ' + forceOverwrite + pathToManifest + pathToAndroidJar + pathToResources + outputDir + creatOutDir
     [out, err] = runCMD(myCMD, workingDir)
     #TODO: if error "The type ClassName cannot be found in source files" try clean then build
 
@@ -95,8 +95,9 @@ def packageAndroid(appName, buildName, workingDir):
     pathToManifest = '-M ' + buildName + '/AndroidManifest.xml '
     forceOverwrite = "-f "
     apkOutFile = '-F ' + buildName + '/out/' + appName +'.apk '
+    pathToAssets = '-A ' + buildName + '/assets/ '
 
-    myCMD = 'aapt package ' + forceOverwrite + pathToManifest + pathToAndroidJar + pathToDrawablesAndLayouts + apkOutFile
+    myCMD = 'aapt package ' + forceOverwrite + pathToManifest + pathToAndroidJar + pathToDrawablesAndLayouts + apkOutFile + pathToAssets
     [out, err] = runCMD(myCMD, '.')
     print '--------------------------------   A d d i n g   c l a s s e s . d e x'
     # Now we add our compiled classes.dex
@@ -143,6 +144,7 @@ def runAndroid(packageName):
     [out, err] = runCMD(myCMD, '.')
 
 def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, outStr):
+    fileExt = '.java'
     topDomain = "com"
     domain = "infomage"
     currentDir = os.getcwd()
@@ -150,8 +152,8 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     fileName = 'GLOBAL'
     packageDir = '/src/'+topDomain+'/'+domain+'/'+fileName
     packageName = topDomain+'.'+domain+'.'+fileName
-    dirsToGen = ['/gen', '/libs', '/out', '/res/drawable-xhdpi', '/res/layout', packageDir]
-    fileExt = '.java'
+    targetPlatform = ""
+    dirsToGen = ['/assets', '/gen', '/libs', '/out', '/res/drawable', '/res/layout', packageDir]
 
     print 'Building for Android'
     pathAndroid(workingDir, dirsToGen)

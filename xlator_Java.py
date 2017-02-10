@@ -9,7 +9,7 @@ This file, along with Lib_Java.py specify to the CodeGenerater how to compile Co
 import progSpec
 import codeDogParser
 import Lib_Android
-from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList
+from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -412,30 +412,21 @@ def codeStructText(classAttrs, parentClass, structName, structCode):
 def produceTypeDefs(typeDefMap, xlator):
     return ''
 
-def addSpecialCode():
+def addSpecialCode(filename):
     S='\n\n//////////// Java specific code:\n'
-    S+="""
-    class funcs{
-        public static String readFileAsString(String filePath){
-            try {
-                DataInputStream dis = new DataInputStream(new FileInputStream(filePath));
-                try {
-                    long len = new File(filePath).length();
-                    if (len > Integer.MAX_VALUE) return "";
-                    byte[] bytes = new byte[(int) len];
-                    dis.readFully(bytes);
-                    return new String(bytes, "UTF-8");
-                } finally {
-                    dis.close();
-                }
-            } catch (IOException ioe) {
-                System.out.println("Cannot read file " + ioe.getMessage());
-                return "";
-            }
-        }
-    }
-    """
     return S
+    
+def addGLOBALSpecialCode(objects, tags, xlator):
+    filename = makeTagText(tags, 'FileName')
+    specialCode ='const string: filename <- "' + filename + '"\n'
+
+    GLOBAL_CODE="""
+struct GLOBAL{
+    %s
+}
+    """ % (specialCode)
+
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     if isinstance(typeSpec['fieldType'], basestring):
@@ -667,5 +658,6 @@ def fetchXlators():
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality
+    xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
 
     return(xlators)

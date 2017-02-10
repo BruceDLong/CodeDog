@@ -141,6 +141,14 @@ struct GLOBAL{
     }
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.repaint(%2, %3, %4, %5)%>
     me long: ticksPerSec() <- <%!%G1000%>
+    me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
+        //TODO finish this if need to package swing build
+    }%>    
+    me string: getFilesDirAsString()<- <%{
+        String s = Paths.get(".").toAbsolutePath().normalize().toString();
+        System.out.println("Current relative path is: " + s);
+        return s;
+    }%>
 }
 
 struct GUI{

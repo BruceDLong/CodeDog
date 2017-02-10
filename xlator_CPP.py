@@ -1,7 +1,7 @@
 #xlator_CPP.py
 import progSpec
 import codeDogParser
-from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList
+from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -471,9 +471,10 @@ def produceTypeDefs(typeDefMap, xlator):
             typeDefCode += 'typedef '+key+' '+val+';\n'
     return typeDefCode
 
-def addSpecialCode():
+def addSpecialCode(filename):
     S='\n\n//////////// C++ specific code:\n'
     S += "\n\nusing namespace std;\n\n"
+    S += 'const string filename = "' + filename + '";\n'
     S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
 
     S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
@@ -501,6 +502,23 @@ def addSpecialCode():
         }
         return std::string(formatted.get());
     }
+    
+    string getFilesDirAsString(){
+        //string fileDir = "~/."+filename ";
+        string fileDir = "./Assets";
+        
+        mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        return (fileDir);
+    }
+    
+    bool doesFileExist(string filePath){
+        ifstream ifile(filename);
+        return (bool)ifile;
+    }
+    
+    void copyAssetToWritableFolder(string fromPath, string toPath){
+        //TODO: finish func body if package C++
+    }
     """
 
     decl ="string readFileAsString(string filename)"
@@ -518,6 +536,17 @@ def addSpecialCode():
 
     return S
 
+def addGLOBALSpecialCode(objects, tags, xlator):
+    specialCode ='' 
+
+    GLOBAL_CODE="""
+struct GLOBAL{
+    %s
+}
+    """ % (specialCode)
+
+    #codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+    
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     varDeclareStr=''
     assignValue=''
@@ -712,5 +741,6 @@ def fetchXlators():
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality
+    xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
 
     return(xlators)
