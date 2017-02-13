@@ -117,9 +117,9 @@ struct GLOBAL{
 
     // DRAWING ROUTINES:
 
-    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
+    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         cr.gr.setFont(new Font(fontName, Font.PLAIN, (int)(fontSize*1.4)));
-        cr.gr.drawString(text, (int)cr.cur_x, (int)cr.cur_y);
+        cr.gr.drawString(text, x, y);
     } %>
 
 
