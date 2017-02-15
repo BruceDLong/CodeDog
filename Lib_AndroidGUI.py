@@ -94,6 +94,7 @@ struct timeStringer{
 struct GLOBAL{
     me SubMenu: parentMenu
     me thisApp: appFuncs
+    me AssetManager: assetManager
     me void: close_window() <- {
          // gtk_main_quit()
     }
@@ -106,21 +107,21 @@ struct GLOBAL{
         cr.GCanvas.drawText(text, x, y, cr.paint); 
     } %>
 
-
-
 //    me INK_Image[map string]: InkImgCache
-    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
-/*        BufferedImage picPtr=InkImgCache.get(filename);
-        if (picPtr==null) {
-            try{
-                picPtr=ImageIO.read(new File(filename));
-            } catch(IOException ioe){System.out.println("Cannot read image file " + ioe.getMessage()); System.exit(2);}
-            InkImgCache.put(filename, picPtr);
-            }
-        cr.gr.drawImage(picPtr, null, 0,0);  
- */   } %>
-
-
+    me void: displayImage(me GUI_ctxt: cr, me string: filename, me float: x, me float: y, me double: scale) <- <%{
+        boolean filter = false;
+        try {
+            assetManager = getAssets();
+            InputStream is = assetManager.open(filename);
+            Bitmap  bitmap = BitmapFactory.decodeStream(is);
+            int width  = Math.round((float)scale * bitmap.getWidth());
+            int height = Math.round((float)scale * bitmap.getHeight()); 
+            Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, width,height, filter);
+            cr.GCanvas.drawBitmap(newBitmap, x, y, cr.paint);
+            Log.v("TAG", "display image: " + filename);
+        } catch (IOException e) {Log.e("TAG", e.getMessage());}
+   } %>
+   
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
     me long: ticksPerSec() <- <%!%G1000%>
 

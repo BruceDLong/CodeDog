@@ -173,6 +173,7 @@ struct timeStringer{
 
     me INK_Image[map string]: InkImgCache
     me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
+        filename = "./assets/" + filename;
         map< string, cairo_surface_t* >::iterator picPtr=InkImgCache.find(filename);
         cairo_surface_t* pic=0;
         if (picPtr==InkImgCache.end()) {

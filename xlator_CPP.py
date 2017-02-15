@@ -505,7 +505,7 @@ def addSpecialCode(filename):
     
     string getFilesDirAsString(){
         //string fileDir = "~/."+filename ";
-        string fileDir = "./Assets";
+        string fileDir = "./assets";
         
         mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         return (fileDir);

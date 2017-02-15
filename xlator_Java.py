@@ -550,7 +550,7 @@ def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags,
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if (fieldName == "static_Global" or fieldName == "static_gui_tk"):  # TODO: make static_Global so it is not hard coded
         S += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-    elif(objectName == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp")):
+    elif(objectName == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager")):
         print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
