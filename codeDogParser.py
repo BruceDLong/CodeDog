@@ -125,7 +125,8 @@ fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('c
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
 doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
-objectList = Group(ZeroOrMore(objectDef | doPattern))("objectList")
+macroDef  = Group(Keyword("define") + CID('macroName') + Literal("(").suppress() + CIDList('macroArgs') + Literal(")").suppress() + Group( "<%" + SkipTo("%>", include=True))("macroBody"))
+objectList = Group(ZeroOrMore(objectDef | doPattern | macroDef))("objectList")
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
 progSpecParser = (Optional(buildSpecList) + tagDefList + objectList)("progSpecParser")
@@ -468,13 +469,38 @@ def extractPatternSpecs(ProgSpec, objNames, spec):
     progSpec.addPattern(ProgSpec, objNames, patternName, patternArgWords)
     return
 
-def extractObjectsOrPatterns(ProgSpec, objNames, objectSpecResults):
+def extractMacroSpec(macroDefs, spec):
+    MacroName=spec.macroName[0]
+    MacroArgs=spec.CIDList
+    MacroBody=spec.macroBody
+    macroDefs[MacroName] = {'ArgList':MacroArgs,  'Body':MacroBody}
+
+def extractMacroDefs(macroDefMap, inputString):
+    macroDefs = re.findall('#define.*ENDDEF', inputString)
+    for macroStr in macroDefs:
+        try:
+            localResults = macroDef.parseString(macroStr, parseAll = True)
+        except ParseException , pe:
+            print "error parsing: " , pe
+            exit(1)
+        extractMacroSpec(macroDefMap, localResults)
+
+def doMacroSubstitutions(macros, inputString):
+    # while(more substitutions to be done):
+        # First, find items to substitute, fetching the argument list and name
+        # Next, take the text from macros['Body'] and do substitution of the ArgList items
+        # Last, replace the text into inputString
+    return inputString
+
+def extractObjectsOrPatterns(ProgSpec, objNames, macroDefs, objectSpecResults):
     for spec in objectSpecResults:
         s=spec[0]
         if s == "model" or s == "struct" or s == "string" or s == "stream":
             extractObjectSpecs(ProgSpec, objNames, spec, s)
         elif s == "do":
             extractPatternSpecs(ProgSpec, objNames, spec)
+        elif s == "define":
+            extractMacroSpec(macroDefs, spec)
         else:
             print "Error in extractObjectsOrPatterns; expected 'object' or 'do' and got '",spec[0],"'"
             exit(1)
@@ -495,25 +521,27 @@ def comment_remover(text):
     )
     return re.sub(pattern, replacer, text)
 
-def parseCodeDogString(inputString):
+def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
+    tmpMacroDefs={}
     inputString = comment_remover(inputString)
+    macros = extractMacroDefs(tmpMacroDefs, inputString)
+    inputString = doMacroSubstitutions(macros, inputString)
     results = parseInput(inputString)
     #print results.tagDefList
     tagStore = extractTagDefs(results.tagDefList)
     #print results.buildSpecList
     buildSpecs = extractBuildSpecs(results.buildSpecList)
     #print results.objectList
-    ProgSpec = {}
-    objNames = []
-    extractObjectsOrPatterns(ProgSpec, objNames, results.objectList)
+    extractObjectsOrPatterns(ProgSpec, objNames, macroDefs, results.objectList)
     objectSpecs = [ProgSpec, objNames]
     return[tagStore, buildSpecs, objectSpecs]
 
 def AddToObjectFromText(spec, objNames, inputStr):
+    macroDefs = {} # This var is not used here. If needed, make it an argument.
     inputStr = comment_remover(inputStr)
     #print '####################\n',inputStr, "\n######################^\n\n\n"
 
     # (map of objects, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
     #print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'
-    extractObjectsOrPatterns(spec, objNames, results[0])
+    extractObjectsOrPatterns(spec, objNames, macroDefs, results[0])

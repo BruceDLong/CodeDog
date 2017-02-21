@@ -502,20 +502,20 @@ def addSpecialCode(filename):
         }
         return std::string(formatted.get());
     }
-    
+
     string getFilesDirAsString(){
         //string fileDir = "~/."+filename ";
         string fileDir = "./Assets";
-        
+
         mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         return (fileDir);
     }
-    
+
     bool doesFileExist(string filePath){
         ifstream ifile(filename);
         return (bool)ifile;
     }
-    
+
     void copyAssetToWritableFolder(string fromPath, string toPath){
         //TODO: finish func body if package C++
     }
@@ -537,7 +537,7 @@ def addSpecialCode(filename):
     return S
 
 def addGLOBALSpecialCode(objects, tags, xlator):
-    specialCode ='' 
+    specialCode =''
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -546,7 +546,7 @@ struct GLOBAL{
     """ % (specialCode)
 
     #codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
-    
+
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     varDeclareStr=''
     assignValue=''

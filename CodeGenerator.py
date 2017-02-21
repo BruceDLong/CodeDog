@@ -45,6 +45,7 @@ def CheckFunctionsLocalVarArgList(itemName):
     global localArgsAllocated
     for item in reversed(localArgsAllocated):
         if item[0]==itemName:
+           # print "ITEMNAME:", itemName
             return [item[1], 'FUNCARG']
     return 0
 
@@ -98,7 +99,7 @@ def CheckObjectVars(objName, itemName, level):
         if(count>1): print("Passive Inheritance for "+itemName+" in "+objName+" is ambiguous."); exit(2);
         if(count==1): return retVal
         """
-
+    print "WARNING: Could not find field",itemName ,"in", objName
     return 0 # Field not found in model
 
 StaticMemberVars={} # Used to find parent-class of const and enums
@@ -121,7 +122,7 @@ def fetchItemsTypeSpec(itemName, xlator):
     else:
         REF=CheckFunctionsLocalVarArgList(itemName)
         if (REF):
-            RefType="LOCAL"
+            RefType="LOCAL" # could also return FUNCARG
             return REF
         else:
             REF=CheckObjectVars(currentObjName, itemName, 1)
@@ -362,8 +363,8 @@ def codeItemRef(name, LorR_Val, xlator):
     AltFormat=None
     AltIDXFormat=''
     for segSpec in name:
-        #print "NameSeg:", segSpec
         owner=progSpec.getTypeSpecOwner(segType)
+        #print "NameSeg:", owner, segSpec, segType
         segName=segSpec[0]
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).
@@ -752,7 +753,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
-        print "					FieldName:", fieldName
+        print "                 FieldName:", fieldName
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, 'var', xlator))

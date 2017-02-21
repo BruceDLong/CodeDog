@@ -323,6 +323,13 @@ def flattenObjectName(objName):
     if objName[-5:]=='::mem': return objName[:-5]
     return objName.replace('::', '_')
 
+
+def stringFromFile(filename):
+    f=open(filename)
+    Str = f.read()
+    f.close()
+    return Str
+
 """
 def getNameSegInfo(objMap, structName, fieldName):
     structToSearch = objMap[structName]

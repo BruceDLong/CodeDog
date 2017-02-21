@@ -3,6 +3,7 @@
 import progSpec
 import codeDogParser
 import buildDog
+import TestDog
 
 import pattern_Write_Main
 import pattern_GUI_Toolkit
@@ -44,18 +45,12 @@ def writeFile(path, fileName, outStr, fileExtension):
     fo.close()
     '''
 
-def stringFromFile(filename):
-    f=open(filename)
-    Str = f.read()
-    f.close()
-    return Str
-
 def processIncludedFiles(fileString):
     pattern = re.compile(r'#include +([\w -\.\/\\]+)')
     return pattern.sub(replaceFileName, fileString)
 
 def replaceFileName(fileMatch):
-    includedStr = stringFromFile(fileMatch.group(1))
+    includedStr = progSpec.stringFromFile(fileMatch.group(1))
     includedStr = processIncludedFiles(includedStr)
     return includedStr
 
@@ -117,17 +112,17 @@ def GroomTags(tags):
             progSpec.setFeatureNeeded(tags, 'largeNumbers', progSpec.storeOfBaseTypesUsed[typeName])
 
 
-def GenerateProgram(objects, buildTags, tags, libsToUse):
+def GenerateProgram(objects, buildTags, tagsList, libsToUse):
     result='No Language Generator Found for '+buildTags['Lang']
     langGenTag = buildTags['Lang']
     if(langGenTag == 'CPP'):
         print "\n\n######################  G E N E R A T I N G   C + +   P R O G R A M . . ."
         xlator = xlator_CPP.fetchXlators()
-        result=CodeGenerator.generate(objects, [tags, buildTags], libsToUse, xlator)
+        result=CodeGenerator.generate(objects, tagsList, libsToUse, xlator)
     elif(langGenTag == 'Java'):
         print "\n\n######################  G E N E R A T I N G   J A V A   P R O G R A M . . ."
         xlator = xlator_Java.fetchXlators()
-        result=CodeGenerator.generate(objects, [tags, buildTags], libsToUse, xlator)
+        result=CodeGenerator.generate(objects, tagsList, libsToUse, xlator)
     else:
         print "ERROR: No language generator found for ", langGenTag
     return result
@@ -185,7 +180,8 @@ def ChooseLibs(objects, buildTags, tags):
 
     return progSpec.libsToUse
 
-def GenerateSystem(objects, buildSpecs, tags):
+
+def GenerateSystem(objects, buildSpecs, tags, macroDefs):
     print "\n\n######################   G E N E R A T I N G   S Y S T E M"
     ScanAndApplyPatterns(objects, tags)
     AutoGenerateStructsFromModels(objects, tags)
@@ -195,10 +191,15 @@ def GenerateSystem(objects, buildSpecs, tags):
     for buildSpec in buildSpecs:
         buildName=buildSpec[0]
         buildTags=buildSpec[1]
+        testMode=progSpec.fetchTagValue([tags, buildTags], 'testMode')
         print "    Generating code for build", buildName
         progSpec.MarkItems=True
+        if testMode=='makeTests' or testMode=='runTests':
+            testTagStore=TestDog.generateTestCode(objects, buildTags, tags, macroDefs)
+            tagsList=[tags, buildTags, testTagStore]
+        else: tagsList=[tags, buildTags]
         libsToUse=ChooseLibs(objects, buildTags, tags)
-        fileSpecs = GenerateProgram(objects, buildTags, tags, libsToUse)
+        fileSpecs = GenerateProgram(objects, buildTags, tagsList, libsToUse)
         fileName = tagStore['FileName']
         langGenTag = buildTags['Lang']
         if(langGenTag == 'CPP'): fileExtension='.cpp'
@@ -216,7 +217,6 @@ def GenerateSystem(objects, buildSpecs, tags):
         for f in fileSpecs: print "   FS:", f[0]
         buildDog.build("-g", '14',  fileName, libFiles, buildName, platform, fileSpecs)
         progSpec.rollBack(objects)
-    # GenerateTests()
     # GenerateDocuments()
 
 
@@ -227,14 +227,17 @@ if(len(sys.argv) < 2):
     exit(1)
 
 file_name = sys.argv[1]
-codeDogStr = stringFromFile(file_name)
+codeDogStr = progSpec.stringFromFile(file_name)
 codeDogStr = processIncludedFiles(codeDogStr)
 
 
 # objectSpecs is like: [ProgSpec, objNames]
 print "######################   P A R S I N G   S Y S T E M  (", file_name, ")"
-[tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr)
+ProgSpec = {}
+objNames = []
+macroDefs= {}
+[tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs)
 tagStore['dogFilename']=file_name
 
-GenerateSystem(objectSpecs, buildSpecs, tagStore)
+GenerateSystem(objectSpecs, buildSpecs, tagStore, macroDefs)
 print "\n\n######################   D O N E"
