@@ -128,16 +128,6 @@ struct timeStringer{
     // TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
-    // LOGGING INTERFACE:
-    me void: logMesg(me string: s) <- <%!g_message(%1)%>
-    me void: logInfo(me string: s) <- <%!g_info(%1)%>
-    me void: logCriticalIssue(me string: s) <- <%!g_critical(%1)%>
-    me void: logFatalError(me string: s) <- <%!g_error(%1)%>
-    me void: logWarning(me string: s) <- <%!g_warning(%1)%>
-    me void: logDebug(me string: s) <- <%!g_debug(%1)%>
-    //me void: assert(condition) <- {}
-
-
     // DRAWING ROUTINES:
 
     me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{

@@ -16,6 +16,7 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
         GLOBAL.static_Global.drawAppArea_cb(this, cr);
+        invalidate();
     }%>
 }
 
