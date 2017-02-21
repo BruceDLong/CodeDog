@@ -6,8 +6,6 @@ import codeDogParser
 
 testBedUtilities = r'''
 
-    define MULTITEST(a, b, c) <%First %a, second %b, thind %c %>
-
     struct GLOBAL {
         me int: T_NUM_FAILS <- 0
         me string: T_MESG_BUFF
