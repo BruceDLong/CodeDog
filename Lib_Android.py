@@ -8,7 +8,6 @@ def use(objects, buildSpec, tags, platform):
     GLOBAL_CODE="""
     struct random{me Random: random}
     struct GLOBAL{
-        me void: logMesg()<- <%!%GLog.v("GLOBAL", %1)%>
         me x: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
         me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
             try {

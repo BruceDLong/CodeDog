@@ -128,19 +128,10 @@ struct timeStringer{
     // TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
-    // LOGGING INTERFACE:
-    me void: logMesg(me string: s) <- <%!g_message(%1)%>
-    me void: logInfo(me string: s) <- <%!g_info(%1)%>
-    me void: logCriticalIssue(me string: s) <- <%!g_critical(%1)%>
-    me void: logFatalError(me string: s) <- <%!g_error(%1)%>
-    me void: logWarning(me string: s) <- <%!g_warning(%1)%>
-    me void: logDebug(me string: s) <- <%!g_debug(%1)%>
-    //me void: assert(condition) <- {}
-
-
     // DRAWING ROUTINES:
 
-    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
+    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
+        cairo_move_to(cr,x,y);
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
 
@@ -172,6 +163,7 @@ struct timeStringer{
 
     me INK_Image[map string]: InkImgCache
     me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
+        filename = "./assets/" + filename;
         map< string, cairo_surface_t* >::iterator picPtr=InkImgCache.find(filename);
         cairo_surface_t* pic=0;
         if (picPtr==InkImgCache.end()) {

@@ -11,10 +11,12 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
 
     me none: CanvasView() <- {super(GLOBAL.static_Global)}
     me void: onDraw(me Canvas: canvas) <- <%    {
-        cr = new GUI_ctxt();
+        super.onDraw(canvas);
+        cr = new GUI_ctxt(canvas);
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
         GLOBAL.static_Global.drawAppArea_cb(this, cr);
+        invalidate();
     }%>
 }
 
@@ -93,34 +95,34 @@ struct timeStringer{
 struct GLOBAL{
     me SubMenu: parentMenu
     me thisApp: appFuncs
+    me AssetManager: assetManager
     me void: close_window() <- {
          // gtk_main_quit()
     }
 
     // DRAWING ROUTINES:
-/*
-    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
-       // cr.paint.setStyle(Style.FILL);
+
+    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         cr.paint.setTextSize(fontSize);
-       // cr.setFont(new Font(fontName, Font.PLAIN, (int)(fontSize*1.4)));
-        cr.drawText(text, (float)cr.cur_x, (float)cr.cur_y, cr.paint);
+        cr.paint.setTypeface(Typeface.create(fontName, Typeface.NORMAL));
+        cr.GCanvas.drawText(text, x, y, cr.paint); 
     } %>
 
-
-
-    me INK_Image[map string]: InkImgCache
-    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
-        BufferedImage picPtr=InkImgCache.get(filename);
-        if (picPtr==null) {
-            try{
-                picPtr=ImageIO.read(new File(filename));
-            } catch(IOException ioe){System.out.println("Cannot read image file " + ioe.getMessage()); System.exit(2);}
-            InkImgCache.put(filename, picPtr);
-            }
-        cr.gr.drawImage(picPtr, null, 0,0);  
-    } %>
-*/
-
+//    me INK_Image[map string]: InkImgCache
+    me void: displayImage(me GUI_ctxt: cr, me string: filename, me float: x, me float: y, me double: scale) <- <%{
+        boolean filter = false;
+        try {
+            assetManager = getAssets();
+            InputStream is = assetManager.open(filename);
+            Bitmap  bitmap = BitmapFactory.decodeStream(is);
+            int width  = Math.round((float)scale * bitmap.getWidth());
+            int height = Math.round((float)scale * bitmap.getHeight()); 
+            Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, width,height, filter);
+            cr.GCanvas.drawBitmap(newBitmap, x, y, cr.paint);
+            Log.v("TAG", "display image: " + filename);
+        } catch (IOException e) {Log.e("TAG", e.getMessage());}
+   } %>
+   
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
     me long: ticksPerSec() <- <%!%G1000%>
 
@@ -174,11 +176,18 @@ struct GUI_ctxt: implMode="inherit:Canvas"{
     me Path: GPath
     me double: cur_x
     me double: cur_y
+    me Canvas: GCanvas
 
     me none: GUI_ctxt () <- {
         Allocate(paint)
         Allocate(GPath)
     }
+    
+    me none: GUI_ctxt(me Canvas: canvas) <- {
+        Allocate(paint)
+        Allocate(GPath)
+        GCanvas <- canvas
+    } 
 }
 
 struct GUI_ctxt: ctxTag="Android" Platform='Android' Lang='Java' LibReq="swing" implMode="inherit:Canvas" {
@@ -193,8 +202,8 @@ struct GUI_ctxt: ctxTag="Android" Platform='Android' Lang='Java' LibReq="swing" 
 //    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 //    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 //    me void: paintNow() <- <%!gr.fill(cr.GPath)%>
-    me void: strokeNow() <- <%!drawPath(cr.GPath, cr.paint)%>
-    me void: fillNow() <- <%!drawPath(cr.GPath, cr.paint)%>
+    me void: strokeNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
+    me void: fillNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
 //    me void: renderFrame() <- <%!repaint()%>
 }
 

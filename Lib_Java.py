@@ -9,7 +9,6 @@ def createUtilityFunctions():
         me x: endFunc(me int: val) <- <%!%G %>
         me x: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
         me x: print(me string: s)<- <%!%GSystem.out(%1)%>
-        me string: logMesg(me string: mesg) <- <%!%GSystem.out.println(%1)%>
         me void: initialize() <- <%!initialize()%>
         me void: deinitialize() <- <%!deinitialize()%>
         me void: exit(me int: val) <- <%!%GSystem.exit(%1)%>
