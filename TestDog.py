@@ -6,7 +6,7 @@ import codeDogParser
 
 testBedUtilities = r'''
 
-    define MULTITEST(a, b, c) <%First %a, second %b, thind %c %>
+  //  define MULTITEST(a, b, c) <%First %a, second %b, thind %c %>
 
     struct GLOBAL {
         me int: T_NUM_FAILS <- 0
@@ -25,26 +25,30 @@ testBedUtilities = r'''
           //  if(! expr) {CHK_FAIL(expr+" = "+eval(expr))}
         }
 
-        me string: RUN_TEST() <- {
+        me string: RUN_TEST(me string: testName) <- {
             // clear failFlag and mesg_buff; setTimer
             //SwitchOnTests
             // readTimer()
             // fetch and return results
         }
-        void: EXEC_TESTS() <- {
-            // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
- /*         // Sort list as needed
-            // withEach test in testList:{
+        void: EXEC_TESTS(me string[list]: testList) <- {
+  /*          // withEach test in testList:{
                  if(! -L)
                      if (!CrashProof){
                         RUN_TEST(test)
                     } else {
                         ExecSelf with timer and fetch result
                     }
-                    StoreREsults()
+                    StoreResults()
             }
             WriteReport() // to screen and file for knowing failures. if --HTML, do html. Options allow field selection
 */
+        }
+
+        void: selectAndProcessTests() <- {
+            // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
+            me string[list]: testList <- {<TEST-LIST-HERE>}
+            // Sort list as needed
         }
     }
 '''
@@ -52,13 +56,17 @@ testBedUtilities = r'''
 def generateTestCode(objects, buildTags, tags, macroDefs):
     TestSpecFile= progSpec.fetchTagValue([tags, buildTags], 'TestSpec')
     TestSpecStr = progSpec.stringFromFile(TestSpecFile)
-    TestSpecStr += testBedUtilities
     print "#################################\n", TestSpecStr
     [testTagStore, testBuildSpecs, testObjectSpecs] = codeDogParser.parseCodeDogString(TestSpecStr, objects[0], objects[1], macroDefs)
+
     # Replace runcode if it isn't there
     # Here: generate EXEC_TESTS() and RUN_TEST()
     TestsToRun = progSpec.fetchTagValue([testTagStore], 'TestsToRun')
     TestList = TestsToRun.split()
-
+    TestNameArray=', '.join(TestList)
+    testBedUtilities = testBedUtilities.replace('<TEST-LIST-HERE>', TestNameArray)
+    print "TEST TEXT:", testBedUtilities
+    exit(2)
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], testBedUtilities )
 
     return testTagStore
