@@ -476,8 +476,7 @@ def extractMacroSpec(macroDefs, spec):
     macroDefs[MacroName] = {'ArgList':MacroArgs,  'Body':MacroBody}
 
 def extractMacroDefs(macroDefMap, inputString):
-    macroDefs = re.findall('#define.*%>', inputString)
-    print "MACRODEFS:", macroDefs
+    macroDefs = re.findall('#define.*ENDDEF', inputString)
     for macroStr in macroDefs:
         try:
             localResults = macroDef.parseString(macroStr, parseAll = True)
@@ -487,29 +486,30 @@ def extractMacroDefs(macroDefMap, inputString):
         extractMacroSpec(macroDefMap, localResults[0])
 
 def doMacroSubstitutions(macros, inputString):
-    print "\n\nMACRO-MAP:", macros
+    #print "\n\nMACRO-MAP:", macros
     subsWereMade=True
-    while(subsWereMade):
+    while(subsWereMade ==True):
+        subsWereMade=False
         for thisMacro in macros:
-            macRefPattern=re.compile('(?<!define)\s+('+thisMacro+')\s*\((.*)\)')
-            print "MAC:", thisMacro
+            macRefPattern=re.compile('(?<!#define)\s+('+thisMacro+')\s*\((.*)\)')
+            print "MAC NAME:", thisMacro
             for match in macRefPattern.finditer(inputString):
-                print "     %s: %s %s" % (match.start(), match.group(1), match.group(2))
+                #print "     %s: %s %s" % (match.start(), match.group(1), match.group(2))
                 newText=macros[thisMacro]['Body']
-                print "NEWTEXT:", newText
+                print "     START TEXT:", newText
                 paramStr=match.group(2)
                 params=paramStr.split(',')
-                print 'PARAMS:', params
+                print '     PARAMS:', params
                 idx=0;
                 for arg in macros[thisMacro]['ArgList']:
-                    print "SUBS:", arg, params[idx]
+                    #print "   SUBS:", arg, params[idx]
                     newText=newText.replace(arg, params[idx])
                     idx+=1
-                print "NEW VREWSSION:", newText
-
-            # Last, replace the text into inputString
-            subsWereMade=False
-    exit(2)
+                print "     NEW TEXT:", newText
+                inputString = inputString[:match.start()]+ newText + inputString[match.end():]
+                subsWereMade=True
+    print "     RETURN STRING:", inputString
+    # Last, replace the text into inputString
     return inputString
 
 def extractObjectsOrPatterns(ProgSpec, objNames, macroDefs, objectSpecResults):
