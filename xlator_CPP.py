@@ -431,8 +431,14 @@ def codeSpecialFunc(segSpec, xlator):
             decl='\nint '+wrapperName+'(void* data)'
             defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; self->run(); return true;}\n\n'
             appendGlobalFuncAcc(decl, defn)
-    #elif(funcName=='break'):
-    #elif(funcName=='return'):
+    elif(funcName=='break'):
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            if len(paramList)==0: S='break'
+    elif(funcName=='return'):
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            if len(paramList)==0: S+='return'
     #elif(funcName==''):
 
     return S
@@ -502,20 +508,20 @@ def addSpecialCode(filename):
         }
         return std::string(formatted.get());
     }
-    
+
     string getFilesDirAsString(){
         //string fileDir = "~/."+filename ";
         string fileDir = "./assets";
-        
+
         mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         return (fileDir);
     }
-    
+
     bool doesFileExist(string filePath){
         ifstream ifile(filename);
         return (bool)ifile;
     }
-    
+
     void copyAssetToWritableFolder(string fromPath, string toPath){
         //TODO: finish func body if package C++
     }
@@ -537,7 +543,7 @@ def addSpecialCode(filename):
     return S
 
 def addGLOBALSpecialCode(objects, tags, xlator):
-    specialCode ='' 
+    specialCode =''
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -546,7 +552,7 @@ struct GLOBAL{
     """ % (specialCode)
 
     #codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
-    
+
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     varDeclareStr=''
     assignValue=''
@@ -656,7 +662,7 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
+            globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")\n"
     else:
         structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
         objPrefix = progSpec.flattenObjectName(objectName) +'::'
