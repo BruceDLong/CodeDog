@@ -18,6 +18,41 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
         GLOBAL.static_Global.drawAppArea_cb(this, cr);
         invalidate();
     }%>
+    
+    me bool: onTouchEvent(me MotionEvent: event) <- <%     {
+        float eventX = event.getX();
+        float eventY = event.getY();
+        float scrollX = getScrollX();
+        float scrollY = getScrollY();
+        boolean returnVal = true;
+
+        switch (event.getAction()) {
+        case MotionEvent.ACTION_DOWN:
+            returnVal = GLOBAL.static_Global.appFuncs.gui.pointerDown(cr, scrollX + eventX, scrollY + eventY);
+            return true;
+        case MotionEvent.ACTION_MOVE:
+            returnVal = GLOBAL.static_Global.appFuncs.gui.pointerMoved(cr, scrollX + eventX, scrollY + eventY);
+            break;
+        case MotionEvent.ACTION_UP:
+            returnVal = GLOBAL.static_Global.appFuncs.gui.pointerUp();
+            break;
+        case MotionEvent.ACTION_CANCEL:
+            //
+            break;
+        case MotionEvent.ACTION_POINTER_DOWN:
+            //
+            break;
+        case MotionEvent.ACTION_POINTER_UP:
+            //
+            break;
+        default:
+                return false;
+        }
+
+        // Schedules a repaint.
+        if (returnVal == true){invalidate();}
+        return returnVal;
+    }%>
 }
 
 struct GUI_rect{me Rect: GUI_rect}

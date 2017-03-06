@@ -879,11 +879,13 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
             classAttrs=progSpec.searchATagStore(ObjectDef['tags'], 'attrs')
             if(ctxTag): ctxTag=ctxTag[0]
-            if(implMode): implMode=implMode[0]
+            if(implMode): 
+                implMode=implMode[0]
+                print "implMode:", implMode
             if(classAttrs): classAttrs=classAttrs[0]+' '
             else: classAttrs=''
-            if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit")):  # "useLibrary"
-                #print "SKIPPING:", objectName, ctxTag, implMode
+            if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
+                print "SKIPPING:", objectName, ctxTag, implMode
                 continue
 
             #print "OBJNAME", objectName
