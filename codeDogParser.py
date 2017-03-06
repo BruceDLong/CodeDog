@@ -125,7 +125,7 @@ fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('c
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
 doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
-macroDef  = Group(Keyword("#define") + CID('macroName') + Literal("(").suppress() + CIDList('macroArgs') + Literal(")").suppress() + Group( "<%" + SkipTo("%>", include=True))("macroBody"))
+macroDef  = Group(Keyword("#define") + CID('macroName') + Literal("(").suppress() + Optional(CIDList('macroArgs')) + Literal(")").suppress() + Group( "<%" + SkipTo("%>", include=True))("macroBody"))
 objectList = Group(ZeroOrMore(objectDef | doPattern | macroDef))("objectList")
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
@@ -471,34 +471,36 @@ def extractPatternSpecs(ProgSpec, objNames, spec):
 
 def extractMacroSpec(macroDefs, spec):
     MacroName=spec.macroName
-    MacroArgs=spec.macroArgs
+    if 'macroArgs' in spec: MacroArgs=spec.macroArgs
+    else: MacroArgs=[]
     MacroBody=spec.macroBody[1]
     macroDefs[MacroName] = {'ArgList':MacroArgs,  'Body':MacroBody}
 
 def extractMacroDefs(macroDefMap, inputString):
     macroDefs = re.findall('#define.*%>', inputString)
-    #print "extractMacroDefs: ", macroDefs
     for macroStr in macroDefs:
         try:
             localResults = macroDef.parseString(macroStr, parseAll = True)
         except ParseException , pe:
-            print "error parsing: " , pe
+            print "Error Extracting Macro: " , pe , "In:", macroStr
             exit(1)
         extractMacroSpec(macroDefMap, localResults[0])
 
 def doMacroSubstitutions(macros, inputString):
-    #print "\n\nMACRO-MAP:", macros
+    print "\n\nMACRO-MAP:", macros
     subsWereMade=True
     while(subsWereMade ==True):
         subsWereMade=False
         for thisMacro in macros:
-            macRefPattern=re.compile('(?<!#define)\s+('+thisMacro+')\s*\((.*)\)')
+            macRefPattern=re.compile('(?<!#define)([^a-zA-Z0-9_]+)('+thisMacro+')\s*\((.*)\)')
             print "MAC NAME:", thisMacro
+            newString=''
+            currentPos=0
             for match in macRefPattern.finditer(inputString):
                 #print "     %s: %s %s" % (match.start(), match.group(1), match.group(2))
                 newText=macros[thisMacro]['Body']
                 print "     START TEXT:", newText
-                paramStr=match.group(2)
+                paramStr=match.group(3)
                 params=paramStr.split(',')
                 print '     PARAMS:', params
                 idx=0;
@@ -507,9 +509,12 @@ def doMacroSubstitutions(macros, inputString):
                     newText=newText.replace(arg, params[idx])
                     idx+=1
                 print "     NEW TEXT:", newText
-                inputString = inputString[:match.start()]+ newText + inputString[match.end():]
+                newString += inputString[currentPos:match.start()+len(match.group(1))]+ newText
+                currentPos=match.end()
                 subsWereMade=True
-    print "     RETURN STRING:", inputString
+            newString+=inputString[currentPos:]
+            inputString=newString
+    print "     RETURN STRING:[", inputString, ']'
     # Last, replace the text into inputString
     return inputString
 
@@ -547,6 +552,7 @@ def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
     inputString = comment_remover(inputString)
     extractMacroDefs(tmpMacroDefs, inputString)
     inputString = doMacroSubstitutions(tmpMacroDefs, inputString)
+    #print "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#- P a r s i n g :", inputString
     results = parseInput(inputString)
     #print results.tagDefList
     tagStore = extractTagDefs(results.tagDefList)

@@ -1,62 +1,124 @@
 # Code dog module for generating unit tests
 
+# TODO: Capture and analyze the stdout
+# TODO: Add command line options: -L: List only, -f: Run failed tests, -t: <list of tests>, also, report options and crash-testing / multi-threaded testing
+# TODO: Add timing, timeouts and time requirements
+
 import progSpec
 import codeDogParser
 
+def setResultCode():
 
-testBedUtilities = r'''
+    testMacros = r'''
+#define BAIL() <% return()%>
+#define FAIL(text) <%{T_TEST_BUFF <- T_TEST_BUFF + text+"\n" Tstat<-"F" BAIL()}%>     // Print the text, mark the test failed, end its execution.
+#define CAPTURE(expr) <%{INFO("expr = " + expr)}%>                                 // Show the expression with INFO
+#define REQUIRE(expr) <%{if(!(expr)) {FAIL("expr = " + expr)}}%>                     // If the expression fails, show its value with FAIL().
+#define CHECK(expr)   <%{if(!(expr)) {CHK_FAIL("expr = " + expr)}}%>                 // If the expression fails, show its value with CHK_FAIL().
+    '''
+
+    testResultUtilities = r'''
 
     struct GLOBAL {
         me int: T_NUM_FAILS <- 0
-        me string: T_MESG_BUFF
-        void: BAIL() <- {}
-        void: INFO(me string: text) <- {T_MESG_BUFF <- T_MESG_BUFF + text+"\n"}                                        // Buffer text and print it if the test fails.
-        void: WARN(me string: text) <- {print(text+'\n')}                                                              // Print text even if the test does not fail.
-        void: FAIL(me string: text) <- {T_MESG_BUFF <- T_MESG_BUFF + text+'\n' T_NUM_FAILS<-T_NUM_FAILS+1 BAIL()}      // Print the text, mark the test failed, end its execution.
-        void: CHK_FAIL(me string: text) <- {T_MESG_BUFF <- T_MESG_BUFF + text+'\n' T_NUM_FAILS<-T_NUM_FAILS+1}         // Print the text, mark the test failed, do not end its execution.
+        me int: T_total <- 0
+        me string: T_MESG_BUFF <- ""
+        me string: T_TEST_BUFF <- ""
+        me string: Tstat <- ""
 
-   //     void: CAPTURE(me string: expr) <- {INFO(expr+" = "+eval(expr))}     // Show the expression with INFO
-        void: REQUIRE(me string: expr) <- {                                 // If the expression fails, show its value with FAIL().
-           // if(! expr) {FAIL(expr+" = "+eval(expr))}
-        }
-        void: CHECK(me string: expr) <- {                                   // If the expression fails, show its value with CHK_FAIL().
-          //  if(! expr) {CHK_FAIL(expr+" = "+eval(expr))}
+        void: INFO(me string: text) <- {T_TEST_BUFF <- T_TEST_BUFF + text+"\n"}                               // Buffer text and print it if the test fails.
+        void: WARN(me string: text) <- {T_TEST_BUFF <- T_TEST_BUFF + text+"\n" if(Tstat=="."){Tstat<-"W"}}    // Print text even if the test does not fail.
+        void: CHK_FAIL(me string: text) <- {Tstat<-"F"  T_TEST_BUFF <- T_TEST_BUFF + text+"\n" }              // Print the text, mark the test failed, do not end its execution.
+
+    }
+    '''
+    return [testMacros, testResultUtilities]
+
+def setUtilityCode(TestArrayText, SwitchCaseText):
+
+    testBedUtilities = r'''
+
+    struct GLOBAL {
+
+        void: WriteTestingReport() <- {
+            print(T_MESG_BUFF)
+            print("\nTotal Failures/Tests: ", T_NUM_FAILS, "/", T_total, "\n")
         }
 
-        me string: RUN_TEST() <- {
+        void: RUN_TEST(me string: testName) <- {
+            Tstat <- "."
+            T_total <- T_total+1
+            T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
             // clear failFlag and mesg_buff; setTimer
-            //SwitchOnTests
+            <TEST-CASES-HERE>
             // readTimer()
             // fetch and return results
+            print(Tstat)
+            if(Tstat!=".") {
+                if(Tstat=="F"){T_NUM_FAILS<-T_NUM_FAILS+1}
+                T_MESG_BUFF <- T_MESG_BUFF + T_TEST_BUFF
+            }
         }
-        void: EXEC_TESTS() <- {
-            // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
- /*         // Sort list as needed
-            // withEach test in testList:{
-                 if(! -L)
-                     if (!CrashProof){
+        void: EXEC_TESTS(me string[list]: testList) <- {
+            me bool: listOnly <- false
+            me bool: CrashProof <- false
+            withEach test in testList:{
+                if(! listOnly){
+                    if (!CrashProof){
                         RUN_TEST(test)
                     } else {
-                        ExecSelf with timer and fetch result
+     //                   ExecSelf with timer and fetch result
                     }
-                    StoreREsults()
+     //               StoreResults()
+                }
             }
-            WriteReport() // to screen and file for knowing failures. if --HTML, do html. Options allow field selection
-*/
+            if(T_NUM_FAILS==0){print(" PASSED")}
+            else{print(" DONE")}
+            WriteTestingReport() // to screen and file for knowing failures. if --HTML, do html. Options allow field selection
+
+        }
+
+        void: RUN_SELECTED_TESTS() <- {
+            // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
+            me string[list]: testList <- [<TEST-LIST-HERE>]
+            // Sort list as needed
+            EXEC_TESTS(testList)
         }
     }
 '''
+    testBedUtilities = testBedUtilities.replace("<TEST-LIST-HERE>", TestArrayText)
+    testBedUtilities = testBedUtilities.replace("<TEST-CASES-HERE>", SwitchCaseText)
+    return testBedUtilities
 
 def generateTestCode(objects, buildTags, tags, macroDefs):
+    [testMacros, testResultUtilities]=setResultCode()
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], testResultUtilities )
+
     TestSpecFile= progSpec.fetchTagValue([tags, buildTags], 'TestSpec')
-    TestSpecStr = progSpec.stringFromFile(TestSpecFile)
-    TestSpecStr += testBedUtilities
+    TestSpecStr = progSpec.stringFromFile(TestSpecFile) + testMacros
     print "#################################\n", TestSpecStr
     [testTagStore, testBuildSpecs, testObjectSpecs] = codeDogParser.parseCodeDogString(TestSpecStr, objects[0], objects[1], macroDefs)
+
     # Replace runcode if it isn't there
     # Here: generate EXEC_TESTS() and RUN_TEST()
     TestsToRun = progSpec.fetchTagValue([testTagStore], 'TestsToRun')
     TestList = TestsToRun.split()
+    TestArrayText=""
+    SwitchCaseText=""
+    count=0
+    for T in TestList:
+        if count>0:
+            TestArrayText+=", "
+            SwitchCaseText+="else "
 
+        count+=1
+        TestArrayText += '"'+T+'"'
+
+        SwitchCaseText += 'if(testName=="'+T+'"){' + T.replace('/', '_') +'()}\n'
+
+    testBedUtilities = setUtilityCode(TestArrayText, SwitchCaseText)
+
+    print "TEST TEXT:", testBedUtilities
+    codeDogParser.AddToObjectFromText(objects[0], objects[1], testBedUtilities )
 
     return testTagStore

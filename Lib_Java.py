@@ -42,7 +42,7 @@ def use(objects, buildSpec, tags, platform):
     GLOBAL_CODE="""
         struct GLOBAL{
             me GLOBAL: static_Global
-            me Random: javaRandomVar    
+            me Random: javaRandomVar
             me string: readFileAsString(me string: filePath)<- <%{
                 try {
                     DataInputStream dis = new DataInputStream(new FileInputStream(filePath));
@@ -60,10 +60,10 @@ def use(objects, buildSpec, tags, platform):
                     return "";
                 }
             }%>
-            
+
             me bool: doesFileExist(me string: filePath)<- <%{
                 File f = new File(filePath);
-                if(f.exists() && f.isFile()) { 
+                if(f.exists() && f.isFile()) {
                     return true;
                 }
                 return false;
@@ -74,6 +74,6 @@ def use(objects, buildSpec, tags, platform):
 """
 
 
-    print "GLOBAL_CODE: ", GLOBAL_CODE
+  #  print "GLOBAL_CODE: ", GLOBAL_CODE
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )

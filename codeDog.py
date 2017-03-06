@@ -19,6 +19,8 @@ import Lib_Swing
 import Lib_Android
 import Lib_AndroidGUI
 
+import LIB_CodeDog
+
 import CodeGenerator
 import xlator_CPP
 import xlator_Java
@@ -178,8 +180,9 @@ def ChooseLibs(objects, buildTags, tags):
         elif (Lib=="Android"):  Lib_Android.use(objects, buildTags, [tags, buildTags], Platform)
         elif (Lib=="AndroidGUI"):  Lib_AndroidGUI.use(objects, buildTags, [tags, buildTags], Platform)
 
-    return progSpec.libsToUse
+    Lib_CodeDog.use(objects, buildTags, [tags, buildTags])
 
+    return progSpec.libsToUse
 
 def GenerateSystem(objects, buildSpecs, tags, macroDefs):
     print "\n\n######################   G E N E R A T I N G   S Y S T E M"

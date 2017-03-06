@@ -374,8 +374,14 @@ def codeSpecialFunc(segSpec, xlator):
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
             S+=")"
-    #elif(funcName=='break'):
-    #elif(funcName=='return'):
+    elif(funcName=='break'):
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            if len(paramList)==0: S='break'
+    elif(funcName=='return'):
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            if len(paramList)==0: S+='return'
     #elif(funcName==''):
 
     return S
@@ -415,7 +421,7 @@ def produceTypeDefs(typeDefMap, xlator):
 def addSpecialCode(filename):
     S='\n\n//////////// Java specific code:\n'
     return S
-    
+
 def addGLOBALSpecialCode(objects, tags, xlator):
     filename = makeTagText(tags, 'FileName')
     specialCode ='const string: filename <- "' + filename + '"\n'
