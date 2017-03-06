@@ -28,13 +28,13 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
 
         switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
-            returnVal = GLOBAL.static_Global.appFuncs.gui.pointerDown(cr, scrollX + eventX, scrollY + eventY);
+            //returnVal = GLOBAL.static_Global.appFuncs.gui.pointerDown(cr, scrollX + eventX, scrollY + eventY);
             return true;
         case MotionEvent.ACTION_MOVE:
-            returnVal = GLOBAL.static_Global.appFuncs.gui.pointerMoved(cr, scrollX + eventX, scrollY + eventY);
+            //returnVal = GLOBAL.static_Global.appFuncs.gui.pointerMoved(cr, scrollX + eventX, scrollY + eventY);
             break;
         case MotionEvent.ACTION_UP:
-            returnVal = GLOBAL.static_Global.appFuncs.gui.pointerUp();
+            //returnVal = GLOBAL.static_Global.appFuncs.gui.pointerUp();
             break;
         case MotionEvent.ACTION_CANCEL:
             //
