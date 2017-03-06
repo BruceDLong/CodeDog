@@ -1030,7 +1030,7 @@ struct GLOBAL{
             print(logMode , s, '\n')
             if (logMode == "FATAL ERROR: "){exit(-1)}
     }
-    
+
     // LOGGING INTERFACE:
     me void: logMesg(me string: s) <- <%!logPrint("MESSAGE: ", %1)%>
     me void: logInfo(me string: s) <- <%!logPrint("", %1)%>
