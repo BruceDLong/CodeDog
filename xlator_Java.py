@@ -346,26 +346,21 @@ def adjustIfConditional(S2, conditionType):
 def codeSpecialFunc(segSpec, xlator):
     S=''
     funcName=segSpec[0]
-    if(funcName=='print'):
-        S+='System.out.print('
-        if(len(segSpec)>2):
-            paramList=segSpec[2]
+    if(len(segSpec)>2):
+        paramList=segSpec[2]
+        if(funcName=='print'):
+            S+='System.out.print('
             count=0
             for P in paramList:
                 if(count!=0): S+=" + "
                 count+=1
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
-        S+=")"
-    elif(funcName=='AllocateOrClear'):
-        if(len(segSpec)>2):
-            #print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
-            paramList=segSpec[2]
+            S+=")"
+        elif(funcName=='AllocateOrClear'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
             S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
-    elif(funcName=='Allocate'):
-        if(len(segSpec)>2):
-            paramList=segSpec[2]
+        elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
@@ -374,15 +369,16 @@ def codeSpecialFunc(segSpec, xlator):
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
             S+=")"
-    elif(funcName=='break'):
-        if(len(segSpec)>2):
-            paramList=segSpec[2]
+        elif(funcName=='break'):
             if len(paramList)==0: S='break'
-    elif(funcName=='return'):
-        if(len(segSpec)>2):
-            paramList=segSpec[2]
+        elif(funcName=='return'):
             if len(paramList)==0: S+='return'
-    #elif(funcName==''):
+        elif(funcName=='toStr'):
+            if len(paramList)==1:
+                [S2, argType]=xlator['codeExpr'](P[0][0], xlator)
+                S2=derefPtr(S2, argType)
+                S+='String.valueOf('+S2+')'
+        #elif(funcName==''):
 
     return S
 

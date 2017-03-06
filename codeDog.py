@@ -19,7 +19,7 @@ import Lib_Swing
 import Lib_Android
 import Lib_AndroidGUI
 
-import LIB_CodeDog
+import Lib_CodeDog
 
 import CodeGenerator
 import xlator_CPP
