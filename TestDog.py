@@ -60,7 +60,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             if(Tstat!=".") {
                 if(Tstat=="F" or Tstat=="?"){T_NUM_FAILS<-T_NUM_FAILS+1}
                 T_MESG_BUFF <- T_MESG_BUFF + T_TEST_BUFF
-                if(Tstat=="?"){T_MESG_BUFF <- T_MESG_BUFF + "\nNOTE: Tests marked '?' are not valid tests. Check the test name.\n"}
+                if(Tstat=="?"){T_MESG_BUFF <- T_MESG_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
             }
         }
 
