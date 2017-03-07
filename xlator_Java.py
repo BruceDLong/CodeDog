@@ -105,6 +105,14 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 langType="multimap<"+idxType+', '+langType+">"
     return langType
 
+
+def recodeStringFunctions(name, typeSpec):
+    if name == "size": name = "length"
+    elif name == "subStr":
+        typeSpecOut['codeConverter']='subStr(%0, %1, %2)'
+
+    return [name, typeSpec]
+
 def langStringFormatterCommand(fmtStr, argStr):
     fmtStr=fmtStr.replace(r'%i', r'%d')
     fmtStr=fmtStr.replace(r'%l', r'%d')
@@ -368,6 +376,7 @@ def codeSpecialFunc(segSpec, xlator):
                 if(count>0): S+=', '
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
+                count=count+1
             S+=")"
         elif(funcName=='break'):
             if len(paramList)==0: S='break'
@@ -606,7 +615,7 @@ def generateMainFunctionality(objects, tags):
     else:
         mainFuncCode="""
         me void: main( ) <- {
-            initialize()
+            initialize(String.join(" ", args))
             """ + runCode + """
             deinitialize()
             endFunc()
@@ -620,17 +629,17 @@ def generateMainFunctionality(objects, tags):
 def fetchXlators():
     xlators = {}
 
-    xlators['LanguageName']     = "Java"
-    xlators['BuildStrPrefix']   = "Javac "
-    xlators['fileExtension']     = ".java"
-    xlators['typeForCounterInt']= "int"
-    xlators['GlobalVarPrefix']  = "GLOBAL.static_Global."
-    xlators['PtrConnector']     = "."                      # Name segment connector for pointers.
-    xlators['ObjConnector']     = "."                      # Name segment connector for classes.
+    xlators['LanguageName']        = "Java"
+    xlators['BuildStrPrefix']      = "Javac "
+    xlators['fileExtension']       = ".java"
+    xlators['typeForCounterInt']   = "int"
+    xlators['GlobalVarPrefix']     = "GLOBAL.static_Global."
+    xlators['PtrConnector']        = "."                      # Name segment connector for pointers.
+    xlators['ObjConnector']        = "."                      # Name segment connector for classes.
     xlators['doesLangHaveGlobals'] = "False"
-    xlators['funcBodyIndent']   = "    "
-    xlators['funcsDefInClass']  = "True"
-    xlators['MakeConstructors'] = "False"
+    xlators['funcBodyIndent']      = "    "
+    xlators['funcsDefInClass']     = "True"
+    xlators['MakeConstructors']    = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective
@@ -640,6 +649,7 @@ def fetchXlators():
     xlators['convertType']                  = convertType
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
+    xlators['recodeStringFunctions']        = recodeStringFunctions
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr

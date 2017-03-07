@@ -28,8 +28,6 @@ def createUtilityFunctions():
 
 def use(objects, buildSpec, tags, platform):
     print "USING Java"
-    #progSpec.addCodeToInit(tags[1], "me Random: javaRandomVar \n");
-    #progSpec.addCodeToInit(tags[1], "const Logger: log <- Logger.getLogger('log')\n");
 
     CODE="""
         struct random{me Random: random}
@@ -67,6 +65,7 @@ def use(objects, buildSpec, tags, platform):
                     return true;
                 }
                 return false;
+
             }%>
             // LOGGING INTERFACE:
 """ + (APP_UTILITY_CODE) + """

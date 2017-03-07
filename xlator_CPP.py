@@ -90,6 +90,12 @@ def convertType(objects, TypeSpec, varMode, xlator):
     if(fieldType=='<%'): return fieldType[1][0]
     return xlateLangType(TypeSpec, owner, fieldType, varMode, xlator)
 
+def recodeStringFunctions(name, typeSpec):
+    if name == "size": name = "length"
+    elif name == "subStr": name = "substr"
+
+    return [name, typeSpec]
+
 def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
@@ -411,6 +417,7 @@ def codeSpecialFunc(segSpec, xlator):
                 if(count>0): S+=', '
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
+                count=count+1
             S+=")"
         elif(funcName=='callPeriodically'):
             [objName,  retType]=xlator['codeExpr'](paramList[1][0], xlator)
@@ -518,6 +525,15 @@ def addSpecialCode(filename):
     void copyAssetToWritableFolder(string fromPath, string toPath){
         //TODO: finish func body if package C++
     }
+
+    string joinCmdStrings(int count , char *argv[]) {
+        string acc="";
+        for(int i=1; i<count; ++i){
+            if(i>1) acc+=" ";
+            acc += argv[i];
+        }
+        return(acc);
+    }
     """
 
     decl ="string readFileAsString(string filename)"
@@ -623,11 +639,11 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
         loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        lvName=repName+"Itr"
+        lvName=repName+"Idx"
         actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+'.size();' +" ++"+lvName+" ){\n"
                     + indent+"    "+"auto &"+repName+" = "+repContainer+"["+lvName+"];\n")
     else:
@@ -685,8 +701,8 @@ def generateMainFunctionality(objects, tags):
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     mainFuncCode="""
-    me int32: main(me int32: argc, me int32: argv ) <- {
-        initialize()
+    me int32: main(me int32: argc, their char: argv ) <- {
+        initialize(joinCmdStrings(argc, argv))
         """ + runCode + """
         deinitialize()
         endFunc()
@@ -700,17 +716,17 @@ def generateMainFunctionality(objects, tags):
 def fetchXlators():
     xlators = {}
 
-    xlators['LanguageName']     = "C++"
-    xlators['BuildStrPrefix']   = "g++ -g -std=gnu++14  "
-    xlators['fileExtension']     = ".cpp"
-    xlators['typeForCounterInt']= "int64_t"
-    xlators['GlobalVarPrefix']  = ""
-    xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
-    xlators['ObjConnector']     = "::"                      # Name segment connector for classes.
+    xlators['LanguageName']        = "C++"
+    xlators['BuildStrPrefix']      = "g++ -g -std=gnu++14  "
+    xlators['fileExtension']       = ".cpp"
+    xlators['typeForCounterInt']   = "int64_t"
+    xlators['GlobalVarPrefix']     = ""
+    xlators['PtrConnector']        = "->"                      # Name segment connector for pointers.
+    xlators['ObjConnector']        = "::"                      # Name segment connector for classes.
     xlators['doesLangHaveGlobals'] = "True"
-    xlators['funcBodyIndent']   = ""
-    xlators['funcsDefInClass']  = "False"
-    xlators['MakeConstructors'] = "True"
+    xlators['funcBodyIndent']      = ""
+    xlators['funcsDefInClass']     = "False"
+    xlators['MakeConstructors']    = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective
@@ -720,6 +736,7 @@ def fetchXlators():
     xlators['convertType']                  = convertType
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
+    xlators['recodeStringFunctions']        = recodeStringFunctions
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
