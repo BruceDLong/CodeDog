@@ -16,11 +16,49 @@ struct JavaGUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" i
 
     me void: paintComponent(me Graphics: g) <- <%    {
         super.paintComponent(g);
+        this.addMouseListener(new CustomMouseListener());
+        this.addMouseMotionListener(new CustomMouseMotionListener());
         GPath.reset();
         gr=(Graphics2D)(g);
         GLOBAL.static_Global.drawAppArea_cb(this, this);
     }%>
 }
+
+struct CustomMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseListener" {
+    me void: mouseClicked(me MouseEvent: e)<-     {
+        me float: eventX <- e.getX()
+        me float: eventY <- e.getY()
+    }
+    me void: mousePressed(me MouseEvent: e)<-     {
+        me float: eventX <- e.getX()
+        me float: eventY <- e.getY()
+        //GLOBAL.static_Global.appFuncs.gui.pointerDown(GLOBAL.static_Global.drawing_area, eventX, eventY)
+    }
+    me void: mouseReleased(me MouseEvent: e)<-     {
+        me float: eventX <- e.getX()
+        me float: eventY <- e.getY()
+    }
+    me void: mouseEntered(me MouseEvent: e)<-     {
+        me float: eventX <- e.getX()
+        me float: eventY <- e.getY()
+    }
+    me void: mouseExited(me MouseEvent: e)<-     {
+        me float: eventX <- e.getX()
+        me float: eventY <- e.getY()
+    }
+}
+
+struct CustomMouseMotionListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseMotionListener" {
+    me void: mouseMoved(me MouseEvent: e)<-     {
+        me float: eventX <- e.getX()
+        me float: eventY <- e.getY()
+    }
+    me void: mouseDragged(me MouseEvent: e)<-     {
+        me float: eventX <- e.getX()
+        me float: eventY <- e.getY()
+    }
+}
+
 struct GUI_ctxt{their JavaGUI_ctxt:GUI_ctxt}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
