@@ -18,6 +18,7 @@ import Lib_CPP
 import Lib_Swing
 import Lib_Android
 import Lib_AndroidGUI
+import Lib_Swift
 
 import Lib_CodeDog
 
@@ -25,7 +26,7 @@ import CodeGenerator
 import xlator_CPP
 import xlator_Java
 #import xlator_JavaScript
-#import xlator_Swift
+import xlator_Swift
 
 
 import re
@@ -104,8 +105,6 @@ def GroomTags(tags):
         platformID=platform.system()
         if platformID=='Darwin': platformID="OSX_Devices"
         tags['Platform']=platformID
-    if not ('Language' in tags):
-        tags['Language']="CPP"
 
     # Find any needed features based on types used
     for typeName in progSpec.storeOfBaseTypesUsed:
@@ -120,13 +119,16 @@ def GenerateProgram(objects, buildTags, tagsList, libsToUse):
     if(langGenTag == 'CPP'):
         print "\n\n######################  G E N E R A T I N G   C + +   P R O G R A M . . ."
         xlator = xlator_CPP.fetchXlators()
-        result=CodeGenerator.generate(objects, tagsList, libsToUse, xlator)
     elif(langGenTag == 'Java'):
         print "\n\n######################  G E N E R A T I N G   J A V A   P R O G R A M . . ."
         xlator = xlator_Java.fetchXlators()
-        result=CodeGenerator.generate(objects, tagsList, libsToUse, xlator)
+    elif(langGenTag == 'Swift'):
+        print "\n\n######################  G E N E R A T I N G   S W I F T   P R O G R A M . . ."
+        xlator = xlator_Swift.fetchXlators()
     else:
         print "ERROR: No language generator found for ", langGenTag
+        exit(1)
+    result=CodeGenerator.generate(objects, tagsList, libsToUse, xlator)
     return result
 
 def ChooseLibs(objects, buildTags, tags):
@@ -179,6 +181,7 @@ def ChooseLibs(objects, buildTags, tags):
         elif (Lib=="Swing"):  Lib_Swing.use(objects, buildTags, [tags, buildTags], Platform)
         elif (Lib=="Android"):  Lib_Android.use(objects, buildTags, [tags, buildTags], Platform)
         elif (Lib=="AndroidGUI"):  Lib_AndroidGUI.use(objects, buildTags, [tags, buildTags], Platform)
+        elif (Lib=="Swift"):  Lib_Swift.use(objects, buildTags, [tags, buildTags], Platform)
 
     Lib_CodeDog.use(objects, buildTags, [tags, buildTags])
 
@@ -205,9 +208,6 @@ def GenerateSystem(objects, buildSpecs, tags, macroDefs):
         fileSpecs = GenerateProgram(objects, buildTags, tagsList, libsToUse)
         fileName = tagStore['FileName']
         langGenTag = buildTags['Lang']
-        if(langGenTag == 'CPP'): fileExtension='.cpp'
-        elif(langGenTag == 'Java'): fileExtension='.java'
-        else: print "ERROR: unrecognized language ", langGenTag
 
         #GenerateBuildSystem()###################################################
         libFiles=[]

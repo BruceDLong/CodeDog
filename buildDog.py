@@ -10,12 +10,28 @@ import errno
 
 #TODO: error handling
 
-def writeFile(path, fileName, fileSpecs, fileExtension):
-    print path
+def runCMD(myCMD, myDir):
+    print "        COMMAND: ", myCMD, "\n"
+    pipe = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = pipe.communicate()
+    if out:
+        print "        Result: ",out
+    if err:
+        print "\n", err
+        if (err.find("ERROR")) >= 0:
+            exit(1)
+    return [out, err]
+    
+def makeDir(dirToGen):
+    #print "dirToGen:", dirToGen
     try:
-        os.makedirs(path)
+        os.makedirs(dirToGen)
     except OSError as exception:
         if exception.errno != errno.EEXIST: raise
+
+def writeFile(path, fileName, fileSpecs, fileExtension):
+    #print path
+    makeDir(path)
     fileName += fileExtension
     fo=open(path + os.sep + fileName, 'w')
     fo.write(fileSpecs[0][1])
@@ -66,6 +82,30 @@ def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     workingDirectory = currentDirectory + "/" + buildName
     buildStr = langStr + debugMode + " " + minLangStr + fileStr + libStr + " " + outputFileStr
     return [workingDirectory, buildStr]
+    
+def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+    buildStr = ''
+    libStr = ''
+    fileExtension = '.swift'
+    sourcePath = buildName + "/" + "Sources"
+    currentDirectory = currentWD = os.getcwd()
+    workingDirectory = currentDirectory + "/" + buildName
+    
+    makeDir(buildName)
+    runCMD("swift package init --type executable", workingDirectory)
+    writeFile(sourcePath, "main", fileSpecs, fileExtension)
+
+    for libFile in libFiles:
+        if libFile.startswith('pkg-config'):
+            libStr += "`"
+            libStr += libFile
+            libStr += "`"
+        else:
+            libStr += libFile
+        #print "libStr: " + libStr
+    
+    buildStr = "swift build" 
+    return [workingDirectory, buildStr]
 
 def printResults(workingDirectory, buildStr):
     print "buildStr: ", buildStr
@@ -86,7 +126,10 @@ def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fi
         printResults(workingDirectory, buildStr)
     elif platform == 'Android':
         buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+    elif platform == 'Swift':
+        [workingDirectory, buildStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        printResults(workingDirectory, buildStr)
     else:
-        print "Builer.py error: build string not generated for "+ buildName
+        print "buildDog.py error: build string not generated for "+ buildName
         exit(2)
     return

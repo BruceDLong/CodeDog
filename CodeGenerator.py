@@ -99,7 +99,7 @@ def CheckObjectVars(objName, itemName, level):
         if(count>1): print("Passive Inheritance for "+itemName+" in "+objName+" is ambiguous."); exit(2);
         if(count==1): return retVal
         """
-    print "WARNING: Could not find field",itemName ,"in", objName
+    #print "WARNING: Could not find field",itemName ,"in", objName
     return 0 # Field not found in model
 
 StaticMemberVars={} # Used to find parent-class of const and enums
@@ -313,7 +313,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
                 typeSpecOut=typeSpecOut['typeSpec']
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
-        [name, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
+        [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
+        print"                             codeConverter:", name, "->", convertedName
+        name = convertedName
         callAsGlobal=name.find("%G")
         if(callAsGlobal >= 0): namePrefix=''
 
@@ -491,7 +493,7 @@ def encodeConditionalStatement(action, indent, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq(elseAction, indent, xlator)
+            elseText = codeActionSeq(fieldName, elseAction, indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -581,7 +583,7 @@ def codeAction(action, indent, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq(elseAction, indent, xlator)
+                elseText = codeActionSeq(fieldName, elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -671,15 +673,22 @@ def codeAction(action, indent, xlator):
  #   print "actionText", actionText
     return actionText
 
-def codeActionSeq(actSeq, indent, xlator):
+def codeActionSeq(fieldName, actSeq, indent, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
-    actSeqText = "{\n"
-    for action in actSeq:
-        actionText = codeAction(action, indent+'    ', xlator)
-        #print actionText
-        actSeqText += actionText
-    actSeqText += "\n" + indent + "} \n"
+    actSeqText = ""
+    
+    if (fieldName == "main"):
+        actSeqText += xlator['codeActTextMain'](actSeq, indent, xlator)
+    else:
+        actSeqText = "{\n"
+        for action in actSeq:
+            actionText = codeAction(action, indent + '    ', xlator)
+            actSeqText += actionText
+        actSeqText += indent + "}"
+
+    actSeqText += "\n"
+    print 'actSeqText', actSeqText
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
@@ -809,9 +818,10 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     count+=1
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
-                    argListText+= xlator['convertType'](objects, argTypeSpec, 'arg', xlator) + ' ' + argFieldName
+                    argType = xlator['convertType'](objects, argTypeSpec, 'arg', xlator)
+                    argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
-
+                print "                             argListText: (", argListText, ")"
 
             # Textify return type
             if(fieldType[0] != '<%'):
@@ -834,7 +844,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     funcText=verbatimText
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                funcText = funcBodyIndent + codeActionSeq(field['value'][0], funcBodyIndent, xlator)
+                funcText = funcBodyIndent + codeActionSeq(fieldName, field['value'][0], funcBodyIndent, xlator)
             else:
                 print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                 exit(1)
@@ -1007,6 +1017,15 @@ def connectLibraries(objects, tags, libsToUse, xlator):
     return headerStr
 
 def addGLOBALSpecialCode(objects, tags, xlator):
+    for tag in tags:
+        for key in tag:
+            print "    ***", key, ":"
+            if isinstance(tag[key], dict):
+                for subKey in tag[key]:
+                    print "            ***", subKey, ": "
+                    #print "                     ", tag[key][subKey]
+            else: print  "        ***", tag[key], "\n"
+    
     xlator['addGLOBALSpecialCode'](objects, tags, xlator)
     initCode=''; deinitCode=''
 
@@ -1017,27 +1036,27 @@ def addGLOBALSpecialCode(objects, tags, xlator):
 
     GLOBAL_CODE="""
 struct GLOBAL{
-    me void: initialize() <- {
-        %s
-    }
-
-    me void: deinitialize() <- {
-        %s
-    }
+    //me void: initialize() <- {
+        //%s
+    //}
+//
+    //me void: deinitialize() <- {
+        //%s
+    //}
     """ % (initCode, deinitCode)
     GLOBAL_CODE+=r"""
     me void: logPrint(me string: logMode, me string: s) <- {
-            print(logMode , s, '\n')
-            if (logMode == "FATAL ERROR: "){exit(-1)}
+            print(logMode , s)
+            //if (logMode == "FATAL ERROR: "){exit(-1)}
     }
 
     // LOGGING INTERFACE:
-    me void: logMesg(me string: s) <- <%!logPrint("MESSAGE: ", %1)%>
-    me void: logInfo(me string: s) <- <%!logPrint("", %1)%>
-    me void: logCriticalIssue(me string: s) <- <%!logPrint("CRITICAL ERROR: ", %1)%>
-    me void: logFatalError(me string: s) <- <%!logPrint("FATAL ERROR: ", %1)%>
-    me void: logWarning(me string: s) <- <%!logPrint("WARNING: ", %1)%>
-    me void: logDebug(me string: s) <- <%!logPrint("DEBUG: ", %1)%>
+    me void: logMesg(me string: s) <- <%!logPrint(logMode: "MESSAGE: ", s: %1)%>
+    //me void: logInfo(me string: s) <- <%!logPrint("", %1)%>
+    //me void: logCriticalIssue(me string: s) <- <%!logPrint("CRITICAL ERROR: ", %1)%>
+    //me void: logFatalError(me string: s) <- <%!logPrint("FATAL ERROR: ", %1)%>
+    //me void: logWarning(me string: s) <- <%!logPrint("WARNING: ", %1)%>
+    //me void: logDebug(me string: s) <- <%!logPrint("DEBUG: ", %1)%>
     //me void: assert(condition) <- {}
     }"""
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
