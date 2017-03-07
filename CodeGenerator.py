@@ -99,7 +99,7 @@ def CheckObjectVars(objName, itemName, level):
         if(count>1): print("Passive Inheritance for "+itemName+" in "+objName+" is ambiguous."); exit(2);
         if(count==1): return retVal
         """
-    print "WARNING: Could not find field",itemName ,"in", objName
+   # print "WARNING: Could not find field",itemName ,"in", objName
     return 0 # Field not found in model
 
 StaticMemberVars={} # Used to find parent-class of const and enums
@@ -264,8 +264,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
     #print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
     if ('fieldType' in typeSpecIn and isinstance(typeSpecIn['fieldType'], basestring)):
-        if (typeSpecIn['fieldType']=="string" and name == "size"):
-            name = "length"
+        if typeSpecIn['fieldType']=="string":
+            [name, typeSpecOut] = xlator['recodeStringFunctions'](name, typeSpecOut)
 
     if owner=='itr':
         if name=='goNext':
@@ -316,7 +316,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
         [name, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
         callAsGlobal=name.find("%G")
         if(callAsGlobal >= 0): namePrefix=''
-
     if S_alt=='': S+=namePrefix+connector+name
     else: S += S_alt
 
@@ -1015,7 +1014,7 @@ def addGLOBALSpecialCode(objects, tags, xlator):
 
     GLOBAL_CODE="""
 struct GLOBAL{
-    me void: initialize() <- {
+    me void: initialize(me string: prgArgs) <- {
         %s
     }
 

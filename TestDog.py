@@ -40,6 +40,8 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
 
     struct GLOBAL {
 
+        me string[list]: testToRun
+
         void: WriteTestingReport() <- {
             print(T_MESG_BUFF)
             print("\nTotal Failures/Tests: ", T_NUM_FAILS, "/", T_total, "\n")
@@ -51,18 +53,21 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
             // clear failFlag and mesg_buff; setTimer
             <TEST-CASES-HERE>
+            else {Tstat <- "?"}
             // readTimer()
             // fetch and return results
             print(Tstat)
             if(Tstat!=".") {
-                if(Tstat=="F"){T_NUM_FAILS<-T_NUM_FAILS+1}
+                if(Tstat=="F" or Tstat=="?"){T_NUM_FAILS<-T_NUM_FAILS+1}
                 T_MESG_BUFF <- T_MESG_BUFF + T_TEST_BUFF
+                if(Tstat=="?"){T_MESG_BUFF <- T_MESG_BUFF + "\nNOTE: Tests marked '?' are not valid tests. Check the test name.\n"}
             }
         }
-        void: EXEC_TESTS(me string[list]: testList) <- {
+
+        void: EXEC_TESTS() <- {
             me bool: listOnly <- false
             me bool: CrashProof <- false
-            withEach test in testList:{
+            withEach test in testToRun:{
                 if(! listOnly){
                     if (!CrashProof){
                         RUN_TEST(test)
@@ -80,9 +85,17 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
 
         void: RUN_SELECTED_TESTS() <- {
             // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
+            CommandLineManager.defineOption("TestDog", "ListOfTests", "-t", "--tests", "Specification of which tests to run.")
+            me string: testListSpec <- CommandLineManager.getOption("TestDog", "ListOfTests")
+            print("TEST LIST SPECIFICATION:'", testListSpec, "'\n")
             me string[list]: testList <- [<TEST-LIST-HERE>]
+            if(testListSpec==""){testToRun <- testList}
+            else {
+                // TODO: make test selection work with multiple tests and wildcards.
+                testToRun.pushLast(testListSpec)
+            }
             // Sort list as needed
-            EXEC_TESTS(testList)
+            EXEC_TESTS()
         }
     }
 '''

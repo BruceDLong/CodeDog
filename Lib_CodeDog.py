@@ -8,7 +8,7 @@ def use(objects, buildSpec, tags):  #, classesReferenced):
   #  for Crefd in classesReferenced:
   #      if Crefd is in this library, include it and it's dependancies
 
-    CODE='''
+    CODE = r'''
     struct stringScanner{
         me string: S
         me int: pos
@@ -31,12 +31,19 @@ def use(objects, buildSpec, tags):  #, classesReferenced):
             me uint32: fs <- findStr.size()
             withEach p in RANGE(pos .. txtSize):{
                 withEach i in RANGE(0 .. fs):{
+                    //print(">> fs/p/i:", fs, " ", p, " ", i, ", findStr[i]:", findStr[i], " S[p+i]:", S[p+i], "\n")
                     if( findStr[i] != S[p+i]) {
                         break()
-                    } else {if(i==fs) {pos <- p+fs return(pos)}}
+                    } else {if(i==(fs-1)) {pos <- p+fs return(pos)}}
                 }
             }
             return(-1)
+        }
+
+        me int: skipTo(me string: findStr) <- {       // Skip up to <txt>.  Return pos or -1 if End-of-string reached
+            me int: foundPos <- skipPast(findStr)
+            if(foundPos > 0) {return(foundPos-findStr.size())}
+            else {return(-1)}
         }
 
         me int: chkStr(me string: s) <- {

@@ -7,7 +7,7 @@ import TestDog
 
 import pattern_Write_Main
 import pattern_GUI_Toolkit
-#import pattern_Gen_GUI
+import pattern_ManageCmdLine
 
 import stringStructs
 
@@ -70,6 +70,7 @@ def ScanAndApplyPatterns(objects, tags):
             #elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
             elif pattName=='useBigNums': pattern_BigNums.apply(tags)
             elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(objects, tags)
+            elif pattName=='ManageCmdLine': pattern_ManageCmdLine.apply(objects, tags)
             else:
                 print "\nPattern", pattName, "not recognized.\n\n"
                 exit()

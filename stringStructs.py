@@ -232,7 +232,7 @@ struct EParser{
 
     me int64: chkStr(me uint32: pos, me string: s) <- {
         me uint32: L <- s.size()
-        if(pos+L > textToParse.size()){print("                                 chkStr FAILED (target string too short)\n") return(-1)}
+        if(pos+L > textToParse.size()){return(-1)}
         withEach i in RANGE(0 .. L):{
             if( s[i] != textToParse[pos+i]) {
   //              print("                                 chkStr FAILED\n")
