@@ -118,6 +118,7 @@ def printResults(workingDirectory, buildStr):
         exit(2)
 
 def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+    "\n\n######################   B U I L D I N G    S Y S T E M"
     if platform == 'Linux':
         [workingDirectory, buildStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
         printResults(workingDirectory, buildStr)
@@ -126,7 +127,7 @@ def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fi
         printResults(workingDirectory, buildStr)
     elif platform == 'Android':
         buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-    elif platform == 'Swift':
+    elif platform == 'XCODE':
         [workingDirectory, buildStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
         printResults(workingDirectory, buildStr)
     else:

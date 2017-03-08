@@ -9,7 +9,7 @@ This file, along with Lib_Java.py specify to the CodeGenerater how to compile Co
 import progSpec
 import codeDogParser
 import Lib_Android
-from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText
+from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -412,6 +412,17 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
 def codeMain(objects, tags, xlator):
     return ["", ""]
 
+def codeArgText(argFieldName, argType, xlator):
+    return argType + " " +argFieldName  
+    
+def codeActTextMain(actSeq, indent, xlator):
+    actSeqText = "{\n"
+    for action in actSeq:
+        actionText = codeAction(action, indent + '    ', xlator)
+        actSeqText += actionText
+    actSeqText += indent + "}"
+    return actSeqText
+    
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         if parentClass[0]=="!": parentClass=' implements '+parentClass[1:]+' '
@@ -671,5 +682,7 @@ def fetchXlators():
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
+    xlators['codeArgText']                  = codeArgText
+    xlators['codeActTextMain']              = codeActTextMain
 
     return(xlators)

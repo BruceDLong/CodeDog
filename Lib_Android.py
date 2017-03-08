@@ -47,7 +47,7 @@ def GenerateMainActivity(objects, tags, runCode):
             super.onCreate(savedInstanceState)
             GLOBAL.static_Global <- this
             Allocate(appFuncs)
-            initialize()
+            initialize("")
         }
 
         me void: onStart() <- {

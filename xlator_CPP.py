@@ -1,7 +1,7 @@
 #xlator_CPP.py
 import progSpec
 import codeDogParser
-from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText
+from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -460,6 +460,17 @@ def codeMain(objects, tags, xlator):
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
+def codeArgText(argFieldName, argType, xlator):
+    return argType + " " +argFieldName 
+    
+def codeActTextMain(actSeq, indent, xlator):
+    actSeqText = "{\n"
+    for action in actSeq:
+        actionText = codeAction(action, indent + '    ', xlator)
+        actSeqText += actionText
+    actSeqText += indent + "}"
+    return actSeqText
+    
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
@@ -758,5 +769,7 @@ def fetchXlators():
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
+    xlators['codeArgText']                  = codeArgText
+    xlators['codeActTextMain']              = codeActTextMain
 
     return(xlators)

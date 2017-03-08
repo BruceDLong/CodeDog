@@ -313,7 +313,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
                 typeSpecOut=typeSpecOut['typeSpec']
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
-        [name, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
+        [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
+        print"                             codeConverter:", name, "->", convertedName
+        name = convertedName
         callAsGlobal=name.find("%G")
         if(callAsGlobal >= 0): namePrefix=''
     if S_alt=='': S+=namePrefix+connector+name
@@ -490,7 +492,7 @@ def encodeConditionalStatement(action, indent, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq(elseAction, indent, xlator)
+            elseText = codeActionSeq(fieldName, elseAction, indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -580,7 +582,7 @@ def codeAction(action, indent, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq(elseAction, indent, xlator)
+                elseText = codeActionSeq("conditional", elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -670,15 +672,21 @@ def codeAction(action, indent, xlator):
  #   print "actionText", actionText
     return actionText
 
-def codeActionSeq(actSeq, indent, xlator):
+def codeActionSeq(fieldName, actSeq, indent, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
-    actSeqText = "{\n"
-    for action in actSeq:
-        actionText = codeAction(action, indent+'    ', xlator)
-        #print actionText
-        actSeqText += actionText
-    actSeqText += "\n" + indent + "} \n"
+    actSeqText = ""
+    
+    if (fieldName == "main"):
+        actSeqText += xlator['codeActTextMain'](actSeq, indent, xlator)
+    else:
+        actSeqText = "{\n"
+        for action in actSeq:
+            actionText = codeAction(action, indent + '    ', xlator)
+            actSeqText += actionText
+        actSeqText += indent + "}"
+
+    actSeqText += "\n"
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
@@ -808,9 +816,10 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     count+=1
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
-                    argListText+= xlator['convertType'](objects, argTypeSpec, 'arg', xlator) + ' ' + argFieldName
+                    argType = xlator['convertType'](objects, argTypeSpec, 'arg', xlator)
+                    argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
-
+                print "                             argListText: (", argListText, ")"
 
             # Textify return type
             if(fieldType[0] != '<%'):
@@ -833,7 +842,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     funcText=verbatimText
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                funcText = funcBodyIndent + codeActionSeq(field['value'][0], funcBodyIndent, xlator)
+                funcText = funcBodyIndent + codeActionSeq(fieldName, field['value'][0], funcBodyIndent, xlator)
             else:
                 print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                 exit(1)
