@@ -184,7 +184,8 @@ struct EParser{
             thisIsTopLevelItem <- true
             if(SeqPos==prod.items.size()){
                 parseFound <- true
-                print(" <PARSE PASSES HERE> ")
+             // TODO: investigate the cases where the line below prints. There could be a subtle bug.
+               // print(" <PARSE PASSES HERE> ")
             }
         }
 
@@ -218,7 +219,7 @@ struct EParser{
     }
 
     me void: initPosStateSets(me uint64: startProd, me string: txt) <- {
-        print('Will parse "', txt, '" with rule ', startProd, '.\n')
+       // print('Will parse "', txt, '" with rule ', startProd, '.\n')
         startProduction <- startProd
         textToParse <- txt
         SSets.clear()
@@ -544,7 +545,7 @@ struct EParser{
                 }
             }
         }
-        print("\n\n#####################################\n")
+  //      print("\n\n#####################################\n")
   //      dump()
     }
 
@@ -562,7 +563,7 @@ struct EParser{
     }
 
     me bool: doesParseHaveError() <- {
-        print("\n\nChecking for Parse Errors...\n")
+  //      logMesg("\n\nChecking for Parse Errors...\n")
         errorMesg <- ""
         me uint32: lastSSetIDX <- SSets.size()
         me uint32: lastPosWithItems <- 0
@@ -572,7 +573,7 @@ struct EParser{
             if(numItems>0 and lastPosWithItems==0){lastPosWithItems <- ssetIDX}
          //   print("Position ", ssetIDX, " has ", numItems, "items.\n")
         }
-        print("lastPosWithItems:", lastPosWithItems, "\n")
+  //      print("lastPosWithItems:", lastPosWithItems, "\n")
 
         their stateSets: lastSSet <- SSets[lastPosWithItems]
 
@@ -591,7 +592,7 @@ struct EParser{
             isTerminal <- prod.isTerm
             seqPos <- SRec.SeqPosition
             if (SRec.productionID==startProduction and SRec.originPos==0 and ((lastPosWithItems+1)==lastSSetIDX) and seqPos==prod.items.size()){
-                print("Passed\n")
+ //               print("Passed\n")  // !!!!!!!!!!!!!!!!!!! This tells when the parse passes.
                 return(false)
             }
             //SRec.print(this) //print(" ", seqPos, ' - ', SRec.prev, "\n")
@@ -631,7 +632,9 @@ struct EParser{
             //    print(indent, "############# ") crntRec.print(this) print("\n")
             }
         }
-        if(indent==""){print("\nRESOLVED\n\n")}
+        if(indent==""){
+//            print("\nRESOLVED\n\n")
+        }
         return(crntRec)
     }
 
@@ -1256,6 +1259,7 @@ def CreateStructsForStringModels(objects, tags):
 
     ############  Add struct parser
     parserCode=genParserCode()
+    print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n", parserCode
     codeDogParser.AddToObjectFromText(objects[0], objects[1], parserCode)
 
     structsName='EParser'

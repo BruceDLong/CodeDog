@@ -9,13 +9,15 @@ from progSpec import structsNeedingModification
 buildStr_libs=''
 globalFuncDeclAcc=''
 globalFuncDefnAcc=''
+ForwardDeclsForGlobalFuncs=''
 
 
 def appendGlobalFuncAcc(decl, defn):
     global globalFuncDefnAcc
     global globalFuncDeclAcc
-    globalFuncDeclAcc+=decl+';'
-    globalFuncDefnAcc+=decl+defn
+    if decl!="":
+        globalFuncDeclAcc+=decl+';      \t// Forward function declaration\n'
+        globalFuncDefnAcc+=decl+defn
 
 def bitsNeeded(n):
     if n <= 1:
@@ -728,6 +730,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
     return constructCode
 
 def codeStructFields(objects, objectName, tags, indent, xlator):
+    global ForwardDeclsForGlobalFuncs
     print "                    Coding fields for", objectName+ '...'
     ####################################################################
     global localArgsAllocated
@@ -834,6 +837,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
                 funcText = funcBodyIndent + codeActionSeq(field['value'][0], funcBodyIndent, xlator)
+                if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
             else:
                 print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                 exit(1)
@@ -844,7 +848,8 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
             elif(objectName=='GLOBAL'):
                 if(fieldName=='main'):
                     funcDefCode += funcText+"\n\n"
-                else: globalFuncs += funcText+"\n\n"
+                else:
+                    globalFuncs += funcText+"\n\n"
             else: funcDefCode += funcText+"\n\n"
 
         structCodeAcc  += structCode
@@ -878,7 +883,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
             classAttrs=progSpec.searchATagStore(ObjectDef['tags'], 'attrs')
             if(ctxTag): ctxTag=ctxTag[0]
-            if(implMode): 
+            if(implMode):
                 implMode=implMode[0]
                 print "implMode:", implMode
             if(classAttrs): classAttrs=classAttrs[0]+' '
@@ -1045,6 +1050,7 @@ def generateBuildSpecificMainFunctionality(objects, tags, xlator):
     xlator['generateMainFunctionality'](objects, tags)
 
 def pieceTogetherTheSourceFiles(tags, oneFileTF, fileSpecs, headerInfo, MainTopBottom, xlator):
+    global ForwardDeclsForGlobalFuncs
     fileSpecsOut=[]
     fileExtension=xlator['fileExtension']
     if oneFileTF: # Generate a single source file
@@ -1060,7 +1066,7 @@ def pieceTogetherTheSourceFiles(tags, oneFileTF, fileSpecs, headerInfo, MainTopB
         forwardDecls += globalFuncDeclAcc
         funcCodeAcc  += globalFuncDefnAcc
 
-        outputStr = header + constsEnums + forwardDecls + structCodeAcc + MainTopBottom[0] + funcCodeAcc + MainTopBottom[1]
+        outputStr = header + constsEnums + forwardDecls + structCodeAcc + ForwardDeclsForGlobalFuncs + MainTopBottom[0] + funcCodeAcc + MainTopBottom[1]
         filename = progSpec.fetchTagValue(tags, "FileName")
         fileSpecsOut.append([filename, outputStr])
 
@@ -1083,6 +1089,7 @@ def clearBuild():
     global StaticMemberVars
     global globalFuncDeclAcc
     global globalFuncDefnAcc
+    global ForwardDeclsForGlobalFuncs
 
     localVarsAllocated = []
     localArgsAllocated = []
@@ -1092,6 +1099,7 @@ def clearBuild():
     StaticMemberVars={}
     globalFuncDeclAcc=''
     globalFuncDefnAcc=''
+    ForwardDeclsForGlobalFuncs='\n\n// Forward Declarations of global functions\n'
 
 def generate(objects, tags, libsToUse, xlator):
     #print "\nGenerating code...\n"
@@ -1099,8 +1107,6 @@ def generate(objects, tags, libsToUse, xlator):
     global objectsRef
     global buildStr_libs
     global libInterfacesText
-    global globalFuncDeclAcc
-    global globalFuncDefnAcc
 
     buildStr_libs = xlator['BuildStrPrefix']
     objectsRef=objects

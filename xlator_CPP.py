@@ -457,7 +457,7 @@ def codeMain(objects, tags, xlator):
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
         funcCode = "\n\n"+funcCode
-        return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
+        return ["\n\n// Globals\n" + structCode + "\n// Global Functions\n" + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
@@ -671,7 +671,7 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")\n"
+            globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
     else:
         structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
         objPrefix = progSpec.flattenObjectName(objectName) +'::'

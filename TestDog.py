@@ -13,7 +13,7 @@ def setResultCode():
 #define BAIL() <% return()%>
 #define FAIL(text) <%{T_TEST_BUFF <- T_TEST_BUFF + text+"\n" Tstat<-"F" BAIL()}%>     // Print the text, mark the test failed, end its execution.
 #define CAPTURE(expr) <%{INFO("expr = " + expr)}%>                                 // Show the expression with INFO
-#define REQUIRE(expr) <%{if(!(expr)) {FAIL("expr = " + expr)}}%>                     // If the expression fails, show its value with FAIL().
+#define REQUIRE(expr) <%{if(!(expr)) {FAIL("The requirement 'expr' failed: " + BlowPOP(expr) )}}%>                     // If the expression fails, show its value with FAIL().
 #define CHECK(expr)   <%{if(!(expr)) {CHK_FAIL("expr = " + expr)}}%>                 // If the expression fails, show its value with CHK_FAIL().
     '''
 
@@ -59,8 +59,8 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             print(Tstat)
             if(Tstat!=".") {
                 if(Tstat=="F" or Tstat=="?"){T_NUM_FAILS<-T_NUM_FAILS+1}
+                else if(Tstat=="?"){T_TEST_BUFF <- T_TEST_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
                 T_MESG_BUFF <- T_MESG_BUFF + T_TEST_BUFF
-                if(Tstat=="?"){T_MESG_BUFF <- T_MESG_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
             }
         }
 
@@ -87,7 +87,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
             CommandLineManager.defineOption("TestDog", "ListOfTests", "-t", "--tests", "Specification of which tests to run.")
             me string: testListSpec <- CommandLineManager.getOption("TestDog", "ListOfTests")
-            print("TEST LIST SPECIFICATION:'", testListSpec, "'\n")
+            //print("TEST LIST SPECIFICATION:'", testListSpec, "'\n")
             me string[list]: testList <- [<TEST-LIST-HERE>]
             if(testListSpec==""){testToRun <- testList}
             else {

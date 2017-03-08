@@ -17,8 +17,8 @@ def use(objects, buildSpec, tags, platform):
     }
 
     struct GLOBAL{
-        me x: endFunc(me int: val) <- <%!return(0)%>
-        me x: randInt(me int: val) <- <%!(rand() % %1)%>
+        me void: endFunc(me int: val) <- <%!return(0)%>
+        me int: randInt(me int: val) <- <%!(rand() % %1)%>
         me string: toString(me int: val) <- <%!std::to_string(%1)%>
 
     }

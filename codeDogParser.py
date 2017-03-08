@@ -486,35 +486,76 @@ def extractMacroDefs(macroDefMap, inputString):
             exit(1)
         extractMacroSpec(macroDefMap, localResults[0])
 
+def isCID(ch):
+    return (ch.isalnum() or ch=='_')
+
+def BlowPOP(replacement):
+    updatedStr = ""
+    scanMode='identifier'
+    for ch in replacement:
+        if scanMode=='identifier':
+            if isCID(ch): updatedStr += ch
+            else:
+                updatedStr += ' + "'+ch
+                scanMode='filler'
+        elif scanMode=='filler':
+            if not (ch.isalpha() or ch=='_'): updatedStr += ch
+            else:
+                updatedStr += '" + '+ch
+                scanMode='identifier'
+    if scanMode=='filler': updatedStr+='" '
+    return updatedStr
+
+def findMacroEnd(inputString, StartPosOfParens):
+    nestLvl=0
+    if(inputString[StartPosOfParens] != '('): print "NO PAREN!"; exit(2);
+    ISLen=len(inputString)
+    for pos in range(StartPosOfParens, ISLen):
+        ch = inputString[pos]
+        if ch=='(': nestLvl+=1
+        if ch==')': nestLvl-=1
+        if nestLvl==0:
+            #print "MACRO-ARGS:", inputString[StartPosOfParens:pos+1]
+            return pos+1
+    return -1
+
 def doMacroSubstitutions(macros, inputString):
-    print "\n\nMACRO-MAP:", macros
+   # print "\n\nMACRO-MAP:", macros
+    macros['BlowPOP'] = {'ArgList':['dummyArg'],  'Body':'dummyArg'}
     subsWereMade=True
     while(subsWereMade ==True):
         subsWereMade=False
         for thisMacro in macros:
-            macRefPattern=re.compile('(?<!#define)([^a-zA-Z0-9_]+)('+thisMacro+')\s*\((.*)\)')
-            print "MAC NAME:", thisMacro
+            macRefPattern=re.compile(r'(?<!#define)([^a-zA-Z0-9_]+)('+thisMacro+')(\s*)\(([^)]*)\)')
+            #print "MACRO NAME:", thisMacro
             newString=''
             currentPos=0
             for match in macRefPattern.finditer(inputString):
                 #print "     %s: %s %s" % (match.start(), match.group(1), match.group(2))
                 newText=macros[thisMacro]['Body']
-                print "     START TEXT:", newText
-                paramStr=match.group(3)
+                #print "     START TEXT:", newText
+                StartPosOfParens = match.start()+len(match.group(1)) + len(match.group(2)) + len(match.group(3))
+                EndPos=findMacroEnd(inputString, StartPosOfParens)
+                if EndPos==-1: print"\nERROR: Parentheses problem in macro", thisMacro, "\n"; exit(2);
+                paramStr=inputString[StartPosOfParens+1 : EndPos-1] #match.group(4)
                 params=paramStr.split(',')
-                print '     PARAMS:', params
+               # print '     PARAMS:', params
                 idx=0;
                 for arg in macros[thisMacro]['ArgList']:
-                    #print "   SUBS:", arg, params[idx]
-                    newText=newText.replace(arg, params[idx])
+                   # print "   SUBS:", arg, ', ', params[idx], ', ', thisMacro
+                    replacement=params[idx]
+                    if thisMacro=='BlowPOP':
+                        replacement=BlowPOP(replacement)
+
+                    newText=newText.replace(arg, replacement)
                     idx+=1
-                print "     NEW TEXT:", newText
+             #   print "     NEW TEXT:", newText
                 newString += inputString[currentPos:match.start()+len(match.group(1))]+ newText
-                currentPos=match.end()
+                currentPos=EndPos
                 subsWereMade=True
             newString+=inputString[currentPos:]
             inputString=newString
-    print "     RETURN STRING:[", inputString, ']'
+    #print "     RETURN STRING:[", inputString, ']'
     # Last, replace the text into inputString
     return inputString
 
