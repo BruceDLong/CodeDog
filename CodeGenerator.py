@@ -494,7 +494,7 @@ def encodeConditionalStatement(action, indent, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq(fieldName, elseAction, indent, xlator)
+            elseText = codeActionSeq("", elseAction, indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -584,7 +584,7 @@ def codeAction(action, indent, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq("conditional", elseAction, indent, xlator)
+                elseText = codeActionSeq("", elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -678,7 +678,7 @@ def codeActionSeq(fieldName, actSeq, indent, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = ""
-    
+
     if (fieldName == "main"):
         actSeqText += xlator['codeActTextMain'](actSeq, indent, xlator)
     else:
@@ -845,8 +845,8 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     funcText=verbatimText
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                funcText = funcBodyIndent + codeActionSeq(field['value'][0], funcBodyIndent, xlator)
-		if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
+                funcText = funcBodyIndent + codeActionSeq("", field['value'][0], funcBodyIndent, xlator)
+                if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
             else:
                 print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                 exit(1)
