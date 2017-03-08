@@ -88,11 +88,22 @@ libraries = {
     Android={
         useStatus='dynamic'
         description='GUI widget toolkit for Android '
-        features=[Applet, GUI_ToolKit]
+        features=[System]
         platforms=[Android]
         bindings =[Java]
         CPUs     =[ARM]
         libFiles=[]
         headers=[android.app.Activity, android.os.Bundle, android.content.Context, android.util.Log]
+    }
+    
+    Swift={
+        useStatus='dynamic'
+        description='Misc for Swift '
+        features=[System]
+        platforms=[XCODE]
+        bindings =[Swift]
+        CPUs     =[Apple]
+        libFiles=[]
+        headers=[Foundation]
     }
 }

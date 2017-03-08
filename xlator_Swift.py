@@ -1,4 +1,4 @@
-#xlator_CPP.py
+#xlator_Swing.py
 import progSpec
 import codeDogParser
 from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
@@ -10,24 +10,29 @@ def getContainerType(typeSpec):
     if 'indexType' in containerSpec:
         idxType=containerSpec['indexType']
     datastructID = containerSpec['datastructID']
-    if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
     return [datastructID, idxType]
 
 def adjustBaseTypes(fieldType):
     if(isinstance(fieldType, basestring)):
-        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
-        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        if(fieldType=='uint32' or fieldType=='uint64' or fieldType=='int32' or fieldType=='int64'):
-            langType=fieldType+'_t'
-        else:
-            langType=progSpec.flattenObjectName(fieldType)
+        #print"adjustBaseTypes:basestring",fieldType
+        if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='int32'): fieldType='Uint32'
+        elif(fieldType=='int8' or fieldType=='int16' or fieldType=='int32'): fieldType='Int32'
+        elif(fieldType=='int'):fieldType='Int'
+        elif(fieldType=='bool'):fieldType='Bool'
+        elif(fieldType=='void'):fieldType='Void'
+        elif(fieldType=='float'):fieldType='Float'
+        elif(fieldType=='double'):fieldType='Double'
+        elif(fieldType=='string'):fieldType='String'
+        elif(fieldType=='char'):fieldType='Character'
+
+        langType=progSpec.flattenObjectName(fieldType)
     else: langType=progSpec.flattenObjectName(fieldType[0])
     return langType
 
 def applyOwner(owner, langType, varMode):
     if owner=='const':
-        langType = "const "+langType
+        langType = "let "+langType
     elif owner=='me':
         langType = langType
     elif owner=='my':
@@ -45,20 +50,20 @@ def applyOwner(owner, langType, varMode):
 
 def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-
     langType = adjustBaseTypes(fieldType)
     if varMode != 'alloc':
         langType = applyOwner(owner, langType, varMode)
-
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
+            print "TypeSpec:", TypeSpec
+            print "    **arraySpec:", arraySpec
             [containerType, idxType]=getContainerType(TypeSpec)
             if 'owner' in TypeSpec['arraySpec']:
                 containerOwner=TypeSpec['arraySpec']['owner']
             else: containerOwner='me'
             idxType=adjustBaseTypes(idxType)
-            if idxType=='timeValue': idxType = 'int64_t'
+            if idxType=='timeValue': idxType = 'Int64'
 
             if containerType=='deque':
                 langType="deque< "+langType+" >"
@@ -71,13 +76,13 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 #if varMode=='arg' and containerOwner=='their': langType+='&' # Pass these as references
                 #else:
                     langType=applyOwner(containerOwner, langType, varMode)
+
     return langType
 
 def convertType(objects, TypeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
-    #print "fieldType: ", fieldType
     if not isinstance(fieldType, basestring):
         #if len(fieldType)>1: exit(2)
         fieldType=fieldType[0]
@@ -85,7 +90,6 @@ def convertType(objects, TypeSpec, varMode, xlator):
     if(baseType!=None):
         owner=baseType['owner']
         fieldType=baseType['fieldType']
-
     langType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     return xlateLangType(TypeSpec, owner, fieldType, varMode, xlator)
@@ -97,7 +101,7 @@ def recodeStringFunctions(name, typeSpec):
     return [name, typeSpec]
 
 def langStringFormatterCommand(fmtStr, argStr):
-    S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
+    S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
 def getTheDerefPtrMods(itemTypeSpec):
@@ -162,7 +166,7 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "static const int "+fieldName+ " = " + fieldValue+ ";"
+    S= "static let Int "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
 def getEnumStr(fieldName, enumList):
@@ -183,8 +187,8 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
     convertedIdxType = ""
     if containerType=='deque':
         if name=='at' or name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
@@ -197,13 +201,13 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         elif name=='pushLast' : name='push_back'
         else: print "Unknown deque command:", name; exit(2);
     elif containerType=='map':
-        if idxType=='timeValue': convertedIdxType = 'int64_t'
+        if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
-        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
-        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         elif name=='find'     : name='find';     typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
@@ -215,11 +219,11 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         elif name=='popLast'  : name='pop_back'
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
-        if idxType=='timeValue': convertedIdxType = 'int64_t'
+        if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
-        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
@@ -233,13 +237,13 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown multimap command:", name; exit(2);
     elif containerType=='tree': # TODO: Make trees work
         if name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         else: print "Unknown tree command:", name; exit(2)
     elif containerType=='graph': # TODO: Make graphs work
         if name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         else: print "Unknown graph command:", name; exit(2);
     elif containerType=='stream': # TODO: Make stream work
         pass
@@ -274,6 +278,7 @@ def codeFactor(item, xlator):
             tmp+="}"
             S+=tmp
         else:
+            print "item", item
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
@@ -396,20 +401,29 @@ def adjustIfConditional(S2, conditionType):
 def codeSpecialFunc(segSpec, xlator):
     S=''
     funcName=segSpec[0]
-    if(len(segSpec)>2):  # If there are arguments...
-        paramList=segSpec[2]
-        if(funcName=='print'):
-            # TODO: have a tag to choose cout vs printf()
-            S+='cout'
+    if(funcName=='print'):
+        # TODO: have a tag to choose cout vs printf()
+        S+='print ('
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
+            i =0
             for P in paramList:
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S2=derefPtr(S2, argType)
-                S+=' << '+S2
-            S+=" << flush"
-        elif(funcName=='AllocateOrClear'):
+                if (i>0):
+                    S+=' + '
+                S+=S2
+                i = i+1
+            S+=")"
+    elif(funcName=='AllocateOrClear'):
+        if(len(segSpec)>2):
+            #print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
+            paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
-        elif(funcName=='Allocate'):
+    elif(funcName=='Allocate'):
+        if(len(segSpec)>2):
+            paramList=segSpec[2]
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], xlator)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
@@ -417,9 +431,11 @@ def codeSpecialFunc(segSpec, xlator):
                 if(count>0): S+=', '
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
                 S+=S2
-                count=count+1
             S+=")"
-        elif(funcName=='callPeriodically'):
+    elif(funcName=='callPeriodically'):
+        if(len(segSpec)>2):
+            # Call g_timeout_add()
+            paramList=segSpec[2]
             [objName,  retType]=xlator['codeExpr'](paramList[1][0], xlator)
             [interval,  intSpec]   =xlator['codeExpr'](paramList[2][0], xlator)
             varTypeSpec= retType['fieldType'][0]
@@ -427,19 +443,12 @@ def codeSpecialFunc(segSpec, xlator):
             S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
 
             # Create a global function wrapping the class
-            decl='\nint '+wrapperName+'(void* data)'
+            decl='\nInt '+wrapperName+'(Void* data)'
             defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; self->run(); return true;}\n\n'
             appendGlobalFuncAcc(decl, defn)
-        elif(funcName=='break'):
-            if len(paramList)==0: S='break'
-        elif(funcName=='return'):
-            if len(paramList)==0: S+='return'
-        elif(funcName=='toStr'):
-            if len(paramList)==1:
-                [S2, argType]=xlator['codeExpr'](P[0][0], xlator)
-                S2=derefPtr(S2, argType)
-                S+='to_string('+S2+')'
-        #elif(funcName==''):
+    #elif(funcName=='break'):
+    #elif(funcName=='return'):
+    #elif(funcName==''):
 
     return S
 
@@ -457,27 +466,26 @@ def codeMain(objects, tags, xlator):
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
         funcCode = "\n\n"+funcCode
-        return ["\n\n// Globals\n" + structCode + "\n// Global Functions\n" + globalFuncs, funcCode]
+        return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeArgText(argFieldName, argType, xlator):
-    return argType + " " +argFieldName 
-    
 def codeActTextMain(actSeq, indent, xlator):
-    actSeqText = "{\n"
+    indent = ""
+    actSeqText = ""
     for action in actSeq:
-        actionText = codeAction(action, indent + '    ', xlator)
+        actionText = codeAction(action, indent, xlator)
         actSeqText += actionText
-    actSeqText += indent + "}"
     return actSeqText
+    
+def codeArgText(argFieldName, argType, xlator):
+    return argFieldName + ": " + argType
     
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
-    S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
+    S= "\nclass "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
     return([S,forwardDecls])
-
 
 def produceTypeDefs(typeDefMap, xlator):
     typeDefCode="\n// Typedefs:\n"
@@ -489,63 +497,18 @@ def produceTypeDefs(typeDefMap, xlator):
     return typeDefCode
 
 def addSpecialCode(filename):
-    S='\n\n//////////// C++ specific code:\n'
-    S += "\n\nusing namespace std;\n\n"
-    S += 'const string filename = "' + filename + '";\n'
-    S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
+    S='\n\n//////////// Swing specific code:\n'
+    #S += "\n\nusing namespace std;\n\n"
+    #S += 'const string filename = "' + filename + '";\n'
+    #S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
 
-    S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
-    S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
+    #S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
+    #S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
 
-    S+="""
-    // Thanks to Erik Aronesty via stackoverflow.com
-    // Like printf but returns a string.
-    // #include <memory>, #include <cstdarg>
-    inline std::string strFmt(const std::string fmt_str, ...) {
-        int final_n, n = fmt_str.size() * 2; /* reserve 2 times as much as the length of the fmt_str */
-        std::string str;
-        std::unique_ptr<char[]> formatted;
-        va_list ap;
-        while(1) {
-            formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
-            strcpy(&formatted[0], fmt_str.c_str());
-            va_start(ap, fmt_str);
-            final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
-            va_end(ap);
-            if (final_n < 0 || final_n >= n)
-                n += abs(final_n - n + 1);
-            else
-                break;
-        }
-        return std::string(formatted.get());
-    }
-
-    string getFilesDirAsString(){
-        //string fileDir = "~/."+filename ";
-        string fileDir = "./assets";
-
-        mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        return (fileDir);
-    }
-
-    bool doesFileExist(string filePath){
-        ifstream ifile(filename);
-        return (bool)ifile;
-    }
-
-    void copyAssetToWritableFolder(string fromPath, string toPath){
-        //TODO: finish func body if package C++
-    }
-
-    string joinCmdStrings(int count , char *argv[]) {
-        string acc="";
-        for(int i=1; i<count; ++i){
-            if(i>1) acc+=" ";
-            acc += argv[i];
-        }
-        return(acc);
-    }
-    """
+    #string getFilesDirAsString(){}
+    #bool doesFileExist(string filePath){}
+    #void copyAssetToWritableFolder(string fromPath, string toPath){}
+    
 
     decl ="string readFileAsString(string filename)"
     defn="""{
@@ -558,12 +521,12 @@ def addSpecialCode(filename):
         file.read((char*)S.c_str(), S.length());
         return S;  //No errors
     }"""
-    appendGlobalFuncAcc(decl, defn)
+    #appendGlobalFuncAcc(decl, defn)
 
     return S
 
 def addGLOBALSpecialCode(objects, tags, xlator):
-    specialCode =''
+    specialCode ='' 
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -572,7 +535,7 @@ struct GLOBAL{
     """ % (specialCode)
 
     #codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
-
+    
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     varDeclareStr=''
     assignValue=''
@@ -650,12 +613,12 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
         loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        lvName=repName+"Idx"
-        actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+'.size();' +" ++"+lvName+" ){\n"
+        lvName=repName+"Itr"
+        actionText += (indent + "for( Uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+'.size();' +" ++"+lvName+" ){\n"
                     + indent+"    "+"auto &"+repName+" = "+repContainer+"["+lvName+"];\n")
     else:
         print "DSID:",datastructID,containerType
@@ -671,22 +634,21 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
-    S=indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
+    S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText +';\n'
     return S
 
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
         if fieldName=='main':
-            funcDefCode += 'int main(int argc, char *argv[])'
+            funcDefCode += '// M A I N ' + '\n'
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
+            globalFuncs += "func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
         structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
-        objPrefix = progSpec.flattenObjectName(objectName) +'::'
-        funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+        funcDefCode += "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val):
@@ -702,7 +664,7 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):
 #######################################################
 
 def includeDirective(libHdr):
-    S = '#include <'+libHdr+'>\n'
+    S = 'import '+libHdr+'\n'
     return S
 
 def generateMainFunctionality(objects, tags):
@@ -712,11 +674,11 @@ def generateMainFunctionality(objects, tags):
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     mainFuncCode="""
-    me int32: main(me int32: argc, their char: argv ) <- {
-        initialize(joinCmdStrings(argc, argv))
+    me int32: main(me int32: argc, me int32: argv ) <- {
+        //initialize()
         """ + runCode + """
-        deinitialize()
-        endFunc()
+        //deinitialize()
+        //endFunc()
     }
 
 """
@@ -727,17 +689,17 @@ def generateMainFunctionality(objects, tags):
 def fetchXlators():
     xlators = {}
 
-    xlators['LanguageName']        = "C++"
-    xlators['BuildStrPrefix']      = "g++ -g -std=gnu++14  "
-    xlators['fileExtension']       = ".cpp"
-    xlators['typeForCounterInt']   = "int64_t"
-    xlators['GlobalVarPrefix']     = ""
-    xlators['PtrConnector']        = "->"                      # Name segment connector for pointers.
-    xlators['ObjConnector']        = "::"                      # Name segment connector for classes.
+    xlators['LanguageName']     = "Swift"
+    xlators['BuildStrPrefix']   = ""
+    xlators['fileExtension']     = ".swift"
+    xlators['typeForCounterInt']= "Int64"
+    xlators['GlobalVarPrefix']  = ""
+    xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
+    xlators['ObjConnector']     = "::"                      # Name segment connector for classes.
     xlators['doesLangHaveGlobals'] = "True"
-    xlators['funcBodyIndent']      = ""
-    xlators['funcsDefInClass']     = "False"
-    xlators['MakeConstructors']    = "True"
+    xlators['funcBodyIndent']   = ""
+    xlators['funcsDefInClass']  = "False"
+    xlators['MakeConstructors'] = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective
@@ -747,7 +709,6 @@ def fetchXlators():
     xlators['convertType']                  = convertType
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
-    xlators['recodeStringFunctions']        = recodeStringFunctions
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
@@ -771,5 +732,6 @@ def fetchXlators():
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
     xlators['codeActTextMain']              = codeActTextMain
+    xlators['recodeStringFunctions']        = recodeStringFunctions
 
     return(xlators)
