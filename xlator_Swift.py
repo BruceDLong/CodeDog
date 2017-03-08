@@ -10,15 +10,15 @@ def getContainerType(typeSpec):
     if 'indexType' in containerSpec:
         idxType=containerSpec['indexType']
     datastructID = containerSpec['datastructID']
-    if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
     return [datastructID, idxType]
 
 def adjustBaseTypes(fieldType):
     if(isinstance(fieldType, basestring)):
         #print"adjustBaseTypes:basestring",fieldType
-        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='Uint32'
-        elif(fieldType=='int8' or fieldType=='int16'): fieldType='Int32'
+        if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='int32'): fieldType='Uint32'
+        elif(fieldType=='int8' or fieldType=='int16' or fieldType=='int32'): fieldType='Int32'
+        elif(fieldType=='int'):fieldType='Int'
         elif(fieldType=='bool'):fieldType='Bool'
         elif(fieldType=='void'):fieldType='Void'
         elif(fieldType=='float'):fieldType='Float'
@@ -63,7 +63,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 containerOwner=TypeSpec['arraySpec']['owner']
             else: containerOwner='me'
             idxType=adjustBaseTypes(idxType)
-            if idxType=='timeValue': idxType = 'int64_t'
+            if idxType=='timeValue': idxType = 'Int64'
 
             if containerType=='deque':
                 langType="deque< "+langType+" >"
@@ -101,8 +101,7 @@ def recodeStringFunctions(name, typeSpec):
     return [name, typeSpec]
 
 def langStringFormatterCommand(fmtStr, argStr):
-    print "langStringFormatterCommand", fmtStr, ", ", argStr
-    S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
+    S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
 def getTheDerefPtrMods(itemTypeSpec):
@@ -167,7 +166,7 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "static const int "+fieldName+ " = " + fieldValue+ ";"
+    S= "static let Int "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
 def getEnumStr(fieldName, enumList):
@@ -188,8 +187,8 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
     convertedIdxType = ""
     if containerType=='deque':
         if name=='at' or name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
@@ -202,13 +201,13 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         elif name=='pushLast' : name='push_back'
         else: print "Unknown deque command:", name; exit(2);
     elif containerType=='map':
-        if idxType=='timeValue': convertedIdxType = 'int64_t'
+        if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
-        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
-        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         elif name=='find'     : name='find';     typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
@@ -220,11 +219,11 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         elif name=='popLast'  : name='pop_back'
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
-        if idxType=='timeValue': convertedIdxType = 'int64_t'
+        if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
-        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
@@ -238,13 +237,13 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown multimap command:", name; exit(2);
     elif containerType=='tree': # TODO: Make trees work
         if name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         else: print "Unknown tree command:", name; exit(2)
     elif containerType=='graph': # TODO: Make graphs work
         if name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         else: print "Unknown graph command:", name; exit(2);
     elif containerType=='stream': # TODO: Make stream work
         pass
@@ -444,7 +443,7 @@ def codeSpecialFunc(segSpec, xlator):
             S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
 
             # Create a global function wrapping the class
-            decl='\nint '+wrapperName+'(void* data)'
+            decl='\nInt '+wrapperName+'(Void* data)'
             defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; self->run(); return true;}\n\n'
             appendGlobalFuncAcc(decl, defn)
     #elif(funcName=='break'):
@@ -506,7 +505,6 @@ def addSpecialCode(filename):
     #S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
     #S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
 
-    #inline std::string strFmt(const std::string fmt_str, ...) {}
     #string getFilesDirAsString(){}
     #bool doesFileExist(string filePath){}
     #void copyAssetToWritableFolder(string fromPath, string toPath){}
@@ -620,7 +618,7 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         lvName=repName+"Itr"
-        actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+'.size();' +" ++"+lvName+" ){\n"
+        actionText += (indent + "for( Uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+'.size();' +" ++"+lvName+" ){\n"
                     + indent+"    "+"auto &"+repName+" = "+repContainer+"["+lvName+"];\n")
     else:
         print "DSID:",datastructID,containerType
@@ -650,8 +648,7 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
             globalFuncs += "func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
         structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
-        objPrefix = progSpec.flattenObjectName(objectName) +'::'
-        funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+        funcDefCode += "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val):
