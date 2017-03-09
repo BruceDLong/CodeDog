@@ -539,7 +539,7 @@ def codeAction(action, indent, xlator):
                 LHS_Left=LHS[0:divPoint+1] # The '+1' makes this get the connector too. e.g. '.' or '->'
                 bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask, xlator)
-                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS)
+                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
                 actionText=indent + setBits
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
             elif LHS_FieldType=='mode':
@@ -547,7 +547,7 @@ def codeAction(action, indent, xlator):
                 LHS_Left=LHS[0:divPoint+1]
                 bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask+"Mask", xlator)
-                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS)
+                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
                 actionText=indent + setBits
             else:
                 if AltIDXFormat!=None:
@@ -949,27 +949,28 @@ def codeStructureCommands(objects, tags, xlator):
     for command in progSpec.ModifierCommands:
         if (command[3] == 'addImplements'):
             calledFuncName = command[1]
-            calledFuncInstances = progSpec.funcsCalled[calledFuncName]
-            print '     addImplements:'
-            #print '          calledFuncName:', calledFuncName
-            for funcCalledParams in calledFuncInstances:
-                #print '\n funcCalledParams:',funcCalledParams
-                paramList = funcCalledParams[0]
-                commandArgs = command[2]
-                if paramList != None:
-                    count=1
-                    for P in paramList:
-                        oldTextTag='%'+str(count)
-                        [newText, argType]=xlator['codeExpr'](P[0], xlator)
-                        commandArgs=commandArgs.replace(oldTextTag, newText)
-                        count+=1
-                    #print commandArgs
-                firstColonPos=commandArgs.find(':')
-                secondColonPos=commandArgs.find(':', firstColonPos+1)
-                interfaceImplemented=commandArgs[:firstColonPos]
-                classToModify=commandArgs[secondColonPos+1:]
-                structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented, progSpec.MarkItems]
-                print "          impl: ", structsNeedingModification[classToModify]
+            if calledFuncName in progSpec.funcsCalled:
+                calledFuncInstances = progSpec.funcsCalled[calledFuncName]
+                print '     addImplements:'
+                #print '          calledFuncName:', calledFuncName
+                for funcCalledParams in calledFuncInstances:
+                    #print '\n funcCalledParams:',funcCalledParams
+                    paramList = funcCalledParams[0]
+                    commandArgs = command[2]
+                    if paramList != None:
+                        count=1
+                        for P in paramList:
+                            oldTextTag='%'+str(count)
+                            [newText, argType]=xlator['codeExpr'](P[0], xlator)
+                            commandArgs=commandArgs.replace(oldTextTag, newText)
+                            count+=1
+                        #print commandArgs
+                    firstColonPos=commandArgs.find(':')
+                    secondColonPos=commandArgs.find(':', firstColonPos+1)
+                    interfaceImplemented=commandArgs[:firstColonPos]
+                    classToModify=commandArgs[secondColonPos+1:]
+                    structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented, progSpec.MarkItems]
+                    print "          impl: ", structsNeedingModification[classToModify]
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)

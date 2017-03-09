@@ -519,7 +519,7 @@ struct EParser{
                     if(isTerminal){       // SCANNER
                         // print("SCANNING for matching termiinal...\n") // Scanning means Testing for a Matching terminal
                         me int64: len <- textMatches(SRec.productionID, crntPos)
-                        if(len>=0){ // if match succeeded
+                        if(len>=0 and crntPos+len<SSets.size()){ // if match succeeded
                             addProductionToStateSet(crntPos+len, SRec.productionID, 1, crntPos, SRec, NULL)  // Notate that terminal is finished, mark for adding parent's follower.
                         }
                     }else{ // non-terminal                           // PREDICTOR
@@ -922,6 +922,7 @@ def CodeRValExpr(toFieldType, VarTag, doNextSuffix):
     elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child'+doNextSuffix+')'+"\n"
     elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
     elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
+    else: print "TOFIELDTYPE:", toFieldType; exit(2);
     return CODE_RVAL
 
 
