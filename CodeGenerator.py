@@ -494,7 +494,7 @@ def encodeConditionalStatement(action, indent, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq("", elseAction, indent, xlator)
+            elseText = codeActionSeq(False, elseAction, indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -584,7 +584,7 @@ def codeAction(action, indent, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq("", elseAction, indent, xlator)
+                elseText = codeActionSeq(False, elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -674,12 +674,12 @@ def codeAction(action, indent, xlator):
  #   print "actionText", actionText
     return actionText
 
-def codeActionSeq(fieldName, actSeq, indent, xlator):
+def codeActionSeq(isMain, actSeq, indent, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = ""
 
-    if (fieldName == "main"):
+    if (isMain):
         actSeqText += xlator['codeActTextMain'](actSeq, indent, xlator)
     else:
         actSeqText = "{\n"
@@ -768,6 +768,10 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         fieldArglist = typeSpec['argList']
         convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, 'var', xlator))
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
+        if(fieldName == "main"):
+            isMain = True
+        else:
+            isMain = False
 
         ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
@@ -845,21 +849,20 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     funcText=verbatimText
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                funcText = funcBodyIndent + codeActionSeq("", field['value'][0], funcBodyIndent, xlator)
+                funcText = funcBodyIndent + codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
                 if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
             else:
                 print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                 exit(1)
 
-            funcText+="\n\n"
             if(funcsDefInClass=='True'):
-                structCode += funcText
+                structCode += funcText+"\n"
             elif(objectName=='GLOBAL'):
                 if(fieldName=='main'):
-                    funcDefCode += funcText+"\n\n"
+                    funcDefCode += funcText+"\n"
                 else:
-                    globalFuncs += funcText+"\n\n"
-            else: funcDefCode += funcText+"\n\n"
+                    globalFuncs += funcText+"\n"
+            else: funcDefCode += funcText+"\n"
 
         structCodeAcc  += structCode
         funcDefCodeAcc += funcDefCode
@@ -934,10 +937,6 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                 [structCode, funcCode, globalCode]=codeStructFields(objects, objectName, tags, '    ', xlator)
                 structCode+= constFieldAccs[objectNameBase]
                 [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, LangFormOfObjName, structCode)
-
-              #  structCodeAcc += structCodeOut
-               # forwardDeclsAcc += forwardDeclsOut
-              #  funcCodeAcc+=funcCode
                 fileSpecs.append([constsEnums, forwardDeclsOut, structCodeOut, funcCode, objectName, dependancies])
         currentObjName=''
     return fileSpecs
@@ -1125,6 +1124,7 @@ def generate(objects, tags, libsToUse, xlator):
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
     if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program": generateBuildSpecificMainFunctionality(objects, tags, xlator)
 
+    print "\n\n######################  G E N E R A T I N G     C O D E \n"
     codeStructureCommands(objects, tags, xlator)
     fileSpecs=codeAllNonGlobalStructs(objects, tags, xlator)
     topBottomStrings = xlator['codeMain'](objects, tags, xlator)

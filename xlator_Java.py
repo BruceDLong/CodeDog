@@ -587,9 +587,8 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
             #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
         else:
             structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")"
-
     else:
-        structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")";
+        structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")"
     return [structCode, funcDefCode, globalFuncs]
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):

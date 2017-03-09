@@ -634,20 +634,20 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
-    S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText +';\n'
+    S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText
     return S
 
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
         if fieldName=='main':
-            funcDefCode += '// M A I N ' + '\n'
+            structCode += '// M A I N ' + '\n'
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            globalFuncs += "func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode += "func " + fieldName +"("+argListText+") -> " + typeDefName + "\n"
     else:
-        structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
+        structCode += indent + typeDefName +' ' + fieldName +"("+argListText+")\n"
         funcDefCode += "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
@@ -698,7 +698,7 @@ def fetchXlators():
     xlators['ObjConnector']     = "::"                      # Name segment connector for classes.
     xlators['doesLangHaveGlobals'] = "True"
     xlators['funcBodyIndent']   = ""
-    xlators['funcsDefInClass']  = "False"
+    xlators['funcsDefInClass']  = "True"
     xlators['MakeConstructors'] = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
