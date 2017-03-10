@@ -353,7 +353,7 @@ struct EParser{
         }
         me char: ch <- textToParse[pos]
         if(isalpha(ch) or ch==chars[0]){
-            return(scrapeAlphaNum_Seq(pos)+1)
+            return(scrapeAlphaNum_Seq(pos))
         } else {return(-1)}
     }
     // TODO: me int64: scrapeUniID(me uint32: pos) <- { }
@@ -504,9 +504,6 @@ struct EParser{
     //        print('\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: %i`crntPos` "%s`ch.data()`"   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n')
             resetCompletions(crntPos)
             withEach SRec in SSet.stateRecs:{
-//TODO: above loop tracker doesn't work in Java and below doesn't work in C++ without removing the *
-            //withEach crntSRec in RANGE(0 .. SSet.stateRecs.size()):{
-                //our stateRec: SRec <- SSet.stateRecs[crntSRec]
                 their production: prod <- grammar[SRec.productionID]
                 me uint32: ProdType <- prod.prodType
                 me bool  : isTerminal <- (prod.isTerm != 0)
@@ -886,16 +883,20 @@ def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarNam
     [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     InnerMemObjFields=memObj['fields']
     nxtLvlString=''
-    for lvl in range(0,level): nxtLvlString+='.next.child'
+    for lvl in range(0,level-1): nxtLvlString+='.child.next'
     S=""
+    # Code to fetch the ruleIDX of this ALT. If the parse was terminal (i.e., 'const'), it will be at a different place.
     loopVarName = "ruleIDX"+str(level)
-    S+='        me int32: '+loopVarName+' <- '+VarTag+'.child'+nxtLvlString+'.productionID\n'
+    S+='        me int32: '+loopVarName+'\n'
+    S+='        if('+VarTag+nxtLvlString+'.child.next){'+loopVarName+' <- '+VarTag+nxtLvlString+'.child.next.child.productionID}\n'
+    S+='        else{'+loopVarName+' <- '+VarTag+nxtLvlString+'.child.productionID}\n'
+
     print "RULEIDX:", indent, parentStructName, VarName
     if VarName!='memStruct':
         S+=indent + 'me string: '+VarName+'\n'
     count=0
     for altField in fields:
-        #print 'ALTFIELD:', altField
+        print 'ALTFIELD:', altField
         if(altField['isNext']!=True): continue; # This field isn't in the parse stream.
         S+=indent
         if(count>0): S+="else "
@@ -1031,7 +1032,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTag, Var
 
     if fieldOwner=='const'and (toField == None):
         finalCodeStr += indent + VarTag+'_tmpStr'+' <- makeStr('+VarTag+'.child)\n'
-        #  print("'+fieldValue+'")\n'
+        #print'CONSTFIELDVALUE("'+fieldValue+'")\n'
 
     else:
         if toIsStruct:

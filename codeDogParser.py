@@ -489,7 +489,7 @@ def extractMacroDefs(macroDefMap, inputString):
 def isCID(ch):
     return (ch.isalnum() or ch=='_')
 
-def BlowPOP(replacement):
+def BlowPOPMacro(replacement):
     updatedStr = ""
     scanMode='identifier'
     for ch in replacement:
@@ -505,6 +505,10 @@ def BlowPOP(replacement):
                 scanMode='identifier'
     if scanMode=='filler': updatedStr+='" '
     return updatedStr
+
+def deSlashMacro(replacement):
+    print "DESLASHING:", replacement
+    return replacement.replace('/', '_')
 
 def findMacroEnd(inputString, StartPosOfParens):
     nestLvl=0
@@ -522,6 +526,7 @@ def findMacroEnd(inputString, StartPosOfParens):
 def doMacroSubstitutions(macros, inputString):
    # print "\n\nMACRO-MAP:", macros
     macros['BlowPOP'] = {'ArgList':['dummyArg'],  'Body':'dummyArg'}
+    macros['DESLASH'] = {'ArgList':['dummyArg'],  'Body':'dummyArg'}
     subsWereMade=True
     while(subsWereMade ==True):
         subsWereMade=False
@@ -545,11 +550,12 @@ def doMacroSubstitutions(macros, inputString):
                    # print "   SUBS:", arg, ', ', params[idx], ', ', thisMacro
                     replacement=params[idx]
                     if thisMacro=='BlowPOP':
-                        replacement=BlowPOP(replacement)
-
+                        replacement=BlowPOPMacro(replacement)
+                    elif thisMacro=='DESLASH':
+                        replacement=deSlashMacro(replacement)
                     newText=newText.replace(arg, replacement)
                     idx+=1
-             #   print "     NEW TEXT:", newText
+                print "     NEW TEXT:", newText
                 newString += inputString[currentPos:match.start()+len(match.group(1))]+ newText
                 currentPos=EndPos
                 subsWereMade=True
