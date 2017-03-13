@@ -589,7 +589,7 @@ def comment_remover(text):
         else:
             return s
     pattern = re.compile(
-        r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
+        r'/-.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
         re.DOTALL | re.MULTILINE
     )
     return re.sub(pattern, replacer, text)
@@ -613,7 +613,7 @@ def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
 def AddToObjectFromText(spec, objNames, inputStr):
     macroDefs = {} # This var is not used here. If needed, make it an argument.
     inputStr = comment_remover(inputStr)
-    #print '####################\n',inputStr, "\n######################^\n\n\n"
+    print '####################\n',inputStr, "\n######################^\n\n\n"
 
     # (map of objects, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)

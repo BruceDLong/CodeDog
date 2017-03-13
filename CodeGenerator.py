@@ -1044,14 +1044,14 @@ struct GLOBAL{
             if (logMode == "FATAL ERROR: "){exit(-1)}
     }
 
-    // LOGGING INTERFACE:
+    /- LOGGING INTERFACE:
     me void: logMesg(me string: s) <- <%!logPrint("MESSAGE: ", %1)%>
     me void: logInfo(me string: s) <- <%!logPrint("", %1)%>
     me void: logCriticalIssue(me string: s) <- <%!logPrint("CRITICAL ERROR: ", %1)%>
     me void: logFatalError(me string: s) <- <%!logPrint("FATAL ERROR: ", %1)%>
     me void: logWarning(me string: s) <- <%!logPrint("WARNING: ", %1)%>
     me void: logDebug(me string: s) <- <%!logPrint("DEBUG: ", %1)%>
-    //me void: assert(condition) <- {}
+    /-me void: assert(condition) <- {}
     }"""
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 

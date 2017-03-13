@@ -1,4 +1,4 @@
-#///////// Native CodeDog library
+######## Native CodeDog library
 
 import progSpec
 import codeDogParser
@@ -15,7 +15,7 @@ def use(objects, buildSpec, tags):  #, classesReferenced):
         void: init(me string: str) <- {S<-str  reset()}
         void: reset() <- {pos<-0}
 
-        me int: skipWS() <- {       // Skip past 0 or more whitespace characters.  Return the new pos
+        me int: skipWS() <- {       /- Skip past 0 or more whitespace characters.  Return the new pos
             me char: ch
             me uint32: txtSize <- S.size()
             withEach p in RANGE(pos .. txtSize):{
@@ -25,13 +25,13 @@ def use(objects, buildSpec, tags):  #, classesReferenced):
             return(pos)
         }
 
-        me int: skipPast(me string: findStr) <- {       // Skip past <txt>.  Return pos or -1 if End-of-string reached
+        me int: skipPast(me string: findStr) <- {       /- Skip past <txt>.  Return pos or -1 if End-of-string reached
             me char: ch
             me uint32: txtSize <- S.size()
             me uint32: fs <- findStr.size()
             withEach p in RANGE(pos .. txtSize):{
                 withEach i in RANGE(0 .. fs):{
-                    //print(">> fs/p/i:", fs, " ", p, " ", i, ", findStr[i]:", findStr[i], " S[p+i]:", S[p+i], "\n")
+                    /-print(">> fs/p/i:", fs, " ", p, " ", i, ", findStr[i]:", findStr[i], " S[p+i]:", S[p+i], "\n")
                     if( findStr[i] != S[p+i]) {
                         break()
                     } else {if(i==(fs-1)) {pos <- p+fs return(pos)}}
@@ -40,7 +40,7 @@ def use(objects, buildSpec, tags):  #, classesReferenced):
             return(-1)
         }
 
-        me int: skipTo(me string: findStr) <- {       // Skip up to <txt>.  Return pos or -1 if End-of-string reached
+        me int: skipTo(me string: findStr) <- {       /- Skip up to <txt>.  Return pos or -1 if End-of-string reached
             me int: foundPos <- skipPast(findStr)
             if(foundPos > 0) {return(foundPos-findStr.size())}
             else {return(-1)}

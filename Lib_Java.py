@@ -65,7 +65,7 @@ def use(objects, buildSpec, tags, platform):
                 return false;
 
             }%>
-            // LOGGING INTERFACE:
+            /- LOGGING INTERFACE:
 """ + (APP_UTILITY_CODE) + """
         }
 """

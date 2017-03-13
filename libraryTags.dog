@@ -1,4 +1,4 @@
-// libraryTags.cdog
+/- libraryTags.cdog
 
 libraries = {
     gmp={
@@ -95,7 +95,7 @@ libraries = {
         libFiles=[]
         headers=[android.app.Activity, android.os.Bundle, android.content.Context, android.util.Log]
     }
-    
+
     Swift={
         useStatus='dynamic'
         description='Misc for Swift '
