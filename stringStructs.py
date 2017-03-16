@@ -633,6 +633,14 @@ struct EParser{
         return(crntRec)
     }
 
+    void: docPos(me int: indent, our stateRec: SRec, me string: tag) <- {
+        withEach i in RANGE(0 .. indent):{ print("|    ")}
+        if(SRec){
+            SRec.print(this)
+        } else {print(" NULL ")}
+        print("  \t", tag, "\n")
+    }
+
     void: displayParse(our stateRec: SRec, me string: indent) <- {
         their production: prod <- grammar[SRec.productionID]
         if(prod.isTerm){
@@ -873,21 +881,19 @@ def fetchMemVersion(objects, objName):
     return [memObj, memVersionName]
 
 
-def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarName, indent, level):
+def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTagBase, VarTagSuffix, VarName, indent, level):
     # Structname should be the name of the structure being parsed. It will be converted to the mem version to get 'to' fields.
     # Fields is the list of alternates.
     # VarTag is a string used to create local variables.
     # VarName is the LVAL variable name.
+    VarTag=VarTagBase+str(level)
     [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     InnerMemObjFields=memObj['fields']
-    nxtLvlString=''
-    for lvl in range(0,level-1): nxtLvlString+='.child.next'
     S=""
     # Code to fetch the ruleIDX of this ALT. If the parse was terminal (i.e., 'const'), it will be at a different place.
+    S+='\n'+indent+'\nour stateRec: '+VarTag+' <- '+VarTagBase+str(level-1)+'.child.next'+VarTagSuffix+'\n'
     loopVarName = "ruleIDX"+str(level)
-    S+='        me int32: '+loopVarName+'\n'
-    S+='        if('+VarTag+nxtLvlString+'.child.next){'+loopVarName+' <- '+VarTag+nxtLvlString+'.child.next.child.productionID}\n'
-    S+='        else{'+loopVarName+' <- '+VarTag+nxtLvlString+'.child.productionID}\n'
+    S+='        me int32: '+loopVarName+' <- '+VarTag+'.child.productionID\n'
 
     print "RULEIDX:", indent, parentStructName, VarName
     if VarName!='memStruct':
@@ -907,26 +913,27 @@ def Write_ALT_Extracter(objects, field, parentStructName, fields, VarTag, VarNam
             for coFact in altField['coFactuals']:
                 coFactualCode+= indent + VarName + '.' + coFact[0] + ' <- ' + coFact[2] + "\n"
         #print indent,"    GOING TO WRITE FIELD:", count
-        S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTag, VarName, False, indent+'    ', level)
+        S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTagBase, VarName, False, indent+'    ', level)
         S+=coFactualCode
         S+=indent+"}"
         count+=1
     return S
 
 
-def CodeRValExpr(toFieldType, VarTag, doNextSuffix):
-    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child'+doNextSuffix+')'+"\n"
-    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child'+doNextSuffix+')'+"\n"
-    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child'+doNextSuffix+')'+"\n"
-    elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child'+doNextSuffix+')'+"\n"
+def CodeRValExpr(toFieldType, VarTag):
+    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child'+')'+"\n"
+    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child'+')'+"\n"
+    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child'+')'+"\n"
+    elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child'+')'+"\n"
     elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
     elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
     else: print "TOFIELDTYPE:", toFieldType; exit(2);
     return CODE_RVAL
 
 
-def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTag, VarName, advancePtr, indent, level):
+def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase, VarName, advancePtr, indent, level):
     boob=False # Erase this line
+    VarTag=VarTagBase+str(level)
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
     global  globalFieldCount
     S=''
@@ -1018,18 +1025,16 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTag, Var
     ###################   W r i t e   R V A L   C o d e
     CODE_RVAL=''
     objName=''
-    doNextSuffix=''
-    fetchSuffix=''
+    humanIDType= VarTag+' ('+str(fieldName)+' / '+str(fieldValue) + ' / '+str(fieldType)[:20] +')'
+    humanIDType=humanIDType.replace('"', "'")
+
     if advancePtr:
-        if boob: print '        fetchSuffix:', VarTag
         S+=indent+VarTag+' <- getNextStateRec('+VarTag+')\n'
-    else:
-        doNextSuffix='.next'
-        fetchSuffix=".child.next"
+        # UNCOMMENT FOR DEGUG: S+='    docPos('+str(level)+', '+VarTag+', "Get Next in SEQ for: '+humanIDType+'")\n'
 
 
     if fieldOwner=='const'and (toField == None):
-        finalCodeStr += indent + VarTag+'_tmpStr'+' <- makeStr('+VarTag+'.child)\n'
+        finalCodeStr += indent + 'tmpStr'+' <- makeStr('+VarTag+'.child)\n'
         #print'CONSTFIELDVALUE("'+fieldValue+'")\n'
 
     else:
@@ -1038,25 +1043,25 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTag, Var
             if not ToIsEmbedded:
                 objName=toFieldType[0]
                 if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
-                    CODE_RVAL='makeStr('+VarTag+'.child'+doNextSuffix+')'
+                    CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     toIsStruct=False; # false because it is really a base type.
                 else:
-                    print "TOFIELDTYPE:", objName
+                    #print "TOFIELDTYPE:", objName
                   #  print "        toObjName:", objName
                     [toMemObj, toMemVersionName]=fetchMemVersion(objects, objName)
                     if toMemVersionName==None:
                         # make alternate finalCodeStr. Also, write the extractor that extracts toStruct fields to memVersion of this
                         extractorFuncName = fieldType[0].replace('::', '_')+'_to_'+memVersionName.replace('::', '_')
-                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    Extract_'+extractorFuncName+'('+VarTag+fetchSuffix+'.child, memStruct)\n')
+                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    Extract_'+extractorFuncName+'('+VarTag+'.child, memStruct)\n')
 
-                        print "TOSTRUNCTSNAME:", objName, extractorFuncName
+                        #print "TOSTRUNCTSNAME:", objName, extractorFuncName
                         ToFields=objects[0][objName+'::str']['fields']
                         Write_structExtracter(objects, ToStructName, ToFields, extractorFuncName)
                     else:
-                        finalCodeStr=indent + CodeLVAR_Alloc + '\n' +indent+'    Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+VarTag+fetchSuffix+'.child, '+CODE_LVAR_v2+')\n'
+                        finalCodeStr=indent + CodeLVAR_Alloc + '\n' +indent+'    Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+VarTag+'.child, '+CODE_LVAR_v2+')\n'
                 if boob: print '        finalCodeStr:', finalCodeStr
         else:
-            CODE_RVAL = CodeRValExpr(toFieldType, VarTag, doNextSuffix)
+            CODE_RVAL = CodeRValExpr(toFieldType, VarTag)
 
 
     #print "CODE_RVAL:", CODE_RVAL
@@ -1064,20 +1069,21 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTag, Var
     ###################   H a n d l e   o p t i o n a l   a n d   r e p e t i t i o n   a n d   a s s i g n m e n t   c a s e s
     gatherFieldCode=''
     if fromIsList and toIsList:
-        CODE_RVAL='tmpVar_tmpStr'
+        CODE_RVAL='tmpStr'
         globalFieldCount +=1
-        childRecName='childSRec' + str(globalFieldCount)
-        gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next\n    withEach Cnt in WHILE('+childRecName+'):{\n'
+        childRecName='SRec' + str(globalFieldCount)
+        gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next'
+        gatherFieldCode+='\n'+indent+'withEach Cnt in WHILE('+childRecName+'):{\n'
         if fromIsALT:
             print "ALT-#1"
-            gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, 'tmpVar_tmpStr', indent+'    ', level)
+            gatherFieldCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, childRecName, '', 'tmpStr', indent+'    ', level)
 
         elif fromIsStruct and toIsStruct:
             print "toFieldType:", toFieldOwner, ">>>", toFieldType
-            gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpVar_tmpStr'
+            gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpStr'
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
-            gatherFieldCode+='\n'+indent+'Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+childRecName+'.child, tmpVar_tmpStr)\n'
+            gatherFieldCode+='\n'+indent+'Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+childRecName+'.child, tmpStr)\n'
 
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, '')
@@ -1087,6 +1093,8 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTag, Var
         gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
 
         gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
+        # UNCOMMENT FOR DEGUG: S+= '    docPos('+str(level)+', '+VarTag+', "Get Next in LIST for: '+humanIDType+'")\n'
+
 
         gatherFieldCode+='\n'+indent+'}\n'
         if(fromIsOPT):
@@ -1094,11 +1102,12 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTag, Var
             exit(2)
     else:
         if toIsList: print "Error: parsing a non-list to a list is not supported.\n"; exit(1);
+        levelSuffix=''
         assignerCode=''
         oldIndent=indent
         if (fromIsOPT):
             setTrueCode=''
-            assignerCode+='\n'+indent+'if('+VarTag+'.child.next' +' == NULL ' + " or " + VarTag + '.child.next.child.next' +' == NULL){'
+            assignerCode+='\n'+indent+'if('+VarTag+'.child.next' +' == NULL){'
             if toFieldOwner=='me':
                 if boob: print '        toFieldOwner:', toFieldOwner
                 ## if fieldName==None and a model of fromFieldType has no cooresponding model But we are in EXTRACT_ mode:
@@ -1119,6 +1128,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTag, Var
                 print"ERROR: OPTional fields must not be '"+toFieldOwner+"'.\n"
                 exit(1)
             assignerCode+='\n'+indent+'} else {\n'
+            levelSuffix='.child.next'
             indent+='    '
             assignerCode+=indent+setTrueCode+'\n'
 
@@ -1126,22 +1136,25 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTag, Var
         if fromIsALT or fromIsEmbeddedAlt:
             if(fromIsEmbeddedAlt):
                 print "ALT-#2"
-                assignerCode+=Write_ALT_Extracter(objects, field,  ToStructName, field['innerDefs'], VarTag, VarName, indent+'    ', level+1)
+                assignerCode+=Write_ALT_Extracter(objects, field,  ToStructName, field['innerDefs'], VarTagBase, levelSuffix, VarName, indent+'    ', level+1)
             else:
                 print "ALT-#3"
-                assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTag, VarName+'X', indent+'    ', level)
+                assignerCode+=Write_ALT_Extracter(objects, field,  fieldType[0], fields, VarTagBase, levelSuffix, VarName+'X', indent+'    ', level)
                 assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
         elif fromIsEmbeddedSeq:
+            #if levelSuffix!='': print"\n\nFix Missing Level Bug Here!!! (A)\n\n"; exit(2);
             globalFieldCount +=1
-            childRecName='childSRec' + str(globalFieldCount)
-            assignerCode+='\n'+indent+'me string: '+childRecName+'_tmpStr'
-            assignerCode+='\n'+indent+'our stateRec: '+childRecName+' <- '+VarTag+'.child.next.child\n'
+            childRecNameBase='childSRec' + str(globalFieldCount)
+            childRecName=childRecNameBase+str(level)
+            assignerCode+='\n'+indent+'our stateRec: '+childRecName+' <- '+VarTag+'.child\n'
             for innerField in field['innerDefs']:
-                assignerCode+=Write_fieldExtracter(objects, ToStructName, innerField, memObjFields, childRecName, '', True, '    ', level)
+                assignerCode+=Write_fieldExtracter(objects, ToStructName, innerField, memObjFields, childRecNameBase, '', True, '    ', level)
         elif fromIsStruct and toIsStruct:
+           # if levelSuffix!='': print"\n\nFix Missing Level Bug Here!!! (B)\n\n"; exit(2);
             assignerCode+=finalCodeStr;
             if boob: print '        assignerCode:', assignerCode
         else:
+            #if levelSuffix!='': print"\n\nFix Missing Level Bug Here!!! (C)\n\n"; exit(2);
            # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
             if CODE_RVAL!="":
                 if LHS_IsPointer:
@@ -1175,11 +1188,12 @@ def Write_structExtracter(objects, ToStructName, fields, nameForFunc):
     [memObj, memVersionName]=fetchMemVersion(objects, ToStructName)
     memObjFields=memObj['fields']
     print "WRITING STRUCT EXTRACTOR:",nameForFunc
-    S='    me string: SRec_tmpStr'
+    S='    me string: tmpStr'
+    #S+='\n    docPos(0, SRec0, "Top of Sequence/struct")\n'
     for field in fields: # Extract all the fields in the string version.
         S+=Write_fieldExtracter(objects, ToStructName, field, memObjFields, 'SRec', '', True, '    ', 0)
 
-    seqExtracter =  "\n    void: Extract_"+nameForFunc.replace('::', '_')+"(our stateRec: SRec, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
+    seqExtracter =  "\n    void: Extract_"+nameForFunc.replace('::', '_')+"(our stateRec: SRec0, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     extracterFunctionAccumulator += seqExtracter
 
 

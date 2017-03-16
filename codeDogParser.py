@@ -45,6 +45,7 @@ value = Forward()
 listVal = "[" + delimitedList(expr, ",") + "]"
 strMapVal = "{" + delimitedList( quotedString() + ":" + expr, ",")  + "}"
 value <<= (boolValue | floatNum | intNum | quotedString() | listVal | strMapVal)("value")
+comment = Literal(r'//').suppress() + restOfLine('comment')
 
 #######################################   E X P R E S S I O N S
 parameters = Forward()
@@ -90,7 +91,7 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action = Group(assign("assign") | funcCall("funcCall") | fieldDef('fieldDef'))
+action = Group((assign("assign") | funcCall("funcCall") | fieldDef('fieldDef')) + Optional(comment))
 actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
