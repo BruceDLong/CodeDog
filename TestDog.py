@@ -57,9 +57,9 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             /- readTimer()
             /- fetch and return results
             print(Tstat)
+            if(Tstat=="?"){T_TEST_BUFF <- T_TEST_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
             if(Tstat!=".") {
                 if(Tstat=="F" or Tstat=="?"){T_NUM_FAILS<-T_NUM_FAILS+1}
-                else if(Tstat=="?"){T_TEST_BUFF <- T_TEST_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
                 T_MESG_BUFF <- T_MESG_BUFF + T_TEST_BUFF
             }
         }

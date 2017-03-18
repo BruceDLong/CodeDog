@@ -122,7 +122,7 @@ alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Option
 anonModel = (sequenceEl | alternateEl) ("anonModel")
 owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("itr"))
 fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | Group(anonModel))('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
-fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
+fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")+Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
 doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
@@ -135,6 +135,7 @@ progSpecParser = (Optional(buildSpecList) + tagDefList + objectList)("progSpecPa
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
     try:
+        #print "#########################################\n", inputStr, "\n#########################################\n"
         localResults = progSpecParser.parseString(inputStr, parseAll = True)
 
     except ParseException , pe:
@@ -244,7 +245,10 @@ def packFieldDef(fieldResult, ObjectName, indent):
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
-        if(len(fieldResult)>1 and fieldResult[1]=='[opt]'): arraySpec={'datastructID': 'opt'}
+        if(len(fieldResult)>1 and fieldResult[1]=='[opt]'):
+            arraySpec={'datastructID': 'opt'};
+            if(len(fieldResult)>3 and fieldResult[3]!=''):
+                fieldName=fieldResult[3]
         givenValue=fieldResult.constStr[1:-1]
         fieldDef=progSpec.packField(True, 'const', 'string', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.constNum):
@@ -508,7 +512,6 @@ def BlowPOPMacro(replacement):
     return updatedStr
 
 def deSlashMacro(replacement):
-    print "DESLASHING:", replacement
     return replacement.replace('/', '_')
 
 def findMacroEnd(inputString, StartPosOfParens):
@@ -556,7 +559,7 @@ def doMacroSubstitutions(macros, inputString):
                         replacement=deSlashMacro(replacement)
                     newText=newText.replace(arg, replacement)
                     idx+=1
-                print "     NEW TEXT:", newText
+                #print "     NEW TEXT:", newText
                 newString += inputString[currentPos:match.start()+len(match.group(1))]+ newText
                 currentPos=EndPos
                 subsWereMade=True
@@ -614,7 +617,7 @@ def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
 def AddToObjectFromText(spec, objNames, inputStr):
     macroDefs = {} # This var is not used here. If needed, make it an argument.
     inputStr = comment_remover(inputStr)
-    print '####################\n',inputStr, "\n######################^\n\n\n"
+    #print '####################\n',inputStr, "\n######################^\n\n\n"
 
     # (map of objects, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
