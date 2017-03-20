@@ -341,6 +341,7 @@ def codeUnknownNameSeg(segSpec, xlator):
     segName=segSpec[0]
     #print "SEGNAME:", segName
     S += '.'+ segName
+    #S += '().'+ segName
     if len(segSpec) > 1 and segSpec[1]=='(':
         if(len(segSpec)==2):
             paramList=[]
@@ -367,8 +368,8 @@ def codeItemRef(name, LorR_Val, xlator):
     AltIDXFormat=''
     for segSpec in name:
         owner=progSpec.getTypeSpecOwner(segType)
-        #print "NameSeg:", owner, segSpec, segType
         segName=segSpec[0]
+        #print "NameSeg:", segName
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).
             connector='.'
@@ -384,8 +385,10 @@ def codeItemRef(name, LorR_Val, xlator):
             [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, xlator)
             if AltIDXFormat!=None:
                 AltFormat=[S, AltIDXFormat]   # This is in case of an alternate index format such as Java's string.put(idx, val)
+            #print "segStr: ", segStr
         else:
             segStr= codeUnknownNameSeg(segSpec, xlator)
+            #print "segStr: ", segStr
         prevLen=len(S)
 
 
@@ -897,7 +900,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             if(ctxTag): ctxTag=ctxTag[0]
             if(implMode):
                 implMode=implMode[0]
-                print "implMode:", implMode
+                #print "implMode:", implMode
             if(classAttrs): classAttrs=classAttrs[0]+' '
             else: classAttrs=''
             if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
@@ -1130,5 +1133,5 @@ def generate(objects, tags, libsToUse, xlator):
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 
     fileSpecStrings = pieceTogetherTheSourceFiles(tags, True, fileSpecs, [], topBottomStrings, xlator)
-
+    print "\n\n##########################################################\n"
     return fileSpecStrings
