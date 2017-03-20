@@ -461,8 +461,8 @@ def codeMain(objects, tags, xlator):
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
 def codeArgText(argFieldName, argType, xlator):
-    return argType + " " +argFieldName 
-    
+    return argType + " " +argFieldName
+
 def codeActTextMain(actSeq, indent, xlator):
     actSeqText = "{\n"
     for action in actSeq:
@@ -470,7 +470,7 @@ def codeActTextMain(actSeq, indent, xlator):
         actSeqText += actionText
     actSeqText += indent + "}"
     return actSeqText
-    
+
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
@@ -693,9 +693,9 @@ def codeArrayIndex(idx, containerType, LorR_Val):
     S= '[' + idx +']'
     return S
 
-def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):
+def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
-        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS + ");\n"
+        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", ("+ RHS +")?"+prefix+bitMask+":0" + ");\n"
     elif (LHS_FieldType =='mode' ):
         return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
 

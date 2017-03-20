@@ -217,8 +217,8 @@ def GenerateSystem(objects, buildSpecs, tags, macroDefs):
             libFiles+=tmpLibFiles
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
-        print "LEN:", len(fileSpecs)
-        for f in fileSpecs: print "   FS:", f[0]
+        print "Files Generated:", len(fileSpecs)
+        for f in fileSpecs: print "    >", f[0]
         buildDog.build("-g", '14',  fileName, libFiles, buildName, platform, fileSpecs)
         progSpec.rollBack(objects)
     # GenerateDocuments()

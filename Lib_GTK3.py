@@ -1,4 +1,4 @@
-#/////////////////  Add GUI-Toolkit features using GTK3
+############  Add GUI-Toolkit features using GTK3
 
 import progSpec
 import codeDogParser
@@ -26,7 +26,7 @@ def use(objects, buildSpec, tags, platform):
 
     struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-    struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
+    struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 
     struct GUI{
         their GtkApplication: app
@@ -51,15 +51,15 @@ def use(objects, buildSpec, tags, platform):
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
     me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
-  //  me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
- //   me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew JMenuItem(%1)%>
+  /-  me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
+ /-   me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew JMenuItem(%1)%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
     me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
     me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
     me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!%Ggtk_viewport_new(%1, %2)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
-   // me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%G%1.add(%2)%>
+   /- me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%G%1.add(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     me void: create_MenuItem()<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu()<- <%!%Gcreate_TopSubMenu(%1, %2)%>
@@ -83,7 +83,7 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     me void: paintNow() <- <%!cairo_paint(%0)%>
     me void: strokeNow() <- <%!cairo_stroke(%0)%>
     me void: fillNow() <- <%!cairo_fill(%0)%>
-    //me void: renderFrame() <- <%!%G ;%>
+    /-me void: renderFrame() <- <%!%G ;%>
 }
 
 struct tm{
@@ -120,15 +120,15 @@ struct timeStringer{
 }
 
 
-/////////////////////////////////  G L O B A L
+/-///////////////////////////////  G L O B A L
     struct GLOBAL{
         me GUI: gui_tk
         me thisApp: appFuncs
 
-    // TIME ROUTINES:
+    /- TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
-    // DRAWING ROUTINES:
+    /- DRAWING ROUTINES:
 
     me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         cairo_move_to(cr,x,y);
@@ -143,22 +143,22 @@ struct timeStringer{
         cairo_set_line_width(cr, 0.5);
         pango_cairo_update_layout(cr, layout);
         pango_cairo_show_layout_line (cr, pango_layout_get_line (layout, 0));
-       // pango_cairo_layout_path(cr, layout);
+       /- pango_cairo_layout_path(cr, layout);
         g_object_unref(layout);
         cairo_fill(cr);
     } %>
 
 
     me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
-        cairo_move_to(cr,x+r,y);                      //# Move to A
-        cairo_line_to(cr,x+w-r,y);                    //# Straight line to B
-        cairo_curve_to(cr,x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
-        cairo_line_to(cr,x+w,y+h-r);                  //# Move to D
-        cairo_curve_to(cr,x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
-        cairo_line_to(cr,x+r,y+h);                    //# Line to F
-        cairo_curve_to(cr,x,y+h,x,y+h,x,y+h-r);       //# Curve to G
-        cairo_line_to(cr,x,y+r);                      //# Line to H
-        cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
+        cairo_move_to(cr,x+r,y);                      /-# Move to A
+        cairo_line_to(cr,x+w-r,y);                    /-# Straight line to B
+        cairo_curve_to(cr,x+w,y,x+w,y,x+w,y+r);       /-# Curve to C, Control points are both at Q
+        cairo_line_to(cr,x+w,y+h-r);                  /-# Move to D
+        cairo_curve_to(cr,x+w,y+h,x+w,y+h,x+w-r,y+h); /-# Curve to E
+        cairo_line_to(cr,x+r,y+h);                    /-# Line to F
+        cairo_curve_to(cr,x,y+h,x,y+h,x,y+h-r);       /-# Curve to G
+        cairo_line_to(cr,x,y+r);                      /-# Line to H
+        cairo_curve_to(cr,x,y,x,y,x+r,y);             /-# Curve to A;
     } %>
 
     me INK_Image[map string]: InkImgCache
@@ -179,7 +179,7 @@ struct timeStringer{
 cairo_restore(cr);
     } %>
 
-// GUI INTERFACE:
+/- GUI INTERFACE:
 
 /* Surface to store current scribbles */
 their cairo_surface_t: surface <- 0
@@ -196,7 +196,7 @@ me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <
     GtkWidget *menuitem;
 
     menuitem = gtk_menu_item_new_with_label (label.data());
-    //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
+    /-gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
     gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
     gtk_widget_show (menuitem);
 
@@ -260,7 +260,7 @@ me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: c
           topBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
           gtk_container_add (GTK_CONTAINER (window), topBox);
           gtk_widget_show (topBox);
-          ////////////////////  A d d  A p p l i c a t i o n   M e n u
+          /-//////////////////  A d d  A p p l i c a t i o n   M e n u
 
       GtkWidget *boxForMenubar;
       GtkWidget *menubar;
@@ -276,7 +276,7 @@ me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: c
 
       appFuncs.createAppMenu(menubar);
 
-          ////////////////////  A d d   A p p l i c a t i o n   I t e m s
+          /-///////////////////  A d d   A p p l i c a t i o n   I t e m s
 
       GtkWidget *frame;
       GtkWidget *appArea;
@@ -286,10 +286,10 @@ me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: c
       gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
 
       appFuncs.createAppArea(frame);
-     // gtk_container_add (GTK_CONTAINER (frame), appArea);
+     /- gtk_container_add (GTK_CONTAINER (frame), appArea);
 
 
-          ////////////////////  A d d  S t a t u s   A r e a
+          /-///////////////////  A d d  S t a t u s   A r e a
 
 
 

@@ -45,6 +45,7 @@ value = Forward()
 listVal = "[" + delimitedList(expr, ",") + "]"
 strMapVal = "{" + delimitedList( quotedString() + ":" + expr, ",")  + "}"
 value <<= (boolValue | floatNum | intNum | quotedString() | listVal | strMapVal)("value")
+comment = Literal(r'//').suppress() + restOfLine('comment')
 
 #######################################   E X P R E S S I O N S
 parameters = Forward()
@@ -90,7 +91,7 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action = Group(assign("assign") | funcCall("funcCall") | fieldDef('fieldDef'))
+action = Group((assign("assign") | funcCall("funcCall") | fieldDef('fieldDef')) + Optional(comment))
 actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
@@ -121,7 +122,7 @@ alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Option
 anonModel = (sequenceEl | alternateEl) ("anonModel")
 owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("itr"))
 fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | Group(anonModel))('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
-fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
+fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")+Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
 doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
@@ -134,6 +135,7 @@ progSpecParser = (Optional(buildSpecList) + tagDefList + objectList)("progSpecPa
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
     try:
+        #print "#########################################\n", inputStr, "\n#########################################\n"
         localResults = progSpecParser.parseString(inputStr, parseAll = True)
 
     except ParseException , pe:
@@ -243,7 +245,10 @@ def packFieldDef(fieldResult, ObjectName, indent):
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
-        if(len(fieldResult)>1 and fieldResult[1]=='[opt]'): arraySpec={'datastructID': 'opt'}
+        if(len(fieldResult)>1 and fieldResult[1]=='[opt]'):
+            arraySpec={'datastructID': 'opt'};
+            if(len(fieldResult)>3 and fieldResult[3]!=''):
+                fieldName=fieldResult[3]
         givenValue=fieldResult.constStr[1:-1]
         fieldDef=progSpec.packField(True, 'const', 'string', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.constNum):
@@ -489,7 +494,7 @@ def extractMacroDefs(macroDefMap, inputString):
 def isCID(ch):
     return (ch.isalnum() or ch=='_')
 
-def BlowPOP(replacement):
+def BlowPOPMacro(replacement):
     updatedStr = ""
     scanMode='identifier'
     for ch in replacement:
@@ -505,6 +510,9 @@ def BlowPOP(replacement):
                 scanMode='identifier'
     if scanMode=='filler': updatedStr+='" '
     return updatedStr
+
+def deSlashMacro(replacement):
+    return replacement.replace('/', '_')
 
 def findMacroEnd(inputString, StartPosOfParens):
     nestLvl=0
@@ -522,6 +530,7 @@ def findMacroEnd(inputString, StartPosOfParens):
 def doMacroSubstitutions(macros, inputString):
    # print "\n\nMACRO-MAP:", macros
     macros['BlowPOP'] = {'ArgList':['dummyArg'],  'Body':'dummyArg'}
+    macros['DESLASH'] = {'ArgList':['dummyArg'],  'Body':'dummyArg'}
     subsWereMade=True
     while(subsWereMade ==True):
         subsWereMade=False
@@ -545,11 +554,12 @@ def doMacroSubstitutions(macros, inputString):
                    # print "   SUBS:", arg, ', ', params[idx], ', ', thisMacro
                     replacement=params[idx]
                     if thisMacro=='BlowPOP':
-                        replacement=BlowPOP(replacement)
-
+                        replacement=BlowPOPMacro(replacement)
+                    elif thisMacro=='DESLASH':
+                        replacement=deSlashMacro(replacement)
                     newText=newText.replace(arg, replacement)
                     idx+=1
-             #   print "     NEW TEXT:", newText
+                #print "     NEW TEXT:", newText
                 newString += inputString[currentPos:match.start()+len(match.group(1))]+ newText
                 currentPos=EndPos
                 subsWereMade=True
@@ -583,7 +593,7 @@ def comment_remover(text):
         else:
             return s
     pattern = re.compile(
-        r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
+        r'/-.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
         re.DOTALL | re.MULTILINE
     )
     return re.sub(pattern, replacer, text)

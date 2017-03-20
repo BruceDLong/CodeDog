@@ -11,10 +11,10 @@ def setResultCode():
 
     testMacros = r'''
 #define BAIL() <% return()%>
-#define FAIL(text) <%{T_TEST_BUFF <- T_TEST_BUFF + text+"\n" Tstat<-"F" BAIL()}%>     // Print the text, mark the test failed, end its execution.
-#define CAPTURE(expr) <%{INFO("expr = " + expr)}%>                                 // Show the expression with INFO
-#define REQUIRE(expr) <%{if(!(expr)) {FAIL("The requirement 'expr' failed: " + BlowPOP(expr) )}}%>                     // If the expression fails, show its value with FAIL().
-#define CHECK(expr)   <%{if(!(expr)) {CHK_FAIL("expr = " + expr)}}%>                 // If the expression fails, show its value with CHK_FAIL().
+#define FAIL(text) <%{T_TEST_BUFF <- T_TEST_BUFF + text+"\n" Tstat<-"F" BAIL()}%>     /- Print the text, mark the test failed, end its execution.
+#define CAPTURE(expr) <%{INFO("expr = " + expr)}%>                                 /- Show the expression with INFO
+#define REQUIRE(expr) <%{if(!(expr)) {FAIL("The requirement 'expr' failed: " + BlowPOP(expr) )}}%>                     /- If the expression fails, show its value with FAIL().
+#define CHECK(expr)   <%{if(!(expr)) {CHK_FAIL("expr = " + expr)}}%>                 /- If the expression fails, show its value with CHK_FAIL().
     '''
 
     testResultUtilities = r'''
@@ -26,9 +26,9 @@ def setResultCode():
         me string: T_TEST_BUFF <- ""
         me string: Tstat <- ""
 
-        void: INFO(me string: text) <- {T_TEST_BUFF <- T_TEST_BUFF + text+"\n"}                               // Buffer text and print it if the test fails.
-        void: WARN(me string: text) <- {T_TEST_BUFF <- T_TEST_BUFF + text+"\n" if(Tstat=="."){Tstat<-"W"}}    // Print text even if the test does not fail.
-        void: CHK_FAIL(me string: text) <- {Tstat<-"F"  T_TEST_BUFF <- T_TEST_BUFF + text+"\n" }              // Print the text, mark the test failed, do not end its execution.
+        void: INFO(me string: text) <- {T_TEST_BUFF <- T_TEST_BUFF + text+"\n"}                               /- Buffer text and print it if the test fails.
+        void: WARN(me string: text) <- {T_TEST_BUFF <- T_TEST_BUFF + text+"\n" if(Tstat=="."){Tstat<-"W"}}    /- Print text even if the test does not fail.
+        void: CHK_FAIL(me string: text) <- {Tstat<-"F"  T_TEST_BUFF <- T_TEST_BUFF + text+"\n" }              /- Print the text, mark the test failed, do not end its execution.
 
     }
     '''
@@ -51,15 +51,15 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             Tstat <- "."
             T_total <- T_total+1
             T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
-            // clear failFlag and mesg_buff; setTimer
+            /- clear failFlag and mesg_buff; setTimer
             <TEST-CASES-HERE>
             else {Tstat <- "?"}
-            // readTimer()
-            // fetch and return results
+            /- readTimer()
+            /- fetch and return results
             print(Tstat)
+            if(Tstat=="?"){T_TEST_BUFF <- T_TEST_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
             if(Tstat!=".") {
                 if(Tstat=="F" or Tstat=="?"){T_NUM_FAILS<-T_NUM_FAILS+1}
-                else if(Tstat=="?"){T_TEST_BUFF <- T_TEST_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
                 T_MESG_BUFF <- T_MESG_BUFF + T_TEST_BUFF
             }
         }
@@ -72,29 +72,29 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
                     if (!CrashProof){
                         RUN_TEST(test)
                     } else {
-     //                   ExecSelf with timer and fetch result
+     /-                   ExecSelf with timer and fetch result
                     }
-     //               StoreResults()
+     /-               StoreResults()
                 }
             }
             if(T_NUM_FAILS==0){print(" PASSED")}
             else{print(" DONE")}
-            WriteTestingReport() // to screen and file for knowing failures. if --HTML, do html. Options allow field selection
+            WriteTestingReport() /- to screen and file for knowing failures. if --HTML, do html. Options allow field selection
 
         }
 
         void: RUN_SELECTED_TESTS() <- {
-            // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
+            /- Construct list of tests to run. /- All Tests | -t <testSPec List> | -f = run failed tests
             CommandLineManager.defineOption("TestDog", "ListOfTests", "-t", "--tests", "Specification of which tests to run.")
             me string: testListSpec <- CommandLineManager.getOption("TestDog", "ListOfTests")
-            //print("TEST LIST SPECIFICATION:'", testListSpec, "'\n")
+            /-print("TEST LIST SPECIFICATION:'", testListSpec, "'\n")
             me string[list]: testList <- [<TEST-LIST-HERE>]
             if(testListSpec==""){testToRun <- testList}
             else {
-                // TODO: make test selection work with multiple tests and wildcards.
+                /- TODO: make test selection work with multiple tests and wildcards.
                 testToRun.pushLast(testListSpec)
             }
-            // Sort list as needed
+            /- Sort list as needed
             EXEC_TESTS()
         }
     }

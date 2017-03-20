@@ -542,7 +542,7 @@ def codeAction(action, indent, xlator):
                 LHS_Left=LHS[0:divPoint+1] # The '+1' makes this get the connector too. e.g. '.' or '->'
                 bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask, xlator)
-                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS)
+                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
                 actionText=indent + setBits
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
             elif LHS_FieldType=='mode':
@@ -550,7 +550,7 @@ def codeAction(action, indent, xlator):
                 LHS_Left=LHS[0:divPoint+1]
                 bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask+"Mask", xlator)
-                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS)
+                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
                 actionText=indent + setBits
             else:
                 if AltIDXFormat!=None:
@@ -951,27 +951,28 @@ def codeStructureCommands(objects, tags, xlator):
     for command in progSpec.ModifierCommands:
         if (command[3] == 'addImplements'):
             calledFuncName = command[1]
-            calledFuncInstances = progSpec.funcsCalled[calledFuncName]
-            print '     addImplements:'
-            #print '          calledFuncName:', calledFuncName
-            for funcCalledParams in calledFuncInstances:
-                #print '\n funcCalledParams:',funcCalledParams
-                paramList = funcCalledParams[0]
-                commandArgs = command[2]
-                if paramList != None:
-                    count=1
-                    for P in paramList:
-                        oldTextTag='%'+str(count)
-                        [newText, argType]=xlator['codeExpr'](P[0], xlator)
-                        commandArgs=commandArgs.replace(oldTextTag, newText)
-                        count+=1
-                    #print commandArgs
-                firstColonPos=commandArgs.find(':')
-                secondColonPos=commandArgs.find(':', firstColonPos+1)
-                interfaceImplemented=commandArgs[:firstColonPos]
-                classToModify=commandArgs[secondColonPos+1:]
-                structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented, progSpec.MarkItems]
-                print "          impl: ", structsNeedingModification[classToModify]
+            if calledFuncName in progSpec.funcsCalled:
+                calledFuncInstances = progSpec.funcsCalled[calledFuncName]
+                print '     addImplements:'
+                #print '          calledFuncName:', calledFuncName
+                for funcCalledParams in calledFuncInstances:
+                    #print '\n funcCalledParams:',funcCalledParams
+                    paramList = funcCalledParams[0]
+                    commandArgs = command[2]
+                    if paramList != None:
+                        count=1
+                        for P in paramList:
+                            oldTextTag='%'+str(count)
+                            [newText, argType]=xlator['codeExpr'](P[0], xlator)
+                            commandArgs=commandArgs.replace(oldTextTag, newText)
+                            count+=1
+                        #print commandArgs
+                    firstColonPos=commandArgs.find(':')
+                    secondColonPos=commandArgs.find(':', firstColonPos+1)
+                    interfaceImplemented=commandArgs[:firstColonPos]
+                    classToModify=commandArgs[secondColonPos+1:]
+                    structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented, progSpec.MarkItems]
+                    print "          impl: ", structsNeedingModification[classToModify]
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
@@ -1046,14 +1047,14 @@ struct GLOBAL{
             if (logMode == "FATAL ERROR: "){exit(-1)}
     }
 
-    // LOGGING INTERFACE:
+    /- LOGGING INTERFACE:
     me void: logMesg(me string: s) <- <%!logPrint("MESSAGE: ", %1)%>
     me void: logInfo(me string: s) <- <%!logPrint("", %1)%>
     me void: logCriticalIssue(me string: s) <- <%!logPrint("CRITICAL ERROR: ", %1)%>
     me void: logFatalError(me string: s) <- <%!logPrint("FATAL ERROR: ", %1)%>
     me void: logWarning(me string: s) <- <%!logPrint("WARNING: ", %1)%>
     me void: logDebug(me string: s) <- <%!logPrint("DEBUG: ", %1)%>
-    //me void: assert(condition) <- {}
+    /-me void: assert(condition) <- {}
     }"""
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 

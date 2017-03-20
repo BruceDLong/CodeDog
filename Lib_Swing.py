@@ -32,7 +32,7 @@ struct CustomMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="s
     me void: mousePressed(me MouseEvent: e)<-     {
         me float: eventX <- e.getX()
         me float: eventY <- e.getY()
-        //GLOBAL.static_Global.appFuncs.gui.pointerDown(GLOBAL.static_Global.drawing_area, eventX, eventY)
+        /-GLOBAL.static_Global.appFuncs.gui.pointerDown(GLOBAL.static_Global.drawing_area, eventX, eventY)
     }
     me void: mouseReleased(me MouseEvent: e)<-     {
         me float: eventX <- e.getX()
@@ -130,7 +130,7 @@ struct timeStringer{
         Calendar timeRec = Calendar.getInstance();
         String AmPm = "am";
         int hours = timeRec.get(Calendar.HOUR);
-        //if (hours>=12) {hours = hours-12; AmPm="pm";}
+        /-if (hours>=12) {hours = hours-12; AmPm="pm";}
         if (timeRec.get(Calendar.AM_PM)==Calendar.PM){AmPm="pm";}
         if (hours==0) {hours = 12;}
         String SH = (Integer.toString(hours)+":");
@@ -153,7 +153,7 @@ struct GLOBAL{
 
     me thisApp: appFuncs
 
-    // DRAWING ROUTINES:
+    /- DRAWING ROUTINES:
 
     me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         cr.gr.setFont(new Font(fontName, Font.PLAIN, (int)(fontSize*1.4)));
@@ -176,13 +176,13 @@ struct GLOBAL{
     } %>
 
     me void: close_window() <- {
-         // gtk_main_quit()
+         /- gtk_main_quit()
     }
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.repaint(%2, %3, %4, %5)%>
     me long: ticksPerSec() <- <%!%G1000%>
     me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
-        //TODO finish this if need to package swing build
-    }%>    
+        /-TODO finish this if need to package swing build
+    }%>
     me string: getFilesDirAsString()<- <%{
         String s = Paths.get(".").toAbsolutePath().normalize().toString();
         System.out.println("Current relative path is: " + s);

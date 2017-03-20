@@ -34,7 +34,7 @@ def apply(objects, tags):
             me stringScanner: scanner
             me string: argToReturn <- ""
             scanner.init(cmdLineText)
-            // Find optionRecord
+            /- Find optionRecord
             me int: recIdx <- -1
             withEach optRec in options:{
                 if(optRec.optionID==optionID){
@@ -72,12 +72,12 @@ def apply(objects, tags):
             cmdLineText <- prgArgs
             me uint32: txtSize <- cmdLineText.size()
 
-    // TODO: make this handle multiple options of each kind e.g., as with a compiler having multiple link options.
-    //          ALSO: add features from posix's or java's command line style
-    //        me char: ch
-    //        withEach p in RANGE(0 .. txtSize):{
-    //            ch <- cmdLineText[p]
-    //        }
+    /- TODO: make this handle multiple options of each kind e.g., as with a compiler having multiple link options.
+    /-          ALSO: add features from posix's or java's command line style
+    /-        me char: ch
+    /-        withEach p in RANGE(0 .. txtSize):{
+    /-            ch <- cmdLineText[p]
+    /-        }
         }
     }
 

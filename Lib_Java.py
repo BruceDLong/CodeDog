@@ -6,9 +6,9 @@ import codeDogParser
 #TODO: make conversion for rand to GLOBAL.getRandInt & main return(0)
 def createUtilityFunctions():
     S="""
-        me x: endFunc(me int: val) <- <%!%G %>
-        me x: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
-        me x: print(me string: s)<- <%!%GSystem.out(%1)%>
+        me void: endFunc(me int: val) <- <%!%G %>
+        me int: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
+        me void: print(me string: s)<- <%!%GSystem.out(%1)%>
         me void: exit(me int: val) <- <%!%GSystem.exit(%1)%>
         me bool: isdigit(me char: ch) <- <%!%GCharacter.isDigit(%1)%>
         me bool: isalpha(me char: ch) <- <%!%GCharacter.isLetter(%1)%>
@@ -65,7 +65,7 @@ def use(objects, buildSpec, tags, platform):
                 return false;
 
             }%>
-            // LOGGING INTERFACE:
+            /- LOGGING INTERFACE:
 """ + (APP_UTILITY_CODE) + """
         }
 """

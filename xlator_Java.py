@@ -109,7 +109,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
     elif name == "subStr":
-        typeSpecOut['codeConverter']='subStr(%0, %1, %2)'
+        typeSpec['codeConverter']='subStr(%0, %1, %2)'
 
     return [name, typeSpec]
 
@@ -413,8 +413,8 @@ def codeMain(objects, tags, xlator):
     return ["", ""]
 
 def codeArgText(argFieldName, argType, xlator):
-    return argType + " " +argFieldName  
-    
+    return argType + " " +argFieldName
+
 def codeActTextMain(actSeq, indent, xlator):
     actSeqText = "{\n"
     for action in actSeq:
@@ -422,7 +422,7 @@ def codeActTextMain(actSeq, indent, xlator):
         actSeqText += actionText
     actSeqText += indent + "}"
     return actSeqText
-    
+
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         if parentClass[0]=="!": parentClass=' implements '+parentClass[1:]+' '
@@ -591,13 +591,11 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
         structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")"
     return [structCode, funcDefCode, globalFuncs]
 
-def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):
-    if (RHS == 'true'):RHS= '1'
-    elif (RHS == 'false'):RHS= '0'
+def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
         item = LHS_Left+"flags"
         mask = prefix+bitMask
-        val = RHS
+        val = '('+ RHS +')?'+mask+':0'
     elif (LHS_FieldType =='mode' ):
         item = LHS_Left+"flags"
         mask = prefix+bitMask+"Mask"
