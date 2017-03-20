@@ -640,6 +640,13 @@ def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags,
     S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText
     return S
 
+def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
+    return "    init " + constructorArgs+"){"+constructorInit+"\n    }\n"
+
+def codeConstructorInit(fieldName, xlator):
+    return "\n        self." + fieldName +" = _"+fieldName 
+    
+
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
@@ -677,10 +684,10 @@ def generateMainFunctionality(objects, tags):
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     mainFuncCode="""
     me void: main() <- {
-        //initialize()
+        /-initialize()
         """ + runCode + """
-        //deinitialize()
-        //endFunc()
+        /-deinitialize()
+        /-endFunc()
     }
 
 """
@@ -699,7 +706,7 @@ def fetchXlators():
     xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
     xlators['ObjConnector']     = "::"                      # Name segment connector for classes.
     xlators['doesLangHaveGlobals'] = "True"
-    xlators['funcBodyIndent']   = ""
+    xlators['funcBodyIndent']   = "    "
     xlators['funcsDefInClass']  = "True"
     xlators['MakeConstructors'] = "True"
     xlators['codeExpr']                     = codeExpr
@@ -735,5 +742,6 @@ def fetchXlators():
     xlators['codeArgText']                  = codeArgText
     xlators['codeActTextMain']              = codeActTextMain
     xlators['recodeStringFunctions']        = recodeStringFunctions
-
+    xlators['codeConstructionHeader']       = codeConstructionHeader
+    xlators['codeConstructorInit']          = codeConstructorInit
     return(xlators)

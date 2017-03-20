@@ -168,7 +168,7 @@ def codeFlagAndModeFields(objects, objectName, tags, xlator):
             else:fieldNamesAlreadyUsed[fieldName]=objectName
             if fieldType=='flag':
                 print "                        flag: ", fieldName
-                structEnums += xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
+                structEnums += "    " + xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
                 StaticMemberVars[fieldName]  =objectName
                 bitCursor += 1;
             elif fieldType=='mode':
@@ -340,6 +340,7 @@ def codeUnknownNameSeg(segSpec, xlator):
     paramList=None
     segName=segSpec[0]
     #print "SEGNAME:", segName
+    # TODO: code Swift name segment conversion 
     S += '.'+ segName
     #S += '().'+ segName
     if len(segSpec) > 1 and segSpec[1]=='(':
@@ -702,8 +703,10 @@ def codeConstructor(objects, ClassName, tags, xlator):
     if(baseType!=None): return ''
     if not ClassName in objects[0]: return ''
     print "                    Generating Constructor for:", ClassName
+    ClassName = progSpec.flattenObjectName(ClassName)
     constructorInit=":"
-    constructorArgs="    "+progSpec.flattenObjectName(ClassName)+"("
+    #constructorInit="    "
+    constructorArgs=""
     count=0
     ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
@@ -726,17 +729,19 @@ def codeConstructor(objects, ClassName, tags, xlator):
                 count += 1
         elif (isinstance(fieldType, basestring)):
             if(fieldType[0:3]=="int" or fieldType[0:4]=="uint"):
-                constructorArgs += convertedType+" _"+fieldName+"=0,"
-                constructorInit += fieldName+"("+" _"+fieldName+"),"
+                constructorArgs += xlator['codeArgText'](" _"+fieldName, convertedType, xlator) +"=0,"
+                constructorInit += xlator['codeConstructorInit'](fieldName, xlator)
+                #constructorInit += fieldName+"("+" _"+fieldName+"),"
                 count += 1
             elif(fieldType=="string"):
-                constructorArgs += convertedType+" _"+fieldName+'="",'
-                constructorInit += fieldName+"("+" _"+fieldName+"),"
+                constructorArgs += xlator['codeArgText'](" _"+fieldName, convertedType, xlator) +'="",'
+                constructorInit += xlator['codeConstructorInit'](fieldName, xlator) 
                 count += 1
     if(count>0):
         constructorInit=constructorInit[0:-1]
         constructorArgs=constructorArgs[0:-1]
-        constructCode = constructorArgs+")"+constructorInit+"{};\n"
+        constructCode = "    "+xlator['codeConstructionHeader'](ClassName, constructorArgs, constructorInit, xlator)
+        #constructCode = constructorArgs+")"+constructorInit+"{};\n"
     else: constructCode=''
     return constructCode
 
@@ -852,7 +857,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     funcText=verbatimText
             # No verbatim found so generate function text from action sequence
             elif field['value'][0]!='':
-                funcText = funcBodyIndent + codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
+                funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
                 if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
             else:
                 print "ERROR: In codeFields: no funcText or funcTextVerbatim found"

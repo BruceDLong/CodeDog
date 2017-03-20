@@ -674,6 +674,12 @@ def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags,
     S=indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
     return S
 
+def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
+    return ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
+
+def codeConstructorInit(fieldName, xlator):
+    return fieldName+"("+" _"+fieldName+"),"
+
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
@@ -771,5 +777,7 @@ def fetchXlators():
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
     xlators['codeActTextMain']              = codeActTextMain
+    xlators['codeConstructionHeader']       = codeConstructionHeader
+    xlators['codeConstructorInit']          = codeConstructorInit
 
     return(xlators)

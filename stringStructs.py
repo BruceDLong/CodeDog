@@ -136,7 +136,7 @@ struct EParser{
     }
 
     void: dump() <- {
-         withEach crntPos in RANGE(0 .. SSets.size()):{
+/*         withEach crntPos in RANGE(0 .. SSets.size()):{
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
             if(crntPos+1 != SSets.size()) {
@@ -152,6 +152,7 @@ struct EParser{
         }
         if(parseFound){print("\nPARSE PASSED!\n\n")}
         else {print("\nPARSE failed.\n\n")}
+*/
     }
 
 #CONST_CODE_HERE
