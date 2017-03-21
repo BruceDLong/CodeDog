@@ -550,11 +550,19 @@ def codeAction(action, indent, xlator):
                 actionText=indent + setBits
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
             elif LHS_FieldType=='mode':
+                print "LHS: ", LHS
                 divPoint=startPointOfNamesLastSegment(LHS)
-                LHS_Left=LHS[0:divPoint+1]
-                bitMask =LHS[divPoint+1:]
+                if (divPoint == 0):
+                    LHS_Left=""
+                    bitMask =LHS
+                else:
+                    LHS_Left=LHS[0:divPoint+1]
+                    bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask+"Mask", xlator)
+                print "LHS_Left: ", LHS_Left
+                print "bitMask: ", bitMask
                 setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
+                print "setBits mode: ", setBits
                 actionText=indent + setBits
             else:
                 if AltIDXFormat!=None:
