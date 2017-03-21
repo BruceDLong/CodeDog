@@ -740,18 +740,18 @@ def populateBaseRules():
         definedRules[pair[0]]=pair[1]
 
     # Define common string formats
-    appendRule('alphaSeq',  'term', 'parseAUTO', "an alphabetic string")
-    appendRule('uintSeq',   'term', 'parseAUTO', 'an unsigned integer')
-    appendRule('intSeq',    'term', 'parseAUTO', 'an integer')
-    appendRule('RdxSeq',    'term', 'parseAUTO', 'a number')
-    appendRule('alphaNumSeq',  'term', 'parseAUTO', "an alpha-numeric string")
-    appendRule('ws',        'term', 'parseAUTO', 'white space')
-    appendRule('quotedStr1','term', 'parseAUTO', "a single quoted string with escapes")
-    appendRule('quotedStr2','term', 'parseAUTO', "a double quoted string with escapes")
-    appendRule('CID',       'term', 'parseAUTO', 'a C-like identifier')
-    appendRule('UniID',     'term', 'parseAUTO', 'a unicode identifier for the current locale')
-    appendRule('printables','term', 'parseAUTO', "a seqence of printable chars")
-    appendRule('toEOL',     'term', 'parseAUTO', "to read chars to End Of Line, including EOL.")
+    appendRule('alphaSeq',    'term', 'parseAUTO', "an alphabetic string")
+    appendRule('uintSeq',     'term', 'parseAUTO', 'an unsigned integer')
+    appendRule('intSeq',      'term', 'parseAUTO', 'an integer')
+    appendRule('RdxSeq',      'term', 'parseAUTO', 'a number')
+    appendRule('alphaNumSeq', 'term', 'parseAUTO', "an alpha-numeric string")
+    appendRule('ws',          'term', 'parseAUTO', 'white space')
+    appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
+    appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
+    appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
+    appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier for the current locale')
+    appendRule('printables',  'term', 'parseAUTO', "a seqence of printable chars")
+    appendRule('toEOL',       'term', 'parseAUTO', "to read chars to End Of Line, including EOL.")
     # TODO: delimited List, keyWord
 
 
@@ -906,7 +906,7 @@ def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuf
     loopVarName = "ruleIDX"+str(level)
     S+='        me int32: '+loopVarName+' <- '+VarTag+'.child.productionID\n'
 
-    print "RULEIDX:", indent, parentStructName, VarName
+    #print "RULEIDX:", indent, parentStructName, VarName
     if VarName!='memStruct':
         S+=indent + 'me string: '+VarName+'\n'
     count=0
@@ -1046,8 +1046,8 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
 
 
     if fieldOwner=='const'and (toField == None):
-        finalCodeStr += indent + 'tmpStr'+' <- makeStr('+VarTag+"<LVL_SUFFIX>"+'.child)\n'
         #print'CONSTFIELDVALUE("'+fieldValue+'")\n'
+        finalCodeStr += indent + 'tmpStr'+' <- makeStr('+VarTag+"<LVL_SUFFIX>"+'.child)\n'
 
     else:
         if toIsStruct:
@@ -1082,21 +1082,21 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
     ###################   H a n d l e   o p t i o n a l   a n d   r e p e t i t i o n   a n d   a s s i g n m e n t   c a s e s
     gatherFieldCode=''
     if fromIsList and toIsList:
-        CODE_RVAL='tmpStr'
+        CODE_RVAL='tmpVar'
         globalFieldCount +=1
         childRecName='SRec' + str(globalFieldCount)
         gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next'
         gatherFieldCode+='\n'+indent+'withEach Cnt in WHILE('+childRecName+'):{\n'
         if fromIsALT:
             print "ALT-#1"
-            gatherFieldCode+=Write_ALT_Extracter(objects, fieldType[0], fields, childRecName, '', 'tmpStr', indent+'    ', level)
+            gatherFieldCode+=Write_ALT_Extracter(objects, fieldType[0], fields, childRecName, '', 'tmpVar', indent+'    ', level)
 
         elif fromIsStruct and toIsStruct:
             print "toFieldType:", toFieldOwner, ">>>", toFieldType
-            gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpStr'
+            gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpVar'
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
-            gatherFieldCode+='\n'+indent+'Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+childRecName+'.child, tmpStr)\n'
+            gatherFieldCode+='\n'+indent+'Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+childRecName+'.child, tmpVar)\n'
 
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, '')
@@ -1194,6 +1194,7 @@ extracterFunctionAccumulator = ""
 alreadyWrittenFunctions={}
 
 def Write_structExtracter(objects, ToStructName, fields, nameForFunc):
+    print ToStructName, nameForFunc
     [memObj, memVersionName]=fetchMemVersion(objects, ToStructName)
     memObjFields=memObj['fields']
     S='    me string: tmpStr\n'
