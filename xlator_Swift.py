@@ -16,8 +16,10 @@ def getContainerType(typeSpec):
 def adjustBaseTypes(fieldType):
     if(isinstance(fieldType, basestring)):
         #print"adjustBaseTypes:basestring",fieldType
-        if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='int32'): fieldType='Uint32'
+        if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='uint32'): fieldType='UInt32'
         elif(fieldType=='int8' or fieldType=='int16' or fieldType=='int32'): fieldType='Int32'
+        elif(fieldType=='uint64'):fieldType='UInt64'
+        elif(fieldType=='int64'):fieldType='Int64'
         elif(fieldType=='int'):fieldType='Int'
         elif(fieldType=='bool'):fieldType='Bool'
         elif(fieldType=='void'):fieldType='Void'
@@ -278,7 +280,7 @@ def codeFactor(item, xlator):
             tmp+="}"
             S+=tmp
         else:
-            print "item", item
+            #print "item", item
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
@@ -484,7 +486,7 @@ def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
     S= "\nclass "+structName+parentClass+"{\n" + structCode + '};\n'
-    forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
+    forwardDecls=""
     return([S,forwardDecls])
 
 def produceTypeDefs(typeDefMap, xlator):
@@ -634,6 +636,7 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
     return fieldValueText
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
+    convertedType = adjustBaseTypes(convertedType)
     S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText
     return S
 
@@ -645,10 +648,9 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            structCode += "func " + fieldName +"("+argListText+") -> " + typeDefName + "\n"
+            structCode +="func " + fieldName +"("+argListText+") -> " + typeDefName 
     else:
-        structCode += indent + typeDefName +' ' + fieldName +"("+argListText+")\n"
-        funcDefCode += "func " + fieldName +"("+argListText+") -> " + typeDefName
+        structCode += indent + "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val):
@@ -674,7 +676,7 @@ def generateMainFunctionality(objects, tags):
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     mainFuncCode="""
-    me int32: main(me int32: argc, me int32: argv ) <- {
+    me void: main() <- {
         //initialize()
         """ + runCode + """
         //deinitialize()
