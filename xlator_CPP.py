@@ -677,8 +677,15 @@ def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags,
 def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
     return ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
 
-def codeConstructorInit(fieldName, xlator):
-    return fieldName+"("+" _"+fieldName+"),"
+def codeConstructorInit(fieldName, count, xlator):
+    if (count > 0):
+        return "," + fieldName+"("+" _"+fieldName+")"
+    elif(count == 0):
+        return ":" + fieldName+"("+" _"+fieldName+")"
+    else:
+        print "Error in codeConstructorInit."
+        exit(2)
+
 
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
@@ -733,17 +740,19 @@ def generateMainFunctionality(objects, tags):
 def fetchXlators():
     xlators = {}
 
-    xlators['LanguageName']        = "C++"
-    xlators['BuildStrPrefix']      = "g++ -g -std=gnu++14  "
-    xlators['fileExtension']       = ".cpp"
-    xlators['typeForCounterInt']   = "int64_t"
-    xlators['GlobalVarPrefix']     = ""
-    xlators['PtrConnector']        = "->"                      # Name segment connector for pointers.
-    xlators['ObjConnector']        = "::"                      # Name segment connector for classes.
-    xlators['doesLangHaveGlobals'] = "True"
-    xlators['funcBodyIndent']      = ""
-    xlators['funcsDefInClass']     = "False"
-    xlators['MakeConstructors']    = "True"
+    xlators['LanguageName']         = "C++"
+    xlators['BuildStrPrefix']       = "g++ -g -std=gnu++14  "
+    xlators['fileExtension']        = ".cpp"
+    xlators['typeForCounterInt']    = "int64_t"
+    xlators['GlobalVarPrefix']      = ""
+    xlators['PtrConnector']         = "->"                      # Name segment connector for pointers.
+    xlators['ObjConnector']         = "::"                      # Name segment connector for classes.
+    xlators['NameSegConnector']     = "." 
+    xlators['NameSegFuncConnector'] = "." 
+    xlators['doesLangHaveGlobals']  = "True"
+    xlators['funcBodyIndent']       = ""
+    xlators['funcsDefInClass']      = "False"
+    xlators['MakeConstructors']     = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective

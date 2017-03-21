@@ -561,7 +561,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
                 if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
 
-    varDeclareStr= fieldType + " " + varName + assignValue
+    varDeclareStr= "var " + varName + ":"+ fieldType + assignValue
     return(varDeclareStr)
 
 def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
@@ -641,10 +641,16 @@ def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags,
     return S
 
 def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
-    return "    init " + constructorArgs+"){"+constructorInit+"\n    }\n"
+    return "init (" + constructorArgs+"){"+constructorInit+"\n    }\n"
 
-def codeConstructorInit(fieldName, xlator):
-    return "\n        self." + fieldName +" = _"+fieldName 
+def codeConstructorInit(fieldName, count, xlator):
+    if (count > 0):
+        return "\n        self." + fieldName +" = _"+fieldName 
+    elif(count == 0):
+        return "\n        self." + fieldName +" = _"+fieldName 
+    else:
+        print "Error in codeConstructorInit."
+        exit(2)
     
 
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
@@ -698,17 +704,19 @@ def generateMainFunctionality(objects, tags):
 def fetchXlators():
     xlators = {}
 
-    xlators['LanguageName']     = "Swift"
-    xlators['BuildStrPrefix']   = ""
-    xlators['fileExtension']     = ".swift"
-    xlators['typeForCounterInt']= "Int64"
-    xlators['GlobalVarPrefix']  = ""
-    xlators['PtrConnector']     = "->"                      # Name segment connector for pointers.
-    xlators['ObjConnector']     = "::"                      # Name segment connector for classes.
-    xlators['doesLangHaveGlobals'] = "True"
-    xlators['funcBodyIndent']   = "    "
-    xlators['funcsDefInClass']  = "True"
-    xlators['MakeConstructors'] = "True"
+    xlators['LanguageName']         = "Swift"
+    xlators['BuildStrPrefix']       = ""
+    xlators['fileExtension']        = ".swift"
+    xlators['typeForCounterInt']    = "Int64"
+    xlators['GlobalVarPrefix']      = ""
+    xlators['PtrConnector']         = "->"                      # Name segment connector for pointers.
+    xlators['ObjConnector']         = "::"                      # Name segment connector for classes.
+    xlators['NameSegConnector']     = "." 
+    xlators['NameSegFuncConnector'] = "()." 
+    xlators['doesLangHaveGlobals']  = "True"
+    xlators['funcBodyIndent']       = "    "
+    xlators['funcsDefInClass']      = "True"
+    xlators['MakeConstructors']     = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective

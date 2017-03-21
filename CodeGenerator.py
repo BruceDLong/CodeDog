@@ -339,10 +339,13 @@ def codeUnknownNameSeg(segSpec, xlator):
     S=''
     paramList=None
     segName=segSpec[0]
+    segConnector = ''
     #print "SEGNAME:", segName
-    # TODO: code Swift name segment conversion 
-    S += '.'+ segName
-    #S += '().'+ segName
+    if(len(segSpec)>1):
+        segConnector = xlator['NameSegFuncConnector']
+    else:
+        segConnector = xlator['NameSegConnector']
+    S += segConnector + segName
     if len(segSpec) > 1 and segSpec[1]=='(':
         if(len(segSpec)==2):
             paramList=[]
@@ -704,8 +707,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
     if not ClassName in objects[0]: return ''
     print "                    Generating Constructor for:", ClassName
     ClassName = progSpec.flattenObjectName(ClassName)
-    constructorInit=":"
-    #constructorInit="    "
+    constructorInit=""
     constructorArgs=""
     count=0
     ObjectDef = objects[0][ClassName]
@@ -725,23 +727,20 @@ def codeConstructor(objects, ClassName, tags, xlator):
             if(fieldOwner != 'my'):
                 print "                > ", fieldOwner, convertedType, fieldName
                 constructorArgs += convertedType+" _"+fieldName+"=0,"
-                constructorInit += fieldName+"("+" _"+fieldName+"),"
+                constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator)
                 count += 1
         elif (isinstance(fieldType, basestring)):
             if(fieldType[0:3]=="int" or fieldType[0:4]=="uint"):
                 constructorArgs += xlator['codeArgText'](" _"+fieldName, convertedType, xlator) +"=0,"
-                constructorInit += xlator['codeConstructorInit'](fieldName, xlator)
-                #constructorInit += fieldName+"("+" _"+fieldName+"),"
+                constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator)
                 count += 1
             elif(fieldType=="string"):
                 constructorArgs += xlator['codeArgText'](" _"+fieldName, convertedType, xlator) +'="",'
-                constructorInit += xlator['codeConstructorInit'](fieldName, xlator) 
+                constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator) 
                 count += 1
     if(count>0):
-        constructorInit=constructorInit[0:-1]
         constructorArgs=constructorArgs[0:-1]
         constructCode = "    "+xlator['codeConstructionHeader'](ClassName, constructorArgs, constructorInit, xlator)
-        #constructCode = constructorArgs+")"+constructorInit+"{};\n"
     else: constructCode=''
     return constructCode
 
@@ -799,7 +798,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
 
         ################################################################
         elif(fieldArglist==None):
-            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
+            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0] + "\n"
 
         ################################################################
         else:
