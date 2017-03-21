@@ -579,6 +579,18 @@ def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags,
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
     return S
 
+def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
+    return ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
+
+def codeConstructorInit(fieldName, count, xlator):
+    if (count > 0):
+        return "," + fieldName+"("+" _"+fieldName+")"
+    elif(count == 0):
+        return ":" + fieldName+"("+" _"+fieldName+")"
+    else:
+        print "Error in codeConstructorInit."
+        exit(2)
+
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
@@ -644,6 +656,8 @@ def fetchXlators():
     xlators['GlobalVarPrefix']     = "GLOBAL.static_Global."
     xlators['PtrConnector']        = "."                      # Name segment connector for pointers.
     xlators['ObjConnector']        = "."                      # Name segment connector for classes.
+    xlators['NameSegConnector']     = "." 
+    xlators['NameSegFuncConnector'] = "." 
     xlators['doesLangHaveGlobals'] = "False"
     xlators['funcBodyIndent']      = "    "
     xlators['funcsDefInClass']     = "True"
@@ -681,5 +695,7 @@ def fetchXlators():
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
     xlators['codeActTextMain']              = codeActTextMain
+    xlators['codeConstructionHeader']       = codeConstructionHeader
+    xlators['codeConstructorInit']          = codeConstructorInit
 
     return(xlators)
