@@ -325,6 +325,7 @@ def flattenObjectName(objName):
 
 
 def stringFromFile(filename):
+    print "filename: ", filename
     f=open(filename)
     Str = f.read()
     f.close()

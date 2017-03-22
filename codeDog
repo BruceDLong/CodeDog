@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # CodeDog Program Maker
 
 import progSpec
@@ -35,6 +36,8 @@ import sys
 import errno
 import platform
 import copy
+from inspect import getsourcefile
+from os.path import abspath
 
 '''
 def writeFile(path, fileName, outStr, fileExtension):
@@ -53,7 +56,8 @@ def processIncludedFiles(fileString):
     return pattern.sub(replaceFileName, fileString)
 
 def replaceFileName(fileMatch):
-    includedStr = progSpec.stringFromFile(fileMatch.group(1))
+    dirname, filename = os.path.split(abspath(getsourcefile(lambda:0)))
+    includedStr = progSpec.stringFromFile(dirname +"/"+fileMatch.group(1))
     includedStr = processIncludedFiles(includedStr)
     return includedStr
 
@@ -208,6 +212,7 @@ def GenerateSystem(objects, buildSpecs, tags, macroDefs):
         libsToUse=ChooseLibs(objects, buildTags, tags)
         fileSpecs = GenerateProgram(objects, buildTags, tagsList, libsToUse)
         fileName = tagStore['FileName']
+        fileName = progSpec.fetchTagValue(tagsList, 'FileName')
         langGenTag = buildTags['Lang']
 
         #GenerateBuildSystem()###################################################
@@ -230,7 +235,7 @@ if(len(sys.argv) < 2):
     print "No Filename given.\n"
     exit(1)
 
-file_name = sys.argv[1]
+file_name = abspath(os.getcwd()) + "/" + sys.argv[1]
 codeDogStr = progSpec.stringFromFile(file_name)
 codeDogStr = processIncludedFiles(codeDogStr)
 

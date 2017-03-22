@@ -592,7 +592,7 @@ def codeConstructorInit(fieldName, count, xlator):
         exit(2)
 
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
-    structCode=''; funcDefCode=''; globalFuncs='';
+    structCode='\n'; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
         if fieldName=='main':
             structCode += indent + "public static void " + fieldName +" (String[] args)";
