@@ -1,7 +1,10 @@
 
 # ProgSpec manipulation routines
 
+import sys
 import re
+
+MaxLogLevelToShow = 2
 
 storeOfBaseTypesUsed={} # Registry of all types used
 
@@ -78,19 +81,18 @@ def addPattern(objSpecs, objectNameList, name, patternList):
     patternName='!'+name
     objectNameList.append(patternName)
     objSpecs[name]={'name':patternName, 'parameters':patternList}
-    print "ADDED PATTERN", name, patternName
 
 def addObject(objSpecs, objectNameList, name, stateType, configType):
     global MarkItems
     global MarkedObjects
     # Config type is [unknown | SEQ | ALT]
     if(name in objSpecs):
-        print "Note: The struct '", name, "' is being added but already exists."
+        cdlog(4, "Note: The struct '{}' is being added but already exists.".format(name))
         return
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], 'stateType':stateType, 'configType':configType}
     objectNameList.append(name)
     if MarkItems: MarkedObjects[name]=1
-    print "ADDED STRUCT: ", name
+    #print "ADDED STRUCT: ", name
 
 def addObjTags(objSpecs, objectName, objTags):
     startTags = {}
@@ -98,10 +100,10 @@ def addObjTags(objSpecs, objectName, objTags):
         startTags = objSpecs[objectName]['tags']
         # append tags here
         objSpecs[objectName]['tags'].update(objTags)
-        print "    APPENDED Tags to "+objectName+".\t"
+       # print "    APPENDED Tags to "+objectName+".\t"
     else:
         objSpecs[objectName]['tags']=objTags
-        print "    ADDED Tags to "+objectName+".\t"
+       # print "    ADDED Tags to "+objectName+".\t"
 
 def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems
@@ -111,7 +113,6 @@ def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
 def appendToFuncsCalled(funcName,funcParams):
     global MarkItems
     global funcsCalled
-    print  "     appendToFuncsCalled:", funcName
     if not(funcName in funcsCalled):
         funcsCalled[funcName]= []
     funcsCalled[funcName].append([funcParams, MarkItems])
@@ -133,7 +134,7 @@ def addField(objSpecs, objectName, packedField):
     global ModifierCommands
     thisName=packedField['fieldName']
     if(packedField['fieldName'] in objSpecs[objectName]["fields"]):
-        print "Note: The field '", objectName, '::', thisName, "' already exists. Not re-adding"
+        cdlog(4, "Note: The field '" + objectName + '::' + thisName + "' already exists. Not re-adding")
         return
     objSpecs[objectName]["fields"].append(packedField)
 
@@ -325,85 +326,44 @@ def flattenObjectName(objName):
 
 
 def stringFromFile(filename):
-    print "filename: ", filename
     f=open(filename)
     Str = f.read()
     f.close()
     return Str
 
-"""
-def getNameSegInfo(objMap, structName, fieldName):
-    structToSearch = objMap[structName]
-    #print fieldName
-    if not structToSearch: print "struct ", structName, " not found."; exit(2);
-    fieldListToSearch = structToSearch['fields']
-    if not fieldListToSearch: print "struct's fields ", structName, " not found."; exit(2);
-    for fieldRec in fieldListToSearch:
-        #print "fieldRec['fieldName']", fieldRec['fieldName']
-        if fieldRec['fieldName']==fieldName:
-            print "FOR ", structName, '::', fieldName, ", returning", fieldRec
-            return fieldRec
-    return None
+#############################################################  Logging functions
+lastLogMesgs=['','','','','','','','','','']
+highestLvl=0;
+noError=False
 
-def getFieldInfo(objMap, structName, fieldNameSegments):
-    # return [kind-of-last-element,  reference-string, type-of-last-element]
-    structKind=""
-    prevKind="xPtr"
-    structType=""
-    referenceStr=""
-    print "    Getting Field Info for:", structName, fieldNameSegments
-    for fieldName in fieldNameSegments:
-        print "    Segment:",structName,'::',fieldName;
-        REF=getNameSegInfo(objMap, structName, fieldName)
-        #print "REF: ", REF
-        if(REF):
-            #print "    REF:", REF
-            if 'kindOfField' in REF:
-                structKind=REF['kindOfField']
-                #print "structKind", structKind
-                if(prevKind[1:]=="Ptr"): joiner='->'
-                else: joiner= '.'
-                if (structKind=='flag'):
-                    referenceStr+=joiner+"flags"
-                elif structKind=='mode':
-                    referenceStr+=joiner+'flags'
-                elif structKind=='var':
-                    referenceStr+= joiner+fieldName
-                    structType=REF['fieldType'][1]
-                elif structKind=='iPtr' or structKind=='rPtr' or structKind=='sPtr' or structKind=='uPtr':
-                    referenceStr+= joiner+fieldName
-                    structType=REF['fieldType']
-                prevKind=structKind
-            structName=structType
-        else: print "Problem getting name seg info:", structName, fieldName; exit(1);
-    return [structKind, referenceStr, structType]
+def printAtLvl(lvl, mesg):
+    for i in range(0, lvl*5): sys.stdout.write( " ")
+    print mesg
 
-def getValueString(objMap, structName, valItem):
-    if isinstance(valItem, list):
-        return getFieldInfo(objMap, structName, valItem)
-    else:
-        return (["", valItem])
+def cdlog(lvl, mesg):
+    global MaxLogLevelToShow
+    global lastLogMesgs
+    global highestLvl
+    highestLvl=lvl
+    lastLogMesgs[lvl]=mesg
+    for i in range(highestLvl+1, len(lastLogMesgs)):
+        lastLogMesgs[i]=''
+    if(lvl<=MaxLogLevelToShow):
+        printAtLvl(lvl, mesg)
 
-def getActionTestStrings(objMap, structName, action):
-    print "################################ Getting Action and Test string for", structName, "ACTION:", action
-    LHS=getFieldInfo(objMap, structName, action[0])
-    #print "LHS:", LHS
-    RHS=getValueString(objMap, structName, action[2])
-    leftKind=LHS[0]
-    actionStr=""; testStr="";
-    if leftKind =='flag':
-        #print "ACTION[0]=", action[2][0]
-        actionStr="SetBits(ITEM->flags, "+action[0][-1]+", "+ action[2][0]+");"
-        testStr="(flags&"+action[0][0]+")"
-    elif leftKind == "mode":
-        ITEM="ITEM"
-        actionStr="SetBits("+ITEM+LHS[1]+", "+action[0][-1]+"Mask, "+ action[2][0]+");"
-        testStr="((flags&"+action[0][-1]+"Mask)"+">>"+action[0][-1]+"Offset) == "+action[2][0]
-    elif leftKind == "var":
-        actionStr="ITEM"+LHS[1]+action[1]+action[2][0]+'; '
-        testStr=action[0][0]+"=="+action[2][0]
-    elif leftKind == "ptr":
-        print "PTR - ERROR: CODE THIS"
-        exit(2)
-    return ([leftKind, actionStr, testStr])
-"""
+def cdErr(mesg):
+    global lastLogMesgs
+    global highestLvl
+    highestLvl+=1
+    lastLogMesgs[highestLvl]="Error: "+mesg
+    exit(1)
+
+def whenExit():
+    global lastLogMesgs
+    global highestLvl
+    global noError
+    if(noError): return;
+    print "\nAn error has occured:\n"
+    for i in range(0, highestLvl+1):
+        printAtLvl(i, lastLogMesgs[i])
+    print("\n")

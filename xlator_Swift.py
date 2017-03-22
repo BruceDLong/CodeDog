@@ -1,6 +1,7 @@
 #xlator_Swing.py
 import progSpec
 import codeDogParser
+from progSpec import cdlog, cdErr
 from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
@@ -478,10 +479,10 @@ def codeActTextMain(actSeq, indent, xlator):
         actionText = codeAction(action, indent, xlator)
         actSeqText += actionText
     return actSeqText
-    
+
 def codeArgText(argFieldName, argType, xlator):
     return argFieldName + ": " + argType
-    
+
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
@@ -510,7 +511,7 @@ def addSpecialCode(filename):
     #string getFilesDirAsString(){}
     #bool doesFileExist(string filePath){}
     #void copyAssetToWritableFolder(string fromPath, string toPath){}
-    
+
 
     decl ="string readFileAsString(string filename)"
     defn="""{
@@ -528,7 +529,7 @@ def addSpecialCode(filename):
     return S
 
 def addGLOBALSpecialCode(objects, tags, xlator):
-    specialCode ='' 
+    specialCode =''
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -537,7 +538,7 @@ struct GLOBAL{
     """ % (specialCode)
 
     #codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
-    
+
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     varDeclareStr=''
     assignValue=''
@@ -648,13 +649,13 @@ def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
 
 def codeConstructorInit(fieldName, count, xlator):
     if (count > 0):
-        return "\n        self." + fieldName +" = _"+fieldName 
+        return "\n        self." + fieldName +" = _"+fieldName
     elif(count == 0):
-        return "\n        self." + fieldName +" = _"+fieldName 
+        return "\n        self." + fieldName +" = _"+fieldName
     else:
         print "Error in codeConstructorInit."
         exit(2)
-    
+
 
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     #TODO: add \n before func
@@ -665,7 +666,7 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            structCode +="func " + fieldName +"("+argListText+") -> " + typeDefName 
+            structCode +="func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
         structCode += indent + "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
@@ -715,8 +716,8 @@ def fetchXlators():
     xlators['GlobalVarPrefix']      = ""
     xlators['PtrConnector']         = "->"                      # Name segment connector for pointers.
     xlators['ObjConnector']         = "::"                      # Name segment connector for classes.
-    xlators['NameSegConnector']     = "." 
-    xlators['NameSegFuncConnector'] = "()." 
+    xlators['NameSegConnector']     = "."
+    xlators['NameSegFuncConnector'] = "()."
     xlators['doesLangHaveGlobals']  = "True"
     xlators['funcBodyIndent']       = "    "
     xlators['funcsDefInClass']      = "True"

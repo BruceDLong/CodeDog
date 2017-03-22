@@ -109,7 +109,7 @@ def generateTestCode(objects, buildTags, tags, macroDefs):
 
     TestSpecFile= progSpec.fetchTagValue([tags, buildTags], 'TestSpec')
     TestSpecStr = progSpec.stringFromFile(TestSpecFile) + testMacros
-    print "#################################\n", TestSpecStr
+    #print "#################################\n", TestSpecStr
     [testTagStore, testBuildSpecs, testObjectSpecs] = codeDogParser.parseCodeDogString(TestSpecStr, objects[0], objects[1], macroDefs)
 
     # Replace runcode if it isn't there
@@ -131,7 +131,7 @@ def generateTestCode(objects, buildTags, tags, macroDefs):
 
     testBedUtilities = setUtilityCode(TestArrayText, SwitchCaseText)
 
-    print "TEST TEXT:", testBedUtilities
+   # print "TEST TEXT:", testBedUtilities
     codeDogParser.AddToObjectFromText(objects[0], objects[1], testBedUtilities )
 
     return testTagStore

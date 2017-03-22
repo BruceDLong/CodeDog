@@ -1,6 +1,7 @@
 #xlator_CPP.py
 import progSpec
 import codeDogParser
+from progSpec import cdlog, cdErr
 from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
@@ -189,8 +190,8 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='first'    : name='begin()->second';  paramList=None;
-        elif name=='last'     : name='rbegin()->second'; paramList=None;
+        elif name=='first'    : name='front()';  paramList=None;
+        elif name=='last'     : name='back()'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front'
@@ -448,7 +449,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
 
 ############################################
 def codeMain(objects, tags, xlator):
-    print "\n            Generating GLOBAL..."
+    cdlog(3, "\n            Generating GLOBAL...")
     if("GLOBAL" in objects[1]):
         if(objects[0]["GLOBAL"]['stateType'] != 'struct'):
             print "ERROR: GLOBAL must be a 'struct'."
@@ -747,8 +748,8 @@ def fetchXlators():
     xlators['GlobalVarPrefix']      = ""
     xlators['PtrConnector']         = "->"                      # Name segment connector for pointers.
     xlators['ObjConnector']         = "::"                      # Name segment connector for classes.
-    xlators['NameSegConnector']     = "." 
-    xlators['NameSegFuncConnector'] = "." 
+    xlators['NameSegConnector']     = "."
+    xlators['NameSegFuncConnector'] = "."
     xlators['doesLangHaveGlobals']  = "True"
     xlators['funcBodyIndent']       = ""
     xlators['funcsDefInClass']      = "False"

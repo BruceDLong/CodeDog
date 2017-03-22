@@ -4,6 +4,7 @@ import re
 import datetime
 import pattern_Write_Main
 import codeDogParser
+from progSpec import cdlog, cdErr
 from progSpec import structsNeedingModification
 
 buildStr_libs=''
@@ -152,7 +153,7 @@ def fetchItemsTypeSpec(itemName, xlator):
 
 fieldNamesAlreadyUsed={}
 def codeFlagAndModeFields(objects, objectName, tags, xlator):
-    print "                    Coding flags and modes for:", objectName
+    cdlog(5, "                    Coding flags and modes for: {}".format(objectName))
     global fieldNamesAlreadyUsed
     global StaticMemberVars
     flagsVarNeeded = False
@@ -167,12 +168,12 @@ def codeFlagAndModeFields(objects, objectName, tags, xlator):
             if fieldName in fieldNamesAlreadyUsed: continue
             else:fieldNamesAlreadyUsed[fieldName]=objectName
             if fieldType=='flag':
-                print "                        flag: ", fieldName
+                cdlog(6, "flag: {}".format(fieldName))
                 structEnums += "    " + xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
                 StaticMemberVars[fieldName]  =objectName
                 bitCursor += 1;
             elif fieldType=='mode':
-                print "                        mode: ", fieldName, '[]'
+                cdlog(6, "mode: {}[]".format(fieldName))
                 #print field
                 structEnums += "\n// For Mode "+fieldName+"\n"
                 # calculate field and bit position
@@ -316,7 +317,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
-        print"                             codeConverter:", name, "->", convertedName
+        #print"                             codeConverter:", name, "->", convertedName
         name = convertedName
         callAsGlobal=name.find("%G")
         if(callAsGlobal >= 0): namePrefix=''
@@ -487,7 +488,7 @@ def startPointOfNamesLastSegment(name):
     return p
 
 def encodeConditionalStatement(action, indent, xlator):
-    print "                                         conditional else if: "
+    #print "                                         encodeConditionalStatement: "
     [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], xlator)
     ifCondition = S2
     ifBodyText = genIfBody(action['ifBody'], indent, xlator)
@@ -518,7 +519,7 @@ def codeAction(action, indent, xlator):
         varName = fieldDef['fieldName']
         fieldType = xlator['convertType'](objectsRef, typeSpec, 'var', xlator)
         varDeclareStr=''
-        print "                                     Action newVar: ", varName
+        cdlog(6, "Action newVar: {}".format(varName))
         varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, xlator)
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
@@ -529,7 +530,7 @@ def codeAction(action, indent, xlator):
         [codeStr, typeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', xlator)
         assignTag = action['assignTag']
         LHS = codeStr
-        print "                                     assign: ", LHS
+        cdlog(6, "Assign: ".format(LHS))
         [S2, rhsType]=xlator['codeExpr'](action['RHS'][0], xlator)
         #print "LHS / RHS:", LHS, ' / ', S2, typeSpec, rhsType
         [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](typeSpec, rhsType, assignTag)
@@ -682,6 +683,7 @@ def codeAction(action, indent, xlator):
         actionText += indent + "{\n" + actionListText + indent + '}\n'
     else:
         print "error in codeAction: ", action
+        exit(2)
  #   print "actionText", actionText
     return actionText
 
@@ -709,7 +711,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
     baseType = progSpec.isWrappedType(objects, ClassName)
     if(baseType!=None): return ''
     if not ClassName in objects[0]: return ''
-    print "                    Generating Constructor for:", ClassName
+    cdlog(4, "Generating Constructor for: {}".format(ClassName))
     ClassName = progSpec.flattenObjectName(ClassName)
     constructorInit=""
     constructorArgs=""
@@ -726,10 +728,10 @@ def codeConstructor(objects, ClassName, tags, xlator):
         convertedType = xlator['convertType'](objects, typeSpec, 'var', xlator)
         fieldName=field['fieldName']
 
-        #print "                        Constructing:", ClassName, fieldName, fieldType, convertedType
+        cdlog(5, "                        Constructing: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
-                print "                > ", fieldOwner, convertedType, fieldName
+                #print "                > ", fieldOwner, convertedType, fieldName
                 constructorArgs += convertedType+" _"+fieldName+"=0,"
                 constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator)
                 count += 1
@@ -740,7 +742,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
                 count += 1
             elif(fieldType=="string"):
                 constructorArgs += xlator['codeArgText'](" _"+fieldName, convertedType, xlator) +'="",'
-                constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator) 
+                constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator)
                 count += 1
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
@@ -750,7 +752,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
 
 def codeStructFields(objects, objectName, tags, indent, xlator):
     global ForwardDeclsForGlobalFuncs
-    print "                    Coding fields for", objectName+ '...'
+    cdlog(4, "Coding fields for {}...".format(objectName))
     ####################################################################
     global localArgsAllocated
     funcBodyIndent   = xlator['funcBodyIndent']
@@ -774,7 +776,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
-        print "                 FieldName:", fieldName
+        cdlog(5, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, 'var', xlator))
@@ -787,24 +789,24 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
             fieldName='operator='
-            print "                         opAssign: ", fieldType, fieldName
+            #print "                         opAssign: ", fieldType, fieldName
 
         ##CALCULATE RHS###############################################
         if(fieldValue == None):
             fieldValueText=xlator['codeVarFieldRHS_Str'](fieldValue, convertedType, fieldOwner, field['paramList'], xlator)
-            print "                            RHS none: ", fieldValueText
+           # print "                            RHS none: ", fieldValueText
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, basestring):
                 fieldValueText = ' = "'+ fieldValue + '"'
             else:
                 fieldValueText = " = "+ xlator['codeExpr'](fieldValue, xlator)[0]
-            print "                            RHS const: ", fieldValueText
+           # print "                            RHS const: ", fieldValueText
         elif(fieldArglist==None):
             fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
-            print "                            RHS var: ", fieldValueText
+           # print "                            RHS var: ", fieldValueText
         else:
             fieldValueText = " = "+ str(fieldValue)
-            print "                            RHS func or array"
+            #print "                            RHS func or array"
 
         ##CALCULATE LHS + RHS ###########################################
         #registerType(objectName, fieldName, convertedType, "")
@@ -834,7 +836,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     argType = xlator['convertType'](objects, argTypeSpec, 'arg', xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
-                print "                            argListText: (", argListText, ")"
+               # print "                            argListText: (", argListText, ")"
 
             #### RETURN TYPE
             if(fieldType[0] != '<%'):
@@ -845,7 +847,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
             #### FUNC HEADER: for both decl and defn.
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent)
 
-            #### FUNC BODY 
+            #### FUNC BODY
             verbatimText=field['value'][1]
             if (verbatimText!=''):                                      # This function body is 'verbatim'.
                 if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
@@ -855,26 +857,26 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     globalFuncs=""
                 else:
                     funcText=verbatimText
-                print "                         Verbatim Func Body"
+               # print "                         Verbatim Func Body"
             elif field['value'][0]!='':
                 funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
                 if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
-                print "                         Func Body from Action Sequence"
+               # print "                         Func Body from Action Sequence"
             else:
                 print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                 exit(1)
 
             if(funcsDefInClass=='True' ):
                 structCode += funcText
-                
+
             elif(objectName=='GLOBAL'):
                 if(fieldName=='main'):
                     funcDefCode += funcText
                 else:
                     globalFuncs += funcText
             else: funcDefCode += funcText
-            
-            
+
+
         ## Accumulate field code
         structCodeAcc  += structCode
         funcDefCodeAcc += funcDefCode
@@ -886,7 +888,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
 def codeAllNonGlobalStructs(objects, tags, xlator):
-    print "\n            Generating Objects..."
+    cdlog(3, "Generating Objects...")
     global currentObjName
     global structsNeedingModification
     constsEnums=""
@@ -913,7 +915,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             if(classAttrs): classAttrs=classAttrs[0]+' '
             else: classAttrs=''
             if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
-                print "SKIPPING:", objectName, ctxTag, implMode
+                cdlog(4, "SKIPPING: {} {} {}".format(objectName, ctxTag, implMode))
                 continue
 
             #print "OBJNAME", objectName
@@ -925,9 +927,9 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                     #objectName = objectName[:charIdx-1]
                 #else:print "!TAG", thisCtxTag; continue
 
-            print "                [" + objectName+"]"
+            cdlog(4, "[" + objectName+"]")
             if (objectName in structsNeedingModification):
-                print "                    structsNeedingModification:", structsNeedingModification[objectName]
+                cdlog(5, "structsNeedingModification: {}".format(str(structsNeedingModification[objectName])))
                 [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[objectName]
                 implMode='implement:' + interfaceImplemented
 
@@ -962,7 +964,7 @@ def codeStructureCommands(objects, tags, xlator):
             calledFuncName = command[1]
             if calledFuncName in progSpec.funcsCalled:
                 calledFuncInstances = progSpec.funcsCalled[calledFuncName]
-                print '     addImplements:'
+                #print '     addImplements:'
                 #print '          calledFuncName:', calledFuncName
                 for funcCalledParams in calledFuncInstances:
                     #print '\n funcCalledParams:',funcCalledParams
@@ -981,7 +983,7 @@ def codeStructureCommands(objects, tags, xlator):
                     interfaceImplemented=commandArgs[:firstColonPos]
                     classToModify=commandArgs[secondColonPos+1:]
                     structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented, progSpec.MarkItems]
-                    print "          impl: ", structsNeedingModification[classToModify]
+                   # print "          impl: ", structsNeedingModification[classToModify]
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
@@ -1009,7 +1011,7 @@ def makeFileHeader(tags, filename, xlator):
     return header
 
 def integrateLibraries(tags, libID, xlator):
-    print '                Integrating', libID
+    cdlog(3, 'Integrating {}'.format(libID))
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
     libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
     #print "LIB_FILES", libFiles
@@ -1025,7 +1027,7 @@ def integrateLibraries(tags, libID, xlator):
     return headerStr
 
 def connectLibraries(objects, tags, libsToUse, xlator):
-    print "\n            Choosing Libraries to link..."
+    cdlog(3, "Choosing Libraries to link...")
     headerStr = ''
     for lib in libsToUse:
         headerStr += integrateLibraries(tags, lib, xlator)
@@ -1143,5 +1145,5 @@ def generate(objects, tags, libsToUse, xlator):
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 
     fileSpecStrings = pieceTogetherTheSourceFiles(tags, True, fileSpecs, [], topBottomStrings, xlator)
-    print "\n\n##########################################################\n"
+   # print "\n\n##########################################################\n"
     return fileSpecStrings

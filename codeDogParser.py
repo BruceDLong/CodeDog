@@ -2,12 +2,13 @@
 
 import re
 import progSpec
+from progSpec import cdlog, cdErr
 from pyparsing import *
 ParserElement.enablePackrat()
 
 
 def reportParserPlace(s, loc, toks):
-    print "    PARSING AT char",loc, toks
+    cdLog(1,"    PARSING AT char {}: {}".format(loc, toks))
 
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
@@ -135,30 +136,25 @@ progSpecParser = (Optional(buildSpecList) + tagDefList + objectList)("progSpecPa
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
     try:
-        #print "#########################################\n", inputStr, "\n#########################################\n"
         localResults = progSpecParser.parseString(inputStr, parseAll = True)
 
     except ParseException , pe:
-        print "error parsing: " , pe
+        cdErr( "Error parsing: {}".format( pe))
         exit(1)
     return localResults
 
 def extractTagDefs(tagResults):
     localTagStore = {}
-    #print tagResults
 
     for tagSpec in tagResults:
         tagVal = tagSpec.tagValue
         if ((not isinstance(tagVal, basestring)) and len(tagVal)>=2):
             if(tagVal[0]=='['):
-                #print "LIST OF VALUES"
                 tagValues=[]
                 for multiVal in tagVal[1]:
                     tagValues.append(multiVal[0])
-                #print tagValues
 
             elif(tagVal[0]=='{'):
-                #print "MAP OF VALUES"
                 tagValues=extractTagDefs(tagVal[1])
             tagVal=tagValues
         # Remove quotes
@@ -176,7 +172,6 @@ def packFieldDef(fieldResult, ObjectName, indent):
     if fieldResult[0]=='(':             # Reorganize Cofactuals if they are here
         coFactuals = fieldResult[1][2]
         fieldResult= fieldResult[1][0]
-        print"        ##", fieldResult, "{", ObjectName, "}"
 
     fieldDef={}
     argList=[]
@@ -190,7 +185,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType;
         if not isinstance(fieldType, basestring) and (fieldType[0]=='[' or fieldType[0]=='{'):
-            print "FIELDTYPE is an inline SEQ or ALT:"
+            #print "FIELDTYPE is an inline SEQ or ALT:"
 
             if   fieldType[0]=='{': fieldList=fieldType[1:-1]
             elif fieldType[0]=='[': fieldList=fieldType[1]
@@ -234,13 +229,13 @@ def packFieldDef(fieldResult, ObjectName, indent):
 
 
     if(fieldResult.flagDef):
-        print indent+"        FLAG: ", fieldResult
-        if(arraySpec): print"Lists of flags are not allowed.\n"; exit(2);
+        cdlog(3,"FLAG: {}".format(fieldResult))
+        if(arraySpec): cdErr("Lists of flags are not allowed.\n"); exit(2);
         fieldDef=progSpec.packField(False, owner, 'flag', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.modeDef):
-        print indent+"        MODE: ", fieldResult
+        cdlog(3,"MODE: {}".format(fieldResult))
         modeList=fieldResult.modeList
-        if(arraySpec): print"Lists of modes are not allowed.\n"; exit(2);
+        if(arraySpec): cdErr("Lists of modes are not allowed.\n"); exit(2);
         fieldDef=progSpec.packField(False, owner, 'mode', arraySpec, fieldName, None, paramList, givenValue)
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
@@ -252,18 +247,18 @@ def packFieldDef(fieldResult, ObjectName, indent):
         givenValue=fieldResult.constStr[1:-1]
         fieldDef=progSpec.packField(True, 'const', 'string', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.constNum):
-        print indent+"        CONST Num: ", fieldResult
+        cdlog(3,"CONST Num: {}".format(fieldResult))
         if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
         fieldDef=progSpec.packField(True, 'const', 'int', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.nameVal):
-        print indent+"        NameAndVal: ", fieldResult
+        cdlog(3,"NameAndVal: {}".format(fieldResult))
         fieldDef=progSpec.packField(None, None, None, arraySpec, fieldName, argList, paramList, givenValue)
     elif(fieldResult.fullFieldDef):
         fieldTypeStr=str(fieldType)[:50]
-        print indent+"        FULL FIELD: ", [isNext, owner, fieldTypeStr+'... ', arraySpec, fieldName]
+        cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, fieldName])))
         fieldDef=progSpec.packField(isNext, owner, fieldType, arraySpec, fieldName, argList, paramList, givenValue)
     else:
-        print "Error in packing FieldDefs:", fieldResult
+        cdErr("Error in packing FieldDefs: {}".format(fieldResult))
         exit(1)
     if len(innerDefs)>0:
         fieldDef['innerDefs']=innerDefs
@@ -287,26 +282,19 @@ def parseResultToArray(parseSegment):
 def extractActItem(funcName, actionItem):
     global funcsCalled
     thisActionItem='error'
-    #print "ACTIONITEM:", actionItem
     if actionItem.fieldDef:
         thisActionItem = {'typeOfAction':"newVar", 'fieldDef':packFieldDef(actionItem.fieldDef, '', '    LOCAL:')}
     elif actionItem.ifStatement:    # Conditional
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
         ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
-        #elseBody = {"if":'xxx', "act":'xxx'}
         elseBodyOut = {}
-        #print elseBody
         if (actionItem.optionalElse):
             elseBodyIn = actionItem.optionalElse
             if (elseBodyIn.conditionalAction):
                 elseBodyOut = ['if' , [extractActItem(funcName, elseBodyIn.conditionalAction)] ]
-                #print "\n ELSE IF........ELSE IF........ELSE IF........ELSE IF: ", elseBodyOut
             elif (elseBodyIn.actionSeq):
                 elseBodyOut = ['action', extractActItem(funcName, elseBodyIn.actionSeq)]
-                #elseBody['act']  = elseBodyOut
-                #print "\n ELSE........ELSE........ELSE........ELSE........ELSE: ", elseBody
-        #print "\n IF........IF........IF........IF........IF: ", ifCondition, ifBodyOut, elseBodyOut
 
         thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut}
     # Repeated Action withEach
@@ -338,9 +326,7 @@ def extractActItem(funcName, actionItem):
     # Action sequence
     elif actionItem.actSeqID:
         actionListIn = actionItem
-        #print "ACT_SEQ...ACT_SEQ...ACT_SEQ...ACT_SEQ...ACT_SEQ: ", actionListIn
         actionListOut = extractActSeqToActSeq(funcName, actionListIn)
-        #print "ACT_SEQ...ACT_SEQ...ACT_SEQ...ACT_SEQ...ACT_SEQ: ", actionListOut
         thisActionItem = {'typeOfAction':"actionSeq", 'actionList':actionListOut}
     # Assign
     elif (actionItem.assign):
@@ -349,7 +335,6 @@ def extractActItem(funcName, actionItem):
         assignTag = ''
         if (actionItem.assign[1] != '<-'):
             assignTag = actionItem.assign[1][0][1:-1]
-            print "assignTag:",assignTag
 
         #print RHS, LHS
         thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS, 'assignTag':assignTag}
@@ -364,24 +349,21 @@ def extractActItem(funcName, actionItem):
         # TODO: Verify that calledFunc is a function and error out if not. (The last segment should have '(' as its second item.)
         calledFuncLastSegment = calledFunc[-1]
         if len(calledFuncLastSegment)<2 or calledFuncLastSegment[1] != '(':
-            print "Expected a function, not a variable:", calledFuncLastSegment; exit(2)
+            cdErr("Expected a function, not a variable: {}".format(calledFuncLastSegment)); exit(2)
         thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc}
 
         calledFuncName = calledFuncLastSegment[0]
         if(len(calledFuncLastSegment)<=2): calledFuncParams=[]
         else:
-            #print 'calledFuncLastSegment', calledFuncLastSegment, ', len:',
             calledFuncParams = calledFuncLastSegment[2]
 
         progSpec.appendToFuncsCalled(calledFuncName, calledFuncParams)
     else:
-        print "error in extractActItem"
-        print "actionItem", str(actionItem)
+        cdErr("problem in extractActItem: actionItem:".format(str(actionItem)))
         exit(1)
     return thisActionItem
 
 def extractActSeq( funcName, childActSeq):
-    #print childActSeq
     actionList = childActSeq.actionList
     actSeq = []
     for actionItem in actionList:
@@ -390,12 +372,7 @@ def extractActSeq( funcName, childActSeq):
     return actSeq
 
 def extractActSeqToFunc(funcName, funcBodyIn):
-    #print "extractActSeqToFunc"
-    #print "objectName: ", objectName
-    #print "funcName: ", funcName
-    #print "funcBodyIn: ", funcBodyIn
     childActSeq = extractActSeq( funcName, funcBodyIn)
-    #print childActSeq
     return childActSeq
 
 
@@ -407,18 +384,16 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
         elif len(funcBodyIn)== 2: # handles old pyparsing
             funcTextVerbatim = funcBodyIn[1][0]
         else:
-            print "error in funcTextVerbatim: ", "len(funcBodyIn): ", len(funcBodyIn)
+            cdErr( "problem in funcTextVerbatim: len(funcBodyIn): {}".format( len(funcBodyIn)))
             exit(1)
     else:
         funcBodyOut = extractActSeqToFunc(funcName, funcBodyIn)
         funcTextVerbatim = ""
-    #print funcBodyOut
     return funcBodyOut, funcTextVerbatim
 
 
 def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
-    print "    EXTRACTING Field Defs for", ObjectName
-    #print fieldResults
+    cdlog(1, "EXTRACTING Field Defs for {}".format(ObjectName))
     for fieldResult in fieldResults:
         fieldDef=packFieldDef(fieldResult, ObjectName, '')
         progSpec.addField(ProgSpec, ObjectName, fieldDef)
@@ -427,22 +402,16 @@ def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
 
 def extractBuildSpecs(buildSpecResults):
     resultBuildSpecs = []
-    print "buildSpecResults: ", buildSpecResults
+    #print "buildSpecResults: ", buildSpecResults
     if (len(buildSpecResults)==0):
         resultBuildSpecs = [['LinuxBuild', {'': ''}]]
-        print "len 0";
     else:
         for localBuildSpecs in buildSpecResults:
-            print "localBuildSpecs.buildDefList: ", localBuildSpecs.buildDefList
             spec = [localBuildSpecs.buildID, extractTagDefs(localBuildSpecs.buildDefList[0])]
             resultBuildSpecs.append(spec)
-            print "spec: ", spec,  localBuildSpecs.buildDefList
-        print "len > 0: ", len(buildSpecResults);
-    print "resultBuildSpecs: ",resultBuildSpecs
     return resultBuildSpecs
 
 def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
-    #print spec
     objectName=spec.objectName[0]
     configType="unknown"
     if(spec.sequenceEl): configType="SEQ"
@@ -451,10 +420,8 @@ def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
     if spec.optionalTag:  #change so it generates an empty one if no field defs
         #print "spec.tagDefList = ",spec.tagDefList
         objTags = extractTagDefs(spec.tagDefList)
-        #fieldIDX = 4
     else:
         objTags = {}
-        #fieldIDX = 3
  #   if 'ctxTag' in objTags: objectName+="#"+objTags['ctxTag']
     progSpec.addObject(ProgSpec, objNames, objectName, stateType, configType)
     progSpec.addObjTags(ProgSpec, objectName, objTags)
@@ -468,7 +435,6 @@ def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
     return
 
 def extractPatternSpecs(ProgSpec, objNames, spec):
-    #print spec
     patternName=spec.objectName[0]
     patternArgWords=spec.CIDList
     progSpec.addPattern(ProgSpec, objNames, patternName, patternArgWords)
@@ -487,7 +453,7 @@ def extractMacroDefs(macroDefMap, inputString):
         try:
             localResults = macroDef.parseString(macroStr, parseAll = True)
         except ParseException , pe:
-            print "Error Extracting Macro: " , pe , "In:", macroStr
+            cdErr("Error Extracting Macro: {} In: {}".format(pe, macroStr))
             exit(1)
         extractMacroSpec(macroDefMap, localResults[0])
 
@@ -516,7 +482,7 @@ def deSlashMacro(replacement):
 
 def findMacroEnd(inputString, StartPosOfParens):
     nestLvl=0
-    if(inputString[StartPosOfParens] != '('): print "NO PAREN!"; exit(2);
+    if(inputString[StartPosOfParens] != '('): cdErr("NO PAREN!"); exit(2);
     ISLen=len(inputString)
     for pos in range(StartPosOfParens, ISLen):
         ch = inputString[pos]
@@ -528,7 +494,6 @@ def findMacroEnd(inputString, StartPosOfParens):
     return -1
 
 def doMacroSubstitutions(macros, inputString):
-   # print "\n\nMACRO-MAP:", macros
     macros['BlowPOP'] = {'ArgList':['dummyArg'],  'Body':'dummyArg'}
     macros['DESLASH'] = {'ArgList':['dummyArg'],  'Body':'dummyArg'}
     subsWereMade=True
@@ -579,7 +544,7 @@ def extractObjectsOrPatterns(ProgSpec, objNames, macroDefs, objectSpecResults):
         elif s == "#define":
             extractMacroSpec(macroDefs, spec)
         else:
-            print "Error in extractObjectsOrPatterns; expected 'object' or 'do' and got '",spec[0],"'"
+            cdErr("Error in extractObjectsOrPatterns; expected 'object' or 'do' and got '{}'".format(spec[0]))
             exit(1)
 
 
@@ -603,13 +568,9 @@ def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
     inputString = comment_remover(inputString)
     extractMacroDefs(tmpMacroDefs, inputString)
     inputString = doMacroSubstitutions(tmpMacroDefs, inputString)
-    #print "#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#-#- P a r s i n g :", inputString
     results = parseInput(inputString)
-    #print results.tagDefList
     tagStore = extractTagDefs(results.tagDefList)
-    #print results.buildSpecList
     buildSpecs = extractBuildSpecs(results.buildSpecList)
-    #print results.objectList
     extractObjectsOrPatterns(ProgSpec, objNames, macroDefs, results.objectList)
     objectSpecs = [ProgSpec, objNames]
     return[tagStore, buildSpecs, objectSpecs]

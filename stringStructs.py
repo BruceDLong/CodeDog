@@ -4,9 +4,10 @@
 import re
 import progSpec
 import codeDogParser
+from progSpec import cdlog, cdErr
 
 def codeDogTypeToString(objects, tags, field):
-    print "FIELD:", field
+    #print "FIELD:", field
     S=''
     fieldName=field['fieldName']
     fieldType=field['fieldType']
@@ -21,8 +22,9 @@ def codeDogTypeToString(objects, tags, field):
             S+='mode ['+field['enumList']+']: ' + fieldName + ' <- '+fieldValue+'\n'
         else: S+='mode ['+field['enumList']+']: ' + fieldName +'\n'
     elif fieldOwner=='const':
-        print 'const ', fieldType, ': ', fieldName, ' <- ',fieldValue
+        #print 'const ', fieldType, ': ', fieldName, ' <- ',fieldValue
         #S+='const '+fieldType+': ' + fieldName + ' <- '+fieldValue+'\n'
+        pass
     elif fieldOwner=='const':
         print "Finish This"
 
@@ -680,7 +682,7 @@ def writePositionalFetch(objects, tags, field):
 
 
 
-    print 'FIELD::', fname, field['owner'], '"'+fieldType+'"'
+    #print 'FIELD::', fname, field['owner'], '"'+fieldType+'"'
     if(field['owner']=='const' and fieldType=='string'):
         S+='    %s_hasLen <- true \n    %s_span.len <- '% (fname, fname) + str(len(field['value']))
     S+="        if(! %s_hasPos){pos <- pred.pos+pred.len}\n" % (fname)
@@ -688,7 +690,8 @@ def writePositionalFetch(objects, tags, field):
     # Scoop Data
     S+=' FieldTYpe("' + fieldType +'")\n'
     if progSpec.isStruct(fieldType):
-        print " Call stuct's fetch()"
+        #print " Call stuct's fetch()"
+        pass
     #elif fieldType=='':
     # Set and propogate length
     S+="        }\n"
@@ -759,7 +762,7 @@ def populateBaseRules():
 nextParseNameID=0 # Global used to uniquify sub-seqs and sub-alts in a struct parse. E.g.: ruleName: parse_myStruct_sub1
 def fetchOrWriteTerminalParseRule(modelName, field):
     global nextParseNameID
-    print "FIELD_IN:", modelName, field
+    #print "FIELD_IN:", modelName, field
     fieldName='N/A'
     fieldValue=''
     if 'value' in field: fieldValue =field['value']
@@ -767,7 +770,7 @@ def fetchOrWriteTerminalParseRule(modelName, field):
     fieldType  =typeSpec['fieldType']
     fieldOwner =typeSpec['owner']
     if 'fieldName' in field: fieldName  =field['fieldName']
-    print "WRITE PARSE RULE:", modelName, fieldName
+    #print "WRITE PARSE RULE:", modelName, fieldName
 
     nameIn=None
     nameOut=None
@@ -819,7 +822,7 @@ def fetchOrWriteTerminalParseRule(modelName, field):
             nameOut=appendRule(nameOut+'_REP', "nonterm", "parseREP", [nameOut, 0, 0])
         elif datastructID=='opt':
             nameOut=appendRule(nameOut+'_OPT', "nonterm", "parseREP", [nameOut, 0, 1])
-            print "NAMEOUT:", nameOut
+           # print "NAMEOUT:", nameOut
     field['parseRule']=nameOut
     return nameOut
 
@@ -836,7 +839,7 @@ def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix
         typeSpec   =field['typeSpec']
         if(field['isNext']==True):
             firstItm=field['typeSpec']['fieldType'][0]
-            print "NonTERM:", fname, firstItm
+            #print "NonTERM:", fname, firstItm
             if firstItm=='[' or firstItm=='{': # Handle an ALT or SEQ sub structure
                 nextParseNameID+=1
                 if firstItm=='[':
@@ -980,13 +983,8 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
 
    # print "        CONVERTING:", fieldName, str(toFieldType)[:100]+'... ', str(typeSpec)[:100]+'... '
    # print "            TOFieldTYPE1:", str(toField)[:100]
-    print "            TOFieldTYPE :", toFieldOwner, toFieldType
-    print "       fieldValue:",ToStructName, fieldType, fieldValue
-
-    #!#!#!# Test Code #!#!#!# Test Code #!#!#!# Test Code #!#!#!# Test Code #!#!#!# Test Code #!#!#!# Test Code #!#!#!# Test Code
-    if fieldName==None and fieldType[0]=='listInfo':
-        print "FIELDDATA:", fieldType[0], typeSpec
-        boob=True
+   # print "            TOFieldTYPE :", toFieldOwner, toFieldType
+   # print "       fieldValue:",ToStructName, fieldType, fieldValue
 
     fields=[]
     fromIsStruct=progSpec.isStruct(fieldType)
@@ -1018,7 +1016,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
     CodeLVAR_Alloc=''
     CODE_LVAR_v2=''
     if VarName=='' or VarName=='memStruct':  # Default to the target argument name
-        if VarName=='': print "        VARNAME was ''; FIELDNAME:", fieldName
+        #if VarName=='': print "        VARNAME was ''; FIELDNAME:", fieldName
         VarName='memStruct'
         if(fieldName==None): # Field hasn't a name so in memory it's a cofactual or this is a parser marker.
             globalFieldCount+=1
@@ -1088,11 +1086,11 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
         gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next'
         gatherFieldCode+='\n'+indent+'withEach Cnt in WHILE('+childRecName+'):{\n'
         if fromIsALT:
-            print "ALT-#1"
+          #  print "ALT-#1"
             gatherFieldCode+=Write_ALT_Extracter(objects, fieldType[0], fields, childRecName, '', 'tmpVar', indent+'    ', level)
 
         elif fromIsStruct and toIsStruct:
-            print "toFieldType:", toFieldOwner, ">>>", toFieldType
+           # print "toFieldType:", toFieldOwner, ">>>", toFieldType
             gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpVar'
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
@@ -1148,10 +1146,10 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
 
         if fromIsALT or fromIsEmbeddedAlt:
             if(fromIsEmbeddedAlt):
-                print "ALT-#2"
+               # print "ALT-#2"
                 assignerCode+=Write_ALT_Extracter(objects, ToStructName, field['innerDefs'], VarTagBase, levelSuffix, VarName, indent+'    ', level+1)
             else:
-                print "ALT-#3"
+              #  print "ALT-#3"
                 assignerCode+=Write_ALT_Extracter(objects, fieldType[0], fields, VarTagBase, levelSuffix, VarName+'X', indent+'    ', level)
                 assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
         elif fromIsEmbeddedSeq:
@@ -1194,7 +1192,7 @@ extracterFunctionAccumulator = ""
 alreadyWrittenFunctions={}
 
 def Write_structExtracter(objects, ToStructName, fields, nameForFunc):
-    print ToStructName, nameForFunc
+    #print ToStructName, nameForFunc
     [memObj, memVersionName]=fetchMemVersion(objects, ToStructName)
     memObjFields=memObj['fields']
     S='    me string: tmpStr\n'
@@ -1208,7 +1206,7 @@ def Write_Extracter(objects, ToStructName, FromStructName, nameForFunc):
     global alreadyWrittenFunctions
     if nameForFunc in alreadyWrittenFunctions: return
     alreadyWrittenFunctions[nameForFunc]=True
-    print "    WRITING STRING-STRUCT:", ToStructName
+    cdlog(1, "WRITING STRING-STRUCT: {}".format(ToStructName))
     S=''
     ObjectDef = objects[0][FromStructName]
     fields=ObjectDef['fields']
@@ -1227,7 +1225,7 @@ def Write_Extracter(objects, ToStructName, FromStructName, nameForFunc):
 
 
 def CreateStructsForStringModels(objects, tags):
-    print "Creating structs from string models..."
+    cdlog(0, "Creating structs from string models...")
 
     # Define fieldResult struct
     #~ structsName = 'fetchResult'
@@ -1300,11 +1298,11 @@ def CreateStructsForStringModels(objects, tags):
 
     ############  Add struct parser
     parserCode=genParserCode()
-    print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n", parserCode
+    #print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n", parserCode
     codeDogParser.AddToObjectFromText(objects[0], objects[1], parserCode)
 
     structsName='EParser'
-    print progSpec.wrapFieldListInObjectDef(structsName, ExtracterCode)+"\n"
+    #print progSpec.wrapFieldListInObjectDef(structsName, ExtracterCode)+"\n"
     #exit(2)
     progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, ExtracterCode))
