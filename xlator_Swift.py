@@ -637,7 +637,10 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
 
 def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
     convertedType = adjustBaseTypes(convertedType)
-    S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText
+    if (fieldValueText == ""):
+        S=indent + "let "+ fieldName + ":" +  convertedType + '\n'
+    else:
+        S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText + '\n'
     return S
 
 def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
@@ -654,6 +657,7 @@ def codeConstructorInit(fieldName, count, xlator):
     
 
 def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+    #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
         if fieldName=='main':

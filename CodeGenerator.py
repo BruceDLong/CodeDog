@@ -550,7 +550,6 @@ def codeAction(action, indent, xlator):
                 actionText=indent + setBits
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
             elif LHS_FieldType=='mode':
-                print "LHS: ", LHS
                 divPoint=startPointOfNamesLastSegment(LHS)
                 if (divPoint == 0):
                     LHS_Left=""
@@ -559,10 +558,7 @@ def codeAction(action, indent, xlator):
                     LHS_Left=LHS[0:divPoint+1]
                     bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask+"Mask", xlator)
-                print "LHS_Left: ", LHS_Left
-                print "bitMask: ", bitMask
                 setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
-                print "setBits mode: ", setBits
                 actionText=indent + setBits
             else:
                 if AltIDXFormat!=None:
@@ -796,37 +792,34 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         ##CALCULATE RHS###############################################
         if(fieldValue == None):
             fieldValueText=xlator['codeVarFieldRHS_Str'](fieldValue, convertedType, fieldOwner, field['paramList'], xlator)
-
-        ##CONST#########################################################
+            print "                            RHS none: ", fieldValueText
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, basestring):
                 fieldValueText = ' = "'+ fieldValue + '"'
             else:
                 fieldValueText = " = "+ xlator['codeExpr'](fieldValue, xlator)[0]
-
-        ################################################################
+            print "                            RHS const: ", fieldValueText
         elif(fieldArglist==None):
-            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0] + "\n"
-
-        ################################################################
+            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
+            print "                            RHS var: ", fieldValueText
         else:
             fieldValueText = " = "+ str(fieldValue)
+            print "                            RHS func or array"
 
         ##CALCULATE LHS + RHS ###########################################
-        #registerType(objectName, fieldName, convertedType, "")             # If its a constant.
+        #registerType(objectName, fieldName, convertedType, "")
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
 
-        ############CODE VARIABLE##########################################################
+        ############ CODE VARIABLE##########################################################
         elif(fieldArglist==None):
             structCode += xlator['codeVarField_Str'](convertedType, fieldName, fieldValueText, objectName, tags, indent)
-            print "                            Variable: ", convertedType, fieldName
 
-        ###### Arglist exists so this is a function.###########
+        ###### ArgList exists so this is a FUNCTION###########
         else:
-            #### Generate ArgListTest from function arguments
+            #### ARGLIST
             argList=field['typeSpec']['argList']
-            if len(argList)==0:                                             # No arguments
+            if len(argList)==0:
                 argListText='' #'void'
             elif argList[0]=='<%':                                          # Verbatim.arguments
                 argListText=argList[1][0]
@@ -841,18 +834,18 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     argType = xlator['convertType'](objects, argTypeSpec, 'arg', xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
-                print "                             argListText: (", argListText, ")"
+                print "                            argListText: (", argListText, ")"
 
-            # Textify return type
+            #### RETURN TYPE
             if(fieldType[0] != '<%'):
                 pass #registerType(objectName, fieldName, convertedType, typeDefName)
             else: typeDefName=convertedType
             if(typeDefName=='none'): typeDefName=''
 
-            ##### Generate function header for both decl and defn.
+            #### FUNC HEADER: for both decl and defn.
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent)
 
-            #### FUNC BODY ######################################
+            #### FUNC BODY 
             verbatimText=field['value'][1]
             if (verbatimText!=''):                                      # This function body is 'verbatim'.
                 if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
@@ -862,23 +855,27 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     globalFuncs=""
                 else:
                     funcText=verbatimText
-            # No verbatim found so generate function text from action sequence
+                print "                         Verbatim Func Body"
             elif field['value'][0]!='':
                 funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
                 if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
+                print "                         Func Body from Action Sequence"
             else:
                 print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                 exit(1)
 
-            if(funcsDefInClass=='True'):
-                structCode += funcText+"\n"
+            if(funcsDefInClass=='True' ):
+                structCode += funcText
+                
             elif(objectName=='GLOBAL'):
                 if(fieldName=='main'):
-                    funcDefCode += funcText+"\n"
+                    funcDefCode += funcText
                 else:
-                    globalFuncs += funcText+"\n"
-            else: funcDefCode += funcText+"\n"
-
+                    globalFuncs += funcText
+            else: funcDefCode += funcText
+            
+            
+        ## Accumulate field code
         structCodeAcc  += structCode
         funcDefCodeAcc += funcDefCode
         globalFuncsAcc += globalFuncs
