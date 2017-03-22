@@ -36,9 +36,15 @@ import sys
 import errno
 import platform
 import copy
+import atexit
 from progSpec import cdlog, cdErr
 from inspect import getsourcefile
 from os.path import abspath
+from timeit import default_timer as timer
+
+atexit.register(progSpec.whenExit)
+
+startTime = timer()
 
 '''
 def writeFile(path, fileName, outStr, fileExtension):
@@ -220,7 +226,9 @@ def GenerateSystem(objects, buildSpecs, tags, macroDefs):
         cdlog(1, "Files Generated: {}".format( len(fileSpecs)))
         for f in fileSpecs:
             cdlog(2, "    * {}".format(f[0]))
+        print "\nWRITING FILES AND COMPILING..."
         buildDog.build("-g", '14',  fileName, libFiles, buildName, platform, fileSpecs)
+        print "--------------------------"
         progSpec.rollBack(objects)
     # GenerateDocuments()
 
@@ -246,3 +254,6 @@ tagStore['dogFilename']=file_name
 
 GenerateSystem(objectSpecs, buildSpecs, tagStore, macroDefs)
 cdlog(0, "\n\n######################   D O N E")
+endTime = timer()
+cdlog(0, "\nTIME: {0:.2f} seconds".format(endTime-startTime))
+progSpec.noError=True

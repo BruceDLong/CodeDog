@@ -332,11 +332,38 @@ def stringFromFile(filename):
     return Str
 
 #############################################################  Logging functions
+lastLogMesgs=['','','','','','','','','','']
+highestLvl=0;
+noError=False
+
+def printAtLvl(lvl, mesg):
+    for i in range(0, lvl*5): sys.stdout.write( " ")
+    print mesg
+
 def cdlog(lvl, mesg):
     global MaxLogLevelToShow
+    global lastLogMesgs
+    global highestLvl
+    highestLvl=lvl
+    lastLogMesgs[lvl]=mesg
+    for i in range(highestLvl+1, len(lastLogMesgs)):
+        lastLogMesgs[i]=''
     if(lvl<=MaxLogLevelToShow):
-        for i in range(0, lvl*5): sys.stdout.write( " ")
-        print mesg
+        printAtLvl(lvl, mesg)
 
 def cdErr(mesg):
-    print "\nERROR:",mesg+"\n"
+    global lastLogMesgs
+    global highestLvl
+    highestLvl+=1
+    lastLogMesgs[highestLvl]="Error: "+mesg
+    exit(1)
+
+def whenExit():
+    global lastLogMesgs
+    global highestLvl
+    global noError
+    if(noError): return;
+    print "\nAn error has occured:\n"
+    for i in range(0, highestLvl+1):
+        printAtLvl(i, lastLogMesgs[i])
+    print("\n")
