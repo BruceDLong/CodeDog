@@ -9,6 +9,7 @@ This file, along with Lib_Java.py specify to the CodeGenerater how to compile Co
 import progSpec
 import codeDogParser
 import Lib_Android
+from progSpec import cdlog, cdErr
 from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
@@ -656,8 +657,8 @@ def fetchXlators():
     xlators['GlobalVarPrefix']     = "GLOBAL.static_Global."
     xlators['PtrConnector']        = "."                      # Name segment connector for pointers.
     xlators['ObjConnector']        = "."                      # Name segment connector for classes.
-    xlators['NameSegConnector']     = "." 
-    xlators['NameSegFuncConnector'] = "." 
+    xlators['NameSegConnector']     = "."
+    xlators['NameSegFuncConnector'] = "."
     xlators['doesLangHaveGlobals'] = "False"
     xlators['funcBodyIndent']      = "    "
     xlators['funcsDefInClass']     = "True"

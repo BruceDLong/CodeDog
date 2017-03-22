@@ -4,7 +4,7 @@ import codeDogParser
 
 
 def use(objects, buildSpec, tags, platform):
-    print "USING CPP"
+    print "\n     *** USING CPP ***"
     progSpec.addCodeToInit(tags[1], "signal(SIGSEGV, reportFault)");
    # progSpec.addCodeToInit(tags, "sync_with_stdio(false)");  #std::ios_base::sync_with_stdio(false)"
 
