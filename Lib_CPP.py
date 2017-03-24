@@ -1,10 +1,11 @@
 #///////// Add routines for C++
 import progSpec
 import codeDogParser
+from progSpec import cdlog, cdErr
 
 
 def use(objects, buildSpec, tags, platform):
-    print "\n     *** USING CPP ***"
+    cdlog(3,"USING Lib_CPP")
     progSpec.addCodeToInit(tags[1], "signal(SIGSEGV, reportFault)");
    # progSpec.addCodeToInit(tags, "sync_with_stdio(false)");  #std::ios_base::sync_with_stdio(false)"
 

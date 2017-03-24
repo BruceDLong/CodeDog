@@ -760,7 +760,7 @@ def populateBaseRules():
 
 
 nextParseNameID=0 # Global used to uniquify sub-seqs and sub-alts in a struct parse. E.g.: ruleName: parse_myStruct_sub1
-def fetchOrWriteTerminalParseRule(modelName, field):
+def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
     global nextParseNameID
     #print "FIELD_IN:", modelName, field
     fieldName='N/A'
@@ -770,6 +770,7 @@ def fetchOrWriteTerminalParseRule(modelName, field):
     fieldType  =typeSpec['fieldType']
     fieldOwner =typeSpec['owner']
     if 'fieldName' in field: fieldName  =field['fieldName']
+    cdlog(logLvl, "WRITING PARSE RULE for: {}.{}".format(modelName, fieldName))
     #print "WRITE PARSE RULE:", modelName, fieldName
 
     nameIn=None
@@ -826,11 +827,12 @@ def fetchOrWriteTerminalParseRule(modelName, field):
     field['parseRule']=nameOut
     return nameOut
 
-def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix):
+def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix, logLvl):
     global nextParseNameID
     nameIn=modelName+nameSuffix
 
     # Allocate or fetch a rule identifier for each '>' field.
+
     partIndexes=[]
     for field in fields:
         fname=field['fieldName']
@@ -839,8 +841,8 @@ def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix
         typeSpec   =field['typeSpec']
         if(field['isNext']==True):
             firstItm=field['typeSpec']['fieldType'][0]
-            #print "NonTERM:", fname, firstItm
             if firstItm=='[' or firstItm=='{': # Handle an ALT or SEQ sub structure
+                cdlog(logLvl, "NonTERM: {} = {}".format(fname, firstItm))
                 nextParseNameID+=1
                 if firstItm=='[':
                     innerSeqOrAlt='parseALT'
@@ -849,7 +851,7 @@ def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix
                     innerSeqOrAlt='parseSEQ'
                     newNameSuffix = nameSuffix+fname+'_SEQ'+str(nextParseNameID)
                 innerFields=field['innerDefs']
-                ruleIdxStr = writeNonTermParseRule(objects, tags, modelName, innerFields, innerSeqOrAlt, newNameSuffix)
+                ruleIdxStr = writeNonTermParseRule(objects, tags, modelName, innerFields, innerSeqOrAlt, newNameSuffix, logLvl+1)
                 field['parseRule']=ruleIdxStr
 
 
@@ -866,13 +868,21 @@ def writeNonTermParseRule(objects, tags, modelName, fields, SeqOrAlt, nameSuffix
                     elif datastructID=='opt':
                         ruleIdxStr=appendRule(ruleIdxStr+'_OPT', "nonterm", "parseREP", [ruleIdxStr, 0, 1])
             else:
-                ruleIdxStr = fetchOrWriteTerminalParseRule(modelName, field)
+                ruleIdxStr = fetchOrWriteTerminalParseRule(modelName, field, logLvl)
 
             partIndexes.append(ruleIdxStr)
         else: pass; # These fields probably have corresponding cofactuals
 
     nameOut=appendRule(nameIn, "nonterm", SeqOrAlt, partIndexes)
     return nameOut
+
+#######################################################   E x t r a c t i o n   F u n c t i o n s
+
+def getFunctionName(fromName, toName):
+    if len(fromName)>=5 and fromName[-5:-3]=='::': fromName=fromName[:-5]
+    if len(toName)>=5 and toName[-5:-3]=='::': toName=toName[:-5]
+    S='Extract_'+fromName.replace('::', '_')+'_to_'+toName.replace('::', '_')
+    return S
 
 def fetchMemVersion(objects, objName):
     if objName=='[' or objName=='{': return [None, None]
@@ -887,12 +897,12 @@ def fetchMemVersion(objects, objName):
     return [memObj, memVersionName]
 
 
-def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuffix, VarName, indent, level):
+def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuffix, VarName, indent, level, logLvl):
     # Structname should be the name of the structure being parsed. It will be converted to the mem version to get 'to' fields.
     # Fields is the list of alternates.
     # VarTag is a string used to create local variables.
     # VarName is the LVAL variable name.
-
+    cdlog(logLvl, "WRITING code to extract one of {} from parse tree...".format(parentStructName))
     [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     InnerMemObjFields=memObj['fields']
     S=""
@@ -914,8 +924,8 @@ def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuf
         S+=indent + 'me string: '+VarName+'\n'
     count=0
     for altField in fields:
-        #print 'ALTFIELD:', altField
         if(altField['isNext']!=True): continue; # This field isn't in the parse stream.
+        cdlog(logLvl+1, "ALT: {}".format(altField['parseRule']))
         S+=indent
         if(count>0): S+="else "
         if not 'parseRule' in altField: print "Error: Is syntax missing a '>'?"; exit(2);
@@ -926,8 +936,9 @@ def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuf
             coFactualCode="\n"
             for coFact in altField['coFactuals']:
                 coFactualCode+= indent + VarName + '.' + coFact[0] + ' <- ' + coFact[2] + "\n"
+                cdlog(logLvl+2, "Cofactual: "+coFactualCode)
         #print indent,"    GOING TO WRITE FIELD:", count
-        S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTagBase, VarName, False, indent+'    ', level)
+        S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTagBase, VarName, False, indent+'    ', level, logLvl+1)
         S+=coFactualCode
         S+=indent+"}"
         count+=1
@@ -946,7 +957,7 @@ def CodeRValExpr(toFieldType, VarTag):
     return CODE_RVAL
 
 
-def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase, VarName, advancePtr, indent, level):
+def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase, VarName, advancePtr, indent, level, logLvl):
     boob=False # Erase this line
     VarTag=VarTagBase+str(level)
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
@@ -985,6 +996,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
    # print "            TOFieldTYPE1:", str(toField)[:100]
    # print "            TOFieldTYPE :", toFieldOwner, toFieldType
    # print "       fieldValue:",ToStructName, fieldType, fieldValue
+    cdlog(logLvl, "FIELD {}: '{}'".format(fieldName, str(fieldValue)))
 
     fields=[]
     fromIsStruct=progSpec.isStruct(fieldType)
@@ -1008,7 +1020,8 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
         print '        toIsList:', toIsList
         print '        fromIsStruct:', fromIsStruct
         print '        toIsStruct:', toIsStruct
-        print '        toTypeSpec:', toTypeSpec
+        print '        fieldType:', fieldType
+        print '        ToIsEmbedded:', ToIsEmbedded
         print '        ToStructName:', ToStructName
         print '        memVersionName:', memVersionName
     ###################   W r i t e   L V A L   R e f e r e n c e
@@ -1027,6 +1040,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
             if boob: print '        CODE_LVARS:', CODE_LVAR
         else:
             CODE_LVAR = VarName+'.'+fieldName
+            if fieldName=='inf': CODE_LVAR = VarName
             CODE_LVAR_v2 = CODE_LVAR
     else:
         CODE_LVAR = VarName
@@ -1035,8 +1049,9 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
     ###################   W r i t e   R V A L   C o d e
     CODE_RVAL=''
     objName=''
-    humanIDType= VarTag+' ('+str(fieldName)+' / '+str(fieldValue) + ' / '+str(fieldType)[:20] +')'
+    humanIDType= VarTag+' ('+str(fieldName)+' / '+str(fieldValue) + ' / '+str(fieldType)[:40] +')'
     humanIDType=humanIDType.replace('"', "'")
+    #print humanIDType
 
     if advancePtr:
         S+=indent+VarTag+' <- getNextStateRec('+VarTag+')\n'
@@ -1056,21 +1071,25 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
                     CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     toIsStruct=False; # false because it is really a base type.
                 else:
-                    #print "TOFIELDTYPE:", objName
-                  #  print "        toObjName:", objName
+                    #print "        toObjName:", objName
                     [toMemObj, toMemVersionName]=fetchMemVersion(objects, objName)
                     if toMemVersionName==None:
                         # make alternate finalCodeStr. Also, write the extractor that extracts toStruct fields to memVersion of this
-                        extractorFuncName = fieldType[0].replace('::', '_')+'_to_'+memVersionName.replace('::', '_')
-                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    Extract_'+extractorFuncName+'('+VarTag+"<LVL_SUFFIX>"+'.child.next, memStruct)\n')
+                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'('+VarTag+"<LVL_SUFFIX>"+'.child.next, memStruct)\n')
 
-                        #print "TOSTRUNCTSNAME:", objName, extractorFuncName
+                        #print "FUNCTION:", getFunctionName(fieldType[0], memVersionName)
                         ToFields=objects[0][objName+'::str']['fields']
-                        FromStructName=objName+'::str'
-                        Write_Extracter(objects, ToStructName, FromStructName, extractorFuncName)
+                        FromStructName=objName
+                        Write_Extracter(objects, ToStructName, FromStructName, logLvl+1)
                     else:
-                        finalCodeStr=indent + CodeLVAR_Alloc + '\n' +indent+'    Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+VarTag+"<LVL_SUFFIX>"+'.child, '+CODE_LVAR_v2+')\n'
-                if boob: print '        finalCodeStr:', finalCodeStr
+                        fromFieldTypeCID = fieldType[0].replace('::', '_')
+                        toFieldTypeCID = toMemVersionName.replace('::', '_')
+                        #print "FUNC:", getFunctionName(fromFieldTypeCID, toFieldTypeCID)
+                        if fromFieldTypeCID != toFieldTypeCID:
+                            Write_Extracter(objects, toFieldTypeCID, fromFieldTypeCID, logLvl+1)
+                        finalCodeStr=indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fromFieldTypeCID, toFieldTypeCID)+'('+VarTag+"<LVL_SUFFIX>"+'.child, '+CODE_LVAR_v2+')\n'
+            else: pass
+
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, VarTag)
 
@@ -1094,7 +1113,8 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
             gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpVar'
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
-            gatherFieldCode+='\n'+indent+'Extract_'+fieldType[0].replace('::', '_')+'_str'+'('+childRecName+'.child, tmpVar)\n'
+            #print "##### FUNCT:", getFunctionName(fieldType[0], fieldType[0])
+            gatherFieldCode+='\n'+indent+getFunctionName(fieldType[0], toFieldType[0])+'('+childRecName+'.child, tmpVar)\n'
 
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, '')
@@ -1147,25 +1167,22 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
         if fromIsALT or fromIsEmbeddedAlt:
             if(fromIsEmbeddedAlt):
                # print "ALT-#2"
-                assignerCode+=Write_ALT_Extracter(objects, ToStructName, field['innerDefs'], VarTagBase, levelSuffix, VarName, indent+'    ', level+1)
+                assignerCode+=Write_ALT_Extracter(objects, ToStructName, field['innerDefs'], VarTagBase, levelSuffix, VarName, indent+'    ', level+1, logLvl+1)
             else:
               #  print "ALT-#3"
-                assignerCode+=Write_ALT_Extracter(objects, fieldType[0], fields, VarTagBase, levelSuffix, VarName+'X', indent+'    ', level)
+                assignerCode+=Write_ALT_Extracter(objects, fieldType[0], fields, VarTagBase, levelSuffix, VarName+'X', indent+'    ', level, logLvl+1)
                 assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
         elif fromIsEmbeddedSeq:
-            #if levelSuffix!='': print"\n\nFix Missing Level Bug Here!!! (A)\n\n"; exit(2);
             globalFieldCount +=1
             childRecNameBase='childSRec' + str(globalFieldCount)
             childRecName=childRecNameBase+str(level)
             assignerCode+='\n'+indent+'our stateRec: '+childRecName+' <- '+VarTag+levelSuffix+'.child\n'
             for innerField in field['innerDefs']:
-                assignerCode+=Write_fieldExtracter(objects, ToStructName, innerField, memObjFields, childRecNameBase, '', True, '    ', level)
+                assignerCode+=Write_fieldExtracter(objects, ToStructName, innerField, memObjFields, childRecNameBase, '', True, '    ', level, logLvl+1)
         elif fromIsStruct and toIsStruct:
-           # if levelSuffix!='': print"\n\nFix Missing Level Bug Here!!! (B)\n\n"; exit(2);
             assignerCode+=finalCodeStr.replace("<LVL_SUFFIX>", levelSuffix);
             if boob: print '        assignerCode:', assignerCode
         else:
-            #if levelSuffix!='': print"\n\nFix Missing Level Bug Here!!! (C)\n\n"; exit(2);
            # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
             if CODE_RVAL!="":
                 if LHS_IsPointer:
@@ -1179,7 +1196,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
             #print '######################\n'+assignerCode, memVersionName, '\n'
            # exit(2)
         gatherFieldCode = assignerCode
-
+    #print "##########################\n",S,"\n#####################################\n"
     if LHS_IsPointer: # LVAL is a pointer and should be allocated or cleared.
         S+= indent + 'AllocateOrClear(' +CODE_LVAR +')\n'
 
@@ -1191,41 +1208,42 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
 extracterFunctionAccumulator = ""
 alreadyWrittenFunctions={}
 
-def Write_structExtracter(objects, ToStructName, fields, nameForFunc):
-    #print ToStructName, nameForFunc
+def Write_structExtracter(objects, ToStructName, fields, nameForFunc, logLvl):
+    cdlog(logLvl, "WRITING function {}() to extract struct {} from parse tree...".format(nameForFunc, ToStructName.replace('str','mem')))
     [memObj, memVersionName]=fetchMemVersion(objects, ToStructName)
+    if memObj==None: cdErr("struct {} is not defined".format(ToStructName.replace('str','mem')))
     memObjFields=memObj['fields']
     S='    me string: tmpStr\n'
-    #print "WRITING STRUCT EXTRACTOR:",nameForFunc, memObj['configType']
     for field in fields: # Extract all the fields in the string version.
-        S+=Write_fieldExtracter(objects, ToStructName, field, memObjFields, 'SRec', '', True, '    ', 0)
+        S+=Write_fieldExtracter(objects, ToStructName, field, memObjFields, 'SRec', '', True, '    ', 0, logLvl+1)
     return S
 
-def Write_Extracter(objects, ToStructName, FromStructName, nameForFunc):
+def Write_Extracter(objects, ToStructName, FromStructName, logLvl):
     global extracterFunctionAccumulator
     global alreadyWrittenFunctions
+    nameForFunc=getFunctionName(FromStructName, ToStructName)
     if nameForFunc in alreadyWrittenFunctions: return
     alreadyWrittenFunctions[nameForFunc]=True
-    cdlog(1, "WRITING STRING-STRUCT: {}".format(ToStructName))
     S=''
-    ObjectDef = objects[0][FromStructName]
+    if len(FromStructName)>=5 and FromStructName[-5:]=='::str': FromStructName=FromStructName[:-5]
+    ObjectDef = objects[0][FromStructName+'::str']
     fields=ObjectDef['fields']
     configType=ObjectDef['configType']
     SeqOrAlt=''
     if configType=='SEQ': SeqOrAlt='parseSEQ'
     elif configType=='ALT': SeqOrAlt='parseALT'
     if configType=='SEQ':
-        S+=Write_structExtracter(objects, ToStructName, fields, nameForFunc)
+        S+=Write_structExtracter(objects, ToStructName, fields, nameForFunc, logLvl)
     elif configType=='ALT':
-        S+=Write_ALT_Extracter(objects, ToStructName, fields, 'SRec', '', 'tmpStr', '    ', -1)
+        S+=Write_ALT_Extracter(objects, ToStructName, fields, 'SRec', '', 'tmpStr', '    ', -1, logLvl)
 
     [memObj, memVersionName]=fetchMemVersion(objects, ToStructName)
-    seqExtracter =  "\n    void: Extract_"+nameForFunc.replace('::', '_')+"(our stateRec: SRec0, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
+    seqExtracter =  "\n    void: "+nameForFunc+"(our stateRec: SRec0, their "+memVersionName+": memStruct) <- {\n" + S + "    }\n"
     extracterFunctionAccumulator += seqExtracter
 
 
 def CreateStructsForStringModels(objects, tags):
-    cdlog(0, "Creating structs from string models...")
+    cdlog(1, "Creating parser and extracter from string models...")
 
     # Define fieldResult struct
     #~ structsName = 'fetchResult'
@@ -1277,10 +1295,14 @@ def CreateStructsForStringModels(objects, tags):
 
             normedObjectName = objectName.replace('::', '_')
             # Write the rules for all the fields, and a parent rule which is either SEQ or ALT, and REP/OPT as needed.
-            ruleID = writeNonTermParseRule(objects, tags, normedObjectName, fields, SeqOrAlt, '')
+            cdlog(2, "CODING Parser Rules for {}".format(normedObjectName))
+            ruleID = writeNonTermParseRule(objects, tags, normedObjectName, fields, SeqOrAlt, '', 3)
 
             if SeqOrAlt=='parseSEQ':
-                Write_Extracter(objects, objectName, objectName, objectName)
+                [memObj, memVersionName]=fetchMemVersion(objects, objectName)
+                if memObj!=None:
+                    Write_Extracter(objects, objectName, objectName, 2)
+                else: cdlog(2, "NOTE: Skipping {} because it has no ::mem version defined.".format(objectName))
 
     if numStringStructs==0: return
 
@@ -1298,11 +1320,8 @@ def CreateStructsForStringModels(objects, tags):
 
     ############  Add struct parser
     parserCode=genParserCode()
-    #print "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n", parserCode
     codeDogParser.AddToObjectFromText(objects[0], objects[1], parserCode)
 
     structsName='EParser'
-    #print progSpec.wrapFieldListInObjectDef(structsName, ExtracterCode)+"\n"
-    #exit(2)
     progSpec.addObject(objects[0], objects[1], structsName, 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef(structsName, ExtracterCode))

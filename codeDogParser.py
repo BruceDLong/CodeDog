@@ -7,8 +7,15 @@ from pyparsing import *
 ParserElement.enablePackrat()
 
 
-def reportParserPlace(s, loc, toks):
-    cdLog(1,"    PARSING AT char {}: {}".format(loc, toks))
+def logBSL(s, loc, toks):
+    cdlog(2,"Parsing Tags...")
+
+def logTags(s, loc, toks):
+    #cdlog(2,"PARSED Tag: {}".format(str(toks[0][0][0])))
+    pass
+
+def logObj(s, loc, toks):
+    cdlog(2,"PARSED: {}".format(str(toks[0][0])+' '+toks[0][1][0]))
 
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
@@ -23,13 +30,11 @@ backTickString = Literal("`").suppress() + SkipTo("`") + Literal("`").suppress()
 tagValue <<= (quotedString() | backTickString | Word(alphas+nums+'-*_./') | tagList | tagMap)("tagValue")
 tagDef = Group(tagID + Literal("=").suppress() + tagValue)("tagDef")
 tagDefList <<= Group(ZeroOrMore(tagDef))("tagDefList")
-#tagDefList.setParseAction(reportParserPlace)
 
 buildID = identifier("buildID")
 buildDefList = tagDefList("buildDefList")
 buildSpec = Group(buildID + Literal(":").suppress() + buildDefList + ";")("buildSpec")
 buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
-#buildSpec.setParseAction(reportParserPlace)
 
 #######################################   B A S I C   T Y P E S
 expr = Forward()
@@ -129,12 +134,15 @@ objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag")
 doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
 macroDef  = Group(Keyword("#define") + CID('macroName') + Literal("(").suppress() + Optional(CIDList('macroArgs')) + Literal(")").suppress() + Group( "<%" + SkipTo("%>", include=True))("macroBody"))
 objectList = Group(ZeroOrMore(objectDef | doPattern | macroDef))("objectList")
+objectDef.setParseAction(logObj)
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
-progSpecParser = (Optional(buildSpecList) + tagDefList + objectList)("progSpecParser")
+progSpecParser = (Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + objectList)("progSpecParser")
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
+    cdlog(1, "PARSING...")
+    cdlog(2, "Parsing build-specs...")
     try:
         localResults = progSpecParser.parseString(inputStr, parseAll = True)
 
@@ -393,7 +401,7 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
 
 
 def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
-    cdlog(1, "EXTRACTING Field Defs for {}".format(ObjectName))
+    cdlog(2, "EXTRACTING {}".format(ObjectName))
     for fieldResult in fieldResults:
         fieldDef=packFieldDef(fieldResult, ObjectName, '')
         progSpec.addField(ProgSpec, ObjectName, fieldDef)
@@ -569,6 +577,7 @@ def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
     extractMacroDefs(tmpMacroDefs, inputString)
     inputString = doMacroSubstitutions(tmpMacroDefs, inputString)
     results = parseInput(inputString)
+    cdlog(1, "PROCESSING CLASSES...")
     tagStore = extractTagDefs(results.tagDefList)
     buildSpecs = extractBuildSpecs(results.buildSpecList)
     extractObjectsOrPatterns(ProgSpec, objNames, macroDefs, results.objectList)

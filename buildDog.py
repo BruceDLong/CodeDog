@@ -7,6 +7,7 @@ import os
 import subprocess
 import buildAndroid
 import errno
+from progSpec import cdlog, cdErr
 
 #TODO: error handling
 
@@ -21,7 +22,7 @@ def runCMD(myCMD, myDir):
         if (err.find("ERROR")) >= 0:
             exit(1)
     return [out, err]
-    
+
 def makeDir(dirToGen):
     #print "dirToGen:", dirToGen
     try:
@@ -33,7 +34,9 @@ def writeFile(path, fileName, fileSpecs, fileExtension):
     #print path
     makeDir(path)
     fileName += fileExtension
-    fo=open(path + os.sep + fileName, 'w')
+    pathName = path + os.sep + fileName
+    cdlog(1, "WRITING FILE: "+pathName)
+    fo=open(pathName, 'w')
     fo.write(fileSpecs[0][1])
     fo.close()
 
@@ -82,7 +85,7 @@ def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     workingDirectory = currentDirectory + "/" + buildName
     buildStr = langStr + debugMode + " " + minLangStr + fileStr + libStr + " " + outputFileStr
     return [workingDirectory, buildStr]
-    
+
 def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
     buildStr = ''
     libStr = ''
@@ -90,7 +93,7 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     sourcePath = buildName + "/" + "Sources"
     currentDirectory = currentWD = os.getcwd()
     workingDirectory = currentDirectory + "/" + buildName
-    
+
     makeDir(buildName)
     runCMD("swift package init --type executable", workingDirectory)
     writeFile(sourcePath, "main", fileSpecs, fileExtension)
@@ -103,22 +106,25 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
         else:
             libStr += libFile
         #print "libStr: " + libStr
-    
-    buildStr = "swift build" 
+
+    buildStr = "swift build"
     return [workingDirectory, buildStr]
 
 def printResults(workingDirectory, buildStr):
-    print "buildStr: ", buildStr
-    print "workingDirectory: ", workingDirectory
+    cdlog(1, "Compiling From: {}".format(workingDirectory))
+    print "     NOTE: Build Command is: ", buildStr, "\n"
+    #print "workingDirectory: ", workingDirectory
     pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
     if out: print "Result: ",out
     if err:
-        print "Error: ", err
+        print "Error Messages:\n--------------------------\n", err,
+        print "--------------------------",
         exit(2)
+    else: cdlog(1, "SUCCESS!")
 
 def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
-    "\n\n######################   B U I L D I N G    S Y S T E M"
+    cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(platform))
     if platform == 'Linux':
         [workingDirectory, buildStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
         printResults(workingDirectory, buildStr)
@@ -133,4 +139,5 @@ def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fi
     else:
         print "buildDog.py error: build string not generated for "+ buildName
         exit(2)
+    print "--------------------------"
     return

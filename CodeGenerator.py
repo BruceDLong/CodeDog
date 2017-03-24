@@ -2,7 +2,6 @@
 import progSpec
 import re
 import datetime
-import pattern_Write_Main
 import codeDogParser
 from progSpec import cdlog, cdErr
 from progSpec import structsNeedingModification
@@ -517,9 +516,10 @@ def codeAction(action, indent, xlator):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
+        cdlog(5, "New Var: {}: ".format(varName))
         fieldType = xlator['convertType'](objectsRef, typeSpec, 'var', xlator)
         varDeclareStr=''
-        cdlog(6, "Action newVar: {}".format(varName))
+        cdlog(5, "Action newVar: {}".format(varName))
         varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, xlator)
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
@@ -530,13 +530,13 @@ def codeAction(action, indent, xlator):
         [codeStr, typeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', xlator)
         assignTag = action['assignTag']
         LHS = codeStr
-        cdlog(6, "Assign: ".format(LHS))
+        cdlog(5, "Assignment: ".format(LHS))
         [S2, rhsType]=xlator['codeExpr'](action['RHS'][0], xlator)
         #print "LHS / RHS:", LHS, ' / ', S2, typeSpec, rhsType
         [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](typeSpec, rhsType, assignTag)
         LHS = LHS_leftMod+LHS+LHS_rightMod
         RHS = RHS_leftMod+S2+RHS_rightMod
-        #print "Assign: ", LHS, RHS, typeSpec
+        cdlog(5, "Assignment: {} = {}".format(LHS, RHS))
         if not isinstance (typeSpec, dict):
             print 'Problem: typeSpec is', typeSpec, '\n';
             LHS_FieldType='string'
@@ -580,8 +580,10 @@ def codeAction(action, indent, xlator):
         print "                                     swap: ", LHS, RHS
         actionText = indent + "swap (" + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='conditional'):
+        cdlog(5, "If-statement...")
         [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], xlator)
         [S2, conditionType] =  xlator['adjustIfConditional'](S2, conditionType)
+        cdlog(5, "If-statement: Condition is ".format(S2))
         ifCondition = S2
 
 
@@ -602,6 +604,7 @@ def codeAction(action, indent, xlator):
     elif (typeOfAction =='repetition'):
         repBody = action['repBody']
         repName = action['repName']
+        cdlog(5, "Repetition stmt: loop var is:".format(repName))
         traversalMode = action['traversalMode']
         rangeSpec = action['rangeSpec']
         whileSpec = action['whileSpec']
@@ -672,8 +675,10 @@ def codeAction(action, indent, xlator):
         if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':
             print "\nERROR: It is not allowed to name a function", calledFunc[0][0]
             exit(2)
+        cdlog(5, "Function Call: {}()".format(str(calledFunc[0][0])))
         actionText = indent + codeFuncCall(calledFunc, xlator) + ';\n'
     elif (typeOfAction =='actionSeq'):
+        cdlog(5, "Action Sequence")
         actionListIn = action['actionList']
         actionListText = ''
         for action in actionListIn:
@@ -728,7 +733,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
         convertedType = xlator['convertType'](objects, typeSpec, 'var', xlator)
         fieldName=field['fieldName']
 
-        cdlog(5, "                        Constructing: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
+        cdlog(4, "                        Constructing: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
                 #print "                > ", fieldOwner, convertedType, fieldName
@@ -752,7 +757,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
 
 def codeStructFields(objects, objectName, tags, indent, xlator):
     global ForwardDeclsForGlobalFuncs
-    cdlog(4, "Coding fields for {}...".format(objectName))
+    cdlog(3, "Coding fields for {}...".format(objectName))
     ####################################################################
     global localArgsAllocated
     funcBodyIndent   = xlator['funcBodyIndent']
@@ -776,7 +781,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
-        cdlog(5, "FieldName: {}".format(fieldName))
+        cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, 'var', xlator))
@@ -888,7 +893,6 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
 def codeAllNonGlobalStructs(objects, tags, xlator):
-    cdlog(3, "Generating Objects...")
     global currentObjName
     global structsNeedingModification
     constsEnums=""
@@ -915,7 +919,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             if(classAttrs): classAttrs=classAttrs[0]+' '
             else: classAttrs=''
             if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
-                cdlog(4, "SKIPPING: {} {} {}".format(objectName, ctxTag, implMode))
+                cdlog(2, "SKIPPING: {} {} {}".format(objectName, ctxTag, implMode))
                 continue
 
             #print "OBJNAME", objectName
@@ -927,9 +931,9 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
                     #objectName = objectName[:charIdx-1]
                 #else:print "!TAG", thisCtxTag; continue
 
-            cdlog(4, "[" + objectName+"]")
+            cdlog(2, "CODING: " + objectName)
             if (objectName in structsNeedingModification):
-                cdlog(5, "structsNeedingModification: {}".format(str(structsNeedingModification[objectName])))
+                cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[objectName])))
                 [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[objectName]
                 implMode='implement:' + interfaceImplemented
 
@@ -965,7 +969,7 @@ def codeStructureCommands(objects, tags, xlator):
             if calledFuncName in progSpec.funcsCalled:
                 calledFuncInstances = progSpec.funcsCalled[calledFuncName]
                 #print '     addImplements:'
-                #print '          calledFuncName:', calledFuncName
+                print '          calledFuncName:', calledFuncName
                 for funcCalledParams in calledFuncInstances:
                     #print '\n funcCalledParams:',funcCalledParams
                     paramList = funcCalledParams[0]
@@ -1027,13 +1031,14 @@ def integrateLibraries(tags, libID, xlator):
     return headerStr
 
 def connectLibraries(objects, tags, libsToUse, xlator):
-    cdlog(3, "Choosing Libraries to link...")
+    cdlog(1, "Attaching chosen libraries...")
     headerStr = ''
     for lib in libsToUse:
         headerStr += integrateLibraries(tags, lib, xlator)
     return headerStr
 
 def addGLOBALSpecialCode(objects, tags, xlator):
+    cdlog(1, "Attaching Language Specific Code...")
     xlator['addGLOBALSpecialCode'](objects, tags, xlator)
     initCode=''; deinitCode=''
 
@@ -1125,7 +1130,6 @@ def clearBuild():
     ForwardDeclsForGlobalFuncs='\n\n// Forward Declarations of global functions\n'
 
 def generate(objects, tags, libsToUse, xlator):
-    #print "\nGenerating code...\n"
     clearBuild()
     global objectsRef
     global buildStr_libs
@@ -1136,10 +1140,12 @@ def generate(objects, tags, libsToUse, xlator):
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     addGLOBALSpecialCode(objects, tags, xlator)
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
+
+    cdlog(1, "Generating Top-level (e.g., main())...")
     if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program": generateBuildSpecificMainFunctionality(objects, tags, xlator)
 
-    print "\n\n######################  G E N E R A T I N G     C O D E \n"
     codeStructureCommands(objects, tags, xlator)
+    cdlog(1, "Generating Classes...")
     fileSpecs=codeAllNonGlobalStructs(objects, tags, xlator)
     topBottomStrings = xlator['codeMain'](objects, tags, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)

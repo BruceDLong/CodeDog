@@ -336,20 +336,28 @@ lastLogMesgs=['','','','','','','','','','']
 highestLvl=0;
 noError=False
 
-def printAtLvl(lvl, mesg):
-    for i in range(0, lvl*5): sys.stdout.write( " ")
+def printAtLvl(lvl, mesg, indent):
+    for i in range(0, lvl): sys.stdout.write(indent)
     print mesg
+
+
+def resizeLogArray(lvl):
+    global lastLogMesgs
+    while(lvl+1>len(lastLogMesgs)):
+        lastLogMesgs.append('')
 
 def cdlog(lvl, mesg):
     global MaxLogLevelToShow
     global lastLogMesgs
     global highestLvl
     highestLvl=lvl
+    resizeLogArray(lvl)
     lastLogMesgs[lvl]=mesg
     for i in range(highestLvl+1, len(lastLogMesgs)):
         lastLogMesgs[i]=''
     if(lvl<=MaxLogLevelToShow):
-        printAtLvl(lvl, mesg)
+        if(lvl==0): print('')
+        printAtLvl(lvl, mesg, '|    ')
 
 def cdErr(mesg):
     global lastLogMesgs
@@ -363,7 +371,7 @@ def whenExit():
     global highestLvl
     global noError
     if(noError): return;
-    print "\nAn error has occured:\n"
+    print "\n\nAn error occured while:",
     for i in range(0, highestLvl+1):
-        printAtLvl(i, lastLogMesgs[i])
+        printAtLvl(i, lastLogMesgs[i], '    ')
     print("\n")

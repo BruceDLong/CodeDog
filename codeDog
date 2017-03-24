@@ -6,7 +6,6 @@ import codeDogParser
 import buildDog
 import TestDog
 
-import pattern_Write_Main
 import pattern_GUI_Toolkit
 import pattern_ManageCmdLine
 
@@ -128,13 +127,13 @@ def GenerateProgram(objects, buildTags, tagsList, libsToUse):
     result='No Language Generator Found for '+buildTags['Lang']
     langGenTag = buildTags['Lang']
     if(langGenTag == 'CPP'):
-        cdlog(0, "\n\n######################  G E N E R A T I N G   C + +   P R O G R A M . . .")
+        cdlog(0, "\n##############  G E N E R A T I N G   C + +   P R O G R A M . . .")
         xlator = xlator_CPP.fetchXlators()
     elif(langGenTag == 'Java'):
-        cdlog(0, "\n\n######################  G E N E R A T I N G   J A V A   P R O G R A M . . .")
+        cdlog(0, "\n##############  G E N E R A T I N G   J A V A   P R O G R A M . . .")
         xlator = xlator_Java.fetchXlators()
     elif(langGenTag == 'Swift'):
-        cdlog(0,"\n\n######################  G E N E R A T I N G   S W I F T   P R O G R A M . . .")
+        cdlog(0,"\n##############  G E N E R A T I N G   S W I F T   P R O G R A M . . .")
         xlator = xlator_Swift.fetchXlators()
     else:
         cdErr( "ERROR: No language generator found for ".format( langGenTag))
@@ -143,7 +142,7 @@ def GenerateProgram(objects, buildTags, tagsList, libsToUse):
     return result
 
 def ChooseLibs(objects, buildTags, tags):
-    cdlog(0,  "\n\n######################   C H O O S I N G   L I B R A R I E S")
+    cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
     # TODO: Why is fetchTagValue called with tags, not [tags]?
     libList = progSpec.fetchTagValue([tags], 'libraries')
     Platform= progSpec.fetchTagValue([tags, buildTags], 'Platform')
@@ -164,21 +163,21 @@ def ChooseLibs(objects, buildTags, tags):
       #  if not (libCPUs and CPU in libCPUs): LibCanWork=False;
 
         if(LibCanWork):
-            cdlog(2, "{} works for this system.".format(lib))
+            cdlog(2, "NOTE: {} would work for this system.".format(lib))
             compatibleLibs.append([lib, libFeatures])
 
     # TODO: This should cause error if a need isn't met. And, it should resolve when multiple libraries can meet a need.
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
-    cdlog(1, "Features Needed: {}".format( featuresNeeded))
+    cdlog(2, "NOTE: Features Needed: {}".format( featuresNeeded.keys()))
     progSpec.libsToUse={}
     for need in featuresNeeded:
-        cdlog(2,str(need))
+        cdlog(3,str(need))
         for LIB in compatibleLibs:
             if(need in LIB[1]):
                 progSpec.libsToUse[LIB[0]] = True
-                cdlog(3, str(LIB[0]))
+                cdlog(4, str(LIB[0]))
 
-    cdlog(1, "USING LIBS: {}".format(progSpec.libsToUse))
+    cdlog(2, "NOTE: USING LIBS: {}".format(progSpec.libsToUse.keys()))
     for Lib in progSpec.libsToUse:
         if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildTags, [tags, buildTags], Platform)
         elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildTags, [tags, buildTags], Platform)
@@ -194,41 +193,39 @@ def ChooseLibs(objects, buildTags, tags):
     return progSpec.libsToUse
 
 def GenerateSystem(objects, buildSpecs, tags, macroDefs):
-    cdlog(0, "\n\n######################   G E N E R A T I N G   S Y S T E M")
+    cdlog(0, "\n######################   G E N E R A T I N G   P R O G R A M   S P E C I F I C A T I O N")
     ScanAndApplyPatterns(objects, tags)
     AutoGenerateStructsFromModels(objects, tags)
     stringStructs.CreateStructsForStringModels(objects, tags)
     GroomTags(tags)
 
+    count=0
     for buildSpec in buildSpecs:
+        count+=1
         buildName=buildSpec[0]
         buildTags=buildSpec[1]
         testMode=progSpec.fetchTagValue([tags, buildTags], 'testMode')
-        cdlog(1, "Generating code for build {}".format(buildName))
         progSpec.MarkItems=True
         if testMode=='makeTests' or testMode=='runTests':
             testTagStore=TestDog.generateTestCode(objects, buildTags, tags, macroDefs)
             tagsList=[tags, buildTags, testTagStore]
-        else: tagsList=[tags, buildTags]
+        else:
+            tagsList=[tags, buildTags]
+        cdlog(0, "\n######################   G E N E R A T I N G   S O U R C E   C O D E   S Y S T E M   {}   o f   {}...   ({})".format(count, len(buildSpecs), buildName))
         libsToUse=ChooseLibs(objects, buildTags, tags)
         fileSpecs = GenerateProgram(objects, buildTags, tagsList, libsToUse)
-        fileName = tagStore['FileName']
-        fileName = progSpec.fetchTagValue(tagsList, 'FileName')
-        langGenTag = buildTags['Lang']
 
         #GenerateBuildSystem()###################################################
+        fileName = progSpec.fetchTagValue(tagsList, 'FileName')
+        langGenTag = buildTags['Lang']
         libFiles=[]
         for lib in libsToUse:
             tmpLibFiles=(progSpec.fetchTagValue([tags, buildTags], 'libraries.'+ lib +'.libFiles'))
             libFiles+=tmpLibFiles
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
-        cdlog(1, "Files Generated: {}".format( len(fileSpecs)))
-        for f in fileSpecs:
-            cdlog(2, "    * {}".format(f[0]))
-        print "\nWRITING FILES AND COMPILING..."
+        #cdlog(1, "\nWRITING {} FILE(S) AND COMPILING...".format(len(fileSpecs)))
         buildDog.build("-g", '14',  fileName, libFiles, buildName, platform, fileSpecs)
-        print "--------------------------"
         progSpec.rollBack(objects)
     # GenerateDocuments()
 
@@ -245,7 +242,7 @@ codeDogStr = processIncludedFiles(codeDogStr)
 
 
 # objectSpecs is like: [ProgSpec, objNames]
-cdlog(0, "######################   P A R S I N G   S Y S T E M  ({})".format(file_name))
+cdlog(0, "######################   P A R S I N G   C O D E D O G  ({})".format(file_name))
 ProgSpec = {}
 objNames = []
 macroDefs= {}
@@ -253,7 +250,7 @@ macroDefs= {}
 tagStore['dogFilename']=file_name
 
 GenerateSystem(objectSpecs, buildSpecs, tagStore, macroDefs)
-cdlog(0, "\n\n######################   D O N E")
+cdlog(0, "\n######################   D O N E")
 endTime = timer()
 cdlog(0, "\nTIME: {0:.2f} seconds".format(endTime-startTime))
 progSpec.noError=True
