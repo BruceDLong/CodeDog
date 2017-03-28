@@ -28,7 +28,7 @@ def adjustBaseTypes(fieldType):
 
 def applyOwner(owner, langType, varMode):
     if owner=='const':
-        langType = "const "+langType
+        langType = "static const "+langType
     elif owner=='me':
         langType = langType
     elif owner=='my':
@@ -344,6 +344,7 @@ def codeIsEQ(item, xlator):
     [S, retType]=codeComparison(item[0], xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print "Error: Chained == or !=.\n"; exit(1);
+        if (isinstance(retType, int)): cdErr("Invalid item in ==: {}".format(item))
         leftOwner=owner=progSpec.getTypeSpecOwner(retType)
         S_derefd = derefPtr(S, retType)
         for i in item[1]:

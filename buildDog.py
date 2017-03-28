@@ -124,7 +124,7 @@ def printResults(workingDirectory, buildStr):
     else: cdlog(1, "SUCCESS!")
 
 def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
-    cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(platform))
+    cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
     if platform == 'Linux':
         [workingDirectory, buildStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
         printResults(workingDirectory, buildStr)

@@ -242,6 +242,7 @@ codeDogStr = processIncludedFiles(codeDogStr)
 
 
 # objectSpecs is like: [ProgSpec, objNames]
+sys.setrecursionlimit(2000)
 cdlog(0, "######################   P A R S I N G   C O D E D O G  ({})".format(file_name))
 ProgSpec = {}
 objNames = []

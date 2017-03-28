@@ -353,7 +353,7 @@ struct EParser{
             return(-1)
         }
         me char: ch <- textToParse[pos]
-        if(isalpha(ch) or ch==chars[0]){
+        if(isalpha(ch)){   /- or ch==chars[0]){
             return(scrapeAlphaNum_Seq(pos))
         } else {return(-1)}
     }
@@ -382,23 +382,25 @@ struct EParser{
         me uint32: prodType <- Prod.prodType
         if(prodType==parseSEQ){ /-prod is simple text match
             return(chkStr(pos, Prod.constStr))
-        } else{if(prodType==parseAUTO){
- /-           print("\n")
-            if(ProdID==alphaSeq)    {return(scrapeAlphaSeq(pos))}
-            if(ProdID==uintSeq)     {return(scrapeUintSeq(pos))}
-            if(ProdID==alphaNumSeq) {return(scrapeAlphaNumSeq(pos))}
-            if(ProdID==printables)  {return(scrapePrintableSeq(pos))}
-            if(ProdID==ws)          {return(scrapeWS(pos))}
-            if(ProdID==quotedStr1)  {return(scrapeQuotedStr1(pos))}
-            if(ProdID==quotedStr2)  {return(scrapeQuotedStr2(pos))}
-            if(ProdID==CID)         {return(scrapeCID(pos))}
-         /-   if(ProdID==UniID)       {return(scrapeUniID(pos))}
-            if(ProdID==intSeq)      {return(scrapeIntSeq(pos))}
-         /-   if(ProdID==RdxSeq)      {return(scrapeRdxSeq(pos))}
-            if(ProdID==toEOL)       {return(scrapeToEOL(pos))}
-
-        }}
-        print("Huh???\n")
+        } else{
+            if(prodType==parseAUTO){
+                switch(ProdID){
+                    case alphaSeq:    {return(scrapeAlphaSeq(pos))}
+                    case uintSeq:     {return(scrapeUintSeq(pos))}
+                    case alphaNumSeq: {return(scrapeAlphaNumSeq(pos))}
+                    case printables:  {return(scrapePrintableSeq(pos))}
+                    case ws:          {return(scrapeWS(pos))}
+                    case quotedStr1:  {return(scrapeQuotedStr1(pos))}
+                    case quotedStr2:  {return(scrapeQuotedStr2(pos))}
+                    case CID:         {return(scrapeCID(pos))}
+             /-       case UniID:       {return(scrapeUniID(pos))}
+                    case intSeq:      {return(scrapeIntSeq(pos))}
+             /-       case RdxSeq:      {return(scrapeRdxSeq(pos))}
+                    case toEOL:       {return(scrapeToEOL(pos))}
+                    default: {print("Invalid AUTO-parse production type.\n")}
+                }
+            }
+        }
         return(-1)
     }
 
@@ -902,6 +904,7 @@ def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuf
     # Fields is the list of alternates.
     # VarTag is a string used to create local variables.
     # VarName is the LVAL variable name.
+    global  globalFieldCount
     cdlog(logLvl, "WRITING code to extract one of {} from parse tree...".format(parentStructName))
     [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     InnerMemObjFields=memObj['fields']
@@ -912,36 +915,39 @@ def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuf
         VarTag='SRec1'
         VarTagSuffix='0'
     else:
+        globalFieldCount+=1
         VarTag=VarTagBase+str(level)
         VarTagSuffix=str(level-1)+'.child.next'+VarTagSuffix
 
-    S+='\n'+indent+'\nour stateRec: '+VarTag+' <- '+VarTagBase+VarTagSuffix+'\n'
-    loopVarName = "ruleIDX"+str(level)
-    S+='        me int32: '+loopVarName+' <- '+VarTag+'.child.productionID\n'
+    indent2 = indent+'    '
+    S+='\n'+indent+'{\n'
+    S+='\n'+indent2+'our stateRec: '+VarTag+' <- '+VarTagBase+VarTagSuffix+'\n'
+    loopVarName = "ruleIDX"+str(globalFieldCount)
+    S+=indent2+'me int32: '+loopVarName+' <- '+VarTag+'.child.productionID\n'
 
     #print "RULEIDX:", indent, parentStructName, VarName
     if VarName!='memStruct':
-        S+=indent + 'me string: '+VarName+'\n'
+        S+=indent2 + 'me string: '+VarName+'\n'
     count=0
+    S+= indent2+"switch("+loopVarName+"){\n"
     for altField in fields:
         if(altField['isNext']!=True): continue; # This field isn't in the parse stream.
         cdlog(logLvl+1, "ALT: {}".format(altField['parseRule']))
-        S+=indent
-        if(count>0): S+="else "
         if not 'parseRule' in altField: print "Error: Is syntax missing a '>'?"; exit(2);
-        S+="if("+loopVarName+" == " + altField['parseRule'] + "){\n"
+        S+=indent2+"    case " + altField['parseRule'] + ":{\n"
         coFactualCode=''
         if 'coFactuals' in altField:
             #Extract field and cofactsList
-            coFactualCode="\n"
             for coFact in altField['coFactuals']:
-                coFactualCode+= indent + VarName + '.' + coFact[0] + ' <- ' + coFact[2] + "\n"
+                coFactualCode+= indent2 +'        ' + VarName + '.' + coFact[0] + ' <- ' + coFact[2] + "\n"
                 cdlog(logLvl+2, "Cofactual: "+coFactualCode)
-        #print indent,"    GOING TO WRITE FIELD:", count
-        S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTagBase, VarName, False, indent+'    ', level, logLvl+1)
+
+        S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTagBase, VarName, False, indent2+'        ', level, logLvl+1)
         S+=coFactualCode
-        S+=indent+"}"
+        S+=indent2+"    }\n"
         count+=1
+    S+=indent2+"}"
+    S+=indent+"}"
     return S
 
 

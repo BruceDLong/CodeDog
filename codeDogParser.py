@@ -17,6 +17,9 @@ def logTags(s, loc, toks):
 def logObj(s, loc, toks):
     cdlog(2,"PARSED: {}".format(str(toks[0][0])+' '+toks[0][1][0]))
 
+def logFieldDef(s, loc, toks):
+    cdlog(3,"Field: {}".format(str(toks)))
+
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
@@ -80,6 +83,9 @@ verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 fieldDef = Forward()
 argList =  (verbatim | Group(Optional(delimitedList(Group( fieldDef)))))("argList")
 actionSeq = Forward()
+defaultCase = Group(Keyword("default")+Literal(":").suppress() + actionSeq("caseAction"))("defaultCase")
+switchCase= Group(Keyword("case") + OneOrMore(rValue+Literal(":").suppress())("caseValues") + actionSeq("caseAction"))
+switchStmt= Group(Keyword("switch")("switchStmt") + "(" + rValue("switchKey") + ")" +"{" + OneOrMore(switchCase)("switchCases") + Optional(defaultCase)("optionalDefaultCase") +"}")
 conditionalAction = Forward()
 conditionalAction <<= Group(
             Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
@@ -98,7 +104,7 @@ repeatedAction = Group(
         )("repeatedAction")
 
 action = Group((assign("assign") | funcCall("funcCall") | fieldDef('fieldDef')) + Optional(comment))
-actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
+actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (switchStmt | conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
 
@@ -135,6 +141,7 @@ doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList
 macroDef  = Group(Keyword("#define") + CID('macroName') + Literal("(").suppress() + Optional(CIDList('macroArgs')) + Literal(")").suppress() + Group( "<%" + SkipTo("%>", include=True))("macroBody"))
 objectList = Group(ZeroOrMore(objectDef | doPattern | macroDef))("objectList")
 objectDef.setParseAction(logObj)
+fieldDef.setParseAction(logFieldDef)
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
 progSpecParser = (Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + objectList)("progSpecParser")
@@ -143,6 +150,7 @@ progSpecParser = (Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.se
 def parseInput(inputStr):
     cdlog(1, "PARSING...")
     cdlog(2, "Parsing build-specs...")
+    progSpec.saveTextToErrFile(inputStr)
     try:
         localResults = progSpecParser.parseString(inputStr, parseAll = True)
 
@@ -292,6 +300,18 @@ def extractActItem(funcName, actionItem):
     thisActionItem='error'
     if actionItem.fieldDef:
         thisActionItem = {'typeOfAction':"newVar", 'fieldDef':packFieldDef(actionItem.fieldDef, '', '    LOCAL:')}
+    elif actionItem.switchStmt:
+        switchKey = actionItem.switchKey
+        switchCases = actionItem.switchCases
+        defaultCaseAction = None
+        if actionItem.optionalDefaultCase:
+            defaultCaseAction = extractActSeqToActSeq(funcName, actionItem.defaultCase.caseAction)
+        casesList=[]
+        for sCase in switchCases:
+            CaseActSeq = extractActSeqToActSeq(funcName, sCase.caseAction)
+            casesList.append([sCase.caseValues, CaseActSeq])
+
+        thisActionItem = {'typeOfAction':'switchStmt', 'switchKey':switchKey, 'switchCases':casesList, 'defaultCase':defaultCaseAction}
     elif actionItem.ifStatement:    # Conditional
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
@@ -589,6 +609,7 @@ def AddToObjectFromText(spec, objNames, inputStr):
     inputStr = comment_remover(inputStr)
     #print '####################\n',inputStr, "\n######################^\n\n\n"
 
+    progSpec.saveTextToErrFile(inputStr)
     # (map of objects, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
     #print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'

@@ -336,6 +336,9 @@ lastLogMesgs=['','','','','','','','','','']
 highestLvl=0;
 noError=False
 
+def logLvl():
+    return highestLvl+1
+
 def printAtLvl(lvl, mesg, indent):
     for i in range(0, lvl): sys.stdout.write(indent)
     print mesg
@@ -375,3 +378,8 @@ def whenExit():
     for i in range(0, highestLvl+1):
         printAtLvl(i, lastLogMesgs[i], '    ')
     print("\n")
+
+def saveTextToErrFile(textToSave):
+    text_file = open("ErrFile.txt", "w")
+    text_file.write(textToSave)
+    text_file.close()

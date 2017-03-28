@@ -3,7 +3,7 @@ import progSpec
 import re
 import datetime
 import codeDogParser
-from progSpec import cdlog, cdErr
+from progSpec import cdlog, cdErr, logLvl
 from progSpec import structsNeedingModification
 
 buildStr_libs=''
@@ -141,8 +141,7 @@ def fetchItemsTypeSpec(itemName, xlator):
                         crntBaseName = progSpec.baseStructName(currentObjName)
                         if(parentClassName[: len(crntBaseName)] != crntBaseName):
                             return [None, "STATIC:"+parentClassName]
-                    #print "\nVariable", itemName, "could not be found."
-                    #exit(1)
+                    cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                     return [None, "LIB"]
     return [REF['typeSpec'], RefType]
     # Example: [{typeSpec}, 'OBJVAR']
@@ -333,6 +332,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
             if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList']
             [CPL, paramTypeList] = codeParameterList(paramList, modelParams, xlator)
             S+= CPL
+    if(typeSpecOut==None): cdlog(logLvl(), "Type for {} was not found.".format(name))
     return [S,  typeSpecOut, None]
 
 def codeUnknownNameSeg(segSpec, xlator):
@@ -677,6 +677,22 @@ def codeAction(action, indent, xlator):
             exit(2)
         cdlog(5, "Function Call: {}()".format(str(calledFunc[0][0])))
         actionText = indent + codeFuncCall(calledFunc, xlator) + ';\n'
+    elif (typeOfAction == 'switchStmt'):
+        #print "ACTIONKEY:", str(action['switchKey'])+"'"
+        [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], xlator)
+        actionText += indent+"switch("+ switchKeyExpr + "){\n"
+        for sCases in action['switchCases']:
+            for sCase in sCases[0]:
+                [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], xlator)
+                actionText += indent+"    case "+caseKeyValue+": "
+                caseAction = sCases[1]
+                actionText += codeActionSeq(False, caseAction, indent+'    ', xlator)
+                actionText += indent+"    break;\n"
+        defaultCase=action['defaultCase']
+        if defaultCase and len(defaultCase)>0:
+            actionText+=indent+"default: "
+            actionText += codeActionSeq(False, defaultCase, indent, xlator)
+        actionText += indent + "}\n"
     elif (typeOfAction =='actionSeq'):
         cdlog(5, "Action Sequence")
         actionListIn = action['actionList']
