@@ -3,7 +3,7 @@ import progSpec
 import re
 import datetime
 import codeDogParser
-from progSpec import cdlog, cdErr, logLvl
+from progSpec import cdlog, cdErr, logLvl, dePythonStr
 from progSpec import structsNeedingModification
 
 buildStr_libs=''
@@ -139,6 +139,7 @@ def fetchItemsTypeSpec(itemName, xlator):
                     if(itemName in StaticMemberVars):
                         parentClassName = staticVarNamePrefix(itemName, xlator)
                         crntBaseName = progSpec.baseStructName(currentObjName)
+                        #print"STATIC:",itemName, parentClassName, crntBaseName
                         if(parentClassName[: len(crntBaseName)] != crntBaseName):
                             return [None, "STATIC:"+parentClassName]
                     cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
@@ -371,6 +372,7 @@ def codeItemRef(name, LorR_Val, xlator):
     AltFormat=None
     AltIDXFormat=''
     for segSpec in name:
+        if(isinstance(segType, int)): cdErr("Segment '{}' in the name '{}' is not valid.".format(segSpec[0], dePythonStr(name)))
         owner=progSpec.getTypeSpecOwner(segType)
         segName=segSpec[0]
         #print "NameSeg:", segName
@@ -518,7 +520,6 @@ def codeAction(action, indent, xlator):
         varName = fieldDef['fieldName']
         cdlog(5, "New Var: {}: ".format(varName))
         fieldType = xlator['convertType'](objectsRef, typeSpec, 'var', xlator)
-        varDeclareStr=''
         cdlog(5, "Action newVar: {}".format(varName))
         varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, xlator)
         actionText = indent + varDeclareStr + ";\n"
@@ -750,9 +751,9 @@ def codeConstructor(objects, ClassName, tags, xlator):
         fieldName=field['fieldName']
 
         cdlog(4, "                        Constructing: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
+        if not isinstance(fieldType, basestring): fieldType=fieldType[0]
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
-                #print "                > ", fieldOwner, convertedType, fieldName
                 constructorArgs += convertedType+" _"+fieldName+"=0,"
                 constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator)
                 count += 1

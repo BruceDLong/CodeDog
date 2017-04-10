@@ -47,16 +47,24 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             print("\nTotal Failures/Tests: ", T_NUM_FAILS, "/", T_total, "\n")
         }
 
-        void: RUN_TEST(me string: testName) <- {
+        void: RUN_TEST(me string: testName, me string: verboseMode) <- {
             Tstat <- "."
             T_total <- T_total+1
             T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
+            if(verboseMode=="1"){
+                print("TESTING ",testName,"...   \t\t")
+            }
             /- clear failFlag and mesg_buff; setTimer
             <TEST-CASES-HERE>
             else {Tstat <- "?"}
             /- readTimer()
             /- fetch and return results
-            print(Tstat)
+            if(verboseMode=="1"){
+                if(Tstat=="."){print("OK\n")}
+                else if(Tstat=="?"){print("TEST NAME NOT RECOGNIZED\n")}
+                else if(Tstat=="F"){print("FAILED\n")}
+                else {print("UNKNOWN OUTCOME\n")}
+            } else {print(Tstat)}
             if(Tstat=="?"){T_TEST_BUFF <- T_TEST_BUFF + "\nTEST NAME NOT RECOGNIZED\n"}
             if(Tstat!=".") {
                 if(Tstat=="F" or Tstat=="?"){T_NUM_FAILS<-T_NUM_FAILS+1}
@@ -64,13 +72,13 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             }
         }
 
-        void: EXEC_TESTS() <- {
+        void: EXEC_TESTS(me string: verboseMode) <- {
             me bool: listOnly <- false
             me bool: CrashProof <- false
             withEach test in testToRun:{
                 if(! listOnly){
                     if (!CrashProof){
-                        RUN_TEST(test)
+                        RUN_TEST(test, verboseMode)
                     } else {
      /-                   ExecSelf with timer and fetch result
                     }
@@ -86,7 +94,9 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
         void: RUN_SELECTED_TESTS() <- {
             /- Construct list of tests to run. /- All Tests | -t <testSPec List> | -f = run failed tests
             CommandLineManager.defineOption("TestDog", "ListOfTests", "-t", "--tests", "Specification of which tests to run.")
+            CommandLineManager.defineOption("TestDog", "verbose", "-v", "--verbose", "Provide more detail about running tests")
             me string: testListSpec <- CommandLineManager.getOption("TestDog", "ListOfTests")
+            me string: verboseMode  <- CommandLineManager.getOption("TestDog", "verbose")
             /-print("TEST LIST SPECIFICATION:'", testListSpec, "'\n")
             me string[list]: testList <- [<TEST-LIST-HERE>]
             if(testListSpec==""){testToRun <- testList}
@@ -95,7 +105,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
                 testToRun.pushLast(testListSpec)
             }
             /- Sort list as needed
-            EXEC_TESTS()
+            EXEC_TESTS(verboseMode)
         }
     }
 '''

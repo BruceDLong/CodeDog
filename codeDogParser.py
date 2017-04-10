@@ -103,7 +103,7 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action = Group((assign("assign") | funcCall("funcCall") | fieldDef('fieldDef')) + Optional(comment))
+action = Group((assign("assign") | funcCall("funcCall") | fieldDef('fieldDef')) + Optional(comment)) + Optional(";").suppress()
 actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (switchStmt | conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
 funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
@@ -114,7 +114,7 @@ nameAndVal = Group(
         | (Literal(":") + CID("fieldName")  + "<-" + rValue("givenValue"))
         | (Literal(":") + "<-" + (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
-        | (Literal("::") + CID("fieldName")  + parameters("parameters"))
+        | (Literal("::") + CID("fieldName")  + Group(parameters)("parameters"))
     )("nameAndVal")
 
 datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph"))('datastructID')
@@ -233,7 +233,10 @@ def packFieldDef(fieldResult, ObjectName, indent):
                 argList.append(packFieldDef(argSpec[0], ObjectName, indent+"    "))
         else: argList=None;
         if 'parameters' in nameAndVal:
-            for param in nameAndVal.parameters[1]:
+            print "PARAMS:", nameAndVal.parameters
+            if(str(nameAndVal.parameters)=="['(']"): prmList={}
+            else: prmList=nameAndVal.parameters[0][1]
+            for param in prmList:
                 paramList.append(param)
         else: paramList=None
 

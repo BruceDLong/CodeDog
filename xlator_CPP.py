@@ -1,7 +1,7 @@
 #xlator_CPP.py
 import progSpec
 import codeDogParser
-from progSpec import cdlog, cdErr
+from progSpec import cdlog, cdErr, logLvl
 from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
@@ -285,6 +285,7 @@ def codeFactor(item, xlator):
         else:
             [codeStr, retType, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', xlator)
             if(codeStr=="NULL"):
+                codeStr="nullptr"
                 retType={'owner':"PTR"}
             S+=codeStr                                # Code variable reference or function call
     return [S, retType]
@@ -344,7 +345,7 @@ def codeIsEQ(item, xlator):
     [S, retType]=codeComparison(item[0], xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print "Error: Chained == or !=.\n"; exit(1);
-        if (isinstance(retType, int)): cdErr("Invalid item in ==: {}".format(item))
+        if (isinstance(retType, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retType)
         S_derefd = derefPtr(S, retType)
         for i in item[1]:
@@ -355,7 +356,7 @@ def codeIsEQ(item, xlator):
             [S2, retType] = codeComparison(i[1], xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType)
             if not( leftOwner=='itr' and rightOwner=='itr'):
-                if S2!='NULL': S=S_derefd
+                if (S2!='NULL' and S2!='nullptr' ): S=S_derefd
                 S2=derefPtr(S2, retType)
             S+= op+S2
             retType='bool'

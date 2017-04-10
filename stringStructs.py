@@ -86,13 +86,18 @@ struct production{
     }
 }
 
+struct pedigree{
+    our stateRec: pred
+    our stateRec: cause
+    me uint32: productionID
+}
+
 struct stateRec{
     me uint32: productionID
     me uint32: SeqPosition
     me uint32: originPos
     me uint32: crntPos
-    our stateRec: prev
-    our stateRec: cause
+    me pedigree[list]: pedigrees
     our stateRec: next
     our stateRec: child
     /-void: print(their production: prod) <- {prod.print(SeqPosition, originPos)}
@@ -138,7 +143,7 @@ struct EParser{
     }
 
     void: dump() <- {
-/*         withEach crntPos in RANGE(0 .. SSets.size()):{
+         withEach crntPos in RANGE(0 .. SSets.size()):{
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
             if(crntPos+1 != SSets.size()) {
@@ -154,7 +159,7 @@ struct EParser{
         }
         if(parseFound){print("\nPARSE PASSED!\n\n")}
         else {print("\nPARSE failed.\n\n")}
-*/
+
     }
 
 #CONST_CODE_HERE
@@ -165,7 +170,7 @@ struct EParser{
 
     }
 
-    me void: addProductionToStateSet(me uint32: crntPos, me uint32: productionID, me uint32: SeqPos, me uint32: origin, our stateRec: prev, our stateRec: cause) <- {
+    me void: addProductionToStateSet(me uint32: crntPos, me uint32: productionID, me uint32: SeqPos, me uint32: origin, our stateRec: pred, our stateRec: cause) <- {
         me bool: Duplicate <- false
         their production: prod <- grammar[productionID]
         me uint32: ProdType <- prod.prodType
@@ -175,6 +180,11 @@ struct EParser{
           /-  print ("POSES", item.SeqPosition, ', ', SeqPos, "::")
                 if(item.SeqPosition==SeqPos or (ProdType==parseREP and item.SeqPosition+1 == SeqPos)){
           /-          print("############ DUPLICATE rule#", productionID, " at slot ", crntPos, ", POS:", SeqPos, "\n")
+                    me pedigree: ped
+                    ped.pred <- pred
+                    ped.cause <- cause
+                    ped.productionID <- productionID
+                    item.pedigrees.pushLast(ped)
                     Duplicate <- true
                 }
             }
@@ -197,8 +207,11 @@ struct EParser{
                 newStateRecPtr.SeqPosition <- SeqPos
                 newStateRecPtr.originPos <- origin
                 newStateRecPtr.crntPos <- crntPos
-                newStateRecPtr.prev <- prev
-                newStateRecPtr.cause <- cause
+                me pedigree: ped
+                ped.pred <- pred
+                ped.cause <- cause
+                ped.productionID <- productionID
+                newStateRecPtr.pedigrees.pushLast(ped)
                 if(thisIsTopLevelItem) {lastTopLevelItem <- newStateRecPtr}
                 SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
   /-              print("############ ADDING To SLOT ", crntPos, ":")
@@ -212,10 +225,10 @@ struct EParser{
            /- print("  ALT-LIST\n")
             withEach AltProd in prod.items:{
    /-             print("                                  ALT: ")
-                addProductionToStateSet(crntPos, AltProd, 0, origin, prev, cause)
+                addProductionToStateSet(crntPos, AltProd, 0, origin, pred, cause)
             }
         } else if(ProdType == parseAUTO and productionID == ws and SeqPos==0){  /- Whitespace is nullable
-            addProductionToStateSet(crntPos, productionID, 1, origin, prev, cause)
+            addProductionToStateSet(crntPos, productionID, 1, origin, pred, cause)
         }
     }
 
@@ -424,7 +437,7 @@ struct EParser{
         me uint32: prodTypeFlag <- backProd.prodType
         me uint32: backSRecSeqPos <- backSRec.SeqPosition
         withEach SRec in SRecsToComplete:{
-            if(!(crntPos==SRec.originPos and backSRec.productionID==SRec.productionID and backSRec.SeqPosition==SRec.SeqPosition and backSRec.originPos==SRec.originPos)){
+            if(crntPos==SRec.originPos and !(backSRec.productionID==SRec.productionID and backSRec.SeqPosition==SRec.SeqPosition and backSRec.originPos==SRec.originPos)){
                 if(prodTypeFlag==parseREP){
                     me uint32: MAX_ITEMS  <- backProd.items[2]
                     if((backSRecSeqPos < MAX_ITEMS or MAX_ITEMS==0) and backProd.items[0] == SRec.productionID ){
@@ -595,7 +608,7 @@ struct EParser{
  /-               print("Passed\n")  /- !!!!!!!!!!!!!!!!!!! This tells when the parse passes.
                 return(false)
             }
-            /-SRec.print(this) /-print(" ", seqPos, ' - ', SRec.prev, "\n")
+            /-SRec.print(this)
         }
 
         /-lastSRec.print(this) print("\n----\n", seqPos)
@@ -613,28 +626,30 @@ struct EParser{
         else {return(true)}
     }
 
+    me uint32: choosePedigreeToFollow(me uint32: prodID, me pedigree[their list]: peds) <- {
+        return(0)
+    }
+
     our stateRec: resolve(our stateRec: LastTopLevelItem, me string: indent) <- {
         if(LastTopLevelItem == NULL){print("\nStateRecPtr is null.\n\n") exit(1)}
         our stateRec: crntRec <- LastTopLevelItem
         me uint32: seqPos <- crntRec.SeqPosition
         me uint32: prodID <- crntRec.productionID
         their production: Prod <- grammar[prodID]
-  /-      print(indent+'grammar[%i`prodID`] = ')
-  /-      crntRec.print(this)
-  /-      print("\n", indent, "\n")
+ /-       print(indent+'grammar[%i`prodID`] = ')  crntRec.print(this)  print("\n", indent, "\n")
         if(Prod.isTerm){
         } else if(seqPos>0){
             withEach subItem in Backward RANGE(0 .. seqPos):{
-  /-              print(indent, "   item #", subItem, ": \n")
-                crntRec.child <- resolve(crntRec.cause, indent+"     | ")
-                crntRec.prev.next <- crntRec
-                crntRec <- crntRec.prev
-  /-              print(indent, "############# ") crntRec.print(this) print("\n")
+/-                print(indent, "/--item #", subItem, ": \n")
+                me uint32: pedToFollow <- choosePedigreeToFollow(prodID, crntRec.pedigrees)
+                me pedigree: ped <- crntRec.pedigrees[pedToFollow]
+                crntRec.child <- resolve(ped.cause, indent+"|    ")
+                ped.pred.next <- crntRec
+                crntRec <- ped.pred
+ /-               print(indent, "############# ") crntRec.print(this) print("\n")
             }
         }
-        if(indent==""){
-/-            print("\nRESOLVED\n\n")
-        }
+ /-       if(indent==""){  print("\nRESOLVED\n\n") }
         return(crntRec)
     }
 

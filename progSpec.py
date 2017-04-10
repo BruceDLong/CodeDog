@@ -339,6 +339,16 @@ noError=False
 def logLvl():
     return highestLvl+1
 
+def dePythonStr(pyItem):
+    S=str(pyItem).replace('[','')
+    S=S.replace(']','')
+    S=S.replace('(','')
+    S=S.replace(')','')
+    S=S.replace("'",'')
+    S=S.replace(' ','')
+    S=S.replace(',','.')
+    return S
+
 def printAtLvl(lvl, mesg, indent):
     for i in range(0, lvl): sys.stdout.write(indent)
     print mesg
