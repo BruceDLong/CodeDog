@@ -649,7 +649,6 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
     containedType=containerType['fieldType']
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ContainerOwner)
-    print"CONTAIN:",containerType['owner'], repContainer, keyFieldType
     if datastructID=='multimap' or datastructID=='map':
         keyVarSpec = {'owner':owner, 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope

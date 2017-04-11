@@ -650,7 +650,7 @@ def codeAction(action, indent, xlator):
             [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], xlator)
             [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerType)
 
-            print "ITERATE OVER", action['repList'][0], datastructID, containerType
+            #print "ITERATE OVER", action['repList'][0], datastructID, containerType
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):containerType=wrappedTypeSpec
 
