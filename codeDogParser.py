@@ -233,7 +233,6 @@ def packFieldDef(fieldResult, ObjectName, indent):
                 argList.append(packFieldDef(argSpec[0], ObjectName, indent+"    "))
         else: argList=None;
         if 'parameters' in nameAndVal:
-            print "PARAMS:", nameAndVal.parameters
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
             else: prmList=nameAndVal.parameters[0][1]
             for param in prmList:

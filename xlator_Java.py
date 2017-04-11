@@ -30,7 +30,7 @@ def getContainerType(typeSpec):
             idxType = 'Long'
         else:
             idxType = 'long'
-    return [datastructID, idxType]
+    return [datastructID, idxType, owner]
 
 def convertToJavaType(fieldType):
     if(fieldType=='int32'):
@@ -92,7 +92,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
-            [containerType, idxType]=getContainerType(TypeSpec)
+            [containerType, idxType, owner]=getContainerType(TypeSpec)
             if idxType=='int': idxType = "Integer"
             if langType=='int': langType = "Integer"
             if idxType=='long': idxType = "Long"
@@ -170,7 +170,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown ArrayList command:", name; exit(2);
     elif containerType=='TreeMap':
         convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType]=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put';
@@ -187,7 +187,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType]=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
@@ -451,7 +451,7 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     if isinstance(typeSpec['fieldType'], basestring):
         if(fieldDef['value']):
             [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
@@ -461,7 +461,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
     elif(fieldDef['value']):
         [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
         RHS = S2
-        if varTypeIsJavaValueType(fieldType):
+        if varTypeIsValueType(fieldType):
             assignValue=' = '+ RHS
         else:
             constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
@@ -484,7 +484,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
                     assignValue = " = " + CPL   # Act like a copy constructor
                 else: assignValue = " = new " + fieldType + CPL
             else: assignValue = " = new " + fieldType + CPL
-        elif varTypeIsJavaValueType(fieldType):
+        elif varTypeIsValueType(fieldType):
             assignValue=''
         else:assignValue= " = new " + fieldType + "()"
     varDeclareStr= fieldType + " " + varName + assignValue
@@ -525,8 +525,8 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-        containedTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
-        indexTypeStr=xlator['convertType'](objectsRef, keyVarSpec, 'var', xlator)
+        [containedTypeStr, innerType]=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
+        [indexTypeStr, innerType]=xlator['convertType'](objectsRef, keyVarSpec, 'var', xlator)
         if indexTypeStr=='int': indexTypeStr = "Integer"
         elif indexTypeStr=='long': indexTypeStr = "Long"
         iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
@@ -539,19 +539,19 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
+        [iteratorTypeStr, innerType]=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
     else:
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        iteratorTypeStr=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
+        [iteratorTypeStr, innerType]=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
 
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     loopVarName=repName+"Idx";
     actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + repContainer+'.size(); ' + loopVarName+' += 1){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
     return [actionText, loopCounterName]
 
-def varTypeIsJavaValueType(convertedType):
+def varTypeIsValueType(convertedType):
     if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
        or convertedType=='float' or convertedType=='double' or convertedType=='short'):
         return True
@@ -560,7 +560,7 @@ def varTypeIsJavaValueType(convertedType):
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
     if(fieldValue == None):
-        if (not varTypeIsJavaValueType(convertedType) and fieldOwner=='me'):
+        if (not varTypeIsValueType(convertedType) and fieldOwner=='me'):
             if paramList!=None:
                 [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
                 fieldValueText=" = new " + convertedType + CPL

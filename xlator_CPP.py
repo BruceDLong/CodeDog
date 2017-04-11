@@ -7,13 +7,15 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAlloc
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
     containerSpec=typeSpec['arraySpec']
+    if 'owner' in containerSpec: owner=containerSpec['owner']
+    else: owner='me'
     idxType=''
     if 'indexType' in containerSpec:
         idxType=containerSpec['indexType']
     datastructID = containerSpec['datastructID']
     if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
-    return [datastructID, idxType]
+    return [datastructID, idxType, owner]
 
 def adjustBaseTypes(fieldType):
     if(isinstance(fieldType, basestring)):
@@ -48,13 +50,14 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
 
     langType = adjustBaseTypes(fieldType)
+    InnerLangType = langType
     if varMode != 'alloc':
         langType = applyOwner(owner, langType, varMode)
 
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
-            [containerType, idxType]=getContainerType(TypeSpec)
+            [containerType, idxType, owner]=getContainerType(TypeSpec)
             if 'owner' in TypeSpec['arraySpec']:
                 containerOwner=TypeSpec['arraySpec']['owner']
             else: containerOwner='me'
@@ -68,11 +71,12 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
             elif containerType=='multimap':
                 langType="multimap< "+idxType+', '+langType+" >"
 
+            InnerLangType = langType
             if varMode != 'alloc':
                 #if varMode=='arg' and containerOwner=='their': langType+='&' # Pass these as references
                 #else:
                     langType=applyOwner(containerOwner, langType, varMode)
-    return langType
+    return [langType, InnerLangType]
 
 def convertType(objects, TypeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
@@ -115,6 +119,11 @@ def getTheDerefPtrMods(itemTypeSpec):
 def derefPtr(varRef, itemTypeSpec):
     [leftMod, rightMod] = getTheDerefPtrMods(itemTypeSpec)
     return leftMod + varRef + rightMod
+
+def ChoosePtrDecorationForSimpleCase(owner):
+    if(owner=='our' or owner=='my' or owner=='their'):
+        return ['','->',  '(*', ')']
+    else: return ['','.',  '','']
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     # Returns left and right text decorations for RHS of function arguments, return values, etc.
@@ -200,7 +209,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType] = xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -218,7 +227,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType] = xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -578,7 +587,7 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):
@@ -587,6 +596,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
         assignValue = " = " + leftMod+S2+rightMod
 
     else: # If no value was given:
+        CPL=''
         if fieldDef['paramList'] != None:
             # Code the constructor's arguments
             [CPL, paramTypeList] = codeParameterList(fieldDef['paramList'], None, xlator)
@@ -600,7 +610,8 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
-
+            owner = progSpec.getTypeSpecOwner(typeSpec)
+            assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
@@ -630,28 +641,31 @@ def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,con
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
+    owner=containerType['owner']
     containedType=containerType['fieldType']
-    ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+    ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
+    [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ContainerOwner)
+    print"CONTAIN:",containerType['owner'], repContainer, keyFieldType
     if datastructID=='multimap' or datastructID=='map':
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        keyVarSpec = {'owner':owner, 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
 
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        keyVarSpec = {'owner':owner, 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
         loopCounterName=repName+'_key'
@@ -660,8 +674,8 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         lvName=repName+"Idx"
-        actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+'.size();' +" ++"+lvName+" ){\n"
-                    + indent+"    "+"auto &"+repName+" = "+repContainer+"["+lvName+"];\n")
+        actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+RDeclP+'size();' +" ++"+lvName+" ){\n"
+                    + indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n")
     else:
         print "DSID:",datastructID,containerType
         exit(2)

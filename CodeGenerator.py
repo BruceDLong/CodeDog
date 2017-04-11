@@ -216,7 +216,7 @@ def codeAllocater(typeSpec, xlator):
     if isinstance(fType, basestring): varTypeStr=fType;
     else: varTypeStr=fType[0]
 
-    varTypeStr = xlator['convertType'](objectsRef, typeSpec, 'alloc', xlator)
+    [varTypeStr, innerType] = xlator['convertType'](objectsRef, typeSpec, 'alloc', xlator)
     S= xlator['getCodeAllocStr'](varTypeStr, owner);
     return S
 
@@ -280,7 +280,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
             typeSpecOut['codeConverter']='%0->second'
 
     elif('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
-        [containerType, idxType]=xlator['getContainerType'](typeSpecIn)
+        [containerType, idxType, owner]=xlator['getContainerType'](typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
         #print "                                                 arraySpec:",typeSpecOut
         if(name[0]=='['):
@@ -519,9 +519,9 @@ def codeAction(action, indent, xlator):
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
         cdlog(5, "New Var: {}: ".format(varName))
-        fieldType = xlator['convertType'](objectsRef, typeSpec, 'var', xlator)
+        [fieldType, innerType] = xlator['convertType'](objectsRef, typeSpec, 'var', xlator)
         cdlog(5, "Action newVar: {}".format(varName))
-        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, xlator)
+        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, xlator)
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
@@ -639,7 +639,7 @@ def codeAction(action, indent, xlator):
             [StartKey, StartType] = xlator['codeExpr'](keyRange[2][0], xlator)
             [EndKey,   EndType] = xlator['codeExpr'](keyRange[4][0], xlator)
 
-            [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
+            [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerType)
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):containerType=wrappedTypeSpec
 
@@ -647,14 +647,14 @@ def codeAction(action, indent, xlator):
             actionText += actionTextOut
 
         else: # interate over a container
-            #print "ITERATE OVER", action['repList'][0]
             [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], xlator)
-            [datastructID, keyFieldType]=xlator['getContainerType'](containerType)
+            [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerType)
 
+            print "ITERATE OVER", action['repList'][0], datastructID, containerType
             wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):containerType=wrappedTypeSpec
 
-            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator)
+            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType, ContainerOwner,indent,xlator)
             actionText += actionTextOut
 
         if action['whereExpr']:
@@ -747,7 +747,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
         if(typeSpec['arraySpec'] or typeSpec['arraySpec']!=None): continue
         fieldOwner=typeSpec['owner']
         if(fieldOwner=='const'): continue
-        convertedType = xlator['convertType'](objects, typeSpec, 'var', xlator)
+        [convertedType, innerType] = xlator['convertType'](objects, typeSpec, 'var', xlator)
         fieldName=field['fieldName']
 
         cdlog(4, "                        Constructing: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
@@ -801,7 +801,8 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
-        convertedType = progSpec.flattenObjectName(xlator['convertType'](objects, typeSpec, 'var', xlator))
+        [intermediateType, innerType] = xlator['convertType'](objects, typeSpec, 'var', xlator)
+        convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         if(fieldName == "main"):
             isMain = True
@@ -855,7 +856,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     count+=1
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
-                    argType = xlator['convertType'](objects, argTypeSpec, 'arg', xlator)
+                    [argType, innerType] = xlator['convertType'](objects, argTypeSpec, 'arg', xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
                # print "                            argListText: (", argListText, ")"
