@@ -234,7 +234,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
         else: argList=None;
         if 'parameters' in nameAndVal:
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
-            else: prmList=nameAndVal.parameters[0][1]
+            else: prmList=nameAndVal.parameters[1]
             for param in prmList:
                 paramList.append(param)
         else: paramList=None
@@ -545,6 +545,9 @@ def doMacroSubstitutions(macros, inputString):
                 params=paramStr.split(',')
                # print '     PARAMS:', params
                 idx=0;
+                numMacroArgs = len(macros[thisMacro]['ArgList'])
+                if((numMacroArgs>0 and numMacroArgs != len(params)) or (numMacroArgs==0 and len(params)!=1)):
+                    cdErr("The macro {} has {} parameters, but is called with {}.".format(thisMacro, len(macros[thisMacro]['ArgList']), len(params)))
                 for arg in macros[thisMacro]['ArgList']:
                    # print "   SUBS:", arg, ', ', params[idx], ', ', thisMacro
                     replacement=params[idx]
