@@ -69,7 +69,7 @@ factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFu
 term = Group( factor + Group(Optional(OneOrMore(Group(oneOf('* / %') + factor )))))
 plus = Group( term  + Group(Optional(OneOrMore(Group(oneOf('+ -') + term )))))
 comparison = Group( plus + Group(Optional(OneOrMore(Group(oneOf('< > <= >=') + plus )))))
-isEQ = Group( comparison  + Group(Optional(OneOrMore(Group(oneOf('== !=') + comparison )))))
+isEQ = Group( comparison  + Group(Optional(OneOrMore(Group(oneOf('== != ===') + comparison )))))
 logAnd = Group( isEQ  + Group(Optional(OneOrMore(Group('and' + isEQ )))))
 expr <<= Group( logAnd + Group(Optional(OneOrMore(Group('or' + logAnd )))))("expr")
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
