@@ -7,12 +7,14 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAlloc
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
     containerSpec=typeSpec['arraySpec']
+    if 'owner' in containerSpec: owner=containerSpec['owner']
+    else: owner='me'
     idxType=''
     if 'indexType' in containerSpec:
         idxType=containerSpec['indexType']
     datastructID = containerSpec['datastructID']
     if(datastructID=='list'): datastructID = "deque"
-    return [datastructID, idxType]
+    return [datastructID, idxType, owner]
 
 def adjustBaseTypes(fieldType):
     if(isinstance(fieldType, basestring)):
@@ -80,7 +82,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 #else:
                     langType=applyOwner(containerOwner, langType, varMode)
 
-    return langType
+    return [langType, langType]
 
 def convertType(objects, TypeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
@@ -591,7 +593,7 @@ def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,con
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""

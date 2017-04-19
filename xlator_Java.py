@@ -15,6 +15,8 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParamete
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
     containerSpec=typeSpec['arraySpec']
+    if 'owner' in containerSpec: owner=containerSpec['owner']
+    else: owner='me'
     idxType=''
     if 'indexType' in containerSpec:
         idxType=containerSpec['indexType']
@@ -104,7 +106,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 langType="TreeMap<"+idxType+', '+langType+">"
             elif containerType=='multimap':
                 langType="multimap<"+idxType+', '+langType+">"
-    return langType
+    return [langType, langType]
 
 
 def recodeStringFunctions(name, typeSpec):
@@ -516,7 +518,7 @@ def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey, co
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
     actionText = ""
     loopCounterName=""
     containedType=containerType['fieldType']
