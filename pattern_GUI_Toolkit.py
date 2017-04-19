@@ -18,7 +18,7 @@ def apply(objects, tags):
     title=progSpec.searchATagStore(tags, 'Title')[0]
     GUI_TK_code = """
     struct GUI {
-        const string: title <- "%s"
+        me string: title <- "%s"
     }
 
     """ % title

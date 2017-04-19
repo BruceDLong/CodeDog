@@ -611,8 +611,9 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
-            owner = progSpec.getTypeSpecOwner(typeSpec)
-            assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
+            if(assignValue==''):
+                owner = progSpec.getTypeSpecOwner(typeSpec)
+                assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 

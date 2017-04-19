@@ -33,7 +33,7 @@ def use(objects, buildSpec, tags, platform):
         their GtkWidget: window
 
         me uint32: GUI_Init() <- {
-            app <- gtk_application_new ("", G_APPLICATION_FLAGS_NONE)
+            app <- gtk_application_new (0, G_APPLICATION_FLAGS_NONE)
             g_signal_connect (app, "activate", G_CALLBACK(activate), NULL)
             return(0)
         }
