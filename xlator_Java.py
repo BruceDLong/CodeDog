@@ -553,6 +553,12 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
     actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + repContainer+'.size(); ' + loopVarName+' += 1){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
     return [actionText, loopCounterName]
 
+def codeIncrement(varName):
+    return "++" + varName 
+    
+def codeDecrement(varName):
+    return "--" + varName
+
 def varTypeIsValueType(convertedType):
     if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
        or convertedType=='float' or convertedType=='double' or convertedType=='short'):
@@ -570,7 +576,7 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
                 fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
-def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
     S=""
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if (fieldName == "static_Global" or fieldName == "static_gui_tk"):  # TODO: make static_Global so it is not hard coded
@@ -700,5 +706,7 @@ def fetchXlators():
     xlators['codeActTextMain']              = codeActTextMain
     xlators['codeConstructionHeader']       = codeConstructionHeader
     xlators['codeConstructorInit']          = codeConstructorInit
+    xlators['codeIncrement']                = codeIncrement
+    xlators['codeDecrement']                = codeDecrement
 
     return(xlators)

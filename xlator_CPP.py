@@ -683,6 +683,12 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
 
     return [actionText, loopCounterName]
 
+def codeIncrement(varName):
+    return "++" + varName 
+    
+def codeDecrement(varName):
+    return "--" + varName
+
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
     if paramList!=None:
@@ -690,7 +696,7 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
         fieldValueText += CPL
     return fieldValueText
 
-def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
     S=indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
     return S
 
@@ -808,5 +814,7 @@ def fetchXlators():
     xlators['codeActTextMain']              = codeActTextMain
     xlators['codeConstructionHeader']       = codeConstructionHeader
     xlators['codeConstructorInit']          = codeConstructorInit
+    xlators['codeIncrement']                = codeIncrement
+    xlators['codeDecrement']                = codeDecrement
 
     return(xlators)

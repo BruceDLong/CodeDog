@@ -620,7 +620,7 @@ def codeAction(action, indent, xlator):
             #print "RANGE:", S_low, "..", S_hi
             ctrlVarsTypeSpec = lowValType
             if(traversalMode=='Forward' or traversalMode==None):
-                actionText += indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; ++"+ repName + "){\n"
+                actionText += indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ xlator['codeIncrement'](repName) + "){\n"
             elif(traversalMode=='Backward'):
                 actionText += indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
@@ -669,7 +669,7 @@ def codeAction(action, indent, xlator):
             repBodyText += actionOut
         if loopCounterName!='':
             actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
-            repBodyText += indent + "    " + "++" + loopCounterName + ";\n"
+            repBodyText += indent + "    " + xlator['codeIncrement'](loopCounterName) + ";\n"
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
         calledFunc = action['calledFunc']
@@ -838,7 +838,8 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
 
         ############ CODE VARIABLE##########################################################
         elif(fieldArglist==None):
-            structCode += xlator['codeVarField_Str'](convertedType, fieldName, fieldValueText, objectName, tags, indent)
+            structCode += xlator['codeVarField_Str'](convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent)
+            #print "structCode", structCode
 
         ###### ArgList exists so this is a FUNCTION###########
         else:

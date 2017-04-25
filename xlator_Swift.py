@@ -1,7 +1,7 @@
 #xlator_Swing.py
 import progSpec
 import codeDogParser
-from progSpec import cdlog, cdErr
+from progSpec import cdlog, cdErr, isStruct
 from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
@@ -61,9 +61,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
-            print "TypeSpec:", TypeSpec
-            print "    **arraySpec:", arraySpec
-            [containerType, idxType]=getContainerType(TypeSpec)
+            [containerType, idxType, owner]=getContainerType(TypeSpec)
             if 'owner' in TypeSpec['arraySpec']:
                 containerOwner=TypeSpec['arraySpec']['owner']
             else: containerOwner='me'
@@ -71,7 +69,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
             if idxType=='timeValue': idxType = 'Int64'
 
             if containerType=='deque':
-                langType="deque< "+langType+" >"
+                langType="["+langType+"]"
             elif containerType=='map':
                 langType="map< "+idxType+', '+langType+" >"
             elif containerType=='multimap':
@@ -275,12 +273,12 @@ def codeFactor(item, xlator):
             [S2, retType] = codeExpr(item[1], xlator)
             S+='-' + S2
         elif item0=='[':
-            tmp="{"
+            tmp="["
             for expr in item[1:-1]:
                 [S2, retType] = codeExpr(expr, xlator)
                 if len(tmp)>1: tmp+=", "
                 tmp+=S2
-            tmp+="}"
+            tmp+="]"
             S+=tmp
         else:
             #print "item", item
@@ -541,7 +539,7 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):
@@ -564,7 +562,11 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, xlator):
                 if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
 
-    varDeclareStr= "var " + varName + ":"+ fieldType + assignValue
+    if(isStruct(typeSpec['fieldType'])):
+        varDeclareStr= "var " + varName + "="+ fieldType + "()"
+    else:
+        varDeclareStr= "var " + varName + ":"+ fieldType + assignValue
+ 
     return(varDeclareStr)
 
 def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
@@ -630,6 +632,12 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         exit(2)
 
     return [actionText, loopCounterName]
+    
+def codeIncrement(varName):
+    return varName + "+=1"
+    
+def codeDecrement(varName):
+    return varName + "-=1"
 
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
@@ -638,12 +646,18 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
         fieldValueText += CPL
     return fieldValueText
 
-def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
     convertedType = adjustBaseTypes(convertedType)
-    if (fieldValueText == ""):
-        S=indent + "let "+ fieldName + ":" +  convertedType + '\n'
+    if 'arraySpec' in typeSpec:
+        if (fieldValueText == ""):
+            S=indent + "var "+ fieldName + ":" +  convertedType + '\n'
+        else:
+            S=indent + "let "+ fieldName +  fieldValueText + '\n'
     else:
-        S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText + '\n'
+        if (fieldValueText == ""):
+            S=indent + "var "+ fieldName + ":" +  convertedType + '\n'
+        else:
+            S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText + '\n'
     return S
 
 def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
@@ -759,4 +773,6 @@ def fetchXlators():
     xlators['recodeStringFunctions']        = recodeStringFunctions
     xlators['codeConstructionHeader']       = codeConstructionHeader
     xlators['codeConstructorInit']          = codeConstructorInit
+    xlators['codeIncrement']                = codeIncrement
+    xlators['codeDecrement']                = codeDecrement
     return(xlators)
