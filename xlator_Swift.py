@@ -481,12 +481,12 @@ def codeActTextMain(actSeq, indent, xlator):
     return actSeqText
 
 def codeArgText(argFieldName, argType, xlator):
-    return argFieldName + ": " + argType
+    return "_ " + argFieldName + ": " + argType
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
-    S= "\nclass "+structName+parentClass+"{\n" + structCode + '};\n'
+    S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls=""
     return([S,forwardDecls])
 
@@ -639,11 +639,35 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return varName + "-=1"
 
+def isNumericType(convertedType):
+    if(convertedType == "UInt32" or convertedType == "UInt64" or convertedType == "Float" or convertedType == "Int" or convertedType == "Int32" or convertedType == "Int64" or convertedType == "Double"):
+        return True
+    else:
+        return False
+
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
-    if paramList!=None:
-        [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
-        fieldValueText += CPL
+    if(fieldValue == None):
+        if (fieldOwner=='me'):
+            if paramList!=None:
+                print "convertedType, paramList:", convertedType, paramList
+                [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+                fieldValueText=" = new " + convertedType + CPL
+            else:
+                print "convertedType: ", convertedType
+                if (convertedType == "String"):
+                    fieldValueText=' = ""'
+                elif (convertedType.startswith("[")):
+                    fieldValueText=" = " + convertedType + "()"
+                elif (convertedType == "Bool"):
+                    fieldValueText=' = false'
+                elif (isNumericType(convertedType)):
+                    fieldValueText=' = 0'
+                elif (convertedType == "Character"):
+                    fieldValueText=' = ""'
+                else:
+                    print convertedType, " not initialized."
+                    exit (2)
     return fieldValueText
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
@@ -652,7 +676,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectN
         if (fieldValueText == ""):
             S=indent + "var "+ fieldName + ":" +  convertedType + '\n'
         else:
-            S=indent + "let "+ fieldName +  fieldValueText + '\n'
+            S=indent + "var "+ fieldName +  fieldValueText + '\n'
     else:
         if (fieldValueText == ""):
             S=indent + "var "+ fieldName + ":" +  convertedType + '\n'
@@ -737,7 +761,7 @@ def fetchXlators():
     xlators['doesLangHaveGlobals']  = "True"
     xlators['funcBodyIndent']       = "    "
     xlators['funcsDefInClass']      = "True"
-    xlators['MakeConstructors']     = "True"
+    xlators['MakeConstructors']     = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective
