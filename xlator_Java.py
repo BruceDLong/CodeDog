@@ -492,6 +492,9 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
+def codeForStmt(ctrType, repName, startVal, endVal):
+    return "for( "+ ctrType+" " + repName+'='+ startVal + "; " + repName + "!=" + endVal +"; "+ codeIncrement(repName) + ")"
+
 def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
@@ -708,5 +711,6 @@ def fetchXlators():
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
+    xlators['codeForStmt']                  = codeForStmt
 
     return(xlators)

@@ -620,9 +620,9 @@ def codeAction(action, indent, xlator):
             #print "RANGE:", S_low, "..", S_hi
             ctrlVarsTypeSpec = lowValType
             if(traversalMode=='Forward' or traversalMode==None):
-                actionText += indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ xlator['codeIncrement'](repName) + "){\n"
+                actionText += indent + xlator['codeForStmt'](ctrType, repName, S_low, S_hi) + "{\n"
             elif(traversalMode=='Backward'):
-                actionText += indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+                actionText += indent + xlator['codeForStmt'](ctrType, repName, S_hi, S_low) + "{\n"
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
             [whileExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
