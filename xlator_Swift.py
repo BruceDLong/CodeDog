@@ -290,7 +290,7 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType, prntType, AltIDXFormat, varSRC]=codeItemRef(item0, 'RVAL', xlator)
             if(codeStr=="NULL"):
                 retType={'owner':"PTR"}
             S+=codeStr                                # Code variable reference or function call
@@ -476,9 +476,9 @@ def codeActTextMain(actSeq, indent, xlator):
     indent = ""
     actSeqText = ""
     for action in actSeq:
-        actionText = codeAction(action, indent, xlator)
+        [actionText, varSRC] = codeAction(action, indent, xlator)
         actSeqText += actionText
-    return actSeqText
+    return [actSeqText, varSRC]
 
 def codeArgText(argFieldName, argType, xlator):
     return "_ " + argFieldName + ": " + argType
@@ -664,7 +664,6 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectN
     convertedType = adjustBaseTypes(convertedType)
     
     if (fieldValueText == ""):
-        print "convertedType: ", convertedType
         if (convertedType == "String"):
             fieldValueText=' = ""'
         elif (convertedType.startswith("[")):
@@ -706,18 +705,22 @@ def codeConstructorInit(fieldName, count, xlator):
         exit(2)
 
 
-def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, isMutating, indent):
     #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
+    if (isMutating):
+        mutatingStr = "mutating "
+    else:
+        mutatingStr = ""
     if(objectName=='GLOBAL'):
         if fieldName=='main':
             structCode += '// M A I N ' + '\n'
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            structCode +="func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode += mutatingStr + "func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
-        structCode += indent + "mutating func " + fieldName +"("+argListText+") -> " + typeDefName
+        structCode += indent + mutatingStr + "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val):
