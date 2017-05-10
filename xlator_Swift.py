@@ -705,22 +705,18 @@ def codeConstructorInit(fieldName, count, xlator):
         exit(2)
 
 
-def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, isMutating, indent):
+def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
-    if (isMutating):
-        mutatingStr = "mutating "
-    else:
-        mutatingStr = ""
     if(objectName=='GLOBAL'):
         if fieldName=='main':
             structCode += '// M A I N ' + '\n'
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            structCode += mutatingStr + "func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode += "<prepend>" + "func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
-        structCode += indent + mutatingStr + "func " + fieldName +"("+argListText+") -> " + typeDefName
+        structCode += indent + "<prepend>" + "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val):

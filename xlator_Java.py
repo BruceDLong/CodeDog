@@ -603,7 +603,7 @@ def codeConstructorInit(fieldName, count, xlator):
         print "Error in codeConstructorInit."
         exit(2)
 
-def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, isMutating, indent):
+def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode='\n'; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
         if fieldName=='main':
