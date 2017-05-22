@@ -508,7 +508,7 @@ def encodeConditionalStatement(action, indent, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            [elseText, isMutating] = codeActionSeq(False, elseAction, indent, xlator)
+            [elseText, isMutating] = codeActionSeq(elseAction, True, indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -604,7 +604,7 @@ def codeAction(action, indent, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                [elseText, isMutating] = codeActionSeq(False, elseAction, indent, xlator)
+                [elseText, isMutating] = codeActionSeq(elseAction, True, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -686,19 +686,26 @@ def codeAction(action, indent, xlator):
     elif (typeOfAction == 'switchStmt'):
         #print "ACTIONKEY:", str(action['switchKey'])+"'"
         [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], xlator)
+        SwitchBreak = xlator['SwitchBreak']
+        UseBlocksInSwitch = xlator['UseBlocksInSwitch']
+        if UseBlocksInSwitch=="True":
+            hasCurlyBrackets = True
+        else:
+            hasCurlyBrackets = False
         actionText += indent+"switch("+ switchKeyExpr + "){\n"
         for sCases in action['switchCases']:
             for sCase in sCases[0]:
                 [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], xlator)
                 actionText += indent+"    case "+caseKeyValue+": "
                 caseAction = sCases[1]
-                [actionSeq, isMutating] = codeActionSeq(False, caseAction, indent+'    ', xlator)
+                [actionSeq, isMutating] = codeActionSeq(caseAction, hasCurlyBrackets, indent+'    ', xlator)
                 actionText += actionSeq
-                actionText += indent+"    break;\n"
+                if SwitchBreak =="True":
+                    actionText += indent+"    break;\n"
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
-            actionText+=indent+"default: "
-            [actionSeq, isMutating] = codeActionSeq(False, defaultCase, indent, xlator)
+            actionText+=indent+"    default: "
+            [actionSeq, isMutating] = codeActionSeq(defaultCase, hasCurlyBrackets, indent+'    ', xlator)
             actionText += actionSeq
         actionText += indent + "}\n"
     elif (typeOfAction =='actionSeq'):
@@ -716,24 +723,23 @@ def codeAction(action, indent, xlator):
  #   print "actionText", actionText
     return [actionText, varSRC]
 
-def codeActionSeq(isMain, actSeq, indent, xlator):
+def codeActionSeq(actSeq, hasCurlyBrackets, indent, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = ""
     isMutating = False
-
-    if (isMain):
-        [actSeqMain, varSRC] = xlator['codeActTextMain'](actSeq, indent, xlator)
-        actSeqText += actSeqMain
-    else:
-        actSeqText = "{\n"
-        for action in actSeq:
-            [actionText, varSRC] = codeAction(action, indent + '    ', xlator)
-            if (varSRC == "OBJVAR"):
-                isMutating = True
-            actSeqText += actionText
-        actSeqText += indent + "}"
+    
+    if (hasCurlyBrackets):
+        actSeqText += "{\n"
     actSeqText += "\n"
+    for action in actSeq:
+        [actionText, varSRC] = codeAction(action, indent + '    ', xlator)
+        if (varSRC == "OBJVAR"):
+            isMutating = True
+        actSeqText += actionText
+    if (hasCurlyBrackets):
+        actSeqText += "}"
+    actSeqText += "\n"  
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
@@ -894,7 +900,11 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     funcText=verbatimText
                # print "                         Verbatim Func Body"
             elif field['value'][0]!='':
-                [funcText, isMutating] =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
+                hasCurlyBrackets = True
+                if (isMain) and (xlator['HasMain']=="False") :
+                    hasCurlyBrackets = False
+                    funcBodyIndent =""
+                [funcText, isMutating] =  codeActionSeq(field['value'][0], hasCurlyBrackets, funcBodyIndent, xlator)
                 if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                # print "                         Func Body from Action Sequence"
             else:
