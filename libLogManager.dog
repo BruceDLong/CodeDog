@@ -1,0 +1,37 @@
+model logger{
+    /-me void: Show()
+    /-me void: Hide()
+    /-me void: Route(me string: routeSpec)
+    me void: LogEntry(me string: group, me string: LogText)
+}
+
+
+model logManager{
+    me logger: Mesg
+    /-our logger: Info
+    /-our logger: Critical
+    /-our logger: FatalError
+    /-our logger: Warning
+    /-our logger: Debug
+    /-me void: assert(me string: condition)
+    
+    /-ShowLogs(InfoLogs | MesgLogs | ...) // ALL_LOGS = the OR of all of them
+    /-HideLogs(InfoLogs | MesgLogs | ...)
+    /-RouteLogs(FILE) // Options: stdOut, A file, the platform's system logs, a string
+}
+
+struct logManager::mem auto
+
+#define logMesg(MSG) <%logMgr.Mesg.LogEntry("MESSAGE: ", MSG)%>
+struct GLOBAL{
+    me logManager: logMgr
+
+    /-me void: logInfo(MSG) <- <%!logMgr.Info.LogEntry("", MSG);%>
+    /-me void: logCritical(MSG) <- <%!logMgr.Critical.LogEntry("CRITICAL ERROR: ", MSG);%>
+    /-me void: logFatalError(MSG) <- <%!logMgr.FatalError.LogEntry("FATAL ERROR: ", MSG;exit(-1);%>
+    /-me void: logWarning(MSG) <- <%!logMgr.Warning.LogEntry("WARNING: ", MSG);%>
+    /-me void: logDebug(MSG) <- <%!logMgr.Debug.LogEntry("DEBUG: ", MSG);%>
+    /-me void: assert(me string: condition) <- {}
+}
+
+
