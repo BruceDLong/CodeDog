@@ -484,9 +484,9 @@ def startPointOfNamesLastSegment(name):
     p=len(name)-1
     while(p>0):
         if name[p]=='>' or name[p]=='.':
-            break
+            return p
         p-=1
-    return p
+    return -1
 
 def encodeConditionalStatement(action, indent, xlator):
     #print "                                         encodeConditionalStatement: "
@@ -628,6 +628,7 @@ def codeAction(action, indent, xlator):
             [whileExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
             [whileExpr, whereConditionType] =  xlator['adjustIfConditional'](whileExpr, whereConditionType)
             actionText += indent + "while(" + whileExpr + "){\n"
+            loopCounterName=repName
         elif(fileSpec):
             [filenameExpr, filenameType] = xlator['codeExpr'](fileSpec[2], xlator)
             if filenameType!='string':

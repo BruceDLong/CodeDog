@@ -192,15 +192,17 @@ def getEnumStr(fieldName, enumList):
 def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
     convertedIdxType = ""
     if containerType=='deque':
-        if name=='at' or name=='insert' or name=='erase': pass
+        if name=='at' or name=='insert': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='erase'    : name='erase';  typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='nthItr'   : name='begin+';   typeSpecOut['codeConverter']='(%0.begin()+%1)'; typeSpecOut['owner']='itr';
         elif name=='first'    : name='front()';  paramList=None;
-        elif name=='last'     : name='back()'; paramList=None;
+        elif name=='last'     : name='back()';   paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front'
@@ -210,11 +212,12 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
         [convertedItmType, innerType] = xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
-        if name=='at' or name=='erase': pass
+        if name=='at': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='find'     : name='find';     typeSpecOut['owner']='itr';
+        elif name=='erase'    : name='erase';  typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
@@ -228,10 +231,11 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
         [convertedItmType, innerType] = xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
-        if name=='at' or name=='erase': pass
+        if name=='at': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='erase'    : name='erase';  typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
@@ -618,7 +622,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     return(varDeclareStr)
 
 def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
-    willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
+    willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText = ""
     loopCounterName = ""
     containedType=containerType['fieldType']
