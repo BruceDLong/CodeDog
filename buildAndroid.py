@@ -3,6 +3,7 @@
 import os
 import subprocess
 import errno
+import shutil
 
 def writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName):
     #print "Path:", packageDir
@@ -32,6 +33,17 @@ def makeDir(dirToGen):
         os.makedirs(dirToGen)
     except OSError as exception:
         if exception.errno != errno.EEXIST: raise
+
+def copyTree(src, dst):
+    for item in os.listdir(src):
+        print "item: ", item
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, False, None)
+        else:
+            print"else"
+            shutil.copy2(s, d)
 
 def pathAndroid(workingDir, dirsToGen):
     print '--------------------------------   G e n e r a t i n g   F o l d e r   S t r u c t u r e \n'
@@ -157,6 +169,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
 
     print 'Building for Android'
     pathAndroid(workingDir, dirsToGen)
+    copyTree("Resources", buildName+"/assets")
     writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName)
     androidManifest(topDomain, domain, fileName, workingDir)
     generateAndroid(workingDir)

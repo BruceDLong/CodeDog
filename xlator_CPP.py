@@ -296,7 +296,7 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType, prntType, AltIDXFormat, varSRC]=codeItemRef(item0, 'RVAL', xlator)
             if(codeStr=="NULL"):
                 codeStr="nullptr"
                 retType={'owner':"PTR"}
@@ -482,14 +482,6 @@ def codeMain(objects, tags, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeActTextMain(actSeq, indent, xlator):
-    actSeqText = "{\n"
-    for action in actSeq:
-        actionText = codeAction(action, indent + '    ', xlator)
-        actSeqText += actionText
-    actSeqText += indent + "}"
-    return actSeqText
-
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
@@ -621,6 +613,9 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
+def codeForStmt(ctrType, repName, startVal, endVal):
+    return "for( "+ ctrType+" " + repName+'='+ startVal + "; " + repName + "!=" + endVal +"; "+ codeIncrement(repName) + ")"
+    
 def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText = ""
@@ -687,6 +682,12 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
 
     return [actionText, loopCounterName]
 
+def codeIncrement(varName):
+    return "++" + varName 
+    
+def codeDecrement(varName):
+    return "--" + varName
+
 def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
     if paramList!=None:
@@ -694,7 +695,7 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
         fieldValueText += CPL
     return fieldValueText
 
-def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
     S=indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
     return S
 
@@ -777,6 +778,9 @@ def fetchXlators():
     xlators['funcBodyIndent']       = ""
     xlators['funcsDefInClass']      = "False"
     xlators['MakeConstructors']     = "True"
+    xlators['SwitchBreak']          = "True"
+    xlators['UseBlocksInSwitch']    = "True"
+    xlators['HasMain']              = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective
@@ -809,8 +813,10 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeActTextMain']              = codeActTextMain
     xlators['codeConstructionHeader']       = codeConstructionHeader
     xlators['codeConstructorInit']          = codeConstructorInit
+    xlators['codeIncrement']                = codeIncrement
+    xlators['codeDecrement']                = codeDecrement
+    xlators['codeForStmt']                  = codeForStmt
 
     return(xlators)

@@ -188,7 +188,7 @@ def ChooseLibs(objects, buildTags, tags):
         elif (Lib=="AndroidGUI"):  Lib_AndroidGUI.use(objects, buildTags, [tags, buildTags], Platform)
         elif (Lib=="Swift"):  Lib_Swift.use(objects, buildTags, [tags, buildTags], Platform)
 
-    Lib_CodeDog.use(objects, buildTags, [tags, buildTags])
+    #Lib_CodeDog.use(objects, buildTags, [tags, buildTags])
 
     return progSpec.libsToUse
 

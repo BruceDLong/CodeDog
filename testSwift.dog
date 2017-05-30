@@ -1,0 +1,104 @@
+/- testSwift.dog
+
+/-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed';
+/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+
+BuildCmd = ""
+Title = "testSwift"
+FileName = "testSwift"
+Version = "0.8"
+CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
+Authors = "Bruce Long"
+Description = "DataDog gives you the numbers of your life."
+ProgramOrLibrary = "program"
+
+featuresNeeded = {}
+
+LicenseText = ``
+
+runCode=`
+    me testClass: myTestClass
+
+    myTestClass.helloStr <- "Test Class Hello string"
+    logMesg("LogMsg test from runcode")
+    myTestClass.testLog()
+    print (myTestClass.helloStr)
+    myTestClass.testIfElse("Saturday")
+    myTestClass.testWithEach([2,4,6] )
+
+    myTestClass.testMapsFunc()
+`
+#include libraryTags.dog
+
+/-//////////   A p p l i c a t i o n   a n d   G l o b a l s
+
+struct testClass{
+    
+    me string: helloStr 
+    me int[list]: evenNumList 
+    me string[list]: myStrList 
+    me double: refrestRate 
+    me uint32: lowRange 
+    me uint64: hiRange 
+    me float: posX 
+    me float: posY 
+    me int: radius 
+
+    me void: testLog() <- {
+        print("Call print from another class")
+    }
+    
+    me void: testIfElse(me string: argStr) <- {
+        me string: S
+        if(argStr == "Saturday"){S<-"Saturday"}
+        else if(argStr == "Sunday"){S<-"Sunday"}
+        else{S<-"not weekend"}
+        print (S)
+    }
+    
+    me void: testWithEach(me int[list]: numList) <- {
+        withEach num in numList:{
+            print(num)
+        }
+        withEach i in RANGE(100 .. 110):{
+            print(i)
+        }
+    }
+
+    
+    me string[me map int]: myDataMap
+    me string[me multimap string]: myMultiMap
+    
+    me void: testMapsFunc ()<-{
+        /-me int: localTestMapsVar
+        myDataMap[21]<-"twenty-one"
+        helloStr <- "Hi there"
+        myDataMap[22]<-"twenty-two"
+        
+        withEach value in myDataMap:{
+            print(value_key)
+            print(value)
+        }
+
+        /-myMultiMap["A"]<-["Adam"]
+        /-myMultiMap["B"]<-["Bruce"]
+        
+        withEach value in myMultiMap:{
+            print("key:", value_key)
+            print(value)
+        }
+    }
+    
+    me void: testSwitch (me int: age)<-{
+        switch(age){
+            case 16: {print(" young")}
+            case 80: {print(" old")}
+            default: {print(" mid life")}
+        }
+    }
+}
+
+/- To do
+/- switch, overwrite manifest

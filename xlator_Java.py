@@ -15,6 +15,8 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParamete
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
     containerSpec=typeSpec['arraySpec']
+    if 'owner' in containerSpec: owner=containerSpec['owner']
+    else: owner='me'
     idxType=''
     if 'indexType' in containerSpec:
         idxType=containerSpec['indexType']
@@ -104,7 +106,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 langType="TreeMap<"+idxType+', '+langType+">"
             elif containerType=='multimap':
                 langType="multimap<"+idxType+', '+langType+">"
-    return langType
+    return [langType, langType]
 
 
 def recodeStringFunctions(name, typeSpec):
@@ -254,7 +256,7 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType, prntType, AltIDXFormat, varSRC]=codeItemRef(item0, 'RVAL', xlator)
             if(codeStr=="NULL"): codeStr="null"
             S+=codeStr                                # Code variable reference or function call
     return [S, retType]
@@ -416,13 +418,6 @@ def codeMain(objects, tags, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeActTextMain(actSeq, indent, xlator):
-    actSeqText = "{\n"
-    for action in actSeq:
-        actionText = codeAction(action, indent + '    ', xlator)
-        actSeqText += actionText
-    actSeqText += indent + "}"
-    return actSeqText
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
@@ -490,6 +485,9 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
+def codeForStmt(ctrType, repName, startVal, endVal):
+    return "for( "+ ctrType+" " + repName+'='+ startVal + "; " + repName + "!=" + endVal +"; "+ codeIncrement(repName) + ")"
+
 def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
@@ -516,7 +514,7 @@ def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey, co
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
     actionText = ""
     loopCounterName=""
     containedType=containerType['fieldType']
@@ -551,6 +549,12 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
     actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + repContainer+'.size(); ' + loopVarName+' += 1){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
     return [actionText, loopCounterName]
 
+def codeIncrement(varName):
+    return "++" + varName 
+    
+def codeDecrement(varName):
+    return "--" + varName
+
 def varTypeIsValueType(convertedType):
     if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
        or convertedType=='float' or convertedType=='double' or convertedType=='short'):
@@ -568,7 +572,7 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
                 fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
-def codeVarField_Str(convertedType, fieldName, fieldValueText, objectName, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
     S=""
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if (fieldName == "static_Global" or fieldName == "static_gui_tk"):  # TODO: make static_Global so it is not hard coded
@@ -663,6 +667,9 @@ def fetchXlators():
     xlators['funcBodyIndent']      = "    "
     xlators['funcsDefInClass']     = "True"
     xlators['MakeConstructors']    = "False"
+    xlators['SwitchBreak']          = "True"
+    xlators['UseBlocksInSwitch']    = "True"
+    xlators['HasMain']              = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective
@@ -695,8 +702,10 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeActTextMain']              = codeActTextMain
     xlators['codeConstructionHeader']       = codeConstructionHeader
     xlators['codeConstructorInit']          = codeConstructorInit
+    xlators['codeIncrement']                = codeIncrement
+    xlators['codeDecrement']                = codeDecrement
+    xlators['codeForStmt']                  = codeForStmt
 
     return(xlators)
