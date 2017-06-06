@@ -71,9 +71,9 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
             if containerType=='deque':
                 langType="["+langType+"]"
             elif containerType=='map':
-                langType="["+idxType+': '+langType+"]"
-            elif containerType=='multimap': # TODO: Implement true multmaps in swift
-                langType="["+idxType+': ['+langType+"]]"
+                langType="map< "+idxType+', '+langType+" >"
+            elif containerType=='multimap':
+                langType="multimap< "+idxType+', '+langType+" >"
 
             if varMode != 'alloc':
                 #if varMode=='arg' and containerOwner=='their': langType+='&' # Pass these as references
@@ -569,9 +569,6 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
  
     return(varDeclareStr)
 
-def codeForStmt(ctrType, repName, startVal, endVal):
-    return "for " + repName+' in '+ startVal + "..." + endVal 
-
 def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
@@ -585,7 +582,7 @@ def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,con
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for (" + repName +"_key, "+ repName+") in "+ repContainer+"->lower_bound("+StartKey+")" + "; " + repName + "Itr !=" + repContainer+"->upper_bound("+EndKey+")" +"; ++"+ repName + "Itr {\n"
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'->lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + repContainer+'->upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
 
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
@@ -605,15 +602,13 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
     containedType=containerType['fieldType']
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if datastructID=='multimap' or datastructID=='map':
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'_key')}
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-        if datastructID=='multimap':
-            ctrlVarsTypeSpec['codeConverter'] = (repName+'[0]')
-        else:
-            ctrlVarsTypeSpec['codeConverter'] = (repName)
+        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += indent + "for (" + repName +"_key, " + repName + ") in " + repContainer +"{\n"
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'.begin()' + "; " + repName + "Itr !=" + repContainer+'.end()' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
 
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         loopCounterName=repName+'_key'
@@ -630,8 +625,8 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         lvName=repName+"Itr"
-        actionText += (indent + "for " + lvName+" in 0..." +  repContainer + ".count-1{\n"
-                    + indent+"    var "+repName+" = "+repContainer+"["+lvName+"];\n")
+        actionText += (indent + "for( Uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+'.size();' +" ++"+lvName+" ){\n"
+                    + indent+"    "+"auto &"+repName+" = "+repContainer+"["+lvName+"];\n")
     else:
         print "DSID:",datastructID,containerType
         exit(2)
@@ -655,40 +650,36 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
     if(fieldValue == None):
         if (fieldOwner=='me'):
             if paramList!=None:
+                print "convertedType, paramList:", convertedType, paramList
                 [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
                 fieldValueText=" = new " + convertedType + CPL
-
+            else:
+                print "convertedType: ", convertedType
+                if (convertedType == "String"):
+                    fieldValueText=' = ""'
+                elif (convertedType.startswith("[")):
+                    fieldValueText=" = " + convertedType + "()"
+                elif (convertedType == "Bool"):
+                    fieldValueText=' = false'
+                elif (isNumericType(convertedType)):
+                    fieldValueText=' = 0'
+                elif (convertedType == "Character"):
+                    fieldValueText=' = ""'
+                else:
+                    print convertedType, " not initialized."
+                    exit (2)
     return fieldValueText
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
     convertedType = adjustBaseTypes(convertedType)
-    
-    if (fieldValueText == ""):
-        print "convertedType: ", convertedType
-        if (convertedType == "String"):
-            fieldValueText=' = ""'
-        elif (convertedType.startswith("[")):
-            fieldValueText=" = " + convertedType + "()"
-        elif (convertedType == "Bool"):
-            fieldValueText=' = false'
-        elif (isNumericType(convertedType)):
-            fieldValueText=' = 0'
-        elif (convertedType == "Character"):
-            fieldValueText=' = ""'
-        elif(convertedType.startswith('map')):
-            fieldValueText=' = []'
-        else:
-            print convertedType, " not initialized."
-            exit (2)
-    
     if 'arraySpec' in typeSpec:
         if (fieldValueText == ""):
             S=indent + "var "+ fieldName + ":" +  convertedType + '\n'
         else:
-            S=indent + "var "+ fieldName + ":" +  convertedType +  fieldValueText + '\n'
+            S=indent + "var "+ fieldName +  fieldValueText + '\n'
     else:
-        if (convertedType.startswith('map')):
-            S=indent + "var "+ fieldName + fieldValueText + '\n'
+        if (fieldValueText == ""):
+            S=indent + "var "+ fieldName + ":" +  convertedType + '\n'
         else:
             S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText + '\n'
     return S
@@ -717,7 +708,7 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
         else:
             structCode +="func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
-        structCode += indent + "mutating func " + fieldName +"("+argListText+") -> " + typeDefName
+        structCode += indent + "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val):
@@ -761,7 +752,7 @@ def fetchXlators():
     xlators['LanguageName']         = "Swift"
     xlators['BuildStrPrefix']       = ""
     xlators['fileExtension']        = ".swift"
-    xlators['typeForCounterInt']    = "var"
+    xlators['typeForCounterInt']    = "Int64"
     xlators['GlobalVarPrefix']      = ""
     xlators['PtrConnector']         = "->"                      # Name segment connector for pointers.
     xlators['ObjConnector']         = "::"                      # Name segment connector for classes.
@@ -808,5 +799,4 @@ def fetchXlators():
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
-    xlators['codeForStmt']                  = codeForStmt
     return(xlators)
