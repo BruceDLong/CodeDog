@@ -256,7 +256,7 @@ def codeFactor(item, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType, prntType, AltIDXFormat, varSRC]=codeItemRef(item0, 'RVAL', xlator)
+            [codeStr, retType, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', xlator)
             if(codeStr=="NULL"): codeStr="null"
             S+=codeStr                                # Code variable reference or function call
     return [S, retType]
@@ -421,10 +421,10 @@ def codeArgText(argFieldName, argType, xlator):
 def codeActTextMain(actSeq, indent, xlator):
     actSeqText = "{\n"
     for action in actSeq:
-        [actionText, varSRC] = codeAction(action, indent + '    ', xlator)
+        actionText = codeAction(action, indent + '    ', xlator)
         actSeqText += actionText
     actSeqText += indent + "}"
-    return [actSeqText, ""]
+    return actSeqText
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
@@ -603,7 +603,7 @@ def codeConstructorInit(fieldName, count, xlator):
         print "Error in codeConstructorInit."
         exit(2)
 
-def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, isMutating, indent):
+def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode='\n'; funcDefCode=''; globalFuncs='';
     if(objectName=='GLOBAL'):
         if fieldName=='main':
