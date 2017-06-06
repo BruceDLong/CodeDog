@@ -418,6 +418,13 @@ def codeMain(objects, tags, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
+def codeActTextMain(actSeq, indent, xlator):
+    actSeqText = "{\n"
+    for action in actSeq:
+        [actionText, varSRC] = codeAction(action, indent + '    ', xlator)
+        actSeqText += actionText
+    actSeqText += indent + "}"
+    return [actSeqText, ""]
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
@@ -667,9 +674,6 @@ def fetchXlators():
     xlators['funcBodyIndent']      = "    "
     xlators['funcsDefInClass']     = "True"
     xlators['MakeConstructors']    = "False"
-    xlators['SwitchBreak']          = "True"
-    xlators['UseBlocksInSwitch']    = "True"
-    xlators['HasMain']              = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective
@@ -702,6 +706,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
+    xlators['codeActTextMain']              = codeActTextMain
     xlators['codeConstructionHeader']       = codeConstructionHeader
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
