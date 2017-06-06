@@ -881,7 +881,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
             if(typeDefName=='none'): typeDefName=''
 
             #### FUNC HEADER: for both decl and defn.
-            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent)
+            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](objectName, fieldName, typeDefName, argListText, localArgsAllocated, isMutating, indent)
 
             #### FUNC BODY
             verbatimText=field['value'][1]
@@ -901,12 +901,6 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
             else:
                 print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                 exit(1)
-                
-            #### MODIFY FUNC HEADER 
-            if (isMutating):
-                structCode= structCode.replace("<prepend>", "mutating ", 1)
-            else:
-                structCode= structCode.replace("<prepend>", "", 1)
 
             if(funcsDefInClass=='True' ):
                 structCode += funcText
