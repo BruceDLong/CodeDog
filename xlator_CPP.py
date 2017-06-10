@@ -144,6 +144,9 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['','',  '','']
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
+    if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):
+        if assignTag=='deep' :return ['(*',')',  '(*',')']
+        else: return ['','',  '', '']
     if LeftOwner == RightOwner: return ['','',  '','']
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
         [leftMod, rightMod] = getTheDerefPtrMods(RVAL)
@@ -688,8 +691,8 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
     return [actionText, loopCounterName]
 
 def codeIncrement(varName):
-    return "++" + varName 
-    
+    return "++" + varName
+
 def codeDecrement(varName):
     return "--" + varName
 
