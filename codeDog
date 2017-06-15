@@ -89,22 +89,29 @@ def ScanAndApplyPatterns(objects, tags):
 def AutoGenerateStructsFromModels(objects, tags):
     #TODO: Convert ranges and deduce field types if possible.
     cdlog(1,  "Generating Auto-structs...")
-    for objName in objects[1]:
+#    for objName in objects[1]:
+    for objName, obj in objects[0].iteritems():
         if objName[0]!='!':
-            autoFlag = 'autoGen' in objects[0][objName]
-            stateType=objects[0][objName]['stateType']
-            if(autoFlag and stateType=='struct'):
-                cdlog(2, "Object: {}".format(objName))
+            autoFlag = 'autoGen' in obj
+            #print "AUTO:", objName, ":  ", autoFlag
+            if(autoFlag and obj['stateType']=='struct'):
+                cdlog(2, "AUTO STRUCT: {}".format(objName))
                 thisModel=progSpec.findModelOf(objects, objName)
                 newFields=[]
                 for F in thisModel['fields']:
-                    baseType=progSpec.TypeSpecsMinimumBaseType(objects, F['typeSpec'])
+                    typeSpec=F['typeSpec']
+                    fieldName='UNNAMED FIELD'
+                    if 'fieldName' in F:  fieldName=F['fieldName']
+                    cdlog(3, "Field: {}".format(fieldName))
+                    argList=typeSpec['argList']
+                    if(argList!=None and (not('value' in F) or F['value']==None)): continue
+                    baseType=progSpec.TypeSpecsMinimumBaseType(objects, typeSpec)
                     G = F.copy()
                     if baseType!=None:
-                        G['typeSpec']=F['typeSpec'].copy()
+                        G['typeSpec']=typeSpec.copy()
                         G['typeSpec']['fieldType']=baseType
                     newFields.append(G)
-                objects[0][objName]['fields'] = newFields
+                obj['fields'] = newFields
 
 
 def GroomTags(tags):

@@ -735,11 +735,11 @@ def codeConstructor(objects, ClassName, tags, xlator):
     if(baseType!=None): return ''
     if not ClassName in objects[0]: return ''
     cdlog(4, "Generating Constructor for: {}".format(ClassName))
+    ObjectDef = objects[0][ClassName]
     ClassName = progSpec.flattenObjectName(ClassName)
     constructorInit=""
     constructorArgs=""
     count=0
-    ObjectDef = objects[0][ClassName]
     for field in ObjectDef['fields']:
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
@@ -925,8 +925,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
     dependancies=[]
     for objectName in objects[1]:
         if progSpec.isWrappedType(objects, objectName)!=None: continue
-        if(objectName[0] != '!'):
-
+        if(objectName[0] != '!'):   # Filter "Do Commands"
             # The next lines skip defining classes that will already be defined by a library
             ObjectDef = objects[0][objectName]
             ctxTag  =progSpec.searchATagStore(ObjectDef['tags'], 'ctxTag')
@@ -963,6 +962,7 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             if not objectNameBase in constFieldAccs: constFieldAccs[objectNameBase]=""
             constFieldAccs[objectNameBase]+=strOut
 
+            #if(objects[0][objectName]['stateType'] == 'model'): print "MODEL:", objectName, "\n";
             if(needsFlagsVar):
                 progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None, None))
             if(((xlator['doesLangHaveGlobals']=='False') or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):

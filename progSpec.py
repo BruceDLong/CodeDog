@@ -86,7 +86,9 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     global MarkItems
     global MarkedObjects
     # Config type is [unknown | SEQ | ALT]
+    #print "ADDING:", name, stateType
     if(name in objSpecs):
+        #print "NOT ADDING:"
         cdlog(4, "Note: The struct '{}' is being added but already exists.".format(name))
         return
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], 'stateType':stateType, 'configType':configType}

@@ -5,7 +5,7 @@ from progSpec import cdlog, cdErr
 
 
 def use(objects, buildSpec, tags, platform):
-    cdlog(3,"USING Lib_CPP")
+    cdlog(2,"USING Lib_CPP")
     progSpec.addCodeToInit(tags[1], "signal(SIGSEGV, reportFault)");
    # progSpec.addCodeToInit(tags, "sync_with_stdio(false)");  #std::ios_base::sync_with_stdio(false)"
 
@@ -24,5 +24,14 @@ def use(objects, buildSpec, tags, platform):
 
     }
     struct timeValue{me int64: timeValue}
+
+    struct logger::mem{
+        me bool: isLogVisible
+        me void: LogEntry() <- <%!%Gcout<<%1<<%2%>
+        /-me void: Show() <- <%!isLogVisible = true;%>
+        /-me void: Hide() <- <%!isLogVisible = false;%>
+        /-me void: Route(me string: routeSpec) <- <%!cout<<%1;%>
+    }
+
 """
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
