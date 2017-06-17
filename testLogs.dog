@@ -1,0 +1,28 @@
+/- testLogging.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+/-SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed';
+/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+
+BuildCmd = ""
+Title = "testLogging"
+FileName = "testLogging"
+Version = "0.8"
+CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
+Authors = "Bruce Long"
+Description = "DataDog gives you the numbers of your life."
+ProgramOrLibrary = "program"
+
+featuresNeeded = {System = 'system'}
+
+LicenseText = ``
+
+runCode=`
+    me string: helloStr
+    helloStr<-"hello"
+    logMesg(helloStr)
+`
+#include libraryTags.dog
+#include Lib_Logger.dog
+/-//////////   A p p l i c a t i o n   a n d   G l o b a l s
