@@ -27,7 +27,7 @@ def use(objects, buildSpec, tags, platform):
 
     struct logger::mem{
         me bool: isLogVisible
-        me void: LogEntry() <- <%!%Gcout<<%1<<%2%>
+        me void: LogEntry() <- <%!%Gcout<<%1<<%2<<"\\n"%>
         /-me void: Show() <- <%!isLogVisible = true;%>
         /-me void: Hide() <- <%!isLogVisible = false;%>
         /-me void: Route(me string: routeSpec) <- <%!cout<<%1;%>

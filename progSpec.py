@@ -260,12 +260,18 @@ def createTypedefName(ItmType):
         elif(typeHead=='my'): suffix='UPtr'
         return baseType+suffix
 
-def findModelOf(objMap, structName):
+def findSpecOf(objMap, structName, stateTypeWanted):
     # returns None or ref to the model. E.g. for date:HR, the model would be 'date'
     colonIndex=structName.find('::')
-    if(colonIndex==-1): return None
     modelName=structName[0:colonIndex]
-    return objMap[0][modelName]
+    modelRef=None
+    for key, item in objMap[0].iteritems():
+        if 'stateType' in item:
+            stateType=item['stateType']
+            if modelName==baseStructName(key)or structName==baseStructName(key):
+                if stateType==stateTypeWanted: modelRef=item
+                if modelRef!=None: break
+    return modelRef
 
 def baseStructName(structName):
     colonIndex=structName.find('::')

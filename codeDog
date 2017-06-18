@@ -96,7 +96,7 @@ def AutoGenerateStructsFromModels(objects, tags):
             #print "AUTO:", objName, ":  ", autoFlag
             if(autoFlag and obj['stateType']=='struct'):
                 cdlog(2, "AUTO STRUCT: {}".format(objName))
-                thisModel=progSpec.findModelOf(objects, objName)
+                thisModel=progSpec.findSpecOf(objects, objName, 'model')
                 newFields=[]
                 for F in thisModel['fields']:
                     typeSpec=F['typeSpec']
@@ -116,6 +116,8 @@ def AutoGenerateStructsFromModels(objects, tags):
 
 def GroomTags(tags):
     # Set tag defaults as needed
+    if not ('featuresNeeded' in tags):
+        tags['featuresNeeded'] = {}
     tags['featuresNeeded']['System'] = 'system'
     # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
     if not ('Platform' in tags):
