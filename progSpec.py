@@ -260,12 +260,33 @@ def createTypedefName(ItmType):
         elif(typeHead=='my'): suffix='UPtr'
         return baseType+suffix
 
+def findModelAndStructOf(objMap, structName):
+    modelRef=None
+    StructRef=None
+    for key, item in objMap[0].iteritems():
+        if 'stateType' in item:
+            #print "OBJECT:", key, baseStructName(key), item['stateType']
+            stateType=item['stateType']
+            if structName==baseStructName(key):
+                if   stateType=="model": modelRef=item
+                elif stateType=="struct": StructRef=item
+                if modelRef!=None and StructRef!=None: break
+    return(modelRef, StructRef)
+
 def findModelOf(objMap, structName):
     # returns None or ref to the model. E.g. for date:HR, the model would be 'date'
     colonIndex=structName.find('::')
     if(colonIndex==-1): return None
     modelName=structName[0:colonIndex]
-    return objMap[0][modelName]
+
+    modelRef=None
+    for key, item in objMap[0].iteritems():
+        if 'stateType' in item:
+            stateType=item['stateType']
+            if modelName==baseStructName(key):
+                if stateType=="model": modelRef=item
+                if modelRef!=None: break
+    return modelRef
 
 def baseStructName(structName):
     colonIndex=structName.find('::')
@@ -289,6 +310,13 @@ def typeIsNumRange(fieldType):
     if len(fieldType)==3:
         if fieldType[1]=='..':
             return True
+    return False
+
+def typeIsInteger(fieldType):
+    if typeIsNumRange(fieldType): return true
+    if isinstance(fieldType, basestring):
+        if fieldType[:3]=='int' or fieldType[:4]=='uint': return True
+    elif fieldType[0][:3]=='int' or fieldType[0][:4]=='uint': return True
     return False
 
 def fetchFieldByName(fields, fieldName):
@@ -321,6 +349,19 @@ def TypeSpecsMinimumBaseType(objects, typeSpec):
             retType = TypeSpecsMinimumBaseType(objects, innerTypeSpec)
             return retType
     return fieldType
+
+def innerTypeCategory(fieldType):
+    if fieldType=='flag' or fieldType=='mode' or fieldType=='void' or fieldType=='char' or fieldType=='double' or fieldType=='string' or fieldType=='bool': return fieldType
+    if typeIsInteger(fieldType): return 'int'
+    if isStruct(fieldType): return 'struct'
+    return 'ERROR'
+
+def fieldsTypeCategory(typeSpec):
+    if 'argList' in typeSpec and typeSpec['argList']!=None: return 'func'
+    fieldType=typeSpec['fieldType']
+    return innerTypeCategory(fieldType)
+
+
 
 def flattenObjectName(objName):
     if objName[-5:]=='::mem': return objName[:-5]

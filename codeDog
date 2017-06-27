@@ -8,6 +8,7 @@ import TestDog
 
 import pattern_GUI_Toolkit
 import pattern_ManageCmdLine
+import pattern_DispData
 
 import stringStructs
 
@@ -82,6 +83,7 @@ def ScanAndApplyPatterns(objects, tags):
             elif pattName=='useBigNums': pattern_BigNums.apply(tags)
             elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(objects, tags)
             elif pattName=='ManageCmdLine': pattern_ManageCmdLine.apply(objects, tags)
+            elif pattName=='codeDataDisplay': pattern_DispData.apply(objects, tags, patternArgs[0], patternArgs[1])
             else:
                 cdEre("\nPattern {} not recognized.\n\n".format(pattName))
                 exit()
