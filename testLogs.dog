@@ -22,6 +22,12 @@ runCode=`
     me string: helloStr
     helloStr<-"hello"
     logMesg(helloStr)
+    logInfo(helloStr)
+    logCritical(helloStr)
+    logFatalError(helloStr)
+    logWarning(helloStr)
+    logDebug(helloStr)
+    
 `
 #include libraryTags.dog
 #include Lib_Logger.dog
