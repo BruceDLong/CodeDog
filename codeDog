@@ -91,7 +91,6 @@ def ScanAndApplyPatterns(objects, tags):
 def AutoGenerateStructsFromModels(objects, tags):
     #TODO: Convert ranges and deduce field types if possible.
     cdlog(1,  "Generating Auto-structs...")
-#    for objName in objects[1]:
     for objName, obj in objects[0].iteritems():
         if objName[0]!='!':
             autoFlag = 'autoGen' in obj
@@ -113,7 +112,7 @@ def AutoGenerateStructsFromModels(objects, tags):
                         G['typeSpec']=typeSpec.copy()
                         G['typeSpec']['fieldType']=baseType
                     newFields.append(G)
-                obj['fields'] = newFields
+                obj['fields'].extend(newFields)
 
 
 def GroomTags(tags):

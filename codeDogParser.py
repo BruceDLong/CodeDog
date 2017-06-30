@@ -422,11 +422,11 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
     return funcBodyOut, funcTextVerbatim
 
 
-def extractFieldDefs(ProgSpec, ObjectName, fieldResults):
+def extractFieldDefs(ProgSpec, ObjectName, stateType, fieldResults):
     cdlog(2, "EXTRACTING {}".format(ObjectName))
     for fieldResult in fieldResults:
         fieldDef=packFieldDef(fieldResult, ObjectName, '')
-        progSpec.addField(ProgSpec, ObjectName, fieldDef)
+        progSpec.addField(ProgSpec, ObjectName, stateType, fieldDef)
 
 
 
@@ -454,13 +454,13 @@ def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
         objTags = {}
  #   if 'ctxTag' in objTags: objectName+="#"+objTags['ctxTag']
     progSpec.addObject(ProgSpec, objNames, objectName, stateType, configType)
-    progSpec.addObjTags(ProgSpec, objectName, objTags)
+    progSpec.addObjTags(ProgSpec, objectName, stateType, objTags)
     ###########Grab field defs
     if(spec[2]=='auto'):
         progSpec.markStructAuto(ProgSpec, objectName)
     else:
         #print "SPEC.FIELDDEFS",spec.fieldDefs
-        extractFieldDefs(ProgSpec, objectName, spec.fieldDefs)
+        extractFieldDefs(ProgSpec, objectName, stateType, spec.fieldDefs)
 
     return
 

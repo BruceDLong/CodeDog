@@ -53,8 +53,8 @@ def CheckFunctionsLocalVarArgList(itemName):
 
 def CheckObjectVars(objName, itemName, level):
     #print "Searching",objName,"for", itemName
-    if(not objName in objectsRef[0]):
-        return 0  # Model def not found
+    ObjectDef =  progSpec.findSpecOf(objectsRef, objName, "struct")
+    if ObjectDef==None: return 0  # Model def not found
     retVal=None
     wrappedTypeSpec = progSpec.isWrappedType(objectsRef, objName)
     if(wrappedTypeSpec != None):
@@ -71,7 +71,8 @@ def CheckObjectVars(objName, itemName, level):
                 return wrappedTypeSpec
             else: return 0
 
-    ObjectDef =  progSpec.findSpecOf(objectsRef, objName, "struct")
+    if ObjectDef==None:
+        cdErr("The struct "+objName+" was not found!.")
     for field in ObjectDef['fields']:
         fieldName=field['fieldName']
         if fieldName==itemName:
@@ -882,6 +883,7 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
                     globalFuncs=""
                 else:
                     funcText=verbatimText
+                    if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                # print "                         Verbatim Func Body"
             elif field['value'][0]!='':
                 funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
@@ -925,9 +927,10 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
     dependancies=[]
     for objectName in objects[1]:
         if progSpec.isWrappedType(objects, objectName)!=None: continue
-        if(objectName[0] != '!'):   # Filter "Do Commands"
+        if(objectName[0] != '!' and objectName[0] != '%' and objectName[0] != '$'):   # Filter out "Do Commands", models and strings
             # The next lines skip defining classes that will already be defined by a library
-            ObjectDef = objects[0][objectName]
+            ObjectDef = progSpec.findSpecOf(objects, objectName, 'struct')
+            if(ObjectDef==None): continue
             ctxTag  =progSpec.searchATagStore(ObjectDef['tags'], 'ctxTag')
             implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
             classAttrs=progSpec.searchATagStore(ObjectDef['tags'], 'attrs')
@@ -962,10 +965,9 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
             if not objectNameBase in constFieldAccs: constFieldAccs[objectNameBase]=""
             constFieldAccs[objectNameBase]+=strOut
 
-            #if(objects[0][objectName]['stateType'] == 'model'): print "MODEL:", objectName, "\n";
             if(needsFlagsVar):
-                progSpec.addField(objects[0], objectName, progSpec.packField(False, 'me', "uint64", None, 'flags', None, None, None))
-            if(((xlator['doesLangHaveGlobals']=='False') or objectName != 'GLOBAL') and objects[0][objectName]['stateType'] == 'struct'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
+                progSpec.addField(objects[0], objectName, 'struct', progSpec.packField(False, 'me', "uint64", None, 'flags', None, None, None))
+            if((xlator['doesLangHaveGlobals']=='False') or objectName != 'GLOBAL'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
                 LangFormOfObjName = progSpec.flattenObjectName(objectName)
                 parentClass=''
                 if(implMode and implMode[:7]=="inherit"):

@@ -2,6 +2,7 @@
 
 import progSpec
 import codeDogParser
+from progSpec import cdlog, cdErr
 
 thisPatternAlreadyUsedOnce=False
 
@@ -69,16 +70,16 @@ def displayDrawFieldAction(label, fieldName, field, fldCat):
         print "MODE FIELD:", field
         valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
     elif(fldCat=='struct'):
-        valStr=fieldName+'.dump(indent+"|   ")\n'
+        valStr=fieldName+'.drawData(cr, x+20, y)\n'
 
         structTypeName=field['typeSpec']['fieldType'][0]
         if not(structTypeName in classesEncoded):
             classesEncoded[structTypeName]=1
             classesToProcess.append(structTypeName)
     if(fldCat=='struct'):
-        S="    "+'y<-y+drawField(x,y, "'+label+'", '+valStr+'\n'
+        S="    "+'y<-y+drawField(cr, x,y, "'+label+'", '+valStr+')\n'
     else:
-        S="    "+'y<-y+drawField(x,y, "'+label+'", '+valStr+'\n'
+        S="    "+'y<-y+drawField(cr, x,y, "'+label+'", '+valStr+')\n'
     return S
 
 def encodeFieldDraw(fieldName, field, fldCat):
@@ -90,35 +91,28 @@ def encodeFieldDraw(fieldName, field, fldCat):
         fldCatInner=progSpec.innerTypeCategory(innerFieldType)
         calcdName=fieldName+'["+toString(_item_key)+"]'
         S+="    withEach _item in "+fieldName+":{\n"
-        S+="        "+displayDrawFieldAction(x,y, calcdName, '_item', field, fldCatInner)+"    }\n"
-    else: S+=displayDrawFieldAction(x,y, fieldName, fieldName, field, fldCat)
+        S+="        "+displayDrawFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
+    else: S+=displayDrawFieldAction(fieldName, fieldName, field, fldCat)
     if progSpec.typeIsPointer(typeSpec):
-        T ="    if("+fieldName+' == NULL){drawField('+'x,y, "'+fieldName+'", "NULL")}\n'
+        T ="    if("+fieldName+' == NULL){drawField(cr, '+'x,y, "'+fieldName+'", "NULL")}\n'
         T+="    else{\n    "+S+"    }\n"
         S=T
     return S
 
 #---------------------------------------------------------------  DUMP MAKING CODE
-def wrapCodeInheaderAndSubmitFunc(objects, className, funcName, bodyText):
-    S=''
-    S+="me void: "+funcName+'(me string:indent) <- {\n'+bodyText+"    }\n"
-    S=progSpec.wrapFieldListInObjectDef(className, S)
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], S )
-
 
 def EncodeDumpFunction(objects, className, dispMode):
     global classesEncoded
-    #print "ENCODING: ", className
+    cdlog(2, "ENCODING: "+ className)
     classesEncoded[className]=1
     textFuncBody=''
     drawFuncBody=''
-    (modelRef, StructRef)=progSpec.findModelAndStructOf(objects, className)
-    #if modelRef!=None:  print "modeRef:", modelRef['name']
-    #if StructRef!=None:print "structRef:", StructRef['name']
+    modelRef = progSpec.findSpecOf(objects, className, 'model')
+    if modelRef==None:
+        cdErr('To write a dump function for class '+className+' a model is needed but is not found.')
     for field in modelRef['fields']:
         fldCat=progSpec.fieldsTypeCategory(field['typeSpec'])
         fieldName=field['fieldName']
-        print "        ",fieldName, fldCat
 
         if(dispMode=='text' or dispMode=='both'):
             textFuncBody+=encodeFieldText(fieldName, field, fldCat)
@@ -126,13 +120,14 @@ def EncodeDumpFunction(objects, className, dispMode):
             drawFuncBody+=encodeFieldDraw(fieldName, field, fldCat)
 
     if(dispMode=='text' or dispMode=='both'):
-        wrapCodeInheaderAndSubmitFunc(objects, className, 'dump', textFuncBody)
-
-    if(dispMode=='draw' or dispMode=='both'):
-        Code="me int: drawData(me GUI_ctxt: cr, me string:indent) <- {\n"+drawFuncBody+"    }\n"
+        Code="me void: dump(me string:indent) <- {\n"+textFuncBody+"    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
         codeDogParser.AddToObjectFromText(objects[0], objects[1], Code)
 
+    if(dispMode=='draw' or dispMode=='both'):
+        Code="me int: drawData(me GUI_ctxt: cr, me int:x, me int:y) <- {\n"+drawFuncBody+"    }\n"
+        Code=progSpec.wrapFieldListInObjectDef(className, Code)
+        codeDogParser.AddToObjectFromText(objects[0], objects[1], Code)
 
 def apply(objects, tags, className, dispMode):
     global classesToProcess

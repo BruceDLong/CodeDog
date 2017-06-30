@@ -87,6 +87,8 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     global MarkedObjects
     # Config type is [unknown | SEQ | ALT]
     #print "ADDING:", name, stateType
+    if stateType=='model': name='%'+name
+    elif stateType=='string': name='$'+name
     if(name in objSpecs):
         #print "NOT ADDING:"
         cdlog(4, "Note: The struct '{}' is being added but already exists.".format(name))
@@ -96,8 +98,10 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     if MarkItems: MarkedObjects[name]=1
     #print "ADDED STRUCT: ", name
 
-def addObjTags(objSpecs, objectName, objTags):
+def addObjTags(objSpecs, objectName, stateType, objTags):
     startTags = {}
+    if stateType=='model': objectName='%'+objectName
+    elif stateType=='string': objectName='$'+objectName
     if ('tags' in objSpecs[objectName]):
         startTags = objSpecs[objectName]['tags']
         # append tags here
@@ -129,14 +133,17 @@ def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgL
         packedField['typeSpec']['codeConverter']=codeConverter
     return packedField
 
-def addField(objSpecs, objectName, packedField):
+def addField(objSpecs, objectName, stateType, packedField):
     global MarkItems
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
     thisName=packedField['fieldName']
-    if(packedField['fieldName'] in objSpecs[objectName]["fields"]):
-        cdlog(4, "Note: The field '" + objectName + '::' + thisName + "' already exists. Not re-adding")
+    if stateType=='model': objectName='%'+objectName
+    elif stateType=='string': objectName='$'+objectName
+    #print "ADDING FIELD:", objectName, stateType, thisName
+    if thisName in objSpecs[objectName]["fields"]:
+        cdlog(2, "Note: The field '" + objectName + '::' + thisName + "' already exists. Not re-adding")
         return
     objSpecs[objectName]["fields"].append(packedField)
 
@@ -260,33 +267,12 @@ def createTypedefName(ItmType):
         elif(typeHead=='my'): suffix='UPtr'
         return baseType+suffix
 
-def findModelAndStructOf(objMap, structName):
-    modelRef=None
-    StructRef=None
-    for key, item in objMap[0].iteritems():
-        if 'stateType' in item:
-            #print "OBJECT:", key, baseStructName(key), item['stateType']
-            stateType=item['stateType']
-            if structName==baseStructName(key):
-                if   stateType=="model": modelRef=item
-                elif stateType=="struct": StructRef=item
-                if modelRef!=None and StructRef!=None: break
-    return(modelRef, StructRef)
 
-def findModelOf(objMap, structName):
-    # returns None or ref to the model. E.g. for date:HR, the model would be 'date'
-    colonIndex=structName.find('::')
-    if(colonIndex==-1): return None
-    modelName=structName[0:colonIndex]
-
-    modelRef=None
-    for key, item in objMap[0].iteritems():
-        if 'stateType' in item:
-            stateType=item['stateType']
-            if modelName==baseStructName(key):
-                if stateType=="model": modelRef=item
-                if modelRef!=None: break
-    return modelRef
+def findSpecOf(objMap, structName, stateTypeWanted):
+    if stateTypeWanted=='model': structName='%'+structName
+    elif stateTypeWanted=='string': structName='$'+structName
+    if not structName in objMap[0]: return None
+    return objMap[0][structName]
 
 def baseStructName(structName):
     colonIndex=structName.find('::')

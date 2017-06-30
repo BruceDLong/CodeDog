@@ -903,15 +903,9 @@ def getFunctionName(fromName, toName):
 
 def fetchMemVersion(objects, objName):
     if objName=='[' or objName=='{': return [None, None]
-    # TODO: here we assume that the memory form has '::mem' using AutoAssigners, make this work with other forms.
-    seperatorIdx= objName.find("::")
-    #print "OBJNAME:", objName, seperatorIdx
-    memVersionName=objName
-    if seperatorIdx>=0:
-        memVersionName=objName[:objName.find("::")]+"::mem"
-    if not memVersionName in objects[0]: return [None, None]
-    memObj=objects[0][memVersionName]
-    return [memObj, memVersionName]
+    memObj = progSpec.findSpecOf(objects, objName, 'struct')
+    if memObj==None: return [None, None]
+    return [memObj, objName]
 
 
 def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuffix, VarName, indent, level, logLvl):
@@ -979,7 +973,7 @@ def CodeRValExpr(toFieldType, VarTag):
 
 
 def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase, VarName, advancePtr, indent, level, logLvl):
-    boob=False # Erase this line
+    debugTmp=False # Erase this line
     VarTag=VarTagBase+str(level)
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
     global  globalFieldCount
@@ -1035,7 +1029,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
     if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:
         if datastructID != 'opt': toIsList=True
 
-    if boob:
+    if debugTmp:
         print '        fromIsOPT:', fromIsOPT
         print '        fromIsList:', fromIsList
         print '        toIsList:', toIsList
@@ -1058,7 +1052,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
             CODE_LVAR_v2 = 'S'+str(globalFieldCount)
             CodeLVAR_Alloc='    me string: '+CODE_LVAR_v2
             CODE_LVAR = CodeLVAR_Alloc
-            if boob: print '        CODE_LVARS:', CODE_LVAR
+            if debugTmp: print '        CODE_LVARS:', CODE_LVAR
         else:
             CODE_LVAR = VarName+'.'+fieldName
             if fieldName=='inf': CODE_LVAR = VarName
@@ -1085,7 +1079,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
 
     else:
         if toIsStruct:
-            if boob: print '        toFieldType:', toFieldType
+            if debugTmp: print '        toFieldType:', toFieldType
             if not ToIsEmbedded:
                 objName=toFieldType[0]
                 if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
@@ -1099,7 +1093,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
                         finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'('+VarTag+"<LVL_SUFFIX>"+'.child.next, memStruct)\n')
 
                         #print "FUNCTION:", getFunctionName(fieldType[0], memVersionName)
-                        ToFields=objects[0][objName+'::str']['fields']
+                        ToFields=progSpec.findSpecOf(objects, objName, 'string')['fields']
                         FromStructName=objName
                         Write_Extracter(objects, ToStructName, FromStructName, logLvl+1)
                     else:
@@ -1161,7 +1155,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
             setTrueCode=''
             assignerCode+='\n'+indent+'if('+VarTag+'.child.next' +' == NULL){'
             if toFieldOwner=='me':
-                if boob: print '        toFieldOwner:', toFieldOwner
+                if debugTmp: print '        toFieldOwner:', toFieldOwner
                 ## if fieldName==None and a model of fromFieldType has no cooresponding model But we are in EXTRACT_ mode:
                         ## Make a special form of Extract_fromFieldType_to_ToFieldType()
                         ## Call that function instead of the one in Code_LVAR
@@ -1169,7 +1163,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
                 if fieldName==None: fieldName="TEMP"
                 newFieldsName=fieldName   #'has_'+fieldName
                 fieldDef=progSpec.packField(False, 'me', 'flag', None, newFieldsName, None, None, None)
-                progSpec.addField(objects[0], memVersionName, fieldDef)
+                progSpec.addField(objects[0], memVersionName, 'struct', fieldDef)
 
                 # Second, generate the code to set the flag
                 assignerCode+='\n'+indent+'    '+VarName+'.'+newFieldsName+' <- false'
@@ -1202,7 +1196,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
                 assignerCode+=Write_fieldExtracter(objects, ToStructName, innerField, memObjFields, childRecNameBase, '', True, '    ', level, logLvl+1)
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr.replace("<LVL_SUFFIX>", levelSuffix);
-            if boob: print '        assignerCode:', assignerCode
+            if debugTmp: print '        assignerCode:', assignerCode
         else:
            # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
             if CODE_RVAL!="":
@@ -1223,7 +1217,7 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
 
     S+=gatherFieldCode
     #print "ASSIGN_CODE", S
- #   if boob: exit(2)
+ #   if debugTmp: exit(2)
     return S
 
 extracterFunctionAccumulator = ""
@@ -1246,8 +1240,7 @@ def Write_Extracter(objects, ToStructName, FromStructName, logLvl):
     if nameForFunc in alreadyWrittenFunctions: return
     alreadyWrittenFunctions[nameForFunc]=True
     S=''
-    if len(FromStructName)>=5 and FromStructName[-5:]=='::str': FromStructName=FromStructName[:-5]
-    ObjectDef = objects[0][FromStructName+'::str']
+    ObjectDef = progSpec.findSpecOf(objects, FromStructName, 'string')
     fields=ObjectDef['fields']
     configType=ObjectDef['configType']
     SeqOrAlt=''
@@ -1307,6 +1300,7 @@ def CreateStructsForStringModels(objects, tags):
         if objectName[0] == '!': continue
         ObjectDef = objects[0][objectName]
         if(ObjectDef['stateType'] == 'string'):
+            objectName=objectName[1:]
             numStringStructs+=1
             fields=ObjectDef['fields']
             configType=ObjectDef['configType']
@@ -1315,6 +1309,7 @@ def CreateStructsForStringModels(objects, tags):
             elif configType=='ALT': SeqOrAlt='parseALT'
 
             normedObjectName = objectName.replace('::', '_')
+            if normedObjectName==objectName: normedObjectName+='_str'
             # Write the rules for all the fields, and a parent rule which is either SEQ or ALT, and REP/OPT as needed.
             cdlog(2, "CODING Parser Rules for {}".format(normedObjectName))
             ruleID = writeNonTermParseRule(objects, tags, normedObjectName, fields, SeqOrAlt, '', 3)
