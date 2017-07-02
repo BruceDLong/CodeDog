@@ -1039,13 +1039,13 @@ def makeFileHeader(tags, filename, xlator):
 def integrateLibraries(tags, libID, xlator):
     cdlog(3, 'Integrating {}'.format(libID))
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
-    libFiles=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.libFiles')
-    #print "LIB_FILES", libFiles
+    libFiles=progSpec.fetchTagValue(tags, libID[0])
+    #print "LIB_FILES: ", libFiles
     global buildStr_libs
     headerStr = ''
     for libFile in libFiles:
         buildStr_libs+=' -l'+libFile
-    libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID+'.headers')
+    libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID[0]+'.headers')
     for libHdr in libHeaders:
         headerStr += xlator['includeDirective'](libHdr)
         #print "Added header", libHdr
