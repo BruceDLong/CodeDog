@@ -25,7 +25,7 @@ def use(objects, buildSpec, tags, platform):
     }
     struct timeValue{me int64: timeValue}
 
-    struct logger::mem{
+    struct logger{
         me bool: isLogVisible
         me void: LogEntry() <- <%!%Gcout<<%1<<%2<<"\\n"%>
         /-me void: Show() <- <%!isLogVisible = true;%>

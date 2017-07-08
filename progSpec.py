@@ -93,7 +93,7 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
         #print "NOT ADDING:"
         cdlog(4, "Note: The struct '{}' is being added but already exists.".format(name))
         return
-    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], 'stateType':stateType, 'configType':configType}
+    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType}
     objectNameList.append(name)
     if MarkItems: MarkedObjects[name]=1
     #print "ADDED STRUCT: ", name
@@ -139,17 +139,27 @@ def addField(objSpecs, objectName, stateType, packedField):
     global MarkedFields
     global ModifierCommands
     thisName=packedField['fieldName']
-    if stateType=='model': objectName='%'+objectName
-    elif stateType=='string': objectName='$'+objectName
-    #print "ADDING FIELD:", objectName, stateType, thisName
-    if thisName in objSpecs[objectName]["fields"]:
-        cdlog(2, "Note: The field '" + objectName + '::' + thisName + "' already exists. Not re-adding")
+    if stateType=='model': taggedObjectName='%'+objectName
+    elif stateType=='string': taggedObjectName='$'+objectName
+    else: taggedObjectName = objectName
+    #print "ADDING FIELD:", taggedObjectName, stateType, thisName
+    if thisName in objSpecs[taggedObjectName]["fields"]:
+        cdlog(2, "Note: The field '" + taggedObjectName + '::' + thisName + "' already exists. Not re-adding")
         return
-    objSpecs[objectName]["fields"].append(packedField)
+
+    # Don't override flags and modes in derived classes
+    fieldType = packedField['typeSpec']['fieldType']
+    if fieldType=='flag' or fieldType=='mode':
+        print " DETECTED FIELDTYPE:", fieldType
+        if fieldAlreadyDeclaredInStruct(objSpecs, objectName, thisName):
+            print "SKIPPING:", objectName, thisName, fieldType
+           # return
+
+    objSpecs[taggedObjectName]["fields"].append(packedField)
 
     if MarkItems:
-        if not (objectName in MarkedObjects):
-            MarkedFields.append([objectName, thisName])
+        if not (taggedObjectName in MarkedObjects):
+            MarkedFields.append([taggedObjectName, thisName])
 
     #if(thisOwner!='flag' and thisOwner!='mode'):
         #print "FIX THIS COMMENTED OUT PART", thisType, objectName #registerBaseType(thisType, objectName)
@@ -159,7 +169,7 @@ def addField(objSpecs, objectName, stateType, packedField):
             if tag[:7]=='COMMAND':
                 newCommand = packedField['optionalTags'][tag]
                 commandArg = tag[8:]
-                addModifierCommand(objSpecs, objectName, thisName, commandArg, newCommand)
+                addModifierCommand(objSpecs, taggedObjectName, thisName, commandArg, newCommand)
 
 def markStructAuto(objSpecs, objectName):
     objSpecs[objectName]["autoGen"]='yes'
@@ -225,6 +235,80 @@ def removeFieldFromObject (objects, objectName, fieldtoRemove):
             del fieldList[idx]
         idx+=1
 
+############## Field manupulation regarding inheritance
+
+def insertOrReplaceField(fieldListToUpdate, field):
+    idx=0
+    for F in fieldListToUpdate:
+        if field['fieldName']==F['fieldName']:
+            fieldListToUpdate[idx]=field
+            return
+        idx+=1
+    fieldListToUpdate.append(field)
+
+def updateCvt(objects, fieldListToUpdate, fieldsToConvert):
+    for F in fieldsToConvert:
+        typeSpec=F['typeSpec']
+        baseType=TypeSpecsMinimumBaseType(objects, typeSpec)
+        G = F.copy()
+        if baseType!=None:
+            G['typeSpec']=typeSpec.copy()
+            G['typeSpec']['fieldType']=baseType
+        insertOrReplaceField(fieldListToUpdate, G)
+
+def updateCpy(fieldListToUpdate, fieldsToCopy):
+    for field in fieldsToCopy:
+        insertOrReplaceField(fieldListToUpdate, field)
+
+def populateCallableStructFields(objects, structName):  # e.g. 'type::subType::subType2'
+    #print "POPULATING-STRUCT:", structName
+    structSpec=findSpecOf(objects[0], structName, 'struct')
+    if structSpec['vFields']!=None: return structSpec['vFields']
+    fList=[]
+    segIdx=0
+    while(segIdx>=0):
+        segIdx=structName.find('::', segIdx);
+        if segIdx == -1: segStr=structName
+        else: segStr=structName[0:segIdx]
+        #print "     SEGSTR:", segStr
+        modelSpec=findSpecOf(objects[0], segStr, 'model')
+        if(modelSpec!=None): updateCvt(objects, fList, modelSpec['fields'])
+        modelSpec=findSpecOf(objects[0], segStr, 'struct')
+        updateCpy(fList, modelSpec['fields'])
+        if(segIdx>=0): segIdx+=1
+    structSpec['vFields'] = fList
+    return fList
+
+def generateListOfFieldsToImplement(objects, structName):  # Does not include fields gained by inheritance.
+    fList=[]
+    modelSpec=findSpecOf(objects[0], structName, 'model')
+    if(modelSpec!=None): updateCvt(objects, fList, modelSpec['fields'])
+    modelSpec=findSpecOf(objects[0], structName, 'struct')
+    updateCpy(fList, modelSpec['fields'])
+    return fList
+
+def fieldDefIsInList(fList, fieldName):
+    for field in fList:
+        if 'fieldName' in field and field['fieldName']==fieldName:
+            return True
+    return False
+
+def fieldAlreadyDeclaredInStruct(objects, structName, fieldName):  # e.g. 'type::subType::subType2'
+    segIdx=0
+    while(segIdx>=0):
+        segIdx=structName.find('::', segIdx);
+        if segIdx == -1: segStr=structName
+        else: segStr=structName[0:segIdx]
+        print "     SEGSTR:", segStr, fieldName
+        modelSpec=findSpecOf(objects, segStr, 'model')
+        if(modelSpec!=None):
+            if fieldDefIsInList(modelSpec['fields'], fieldName): return True
+        modelSpec=findSpecOf(objects, segStr, 'struct')
+        if(modelSpec!=None):
+            if fieldDefIsInList(modelSpec['fields'], fieldName): return True
+        if(segIdx>=0): segIdx+=1
+    return False
+
 ###############  Various type-handling functions
 
 def getTypeSpecOwner(typeSpec):
@@ -245,7 +329,7 @@ def isWrappedType(objMap, structname):
     if not structname in objMap[0]:
         #print "Struct "+structname+" not found"
         return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
-    structToSearch=objMap[0][structname]
+    structToSearch=findSpecOf(objMap[0], structname, 'struct')
     fieldListToSearch = structToSearch['fields']
     if not fieldListToSearch: return None
     if len(fieldListToSearch)>0:
@@ -271,8 +355,8 @@ def createTypedefName(ItmType):
 def findSpecOf(objMap, structName, stateTypeWanted):
     if stateTypeWanted=='model': structName='%'+structName
     elif stateTypeWanted=='string': structName='$'+structName
-    if not structName in objMap[0]: return None
-    return objMap[0][structName]
+    if not structName in objMap: return None
+    return objMap[structName]
 
 def baseStructName(structName):
     colonIndex=structName.find('::')
@@ -347,10 +431,7 @@ def fieldsTypeCategory(typeSpec):
     fieldType=typeSpec['fieldType']
     return innerTypeCategory(fieldType)
 
-
-
 def flattenObjectName(objName):
-    if objName[-5:]=='::mem': return objName[:-5]
     return objName.replace('::', '_')
 
 

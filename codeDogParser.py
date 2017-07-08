@@ -457,6 +457,7 @@ def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
     progSpec.addObjTags(ProgSpec, objectName, stateType, objTags)
     ###########Grab field defs
     if(spec[2]=='auto'):
+        cdErr("'auto' is no longer used to generate structs automatically.")
         progSpec.markStructAuto(ProgSpec, objectName)
     else:
         #print "SPEC.FIELDDEFS",spec.fieldDefs

@@ -21,8 +21,8 @@ model logManager{
     /-RouteLogs(FILE) // Options: stdOut, A file, the platform's system logs, a string
 }
 
-struct logger::mem auto
-struct logManager::mem auto
+struct logger auto
+struct logManager auto
 
 #define logMesg(MSG) <%logMgr.Mesg.LogEntry("MESSAGE: ", MSG)%>
 #define logInfo(MSG) <%logMgr.Info.LogEntry("INFO: ", MSG)%>

@@ -297,5 +297,4 @@ me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: c
         }%>
     }
 """
-    print "##################################################\n", CODE, "\n\n\n"
     codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )

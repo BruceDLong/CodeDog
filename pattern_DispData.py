@@ -107,7 +107,7 @@ def EncodeDumpFunction(objects, className, dispMode):
     classesEncoded[className]=1
     textFuncBody=''
     drawFuncBody=''
-    modelRef = progSpec.findSpecOf(objects, className, 'model')
+    modelRef = progSpec.findSpecOf(objects[0], className, 'model')
     if modelRef==None:
         cdErr('To write a dump function for class '+className+' a model is needed but is not found.')
     for field in modelRef['fields']:

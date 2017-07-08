@@ -903,7 +903,7 @@ def getFunctionName(fromName, toName):
 
 def fetchMemVersion(objects, objName):
     if objName=='[' or objName=='{': return [None, None]
-    memObj = progSpec.findSpecOf(objects, objName, 'struct')
+    memObj = progSpec.findSpecOf(objects[0], objName, 'struct')
     if memObj==None: return [None, None]
     return [memObj, objName]
 
@@ -917,6 +917,7 @@ def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuf
     cdlog(logLvl, "WRITING code to extract one of {} from parse tree...".format(parentStructName))
     [memObj, memVersionName]=fetchMemVersion(objects, parentStructName)
     InnerMemObjFields=memObj['fields']
+    if parentStructName.find('::') != -1: cdErr("TODO: Make string parsing work on derived classes. Probably just select the correct fields for the destination struct.")
     S=""
     # Code to fetch the ruleIDX of this ALT. If the parse was terminal (i.e., 'const'), it will be at a different place.
     if(level==-1):
@@ -950,8 +951,9 @@ def Write_ALT_Extracter(objects, parentStructName, fields, VarTagBase, VarTagSuf
             for coFact in altField['coFactuals']:
                 coFactualCode+= indent2 +'        ' + VarName + '.' + coFact[0] + ' <- ' + coFact[2] + "\n"
                 cdlog(logLvl+2, "Cofactual: "+coFactualCode)
-
+        print "FROM ALT_EXTRATOR:", parentStructName
         S+=Write_fieldExtracter(objects, parentStructName, altField, InnerMemObjFields, VarTagBase, VarName, False, indent2+'        ', level, logLvl+1)
+        print "DONE: FROM ALT_EXTRATOR:", parentStructName
         S+=coFactualCode
         S+=indent2+"    }\n"
         count+=1
@@ -1092,9 +1094,10 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
                         # make alternate finalCodeStr. Also, write the extractor that extracts toStruct fields to memVersion of this
                         finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'('+VarTag+"<LVL_SUFFIX>"+'.child.next, memStruct)\n')
 
-                        #print "FUNCTION:", getFunctionName(fieldType[0], memVersionName)
-                        ToFields=progSpec.findSpecOf(objects, objName, 'string')['fields']
+                        print "FUNCTION:", getFunctionName(fieldType[0], memVersionName)
+                        ToFields=progSpec.findSpecOf(objects[0], objName, 'string')['fields']
                         FromStructName=objName
+                        print "WRITING EXTRACTOR:", ToStructName, FromStructName
                         Write_Extracter(objects, ToStructName, FromStructName, logLvl+1)
                     else:
                         fromFieldTypeCID = fieldType[0].replace('::', '_')
@@ -1193,7 +1196,9 @@ def Write_fieldExtracter(objects, ToStructName, field, memObjFields, VarTagBase,
             childRecName=childRecNameBase+str(level)
             assignerCode+='\n'+indent+'our stateRec: '+childRecName+' <- '+VarTag+levelSuffix+'.child\n'
             for innerField in field['innerDefs']:
+                print "ABOUT TO WRITE:", ToStructName
                 assignerCode+=Write_fieldExtracter(objects, ToStructName, innerField, memObjFields, childRecNameBase, '', True, '    ', level, logLvl+1)
+                print "DONE: ABOUT TO WRITE:", ToStructName
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr.replace("<LVL_SUFFIX>", levelSuffix);
             if debugTmp: print '        assignerCode:', assignerCode
@@ -1230,7 +1235,9 @@ def Write_structExtracter(objects, ToStructName, fields, nameForFunc, logLvl):
     memObjFields=memObj['fields']
     S='    me string: tmpStr\n'
     for field in fields: # Extract all the fields in the string version.
+        print "In WriteStructExtractor:", ToStructName, nameForFunc
         S+=Write_fieldExtracter(objects, ToStructName, field, memObjFields, 'SRec', '', True, '    ', 0, logLvl+1)
+        print "DONE In WriteStructExtractor:", ToStructName
     return S
 
 def Write_Extracter(objects, ToStructName, FromStructName, logLvl):
@@ -1240,7 +1247,7 @@ def Write_Extracter(objects, ToStructName, FromStructName, logLvl):
     if nameForFunc in alreadyWrittenFunctions: return
     alreadyWrittenFunctions[nameForFunc]=True
     S=''
-    ObjectDef = progSpec.findSpecOf(objects, FromStructName, 'string')
+    ObjectDef = progSpec.findSpecOf(objects[0], FromStructName, 'string')
     fields=ObjectDef['fields']
     configType=ObjectDef['configType']
     SeqOrAlt=''
@@ -1318,7 +1325,7 @@ def CreateStructsForStringModels(objects, tags):
                 [memObj, memVersionName]=fetchMemVersion(objects, objectName)
                 if memObj!=None:
                     Write_Extracter(objects, objectName, objectName, 2)
-                else: cdlog(2, "NOTE: Skipping {} because it has no ::mem version defined.".format(objectName))
+                else: cdlog(2, "NOTE: Skipping {} because it has no struct version defined.".format(objectName))
 
     if numStringStructs==0: return
 

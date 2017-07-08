@@ -88,33 +88,6 @@ def ScanAndApplyPatterns(objects, tags):
                 cdEre("\nPattern {} not recognized.\n\n".format(pattName))
                 exit()
 
-def AutoGenerateStructsFromModels(objects, tags):
-    #TODO: Convert ranges and deduce field types if possible.
-    cdlog(1,  "Generating Auto-structs...")
-    for objName, obj in objects[0].iteritems():
-        if objName[0]!='!':
-            autoFlag = 'autoGen' in obj
-            #print "AUTO:", objName, ":  ", autoFlag
-            if(autoFlag and obj['stateType']=='struct'):
-                cdlog(2, "AUTO STRUCT: {}".format(objName))
-                thisModel=progSpec.findSpecOf(objects, objName, 'model')
-                newFields=[]
-                for F in thisModel['fields']:
-                    typeSpec=F['typeSpec']
-                    fieldName='UNNAMED FIELD'
-                    if 'fieldName' in F:  fieldName=F['fieldName']
-                    cdlog(3, "Field: {}".format(fieldName))
-                    argList=typeSpec['argList']
-                    if(argList!=None and (not('value' in F) or F['value']==None)): continue
-                    baseType=progSpec.TypeSpecsMinimumBaseType(objects, typeSpec)
-                    G = F.copy()
-                    if baseType!=None:
-                        G['typeSpec']=typeSpec.copy()
-                        G['typeSpec']['fieldType']=baseType
-                    newFields.append(G)
-                obj['fields'].extend(newFields)
-
-
 def GroomTags(tags):
     # Set tag defaults as needed
     if not ('featuresNeeded' in tags):
@@ -205,7 +178,6 @@ def ChooseLibs(objects, buildTags, tags):
 def GenerateSystem(objects, buildSpecs, tags, macroDefs):
     cdlog(0, "\n######################   G E N E R A T I N G   P R O G R A M   S P E C I F I C A T I O N")
     ScanAndApplyPatterns(objects, tags)
-    AutoGenerateStructsFromModels(objects, tags)
     stringStructs.CreateStructsForStringModels(objects, tags)
     GroomTags(tags)
 
