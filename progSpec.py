@@ -150,12 +150,11 @@ def addField(objSpecs, objectName, stateType, packedField):
     # Don't override flags and modes in derived classes
     fieldType = packedField['typeSpec']['fieldType']
     if fieldType=='flag' or fieldType=='mode':
-        print " DETECTED FIELDTYPE:", fieldType
         if fieldAlreadyDeclaredInStruct(objSpecs, objectName, thisName):
-            print "SKIPPING:", objectName, thisName, fieldType
-           # return
+            return
 
     objSpecs[taggedObjectName]["fields"].append(packedField)
+    objSpecs[taggedObjectName]["vFields"]=None
 
     if MarkItems:
         if not (taggedObjectName in MarkedObjects):
@@ -227,7 +226,7 @@ def addCodeToInit(tagStore, newInitCode):
 def removeFieldFromObject (objects, objectName, fieldtoRemove):
     if not objectName in objects[0]:
         return
-    fieldList=objects[0][objectName]["fields"]
+    fieldList=objects[0][objectName]['fields']
     idx=0
     for field in fieldList:
         if field["fieldName"] == fieldtoRemove:
@@ -263,6 +262,7 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
 def populateCallableStructFields(objects, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
     structSpec=findSpecOf(objects[0], structName, 'struct')
+    if structSpec==None: return None
     if structSpec['vFields']!=None: return structSpec['vFields']
     fList=[]
     segIdx=0
@@ -272,9 +272,9 @@ def populateCallableStructFields(objects, structName):  # e.g. 'type::subType::s
         else: segStr=structName[0:segIdx]
         #print "     SEGSTR:", segStr
         modelSpec=findSpecOf(objects[0], segStr, 'model')
-        if(modelSpec!=None): updateCvt(objects, fList, modelSpec['fields'])
+        if(modelSpec!=None): updateCvt(objects, fList, modelSpec["fields"])
         modelSpec=findSpecOf(objects[0], segStr, 'struct')
-        updateCpy(fList, modelSpec['fields'])
+        updateCpy(fList, modelSpec["fields"])
         if(segIdx>=0): segIdx+=1
     structSpec['vFields'] = fList
     return fList
@@ -282,9 +282,9 @@ def populateCallableStructFields(objects, structName):  # e.g. 'type::subType::s
 def generateListOfFieldsToImplement(objects, structName):  # Does not include fields gained by inheritance.
     fList=[]
     modelSpec=findSpecOf(objects[0], structName, 'model')
-    if(modelSpec!=None): updateCvt(objects, fList, modelSpec['fields'])
+    if(modelSpec!=None): updateCvt(objects, fList, modelSpec["fields"])
     modelSpec=findSpecOf(objects[0], structName, 'struct')
-    updateCpy(fList, modelSpec['fields'])
+    updateCpy(fList, modelSpec["fields"])
     return fList
 
 def fieldDefIsInList(fList, fieldName):
@@ -299,13 +299,13 @@ def fieldAlreadyDeclaredInStruct(objects, structName, fieldName):  # e.g. 'type:
         segIdx=structName.find('::', segIdx);
         if segIdx == -1: segStr=structName
         else: segStr=structName[0:segIdx]
-        print "     SEGSTR:", segStr, fieldName
+        #print "     SEGSTR:", segStr, fieldName
         modelSpec=findSpecOf(objects, segStr, 'model')
         if(modelSpec!=None):
-            if fieldDefIsInList(modelSpec['fields'], fieldName): return True
+            if fieldDefIsInList(modelSpec["fields"], fieldName): return True
         modelSpec=findSpecOf(objects, segStr, 'struct')
         if(modelSpec!=None):
-            if fieldDefIsInList(modelSpec['fields'], fieldName): return True
+            if fieldDefIsInList(modelSpec["fields"], fieldName): return True
         if(segIdx>=0): segIdx+=1
     return False
 
@@ -330,7 +330,7 @@ def isWrappedType(objMap, structname):
         #print "Struct "+structname+" not found"
         return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
     structToSearch=findSpecOf(objMap[0], structname, 'struct')
-    fieldListToSearch = structToSearch['fields']
+    fieldListToSearch = structToSearch["fields"]
     if not fieldListToSearch: return None
     if len(fieldListToSearch)>0:
         theField=fieldListToSearch[0]
@@ -362,6 +362,10 @@ def baseStructName(structName):
     colonIndex=structName.find('::')
     if(colonIndex==-1): return structName
     return structName[0:colonIndex]
+
+def fieldTypeKeyword(fieldType):
+    if isinstance(fieldType, basestring): return fieldType
+    return fieldType[0]
 
 def isStruct(fieldType):
     if isinstance(fieldType, basestring): return False

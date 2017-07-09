@@ -54,7 +54,7 @@ def CheckFunctionsLocalVarArgList(itemName):
 def CheckObjectVars(objName, itemName, level):
     #print "Searching",objName,"for", itemName
     ObjectDef =  progSpec.findSpecOf(objectsRef[0], objName, "struct")
-    if ObjectDef==None: print "##### RETURN Oa", objName, itemName; return 0  # Model def not found
+    if ObjectDef==None: return 0  # Model def not found
     retVal=None
     wrappedTypeSpec = progSpec.isWrappedType(objectsRef, objName)
     if(wrappedTypeSpec != None):
@@ -69,19 +69,15 @@ def CheckObjectVars(objName, itemName, level):
             if 'fieldName' in wrappedTypeSpec and wrappedTypeSpec['fieldName']==itemName:
                 #print "WRAPPED FIELDNAME:", itemName
                 return wrappedTypeSpec
-            else:
-                print "##### RETURN Ob", objName, itemName
-                return 0
+            else: return 0
 
     for field in progSpec.populateCallableStructFields(objectsRef, objName):
         fieldName=field['fieldName']
-        print "     -->", itemName, field['fieldName']
         if fieldName==itemName:
             #print "Found", itemName
             return field
 
    # print "WARNING: Could not find field",itemName ,"in", objName
-    print "RETURN Oc  -- ", objName, itemName
     return 0 # Field not found in model
 
 StaticMemberVars={} # Used to find parent-class of const and enums
@@ -139,7 +135,7 @@ def codeFlagAndModeFields(objects, objectName, tags, xlator):
     bitCursor=0
     structEnums=""
     ObjectDef = objects[0][objectName]
-    for field in ObjectDef['fields']:
+    for field in progSpec.generateListOfFieldsToImplement(objects, objectName):
         fieldType=field['typeSpec']['fieldType'];
         fieldName=field['fieldName'];
         if fieldType=='flag' or fieldType=='mode':
@@ -270,7 +266,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:]
     else:
-        fType=typeSpecIn['fieldType']
+        fType=progSpec.fieldTypeKeyword(typeSpecIn['fieldType'])
 
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
@@ -281,12 +277,11 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
             S += xlator['codeArrayIndex'](S2, 'string', LorR_Val)
             return [S, typeSpecOut, S2]  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
-            typeSpecOut=CheckObjectVars(fType[0], name, 1)
-            print "CODENAMESEG:", name, fType[0]
+            typeSpecOut=CheckObjectVars(fType, name, 1)
             if typeSpecOut!=0:
                 name=typeSpecOut['fieldName']
                 typeSpecOut=typeSpecOut['typeSpec']
-            else: print "TYPESPEC IS ", typeSpecOut
+            #else: print "WARNING: TYPESPEC IS ", typeSpecOut, "for", fType + '::' + name
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
@@ -339,14 +334,14 @@ def codeItemRef(name, LorR_Val, xlator):
     S=''
     segStr=''
     segType={'owner':'', 'dummyType':True}
-    LHSParentType=''
+
     connector=''
     prevLen=len(S)
     segIDX=0
     AltFormat=None
     AltIDXFormat=''
     for segSpec in name:
-        print "COUNT:", segIDX, segSpec, segType
+        LHSParentType=''
         if(isinstance(segType, int)):
             cdErr("Segment '{}' in the name '{}' is not valid.".format(segSpec[0], dePythonStr(name)))
         owner=progSpec.getTypeSpecOwner(segType)
@@ -363,7 +358,8 @@ def codeItemRef(name, LorR_Val, xlator):
         AltFormat=None
         if segType!=None:
             if segType and 'fieldType' in segType:
-                LHSParentType=segType['fieldType'][0]
+                LHSParentType = progSpec.fieldTypeKeyword(segType['fieldType'])
+                #print "LHSParentType:", LHSParentType, segType['fieldType']
             [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, xlator)
             if AltIDXFormat!=None:
                 AltFormat=[S, AltIDXFormat]   # This is in case of an alternate index format such as Java's string.put(idx, val)
@@ -510,7 +506,7 @@ def codeAction(action, indent, xlator):
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
-        print "PREASSIGN:", action['LHS']
+        cdlog(5, "PREASSIGN:" + str(action['LHS']))
         # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
         cdlog(5, "Pre-assignment... ")
         [codeStr, typeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', xlator)
@@ -725,7 +721,7 @@ def codeConstructor(objects, ClassName, tags, xlator):
     constructorInit=""
     constructorArgs=""
     count=0
-    for field in ObjectDef['fields']:
+    for field in progSpec.generateListOfFieldsToImplement(objects, ClassName):
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
