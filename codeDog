@@ -13,6 +13,7 @@ import pattern_DispData
 import stringStructs
 
 ##########  Library Shells
+import libraryMngr
 import Lib_GTK3
 import Lib_Java
 import Lib_CPP
@@ -38,7 +39,6 @@ import platform
 import copy
 import atexit
 from progSpec import cdlog, cdErr
-from inspect import getsourcefile
 from os.path import abspath
 from timeit import default_timer as timer
 
@@ -58,15 +58,6 @@ def writeFile(path, fileName, outStr, fileExtension):
     fo.close()
     '''
 
-def processIncludedFiles(fileString):
-    pattern = re.compile(r'#include +([\w -\.\/\\]+)')
-    return pattern.sub(replaceFileName, fileString)
-
-def replaceFileName(fileMatch):
-    dirname, filename = os.path.split(abspath(getsourcefile(lambda:0)))
-    includedStr = progSpec.stringFromFile(dirname +"/"+fileMatch.group(1))
-    includedStr = processIncludedFiles(includedStr)
-    return includedStr
 
 
 def ScanAndApplyPatterns(objects, tags):
@@ -194,7 +185,7 @@ def GenerateSystem(objects, buildSpecs, tags, macroDefs):
         else:
             tagsList=[tags, buildTags]
         cdlog(0, "\n######################   G E N E R A T I N G   S O U R C E   C O D E   S Y S T E M   {}   o f   {}...   ({})".format(count, len(buildSpecs), buildName))
-        libsToUse=ChooseLibs(objects, buildTags, tags)
+        libsToUse=libraryMngr.ChooseLibs(objects, buildTags, tags)
         fileSpecs = GenerateProgram(objects, buildTags, tagsList, libsToUse)
 
         #GenerateBuildSystem()###################################################
@@ -218,9 +209,10 @@ if(len(sys.argv) < 2):
     cdErr( "No Filename given.\n")
     exit(1)
 
+libraryMngr.findLibraryFiles()
 file_name = abspath(os.getcwd()) + "/" + sys.argv[1]
 codeDogStr = progSpec.stringFromFile(file_name)
-codeDogStr = processIncludedFiles(codeDogStr)
+codeDogStr = libraryMngr.processIncludedFiles(codeDogStr)
 
 
 # objectSpecs is like: [ProgSpec, objNames]

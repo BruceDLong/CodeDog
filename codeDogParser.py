@@ -145,6 +145,7 @@ fieldDef.setParseAction(logFieldDef)
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
 progSpecParser = (Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + objectList)("progSpecParser")
+libTagParser = (tagDefList.setParseAction(logTags))("libTagParser")
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
@@ -597,6 +598,23 @@ def comment_remover(text):
     )
     return re.sub(pattern, replacer, text)
 
+def parseCodeDogLibTags(inputString):
+    tmpMacroDefs={}
+    inputString = comment_remover(inputString)
+    extractMacroDefs(tmpMacroDefs, inputString)
+    inputString = doMacroSubstitutions(tmpMacroDefs, inputString)
+    
+    progSpec.saveTextToErrFile(inputString)
+    try:
+        localResults = libTagParser.parseString(inputString, parseAll = False)
+
+    except ParseException , pe:
+        cdErr( "Error parsing lib tags: {}".format( pe))
+        exit(1)
+
+    tagStore = extractTagDefs(localResults.tagDefList)
+    return tagStore
+    
 def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
     tmpMacroDefs={}
     inputString = comment_remover(inputString)
