@@ -83,9 +83,13 @@ def CheckObjectVars(objName, itemName, level):
 StaticMemberVars={} # Used to find parent-class of const and enums
 
 def staticVarNamePrefix(staticVarName, xlator):
+    global StaticMemberVars
     if staticVarName in StaticMemberVars:
-        return progSpec.baseStructName(StaticMemberVars[staticVarName]) + xlator['ObjConnector']
-    else: return ''
+        crntBaseName = progSpec.baseStructName(currentObjName)
+        refedClass=progSpec.baseStructName(StaticMemberVars[staticVarName])
+        if(crntBaseName != refedClass):
+            return refedClass + xlator['ObjConnector']
+    return ''
 
 def fetchItemsTypeSpec(itemName, xlator):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
@@ -114,12 +118,11 @@ def fetchItemsTypeSpec(itemName, xlator):
                 else:
                     if(itemName in StaticMemberVars):
                         parentClassName = staticVarNamePrefix(itemName, xlator)
-                        crntBaseName = progSpec.baseStructName(currentObjName)
-                        #print"STATIC:",itemName, parentClassName, crntBaseName
-                        if(parentClassName[: len(crntBaseName)] != crntBaseName):
-                            return [None, "STATIC:"+parentClassName]
+                        if(parentClassName != ''):
+                            return [None, "STATIC:"+parentClassName]    # TODO: Return correct type
+                        else: return [None, 'CONST']
                     cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
-                    return [None, "LIB"]
+                    return [None, "LIB"]      # TODO: Return correct type
     return [REF['typeSpec'], RefType]
     # Example: [{typeSpec}, 'OBJVAR']
 
@@ -170,6 +173,8 @@ def codeFlagAndModeFields(objects, objectName, tags, xlator):
                 # Record the utility vars' parent-classes
                 StaticMemberVars[offsetVarName]=objectName
                 StaticMemberVars[maskVarName]  =objectName
+                StaticMemberVars[fieldName+'Strings']  = objectName
+                #print "ADDED:", maskVarName
                 for eItem in enumList:
                     StaticMemberVars[eItem]=objectName
 
@@ -331,6 +336,7 @@ def codeUnknownNameSeg(segSpec, xlator):
     return S;
 
 def codeItemRef(name, LorR_Val, xlator):
+    global currentObjName
     S=''
     segStr=''
     segType={'owner':'', 'dummyType':True}
@@ -341,7 +347,7 @@ def codeItemRef(name, LorR_Val, xlator):
     AltFormat=None
     AltIDXFormat=''
     for segSpec in name:
-        LHSParentType=''
+        LHSParentType='#'
         if(isinstance(segType, int)):
             cdErr("Segment '{}' in the name '{}' is not valid.".format(segSpec[0], dePythonStr(name)))
         owner=progSpec.getTypeSpecOwner(segType)
@@ -359,8 +365,9 @@ def codeItemRef(name, LorR_Val, xlator):
         if segType!=None:
             if segType and 'fieldType' in segType:
                 LHSParentType = progSpec.fieldTypeKeyword(segType['fieldType'])
-                #print "LHSParentType:", LHSParentType, segType['fieldType']
+            else: LHSParentType = progSpec.fieldTypeKeyword(currentObjName)   # Landed here because this is the first segment
             [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, xlator)
+
             if AltIDXFormat!=None:
                 AltFormat=[S, AltIDXFormat]   # This is in case of an alternate index format such as Java's string.put(idx, val)
             #print "segStr: ", segStr
@@ -896,6 +903,24 @@ def codeStructFields(objects, objectName, tags, indent, xlator):
         structCodeAcc+=constructCode
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
+def fetchListOfStructsToImplement(objects, tags):
+    retList=[]
+    for objectName in objects[1]:
+        if progSpec.isWrappedType(objects, objectName)!=None: continue
+        if(objectName[0] == '!' or objectName[0] == '%' or objectName[0] == '$'): continue   # Filter out "Do Commands", models and strings
+        # The next lines skip defining classes that will already be defined by a library
+        ObjectDef = progSpec.findSpecOf(objects[0], objectName, 'struct')
+        if(ObjectDef==None): continue
+        ctxTag  =progSpec.searchATagStore(ObjectDef['tags'], 'ctxTag')
+        implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
+        if(ctxTag): ctxTag=ctxTag[0]
+        if(implMode): implMode=implMode[0]
+        if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
+            cdlog(2, "SKIPPING: {} {} {}".format(objectName, ctxTag, implMode))
+            continue
+        retList.append(objectName)
+    return retList
+
 def codeAllNonGlobalStructs(objects, tags, xlator):
     global currentObjName
     global structsNeedingModification
@@ -907,62 +932,45 @@ def codeAllNonGlobalStructs(objects, tags, xlator):
     constFieldAccs={}
     fileSpecs=[]
     dependancies=[]
-    for objectName in objects[1]:
-        if progSpec.isWrappedType(objects, objectName)!=None: continue
-        if(objectName[0] != '!' and objectName[0] != '%' and objectName[0] != '$'):   # Filter out "Do Commands", models and strings
-            # The next lines skip defining classes that will already be defined by a library
+    structsToImplement = fetchListOfStructsToImplement(objects, tags)
+    cdlog(2, "CODING FLAGS and MODES...")
+    for objectName in structsToImplement:
+        currentObjName=objectName
+        [needsFlagsVar, strOut]=codeFlagAndModeFields(objects, objectName, tags, xlator)
+        objectNameBase=progSpec.baseStructName(objectName)
+        if not objectNameBase in constFieldAccs: constFieldAccs[objectNameBase]=""
+        constFieldAccs[objectNameBase]+=strOut
+        if(needsFlagsVar):
+            progSpec.addField(objects[0], objectName, 'struct', progSpec.packField(False, 'me', "uint64", None, 'flags', None, None, None))
+
+    for objectName in structsToImplement:
+        cdlog(2, "WRITING CODE: " + objectName)
+        currentObjName=objectName
+        if((xlator['doesLangHaveGlobals']=='False') or objectName != 'GLOBAL'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
             ObjectDef = progSpec.findSpecOf(objects[0], objectName, 'struct')
-            if(ObjectDef==None): continue
-            ctxTag  =progSpec.searchATagStore(ObjectDef['tags'], 'ctxTag')
-            implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
             classAttrs=progSpec.searchATagStore(ObjectDef['tags'], 'attrs')
-            if(ctxTag): ctxTag=ctxTag[0]
-            if(implMode):
-                implMode=implMode[0]
-                #print "implMode:", implMode
             if(classAttrs): classAttrs=classAttrs[0]+' '
             else: classAttrs=''
-            if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
-                cdlog(2, "SKIPPING: {} {} {}".format(objectName, ctxTag, implMode))
-                continue
 
-            #print "OBJNAME", objectName
-            #charIdx=objectName.find('#')
-            #if charIdx>=0:  # there is '#' denoting a library specific version ctxTag.
-                #thisCtxTag = objectName[charIdx+1:]
-                #if thisCtxTag in progSpec.libsToUse:
-                    #print "TAG",thisCtxTag
-                    #objectName = objectName[:charIdx-1]
-                #else:print "!TAG", thisCtxTag; continue
-
-            cdlog(2, "CODING: " + objectName)
+            implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
             if (objectName in structsNeedingModification):
                 cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[objectName])))
                 [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[objectName]
                 implMode='implement:' + interfaceImplemented
 
-            currentObjName=objectName
-            [needsFlagsVar, strOut]=codeFlagAndModeFields(objects, objectName, tags, xlator)
-            objectNameBase=progSpec.baseStructName(objectName)
-            if not objectNameBase in constFieldAccs: constFieldAccs[objectNameBase]=""
-            constFieldAccs[objectNameBase]+=strOut
-
-            if(needsFlagsVar):
-                progSpec.addField(objects[0], objectName, 'struct', progSpec.packField(False, 'me', "uint64", None, 'flags', None, None, None))
-            if((xlator['doesLangHaveGlobals']=='False') or objectName != 'GLOBAL'): # and ('enumList' not in objects[0][objectName]['typeSpec'])):
-                LangFormOfObjName = progSpec.flattenObjectName(objectName)
-                parentClass=''
-                seperatorIdx=objectName.rfind('::')
-                if(seperatorIdx != -1):
-                    parentClass=objectName[0:seperatorIdx]
-                elif(implMode and implMode[:7]=="inherit"):
-                    parentClass=implMode[8:]
-                elif(implMode and implMode[:9]=="implement"):
-                    parentClass='!' + implMode[10:]
-                [structCode, funcCode, globalCode]=codeStructFields(objects, objectName, tags, '    ', xlator)
-                structCode+= constFieldAccs[objectNameBase]
-                [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, LangFormOfObjName, structCode)
-                fileSpecs.append([constsEnums, forwardDeclsOut, structCodeOut, funcCode, objectName, dependancies])
+            parentClass=''
+            seperatorIdx=objectName.rfind('::')
+            if(seperatorIdx != -1):
+                parentClass=objectName[0:seperatorIdx]
+            elif(implMode and implMode[:7]=="inherit"):
+                parentClass=implMode[8:]
+            elif(implMode and implMode[:9]=="implement"):
+                parentClass='!' + implMode[10:]
+            [structCode, funcCode, globalCode]=codeStructFields(objects, objectName, tags, '    ', xlator)
+            structCode+= constFieldAccs[progSpec.baseStructName(objectName)]
+            LangFormOfObjName = progSpec.flattenObjectName(objectName)
+            [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, LangFormOfObjName, structCode)
+            fileSpecs.append([constsEnums, forwardDeclsOut, structCodeOut, funcCode, objectName, dependancies])
         currentObjName=''
     return fileSpecs
 

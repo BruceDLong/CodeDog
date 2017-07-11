@@ -70,7 +70,7 @@ def displayDrawFieldAction(label, fieldName, field, fldCat):
         print "MODE FIELD:", field
         valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
     elif(fldCat=='struct'):
-        valStr=fieldName+'.drawData(cr, x+20, y)\n'
+        valStr= '"0x12345678"' #fieldName+'.drawData(cr, x+20, y)\n'
 
         structTypeName=field['typeSpec']['fieldType'][0]
         if not(structTypeName in classesEncoded):
