@@ -213,12 +213,12 @@ def wrapFieldListInObjectDef(objName, fieldDefStr):
     retStr='struct '+objName +' {\n' + fieldDefStr + '\n}\n'
     return retStr
 
-def setFeatureNeeded(tags, featureID, objMap):
-    tags['featuresNeeded'][featureID]=objMap
+def setFeatureNeeded(tags, featureID):
+    tags['featuresNeeded'].append(featureID)
 
-def setFeaturesNeeded(tags, featureIDs, neededBy):
+def setFeaturesNeeded(tags, featureIDs):
     for feature in featureIDs:
-        setFeatureNeeded(tags, feature, neededBy)
+        setFeatureNeeded(tags, feature)
 
 def addCodeToInit(tagStore, newInitCode):
     appendToStringTagValue(tagStore, "initCode", newInitCode + "\n");

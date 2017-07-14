@@ -83,7 +83,7 @@ def GroomTags(tags):
     # Set tag defaults as needed
     if not ('featuresNeeded' in tags):
         tags['featuresNeeded'] = {}
-    tags['featuresNeeded']['System'] = 'system'
+    tags['featuresNeeded'].append('System')
     # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
     if not ('Platform' in tags):
         platformID=platform.system()
@@ -194,6 +194,7 @@ def GenerateSystem(objects, buildSpecs, tags, macroDefs):
         libFiles=[]
         for lib in libsToUse:
             tmpLibFiles=(progSpec.fetchTagValue([tags, buildTags], 'libraries.'+ lib +'.libFiles'))
+            print "tmpLibFiles:", tmpLibFiles
             libFiles+=tmpLibFiles
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
