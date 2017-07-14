@@ -100,17 +100,21 @@ def constructORListFromFiles(tags, needs, files):
     OR_List = ['OR', []]
     for libFileName in files:
         libTags = loadTagsFromFile(libFileName)
+        ReqTags = progSpec.fetchTagValue([libTags], 'requirements')
         #print "        libTags: ", libTags
         Requirements = []
-#        libPlatforms=libTags['LibDescription']['platforms']
-#        libBindings =libTags['LibDescription']['bindings']
-#        libCPUs     =libTags['LibDescription']['CPUs']
-#        libFeatures =libTags['LibDescription']['features']
-#        LibCanWork=True
-#
-#        if not (libPlatforms and Platform in libPlatforms): LibCanWork=False;
-#        if not (libBindings and Language in libBindings): LibCanWork=False;
-#        if not (libCPUs and CPU in libCPUs): LibCanWork=False;
+        LibCanWork=True
+        for Req in ReqTags:
+            if Req[0]=='feature':
+                print "\nNested Features should be implemented. Please implement them. (", Req[1], ")n"; exit(2);
+            elif Req[0]=='require': Requirements.append(Req)
+            elif Req[0]=='tagOneOf':
+                tagToCheck = Req[1]
+                validValues = Req[2]
+                parentTag = progSpec.fetchTagValue([libTags], tagToCheck)  # E.g.: "platform"
+                if parentTag==None: print "WARNING: The tag", tagToCheck, "was not found in", libFileName, ".\n"
+                if not parentTag in validValues: LibCanWork=False
+
 
         if(LibCanWork):
             print "LibCanWork: ", lib
@@ -129,14 +133,14 @@ def constructANDListFromNeeds(tags, needs, files):
         else: filesToTry = files
         solutionOptions = constructORListFromFiles(tags, N, filesToTry)
         if len(solutionOptions[1])==0:
-            cdErr("Solution not found for " + str(N))
+            cdErr("Library not found for " + str(N))
         AND_List.append(solutionOptions)
     return AND_List
 
 def ChooseLibs(objects, buildTags, tags):
     cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
-    cdlog(1, "PLATFORM: {}   LANGUAGE: {}   CPU:{}   Features needed:{}".format(Platform, Language, CPU, featuresNeeded))
+    #cdlog(1, "PLATFORM: {}   LANGUAGE: {}   CPU:{}   Features needed:{}".format(Platform, Language, CPU, featuresNeeded))
     compatibleLibs = constructANDListFromNeeds(tags, featuresNeeded, [])
 
 
