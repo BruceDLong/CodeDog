@@ -192,10 +192,11 @@ def GenerateSystem(objects, buildSpecs, tags, macroDefs):
         fileName = progSpec.fetchTagValue(tagsList, 'FileName')
         langGenTag = buildTags['Lang']
         libFiles=[]
+        tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
         for lib in libsToUse:
-            tmpLibFiles=(progSpec.fetchTagValue([tags, buildTags], 'libraries.'+ lib +'.libFiles'))
-            print "tmpLibFiles:", tmpLibFiles
-            libFiles+=tmpLibFiles
+            if 'interface' in tagsFromLibFiles[lib] and 'libFiles' in tagsFromLibFiles[lib]['interface']:
+                tmpLibFiles = tagsFromLibFiles[lib]['interface']['libFiles']
+                libFiles+=tmpLibFiles
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
         #cdlog(1, "\nWRITING {} FILE(S) AND COMPILING...".format(len(fileSpecs)))

@@ -10,7 +10,7 @@ def apply(objects, tags):
     progSpec.appendToStringTagValue(tags, 'deinitCode', 'appFuncs.gui.GUI_Deinit()')
 
     # Based on tags, choose a set of libraries and mark-activate them.
-    progSpec.setFeaturesNeeded(tags, ['GUI_ToolKit', 'Audio', 'Locale', 'Unicode'])
+    progSpec.setFeaturesNeeded(tags, ['GUI_ToolKit'])
 
     # Provide wrapper commands
 

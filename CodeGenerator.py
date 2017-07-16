@@ -3,6 +3,7 @@ import progSpec
 import re
 import datetime
 import codeDogParser
+import libraryMngr
 from progSpec import cdlog, cdErr, logLvl, dePythonStr
 from progSpec import structsNeedingModification
 
@@ -1030,19 +1031,22 @@ def makeFileHeader(tags, filename, xlator):
     return header
 
 def integrateLibraries(tags, libID, xlator):
-    cdlog(3, 'Integrating {}'.format(libID))
-    # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
-    libFiles=progSpec.fetchTagValue(tags, libID[0])
-    #print "LIB_FILES: ", libFiles
     global buildStr_libs
     headerStr = ''
-    for libFile in libFiles:
-        buildStr_libs+=' -l'+libFile
-    libHeaders=progSpec.fetchTagValue(tags, 'libraries.'+libID[0]+'.headers')
-    for libHdr in libHeaders:
-        headerStr += xlator['includeDirective'](libHdr)
-        #print "Added header", libHdr
-    #print 'BUILD STR', buildStr_libs
+    cdlog(3, 'Integrating {}'.format(libID))
+    # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
+    
+    tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
+    
+    if 'interface' in tagsFromLibFiles[libID]:
+        if 'libFiles' in tagsFromLibFiles[libID]['interface']:
+            libFiles = tagsFromLibFiles[libID]['interface']['libFiles']
+            for libFile in libFiles:
+                buildStr_libs+=' -l'+libFile
+        if 'headers' in tagsFromLibFiles[libID]['interface']:
+            libHeaders = tagsFromLibFiles[libID]['interface']['headers']
+            for libHdr in libHeaders:
+                headerStr += xlator['includeDirective'](libHdr)
     return headerStr
 
 def connectLibraries(objects, tags, libsToUse, xlator):
@@ -1050,6 +1054,9 @@ def connectLibraries(objects, tags, libsToUse, xlator):
     headerStr = ''
     for lib in libsToUse:
         headerStr += integrateLibraries(tags, lib, xlator)
+        libString = progSpec.stringFromFile(lib)
+        macroDefs= {}
+        [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(libString, objects[0], objects[1], macroDefs)
     return headerStr
 
 def addGLOBALSpecialCode(objects, tags, xlator):
@@ -1059,8 +1066,9 @@ def addGLOBALSpecialCode(objects, tags, xlator):
 
     if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
     if 'deinitCode' in tags[0]: deinitCode= tags[0]['deinitCode']
-    if 'initCode'   in tags[1]: initCode  += tags[1]['initCode']
-    if 'deinitCode' in tags[1]: deinitCode += tags[1]['deinitCode']
+    [libInitCodeAcc, libDeinitCodeAcc] = libraryMngr.getinitCodeAccs()
+    initCode += libInitCodeAcc
+    deinitCode += libDeinitCodeAcc
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -1071,9 +1079,7 @@ struct GLOBAL{
     me void: deinitialize() <- {
         %s
     }
-    """ % (initCode, deinitCode)
-    GLOBAL_CODE+=r"""
-    }"""
+}""" % (initCode, deinitCode)
     codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
 
 def generateBuildSpecificMainFunctionality(objects, tags, xlator):

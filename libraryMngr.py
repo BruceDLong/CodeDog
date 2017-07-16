@@ -96,60 +96,141 @@ def loadTagsFromFile(fileName):
     codeDogStr = processIncludedFiles(codeDogStr)
     return codeDogParser.parseCodeDogLibTags(codeDogStr)
 
-def constructORListFromFiles(tags, needs, files):
+tagsFromLibFiles = {}
+
+def getTagsFromLibFiles():
+    return tagsFromLibFiles
+
+def filterReqTags(ReqTags):
+    filteredTags=[]
+    for tag in ReqTags[0][1]:
+        filteredTags.append(tag[0])
+    return [filteredTags]
+    
+def extractLibTags(library):
+    global tagsFromLibFiles
+    libTags = loadTagsFromFile(library)
+    tagsFromLibFiles[library] = libTags
+    ReqTags = progSpec.fetchTagValue([libTags], 'requirements')
+    if ReqTags == None: ReqTags =[]
+    if len(ReqTags)>0: ReqTags = filterReqTags(ReqTags)
+    interfaceTags = progSpec.fetchTagValue([libTags], 'interface')
+    if interfaceTags == None: interfaceTags =[]
+    return [ReqTags,interfaceTags]
+
+featuresHandled = []
+
+def clearFeaturesHandled():
+    featuresHandled = []
+
+def constructORListFromFiles(tags, need, files, indent):
+    print indent + "--------------------------------------------------------"
+    #print indent + "need: ", need
+    #print indent + "files: ", files
     OR_List = ['OR', []]
-    for libFileName in files:
-        libTags = loadTagsFromFile(libFileName)
-        ReqTags = progSpec.fetchTagValue([libTags], 'requirements')
-        #print "        libTags: ", libTags
+    for libFile in files:
+        print indent + "LIB FILE: ", libFile
+        [ReqTags,interfaceTags] = extractLibTags(libFile)
         Requirements = []
         LibCanWork=True
+        if need[0] == 'require':
+            if 'provides' in interfaceTags:
+                if need[1] in interfaceTags['provides']:
+                    print indent, 'REQUIRE: ', need[1], ' in ' ,interfaceTags['provides']
+                    LibCanWork = True
         for Req in ReqTags:
-            if Req[0]=='feature':
-                print "\nNested Features should be implemented. Please implement them. (", Req[1], ")n"; exit(2);
-            elif Req[0]=='require': Requirements.append(Req)
-            elif Req[0]=='tagOneOf':
+            #print indent + "Req: ",Req
+            if Req[1][0][0]=='feature':
+                print "\n    Nested Features should be implemented. Please implement them. (", Req[1], ")n"; exit(2);
+            elif Req[0]=='require': 
+                print indent + " FOUND REQ: ",Req
+                Requirements.append(Req)
+            elif Req[1][0][0]=='tagOneOf':
+                print indent + "tagOneOf",Req[1][0][0]
                 tagToCheck = Req[1]
                 validValues = Req[2]
                 parentTag = progSpec.fetchTagValue([libTags], tagToCheck)  # E.g.: "platform"
-                if parentTag==None: print "WARNING: The tag", tagToCheck, "was not found in", libFileName, ".\n"
+                if parentTag==None: print "WARNING: The tag", tagToCheck, "was not found in", libFile, ".\n"
                 if not parentTag in validValues: LibCanWork=False
 
 
         if(LibCanWork):
-            print "LibCanWork: ", lib
-            childFileList = findLibraryChildren(os.path.basename(featurePath)[:-4])
-            item = constructANDListFromNeeds(tags, Reqs, childFileList)
-            OR_List.append(item)
-
+            print indent + " LIB CAN WORK"
+            childFileList = findLibraryChildren(os.path.basename(libFile)[:-4])
+            print indent + " CHILD FILE LIST: ", childFileList
+            if len(childFileList)>0:
+                item = constructANDListFromNeeds(tags, Requirements, childFileList, indent + "|   ")
+                item[1] = [libFile] + item[1]
+                OR_List[1].extend(item)
+                print "OR-LIST:", OR_List
+            else: OR_List[1].append(libFile)
+    print indent + "--------------------------------------------------------"
+    if len(OR_List[1])==1 and isinstance(OR_List[1][0], basestring): return OR_List[1][0]
     return OR_List
 
 
-def constructANDListFromNeeds(tags, needs, files):
+def constructANDListFromNeeds(tags, needs, files, indent):
+    global featuresHandled
     AND_List = ['AND', []]
-    for N in needs:
-        if N[0] == 'feature':
-            filesToTry = findLibrary(N[1])
+    print indent + "______________________________________________________"
+    print indent + "*FILE*: ", files
+    print indent + "*NEEDS*: ", needs
+    for need in needs:
+        #print indent + "**need*: ", need 
+        if need[0] == 'feature':
+            if need[1] in featuresHandled: continue
+            featuresHandled.append(need[1])
+            filesToTry = [findLibrary(need[1])]
+            #AND_List[1].append(filesToTry[0])
         else: filesToTry = files
-        solutionOptions = constructORListFromFiles(tags, N, filesToTry)
-        if len(solutionOptions[1])==0:
-            cdErr("Library not found for " + str(N))
-        AND_List.append(solutionOptions)
+        if len(filesToTry)>0:
+            solutionOptions = constructORListFromFiles(tags, need, filesToTry, indent + "|   ")
+            print indent + "**solutionOptions: ", solutionOptions 
+            if len(solutionOptions[1])>0:
+                AND_List[1].append(solutionOptions)
+    print indent + "______________________________________________________"
+    if len(AND_List[1])==1 and isinstance(AND_List[1][0], basestring): return AND_List[1][0]
     return AND_List
 
+initCodeAcc= ""
+deinitCodeAcc= ""
+
+def getinitCodeAccs():
+    global initCodeAcc
+    global deinitCodeAcc
+    return [initCodeAcc, deinitCodeAcc]
+    
+def clearInitCodeAccs():
+    global initCodeAcc
+    global deinitCodeAcc
+    initCodeAcc= ""
+    deinitCodeAcc= ""
+    
 def ChooseLibs(objects, buildTags, tags):
+    global initCodeAcc
+    global deinitCodeAcc
+    clearInitCodeAccs()
+    clearFeaturesHandled()
     cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
+    initialNeeds =[]
+    for feature in featuresNeeded:
+        initialNeeds.append(["feature", feature])
     #cdlog(1, "PLATFORM: {}   LANGUAGE: {}   CPU:{}   Features needed:{}".format(Platform, Language, CPU, featuresNeeded))
-    compatibleLibs = constructANDListFromNeeds(tags, featuresNeeded, [])
+    compatibleLibs = constructANDListFromNeeds(tags, initialNeeds, [], "")
+    print "_____________________________________________________\nCOMPATABLE LIBRARIES: \n", compatibleLibs, "\n______________________________________________________"
+    exit(2)
 
-
-    for lib in compatibleLibs:
-        cdlog(1, "ERROR PARSING: ")
-        cdlog(2, "   Lib file: "+ lib[1])
-        libString = progSpec.stringFromFile(lib[1])
+    for lib in compatibleLibs[1]:
+        #print "    lib: ", lib
+        cdlog(2, "   Lib file: "+ str(lib))
+        libString = progSpec.stringFromFile(lib)
         ProgSpec = {}
         objNames = []
         macroDefs= {}
         [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(libString, ProgSpec, objNames, macroDefs)
-    return compatibleLibs
+        if 'initCode' in tagStore:
+            initCodeAcc += tagStore['initCode'] +"\n"
+        if 'deinitCode' in tagStore:
+            deinitCodeAcc += tagStore['deinitCode'] +"\n"
+    return compatibleLibs[1]
