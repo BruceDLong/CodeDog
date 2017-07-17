@@ -1,0 +1,9 @@
+/- this for is model
+requirements = [
+    [require, GUI_ToolKit_implementation]
+    /-[tagOneOf, Platform, [Linux, OS-X_Devices, Windows]],
+    /-[tagOneOf, bindings, [C, CPP, perl, python]],
+    /-[tagOneOf, CPUs, [i386, amd64, arm7]]
+]
+
+

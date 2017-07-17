@@ -1,0 +1,31 @@
+/-///////// Add routines for C++
+requirements = []
+
+interface={
+    useStatus='dynamic'
+    description='Misc CPP'
+    features=[System]
+    CPUs     =[i386, amd64, arm7]
+    libFiles=[]
+    headers=[signal.h, string, cstring, memory, cstdint, deque, map, cstdarg, iostream, fstream, sys/stat.h]
+}
+
+initCode = "signal(SIGSEGV, reportFault)"
+deinitCode = "signal(SIGSEGV, reportFault)"
+
+
+struct stream{
+    me void: open(me string: filename) <- <%!open(%1)%>
+    me int: getChar() <- <%!get()%>
+    me void: getLine(me string: S) <- <%!getLine(%1)%>
+    me bool: EOF() <- <%!eof()%>
+}
+
+struct GLOBAL{
+    me void: endFunc(me int: val) <- <%!return(0)%>
+    me int: randInt(me int: val) <- <%!(rand() % %1)%>
+    me string: toString(me int: val) <- <%!std::to_string(%1)%>
+
+}
+struct timeValue{me int64: timeValue}
+

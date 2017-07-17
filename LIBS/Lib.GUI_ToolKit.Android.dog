@@ -1,0 +1,19 @@
+/-////////////////  Add GUI-Toolkit features using Java Swing
+interface={
+    useStatus='dynamic'
+    description='Android GUI Toolkit'
+    provides=[GUI_ToolKit_implementation]
+    libFiles=[]
+    headers=[]
+}
+
+LibDescription = {
+    useStatus='dynamic'
+    description='Misc for Android '
+    features=[GUI_ToolKit]
+    platforms=[Android]
+    bindings =[Java]
+    CPUs     =[ARM]
+    libFiles=[]
+    headers=[android.view.View, android.widget.LinearLayout, android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.view.Menu, android.graphics.Path, android.widget.ScrollView, android.widget.HorizontalScrollView, android.view.SubMenu, android.widget.TextView, android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.content.res.AssetManager, android.view.MotionEvent ]
+}
