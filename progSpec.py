@@ -175,6 +175,14 @@ def markStructAuto(objSpecs, objectName):
 
 ###############
 
+def extractListFromTagList(tagVal):
+    tagValues=[]
+    if ((not isinstance(tagVal, basestring)) and len(tagVal)>=2):
+        if(tagVal[0]=='['):
+            for multiVal in tagVal[1]:
+                tagValues.append(multiVal[0])
+    return tagValues
+
 def searchATagStore(tagStore, tagToFind):
     #print "SEARCHING for tag", tagToFind
     tagSegs=tagToFind.split(r'.')

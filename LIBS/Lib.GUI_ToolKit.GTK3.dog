@@ -1,9 +1,6 @@
 /-############  Add GUI-Toolkit features using GTK3
 requirements = [
-    /-[Require, Implementation],
-    /-[TagOneOf, Platform, [Linux, OS-X_Devices, Windows]],
-    /-[TagOneOf, bindings, [C, CPP, perl, python]],
-    /-[TagOneOf, CPUs, [i386, amd64, arm7]]
+    [tagOneOf, Platform, [Linux, OS-X_Devices, Windows]]
 ]
 
 interface={
@@ -45,7 +42,7 @@ struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
-    
+
 struct GUI{
     their GtkApplication: app
     their GtkWidget: window

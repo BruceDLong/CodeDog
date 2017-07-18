@@ -567,6 +567,7 @@ def addSpecialCode(filename):
         }
         return(acc);
     }
+
     """
 
     decl ="string readFileAsString(string filename)"
@@ -579,7 +580,9 @@ def addSpecialCode(filename):
         file.seekg(0, std::ios::beg);
         file.read((char*)S.c_str(), S.length());
         return S;  //No errors
-    }"""
+    }
+
+    """
     appendGlobalFuncAcc(decl, defn)
 
     return S

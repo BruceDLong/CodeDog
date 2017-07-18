@@ -48,7 +48,7 @@ def collectLibFilenamesFromFolder(folderPath):
                 line=line.strip()
                 baseName = os.path.basename(line)
                 if (filename.strip('.proxy') == baseName):
-                    libDescriptionFileList.append(line)
+                    libDescriptionFileList.append(os.path.realpath(line))
                 else:
                     cdErr("File name does not match path name.")
 
@@ -106,7 +106,7 @@ def filterReqTags(ReqTags):
     for tag in ReqTags[0][1]:
         filteredTags.append(tag[0])
     return [filteredTags]
-    
+
 def extractLibTags(library):
     global tagsFromLibFiles
     libTags = loadTagsFromFile(library)
@@ -123,73 +123,94 @@ featuresHandled = []
 def clearFeaturesHandled():
     featuresHandled = []
 
+def libListType(libList):
+    if isinstance(libList, basestring): return "STRING"
+    op=libList[0]
+    if (op=='AND' or op=='OR'):
+        return op
+    print "WHILE EXAMINING:", libList
+    cdErr('Invalid type encountered for a library identifier:'+str(op))
+
+def reduceSolutionOptions(options, indent):
+    #print indent+"OPTIONS:", options
+    optionsOp=libListType(options)
+    if optionsOp != 'STRING':
+        i=0
+        while i<len(options[1]):
+            opt=options[1][i]
+            if not isinstance(opt, basestring):
+                reduceSolutionOptions(options[1][i], indent+'|   ')
+                if len(opt[1])==0: del options[1][i]; print "DELETED:", i; continue;
+                changesMade=True
+                while changesMade:
+                    changesMade=False
+                    opt=options[1][i]
+                    optOp=libListType(opt)
+                    optionsOp=libListType(options)
+                    if (optOp=='AND' or optOp=='OR') and (optOp==optionsOp or len(opt[1])==1):  # Both AND or both OR so unwrap child list
+                        options[1][i:i+1]=opt[1]
+                        changesMade=True
+                    elif optionsOp=='AND' and optOp=='OR':
+                        print "CROSS"
+
+                   # removeDuplicates(options)  # TODO: Make this line remove duplicates
+
+            i+=1
+
+
+
 def constructORListFromFiles(tags, need, files, indent):
-    print indent + "--------------------------------------------------------"
-    #print indent + "need: ", need
-    #print indent + "files: ", files
     OR_List = ['OR', []]
     for libFile in files:
-        print indent + "LIB FILE: ", libFile
+        #print indent + "LIB FILE: ", libFile
         [ReqTags,interfaceTags] = extractLibTags(libFile)
         Requirements = []
         LibCanWork=True
         if need[0] == 'require':
             if 'provides' in interfaceTags:
                 if need[1] in interfaceTags['provides']:
-                    print indent, 'REQUIRE: ', need[1], ' in ' ,interfaceTags['provides']
+                    #print indent, 'REQUIRE: ', need[1], ' in ' ,interfaceTags['provides']
                     LibCanWork = True
         for Req in ReqTags:
-            #print indent + "Req: ",Req
-            if Req[1][0][0]=='feature':
+            #print indent + "Req: ",Req[0]
+            if Req[0]=='feature':
                 print "\n    Nested Features should be implemented. Please implement them. (", Req[1], ")n"; exit(2);
-            elif Req[0]=='require': 
-                print indent + " FOUND REQ: ",Req
+            elif Req[0]=='require':
                 Requirements.append(Req)
-            elif Req[1][0][0]=='tagOneOf':
-                print indent + "tagOneOf",Req[1][0][0]
+            elif Req[0]=='tagOneOf':
                 tagToCheck = Req[1]
-                validValues = Req[2]
-                parentTag = progSpec.fetchTagValue([libTags], tagToCheck)  # E.g.: "platform"
-                if parentTag==None: print "WARNING: The tag", tagToCheck, "was not found in", libFile, ".\n"
+                validValues = progSpec.extractListFromTagList(Req[2])
+                parentTag = progSpec.fetchTagValue([tags], tagToCheck)  # E.g.: "platform"
+                if parentTag==None: LibCanWork=False; print "WARNING: The tag", tagToCheck, "was not found in", libFile, ".\n"
                 if not parentTag in validValues: LibCanWork=False
 
 
         if(LibCanWork):
-            print indent + " LIB CAN WORK"
+            #print indent + " LIB CAN WORK:", libFile
             childFileList = findLibraryChildren(os.path.basename(libFile)[:-4])
-            print indent + " CHILD FILE LIST: ", childFileList
             if len(childFileList)>0:
-                item = constructANDListFromNeeds(tags, Requirements, childFileList, indent + "|   ")
-                item[1] = [libFile] + item[1]
-                OR_List[1].extend(item)
-                print "OR-LIST:", OR_List
+                solutionOptions = constructANDListFromNeeds(tags, Requirements, childFileList, indent + "|   ")
+                solutionOptions[1] = [libFile] + solutionOptions[1]
+                OR_List[1].append(solutionOptions)
             else: OR_List[1].append(libFile)
-    print indent + "--------------------------------------------------------"
-    if len(OR_List[1])==1 and isinstance(OR_List[1][0], basestring): return OR_List[1][0]
+    if len(OR_List[1])==1 and isinstance(OR_List[1][0], basestring): return OR_List[1][0]  # Optimization
     return OR_List
 
 
 def constructANDListFromNeeds(tags, needs, files, indent):
     global featuresHandled
     AND_List = ['AND', []]
-    print indent + "______________________________________________________"
-    print indent + "*FILE*: ", files
-    print indent + "*NEEDS*: ", needs
     for need in needs:
-        #print indent + "**need*: ", need 
+        #print indent + "**need*: ", need
         if need[0] == 'feature':
             if need[1] in featuresHandled: continue
             featuresHandled.append(need[1])
             filesToTry = [findLibrary(need[1])]
-            #AND_List[1].append(filesToTry[0])
         else: filesToTry = files
         if len(filesToTry)>0:
             solutionOptions = constructORListFromFiles(tags, need, filesToTry, indent + "|   ")
-            print indent + "**solutionOptions: ", solutionOptions 
             if len(solutionOptions[1])>0:
                 AND_List[1].append(solutionOptions)
-    print indent + "______________________________________________________"
-    if len(AND_List[1])==1 and isinstance(AND_List[1][0], basestring): return AND_List[1][0]
     return AND_List
 
 initCodeAcc= ""
@@ -199,13 +220,13 @@ def getinitCodeAccs():
     global initCodeAcc
     global deinitCodeAcc
     return [initCodeAcc, deinitCodeAcc]
-    
+
 def clearInitCodeAccs():
     global initCodeAcc
     global deinitCodeAcc
     initCodeAcc= ""
     deinitCodeAcc= ""
-    
+
 def ChooseLibs(objects, buildTags, tags):
     global initCodeAcc
     global deinitCodeAcc
@@ -217,13 +238,12 @@ def ChooseLibs(objects, buildTags, tags):
     for feature in featuresNeeded:
         initialNeeds.append(["feature", feature])
     #cdlog(1, "PLATFORM: {}   LANGUAGE: {}   CPU:{}   Features needed:{}".format(Platform, Language, CPU, featuresNeeded))
-    compatibleLibs = constructANDListFromNeeds(tags, initialNeeds, [], "")
-    print "_____________________________________________________\nCOMPATABLE LIBRARIES: \n", compatibleLibs, "\n______________________________________________________"
-    exit(2)
+    solutionOptions = constructANDListFromNeeds(tags, initialNeeds, [], "")
+    reduceSolutionOptions(solutionOptions, '')
 
-    for lib in compatibleLibs[1]:
-        #print "    lib: ", lib
-        cdlog(2, "   Lib file: "+ str(lib))
+    for lib in solutionOptions[1]:
+        # TODO: make this choose even if there are nested ORs and ANDs. Make it weigh each optionSet
+        cdlog(1, "Loading Library File: "+ str(lib))
         libString = progSpec.stringFromFile(lib)
         ProgSpec = {}
         objNames = []
@@ -233,4 +253,4 @@ def ChooseLibs(objects, buildTags, tags):
             initCodeAcc += tagStore['initCode'] +"\n"
         if 'deinitCode' in tagStore:
             deinitCodeAcc += tagStore['deinitCode'] +"\n"
-    return compatibleLibs[1]
+    return solutionOptions[1]

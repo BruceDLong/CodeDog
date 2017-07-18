@@ -1,4 +1,9 @@
 /-////////////////  Add GUI-Toolkit features using Java Swing
+
+requirements = [
+    [tagOneOf, Platform, [Android]]
+]
+
 interface={
     useStatus='dynamic'
     description='Android GUI Toolkit'
@@ -10,8 +15,6 @@ interface={
 LibDescription = {
     useStatus='dynamic'
     description='Misc for Android '
-    features=[GUI_ToolKit]
-    platforms=[Android]
     bindings =[Java]
     CPUs     =[ARM]
     libFiles=[]

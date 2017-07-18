@@ -1,4 +1,9 @@
 /-////////////////  Add GUI-Toolkit features using Java Swing
+
+requirements = [
+    [tagOneOf, Platform, [Java]]
+]
+
 interface={
     useStatus='dynamic'
     description='Swing is a GUI Toolkit'
@@ -10,10 +15,6 @@ interface={
 LibDescription = {
     useStatus='dynamic'
     description='Swing is a GUI widget toolkit for Java '
-    features=[GUI_ToolKit]
-    platforms=[Java]
-    bindings =[Java]
-    CPUs     =[JavaVM]
     libFiles=[]
     headers=[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*, java.awt.Font, java.awt.image.BufferedImage, java.awt.Graphics, java.awt.Graphics2D, javax.imageio.ImageIO, java.nio.file.Paths, java.awt.event.MouseAdapter, javax.swing.event.MouseInputAdapter]
 }
