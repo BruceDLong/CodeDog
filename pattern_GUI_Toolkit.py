@@ -4,18 +4,18 @@ import progSpec
 import codeDogParser
 
 
-def apply(objects, tags):
-    progSpec.appendToStringTagValue(tags, 'initCode', ' Allocate(appFuncs.gui) \n appFuncs.gui.GUI_Init()')
-    progSpec.appendToStringTagValue(tags, 'runCode', 'appFuncs.gui.GUI_Run()')
-    progSpec.appendToStringTagValue(tags, 'deinitCode', 'appFuncs.gui.GUI_Deinit()')
+def apply(objects, globalTags):
+    progSpec.appendToStringTagValue(globalTags, 'initCode', ' Allocate(appFuncs.gui) \n appFuncs.gui.GUI_Init()')
+    progSpec.appendToStringTagValue(globalTags, 'runCode', 'appFuncs.gui.GUI_Run()')
+    progSpec.appendToStringTagValue(globalTags, 'deinitCode', 'appFuncs.gui.GUI_Deinit()')
 
-    # Based on tags, choose a set of libraries and mark-activate them.
-    progSpec.setFeaturesNeeded(tags, ['GUI_ToolKit'])
+    progSpec.setFeaturesNeeded(globalTags, ['GUI_ToolKit'])
 
     # Provide wrapper commands
 
     # Make a class with init, event-loop, deInit (Can be activated from main.)
-    title=progSpec.searchATagStore(tags, 'Title')[0]
+    print "GUI TAG TITLE:", globalTags
+    title=progSpec.searchATagStore(globalTags, 'Title')[0]
     GUI_TK_code = """
     struct GUI {
         me string: title <- "%s"

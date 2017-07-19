@@ -1,4 +1,4 @@
-######## Native CodeDog library
+#-####### Native CodeDog library
 
 import progSpec
 import codeDogParser

@@ -1323,8 +1323,6 @@ def CreateStructsForStringModels(objects, tags):
 
     ExtracterCode += extracterFunctionAccumulator
 
-    tags['Include'] += ",<cctype>"
-
     # Define streamSpan struct
     structsName = 'streamSpan'
     StructFieldStr = "    me uint32: offset \n    me uint32: len"

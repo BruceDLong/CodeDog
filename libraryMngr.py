@@ -162,7 +162,7 @@ def reduceSolutionOptions(options, indent):
 def constructORListFromFiles(tags, need, files, indent):
     OR_List = ['OR', []]
     for libFile in files:
-        #print indent + "LIB FILE: ", libFile
+        print indent + "LIB FILE: ", libFile
         [ReqTags,interfaceTags] = extractLibTags(libFile)
         Requirements = []
         LibCanWork=True
@@ -176,13 +176,15 @@ def constructORListFromFiles(tags, need, files, indent):
             if Req[0]=='feature':
                 print "\n    Nested Features should be implemented. Please implement them. (", Req[1], ")n"; exit(2);
             elif Req[0]=='require':
+                print "REQUIREMENT:", Req[1]
                 Requirements.append(Req)
             elif Req[0]=='tagOneOf':
                 tagToCheck = Req[1]
                 validValues = progSpec.extractListFromTagList(Req[2])
-                parentTag = progSpec.fetchTagValue([tags], tagToCheck)  # E.g.: "platform"
+                parentTag = progSpec.fetchTagValue(tags, tagToCheck)  # E.g.: "platform"
                 if parentTag==None: LibCanWork=False; print "WARNING: The tag", tagToCheck, "was not found in", libFile, ".\n"
                 if not parentTag in validValues: LibCanWork=False
+                else: cdlog(1, "  Validated: "+tagToCheck+" = "+parentTag)
 
 
         if(LibCanWork):
@@ -204,8 +206,10 @@ def constructANDListFromNeeds(tags, needs, files, indent):
         #print indent + "**need*: ", need
         if need[0] == 'feature':
             if need[1] in featuresHandled: continue
+            cdlog(1, "Feature: "+need[1])
             featuresHandled.append(need[1])
             filesToTry = [findLibrary(need[1])]
+            if filesToTry[0]=='': cdErr('Could not find a dog file for feature '+need[1])
         else: filesToTry = files
         if len(filesToTry)>0:
             solutionOptions = constructORListFromFiles(tags, need, filesToTry, indent + "|   ")
@@ -213,44 +217,15 @@ def constructANDListFromNeeds(tags, needs, files, indent):
                 AND_List[1].append(solutionOptions)
     return AND_List
 
-initCodeAcc= ""
-deinitCodeAcc= ""
-
-def getinitCodeAccs():
-    global initCodeAcc
-    global deinitCodeAcc
-    return [initCodeAcc, deinitCodeAcc]
-
-def clearInitCodeAccs():
-    global initCodeAcc
-    global deinitCodeAcc
-    initCodeAcc= ""
-    deinitCodeAcc= ""
 
 def ChooseLibs(objects, buildTags, tags):
-    global initCodeAcc
-    global deinitCodeAcc
-    clearInitCodeAccs()
     clearFeaturesHandled()
     cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
     initialNeeds =[]
     for feature in featuresNeeded:
         initialNeeds.append(["feature", feature])
-    #cdlog(1, "PLATFORM: {}   LANGUAGE: {}   CPU:{}   Features needed:{}".format(Platform, Language, CPU, featuresNeeded))
-    solutionOptions = constructANDListFromNeeds(tags, initialNeeds, [], "")
+    solutionOptions = constructANDListFromNeeds([tags, buildTags], initialNeeds, [], "")
     reduceSolutionOptions(solutionOptions, '')
-
-    for lib in solutionOptions[1]:
-        # TODO: make this choose even if there are nested ORs and ANDs. Make it weigh each optionSet
-        cdlog(1, "Loading Library File: "+ str(lib))
-        libString = progSpec.stringFromFile(lib)
-        ProgSpec = {}
-        objNames = []
-        macroDefs= {}
-        [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(libString, ProgSpec, objNames, macroDefs)
-        if 'initCode' in tagStore:
-            initCodeAcc += tagStore['initCode'] +"\n"
-        if 'deinitCode' in tagStore:
-            deinitCodeAcc += tagStore['deinitCode'] +"\n"
+    for libPath in solutionOptions[1]: cdlog(2, "USING LIBRARY:"+libPath)
     return solutionOptions[1]

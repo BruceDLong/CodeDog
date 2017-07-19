@@ -1,7 +1,7 @@
-######## Native CodeDog library
+/-####### Native CodeDog library
 
 requirements = [
-    [require, GUI_ToolKit_implementation]
+    [require, CodeDog_implementation]
 ]
 
 

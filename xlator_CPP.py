@@ -192,7 +192,7 @@ def getEnumStr(fieldName, enumList):
 
 ######################################################   E X P R E S S I O N   C O D I N G
 
-def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
+def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
     convertedIdxType = ""
     if containerType=='deque':
         if name=='at' or name=='insert': pass
@@ -214,7 +214,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
-        [convertedItmType, innerType] = xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='at': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -233,7 +233,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
-        [convertedItmType, innerType] = xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='at': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -627,7 +627,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
-def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText = ""
     loopCounterName = ""
@@ -653,7 +653,7 @@ def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey,con
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
+def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""

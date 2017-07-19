@@ -1,11 +1,20 @@
 # CodeGenerator.py
-import progSpec
 import re
 import datetime
+import platform
 import codeDogParser
 import libraryMngr
+import progSpec
 from progSpec import cdlog, cdErr, logLvl, dePythonStr
 from progSpec import structsNeedingModification
+
+
+import pattern_GUI_Toolkit
+import pattern_ManageCmdLine
+import pattern_DispData
+
+import stringStructs
+
 
 buildStr_libs=''
 globalFuncDeclAcc=''
@@ -28,7 +37,8 @@ def bitsNeeded(n):
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 
-objectsRef=[]
+globalClassStore=[]
+globalTagStore=None
 localVarsAllocated = []   # Format: [varName, typeSpec]
 localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
@@ -54,10 +64,10 @@ def CheckFunctionsLocalVarArgList(itemName):
 
 def CheckObjectVars(objName, itemName, level):
     #print "Searching",objName,"for", itemName
-    ObjectDef =  progSpec.findSpecOf(objectsRef[0], objName, "struct")
+    ObjectDef =  progSpec.findSpecOf(globalClassStore[0], objName, "struct")
     if ObjectDef==None: return 0  # Model def not found
     retVal=None
-    wrappedTypeSpec = progSpec.isWrappedType(objectsRef, objName)
+    wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, objName)
     if(wrappedTypeSpec != None):
         actualFieldType=wrappedTypeSpec['fieldType']
         if not isinstance(actualFieldType, basestring):
@@ -72,7 +82,7 @@ def CheckObjectVars(objName, itemName, level):
                 return wrappedTypeSpec
             else: return 0
 
-    for field in progSpec.populateCallableStructFields(objectsRef, objName):
+    for field in progSpec.populateCallableStructFields(globalClassStore, objName):
         fieldName=field['fieldName']
         if fieldName==itemName:
             #print "Found", itemName
@@ -198,7 +208,7 @@ def codeAllocater(typeSpec, xlator):
     if isinstance(fType, basestring): varTypeStr=fType;
     else: varTypeStr=fType[0]
 
-    [varTypeStr, innerType] = xlator['convertType'](objectsRef, typeSpec, 'alloc', xlator)
+    [varTypeStr, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'alloc', xlator)
     S= xlator['getCodeAllocStr'](varTypeStr, owner);
     return S
 
@@ -261,7 +271,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val)
             return [S, typeSpecOut, S2]
-        [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator)
+        [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxType, typeSpecOut, paramList, xlator)
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
         tmp=xlator['codeSpecialFunc'](segSpec, xlator)   # Check if it's a special function like 'print'
@@ -508,7 +518,7 @@ def codeAction(action, indent, xlator):
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
         cdlog(5, "New Var: {}: ".format(varName))
-        [fieldType, innerType] = xlator['convertType'](objectsRef, typeSpec, 'var', xlator)
+        [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
         cdlog(5, "Action newVar: {}".format(varName))
         varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, xlator)
         actionText = indent + varDeclareStr + ";\n"
@@ -630,10 +640,10 @@ def codeAction(action, indent, xlator):
             [EndKey,   EndType] = xlator['codeExpr'](keyRange[4][0], xlator)
 
             [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerType)
-            wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
+            wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):containerType=wrappedTypeSpec
 
-            [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](objectsRef,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator)
+            [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator)
             actionText += actionTextOut
 
         else: # interate over a container
@@ -641,10 +651,10 @@ def codeAction(action, indent, xlator):
             [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerType)
 
             #print "ITERATE OVER", action['repList'][0], datastructID, containerType
-            wrappedTypeSpec = progSpec.isWrappedType(objectsRef, containerType['fieldType'][0])
+            wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):containerType=wrappedTypeSpec
 
-            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType, ContainerOwner,indent,xlator)
+            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType, ContainerOwner,indent,xlator)
             actionText += actionTextOut
 
         if action['whereExpr']:
@@ -1033,11 +1043,11 @@ def makeFileHeader(tags, filename, xlator):
 def integrateLibraries(tags, libID, xlator):
     global buildStr_libs
     headerStr = ''
-    cdlog(3, 'Integrating {}'.format(libID))
+    cdlog(2, 'Integrating {}'.format(libID))
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
-    
+
     tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
-    
+
     if 'interface' in tagsFromLibFiles[libID]:
         if 'libFiles' in tagsFromLibFiles[libID]['interface']:
             libFiles = tagsFromLibFiles[libID]['interface']['libFiles']
@@ -1052,23 +1062,24 @@ def integrateLibraries(tags, libID, xlator):
 def connectLibraries(objects, tags, libsToUse, xlator):
     cdlog(1, "Attaching chosen libraries...")
     headerStr = ''
-    for lib in libsToUse:
-        headerStr += integrateLibraries(tags, lib, xlator)
-        libString = progSpec.stringFromFile(lib)
+    for libFilename in libsToUse:
+        headerStr += integrateLibraries(tags, libFilename, xlator)
         macroDefs= {}
-        [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(libString, objects[0], objects[1], macroDefs)
+        [tagStore, buildSpecs, objectSpecs] = loadProgSpecFromDogFile(libFilename, objects[0], objects[1], macroDefs)
+
     return headerStr
 
 def addGLOBALSpecialCode(objects, tags, xlator):
     cdlog(1, "Attaching Language Specific Code...")
     xlator['addGLOBALSpecialCode'](objects, tags, xlator)
+
     initCode=''; deinitCode=''
 
-    if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
-    if 'deinitCode' in tags[0]: deinitCode= tags[0]['deinitCode']
-    [libInitCodeAcc, libDeinitCodeAcc] = libraryMngr.getinitCodeAccs()
-    initCode += libInitCodeAcc
-    deinitCode += libDeinitCodeAcc
+#    if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
+#    if 'deinitCode' in tags[0]: deinitCode= tags[0]['deinitCode']
+#    [libInitCodeAcc, libDeinitCodeAcc] = libraryMngr.getinitCodeAccs()
+#    initCode += libInitCodeAcc
+#    deinitCode = libDeinitCodeAcc + deinitCode
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -1139,12 +1150,14 @@ def clearBuild():
 
 def generate(objects, tags, libsToUse, xlator):
     clearBuild()
-    global objectsRef
+    global globalClassStore
+    global globalTagStore
     global buildStr_libs
     global libInterfacesText
 
     buildStr_libs = xlator['BuildStrPrefix']
-    objectsRef=objects
+    globalClassStore=objects
+    globalTagStore=tags[0]
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     addGLOBALSpecialCode(objects, tags, xlator)
     libInterfacesText=connectLibraries(objects, tags, libsToUse, xlator)
@@ -1161,3 +1174,60 @@ def generate(objects, tags, libsToUse, xlator):
     fileSpecStrings = pieceTogetherTheSourceFiles(tags, True, fileSpecs, [], topBottomStrings, xlator)
    # print "\n\n##########################################################\n"
     return fileSpecStrings
+
+
+
+###############  Load a file to progspec, processing include files, string-structs, and patterns.
+
+def GroomTags(tags):
+    global globalTagStore
+    if globalTagStore==None: TopLevelTags=tags
+    else: TopLevelTags=globalTagStore
+    # Set tag defaults as needed
+    if not ('featuresNeeded' in TopLevelTags):
+        TopLevelTags['featuresNeeded'] = []
+    TopLevelTags['featuresNeeded'].append('CodeDog')
+    # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
+    if not ('Platform' in TopLevelTags):
+        platformID=platform.system()
+        if platformID=='Darwin': platformID="OSX_Devices"
+        TopLevelTags['Platform']=platformID
+
+    # Find any needed features based on types used
+    for typeName in progSpec.storeOfBaseTypesUsed:
+        if(typeName=='BigNum' or typeName=='BigFrac'):
+            print 'NOTE: Need Large Numbers'
+            progSpec.setFeatureNeeded(TopLevelTags, 'largeNumbers', progSpec.storeOfBaseTypesUsed[typeName])
+
+def ScanAndApplyPatterns(objects, tags):
+    global globalTagStore
+    if globalTagStore==None: TopLevelTags=tags
+    else: TopLevelTags=globalTagStore
+    cdlog(1, "Applying Patterns...")
+    for item in objects[1]:
+        if item[0]=='!':
+            pattName=item[1:]
+            patternArgs=objects[0][pattName]['parameters']
+            cdlog(2, "PATTERN: {}: {}".format( pattName, patternArgs))
+
+            if pattName=='Write_Main': pattern_Write_Main.apply(objects, tags, patternArgs[0])
+            elif pattName=='Gen_EventHandler': pattern_Gen_EventHandler.apply(objects, tags, patternArgs[0])
+            #elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
+            elif pattName=='useBigNums': pattern_BigNums.apply(tags)
+            elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(objects, TopLevelTags)
+            elif pattName=='ManageCmdLine': pattern_ManageCmdLine.apply(objects, tags)
+            elif pattName=='codeDataDisplay': pattern_DispData.apply(objects, tags, patternArgs[0], patternArgs[1])
+            else:
+                cdEre("\nPattern {} not recognized.\n\n".format(pattName))
+                exit()
+
+
+def loadProgSpecFromDogFile(filename, classes, objNames, macroDefs):
+    codeDogStr = progSpec.stringFromFile(filename)
+    codeDogStr = libraryMngr.processIncludedFiles(codeDogStr)
+    cdlog(0, "######################   P A R S I N G   C O D E D O G  ({})".format(filename))
+    [tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr, classes, objNames, macroDefs)
+    GroomTags(tagStore)
+    ScanAndApplyPatterns(objectSpecs, tagStore)
+    stringStructs.CreateStructsForStringModels(objectSpecs, tagStore)
+    return [tagStore, buildSpecs, objectSpecs]

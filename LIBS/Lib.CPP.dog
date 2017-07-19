@@ -7,7 +7,7 @@ interface={
     features=[System]
     CPUs     =[i386, amd64, arm7]
     libFiles=[]
-    headers=[signal.h, string, cstring, memory, cstdint, deque, map, cstdarg, iostream, fstream, sys/stat.h]
+    headers=[signal.h, string, cstring, memory, cstdint, cctype, deque, map, cstdarg, iostream, fstream, sys/stat.h]
 }
 
 initCode = "signal(SIGSEGV, reportFault)"
@@ -35,5 +35,3 @@ struct logger::mem{
     /-me void: Hide() <- <%!isLogVisible = false;%>
     /-me void: Route(me string: routeSpec) <- <%!cout<<%1;%>
 }
-
-

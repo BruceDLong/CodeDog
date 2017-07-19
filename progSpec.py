@@ -8,7 +8,6 @@ MaxLogLevelToShow = 2
 
 storeOfBaseTypesUsed={} # Registry of all types used
 
-libsToUse={}
 
 #########################
 # Variables to store what objects and fields were added after a marked point (When MarkItems=True).
@@ -96,7 +95,6 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType}
     objectNameList.append(name)
     if MarkItems: MarkedObjects[name]=1
-    #print "ADDED STRUCT: ", name
 
 def addObjTags(objSpecs, objectName, stateType, objTags):
     startTags = {}
@@ -448,10 +446,14 @@ def flattenObjectName(objName):
 
 
 def stringFromFile(filename):
-    f=open(filename)
-    Str = f.read()
-    f.close()
-    return Str
+#    try:
+        f=open(filename)
+        Str = f.read()
+        f.close()
+#    except IOError as e:
+#        print "FILENAME:", filename
+#        cdErr("I/O error({0}): {1}: {2}".format(e.errno, e.strerror, filename))
+        return Str
 
 #############################################################  Logging functions
 lastLogMesgs=['','','','','','','','','','']

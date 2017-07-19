@@ -6,11 +6,6 @@ import codeDogParser
 import buildDog
 import TestDog
 
-import pattern_GUI_Toolkit
-import pattern_ManageCmdLine
-import pattern_DispData
-
-import stringStructs
 
 ##########  Library Shells
 import libraryMngr
@@ -43,7 +38,7 @@ from os.path import abspath
 from timeit import default_timer as timer
 
 atexit.register(progSpec.whenExit)
-
+sys.setrecursionlimit(2000)
 startTime = timer()
 
 '''
@@ -57,45 +52,6 @@ def writeFile(path, fileName, outStr, fileExtension):
     fo.write(outStr)
     fo.close()
     '''
-
-
-
-def ScanAndApplyPatterns(objects, tags):
-    cdlog(1, "Applying Patterns...")
-    for item in objects[1]:
-        if item[0]=='!':
-            pattName=item[1:]
-            patternArgs=objects[0][pattName]['parameters']
-            cdlog(2, "PATTERN: {}: {}".format( pattName, patternArgs))
-
-            if pattName=='Write_Main': pattern_Write_Main.apply(objects, tags, patternArgs[0])
-            elif pattName=='Gen_EventHandler': pattern_Gen_EventHandler.apply(objects, tags, patternArgs[0])
-            #elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(objects, tags, patternArgs[0], patternArgs[1])
-            elif pattName=='useBigNums': pattern_BigNums.apply(tags)
-            elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(objects, tags)
-            elif pattName=='ManageCmdLine': pattern_ManageCmdLine.apply(objects, tags)
-            elif pattName=='codeDataDisplay': pattern_DispData.apply(objects, tags, patternArgs[0], patternArgs[1])
-            else:
-                cdEre("\nPattern {} not recognized.\n\n".format(pattName))
-                exit()
-
-def GroomTags(tags):
-    # Set tag defaults as needed
-    if not ('featuresNeeded' in tags):
-        tags['featuresNeeded'] = {}
-    tags['featuresNeeded'].append('System')
-    # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
-    if not ('Platform' in tags):
-        platformID=platform.system()
-        if platformID=='Darwin': platformID="OSX_Devices"
-        tags['Platform']=platformID
-
-    # Find any needed features based on types used
-    for typeName in progSpec.storeOfBaseTypesUsed:
-        if(typeName=='BigNum' or typeName=='BigFrac'):
-            print 'NOTE: Need Large Numbers'
-            progSpec.setFeatureNeeded(tags, 'largeNumbers', progSpec.storeOfBaseTypesUsed[typeName])
-
 
 def GenerateProgram(objects, buildTags, tagsList, libsToUse):
     result='No Language Generator Found for '+buildTags['Lang']
@@ -115,62 +71,11 @@ def GenerateProgram(objects, buildTags, tagsList, libsToUse):
     result=CodeGenerator.generate(objects, tagsList, libsToUse, xlator)
     return result
 
-def ChooseLibs(objects, buildTags, tags):
-    cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
-    # TODO: Why is fetchTagValue called with tags, not [tags]?
-    libList = progSpec.fetchTagValue([tags], 'libraries')
-    Platform= progSpec.fetchTagValue([tags, buildTags], 'Platform')
-    Language= progSpec.fetchTagValue([tags, buildTags], 'Lang')
-    CPU     = progSpec.fetchTagValue([tags, buildTags], 'CPU')
-    cdlog(1, "PLATFORM: {}   LANGUAGE: {}   CPU:{}".format(Platform, Language, CPU))
-
-    compatibleLibs=[]
-    for lib in libList:
-        libPlatforms=progSpec.fetchTagValue([tags], "libraries."+lib+".platforms")
-        libBindings =progSpec.fetchTagValue([tags], "libraries."+lib+".bindings")
-        libCPUs     =progSpec.fetchTagValue([tags], "libraries."+lib+".CPUs")
-        libFeatures =progSpec.fetchTagValue([tags], "libraries."+lib+".features")
-
-        LibCanWork=True
-        if not (libPlatforms and Platform in libPlatforms): LibCanWork=False;
-        if not (libBindings and Language in libBindings): LibCanWork=False;
-      #  if not (libCPUs and CPU in libCPUs): LibCanWork=False;
-
-        if(LibCanWork):
-            cdlog(2, "NOTE: {} would work for this system.".format(lib))
-            compatibleLibs.append([lib, libFeatures])
-
-    # TODO: This should cause error if a need isn't met. And, it should resolve when multiple libraries can meet a need.
-    featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
-    cdlog(2, "NOTE: Features Needed: {}".format( featuresNeeded.keys()))
-    progSpec.libsToUse={}
-    for need in featuresNeeded:
-        cdlog(3,str(need))
-        for LIB in compatibleLibs:
-            if(need in LIB[1]):
-                progSpec.libsToUse[LIB[0]] = True
-                cdlog(4, str(LIB[0]))
-
-    cdlog(2, "NOTE: USING LIBS: {}".format(progSpec.libsToUse.keys()))
-    for Lib in progSpec.libsToUse:
-        if   (Lib=="GTK3"): Lib_GTK3.use(objects, buildTags, [tags, buildTags], Platform)
-        elif (Lib=="SDL2"): Lib_SDL2.use(objects, buildTags, [tags, buildTags], Platform)
-        elif (Lib=="Java"): Lib_Java.use(objects, buildTags, [tags, buildTags], Platform)
-        elif (Lib=="CPP"):  Lib_CPP.use(objects, buildTags, [tags, buildTags], Platform)
-        elif (Lib=="Swing"):  Lib_Swing.use(objects, buildTags, [tags, buildTags], Platform)
-        elif (Lib=="Android"):  Lib_Android.use(objects, buildTags, [tags, buildTags], Platform)
-        elif (Lib=="AndroidGUI"):  Lib_AndroidGUI.use(objects, buildTags, [tags, buildTags], Platform)
-        elif (Lib=="Swift"):  Lib_Swift.use(objects, buildTags, [tags, buildTags], Platform)
-
-    Lib_CodeDog.use(objects, buildTags, [tags, buildTags])
-
-    return progSpec.libsToUse
-
 def GenerateSystem(objects, buildSpecs, tags, macroDefs):
     cdlog(0, "\n######################   G E N E R A T I N G   P R O G R A M   S P E C I F I C A T I O N")
-    ScanAndApplyPatterns(objects, tags)
-    stringStructs.CreateStructsForStringModels(objects, tags)
-    GroomTags(tags)
+#    ScanAndApplyPatterns(objects, tags)
+#    stringStructs.CreateStructsForStringModels(objects, tags)
+#    GroomTags(tags)
 
     count=0
     for buildSpec in buildSpecs:
@@ -207,25 +112,16 @@ def GenerateSystem(objects, buildSpecs, tags, macroDefs):
 
 #############################################    L o a d / P a r s e   P r o g r a m   S p e c
 
-if(len(sys.argv) < 2):
-    cdErr( "No Filename given.\n")
-    exit(1)
+if(len(sys.argv) < 2): cdErr( "No Filename given.\n")
 
 libraryMngr.findLibraryFiles()
-file_name = abspath(os.getcwd()) + "/" + sys.argv[1]
-codeDogStr = progSpec.stringFromFile(file_name)
-codeDogStr = libraryMngr.processIncludedFiles(codeDogStr)
 
+filename = abspath(os.getcwd()) + "/" + sys.argv[1]
+[ProgSpec, objNames, macroDefs] = [ {}, [], {} ]
+[tagStore, buildSpecs, objectSpecs] = CodeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, macroDefs)
+tagStore['dogFilename']=filename
 
-# objectSpecs is like: [ProgSpec, objNames]
-sys.setrecursionlimit(2000)
-cdlog(0, "######################   P A R S I N G   C O D E D O G  ({})".format(file_name))
-ProgSpec = {}
-objNames = []
 macroDefs= {}
-[tagStore, buildSpecs, objectSpecs] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs)
-tagStore['dogFilename']=file_name
-
 GenerateSystem(objectSpecs, buildSpecs, tagStore, macroDefs)
 cdlog(0, "\n######################   D O N E")
 endTime = timer()

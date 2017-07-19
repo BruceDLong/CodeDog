@@ -153,7 +153,7 @@ def getEnumStr(fieldName, enumList):
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
-def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, objectsRef, xlator):
+def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
     convertedIdxType = ""
     if containerType=='ArrayList':
         if name=='at' or name=='insert' or name=='erase': pass
@@ -172,7 +172,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown ArrayList command:", name; exit(2);
     elif containerType=='TreeMap':
         convertedIdxType=idxType
-        [convertedItmType, innerType]=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put';
@@ -189,7 +189,7 @@ def getContainerTypeInfo(containerType, name, idxType, typeSpecOut, paramList, o
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         convertedIdxType=idxType
-        [convertedItmType, innerType]=xlator['convertType'](objectsRef, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
@@ -492,7 +492,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
-def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
@@ -518,7 +518,7 @@ def iterateRangeContainerStr(objectsRef,localVarsAllocated, StartKey, EndKey, co
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
+def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
     actionText = ""
     loopCounterName=""
     containedType=containerType['fieldType']
@@ -527,8 +527,8 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-        [containedTypeStr, innerType]=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
-        [indexTypeStr, innerType]=xlator['convertType'](objectsRef, keyVarSpec, 'var', xlator)
+        [containedTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', xlator)
+        [indexTypeStr, innerType]=xlator['convertType'](classes, keyVarSpec, 'var', xlator)
         if indexTypeStr=='int': indexTypeStr = "Integer"
         elif indexTypeStr=='long': indexTypeStr = "Long"
         iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
@@ -541,12 +541,12 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        [iteratorTypeStr, innerType]=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
+        [iteratorTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', xlator)
     else:
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        [iteratorTypeStr, innerType]=xlator['convertType'](objectsRef, ctrlVarsTypeSpec, 'var', xlator)
+        [iteratorTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', xlator)
 
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     loopVarName=repName+"Idx";
@@ -554,8 +554,8 @@ def iterateContainerStr(objectsRef,localVarsAllocated,containerType,repName,repC
     return [actionText, loopCounterName]
 
 def codeIncrement(varName):
-    return "++" + varName 
-    
+    return "++" + varName
+
 def codeDecrement(varName):
     return "--" + varName
 
