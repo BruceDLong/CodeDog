@@ -67,14 +67,14 @@ def getTypesBase(typeSpec):
        return typeSpec
     else: return getTypesBase(typeSpec[1])
 
-def registerBaseType(usedType, objectName):
-    #print "registerBaseType: ", usedType, objectName
+def registerBaseType(usedType, className):
+    #print "registerBaseType: ", usedType, className
     baseType=getTypesBase(usedType)
     if not (baseType in storeOfBaseTypesUsed):
         storeOfBaseTypesUsed[baseType]={}
-    if not (objectName in storeOfBaseTypesUsed[baseType]):
-        storeOfBaseTypesUsed[baseType][objectName]=0
-    else: storeOfBaseTypesUsed[baseType][objectName] += 1
+    if not (className in storeOfBaseTypesUsed[baseType]):
+        storeOfBaseTypesUsed[baseType][className]=0
+    else: storeOfBaseTypesUsed[baseType][className] += 1
 
 def addPattern(objSpecs, objectNameList, name, patternList):
     patternName='!'+name
@@ -96,18 +96,18 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     objectNameList.append(name)
     if MarkItems: MarkedObjects[name]=1
 
-def addObjTags(objSpecs, objectName, stateType, objTags):
+def addObjTags(objSpecs, className, stateType, objTags):
     startTags = {}
-    if stateType=='model': objectName='%'+objectName
-    elif stateType=='string': objectName='$'+objectName
-    if ('tags' in objSpecs[objectName]):
-        startTags = objSpecs[objectName]['tags']
+    if stateType=='model': className='%'+className
+    elif stateType=='string': className='$'+className
+    if ('tags' in objSpecs[className]):
+        startTags = objSpecs[className]['tags']
         # append tags here
-        objSpecs[objectName]['tags'].update(objTags)
-       # print "    APPENDED Tags to "+objectName+".\t"
+        objSpecs[className]['tags'].update(objTags)
+       # print "    APPENDED Tags to "+className+".\t"
     else:
-        objSpecs[objectName]['tags']=objTags
-       # print "    ADDED Tags to "+objectName+".\t"
+        objSpecs[className]['tags']=objTags
+       # print "    ADDED Tags to "+className+".\t"
 
 def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems
@@ -131,15 +131,15 @@ def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgL
         packedField['typeSpec']['codeConverter']=codeConverter
     return packedField
 
-def addField(objSpecs, objectName, stateType, packedField):
+def addField(objSpecs, className, stateType, packedField):
     global MarkItems
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
     thisName=packedField['fieldName']
-    if stateType=='model': taggedObjectName='%'+objectName
-    elif stateType=='string': taggedObjectName='$'+objectName
-    else: taggedObjectName = objectName
+    if stateType=='model': taggedObjectName='%'+className
+    elif stateType=='string': taggedObjectName='$'+className
+    else: taggedObjectName = className
     #print "ADDING FIELD:", taggedObjectName, stateType, thisName
     if thisName in objSpecs[taggedObjectName]["fields"]:
         cdlog(2, "Note: The field '" + taggedObjectName + '::' + thisName + "' already exists. Not re-adding")
@@ -148,7 +148,7 @@ def addField(objSpecs, objectName, stateType, packedField):
     # Don't override flags and modes in derived classes
     fieldType = packedField['typeSpec']['fieldType']
     if fieldType=='flag' or fieldType=='mode':
-        if fieldAlreadyDeclaredInStruct(objSpecs, objectName, thisName):
+        if fieldAlreadyDeclaredInStruct(objSpecs, className, thisName):
             return
 
     objSpecs[taggedObjectName]["fields"].append(packedField)
@@ -159,7 +159,7 @@ def addField(objSpecs, objectName, stateType, packedField):
             MarkedFields.append([taggedObjectName, thisName])
 
     #if(thisOwner!='flag' and thisOwner!='mode'):
-        #print "FIX THIS COMMENTED OUT PART", thisType, objectName #registerBaseType(thisType, objectName)
+        #print "FIX THIS COMMENTED OUT PART", thisType, className #registerBaseType(thisType, className)
 
     if 'optionalTags' in packedField:
         for tag in packedField['optionalTags']:
@@ -168,8 +168,8 @@ def addField(objSpecs, objectName, stateType, packedField):
                 commandArg = tag[8:]
                 addModifierCommand(objSpecs, taggedObjectName, thisName, commandArg, newCommand)
 
-def markStructAuto(objSpecs, objectName):
-    objSpecs[objectName]["autoGen"]='yes'
+def markStructAuto(objSpecs, className):
+    objSpecs[className]["autoGen"]='yes'
 
 ###############
 
@@ -229,10 +229,10 @@ def setFeaturesNeeded(tags, featureIDs):
 def addCodeToInit(tagStore, newInitCode):
     appendToStringTagValue(tagStore, "initCode", newInitCode + "\n");
 
-def removeFieldFromObject (classes, objectName, fieldtoRemove):
-    if not objectName in classes[0]:
+def removeFieldFromObject (classes, className, fieldtoRemove):
+    if not className in classes[0]:
         return
-    fieldList=classes[0][objectName]['fields']
+    fieldList=classes[0][className]['fields']
     idx=0
     for field in fieldList:
         if field["fieldName"] == fieldtoRemove:

@@ -706,7 +706,7 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
         fieldValueText += CPL
     return fieldValueText
 
-def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     S=indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
     return S
 
@@ -723,9 +723,9 @@ def codeConstructorInit(fieldName, count, xlator):
         exit(2)
 
 
-def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
-    if(objectName=='GLOBAL'):
+    if(className=='GLOBAL'):
         if fieldName=='main':
             funcDefCode += 'int main(int argc, char *argv[])'
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
@@ -734,7 +734,7 @@ def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgs
             globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
     else:
         structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
-        objPrefix = progSpec.flattenObjectName(objectName) +'::'
+        objPrefix = progSpec.flattenObjectName(className) +'::'
         funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
     return [structCode, funcDefCode, globalFuncs]
 

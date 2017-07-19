@@ -576,12 +576,12 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
                 fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
-def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     S=""
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if (fieldName == "static_Global" or fieldName == "static_gui_tk"):  # TODO: make static_Global so it is not hard coded
         S += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-    elif(objectName == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager")):
+    elif(className == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager")):
         print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
@@ -600,9 +600,9 @@ def codeConstructorInit(fieldName, count, xlator):
         print "Error in codeConstructorInit."
         exit(2)
 
-def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     structCode='\n'; funcDefCode=''; globalFuncs='';
-    if(objectName=='GLOBAL'):
+    if(className=='GLOBAL'):
         if fieldName=='main':
             structCode += indent + "public static void " + fieldName +" (String[] args)";
             #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])

@@ -1295,11 +1295,11 @@ def CreateStructsForStringModels(classes, tags):
     global nextParseNameID
     nextParseNameID=0
     numStringStructs=0
-    for objectName in classes[1]:
-        if objectName[0] == '!': continue
-        ObjectDef = classes[0][objectName]
+    for className in classes[1]:
+        if className[0] == '!': continue
+        ObjectDef = classes[0][className]
         if(ObjectDef['stateType'] == 'string'):
-            objectName=objectName[1:]
+            className=className[1:]
             numStringStructs+=1
             fields=ObjectDef["fields"]
             configType=ObjectDef['configType']
@@ -1307,17 +1307,17 @@ def CreateStructsForStringModels(classes, tags):
             if configType=='SEQ': SeqOrAlt='parseSEQ'
             elif configType=='ALT': SeqOrAlt='parseALT'
 
-            normedObjectName = objectName.replace('::', '_')
-            if normedObjectName==objectName: normedObjectName+='_str'
+            normedObjectName = className.replace('::', '_')
+            if normedObjectName==className: normedObjectName+='_str'
             # Write the rules for all the fields, and a parent rule which is either SEQ or ALT, and REP/OPT as needed.
             cdlog(2, "CODING Parser Rules for {}".format(normedObjectName))
             ruleID = writeNonTermParseRule(classes, tags, normedObjectName, fields, SeqOrAlt, '', 3)
 
             if SeqOrAlt=='parseSEQ':
-                [memObj, memVersionName]=fetchMemVersion(classes, objectName)
+                [memObj, memVersionName]=fetchMemVersion(classes, className)
                 if memObj!=None:
-                    Write_Extracter(classes, objectName, objectName, 2)
-                else: cdlog(2, "NOTE: Skipping {} because it has no struct version defined.".format(objectName))
+                    Write_Extracter(classes, className, className, 2)
+                else: cdlog(2, "NOTE: Skipping {} because it has no struct version defined.".format(className))
 
     if numStringStructs==0: return
 

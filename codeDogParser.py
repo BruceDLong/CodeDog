@@ -182,7 +182,7 @@ def extractTagDefs(tagResults):
     return localTagStore
 
 nameIDX=1
-def packFieldDef(fieldResult, ObjectName, indent):
+def packFieldDef(fieldResult, className, indent):
     global nameIDX
     #  ['(', [['>', 'me', ['CID'], [':', 'tag']], '<=>', [[[['hasTag']], '=', [[[[[[[['54321'], []], []], []], []], []], []]]]]], ')']
     coFactuals=None
@@ -207,7 +207,7 @@ def packFieldDef(fieldResult, ObjectName, indent):
             if   fieldType[0]=='{': fieldList=fieldType[1:-1]
             elif fieldType[0]=='[': fieldList=fieldType[1]
             for innerField in fieldList:
-                innerFieldDef=packFieldDef(innerField, ObjectName, indent+'    ')
+                innerFieldDef=packFieldDef(innerField, className, indent+'    ')
                 innerDefs.append(innerFieldDef)
 
     else: fieldType=None;
@@ -224,14 +224,14 @@ def packFieldDef(fieldResult, ObjectName, indent):
             givenValue = nameAndVal.givenValue
 
         elif(nameAndVal.funcBody):
-            [funcBodyOut, funcTextVerbatim] = extractFuncBody(ObjectName, fieldName, nameAndVal.funcBody)
+            [funcBodyOut, funcTextVerbatim] = extractFuncBody(className, fieldName, nameAndVal.funcBody)
             givenValue=[funcBodyOut, funcTextVerbatim]
             #print "\n\n[funcBodyOut, funcTextVerbatim] ", givenValue
 
         else: givenValue=None;
         if(nameAndVal.argListTag):
             for argSpec in nameAndVal.argList:
-                argList.append(packFieldDef(argSpec[0], ObjectName, indent+"    "))
+                argList.append(packFieldDef(argSpec[0], className, indent+"    "))
         else: argList=None;
         if 'parameters' in nameAndVal:
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
@@ -394,7 +394,7 @@ def extractActItem(funcName, actionItem):
         exit(1)
     return thisActionItem
 
-def extractActSeq( funcName, childActSeq):
+def extractActSeq(funcName, childActSeq):
     actionList = childActSeq.actionList
     actSeq = []
     for actionItem in actionList:
@@ -407,7 +407,7 @@ def extractActSeqToFunc(funcName, funcBodyIn):
     return childActSeq
 
 
-def extractFuncBody(localObjectName,funcName, funcBodyIn):
+def extractFuncBody(ObjectName,funcName, funcBodyIn):
     if funcBodyIn[0] == "<%":
         funcBodyOut = ""
         if len(funcBodyIn)== 3: # handles new pyparsing
@@ -423,11 +423,11 @@ def extractFuncBody(localObjectName,funcName, funcBodyIn):
     return funcBodyOut, funcTextVerbatim
 
 
-def extractFieldDefs(ProgSpec, ObjectName, stateType, fieldResults):
-    cdlog(2, "EXTRACTING {}".format(ObjectName))
+def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
+    cdlog(2, "EXTRACTING {}".format(className))
     for fieldResult in fieldResults:
-        fieldDef=packFieldDef(fieldResult, ObjectName, '')
-        progSpec.addField(ProgSpec, ObjectName, stateType, fieldDef)
+        fieldDef=packFieldDef(fieldResult, className, '')
+        progSpec.addField(ProgSpec, className, stateType, fieldDef)
 
 
 
@@ -442,8 +442,8 @@ def extractBuildSpecs(buildSpecResults):
             resultBuildSpecs.append(spec)
     return resultBuildSpecs
 
-def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
-    objectName=spec.objectName[0]
+def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
+    className=spec.objectName[0]
     configType="unknown"
     if(spec.sequenceEl): configType="SEQ"
     elif(spec.alternateEl):configType="ALT"
@@ -453,23 +453,23 @@ def extractObjectSpecs(ProgSpec, objNames, spec, stateType):
         objTags = extractTagDefs(spec.tagDefList)
     else:
         objTags = {}
- #   if 'ctxTag' in objTags: objectName+="#"+objTags['ctxTag']
-    progSpec.addObject(ProgSpec, objNames, objectName, stateType, configType)
-    progSpec.addObjTags(ProgSpec, objectName, stateType, objTags)
+ #   if 'ctxTag' in objTags: className+="#"+objTags['ctxTag']
+    progSpec.addObject(ProgSpec, classNames, className, stateType, configType)
+    progSpec.addObjTags(ProgSpec, className, stateType, objTags)
     ###########Grab field defs
     if(spec[2]=='auto'):
         cdErr("'auto' is no longer used to generate structs automatically.")
-        progSpec.markStructAuto(ProgSpec, objectName)
+        progSpec.markStructAuto(ProgSpec, className)
     else:
         #print "SPEC.FIELDDEFS",spec.fieldDefs
-        extractFieldDefs(ProgSpec, objectName, stateType, spec.fieldDefs)
+        extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
 
     return
 
-def extractPatternSpecs(ProgSpec, objNames, spec):
+def extractPatternSpecs(ProgSpec, classNames, spec):
     patternName=spec.objectName[0]
     patternArgWords=spec.CIDList
-    progSpec.addPattern(ProgSpec, objNames, patternName, patternArgWords)
+    progSpec.addPattern(ProgSpec, classNames, patternName, patternArgWords)
     return
 
 def extractMacroSpec(macroDefs, spec):
@@ -569,13 +569,13 @@ def doMacroSubstitutions(macros, inputString):
     # Last, replace the text into inputString
     return inputString
 
-def extractObjectsOrPatterns(ProgSpec, objNames, macroDefs, objectSpecResults):
+def extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, objectSpecResults):
     for spec in objectSpecResults:
         s=spec[0]
         if s == "model" or s == "struct" or s == "string" or s == "stream":
-            extractObjectSpecs(ProgSpec, objNames, spec, s)
+            extractObjectSpecs(ProgSpec, clsNames, spec, s)
         elif s == "do":
-            extractPatternSpecs(ProgSpec, objNames, spec)
+            extractPatternSpecs(ProgSpec, clsNames, spec)
         elif s == "#define":
             extractMacroSpec(macroDefs, spec)
         else:
@@ -615,7 +615,7 @@ def parseCodeDogLibTags(inputString):
     tagStore = extractTagDefs(localResults.tagDefList)
     return tagStore
 
-def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
+def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs):
     tmpMacroDefs={}
     inputString = comment_remover(inputString)
     extractMacroDefs(tmpMacroDefs, inputString)
@@ -624,11 +624,11 @@ def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
     cdlog(1, "PROCESSING CLASSES...")
     tagStore = extractTagDefs(results.tagDefList)
     buildSpecs = extractBuildSpecs(results.buildSpecList)
-    extractObjectsOrPatterns(ProgSpec, objNames, macroDefs, results.objectList)
-    objectSpecs = [ProgSpec, objNames]
-    return[tagStore, buildSpecs, objectSpecs]
+    extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.objectList)
+    classes = [ProgSpec, clsNames]
+    return[tagStore, buildSpecs, classes]
 
-def AddToObjectFromText(spec, objNames, inputStr):
+def AddToObjectFromText(ProgSpec, clsNames, inputStr):
     macroDefs = {} # This var is not used here. If needed, make it an argument.
     inputStr = comment_remover(inputStr)
     #print '####################\n',inputStr, "\n######################^\n\n\n"
@@ -637,4 +637,4 @@ def AddToObjectFromText(spec, objNames, inputStr):
     # (map of classes, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
     #print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'
-    extractObjectsOrPatterns(spec, objNames, macroDefs, results[0])
+    extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0])

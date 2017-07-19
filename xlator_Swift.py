@@ -670,7 +670,7 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
                     exit (2)
     return fieldValueText
 
-def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, objectName, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     convertedType = adjustBaseTypes(convertedType)
     if 'arraySpec' in typeSpec:
         if (fieldValueText == ""):
@@ -697,10 +697,10 @@ def codeConstructorInit(fieldName, count, xlator):
         exit(2)
 
 
-def codeFuncHeaderStr(objectName, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, indent):
     #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
-    if(objectName=='GLOBAL'):
+    if(className=='GLOBAL'):
         if fieldName=='main':
             structCode += '// M A I N ' + '\n'
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
