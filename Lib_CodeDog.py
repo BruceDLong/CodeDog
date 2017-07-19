@@ -3,7 +3,7 @@
 import progSpec
 import codeDogParser
 
-def use(objects, buildSpec, tags):  #, classesReferenced):
+def use(classes, buildSpec, tags):  #, classesReferenced):
   #  TODO: Make this include only classes that have been referenced and their dependancies
   #  for Crefd in classesReferenced:
   #      if Crefd is in this library, include it and it's dependancies
@@ -61,4 +61,4 @@ def use(objects, buildSpec, tags):  #, classesReferenced):
 
     '''
 
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE )

@@ -24,14 +24,14 @@ def createUtilityFunctions():
     return S
 
 
-def use(objects, buildSpec, tags, platform):
+def use(classes, buildSpec, tags, platform):
     print "USING Java"
 
     CODE="""
         struct random{me Random: random}
         struct timeValue{me long: timeValue}
         """
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE )
 
     APP_UTILITY_CODE = createUtilityFunctions()
 
@@ -73,4 +73,4 @@ def use(objects, buildSpec, tags, platform):
 
   #  print "GLOBAL_CODE: ", GLOBAL_CODE
 
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )

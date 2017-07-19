@@ -78,7 +78,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                     langType=applyOwner(containerOwner, langType, varMode)
     return [langType, InnerLangType]
 
-def convertType(objects, TypeSpec, varMode, xlator):
+def convertType(classes, TypeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
@@ -86,7 +86,7 @@ def convertType(objects, TypeSpec, varMode, xlator):
     if not isinstance(fieldType, basestring):
         #if len(fieldType)>1: exit(2)
         fieldType=fieldType[0]
-    baseType = progSpec.isWrappedType(objects, fieldType)
+    baseType = progSpec.isWrappedType(classes, fieldType)
     if(baseType!=None):
         owner=baseType['owner']
         fieldType=baseType['fieldType']
@@ -469,13 +469,13 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     return ""
 
 ############################################
-def codeMain(objects, tags, xlator):
+def codeMain(classes, tags, xlator):
     cdlog(3, "\n            Generating GLOBAL...")
-    if("GLOBAL" in objects[1]):
-        if(objects[0]["GLOBAL"]['stateType'] != 'struct'):
+    if("GLOBAL" in classes[1]):
+        if(classes[0]["GLOBAL"]['stateType'] != 'struct'):
             print "ERROR: GLOBAL must be a 'struct'."
             exit(2)
-        [structCode, funcCode, globalFuncs]=codeStructFields(objects, "GLOBAL", tags, '', xlator)
+        [structCode, funcCode, globalFuncs]=codeStructFields(classes, "GLOBAL", tags, '', xlator)
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
         funcCode = "\n\n"+funcCode
@@ -587,7 +587,7 @@ def addSpecialCode(filename):
 
     return S
 
-def addGLOBALSpecialCode(objects, tags, xlator):
+def addGLOBALSpecialCode(classes, tags, xlator):
     specialCode =''
 
     GLOBAL_CODE="""
@@ -596,7 +596,7 @@ struct GLOBAL{
 }
     """ % (specialCode)
 
-    #codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+    #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     varDeclareStr=''
@@ -754,7 +754,7 @@ def includeDirective(libHdr):
     S = '#include <'+libHdr+'>\n'
     return S
 
-def generateMainFunctionality(objects, tags):
+def generateMainFunctionality(classes, tags):
     # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
     # TODO: Some deInitialize items should automatically run during abort().
     # TODO: Deinitialize items should happen in reverse order.
@@ -769,8 +769,8 @@ def generateMainFunctionality(objects, tags):
     }
 
 """
-    progSpec.addObject(objects[0], objects[1], 'GLOBAL', 'struct', 'SEQ')
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ))
+    progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ))
 
 
 def fetchXlators():

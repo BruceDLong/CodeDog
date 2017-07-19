@@ -113,14 +113,14 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
     testBedUtilities = testBedUtilities.replace("<TEST-CASES-HERE>", SwitchCaseText)
     return testBedUtilities
 
-def generateTestCode(objects, buildTags, tags, macroDefs):
+def generateTestCode(classes, buildTags, tags, macroDefs):
     [testMacros, testResultUtilities]=setResultCode()
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], testResultUtilities )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], testResultUtilities )
 
     TestSpecFile= progSpec.fetchTagValue([tags, buildTags], 'TestSpec')
     TestSpecStr = progSpec.stringFromFile(TestSpecFile) + testMacros
     #print "#################################\n", TestSpecStr
-    [testTagStore, testBuildSpecs, testObjectSpecs] = codeDogParser.parseCodeDogString(TestSpecStr, objects[0], objects[1], macroDefs)
+    [testTagStore, testBuildSpecs, testObjectSpecs] = codeDogParser.parseCodeDogString(TestSpecStr, classes[0], classes[1], macroDefs)
 
     # Replace runcode if it isn't there
     # Here: generate EXEC_TESTS() and RUN_TEST()
@@ -142,6 +142,6 @@ def generateTestCode(objects, buildTags, tags, macroDefs):
     testBedUtilities = setUtilityCode(TestArrayText, SwitchCaseText)
 
    # print "TEST TEXT:", testBedUtilities
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], testBedUtilities )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], testBedUtilities )
 
     return testTagStore

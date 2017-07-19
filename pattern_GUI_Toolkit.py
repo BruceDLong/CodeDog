@@ -4,7 +4,7 @@ import progSpec
 import codeDogParser
 
 
-def apply(objects, globalTags):
+def apply(classes, globalTags):
     progSpec.appendToStringTagValue(globalTags, 'initCode', ' Allocate(appFuncs.gui) \n appFuncs.gui.GUI_Init()')
     progSpec.appendToStringTagValue(globalTags, 'runCode', 'appFuncs.gui.GUI_Run()')
     progSpec.appendToStringTagValue(globalTags, 'deinitCode', 'appFuncs.gui.GUI_Deinit()')
@@ -23,4 +23,4 @@ def apply(objects, globalTags):
 
     """ % title
 
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], GUI_TK_code )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GUI_TK_code )

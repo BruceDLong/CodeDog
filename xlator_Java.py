@@ -52,14 +52,14 @@ def convertToJavaType(fieldType):
     #print "javaType: ", javaType
     return javaType
 
-def convertType(objects, TypeSpec, varMode, xlator):
+def convertType(classes, TypeSpec, varMode, xlator):
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
     #print "fieldType: ", fieldType
     if not isinstance(fieldType, basestring):
         #if len(fieldType)>1: exit(2)
         fieldType=fieldType[0]
-    baseType = progSpec.isWrappedType(objects, fieldType)
+    baseType = progSpec.isWrappedType(classes, fieldType)
     if(baseType!=None):
         owner=baseType['owner']
         fieldType=baseType['fieldType']
@@ -412,7 +412,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     return S
 
 ################################################
-def codeMain(objects, tags, xlator):
+def codeMain(classes, tags, xlator):
     return ["", ""]
 
 def codeArgText(argFieldName, argType, xlator):
@@ -441,7 +441,7 @@ def addSpecialCode(filename):
     S='\n\n//////////// Java specific code:\n'
     return S
 
-def addGLOBALSpecialCode(objects, tags, xlator):
+def addGLOBALSpecialCode(classes, tags, xlator):
     filename = makeTagText(tags, 'FileName')
     specialCode ='const string: filename <- "' + filename + '"\n'
 
@@ -451,7 +451,7 @@ struct GLOBAL{
 }
     """ % (specialCode)
 
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
     if isinstance(typeSpec['fieldType'], basestring):
@@ -632,7 +632,7 @@ def includeDirective(libHdr):
 
 
 
-def generateMainFunctionality(objects, tags):
+def generateMainFunctionality(classes, tags):
     # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
     # TODO: Some deInitialize items should automatically run during abort().
     # TODO: Deinitialize items should happen in reverse order.
@@ -640,7 +640,7 @@ def generateMainFunctionality(objects, tags):
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if Platform == 'Android':
-        Lib_Android.GenerateMainActivity(objects, tags, runCode)
+        Lib_Android.GenerateMainActivity(classes, tags, runCode)
     else:
         mainFuncCode="""
         me void: main( ) <- {
@@ -651,8 +651,8 @@ def generateMainFunctionality(objects, tags):
         }
 
     """
-        progSpec.addObject(objects[0], objects[1], 'GLOBAL', 'struct', 'SEQ')
-        codeDogParser.AddToObjectFromText(objects[0], objects[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ))
+        progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ))
 
 
 def fetchXlators():

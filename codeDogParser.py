@@ -603,7 +603,7 @@ def parseCodeDogLibTags(inputString):
     inputString = comment_remover(inputString)
     extractMacroDefs(tmpMacroDefs, inputString)
     inputString = doMacroSubstitutions(tmpMacroDefs, inputString)
-    
+
     progSpec.saveTextToErrFile(inputString)
     try:
         localResults = libTagParser.parseString(inputString, parseAll = False)
@@ -614,7 +614,7 @@ def parseCodeDogLibTags(inputString):
 
     tagStore = extractTagDefs(localResults.tagDefList)
     return tagStore
-    
+
 def parseCodeDogString(inputString, ProgSpec, objNames, macroDefs):
     tmpMacroDefs={}
     inputString = comment_remover(inputString)
@@ -634,7 +634,7 @@ def AddToObjectFromText(spec, objNames, inputStr):
     #print '####################\n',inputStr, "\n######################^\n\n\n"
 
     progSpec.saveTextToErrFile(inputStr)
-    # (map of objects, array of objectNames, string to parse)
+    # (map of classes, array of objectNames, string to parse)
     results = objectList.parseString(inputStr, parseAll = True)
     #print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'
     extractObjectsOrPatterns(spec, objNames, macroDefs, results[0])

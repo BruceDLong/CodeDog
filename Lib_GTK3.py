@@ -4,7 +4,7 @@ import progSpec
 import codeDogParser
 
 
-def use(objects, buildSpec, tags, platform):
+def use(classes, buildSpec, tags, platform):
     print "USING GTK3"
 
     CODE="""
@@ -297,4 +297,4 @@ me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: c
         }%>
     }
 """
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE )

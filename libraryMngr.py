@@ -218,7 +218,7 @@ def constructANDListFromNeeds(tags, needs, files, indent):
     return AND_List
 
 
-def ChooseLibs(objects, buildTags, tags):
+def ChooseLibs(classes, buildTags, tags):
     clearFeaturesHandled()
     cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')

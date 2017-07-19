@@ -101,13 +101,13 @@ def encodeFieldDraw(fieldName, field, fldCat):
 
 #---------------------------------------------------------------  DUMP MAKING CODE
 
-def EncodeDumpFunction(objects, className, dispMode):
+def EncodeDumpFunction(classes, className, dispMode):
     global classesEncoded
     cdlog(2, "ENCODING: "+ className)
     classesEncoded[className]=1
     textFuncBody=''
     drawFuncBody=''
-    modelRef = progSpec.findSpecOf(objects[0], className, 'model')
+    modelRef = progSpec.findSpecOf(classes[0], className, 'model')
     if modelRef==None:
         cdErr('To write a dump function for class '+className+' a model is needed but is not found.')
     for field in modelRef['fields']:
@@ -122,14 +122,14 @@ def EncodeDumpFunction(objects, className, dispMode):
     if(dispMode=='text' or dispMode=='both'):
         Code="me void: dump(me string:indent) <- {\n"+textFuncBody+"    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
-        codeDogParser.AddToObjectFromText(objects[0], objects[1], Code)
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
         Code="me int: drawData(me GUI_ctxt: cr, me int:x, me int:y) <- {\n"+drawFuncBody+"    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
-        codeDogParser.AddToObjectFromText(objects[0], objects[1], Code)
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
-def apply(objects, tags, className, dispMode):
+def apply(classes, tags, className, dispMode):
     global classesToProcess
     global thisPatternAlreadyUsedOnce
     if(not thisPatternAlreadyUsedOnce):
@@ -165,9 +165,9 @@ struct GLOBAL{
         CODE+="""
 }
     """
-        codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE)
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE)
 
     classesToProcess.append(className)
     for classToEncode in classesToProcess:
-        EncodeDumpFunction(objects, classToEncode, dispMode)
+        EncodeDumpFunction(classes, classToEncode, dispMode)
     return

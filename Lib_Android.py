@@ -4,7 +4,7 @@ import progSpec
 import codeDogParser
 
 
-def use(objects, buildSpec, tags, platform):
+def use(classes, buildSpec, tags, platform):
     GLOBAL_CODE="""
     struct random{me Random: random}
     struct GLOBAL{
@@ -36,9 +36,9 @@ def use(objects, buildSpec, tags, platform):
 """
     print "GLOBAL_CODE: ", GLOBAL_CODE
 
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def GenerateMainActivity(objects, tags, runCode):
+def GenerateMainActivity(classes, tags, runCode):
 
     GLOBAL_CODE="""
     struct GLOBAL: ctxTag="Android" Platform='Android' Lang='Java' LibReq="Android" attrs="public" implMode="inherit:Activity" {
@@ -79,4 +79,4 @@ def GenerateMainActivity(objects, tags, runCode):
         }
     }
 """
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], GLOBAL_CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )

@@ -4,7 +4,7 @@ import progSpec
 import codeDogParser
 
 
-def apply(objects, tags):
+def apply(classes, tags):
     progSpec.appendToStringTagValue(tags, 'initCode', 'CommandLineManager.processCmdLine(prgArgs, false)')
 
     code = r"""
@@ -83,4 +83,4 @@ def apply(objects, tags):
 
     """
 
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], code )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], code )

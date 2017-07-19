@@ -10,7 +10,7 @@ storeOfBaseTypesUsed={} # Registry of all types used
 
 
 #########################
-# Variables to store what objects and fields were added after a marked point (When MarkItems=True).
+# Variables to store what classes and fields were added after a marked point (When MarkItems=True).
 # So that they can be "rolled back" later. (For rolling back libaries, etc.)
 
 MarkItems=False
@@ -20,15 +20,15 @@ ModifierCommands=[]
 funcsCalled={}
 structsNeedingModification={}
 
-def rollBack(objSpecs):
+def rollBack(classes):
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
     global structsNeedingModification
 
     for ObjToDel in MarkedObjects.keys():
-        del objSpecs[0][ObjToDel]
-        objSpecs[1].remove(ObjToDel)
+        del classes[0][ObjToDel]
+        classes[1].classes(ObjToDel)
 
     for fieldToDel in MarkedFields:
         removeFieldFromObject(objSpecs, fieldToDel[0],  fieldToDel[1])
@@ -229,10 +229,10 @@ def setFeaturesNeeded(tags, featureIDs):
 def addCodeToInit(tagStore, newInitCode):
     appendToStringTagValue(tagStore, "initCode", newInitCode + "\n");
 
-def removeFieldFromObject (objects, objectName, fieldtoRemove):
-    if not objectName in objects[0]:
+def removeFieldFromObject (classes, objectName, fieldtoRemove):
+    if not objectName in classes[0]:
         return
-    fieldList=objects[0][objectName]['fields']
+    fieldList=classes[0][objectName]['fields']
     idx=0
     for field in fieldList:
         if field["fieldName"] == fieldtoRemove:
@@ -251,10 +251,10 @@ def insertOrReplaceField(fieldListToUpdate, field):
         idx+=1
     fieldListToUpdate.append(field)
 
-def updateCvt(objects, fieldListToUpdate, fieldsToConvert):
+def updateCvt(classes, fieldListToUpdate, fieldsToConvert):
     for F in fieldsToConvert:
         typeSpec=F['typeSpec']
-        baseType=TypeSpecsMinimumBaseType(objects, typeSpec)
+        baseType=TypeSpecsMinimumBaseType(classes, typeSpec)
         G = F.copy()
         if baseType!=None:
             G['typeSpec']=typeSpec.copy()
@@ -265,9 +265,9 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
     for field in fieldsToCopy:
         insertOrReplaceField(fieldListToUpdate, field)
 
-def populateCallableStructFields(objects, structName):  # e.g. 'type::subType::subType2'
+def populateCallableStructFields(classes, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
-    structSpec=findSpecOf(objects[0], structName, 'struct')
+    structSpec=findSpecOf(classes[0], structName, 'struct')
     if structSpec==None: return None
     if structSpec['vFields']!=None: return structSpec['vFields']
     fList=[]
@@ -277,19 +277,19 @@ def populateCallableStructFields(objects, structName):  # e.g. 'type::subType::s
         if segIdx == -1: segStr=structName
         else: segStr=structName[0:segIdx]
         #print "     SEGSTR:", segStr
-        modelSpec=findSpecOf(objects[0], segStr, 'model')
-        if(modelSpec!=None): updateCvt(objects, fList, modelSpec["fields"])
-        modelSpec=findSpecOf(objects[0], segStr, 'struct')
+        modelSpec=findSpecOf(classes[0], segStr, 'model')
+        if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
+        modelSpec=findSpecOf(classes[0], segStr, 'struct')
         updateCpy(fList, modelSpec["fields"])
         if(segIdx>=0): segIdx+=1
     structSpec['vFields'] = fList
     return fList
 
-def generateListOfFieldsToImplement(objects, structName):  # Does not include fields gained by inheritance.
+def generateListOfFieldsToImplement(classes, structName):  # Does not include fields gained by inheritance.
     fList=[]
-    modelSpec=findSpecOf(objects[0], structName, 'model')
-    if(modelSpec!=None): updateCvt(objects, fList, modelSpec["fields"])
-    modelSpec=findSpecOf(objects[0], structName, 'struct')
+    modelSpec=findSpecOf(classes[0], structName, 'model')
+    if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
+    modelSpec=findSpecOf(classes[0], structName, 'struct')
     updateCpy(fList, modelSpec["fields"])
     return fList
 
@@ -299,17 +299,17 @@ def fieldDefIsInList(fList, fieldName):
             return True
     return False
 
-def fieldAlreadyDeclaredInStruct(objects, structName, fieldName):  # e.g. 'type::subType::subType2'
+def fieldAlreadyDeclaredInStruct(classes, structName, fieldName):  # e.g. 'type::subType::subType2'
     segIdx=0
     while(segIdx>=0):
         segIdx=structName.find('::', segIdx);
         if segIdx == -1: segStr=structName
         else: segStr=structName[0:segIdx]
         #print "     SEGSTR:", segStr, fieldName
-        modelSpec=findSpecOf(objects, segStr, 'model')
+        modelSpec=findSpecOf(classes, segStr, 'model')
         if(modelSpec!=None):
             if fieldDefIsInList(modelSpec["fields"], fieldName): return True
-        modelSpec=findSpecOf(objects, segStr, 'struct')
+        modelSpec=findSpecOf(classes, segStr, 'struct')
         if(modelSpec!=None):
             if fieldDefIsInList(modelSpec["fields"], fieldName): return True
         if(segIdx>=0): segIdx+=1
@@ -377,9 +377,9 @@ def isStruct(fieldType):
     if isinstance(fieldType, basestring): return False
     return True
 
-def isAltStruct(objects, fieldType):
-    if not isStruct(fieldType) or not(fieldType[0] in objects[0]): return [False, [] ]
-    fieldObj=objects[0][fieldType[0]]
+def isAltStruct(classes, fieldType):
+    if not isStruct(fieldType) or not(fieldType[0] in classes[0]): return [False, [] ]
+    fieldObj=classes[0][fieldType[0]]
     fieldObjConfig=fieldObj['configType']
     Objfields=fieldObj['fields']
     if (fieldObjConfig=='ALT'): return [True, Objfields]
@@ -405,7 +405,7 @@ def fetchFieldByName(fields, fieldName):
         if fname==fieldName: return field
     return None
 
-def TypeSpecsMinimumBaseType(objects, typeSpec):
+def TypeSpecsMinimumBaseType(classes, typeSpec):
     owner=typeSpec['owner']
     fieldType=typeSpec['fieldType']
     #print "TYPESPEC:", typeSpec, "<", fieldType, ">\n"
@@ -421,12 +421,12 @@ def TypeSpecsMinimumBaseType(objects, typeSpec):
             else:  return "flexInt"
         else: # Handle signed values (int)
             return "int64"
-    elif isStruct(fieldType) and (fieldType[0] in objects[0]):
-        fieldObj=objects[0][fieldType[0]]
+    elif isStruct(fieldType) and (fieldType[0] in classes[0]):
+        fieldObj=classes[0][fieldType[0]]
         fieldObjConfig=fieldObj['configType']
         if(fieldObjConfig=='ALT'):
             innerTypeSpec=fieldObj['fields'][0]['typeSpec']
-            retType = TypeSpecsMinimumBaseType(objects, innerTypeSpec)
+            retType = TypeSpecsMinimumBaseType(classes, innerTypeSpec)
             return retType
     return fieldType
 

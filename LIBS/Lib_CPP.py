@@ -4,7 +4,7 @@ import codeDogParser
 from progSpec import cdlog, cdErr
 
 
-def use(objects, buildSpec, tags, platform):
+def use(classes, buildSpec, tags, platform):
     cdlog(2,"USING Lib_CPP")
     progSpec.addCodeToInit(tags[1], "signal(SIGSEGV, reportFault)");
    # progSpec.addCodeToInit(tags, "sync_with_stdio(false)");  #std::ios_base::sync_with_stdio(false)"
@@ -34,4 +34,4 @@ def use(objects, buildSpec, tags, platform):
     }
 
 """
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE )

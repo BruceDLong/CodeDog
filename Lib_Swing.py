@@ -3,7 +3,7 @@
 import progSpec
 import codeDogParser
 
-def use(objects, buildSpec, tags, platform):
+def use(classes, buildSpec, tags, platform):
     CODE="""
 
 
@@ -229,4 +229,4 @@ struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implM
 }
     """
 
-    codeDogParser.AddToObjectFromText(objects[0], objects[1], CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE )
