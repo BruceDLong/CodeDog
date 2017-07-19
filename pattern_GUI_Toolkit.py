@@ -14,7 +14,6 @@ def apply(classes, globalTags):
     # Provide wrapper commands
 
     # Make a class with init, event-loop, deInit (Can be activated from main.)
-    print "GUI TAG TITLE:", globalTags
     title=progSpec.searchATagStore(globalTags, 'Title')[0]
     GUI_TK_code = """
     struct GUI {

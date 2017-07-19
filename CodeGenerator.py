@@ -915,7 +915,9 @@ def codeStructFields(classes, className, tags, indent, xlator):
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
 def fetchListOfStructsToImplement(classes, tags):
-    retList=[]
+    global MarkedObjects
+    progNameList=[]
+    libNameList=[]
     for className in classes[1]:
         if progSpec.isWrappedType(classes, className)!=None: continue
         if(className[0] == '!' or className[0] == '%' or className[0] == '$'): continue   # Filter out "Do Commands", models and strings
@@ -929,8 +931,9 @@ def fetchListOfStructsToImplement(classes, tags):
         if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
             cdlog(2, "SKIPPING: {} {} {}".format(className, ctxTag, implMode))
             continue
-        retList.append(className)
-    return retList
+        if className in progSpec.MarkedObjects: libNameList.append(className)
+        else: progNameList.append(className)
+    return libNameList + progNameList
 
 def codeAllNonGlobalStructs(classes, tags, xlator):
     global currentObjName
@@ -1040,13 +1043,18 @@ def makeFileHeader(tags, filename, xlator):
     header += xlator['addSpecialCode'](filename)
     return header
 
-def integrateLibraries(tags, libID, xlator):
+[libInitCodeAcc, libDeinitCodeAcc] = ['', '']
+
+def integrateLibraries(tags, tagsFromLibFiles, libID, xlator):
+    global libInitCodeAcc
+    global libDeinitCodeAcc
     global buildStr_libs
     headerStr = ''
     cdlog(2, 'Integrating {}'.format(libID))
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
 
-    tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
+    if 'initCode'   in tagsFromLibFiles[libID]: libInitCodeAcc  += tagsFromLibFiles[libID]['initCode']
+    if 'deinitCode' in tagsFromLibFiles[libID]: libDeinitCodeAcc = tagsFromLibFiles[libID]['deinitCode'] + libDeinitCodeAcc
 
     if 'interface' in tagsFromLibFiles[libID]:
         if 'libFiles' in tagsFromLibFiles[libID]['interface']:
@@ -1062,24 +1070,26 @@ def integrateLibraries(tags, libID, xlator):
 def connectLibraries(classes, tags, libsToUse, xlator):
     cdlog(1, "Attaching chosen libraries...")
     headerStr = ''
+    tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
     for libFilename in libsToUse:
-        headerStr += integrateLibraries(tags, libFilename, xlator)
+        headerStr += integrateLibraries(tags, tagsFromLibFiles, libFilename, xlator)
         macroDefs= {}
         [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], macroDefs)
 
     return headerStr
 
 def addGLOBALSpecialCode(classes, tags, xlator):
+    global libInitCodeAcc
+    global libDeinitCodeAcc
     cdlog(1, "Attaching Language Specific Code...")
     xlator['addGLOBALSpecialCode'](classes, tags, xlator)
 
     initCode=''; deinitCode=''
 
-#    if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
-#    if 'deinitCode' in tags[0]: deinitCode= tags[0]['deinitCode']
-#    [libInitCodeAcc, libDeinitCodeAcc] = libraryMngr.getinitCodeAccs()
-#    initCode += libInitCodeAcc
-#    deinitCode = libDeinitCodeAcc + deinitCode
+    if 'initCode'   in tags[0]: initCode  = tags[0]['initCode']
+    if 'deinitCode' in tags[0]: deinitCode= tags[0]['deinitCode']
+    initCode += libInitCodeAcc
+    deinitCode = libDeinitCodeAcc + deinitCode
 
     GLOBAL_CODE="""
 struct GLOBAL{
@@ -1132,6 +1142,8 @@ def clearBuild():
     global localArgsAllocated
     global currentObjName
     global libInterfacesText
+    global libInitCodeAcc
+    global libDeinitCodeAcc
     global fieldNamesAlreadyUsed
     global StaticMemberVars
     global globalFuncDeclAcc
@@ -1143,6 +1155,8 @@ def clearBuild():
     fieldNamesAlreadyUsed={}
     currentObjName=''
     libInterfacesText=''
+    libInitCodeAcc=''
+    libDeinitCodeAcc=''
     StaticMemberVars={}
     globalFuncDeclAcc=''
     globalFuncDefnAcc=''
@@ -1159,8 +1173,8 @@ def generate(classes, tags, libsToUse, xlator):
     globalClassStore=classes
     globalTagStore=tags[0]
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
-    addGLOBALSpecialCode(classes, tags, xlator)
     libInterfacesText=connectLibraries(classes, tags, libsToUse, xlator)
+    addGLOBALSpecialCode(classes, tags, xlator)
 
     cdlog(1, "Generating Top-level (e.g., main())...")
     if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program": generateBuildSpecificMainFunctionality(classes, tags, xlator)
@@ -1204,15 +1218,16 @@ def ScanAndApplyPatterns(classes, tags):
     if globalTagStore==None: TopLevelTags=tags
     else: TopLevelTags=globalTagStore
     cdlog(1, "Applying Patterns...")
+    itemsToDelete=[]; count=0;
     for item in classes[1]:
         if item[0]=='!':
+            itemsToDelete.append(count)
             pattName=item[1:]
             patternArgs=classes[0][pattName]['parameters']
             cdlog(2, "PATTERN: {}: {}".format( pattName, patternArgs))
 
             if pattName=='Write_Main': pattern_Write_Main.apply(classes, tags, patternArgs[0])
             elif pattName=='Gen_EventHandler': pattern_Gen_EventHandler.apply(classes, tags, patternArgs[0])
-            #elif pattName=='writeParser': pattern_Gen_ParsePrint.apply(classes, tags, patternArgs[0], patternArgs[1])
             elif pattName=='useBigNums': pattern_BigNums.apply(tags)
             elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(classes, TopLevelTags)
             elif pattName=='ManageCmdLine': pattern_ManageCmdLine.apply(classes, tags)
@@ -1220,6 +1235,9 @@ def ScanAndApplyPatterns(classes, tags):
             else:
                 cdEre("\nPattern {} not recognized.\n\n".format(pattName))
                 exit()
+        count+=1
+    for toDel in reversed(itemsToDelete):
+        del(classes[1][toDel])
 
 
 def loadProgSpecFromDogFile(filename, ProgSpec, objNames, macroDefs):

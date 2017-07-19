@@ -755,9 +755,8 @@ def includeDirective(libHdr):
     return S
 
 def generateMainFunctionality(classes, tags):
-    # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
     # TODO: Some deInitialize items should automatically run during abort().
-    # TODO: Deinitialize items should happen in reverse order.
+    # TODO: System initCode should happen first in initialize, last in deinitialize.
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     mainFuncCode="""

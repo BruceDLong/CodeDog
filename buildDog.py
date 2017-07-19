@@ -40,16 +40,15 @@ def writeFile(path, fileName, fileSpecs, fileExtension):
     fo=open(pathName, 'w')
     fo.write(fileSpecs[0][1])
     fo.close()
-    
+
 def copyTree(src, dst):
     for item in os.listdir(src):
-        print "item: ", item
+        #print "item: ", item
         s = os.path.join(src, item)
         d = os.path.join(dst, item)
         if os.path.isdir(s):
             shutil.copytree(s, d, False, None)
         else:
-            print"else"
             shutil.copy2(s, d)
 
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):

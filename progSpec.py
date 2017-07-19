@@ -28,10 +28,10 @@ def rollBack(classes):
 
     for ObjToDel in MarkedObjects.keys():
         del classes[0][ObjToDel]
-        classes[1].classes(ObjToDel)
+        classes[1].remove(ObjToDel)
 
     for fieldToDel in MarkedFields:
-        removeFieldFromObject(objSpecs, fieldToDel[0],  fieldToDel[1])
+        removeFieldFromObject(classes, fieldToDel[0],  fieldToDel[1])
 
     # Delete platform-specific ModifierCommands
     idx=0

@@ -11,7 +11,7 @@ interface={
 }
 
 initCode = "signal(SIGSEGV, reportFault)"
-deinitCode = "signal(SIGSEGV, reportFault)"
+deinitCode = ""
 
 
 struct stream{
@@ -28,4 +28,3 @@ struct GLOBAL{
 
 }
 struct timeValue{me int64: timeValue}
-

@@ -162,7 +162,7 @@ def reduceSolutionOptions(options, indent):
 def constructORListFromFiles(tags, need, files, indent):
     OR_List = ['OR', []]
     for libFile in files:
-        print indent + "LIB FILE: ", libFile
+        #print indent + "LIB FILE: ", libFile
         [ReqTags,interfaceTags] = extractLibTags(libFile)
         Requirements = []
         LibCanWork=True
@@ -176,7 +176,7 @@ def constructORListFromFiles(tags, need, files, indent):
             if Req[0]=='feature':
                 print "\n    Nested Features should be implemented. Please implement them. (", Req[1], ")n"; exit(2);
             elif Req[0]=='require':
-                print "REQUIREMENT:", Req[1]
+                #print "REQUIREMENT:", Req[1]
                 Requirements.append(Req)
             elif Req[0]=='tagOneOf':
                 tagToCheck = Req[1]
