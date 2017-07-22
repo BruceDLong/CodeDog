@@ -495,6 +495,7 @@ def codeActTextMain(actSeq, indent, xlator):
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
+        parentClass = parentClass.replace('::', '_')
         parentClass=': public '+parentClass+' '
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
