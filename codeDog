@@ -41,18 +41,6 @@ atexit.register(progSpec.whenExit)
 sys.setrecursionlimit(2000)
 startTime = timer()
 
-'''
-def writeFile(path, fileName, outStr, fileExtension):
-    try:
-        os.makedirs(path)
-    except OSError as exception:
-        if exception.errno != errno.EEXIST: raise
-    fileName += fileExtension
-    fo=open(path + os.sep + fileName, 'w')
-    fo.write(outStr)
-    fo.close()
-    '''
-
 def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     result='No Language Generator Found for '+buildTags['Lang']
     langGenTag = buildTags['Lang']

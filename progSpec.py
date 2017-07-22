@@ -91,10 +91,11 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     if(name in objSpecs):
         #print "NOT ADDING:"
         cdlog(4, "Note: The struct '{}' is being added but already exists.".format(name))
-        return
+        return None
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType}
     objectNameList.append(name)
     if MarkItems: MarkedObjects[name]=1
+    return name
 
 def addObjTags(objSpecs, className, stateType, objTags):
     startTags = {}
@@ -290,7 +291,7 @@ def generateListOfFieldsToImplement(classes, structName):  # Does not include fi
     modelSpec=findSpecOf(classes[0], structName, 'model')
     if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
     modelSpec=findSpecOf(classes[0], structName, 'struct')
-    updateCpy(fList, modelSpec["fields"])
+    if(modelSpec!=None): updateCpy(fList, modelSpec["fields"])
     return fList
 
 def fieldDefIsInList(fList, fieldName):

@@ -1232,9 +1232,7 @@ def ScanAndApplyPatterns(classes, tags):
             elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(classes, TopLevelTags)
             elif pattName=='ManageCmdLine': pattern_ManageCmdLine.apply(classes, tags)
             elif pattName=='codeDataDisplay': pattern_DispData.apply(classes, tags, patternArgs[0], patternArgs[1])
-            else:
-                cdEre("\nPattern {} not recognized.\n\n".format(pattName))
-                exit()
+            else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1
     for toDel in reversed(itemsToDelete):
         del(classes[1][toDel])
@@ -1243,9 +1241,9 @@ def ScanAndApplyPatterns(classes, tags):
 def loadProgSpecFromDogFile(filename, ProgSpec, objNames, macroDefs):
     codeDogStr = progSpec.stringFromFile(filename)
     codeDogStr = libraryMngr.processIncludedFiles(codeDogStr)
-    cdlog(0, "######################   P A R S I N G   C O D E D O G  ({})".format(filename))
-    [tagStore, buildSpecs, FileClasses] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs)
+  #  cdlog(0, "######################   P A R S I N G   F I L E  ({})".format(filename))
+    [tagStore, buildSpecs, FileClasses, newClasses] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs)
     GroomTags(tagStore)
     ScanAndApplyPatterns(FileClasses, tagStore)
-    stringStructs.CreateStructsForStringModels(FileClasses, tagStore)
+    stringStructs.CreateStructsForStringModels(FileClasses, newClasses, tagStore)
     return [tagStore, buildSpecs, FileClasses]

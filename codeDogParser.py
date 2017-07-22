@@ -125,7 +125,7 @@ flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") + nameA
 baseType = (cppType | numRange)("baseType")
 
 #########################################   O B J E C T   D E S C R I P T I O N S
-objectName = Combine(CID + Optional('::' + CID))("objectName")
+objectName = Combine(CID + Optional(OneOrMore('::' + CID)))("objectName")
 fieldDefs = ZeroOrMore(fieldDef)("fieldDefs")
 SetFieldStmt = Group(Word(alphas + nums + "_.") + '=' + Word(alphas + nums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
 coFactualEl  = Group(Literal("(") + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEl")
@@ -451,20 +451,11 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
     if spec.optionalTag:  #change so it generates an empty one if no field defs
         #print "spec.tagDefList = ",spec.tagDefList
         objTags = extractTagDefs(spec.tagDefList)
-    else:
-        objTags = {}
- #   if 'ctxTag' in objTags: className+="#"+objTags['ctxTag']
-    progSpec.addObject(ProgSpec, classNames, className, stateType, configType)
+    else: objTags = {}
+    taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType)
     progSpec.addObjTags(ProgSpec, className, stateType, objTags)
-    ###########Grab field defs
-    if(spec[2]=='auto'):
-        cdErr("'auto' is no longer used to generate structs automatically.")
-        progSpec.markStructAuto(ProgSpec, className)
-    else:
-        #print "SPEC.FIELDDEFS",spec.fieldDefs
-        extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
-
-    return
+    extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
+    return taggedName
 
 def extractPatternSpecs(ProgSpec, classNames, spec):
     patternName=spec.objectName[0]
@@ -570,17 +561,19 @@ def doMacroSubstitutions(macros, inputString):
     return inputString
 
 def extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, objectSpecResults):
+    newClasses=[]
     for spec in objectSpecResults:
         s=spec[0]
         if s == "model" or s == "struct" or s == "string" or s == "stream":
-            extractObjectSpecs(ProgSpec, clsNames, spec, s)
+            newName=extractObjectSpecs(ProgSpec, clsNames, spec, s)
+            if newName!=None: newClasses.append(newName)
         elif s == "do":
             extractPatternSpecs(ProgSpec, clsNames, spec)
         elif s == "#define":
             extractMacroSpec(macroDefs, spec)
         else:
             cdErr("Error in extractObjectsOrPatterns; expected 'object' or 'do' and got '{}'".format(spec[0]))
-            exit(1)
+    return newClasses
 
 
 # # # # # # # # # # # # #   P a r s e r   I n t e r f a c e   # # # # # # # # # # # # #
@@ -624,9 +617,9 @@ def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs):
     cdlog(1, "PROCESSING CLASSES...")
     tagStore = extractTagDefs(results.tagDefList)
     buildSpecs = extractBuildSpecs(results.buildSpecList)
-    extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.objectList)
+    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.objectList)
     classes = [ProgSpec, clsNames]
-    return[tagStore, buildSpecs, classes]
+    return[tagStore, buildSpecs, classes, newClasses]
 
 def AddToObjectFromText(ProgSpec, clsNames, inputStr):
     macroDefs = {} # This var is not used here. If needed, make it an argument.

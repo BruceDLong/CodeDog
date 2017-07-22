@@ -1,9 +1,36 @@
 /- this for is model
 requirements = [
     [require, GUI_ToolKit_implementation]
-    /-[tagOneOf, Platform, [Linux, OS-X_Devices, Windows]],
-    /-[tagOneOf, bindings, [C, CPP, perl, python]],
-    /-[tagOneOf, CPUs, [i386, amd64, arm7]]
 ]
 
+/------------------------ CANVAS
 
+struct color{}
+
+struct widget{
+    me uint32: posX
+    me uint32: posY
+    me uint32: width
+    me uint32: height
+    me uint32: scale
+    me uint32: alpha
+    me color: defaultColor
+    flag: isActive
+    flag: takesEvents
+
+    void: draw(me GUI_ctxt: cr) <-{}
+    void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
+        posX <- PosX
+        posY <- PosY
+        width <- Width
+        height <- Height
+        scale <- Scale
+        alpha <- Alpha
+        /-our infon: myData
+        isActive <- true
+        takesEvents <- true
+    }
+    bool: isTouchingMe(me float: x, me float: y) <- {
+        return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
+    }
+}

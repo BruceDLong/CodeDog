@@ -1255,7 +1255,7 @@ def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
     extracterFunctionAccumulator += seqExtracter
 
 
-def CreateStructsForStringModels(classes, tags):
+def CreateStructsForStringModels(classes, newClasses, tags):
     cdlog(1, "Creating parser and extracter from string models...")
 
     # Define fieldResult struct
@@ -1264,6 +1264,7 @@ def CreateStructsForStringModels(classes, tags):
     #~ progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ')
     #~ codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
 
+    if len(newClasses)==0: return
     populateBaseRules()
 
     global extracterFunctionAccumulator
@@ -1295,7 +1296,7 @@ def CreateStructsForStringModels(classes, tags):
     global nextParseNameID
     nextParseNameID=0
     numStringStructs=0
-    for className in classes[1]:
+    for className in newClasses:
         if className[0] == '!': continue
         ObjectDef = classes[0][className]
         if(ObjectDef['stateType'] == 'string'):
