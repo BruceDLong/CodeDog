@@ -18,7 +18,7 @@ struct widget{
     flag: isActive
     flag: takesEvents
 
-    void: draw(me GUI_ctxt: cr) <-{}
+    void: draw(me GUI_ctxt: cr)
     void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
         posX <- PosX
         posY <- PosY

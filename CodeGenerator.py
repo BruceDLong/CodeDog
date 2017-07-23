@@ -130,8 +130,8 @@ def fetchItemsTypeSpec(itemName, xlator):
                     if(itemName in StaticMemberVars):
                         parentClassName = staticVarNamePrefix(itemName, xlator)
                         if(parentClassName != ''):
-                            return [None, "STATIC:"+parentClassName]    # TODO: Return correct type
-                        else: return [None, 'CONST']
+                            return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
+                        else: return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "CONST"]
                     cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                     return [None, "LIB"]      # TODO: Return correct type
     return [REF['typeSpec'], RefType]
@@ -185,7 +185,6 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
                 StaticMemberVars[offsetVarName]=className
                 StaticMemberVars[maskVarName]  =className
                 StaticMemberVars[fieldName+'Strings']  = className
-                #print "ADDED:", maskVarName
                 for eItem in enumList:
                     StaticMemberVars[eItem]=className
 
@@ -326,7 +325,7 @@ def codeUnknownNameSeg(segSpec, xlator):
     paramList=None
     segName=segSpec[0]
     segConnector = ''
-    #print "SEGNAME:", segName
+    print "SEGNAME:", segName
     if(len(segSpec)>1):
         segConnector = xlator['NameSegFuncConnector']
     else:
@@ -363,7 +362,6 @@ def codeItemRef(name, LorR_Val, xlator):
             cdErr("Segment '{}' in the name '{}' is not valid.".format(segSpec[0], dePythonStr(name)))
         owner=progSpec.getTypeSpecOwner(segType)
         segName=segSpec[0]
-        #print "NameSeg:", segName
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).
             connector='.'
@@ -868,30 +866,33 @@ def codeStructFields(classes, className, tags, indent, xlator):
             if(typeDefName=='none'): typeDefName=''
 
             #### FUNC HEADER: for both decl and defn.
-            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, indent)
+            abstractFunction = not('value' in field) or field['value']==None
+            if abstractFunction: inheritMode = 'pure-virtual'
+            else: inheritMode='normal'
+            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
 
             #### FUNC BODY
-            if not('value' in field) or field['value']==None:
+            if abstractFunction: # i.e., if no function body is given.
                 cdlog(5, "Function "+className+":::"+fieldName+" has no implementation defined.")
-                continue
-            verbatimText=field['value'][1]
-            if (verbatimText!=''):                                      # This function body is 'verbatim'.
-                if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
-                    structCode=""
-                    funcText=""
-                    funcDefCode=""
-                    globalFuncs=""
-                else:
-                    funcText=verbatimText
-                    if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
-               # print "                         Verbatim Func Body"
-            elif field['value'][0]!='':
-                funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
-                if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
-               # print "                         Func Body from Action Sequence"
             else:
-                print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
-                exit(1)
+                verbatimText=field['value'][1]
+                if (verbatimText!=''):                                      # This function body is 'verbatim'.
+                    if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
+                        structCode=""
+                        funcText=""
+                        funcDefCode=""
+                        globalFuncs=""
+                    else:
+                        funcText=verbatimText
+                        if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
+                   # print "                         Verbatim Func Body"
+                elif field['value'][0]!='':
+                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
+                    if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
+                   # print "                         Func Body from Action Sequence"
+                else:
+                    print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
+                    exit(1)
 
             if(funcsDefInClass=='True' ):
                 structCode += funcText

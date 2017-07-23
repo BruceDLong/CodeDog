@@ -21,7 +21,6 @@ def displayTextFieldAction(label, fieldName, field, fldCat):
     elif(fldCat=='flag' or fldCat=='bool'):
         valStr='dispBool('+fieldName+')'
     elif(fldCat=='mode'):
-        print "MODE FIELD:", field
         valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
     elif(fldCat=='struct'):
         valStr=fieldName+'.dump(indent+"|   ")\n'
@@ -67,8 +66,7 @@ def displayDrawFieldAction(label, fieldName, field, fldCat):
     elif(fldCat=='flag' or fldCat=='bool'):
         valStr='dispBool('+fieldName+')'
     elif(fldCat=='mode'):
-        print "MODE FIELD:", field
-        valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
+        valStr= label+'Strings['+fieldName+'] '
     elif(fldCat=='struct'):
         valStr= '"0x12345678"' #fieldName+'.drawData(cr, x+20, y)\n'
 
@@ -158,8 +156,8 @@ struct GLOBAL{
     const int: fontSize <- 10
     me int: drawField(me GUI_ctxt: cr, me int:x, me int:y, me string: label, me string: value) <- {
         renderText(cr, label, "Ariel",  fontSize, x, y)
-        renderText(cr, value, "Ariel",  fontSize, x+50, y)
-        return(y+20)
+        renderText(cr, value, "Ariel",  fontSize, x+90, y)
+        return(15)
     }
     """
         CODE+="""
