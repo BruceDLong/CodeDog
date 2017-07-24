@@ -369,7 +369,7 @@ def codeIsEQ(item, xlator):
             if   (i[0] == '=='): op=' == '
             elif (i[0] == '!='): op=' != '
             elif (i[0] == '==='): op=' == '
-            else: print "ERROR: '==' or '!=' or '===' expected in code generator."; exit(2)
+            else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
             [S2, retType] = codeComparison(i[1], xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType)
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
