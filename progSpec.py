@@ -102,13 +102,11 @@ def addObjTags(objSpecs, className, stateType, objTags):
     if stateType=='model': className='%'+className
     elif stateType=='string': className='$'+className
     if ('tags' in objSpecs[className]):
-        startTags = objSpecs[className]['tags']
-        # append tags here
         objSpecs[className]['tags'].update(objTags)
-       # print "    APPENDED Tags to "+className+".\t"
+        #print "    APPENDED Tags to "+className+".\t", str(objTags)
     else:
         objSpecs[className]['tags']=objTags
-       # print "    ADDED Tags to "+className+".\t"
+        #print "    ADDED Tags to "+className+".\t", str(objTags)
 
 def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems

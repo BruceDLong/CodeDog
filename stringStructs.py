@@ -1254,6 +1254,26 @@ def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
     seqExtracter =  "\n    void: "+nameForFunc+"(our stateRec: SRec0, their "+ToStructName+": memStruct) <- {\n" + S + "    }\n"
     extracterFunctionAccumulator += seqExtracter
 
+def writeParserWrapperFunction(classes, className):
+    S='''
+struct GLOBAL{
+    our <CLASSNAME>: Parse_<CLASSNAME>(me string: in) <- {
+        me EParser: parser
+        parser.populateGrammar()
+        parser.initPosStateSets(parser.<CLASSNAME>_str, in)
+        parser.doParse()
+        if (parser.doesParseHaveError()) {
+            print("Parse Error:" + parser.errorMesg + "\\n")
+        }
+        our stateRec: topItem <- parser.resolve(parser.lastTopLevelItem, "")
+        our <CLASSNAME>: result
+        Allocate(result)
+        parser.Extract_<CLASSNAME>_to_<CLASSNAME>(topItem, result)
+        return(result)
+    }
+}
+'''.replace('<CLASSNAME>', className)
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], S)
 
 def CreateStructsForStringModels(classes, newClasses, tags):
     cdlog(1, "Creating parser and extracter from string models...")
@@ -1302,8 +1322,11 @@ def CreateStructsForStringModels(classes, newClasses, tags):
         if(ObjectDef['stateType'] == 'string'):
             className=className[1:]
             numStringStructs+=1
-            fields=ObjectDef["fields"]
-            configType=ObjectDef['configType']
+            fields    = ObjectDef["fields"]
+            configType= ObjectDef['configType']
+            classTags = ObjectDef['tags']
+            if 'StartSymbol' in classTags:
+                writeParserWrapperFunction(classes, className)
             SeqOrAlt=''
             if configType=='SEQ': SeqOrAlt='parseSEQ'
             elif configType=='ALT': SeqOrAlt='parseALT'

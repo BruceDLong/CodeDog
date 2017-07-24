@@ -448,7 +448,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
     if(spec.sequenceEl): configType="SEQ"
     elif(spec.alternateEl):configType="ALT"
     ###########Grab optional Object Tags
-    if spec.optionalTag:  #change so it generates an empty one if no field defs
+    if 'tagDefList' in spec:  #change so it generates an empty one if no field defs
         #print "spec.tagDefList = ",spec.tagDefList
         objTags = extractTagDefs(spec.tagDefList)
     else: objTags = {}

@@ -724,7 +724,7 @@ def codeConstructorInit(fieldName, count, xlator):
         exit(2)
 
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
         if fieldName=='main':
@@ -734,9 +734,13 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         else:
             globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
     else:
-        structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
-        objPrefix = progSpec.flattenObjectName(className) +'::'
-        funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+        if inheritMode=='normal':
+            structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
+            objPrefix = progSpec.flattenObjectName(className) +'::'
+            funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+        elif inheritMode=='pure-virtual':
+            structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
+        else: cdErr("Invalid inherit mode found: "+inheritMode)
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val):
