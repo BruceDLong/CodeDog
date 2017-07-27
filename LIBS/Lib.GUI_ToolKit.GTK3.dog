@@ -145,7 +145,7 @@ struct timeStringer{
 
     /- DRAWING ROUTINES:
 
-    void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
+    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         cairo_move_to(cr,x,y);
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
@@ -159,11 +159,11 @@ struct timeStringer{
         pango_cairo_update_layout(cr, layout);
         pango_cairo_show_layout_line (cr, pango_layout_get_line (layout, 0));
        /- pango_cairo_layout_path(cr, layout);
+        deltaSize size;
+        pango_layout_get_pixel_size(layout, &size.width, &size.height);
         g_object_unref(layout);
- /-       cairo_fill(cr);
- /-       me deltaSize: size
- /-       pango_layout_get_pixel_size(layout, size.width, size.height)
- /-       return(size)
+        cairo_fill(cr);
+        return(size);
     } %>
 
 

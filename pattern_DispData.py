@@ -79,15 +79,15 @@ def displayDrawFieldAction(label, fieldName, field, fldCat):
             classesToProcess.append(structTypeName)
 
     if(fldCat=='struct'):
-        S="    "+'y<-y+drawField(cr, x,y, "'+label+'", '+valStr+')\n'
+        S="    "+'DS <- drawField(cr, x,y, "'+label+'", '+valStr+')\n    y <- y + DS.height\n'
         if progSpec.typeIsPointer(field['typeSpec']):
             targetRef = fieldName
         #    S+="    "+targetRef+'.fromList.pushLast(this)\n'
         #    S+="    "+'cousins.pushLast(' + targetRef + ')'
         else:
-            S+="    "+fieldName+'.drawData(cr, x+10, y+15)\n'
+            S+="    "+'DS <- ' + fieldName+'.drawData(cr, x+20, y)\n    y <- y + DS.height\n'
     else:
-        S="    "+'y<-y+drawField(cr, x,y, "'+label+'", '+valStr+')\n'
+        S="    "+'DS <- drawField(cr, x,y, "'+label+'", '+valStr+')\n    y <- y + DS.height\n'
     return S
 
 def encodeFieldDraw(fieldName, field, fldCat):
@@ -102,7 +102,7 @@ def encodeFieldDraw(fieldName, field, fldCat):
         S+="        "+displayDrawFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
     else: S+=displayDrawFieldAction(fieldName, fieldName, field, fldCat)
     if progSpec.typeIsPointer(typeSpec):
-        T ="    if("+fieldName+' == NULL){drawField(cr, '+'x,y, "'+fieldName+'", "NULL")}\n'
+        T ="    if("+fieldName+' == NULL){DS <- drawField(cr, '+'x,y, "'+fieldName+'", "NULL")\n    y <- y + DS.height}\n'
         T+="    else{\n    "+S+"    }\n"
         S=T
     return S
@@ -137,7 +137,16 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
-        Code="me int: drawData(me GUI_ctxt: cr, me int:x, me int:y) <- {\n"+drawFuncBody+"    }\n"
+        Code='''
+    me deltaSize: drawData(me GUI_ctxt: cr, me int:x, me int:y) <- {
+        me int: initialX <- x
+        me int: initialY <- y
+        me deltaSize: DS
+    '''+drawFuncBody+'''
+        /-DS.width <- maxWidth
+        DS.height <- y-initialY
+        return(DS)
+    }\n'''
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
@@ -168,10 +177,15 @@ struct GLOBAL{
         if(dispMode=='draw' or dispMode=='both'):
             CODE+="""
     const int: fontSize <- 10
-    me int: drawField(me GUI_ctxt: cr, me int:x, me int:y, me string: label, me string: value) <- {
-        renderText(cr, label, "Ariel",  fontSize, x, y)
-        renderText(cr, value, "Ariel",  fontSize, x+90, y)
-        return(15)
+    me deltaSize: drawField(me GUI_ctxt: cr, me int:x, me int:y, me string: label, me string: value) <- {
+        me deltaSize: DS1
+        me deltaSize: DS2
+        me deltaSize: DS3
+        DS1 <- renderText(cr, label, "Ariel",  fontSize, x, y)
+        DS2 <- renderText(cr, value, "Ariel",  fontSize, x+90, y)
+        DS3.width <- DS2.width+90
+        DS3.height <- DS2.height
+        return(DS3)
     }
     """
         CODE+="""
