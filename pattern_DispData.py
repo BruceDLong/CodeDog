@@ -19,7 +19,7 @@ def displayTextFieldAction(label, fieldName, field, fldCat):
     elif(fldCat=='string' or fldCat=='char'):
         valStr= "'"+fieldName+"'"
     elif(fldCat=='flag' or fldCat=='bool'):
-        valStr='dispBool('+fieldName+')'
+        valStr='dispBool('+fieldName+'!=0)'
     elif(fldCat=='mode'):
         valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
     elif(fldCat=='struct'):
@@ -64,7 +64,7 @@ def displayDrawFieldAction(label, fieldName, field, fldCat):
     elif(fldCat=='string' or fldCat=='char'):
         valStr= "'"+fieldName+"'"
     elif(fldCat=='flag' or fldCat=='bool'):
-        valStr='dispBool('+fieldName+')'
+        valStr='dispBool('+fieldName+'!=0)'
     elif(fldCat=='mode'):
         valStr= label+'Strings['+fieldName+'] '
     elif(fldCat=='struct'):

@@ -112,7 +112,9 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
     elif name == "subStr":
-        typeSpec['codeConverter']='subStr(%0, %1, %2)'
+        typeSpec['codeConverter']='%0.substring(%1, %2)'
+    elif name == "append":
+        typeSpec['codeConverter']='%0 += %1'
 
     return [name, typeSpec]
 
@@ -156,14 +158,16 @@ def getEnumStr(fieldName, enumList):
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
     convertedIdxType = ""
     if containerType=='ArrayList':
-        if name=='at' or name=='insert' or name=='erase': pass
+        if name=='at': pass
+        elif name=='erase': name='remove'
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='insert'   : name='add';
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='nthItr'   : name='begin+';   typeSpecOut['codeConverter']='(%0.begin()+%1)'; typeSpecOut['owner']='itr';
+        elif name=='nthItr'   :    typeSpecOut['codeConverter']='%G%1';  typeSpecOut['owner']='itr';
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
@@ -606,7 +610,10 @@ def codeConstructorInit(fieldName, count, xlator):
         print "Error in codeConstructorInit."
         exit(2)
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
+    if inheritMode=='pure-virtual':
+        print "InheritbMode: ", className, fieldName
+        typeDefName = 'abstract '+typeDefName
     structCode='\n'; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
         if fieldName=='main':
@@ -616,12 +623,16 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")"
     else:
         structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")"
+    if inheritMode=='pure-virtual':
+        structCode += ";\n"
     return [structCode, funcDefCode, globalFuncs]
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
         item = LHS_Left+"flags"
         mask = prefix+bitMask
+        if (RHS != 'true' and RHS !='false'):
+            RHS += '!=0'
         val = '('+ RHS +')?'+mask+':0'
     elif (LHS_FieldType =='mode' ):
         item = LHS_Left+"flags"
