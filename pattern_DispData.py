@@ -129,7 +129,9 @@ def EncodeDumpFunction(classes, className, dispMode):
             drawFuncBody+=encodeFieldDraw(fieldName, field, fldCat)
 
     #### Write code to draw rectangle around the data.
-    #rectangle(cr, posX, posY, posX+width, posY+height)
+    drawFuncBody+='cr.fillNow()\n'
+    drawFuncBody+="cr.rectangle(initialX, initialY, initialX+DS.width, initialY+DS.height)\n"
+    drawFuncBody+='cr.strokeNow()\n'
 
     if(dispMode=='text' or dispMode=='both'):
         Code="me void: dump(me string:indent) <- {\n"+textFuncBody+"    }\n"
