@@ -293,11 +293,12 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
             S += xlator['codeArrayIndex'](S2, 'string', LorR_Val)
             return [S, typeSpecOut, S2]  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
-            typeSpecOut=CheckObjectVars(fType, name, 1)
-            if typeSpecOut!=0:
-                name=typeSpecOut['fieldName']
-                typeSpecOut=typeSpecOut['typeSpec']
-            #else: print "WARNING: TYPESPEC IS ", typeSpecOut, "for", fType + '::' + name
+            if fType!='string':
+                typeSpecOut=CheckObjectVars(fType, name, 1)
+                if typeSpecOut!=0:
+                    name=typeSpecOut['fieldName']
+                    typeSpecOut=typeSpecOut['typeSpec']
+                #else: print "WARNING: TYPESPEC IS ", typeSpecOut, "for", fType + '::' + name
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
@@ -326,7 +327,7 @@ def codeUnknownNameSeg(segSpec, xlator):
     paramList=None
     segName=segSpec[0]
     segConnector = ''
-    print "SEGNAME:", segName
+    #print "SEGNAME:", segName
     if(len(segSpec)>1):
         segConnector = xlator['NameSegFuncConnector']
     else:
@@ -563,7 +564,7 @@ def codeAction(action, indent, xlator):
             else:
                 if AltIDXFormat!=None:
                     # Handle special forms of assignment such as LVal(idx, RVal)
-                    actionText = xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsType)
+                    actionText = indent + xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsType)
                 if actionText=="":
                     # Handle the normal assignment case
                     actionText = indent + LHS + " = " + RHS + ";\n"
@@ -966,6 +967,8 @@ def codeAllNonGlobalStructs(classes, tags, xlator):
             else: classAttrs=''
 
             implMode=progSpec.searchATagStore(classDef['tags'], 'implMode')
+            if implMode:
+                implMode=implMode[0]
             if (className in structsNeedingModification):
                 cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[className])))
                 [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[className]

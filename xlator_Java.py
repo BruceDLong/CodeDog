@@ -37,7 +37,7 @@ def getContainerType(typeSpec):
 def convertToJavaType(fieldType):
     if(fieldType=='int32'):
         javaType='int'
-    elif(fieldType=='uint32' or fieldType=='uint64'):
+    elif(fieldType=='uint32' or fieldType=='uint64' or fieldType=='uint'):
         javaType='int'  # these should be long but Java won't allow
     elif(fieldType=='int64'):
         javaType='int'
@@ -112,7 +112,9 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
     elif name == "subStr":
-        typeSpec['codeConverter']='subStr(%0, %1, %2)'
+        typeSpec['codeConverter']='%0.substring(%1, %2)'
+    elif name == "append":
+        typeSpec['codeConverter']='%0 += %1'
 
     return [name, typeSpec]
 
@@ -156,13 +158,16 @@ def getEnumStr(fieldName, enumList):
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
     convertedIdxType = ""
     if containerType=='ArrayList':
-        if name=='at' or name=='insert' or name=='erase': pass
+        if name=='at': pass
+        elif name=='erase': name='remove'
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='insert'   : name='add';
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='nthItr'   :    typeSpecOut['codeConverter']='%G%1';  typeSpecOut['owner']='itr';
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
@@ -264,7 +269,7 @@ def codeFactor(item, xlator):
 def codeTerm(item, xlator):
     #print '               term item:', item
     [S, retType]=codeFactor(item[0], xlator)
-    if (not(isinstance(item, basestring))) and (len(item) > 1):
+    if (not(isinstance(item, basestring))) and (len(item) > 1) and len(item[1])>0:
         for i in item[1]:
             #print '               term:', i
             if   (i[0] == '*'): S+=' * '
@@ -278,7 +283,7 @@ def codeTerm(item, xlator):
 def codePlus(item, xlator):
     #print '            plus item:', item
     [S, retType]=codeTerm(item[0], xlator)
-    if len(item) > 1:
+    if len(item) > 1 and len(item[1])>0:
         for  i in item[1]:
             #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
@@ -291,7 +296,7 @@ def codePlus(item, xlator):
 def codeComparison(item, xlator):
     #print '         Comp item', item
     [S, retType]=codePlus(item[0], xlator)
-    if len(item) > 1:
+    if len(item) > 1 and len(item[1])>0:
         for  i in item[1]:
             #print '         comp ', i
             if   (i[0] == '<'): S+=' < '
@@ -307,21 +312,25 @@ def codeComparison(item, xlator):
 def codeIsEQ(item, xlator):
     #print '      IsEq item:', item
     [S, retType]=codeComparison(item[0], xlator)
-    if len(item) > 1:
+    if len(item) > 1 and len(item[1])>0:
+        if len(item[1])>1: print "Error: Chained == or !=.\n"; exit(1);
+        if (isinstance(retType, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+        leftOwner=owner=progSpec.getTypeSpecOwner(retType)
         for i in item[1]:
             #print '      IsEq ', i
-            if   (i[0] == '=='): S+=' == '
-            elif (i[0] == '!='): S+=' != '
-            else: print "ERROR: 'and' expected in code generator."; exit(2)
+            if   (i[0] == '=='): op=' == '
+            elif (i[0] == '!='): op=' != '
+            elif (i[0] == '==='): op=' == '
+            else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
             [S2, retType] = codeComparison(i[1], xlator)
-            S+=S2
+            S+= op+S2
             retType='bool'
     return [S, retType]
 
 def codeLogAnd(item, xlator):
     #print '   And item:', item
     [S, retType] = codeIsEQ(item[0], xlator)
-    if len(item) > 1:
+    if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
@@ -334,7 +343,7 @@ def codeLogAnd(item, xlator):
 def codeExpr(item, xlator):
     #print 'Or item:', item
     [S, retType]=codeLogAnd(item[0], xlator)
-    if not isinstance(item, basestring) and len(item) > 1:
+    if not isinstance(item, basestring) and len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             #print 'OR ', i
             if (i[0] == 'or'):
@@ -428,6 +437,7 @@ def codeActTextMain(actSeq, indent, xlator):
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
+        parentClass = parentClass.replace('::', '_')
         if parentClass[0]=="!": parentClass=' implements '+parentClass[1:]+' '
         else: parentClass=' extends '+parentClass+' '
     S= "\n"+classAttrs +"class "+structName+parentClass+"{\n" + structCode + '};\n'
@@ -600,7 +610,10 @@ def codeConstructorInit(fieldName, count, xlator):
         print "Error in codeConstructorInit."
         exit(2)
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
+    if inheritMode=='pure-virtual':
+        print "InheritbMode: ", className, fieldName
+        typeDefName = 'abstract '+typeDefName
     structCode='\n'; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
         if fieldName=='main':
@@ -610,12 +623,16 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")"
     else:
         structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")"
+    if inheritMode=='pure-virtual':
+        structCode += ";\n"
     return [structCode, funcDefCode, globalFuncs]
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
         item = LHS_Left+"flags"
         mask = prefix+bitMask
+        if (RHS != 'true' and RHS !='false'):
+            RHS += '!=0'
         val = '('+ RHS +')?'+mask+':0'
     elif (LHS_FieldType =='mode' ):
         item = LHS_Left+"flags"
@@ -633,9 +650,8 @@ def includeDirective(libHdr):
 
 
 def generateMainFunctionality(classes, tags):
-    # TODO: Make initCode, runCode and deInitCode work better and more automated by patterns.
     # TODO: Some deInitialize items should automatically run during abort().
-    # TODO: Deinitialize items should happen in reverse order.
+    # TODO: System initCode should happen first in initialize, last in deinitialize.
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     Platform = progSpec.fetchTagValue(tags, 'Platform')
