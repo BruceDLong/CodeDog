@@ -11,7 +11,11 @@ def getContainerType(typeSpec):
     else: owner='me'
     idxType=''
     if 'indexType' in containerSpec:
-        idxType=containerSpec['indexType']
+        if 'IDXowner' in containerSpec:
+            idxOwner=containerSpec['IDXowner']
+            idxType=containerSpec['idxBaseType']
+            idxType=applyOwner(idxOwner, idxType, '')
+        else: idxType=containerSpec['idxBaseType']
     datastructID = containerSpec['datastructID']
     if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
@@ -29,9 +33,7 @@ def adjustBaseTypes(fieldType):
     return langType
 
 def applyOwner(owner, langType, varMode):
-    if owner=='const':
-        langType = "static const "+langType
-    elif owner=='me':
+    if owner=='me':
         langType = langType
     elif owner=='my':
         langType="unique_ptr<"+langType + ' >'
@@ -41,12 +43,15 @@ def applyOwner(owner, langType, varMode):
         langType += '*'
     elif owner=='itr':
         langType += '::iterator'
+    elif owner=='const':
+        langType = "static const "+langType
+    elif owner=='we':
+        langType = 'static '+langType
     else:
-        print "ERROR: Owner of type not valid '" + owner + "'"
-        exit(1)
+        cdErr("ERROR: Owner of type not valid '" + owner + "'")
     return langType
 
-def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
+def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
 
     langType = adjustBaseTypes(fieldType)
@@ -689,8 +694,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+RDeclP+'size();' +" ++"+lvName+" ){\n"
                     + indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n")
     else:
-        print "DSID:",datastructID,containerType
-        exit(2)
+        cdErr("DSID:" + datastructID + ', ' +containerType)
 
     return [actionText, loopCounterName]
 
@@ -708,8 +712,14 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
     return fieldValueText
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
-    S=indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
-    return S
+    fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
+    if fieldOwner=='we':
+        defn = indent + convertedType + ' ' + fieldName +';\n'
+        decl = convertedType[7:] + ' ' + className + "::"+ fieldName + fieldValueText +';\n\n'
+    else:
+        defn = indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
+        decl = ''
+    return [defn, decl]
 
 def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
     return ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
@@ -720,9 +730,7 @@ def codeConstructorInit(fieldName, count, xlator):
     elif(count == 0):
         return ":" + fieldName+"("+" _"+fieldName+")"
     else:
-        print "Error in codeConstructorInit."
-        exit(2)
-
+        cdErr("Error in codeConstructorInit.")
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     structCode=''; funcDefCode=''; globalFuncs='';

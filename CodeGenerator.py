@@ -12,6 +12,7 @@ from progSpec import structsNeedingModification
 import pattern_GUI_Toolkit
 import pattern_ManageCmdLine
 import pattern_DispData
+import pattern_GenSymbols
 
 import stringStructs
 
@@ -744,7 +745,7 @@ def codeConstructor(classes, ClassName, tags, xlator):
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
         if(typeSpec['arraySpec'] or typeSpec['arraySpec']!=None): continue
         fieldOwner=typeSpec['owner']
-        if(fieldOwner=='const'): continue
+        if(fieldOwner=='const' or fieldOwner == 'we'): continue
         [convertedType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)
         fieldName=field['fieldName']
 
@@ -828,15 +829,12 @@ def codeStructFields(classes, className, tags, indent, xlator):
             fieldValueText = " = "+ str(fieldValue)
             #print "                            RHS func or array"
 
-        ##CALCULATE LHS + RHS ###########################################
+        ############ CODE MEMBER VARIABLE ##########################################################
         #registerType(className, fieldName, convertedType, "")
         if(fieldOwner=='const'):
             structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
-
-        ############ CODE VARIABLE##########################################################
         elif(fieldArglist==None):
-            structCode += xlator['codeVarField_Str'](convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent)
-            #print "structCode", structCode
+            [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent)
 
         ###### ArgList exists so this is a FUNCTION###########
         else:
@@ -1232,6 +1230,7 @@ def ScanAndApplyPatterns(classes, tags):
             elif pattName=='useBigNums': pattern_BigNums.apply(tags)
             elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(classes, TopLevelTags)
             elif pattName=='ManageCmdLine': pattern_ManageCmdLine.apply(classes, tags)
+            elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, tags, patternArgs[0])
             elif pattName=='codeDataDisplay': pattern_DispData.apply(classes, tags, patternArgs[0], patternArgs[1])
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1

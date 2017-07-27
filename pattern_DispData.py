@@ -4,6 +4,8 @@ import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr
 
+import pattern_GenSymbols
+
 thisPatternAlreadyUsedOnce=False
 
 classesToProcess=[]
@@ -68,14 +70,22 @@ def displayDrawFieldAction(label, fieldName, field, fldCat):
     elif(fldCat=='mode'):
         valStr= label+'Strings['+fieldName+'] '
     elif(fldCat=='struct'):
-        valStr= '"0x12345678"' #fieldName+'.drawData(cr, x+20, y)\n'
+        valStr= fieldName+'.mySymbol()'
 
+        # Add new classname to a list so it can be encoded.
         structTypeName=field['typeSpec']['fieldType'][0]
         if not(structTypeName in classesEncoded):
             classesEncoded[structTypeName]=1
             classesToProcess.append(structTypeName)
+
     if(fldCat=='struct'):
         S="    "+'y<-y+drawField(cr, x,y, "'+label+'", '+valStr+')\n'
+        if progSpec.typeIsPointer(field['typeSpec']):
+            targetRef = fieldName
+        #    S+="    "+targetRef+'.fromList.pushLast(this)\n'
+        #    S+="    "+'cousins.pushLast(' + targetRef + ')'
+        else:
+            S+="    "+fieldName+'.drawData(cr, x+10, y+15)\n'
     else:
         S="    "+'y<-y+drawField(cr, x,y, "'+label+'", '+valStr+')\n'
     return S
@@ -108,6 +118,7 @@ def EncodeDumpFunction(classes, className, dispMode):
     modelRef = progSpec.findSpecOf(classes[0], className, 'model')
     if modelRef==None:
         cdErr('To write a dump function for class '+className+' a model is needed but is not found.')
+    ### Write code for each field
     for field in modelRef['fields']:
         fldCat=progSpec.fieldsTypeCategory(field['typeSpec'])
         fieldName=field['fieldName']
@@ -116,6 +127,9 @@ def EncodeDumpFunction(classes, className, dispMode):
             textFuncBody+=encodeFieldText(fieldName, field, fldCat)
         if(dispMode=='draw' or dispMode=='both'):
             drawFuncBody+=encodeFieldDraw(fieldName, field, fldCat)
+
+    #### Write code to draw rectangle around the data.
+    #rectangle(cr, posX, posY, posX+width, posY+height)
 
     if(dispMode=='text' or dispMode=='both'):
         Code="me void: dump(me string:indent) <- {\n"+textFuncBody+"    }\n"
@@ -167,5 +181,6 @@ struct GLOBAL{
 
     classesToProcess.append(className)
     for classToEncode in classesToProcess:
+        pattern_GenSymbols.apply(classes, {}, [classToEncode])      # Invoke the GenSymbols pattern
         EncodeDumpFunction(classes, classToEncode, dispMode)
     return

@@ -6,6 +6,7 @@ requirements = [
 /------------------------ CANVAS
 
 struct color{}
+/- struct deltaSize{me int: width    me int: height}
 
 struct widget{
     me uint32: posX
