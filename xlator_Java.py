@@ -19,7 +19,12 @@ def getContainerType(typeSpec):
     else: owner='me'
     idxType=''
     if 'indexType' in containerSpec:
-        idxType=containerSpec['indexType']
+        if 'IDXowner' in containerSpec:
+            idxOwner=containerSpec['IDXowner']
+            idxType=containerSpec['idxBaseType']
+            idxType=applyOwner(idxOwner, idxType, '')
+        else: idxType=containerSpec['idxBaseType']
+        #idxType=containerSpec['indexType']
     if idxType[0:4]=='uint': idxType = 'int'
     elif idxType=='string': idxType = 'String'
 
@@ -68,14 +73,8 @@ def convertType(classes, TypeSpec, varMode, xlator):
     if(fieldType=='<%'): return fieldType[1][0]
     return xlateLangType(TypeSpec,owner, fieldType, varMode, xlator)
 
-def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
-    # varMode is 'var' or 'arg'.
-    if(isinstance(fieldType, basestring)):
-        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
-        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        langType= convertToJavaType(fieldType)
-    else: langType=progSpec.flattenObjectName(fieldType[0])
 
+def applyOwner(owner, langType, varMode):
     if owner=='const':
         langType = "final static "+langType
     elif owner=='me':
@@ -86,9 +85,20 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
         langType = langType
     elif owner=='their':
         langType = langType
+    elif owner=='we':
+        langType = 'static '+langType
     else:
-        print "ERROR: Owner of type not valid '" + owner + "'"
-        exit(1)
+        cdErr("ERROR: Owner of type not valid '" + owner + "'")
+    return langType
+
+def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
+    # varMode is 'var' or 'arg'.
+    if(isinstance(fieldType, basestring)):
+        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
+        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
+        langType= convertToJavaType(fieldType)
+    else: langType=progSpec.flattenObjectName(fieldType[0])
+    langType = applyOwner(owner, langType, varMode)
     if langType=='TYPE ERROR': print langType, owner, fieldType;
 
     if 'arraySpec' in TypeSpec:
@@ -152,6 +162,7 @@ def getEnumStr(fieldName, enumList):
         S += getConstIntFieldStr(enumName, str(count))
         count=count+1
     S += "\n"
+    S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
@@ -588,15 +599,17 @@ def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     S=""
+    fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if (fieldName == "static_Global" or fieldName == "static_gui_tk"):  # TODO: make static_Global so it is not hard coded
         S += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
+    # TODO: The next line is too hard-coded.
     elif(className == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager")):
         print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-    return S
+    return [S, '']
 
 def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
     return ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
