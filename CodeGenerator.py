@@ -142,10 +142,16 @@ def fetchItemsTypeSpec(itemName, xlator):
 
 
 fieldNamesAlreadyUsed={}
+specialArrayFormatFieldVars={}
+def getSpecialArrayFormatFieldVars():
+    global specialArrayFormatFieldVars
+    return specialArrayFormatFieldVars
+
 def codeFlagAndModeFields(classes, className, tags, xlator):
     cdlog(5, "                    Coding flags and modes for: {}".format(className))
     global fieldNamesAlreadyUsed
     global StaticMemberVars
+    global specialArrayFormatFieldVars
     flagsVarNeeded = False
     bitCursor=0
     structEnums=""
@@ -188,6 +194,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
                 StaticMemberVars[offsetVarName]=className
                 StaticMemberVars[maskVarName]  =className
                 StaticMemberVars[fieldName+'Strings']  = className
+                specialArrayFormatFieldVars[fieldName+'Strings']=className
                 for eItem in enumList:
                     StaticMemberVars[eItem]=className
 
@@ -230,8 +237,9 @@ def convertNameSeg(typeSpecOut, name, paramList, xlator):
 
 ################################  C o d e   E x p r e s s i o n s
 
-def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
+def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, xlator):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
+    global specialArrayFormatFieldVars
     #print "CODENAMESEG:", segSpec, "TSI:",typeSpecIn
     S=''
     S_alt=''
@@ -271,7 +279,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
         #print "                                                 arraySpec:",typeSpecOut
         if(name[0]=='['):
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
-            S += xlator['codeArrayIndex'](S2, containerType, LorR_Val)
+            S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName)
             return [S, typeSpecOut, S2]
         [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxType, typeSpecOut, paramList, xlator)
 
@@ -292,7 +300,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, xlator):
         elif(name[0]=='[' and fType=='string'):
             typeSpecOut={'owner':owner, 'fieldType': fType}
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
-            S += xlator['codeArrayIndex'](S2, 'string', LorR_Val)
+            S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, '')
             return [S, typeSpecOut, S2]  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
             if fType!='string':
@@ -351,6 +359,7 @@ def codeUnknownNameSeg(segSpec, xlator):
 
 def codeItemRef(name, LorR_Val, xlator):
     global currentObjName
+    previousSegName = ""
     S=''
     segStr=''
     segType={'owner':'', 'dummyType':True}
@@ -379,7 +388,7 @@ def codeItemRef(name, LorR_Val, xlator):
             if segType and 'fieldType' in segType:
                 LHSParentType = progSpec.fieldTypeKeyword(segType['fieldType'])
             else: LHSParentType = progSpec.fieldTypeKeyword(currentObjName)   # Landed here because this is the first segment
-            [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, xlator)
+            [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, previousSegName, xlator)
 
             if AltIDXFormat!=None:
                 AltFormat=[S, AltIDXFormat]   # This is in case of an alternate index format such as Java's string.put(idx, val)
@@ -412,6 +421,7 @@ def codeItemRef(name, LorR_Val, xlator):
             S=S[len(connector):]
         else: S+=segStr
 
+        previousSegName = segName
         segIDX+=1
 
     # Handle cases where seg's type is flag or mode

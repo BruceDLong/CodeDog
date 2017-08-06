@@ -10,7 +10,7 @@ import progSpec
 import codeDogParser
 import Lib_Android
 from progSpec import cdlog, cdErr
-from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction
+from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getSpecialArrayFormatFieldVars
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -193,10 +193,10 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put';
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='find'     : name='find';     typeSpecOut['owner']='itr';
+        elif name=='find'     : name='get';     typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : name='lastKey()';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='last'     : name='rbegin()->second'; paramList=None;
@@ -414,9 +414,9 @@ def codeSpecialFunc(segSpec, xlator):
 
     return S
 
-def codeArrayIndex(idx, containerType, LorR_Val):
+def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if LorR_Val=='RVAL':
-        if (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
+        if (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap') and not(previousSegName in getSpecialArrayFormatFieldVars()):
             S= '.get(' + idx + ')'
         elif (containerType== 'string'):
             S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
@@ -447,6 +447,8 @@ def codeActTextMain(actSeq, indent, xlator):
     return actSeqText
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
+    if (structName == 'widget'):
+        classAttrs = "abstract " 
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
         if parentClass[0]=="!": parentClass=' implements '+parentClass[1:]+' '
@@ -625,7 +627,7 @@ def codeConstructorInit(fieldName, count, xlator):
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     if inheritMode=='pure-virtual':
-        print "InheritbMode: ", className, fieldName
+        #print "Inherit Mode: ", className, fieldName
         typeDefName = 'abstract '+typeDefName
     structCode='\n'; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
