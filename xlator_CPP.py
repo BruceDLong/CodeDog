@@ -751,7 +751,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         else: cdErr("Invalid inherit mode found: "+inheritMode)
     return [structCode, funcDefCode, globalFuncs]
 
-def codeArrayIndex(idx, containerType, LorR_Val):
+def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     S= '[' + idx +']'
     return S
 
