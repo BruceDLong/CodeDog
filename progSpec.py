@@ -19,12 +19,15 @@ MarkedFields=[]
 ModifierCommands=[]
 funcsCalled={}
 structsNeedingModification={}
+DependanciesUnmarked={}
+DependanciesMarked={}
 
 def rollBack(classes):
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
     global structsNeedingModification
+    global DependanciesMarked
 
     for ObjToDel in MarkedObjects.keys():
         del classes[0][ObjToDel]
@@ -59,6 +62,7 @@ def rollBack(classes):
     # Clear other variables
     MarkedObjects={}
     MarkedFields=[]
+    DependanciesMarked={}
 
 #########################
 
@@ -130,6 +134,26 @@ def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgL
         packedField['typeSpec']['codeConverter']=codeConverter
     return packedField
 
+def addDependancyToStruct(structName, nameOfDependancy):
+    global DependanciesMarked
+    global DependanciesUnmarked
+    if structName == nameOfDependancy: return
+    #print "DEPINFO:",  structName, nameOfDependancy
+    if MarkItems: listToUpdate = DependanciesMarked
+    else: listToUpdate = DependanciesUnmarked
+    if not(structName in listToUpdate): listToUpdate[structName]=[nameOfDependancy]
+    else:
+        if not (nameOfDependancy in listToUpdate[structName]):
+            listToUpdate[structName].append(nameOfDependancy)
+
+def getClassesDependancies(className):
+    global DependanciesMarked
+    global DependanciesUnmarked
+    retList=[]
+    if className in DependanciesUnmarked: retList.extend(DependanciesUnmarked[className])
+    if className in DependanciesMarked:   retList.extend(DependanciesMarked[className])
+    return retList
+
 def addField(objSpecs, className, stateType, packedField):
     global MarkItems
     global MarkedObjects
@@ -145,7 +169,8 @@ def addField(objSpecs, className, stateType, packedField):
         return
 
     # Don't override flags and modes in derived classes
-    fieldType = packedField['typeSpec']['fieldType']
+    typeSpec = packedField['typeSpec']
+    fieldType = typeSpec['fieldType']
     if fieldType=='flag' or fieldType=='mode':
         if fieldAlreadyDeclaredInStruct(objSpecs, className, thisName):
             return
@@ -153,12 +178,16 @@ def addField(objSpecs, className, stateType, packedField):
     objSpecs[taggedObjectName]["fields"].append(packedField)
     objSpecs[taggedObjectName]["vFields"]=None
 
+
+    # if me or we and type is struct add unique dependancy
+    fieldOwner = typeSpec['owner']
+    if (fieldOwner=='me' or fieldOwner=='we') and fieldsTypeCategory(typeSpec)=='struct':
+        addDependancyToStruct(className, fieldType[0])
+
+
     if MarkItems:
         if not (taggedObjectName in MarkedObjects):
             MarkedFields.append([taggedObjectName, thisName])
-
-    #if(thisOwner!='flag' and thisOwner!='mode'):
-        #print "FIX THIS COMMENTED OUT PART", thisType, className #registerBaseType(thisType, className)
 
     if 'optionalTags' in packedField:
         for tag in packedField['optionalTags']:
@@ -430,7 +459,8 @@ def TypeSpecsMinimumBaseType(classes, typeSpec):
     return fieldType
 
 def innerTypeCategory(fieldType):
-    if fieldType=='flag' or fieldType=='mode' or fieldType=='void' or fieldType=='char' or fieldType=='double' or fieldType=='string' or fieldType=='bool': return fieldType
+    typeKey = fieldTypeKeyword(fieldType)
+    if typeKey=='flag' or typeKey=='mode' or typeKey=='void' or typeKey=='char' or typeKey=='double' or typeKey=='float' or typeKey=='string' or typeKey=='bool': return typeKey
     if typeIsInteger(fieldType): return 'int'
     if isStruct(fieldType): return 'struct'
     return 'ERROR'
