@@ -62,16 +62,16 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
     global classesToProcess
     global classesEncoded
     [structText, updateFuncText, drawFuncText]=['', '', '']
+    codeToMoveCursorDown = '        y <- y + '+fieldName+'.height\n'
     typeSpec=field['typeSpec']
     fldCat=progSpec.fieldsTypeCategory(typeSpec)
     if fldCat=='func': return ['', '', '']
     if progSpec.typeIsPointer(typeSpec):  # Header for a POINTER
-        updateFuncText+="        "+fieldName+'.update(x,y, '+fieldLabel+', data.'+fieldName+'.mySymbol())\n'
+        updateFuncText+="        "+fieldName+'.update(x,y, '+fieldLabel+', data.'+fieldName+'.mySymbol())\n' + codeToMoveCursorDown
         structText += "    "+owner+" widget::dash::ptrToItem: "+fieldName+"\n"
 
     elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipList==False: # Header and items for LIST
-        updateFuncText="        "+fieldName+'.update(x,y, '+fieldLabel+', "Size:"+toString(data.'+fieldName+'.size()))\n'
-        updateFuncText+='        y <- y + '+fieldName+'.height\n'
+        updateFuncText="        "+fieldName+'.update(x,y, '+fieldLabel+', "Size:"+toString(data.'+fieldName+'.size()))\n' + codeToMoveCursorDown
          ## Now push each item
         innerFieldType=typeSpec['fieldType']
         #print "ARRAYSPEC:",innerFieldType, field
@@ -83,11 +83,11 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         [innerStructText, innerUpdateFuncText, innerDrawFuncText]=getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, True, '    ')
         updateFuncText+=innerStructText+'\n        Allocate(newItem)\n'+innerUpdateFuncText
         updateFuncText+="\n        "+fieldName+'.updatePush(newItem)'
-     #   updateFuncText+='\n        y <- y + 5'
+        updateFuncText+='\n        y <- y + 5'
         updateFuncText+='\n        }\n'
         structText += "    "+owner+" widget::dash::listOfItems: "+fieldName+"\n"
     elif(fldCat=='struct'):  # Header for a STRUCT
-        updateFuncText="        "+fieldName+'.update(x,y, '+fieldLabel+', ">", data.'+fieldRef+')\n'
+        updateFuncText="        "+fieldName+'.update(x,y, '+fieldLabel+', ">", data.'+fieldRef+')\n' + codeToMoveCursorDown
         structTypeName=field['typeSpec']['fieldType'][0]
         structText += "    "+owner+" widget::dash::display_"+structTypeName+': '+fieldName+"\n"
 
@@ -108,11 +108,11 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         elif(fldCat=='mode'):
             valStr= fieldRef+'Strings[data.'+fieldName+'] '
 
-        updateFuncText="        "+fieldName+'.update(x,y, 90, 150, '+fieldLabel+', '+valStr+')\n'
+        updateFuncText="        "+fieldName+'.update(x,y, 90, 150, '+fieldLabel+', '+valStr+')\n' + codeToMoveCursorDown
         structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
-    updateFuncText+='        y <- y + '+fieldName+'.height\n        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
+    updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
     return [structText, updateFuncText, drawFuncText]
 
 #---------------------------------------------------------------  DUMP MAKING CODE
