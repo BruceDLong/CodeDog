@@ -296,7 +296,7 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
 def populateCallableStructFields(classes, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
     structSpec=findSpecOf(classes[0], structName, 'struct')
-    if structSpec==None: return None
+    if structSpec==None: return []
     if structSpec['vFields']!=None: return structSpec['vFields']
     fList=[]
     segIdx=0
@@ -313,7 +313,7 @@ def populateCallableStructFields(classes, structName):  # e.g. 'type::subType::s
     structSpec['vFields'] = fList
     return fList
 
-def generateListOfFieldsToImplement(classes, structName):  # Does not include fields gained by inheritance.
+def generateListOfFieldsToImplement(classes, structName):
     fList=[]
     modelSpec=findSpecOf(classes[0], structName, 'model')
     if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])

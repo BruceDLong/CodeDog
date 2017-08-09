@@ -58,7 +58,7 @@ def encodeFieldText(fieldName, field, fldCat):
 
 #---------------------------------------------------------------  DRAW GEN
 
-def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skipList, indent):
+def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skipFlags, indent):
     global classesToProcess
     global classesEncoded
     [structText, updateFuncText, drawFuncText]=['', '', '']
@@ -66,11 +66,12 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
     typeSpec=field['typeSpec']
     fldCat=progSpec.fieldsTypeCategory(typeSpec)
     if fldCat=='func': return ['', '', '']
-    if progSpec.typeIsPointer(typeSpec):  # Header for a POINTER
-        updateFuncText+="        "+fieldName+'.update(x,y, '+fieldLabel+', data.'+fieldName+'.mySymbol())\n' + codeToMoveCursorDown
+    if progSpec.typeIsPointer(typeSpec) and skipFlags != 'skipPtr':  # Header for a POINTER
+     #   fieldName+='Ptr'
+        updateFuncText+="        "+fieldName+'.update(x,y, '+fieldLabel+', data.'+fieldRef+'.mySymbol())\n' + codeToMoveCursorDown
         structText += "    "+owner+" widget::dash::ptrToItem: "+fieldName+"\n"
 
-    elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipList==False: # Header and items for LIST
+    elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
         updateFuncText="        "+fieldName+'.update(x,y, '+fieldLabel+', "Size:"+toString(data.'+fieldName+'.size()))\n' + codeToMoveCursorDown
          ## Now push each item
         innerFieldType=typeSpec['fieldType']
@@ -80,7 +81,7 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         newFieldLabel='"  '+fieldName+'["+toString(_item_key)+"]"'
         print "newFieldLabel:", newFieldLabel
         updateFuncText+="\n        withEach _item in data."+fieldName+":{\n"
-        [innerStructText, innerUpdateFuncText, innerDrawFuncText]=getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, True, '    ')
+        [innerStructText, innerUpdateFuncText, innerDrawFuncText]=getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '    ')
         updateFuncText+=innerStructText+'\n        Allocate(newItem)\n'+innerUpdateFuncText
         updateFuncText+="\n        "+fieldName+'.updatePush(newItem)'
         updateFuncText+='\n        y <- y + 5'
@@ -122,6 +123,7 @@ def EncodeDumpFunction(classes, className, dispMode):
     cdlog(2, "ENCODING: "+ className)
     classesEncoded[className]=1
     [textFuncBody, structTextAcc, updateFuncTextAcc, drawFuncTextAcc] = ['', '', '', '']
+    updateFuncTextPart2Acc=''; drawFuncTextPart2Acc=''
     modelRef = progSpec.findSpecOf(classes[0], className, 'model')
     if modelRef==None:
         cdErr('To write a dump function for class '+className+' a model is needed but is not found.')
@@ -133,7 +135,7 @@ def EncodeDumpFunction(classes, className, dispMode):
         if(dispMode=='text' or dispMode=='both'):
             textFuncBody+=encodeFieldText(fieldName, field, fldCat)
         if(dispMode=='draw' or dispMode=='both'):
-            [structText, updateFuncText, drawFuncText]=getDashDeclAndUpdateCode('me', '"'+fieldName+'"', fieldName, fieldName, field, False, '    ')
+            [structText, updateFuncText, drawFuncText]=getDashDeclAndUpdateCode('me', '"'+fieldName+'"', fieldName, fieldName, field, 'skipNone', '    ')
             structTextAcc   += structText
             updateFuncTextAcc += updateFuncText
             drawFuncTextAcc += drawFuncText
@@ -145,6 +147,17 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
+        for field in modelRef['fields']:
+            typeSpec=field['typeSpec']
+            fldCat=progSpec.fieldsTypeCategory(typeSpec)
+            if fldCat=='func': continue
+            if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
+                fieldName=field['fieldName']
+ #               [structText, updateFuncText, drawFuncText]=getDashDeclAndUpdateCode('our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
+ #               structTextAcc   += structText
+ #               updateFuncTextPart2Acc += updateFuncText
+ #               drawFuncTextPart2Acc += drawFuncText
+
         Code='''
 struct widget::dash::display_'''+className+'''{
     me widget::dash::dataField: header
@@ -160,6 +173,7 @@ struct widget::dash::display_'''+className+'''{
 '''+updateFuncTextAcc+'''
         width <- crntWidth
         height <- y-posY
+'''+updateFuncTextPart2Acc+'''
     }
 
     void: draw(me GUI_ctxt: cr) <- {
@@ -167,8 +181,7 @@ struct widget::dash::display_'''+className+'''{
 '''+drawFuncTextAcc+'''
         cr.rectangle(posX, posY, posX+width, posY+height)
         cr.strokeNow()
-        /-DS.width <- maxWidth
-       /- DS.height <- y-initialY
+'''+drawFuncTextPart2Acc+'''
     }
 }\n'''
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
