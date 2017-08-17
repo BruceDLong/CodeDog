@@ -40,6 +40,19 @@ struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 struct GUI_callback{me GCallback: GUI_callback}
 
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
+
+struct ButtonEvent{their GdkEventButton: ButtonEvent}
+struct ButtonEvent {
+  me uint: type
+ /- GdkWindow *window;
+ /- gint8 send_event;
+ /- guint32 time;
+  me double: x
+  me double: y
+
+  me uint: state
+  me uint: button
+}
 struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
 
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?

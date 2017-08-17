@@ -19,7 +19,8 @@ struct widget{
     flag: isActive
     flag: takesEvents
 
-    void: draw(me GUI_ctxt: cr)
+    void: draw(me GUI_ctxt: cr) <- {}
+    void: setPos(me int:x, me int:y) <- {posX<-x; posY<-y}
     me bool: handleClicks(me GUI_item: widget, their GUI_PointerEvent: event) <- {return(false)}
     void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
         posX <- PosX

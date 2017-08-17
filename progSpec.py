@@ -21,6 +21,7 @@ funcsCalled={}
 structsNeedingModification={}
 DependanciesUnmarked={}
 DependanciesMarked={}
+classHeirarchyInfo = {}
 
 def rollBack(classes):
     global MarkedObjects
@@ -85,6 +86,18 @@ def addPattern(objSpecs, objectNameList, name, patternList):
     objectNameList.append(patternName)
     objSpecs[name]={'name':patternName, 'parameters':patternList}
 
+def processParentClass(name):
+    global classHeirarchyInfo
+    if name in classHeirarchyInfo: return
+    parentClass=None
+    colonPos = name.rfind('::')
+    if colonPos>=0:
+        parentClass=name[0:colonPos]
+        processParentClass(parentClass)
+        classHeirarchyInfo[parentClass]['childClasses'].append(name)
+
+    classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': []}
+
 def addObject(objSpecs, objectNameList, name, stateType, configType):
     global MarkItems
     global MarkedObjects
@@ -98,6 +111,7 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
         return None
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType}
     objectNameList.append(name)
+    processParentClass(name)
     if MarkItems: MarkedObjects[name]=1
     return name
 

@@ -164,6 +164,8 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
             flagsVarNeeded=True
             if fieldName in fieldNamesAlreadyUsed: continue
             else:fieldNamesAlreadyUsed[fieldName]=className
+
+            fieldName = progSpec.flattenObjectName(fieldName)
             if fieldType=='flag':
                 cdlog(6, "flag: {}".format(fieldName))
                 structEnums += "    " + xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
@@ -256,7 +258,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, xlato
 
     owner=progSpec.getTypeSpecOwner(typeSpecIn)
 
-
     #print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
     if ('fieldType' in typeSpecIn and isinstance(typeSpecIn['fieldType'], basestring)):
@@ -293,7 +294,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, xlato
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:]
     else:
         fType=progSpec.fieldTypeKeyword(typeSpecIn['fieldType'])
-
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -308,6 +308,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, xlato
                 if typeSpecOut!=0:
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
+                   #print "TESTTYPES:", fType, progSpec.fieldTypeKeyword(typeSpecOut['fieldType'])
                 #else: print "WARNING: TYPESPEC IS ", typeSpecOut, "for", fType + '::' + name
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
@@ -786,6 +787,7 @@ def codeConstructor(classes, ClassName, tags, xlator):
     return constructCode
 
 def codeStructFields(classes, className, tags, indent, xlator):
+    global currentObjName
     global ForwardDeclsForGlobalFuncs
     cdlog(3, "Coding fields for {}...".format(className))
     ####################################################################
@@ -878,9 +880,16 @@ def codeStructFields(classes, className, tags, indent, xlator):
             if(typeDefName=='none'): typeDefName=''
 
             #### FUNC HEADER: for both decl and defn.
+            inheritMode='normal'
+            if currentObjName in progSpec.classHeirarchyInfo:
+               # print "FUNCTYPE:", currentObjName
+                classRelationData = progSpec.classHeirarchyInfo[currentObjName]
+                # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
+                if classRelationData['parentClass']==None and len(classRelationData['childClasses'])>0:
+                    inheritMode = 'virtual'
+
             abstractFunction = not('value' in field) or field['value']==None
             if abstractFunction: inheritMode = 'pure-virtual'
-            else: inheritMode='normal'
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
 
             #### FUNC BODY

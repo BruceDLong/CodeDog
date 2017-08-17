@@ -715,7 +715,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
         defn = indent + convertedType + ' ' + fieldName +';\n'
-        decl = convertedType[7:] + ' ' + className + "::"+ fieldName + fieldValueText +';\n\n'
+        decl = convertedType[7:] + ' ' + progSpec.flattenObjectName(className) + "::"+ fieldName + fieldValueText +';\n\n'
     else:
         defn = indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
         decl = ''
@@ -744,6 +744,10 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     else:
         if inheritMode=='normal':
             structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
+            objPrefix = progSpec.flattenObjectName(className) +'::'
+            funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+        elif inheritMode=='virtual':
+            structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +");\n";
             objPrefix = progSpec.flattenObjectName(className) +'::'
             funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
         elif inheritMode=='pure-virtual':
