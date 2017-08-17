@@ -69,11 +69,9 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
     if progSpec.typeIsPointer(typeSpec) and skipFlags != 'skipPtr':  # Header for a POINTER
      #   fieldName+='Ptr'
         updateFuncText+="        "+fieldName+'.update('+fieldLabel+', data.'+fieldRef+'.mySymbol())\n'
-        setPosFuncText+="        "+fieldName+'.setPos(x,y)' + codeToMoveCursorDown
         structText += "    "+owner+" widget::dash::ptrToItem: "+fieldName+"\n"
 
     elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
-        setPosFuncText+="        "+fieldName+'.setPos(x,y)' + codeToMoveCursorDown
         updateFuncText="        "+fieldName+'.update('+fieldLabel+', "Size:"+toString(data.'+fieldName+'.size()))\n'
          ## Now push each item
         innerFieldType=typeSpec['fieldType']
@@ -88,7 +86,6 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         updateFuncText+='\n        }\n'
         structText += "    "+owner+" widget::dash::listOfItems: "+fieldName+"\n"
     elif(fldCat=='struct'):  # Header for a STRUCT
-        setPosFuncText+="        "+fieldName+'.setPos(x,y)' + codeToMoveCursorDown
         updateFuncText="        "+fieldName+'.update('+fieldLabel+', ">", data.'+fieldRef+')\n'
         structTypeName=field['typeSpec']['fieldType'][0]
         structText += "    "+owner+" widget::dash::display_"+structTypeName+': '+fieldName+"\n"
@@ -110,11 +107,11 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         elif(fldCat=='mode'):
             valStr= fieldRef+'Strings[data.'+fieldName+'] '
 
-        setPosFuncText+="        "+fieldName+'.setPos(x,y)' + codeToMoveCursorDown
         updateFuncText="        "+fieldName+'.update(90, 150, '+fieldLabel+', '+valStr+')\n'
         structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
+    setPosFuncText+="        "+fieldName+'.setPos(x,y)' + codeToMoveCursorDown
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
     handleClicksFuncText = '            if('+fieldName+'.isTouchingMe(eventX, eventY)){'+fieldName+'.handleClicks(widget, event)}'
     return [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]
@@ -200,7 +197,6 @@ struct widget::dash::display_'''+className+'''{
             } else {
 '''+handleClicksFuncTextAcc+'''
             }
-            setPos(posX, posY)
         }
         return(false)
     }
@@ -209,7 +205,7 @@ struct widget::dash::display_'''+className+'''{
         header.draw(cr)
         if(displayMode!=headerOnly){
 '''+drawFuncTextAcc+'''
-            cr.rectangle(posX, posY, posX+width, posY+height)
+            cr.rectangle(posX, posY, width, height)
             cr.strokeNow()
         }
 '''+drawFuncTextPart2Acc+'''
@@ -294,7 +290,6 @@ struct widget::dash::listOfItems {
     void: update(me string: Label, me string: textValue) <- {
         header.update(90, 150, Label, textValue)
         elements.clear()
-        height <- header.height
     }
 
     void: updatePush(our widget::dash: element) <- {
@@ -309,6 +304,7 @@ struct widget::dash::listOfItems {
             x <- x+8
             withEach element in elements:{
                 element.setPos(x,y)
+
                 y <- y+element.height
             }
         }
@@ -330,7 +326,6 @@ struct widget::dash::listOfItems {
                     }
                 }
             }
-            setPos(posX, posY)
         }
         return(false)
     }

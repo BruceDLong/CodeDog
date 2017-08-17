@@ -33,7 +33,7 @@ struct widget{
         isActive <- true
         takesEvents <- true
     }
-    bool: isTouchingMe(me float: x, me float: y) <- {
+    bool: isTouchingMe(me int: x, me int: y) <- {
         return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
     }
 }
