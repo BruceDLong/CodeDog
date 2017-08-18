@@ -192,7 +192,6 @@ def getEnumStr(fieldName, enumList):
         count=count+1
         if(count<enumSize): S += ", "
     S += "};\n";
-    S += 'string ' + fieldName+'Strings['+str(len(enumList))+'] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
@@ -715,7 +714,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
         defn = indent + convertedType + ' ' + fieldName +';\n'
-        decl = convertedType[7:] + ' ' + className + "::"+ fieldName + fieldValueText +';\n\n'
+        decl = convertedType[7:] + ' ' + progSpec.flattenObjectName(className) + "::"+ fieldName + fieldValueText +';\n\n'
     else:
         defn = indent + convertedType + ' ' + fieldName + fieldValueText +';\n'
         decl = ''
@@ -746,12 +745,17 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
             objPrefix = progSpec.flattenObjectName(className) +'::'
             funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+        elif inheritMode=='virtual':
+            structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +");\n";
+            objPrefix = progSpec.flattenObjectName(className) +'::'
+            funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
         elif inheritMode=='pure-virtual':
             structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
         else: cdErr("Invalid inherit mode found: "+inheritMode)
+        if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
     return [structCode, funcDefCode, globalFuncs]
 
-def codeArrayIndex(idx, containerType, LorR_Val):
+def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     S= '[' + idx +']'
     return S
 

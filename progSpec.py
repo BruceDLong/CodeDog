@@ -19,12 +19,16 @@ MarkedFields=[]
 ModifierCommands=[]
 funcsCalled={}
 structsNeedingModification={}
+DependanciesUnmarked={}
+DependanciesMarked={}
+classHeirarchyInfo = {}
 
 def rollBack(classes):
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
     global structsNeedingModification
+    global DependanciesMarked
 
     for ObjToDel in MarkedObjects.keys():
         del classes[0][ObjToDel]
@@ -59,6 +63,7 @@ def rollBack(classes):
     # Clear other variables
     MarkedObjects={}
     MarkedFields=[]
+    DependanciesMarked={}
 
 #########################
 
@@ -81,6 +86,18 @@ def addPattern(objSpecs, objectNameList, name, patternList):
     objectNameList.append(patternName)
     objSpecs[name]={'name':patternName, 'parameters':patternList}
 
+def processParentClass(name):
+    global classHeirarchyInfo
+    if name in classHeirarchyInfo: return
+    parentClass=None
+    colonPos = name.rfind('::')
+    if colonPos>=0:
+        parentClass=name[0:colonPos]
+        processParentClass(parentClass)
+        classHeirarchyInfo[parentClass]['childClasses'].append(name)
+
+    classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': []}
+
 def addObject(objSpecs, objectNameList, name, stateType, configType):
     global MarkItems
     global MarkedObjects
@@ -94,6 +111,7 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
         return None
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType}
     objectNameList.append(name)
+    processParentClass(name)
     if MarkItems: MarkedObjects[name]=1
     return name
 
@@ -130,6 +148,26 @@ def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgL
         packedField['typeSpec']['codeConverter']=codeConverter
     return packedField
 
+def addDependancyToStruct(structName, nameOfDependancy):
+    global DependanciesMarked
+    global DependanciesUnmarked
+    if structName == nameOfDependancy: return
+    #print "DEPINFO:",  structName, nameOfDependancy
+    if MarkItems: listToUpdate = DependanciesMarked
+    else: listToUpdate = DependanciesUnmarked
+    if not(structName in listToUpdate): listToUpdate[structName]=[nameOfDependancy]
+    else:
+        if not (nameOfDependancy in listToUpdate[structName]):
+            listToUpdate[structName].append(nameOfDependancy)
+
+def getClassesDependancies(className):
+    global DependanciesMarked
+    global DependanciesUnmarked
+    retList=[]
+    if className in DependanciesUnmarked: retList.extend(DependanciesUnmarked[className])
+    if className in DependanciesMarked:   retList.extend(DependanciesMarked[className])
+    return retList
+
 def addField(objSpecs, className, stateType, packedField):
     global MarkItems
     global MarkedObjects
@@ -145,7 +183,8 @@ def addField(objSpecs, className, stateType, packedField):
         return
 
     # Don't override flags and modes in derived classes
-    fieldType = packedField['typeSpec']['fieldType']
+    typeSpec = packedField['typeSpec']
+    fieldType = typeSpec['fieldType']
     if fieldType=='flag' or fieldType=='mode':
         if fieldAlreadyDeclaredInStruct(objSpecs, className, thisName):
             return
@@ -153,12 +192,16 @@ def addField(objSpecs, className, stateType, packedField):
     objSpecs[taggedObjectName]["fields"].append(packedField)
     objSpecs[taggedObjectName]["vFields"]=None
 
+
+    # if me or we and type is struct add unique dependancy
+    fieldOwner = typeSpec['owner']
+    if (fieldOwner=='me' or fieldOwner=='we') and fieldsTypeCategory(typeSpec)=='struct':
+        addDependancyToStruct(className, fieldType[0])
+
+
     if MarkItems:
         if not (taggedObjectName in MarkedObjects):
             MarkedFields.append([taggedObjectName, thisName])
-
-    #if(thisOwner!='flag' and thisOwner!='mode'):
-        #print "FIX THIS COMMENTED OUT PART", thisType, className #registerBaseType(thisType, className)
 
     if 'optionalTags' in packedField:
         for tag in packedField['optionalTags']:
@@ -267,7 +310,7 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
 def populateCallableStructFields(classes, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
     structSpec=findSpecOf(classes[0], structName, 'struct')
-    if structSpec==None: return None
+    if structSpec==None: return []
     if structSpec['vFields']!=None: return structSpec['vFields']
     fList=[]
     segIdx=0
@@ -284,7 +327,7 @@ def populateCallableStructFields(classes, structName):  # e.g. 'type::subType::s
     structSpec['vFields'] = fList
     return fList
 
-def generateListOfFieldsToImplement(classes, structName):  # Does not include fields gained by inheritance.
+def generateListOfFieldsToImplement(classes, structName):
     fList=[]
     modelSpec=findSpecOf(classes[0], structName, 'model')
     if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
@@ -430,7 +473,8 @@ def TypeSpecsMinimumBaseType(classes, typeSpec):
     return fieldType
 
 def innerTypeCategory(fieldType):
-    if fieldType=='flag' or fieldType=='mode' or fieldType=='void' or fieldType=='char' or fieldType=='double' or fieldType=='string' or fieldType=='bool': return fieldType
+    typeKey = fieldTypeKeyword(fieldType)
+    if typeKey=='flag' or typeKey=='mode' or typeKey=='void' or typeKey=='char' or typeKey=='double' or typeKey=='float' or typeKey=='string' or typeKey=='bool': return typeKey
     if typeIsInteger(fieldType): return 'int'
     if isStruct(fieldType): return 'struct'
     return 'ERROR'

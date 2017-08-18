@@ -380,7 +380,7 @@ def extractActItem(funcName, actionItem):
         # TODO: Verify that calledFunc is a function and error out if not. (The last segment should have '(' as its second item.)
         calledFuncLastSegment = calledFunc[-1]
         if len(calledFuncLastSegment)<2 or calledFuncLastSegment[1] != '(':
-            cdErr("Expected a function, not a variable: {}".format(calledFuncLastSegment)); exit(2)
+            cdErr("Expected a function, not a variable: {}".format(calledFuncLastSegment))
         thisActionItem = {'typeOfAction':"funcCall", 'calledFunc':calledFunc}
 
         calledFuncName = calledFuncLastSegment[0]

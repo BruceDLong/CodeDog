@@ -17,11 +17,12 @@ def apply(classes, tags, classesToTrack):
     /-    me <CLASSNAME>[their map]: uintToPtr
         we string: classTag <- "<CLASSNAME>"
 
-    me string: mySymbol() <- {  /- find or generate symbol
-        me uint[itr map their <CLASSNAME>]: item <- ptrToUint.find(this)
+    we string: mySymbol(their <CLASSNAME>: obj) <- {  /- find or generate symbol
+        if(obj==NULL){return("NULL")}
+        me uint[itr map their <CLASSNAME>]: item <- ptrToUint.find(obj)
         if (item==ptrToUint.end()){
             symbolCount <- symbolCount+1
-            ptrToUint[this] <- symbolCount
+            ptrToUint[obj] <- symbolCount
             return(classTag + toString(symbolCount))
         }
         else {

@@ -57,55 +57,63 @@ def encodeFieldText(fieldName, field, fldCat):
     return S
 
 #---------------------------------------------------------------  DRAW GEN
-def displayDrawFieldAction(label, fieldName, field, fldCat):
+
+def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skipFlags, indent):
     global classesToProcess
     global classesEncoded
-    valStr=''
-    if(fldCat=='int' or fldCat=='double'):
-        valStr='toString('+fieldName+')'
-    elif(fldCat=='string' or fldCat=='char'):
-        valStr= "'"+fieldName+"'"
-    elif(fldCat=='flag' or fldCat=='bool'):
-        valStr='dispBool('+fieldName+'!=0)'
-    elif(fldCat=='mode'):
-        valStr= label+'Strings['+fieldName+'] '
-    elif(fldCat=='struct'):
-        valStr= fieldName+'.mySymbol()'
+    [structText, updateFuncText, setPosFuncText, drawFuncText, handleClicksFuncText]=['', '', '', '', '']
+    typeSpec=field['typeSpec']
+    fldCat=progSpec.fieldsTypeCategory(typeSpec)
+    if fldCat=='func': return ['', '', '', '', '']
+    if progSpec.typeIsPointer(typeSpec) and skipFlags != 'skipPtr':  # Header for a POINTER
+        fieldName+='Ptr'
+        updateFuncText+="        "+fieldName+'.update('+fieldLabel+', data.'+fieldRef+'.mySymbol(data.'+fieldRef+'))\n'
+        structText += "    "+owner+" widget::dash::ptrToItem: "+fieldName+"\n"
+
+    elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
+        updateFuncText="        "+fieldName+'.update('+fieldLabel+', "Size:"+toString(data.'+fieldName+'.size()))\n'
+         ## Now push each item
+        innerFieldType=typeSpec['fieldType']
+        #print "ARRAYSPEC:",innerFieldType, field
+        fldCatInner=progSpec.innerTypeCategory(innerFieldType)
+        newFieldRef=fieldName+'[_item_key]'
+        newFieldLabel='"'+fieldName+'["+toString(_item_key)+"]"'
+        updateFuncText+="\n        withEach _item in data."+fieldName+":{\n"
+        [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText]=getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '    ')
+        updateFuncText+=innerStructText+'\n        Allocate(newItem)\n'+innerUpdateFuncText
+        updateFuncText+="\n        "+fieldName+'.updatePush(newItem)'
+        updateFuncText+='\n        }\n'
+        structText += "    "+owner+" widget::dash::listOfItems: "+fieldName+"\n"
+    elif(fldCat=='struct'):  # Header for a STRUCT
+        updateFuncText="        "+fieldName+'.update('+fieldLabel+', ">", data.'+fieldRef+')\n'
+        structTypeName=field['typeSpec']['fieldType'][0]
+        structText += "    "+owner+" widget::dash::display_"+structTypeName+': '+fieldName+"\n"
+
 
         # Add new classname to a list so it can be encoded.
-        structTypeName=field['typeSpec']['fieldType'][0]
         if not(structTypeName in classesEncoded):
             classesEncoded[structTypeName]=1
             classesToProcess.append(structTypeName)
 
-    if(fldCat=='struct'):
-        S="    "+'DS <- drawField(cr, x,y, "'+label+'", '+valStr+')\n    y <- y + DS.height\n'
-        if progSpec.typeIsPointer(field['typeSpec']):
-            targetRef = fieldName
-        #    S+="    "+targetRef+'.fromList.pushLast(this)\n'
-        #    S+="    "+'cousins.pushLast(' + targetRef + ')'
-        else:
-            S+="    "+'DS <- ' + fieldName+'.drawData(cr, x+20, y)\n    y <- y + DS.height\n'
-    else:
-        S="    "+'DS <- drawField(cr, x,y, "'+label+'", '+valStr+')\n    y <- y + DS.height\n'
-    return S
+    else:   # Display field for a BASIC TYPES
+        valStr=''
+        if(fldCat=='int' or fldCat=='double'):
+            valStr='toString(data.'+fieldName+')'
+        elif(fldCat=='string' or fldCat=='char'):
+            valStr= '"\'"+'+'data.'+fieldName+'+"\'"'
+        elif(fldCat=='flag' or fldCat=='bool'):
+            valStr='dispBool(data.'+fieldName+'!=0)'
+        elif(fldCat=='mode'):
+            valStr= fieldRef+'Strings[data.'+fieldName+'] '
 
-def encodeFieldDraw(fieldName, field, fldCat):
-    S=""
-    if fldCat=='func': return ''
-    typeSpec=field['typeSpec']
-    if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
-        innerFieldType=typeSpec['fieldType']
-        fldCatInner=progSpec.innerTypeCategory(innerFieldType)
-        calcdName=fieldName+'["+toString(_item_key)+"]'
-        S+="    withEach _item in "+fieldName+":{\n"
-        S+="        "+displayDrawFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
-    else: S+=displayDrawFieldAction(fieldName, fieldName, field, fldCat)
-    if progSpec.typeIsPointer(typeSpec):
-        T ="    if("+fieldName+' == NULL){DS <- drawField(cr, '+'x,y, "'+fieldName+'", "NULL")\n    y <- y + DS.height}\n'
-        T+="    else{\n    "+S+"    }\n"
-        S=T
-    return S
+        updateFuncText="        "+fieldName+'.update(90, 150, '+fieldLabel+', '+valStr+')\n'
+        structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
+
+    drawFuncText  ="        "+fieldName+'.draw(cr)\n'
+    setPosFuncText+="        "+fieldName+'.setPos(x,y)' + '\n        y <- y + '+fieldName+'.height\n'
+  #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
+    handleClicksFuncText = '            '+fieldName+'.handleClicks(Widget, event)'
+    return [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]
 
 #---------------------------------------------------------------  DUMP MAKING CODE
 
@@ -113,8 +121,8 @@ def EncodeDumpFunction(classes, className, dispMode):
     global classesEncoded
     cdlog(2, "ENCODING: "+ className)
     classesEncoded[className]=1
-    textFuncBody=''
-    drawFuncBody=''
+    [textFuncBody, structTextAcc, updateFuncTextAcc, drawFuncTextAcc, setPosFuncTextAcc, handleClicksFuncTextAcc, handleClicksFuncTxtAcc2] = ['', '', '', '', '', '', '']
+    updateFuncTextPart2Acc=''; drawFuncTextPart2Acc=''
     modelRef = progSpec.findSpecOf(classes[0], className, 'model')
     if modelRef==None:
         cdErr('To write a dump function for class '+className+' a model is needed but is not found.')
@@ -126,12 +134,14 @@ def EncodeDumpFunction(classes, className, dispMode):
         if(dispMode=='text' or dispMode=='both'):
             textFuncBody+=encodeFieldText(fieldName, field, fldCat)
         if(dispMode=='draw' or dispMode=='both'):
-            drawFuncBody+=encodeFieldDraw(fieldName, field, fldCat)
+            [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode(
+                'me', '"'+fieldName+'"', fieldName, fieldName, field, 'skipNone', '    ')
+            structTextAcc     += structText
+            updateFuncTextAcc += updateFuncText
+            drawFuncTextAcc   += drawFuncText
+            setPosFuncTextAcc += setPosFuncText
+            handleClicksFuncTextAcc += handleClicksFuncText
 
-    #### Write code to draw rectangle around the data.
-    drawFuncBody+='cr.fillNow()\n'
-    drawFuncBody+="cr.rectangle(initialX, initialY, initialX+DS.width, initialY+DS.height)\n"
-    drawFuncBody+='cr.strokeNow()\n'
 
     if(dispMode=='text' or dispMode=='both'):
         Code="me void: dump(me string:indent) <- {\n"+textFuncBody+"    }\n"
@@ -139,17 +149,80 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
+        setPosFuncTextAcc += '\n        extX <- posX+width+20; extY <- posY+20\n'
+        for field in modelRef['fields']:
+            typeSpec=field['typeSpec']
+            fldCat=progSpec.fieldsTypeCategory(typeSpec)
+            if fldCat=='func': continue
+            if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
+                fieldName=field['fieldName']
+                [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode(
+                    'our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
+                structTextAcc   += structText
+                updateFuncText = '    if(data.'+fieldName+' != NULL){\n        Allocate('+fieldName+')\n'+updateFuncText+'\n    } else {'+fieldName+' <- NULL}\n'
+                updateFuncTextPart2Acc += updateFuncText
+                setPosFuncTextAcc      += '    if('+fieldName+' != NULL){\n'+fieldName+'.setPos(extX,extY)' + '\n        extY <- extY + '+fieldName+'.height\n'+'\n    }\n'
+                drawFuncTextPart2Acc   += '    if('+fieldName+' != NULL){\n'+drawFuncText+'\n    }\n'
+                handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL){\n'+handleClicksFuncText+'\n    }\n'
+
         Code='''
-    me deltaSize: drawData(me GUI_ctxt: cr, me int:x, me int:y) <- {
-        me int: initialX <- x
-        me int: initialY <- y
-        me deltaSize: DS
-    '''+drawFuncBody+'''
-        /-DS.width <- maxWidth
-        DS.height <- y-initialY
-        return(DS)
-    }\n'''
-        Code=progSpec.wrapFieldListInObjectDef(className, Code)
+struct widget::dash::display_'''+className+'''{
+    me widget::dash::dataField: header
+    me mode[headerOnly, fullDisplay, noZeros]: displayMode
+    their '''+className+''': data
+'''+structTextAcc+'''
+
+    void: update(me string: _label, me string: textValue, their '''+className+''': _Data) <- {
+        data <- _Data
+        header.update(90, 150, _label, textValue)
+        displayMode<-headerOnly
+'''+updateFuncTextAcc+'''
+
+'''+updateFuncTextPart2Acc+'''
+    }
+
+    void: setPos(me int:x, me int:y) <- {
+        posX <- x; posY <- y;
+        header.setPos(x,y)
+        y <- y+header.height
+        if(displayMode!=headerOnly){
+            x <- x+10    /- Indent fields in a struct
+'''+setPosFuncTextAcc+'''
+        }
+        y <- y+5
+        width <- 150
+        height <- y-posY
+    }
+
+    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
+        if(skipEvents!=0){return(false)}
+        me int: eventX <- event.x
+        me int: eventY <- event.y
+    /-    if(isTouchingMe(eventX, eventY)){
+            if(event.type==4){ /-GDK_BUTTON_PRESS){
+                if( header.isTouchingMe(eventX, eventY)){
+                    if(displayMode==headerOnly){displayMode <- fullDisplay}
+                    else if(displayMode==fullDisplay){displayMode <- headerOnly}
+                } else {
+    '''+handleClicksFuncTextAcc+'''
+                }
+            }
+
+    '''+handleClicksFuncTxtAcc2+'''
+
+        return(false)
+    }
+
+    void: draw(me GUI_ctxt: cr) <- {
+        header.draw(cr)
+        if(displayMode!=headerOnly){
+'''+drawFuncTextAcc+'''
+            cr.rectangle(posX, posY, width, height)
+            cr.strokeNow()
+'''+drawFuncTextPart2Acc+'''
+        }
+    }
+}\n'''
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
 def apply(classes, tags, className, dispMode):
@@ -179,20 +252,115 @@ struct GLOBAL{
         if(dispMode=='draw' or dispMode=='both'):
             CODE+="""
     const int: fontSize <- 10
-    me deltaSize: drawField(me GUI_ctxt: cr, me int:x, me int:y, me string: label, me string: value) <- {
-        me deltaSize: DS1
-        me deltaSize: DS2
-        me deltaSize: DS3
-        DS1 <- renderText(cr, label, "Ariel",  fontSize, x, y)
-        DS2 <- renderText(cr, value, "Ariel",  fontSize, x+90, y)
-        DS3.width <- DS2.width+90
-        DS3.height <- DS2.height
-        return(DS3)
-    }
-    """
-        CODE+="""
 }
+
+struct widget::dash{
+    me int: extX
+    me int: extY
+    void: activatePropertyEditor()<- {}
+}
+
+struct widget::dash::dataField {
+    me string: label
+    me string: value
+    me int: midPos
+    void: update(me int:MidPos, me int:w, me string: Label, me string: Value) <- {
+        midPos<-MidPos; label<-Label; value<-Value;
+    }
+
+    void: setPos(me int:x, me int:y) <- {
+        posX <- x; posY <- y;
+        height <- 15
+        width <- 150
+    }
+
+    void: draw(me GUI_ctxt: cr) <- {
+        renderText(cr, label, "Ariel",  fontSize, posX, posY+15)
+        renderText(cr, value, "Ariel",  fontSize, posX+midPos, posY+15)
+    }
+}
+
+struct widget::dash::ptrToItem {
+    me widget::dash::dataField: header
+    our widget::dash: dashPtr
+
+    void: update(me string: Label, me string: textValue) <- {
+        header.update(90, 150, Label, textValue)
+    }
+
+    void: setPos(me int:x, me int:y) <- {
+        posX <- x; posY <- y;
+        header.setPos(x, y)
+        height <- header.height
+    }
+
+    void: draw(me GUI_ctxt: cr) <- {
+        header.draw(cr)
+    }
+}
+
+
+struct widget::dash::listOfItems {
+    me mode[headerOnly, fullDisplay, noZeros]: displayMode
+    me widget::dash::dataField: header
+    our widget::dash[list]: elements
+
+    void: update(me string: Label, me string: textValue) <- {
+        header.update(90, 150, Label, textValue)
+        elements.clear()
+        displayMode<-headerOnly
+    }
+
+    void: updatePush(our widget::dash: element) <- {
+        elements.pushLast(element)
+    }
+
+    void: setPos(me int:x, me int:y) <- {
+        posX <- x; posY <- y;
+        header.setPos(x, y)
+        y <- y+header.height
+        if(displayMode!=headerOnly){
+            x <- x+8
+            withEach element in elements:{
+                element.setPos(x,y)
+
+                y <- y+element.height
+            }
+        }
+        width <- 150
+        height <- y-posY
+    }
+
+    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
+        if(skipEvents!=0){return(false)}
+        me int: eventX <- event.x
+        me int: eventY <- event.y
+     /-   if(!isTouchingMe(eventX, eventY)){return(false)}
+        if(event.type==4){ /-GDK_BUTTON_PRESS){
+            if( header.isTouchingMe(eventX, eventY)){
+                if(displayMode==headerOnly){displayMode <- fullDisplay}
+                else if(displayMode==fullDisplay){displayMode <- headerOnly}
+            } else {
+                withEach element in elements:{
+                    element.handleClicks(Widget, event)
+                }
+            }
+        }
+        return(false)
+    }
+
+    void: draw(me GUI_ctxt: cr) <- {
+        header.draw(cr)
+        if(displayMode!=headerOnly){
+            withEach element in elements:{
+                element.draw(cr)
+            }
+        }
+    }
+}
+
     """
+
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE)
 
     classesToProcess.append(className)

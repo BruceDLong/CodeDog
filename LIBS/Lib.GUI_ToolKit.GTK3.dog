@@ -41,6 +41,20 @@ struct GUI_callback{me GCallback: GUI_callback}
 
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
+struct ButtonEvent{their GdkEventButton: ButtonEvent}
+struct ButtonEvent {
+  me uint: type
+ /- GdkWindow *window;
+ /- gint8 send_event;
+ /- guint32 time;
+  me double: x
+  me double: y
+
+  me uint: state
+  me uint: button
+}
+struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
+
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 
 struct GUI{
@@ -137,7 +151,7 @@ struct timeStringer{
 
 
 /-///////////////////////////////  G L O B A L
-    struct GLOBAL{
+struct GLOBAL{
         me GUI: gui_tk
         me thisApp: appFuncs
 
@@ -266,52 +280,55 @@ me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: c
     }
 } %>
 
-        me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
-          GtkWidget *window;
-          GtkWidget *topBox;
+me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
+    GtkWidget *window;
+    GtkWidget *topBox;
 
-          window = gtk_application_window_new (app);
-          gtk_window_set_title (GTK_WINDOW (window), "Window");
-          gtk_window_set_default_size (GTK_WINDOW (window), 1000, 700);
-          g_signal_connect (window, "destroy", G_CALLBACK (close_window), NULL);
-          gtk_container_set_border_width (GTK_CONTAINER (window), 0);
+    window = gtk_application_window_new (app);
+    gtk_window_set_title (GTK_WINDOW (window), "Window");
+    gtk_window_set_default_size (GTK_WINDOW (window), 1000, 700);
+    g_signal_connect (window, "destroy", G_CALLBACK (close_window), NULL);
+    gtk_container_set_border_width (GTK_CONTAINER (window), 0);
 
-          topBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-          gtk_container_add (GTK_CONTAINER (window), topBox);
-          gtk_widget_show (topBox);
-          /-//////////////////  A d d  A p p l i c a t i o n   M e n u
+    topBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
+    gtk_container_add (GTK_CONTAINER (window), topBox);
+    gtk_widget_show (topBox);
+    /-//////////////////  A d d  A p p l i c a t i o n   M e n u
 
-      GtkWidget *boxForMenubar;
-      GtkWidget *menubar;
-
-
-      boxForMenubar = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
-      gtk_container_add (GTK_CONTAINER (topBox), boxForMenubar);
-      gtk_widget_show (boxForMenubar);
-
-      menubar = gtk_menu_bar_new ();
-      gtk_box_pack_start (GTK_BOX (boxForMenubar), menubar, TRUE, TRUE, 0);
-      gtk_widget_show (menubar);
-
-      appFuncs.createAppMenu(menubar);
-
-          /-///////////////////  A d d   A p p l i c a t i o n   I t e m s
-
-      GtkWidget *frame;
-      GtkWidget *appArea;
-
-      frame = gtk_frame_new (NULL);
-      gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
-      gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
-
-      appFuncs.createAppArea(frame);
-     /- gtk_container_add (GTK_CONTAINER (frame), appArea);
+    GtkWidget *boxForMenubar;
+    GtkWidget *menubar;
 
 
-          /-///////////////////  A d d  S t a t u s   A r e a
+    boxForMenubar = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_container_add (GTK_CONTAINER (topBox), boxForMenubar);
+    gtk_widget_show (boxForMenubar);
+
+    menubar = gtk_menu_bar_new ();
+    gtk_box_pack_start (GTK_BOX (boxForMenubar), menubar, TRUE, TRUE, 0);
+    gtk_widget_show (menubar);
+
+    appFuncs.createAppMenu(menubar);
+
+      /-///////////////////  A d d   A p p l i c a t i o n   I t e m s
+
+    GtkWidget *frame;
+    GtkWidget *appArea;
+
+    frame = gtk_frame_new (NULL);
+    gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
+    gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
+
+    g_signal_connect(window, "button-press-event", G_CALLBACK(handleClicks_cb), NULL);
+
+    appFuncs.createAppArea(frame);
+    /- gtk_container_add (GTK_CONTAINER (frame), appArea);
+
+
+    /-///////////////////  A d d  S t a t u s   A r e a
 
 
 
-          gtk_widget_show_all (window);
-        }%>
-    }
+    gtk_widget_show_all (window);
+}%>
+
+}

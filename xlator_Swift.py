@@ -181,7 +181,7 @@ def getEnumStr(fieldName, enumList):
         count=count+1
         if(count<enumSize): S += ", "
     S += "};\n";
-    S += 'string ' + fieldName+'Strings['+str(len(enumList))+'] = {"'+('", "'.join(enumList))+'"};\n'
+   # S += 'string ' + fieldName+'Strings['+str(len(enumList))+'] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G

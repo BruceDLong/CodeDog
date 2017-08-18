@@ -162,7 +162,7 @@ def getEnumStr(fieldName, enumList):
         S += getConstIntFieldStr(enumName, str(count))
         count=count+1
     S += "\n"
-    S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
+   # S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
