@@ -192,7 +192,6 @@ def getEnumStr(fieldName, enumList):
         count=count+1
         if(count<enumSize): S += ", "
     S += "};\n";
-    #S += 'static string ' + fieldName+'Strings['+str(len(enumList))+'] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
@@ -753,6 +752,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         elif inheritMode=='pure-virtual':
             structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
         else: cdErr("Invalid inherit mode found: "+inheritMode)
+        if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):

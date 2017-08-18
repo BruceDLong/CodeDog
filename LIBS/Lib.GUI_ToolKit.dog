@@ -17,11 +17,11 @@ struct widget{
     me uint32: alpha
     me color: defaultColor
     flag: isActive
-    flag: takesEvents
+    flag: skipEvents
 
     void: draw(me GUI_ctxt: cr) <- {}
     void: setPos(me int:x, me int:y) <- {posX<-x; posY<-y}
-    me bool: handleClicks(me GUI_item: widget, their GUI_PointerEvent: event) <- {return(false)}
+    me bool: handleClicks(me GUI_item: Widget, their GUI_PointerEvent: event) <- {return(false)}
     void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
         posX <- PosX
         posY <- PosY
@@ -31,7 +31,7 @@ struct widget{
         alpha <- Alpha
         /-our infon: myData
         isActive <- true
-        takesEvents <- true
+        skipEvents <- false
     }
     bool: isTouchingMe(me int: x, me int: y) <- {
         return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))

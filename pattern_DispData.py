@@ -62,13 +62,12 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
     global classesToProcess
     global classesEncoded
     [structText, updateFuncText, setPosFuncText, drawFuncText, handleClicksFuncText]=['', '', '', '', '']
-    codeToMoveCursorDown = '\n        y <- y + '+fieldName+'.height\n'
     typeSpec=field['typeSpec']
     fldCat=progSpec.fieldsTypeCategory(typeSpec)
     if fldCat=='func': return ['', '', '', '', '']
     if progSpec.typeIsPointer(typeSpec) and skipFlags != 'skipPtr':  # Header for a POINTER
-     #   fieldName+='Ptr'
-        updateFuncText+="        "+fieldName+'.update('+fieldLabel+', data.'+fieldRef+'.mySymbol())\n'
+        fieldName+='Ptr'
+        updateFuncText+="        "+fieldName+'.update('+fieldLabel+', data.'+fieldRef+'.mySymbol(data.'+fieldRef+'))\n'
         structText += "    "+owner+" widget::dash::ptrToItem: "+fieldName+"\n"
 
     elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
@@ -111,9 +110,9 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
-    setPosFuncText+="        "+fieldName+'.setPos(x,y)' + codeToMoveCursorDown
+    setPosFuncText+="        "+fieldName+'.setPos(x,y)' + '\n        y <- y + '+fieldName+'.height\n'
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
-    handleClicksFuncText = '            if('+fieldName+'.isTouchingMe(eventX, eventY)){'+fieldName+'.handleClicks(widget, event)}'
+    handleClicksFuncText = '            '+fieldName+'.handleClicks(Widget, event)'
     return [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]
 
 #---------------------------------------------------------------  DUMP MAKING CODE
@@ -122,7 +121,7 @@ def EncodeDumpFunction(classes, className, dispMode):
     global classesEncoded
     cdlog(2, "ENCODING: "+ className)
     classesEncoded[className]=1
-    [textFuncBody, structTextAcc, updateFuncTextAcc, drawFuncTextAcc, setPosFuncTextAcc, handleClicksFuncTextAcc] = ['', '', '', '', '', '']
+    [textFuncBody, structTextAcc, updateFuncTextAcc, drawFuncTextAcc, setPosFuncTextAcc, handleClicksFuncTextAcc, handleClicksFuncTxtAcc2] = ['', '', '', '', '', '', '']
     updateFuncTextPart2Acc=''; drawFuncTextPart2Acc=''
     modelRef = progSpec.findSpecOf(classes[0], className, 'model')
     if modelRef==None:
@@ -135,7 +134,8 @@ def EncodeDumpFunction(classes, className, dispMode):
         if(dispMode=='text' or dispMode=='both'):
             textFuncBody+=encodeFieldText(fieldName, field, fldCat)
         if(dispMode=='draw' or dispMode=='both'):
-            [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode('me', '"'+fieldName+'"', fieldName, fieldName, field, 'skipNone', '    ')
+            [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode(
+                'me', '"'+fieldName+'"', fieldName, fieldName, field, 'skipNone', '    ')
             structTextAcc     += structText
             updateFuncTextAcc += updateFuncText
             drawFuncTextAcc   += drawFuncText
@@ -149,16 +149,21 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
+        setPosFuncTextAcc += '\n        extX <- posX+width+20; extY <- posY+20\n'
         for field in modelRef['fields']:
             typeSpec=field['typeSpec']
             fldCat=progSpec.fieldsTypeCategory(typeSpec)
             if fldCat=='func': continue
             if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
                 fieldName=field['fieldName']
- #               [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode('our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
- #               structTextAcc   += structText
- #               updateFuncTextPart2Acc += updateFuncText
- #               drawFuncTextPart2Acc += drawFuncText
+                [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode(
+                    'our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
+                structTextAcc   += structText
+                updateFuncText = '    if(data.'+fieldName+' != NULL){\n        Allocate('+fieldName+')\n'+updateFuncText+'\n    } else {'+fieldName+' <- NULL}\n'
+                updateFuncTextPart2Acc += updateFuncText
+                setPosFuncTextAcc      += '    if('+fieldName+' != NULL){\n'+fieldName+'.setPos(extX,extY)' + '\n        extY <- extY + '+fieldName+'.height\n'+'\n    }\n'
+                drawFuncTextPart2Acc   += '    if('+fieldName+' != NULL){\n'+drawFuncText+'\n    }\n'
+                handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL){\n'+handleClicksFuncText+'\n    }\n'
 
         Code='''
 struct widget::dash::display_'''+className+'''{
@@ -166,9 +171,11 @@ struct widget::dash::display_'''+className+'''{
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     their '''+className+''': data
 '''+structTextAcc+'''
+
     void: update(me string: _label, me string: textValue, their '''+className+''': _Data) <- {
         data <- _Data
         header.update(90, 150, _label, textValue)
+        displayMode<-headerOnly
 '''+updateFuncTextAcc+'''
 
 '''+updateFuncTextPart2Acc+'''
@@ -187,17 +194,22 @@ struct widget::dash::display_'''+className+'''{
         height <- y-posY
     }
 
-    me bool: handleClicks(me GUI_item: widget, their ButtonEvent: event) <- {
-        if(event.type==4){ /-GDK_BUTTON_PRESS){
-            me int: eventX <- event.x
-            me int: eventY <- event.y
-            if( header.isTouchingMe(eventX, eventY)){
-                if(displayMode==headerOnly){displayMode <- fullDisplay}
-                else if(displayMode==fullDisplay){displayMode <- headerOnly}
-            } else {
-'''+handleClicksFuncTextAcc+'''
+    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
+        if(skipEvents!=0){return(false)}
+        me int: eventX <- event.x
+        me int: eventY <- event.y
+    /-    if(isTouchingMe(eventX, eventY)){
+            if(event.type==4){ /-GDK_BUTTON_PRESS){
+                if( header.isTouchingMe(eventX, eventY)){
+                    if(displayMode==headerOnly){displayMode <- fullDisplay}
+                    else if(displayMode==fullDisplay){displayMode <- headerOnly}
+                } else {
+    '''+handleClicksFuncTextAcc+'''
+                }
             }
-        }
+
+    '''+handleClicksFuncTxtAcc2+'''
+
         return(false)
     }
 
@@ -207,8 +219,8 @@ struct widget::dash::display_'''+className+'''{
 '''+drawFuncTextAcc+'''
             cr.rectangle(posX, posY, width, height)
             cr.strokeNow()
-        }
 '''+drawFuncTextPart2Acc+'''
+        }
     }
 }\n'''
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
@@ -240,6 +252,12 @@ struct GLOBAL{
         if(dispMode=='draw' or dispMode=='both'):
             CODE+="""
     const int: fontSize <- 10
+}
+
+struct widget::dash{
+    me int: extX
+    me int: extY
+    void: activatePropertyEditor()<- {}
 }
 
 struct widget::dash::dataField {
@@ -290,6 +308,7 @@ struct widget::dash::listOfItems {
     void: update(me string: Label, me string: textValue) <- {
         header.update(90, 150, Label, textValue)
         elements.clear()
+        displayMode<-headerOnly
     }
 
     void: updatePush(our widget::dash: element) <- {
@@ -312,18 +331,18 @@ struct widget::dash::listOfItems {
         height <- y-posY
     }
 
-    me bool: handleClicks(me GUI_item: widget, their ButtonEvent: event) <- {
+    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
+        if(skipEvents!=0){return(false)}
+        me int: eventX <- event.x
+        me int: eventY <- event.y
+     /-   if(!isTouchingMe(eventX, eventY)){return(false)}
         if(event.type==4){ /-GDK_BUTTON_PRESS){
-            me int: eventX <- event.x
-            me int: eventY <- event.y
             if( header.isTouchingMe(eventX, eventY)){
                 if(displayMode==headerOnly){displayMode <- fullDisplay}
                 else if(displayMode==fullDisplay){displayMode <- headerOnly}
             } else {
                 withEach element in elements:{
-                    if(element.isTouchingMe(eventX, eventY)){
-                        element.handleClicks(widget, event)
-                    }
+                    element.handleClicks(Widget, event)
                 }
             }
         }
