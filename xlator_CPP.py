@@ -720,16 +720,24 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         decl = ''
     return [defn, decl]
 
-def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
-    return ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
+def codeConstructionHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
+    return "    " + ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
 
-def codeConstructorInit(fieldName, count, xlator):
+def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):
         return "," + fieldName+"("+" _"+fieldName+")"
     elif(count == 0):
         return ":" + fieldName+"("+" _"+fieldName+")"
     else:
         cdErr("Error in codeConstructorInit.")
+
+def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
+    if defaultVal == "NULL":
+        defaultVal = "0"
+    return argType + "  _" +argFieldName + "=" + defaultVal
+
+def codeCopyConstructor(fieldName, convertedType, xlator):
+    return ""
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
@@ -765,6 +773,8 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     elif (LHS_FieldType =='mode' ):
         return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
 
+def codeSwitchBreak(caseAction, indent, xlator):
+    return indent+"    break;\n"
 #######################################################
 
 def includeDirective(libHdr):
@@ -842,5 +852,8 @@ def fetchXlators():
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
+    xlators['codeConstructorArgText']       = codeConstructorArgText
+    xlators['codeSwitchBreak']              = codeSwitchBreak
+    xlators['codeCopyConstructor']          = codeCopyConstructor
 
     return(xlators)

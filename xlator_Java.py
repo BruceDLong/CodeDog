@@ -9,7 +9,7 @@ This file, along with Lib_Java.py specify to the CodeGenerater how to compile Co
 import progSpec
 import codeDogParser
 import Lib_Android
-from progSpec import cdlog, cdErr
+from progSpec import cdlog, cdErr, logLvl
 from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getSpecialArrayFormatFieldVars
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
@@ -428,7 +428,14 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     # Check for string A[x] = B;  If so, render A.put(B,x)
-    S=AltIDXFormat[0] + '.put(' + AltIDXFormat[1] + ', ' + RHS + ');'
+    [containerType, idxType, owner]=getContainerType(AltIDXFormat[1])
+    if containerType == "ArrayList":
+        S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');'
+    elif containerType == "TreeMap":
+        S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');'
+    else:
+        print "ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType
+        exit(1)
     return S
 
 ################################################
@@ -613,17 +620,20 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
     return [S, '']
 
-def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
-    return ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
+def codeConstructionHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
+    copyConstructor = "    public " + ClassName + "(" + ClassName + " copyThis" +"){\n"+copyConstructorArgs+"    };\n    public "  + ClassName + "(){"+"};\n"
+    withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+constructorInit+"    };\n"
+    return withArgConstructor + copyConstructor
 
-def codeConstructorInit(fieldName, count, xlator):
-    if (count > 0):
-        return "," + fieldName+"("+" _"+fieldName+")"
-    elif(count == 0):
-        return ":" + fieldName+"("+" _"+fieldName+")"
-    else:
-        print "Error in codeConstructorInit."
-        exit(2)
+def codeConstructorInit(fieldName, count, defaultVal, xlator):
+    return "        " + fieldName+"="+defaultVal+";\n"
+
+def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
+    return argType + " "+ argFieldName 
+
+def codeCopyConstructor(fieldName, convertedType, xlator):
+    return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
+    
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     if inheritMode=='pure-virtual':
@@ -655,6 +665,12 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
         val = RHS+"<<"+prefix+bitMask+"Offset"
     return "{"+item+" &= ~"+mask+"; "+item+" |= ("+val+");}\n"
 
+def codeSwitchBreak(caseAction, indent, xlator):
+    if not(len(caseAction) > 0 and caseAction[-1]['typeOfAction']=='funcCall' and caseAction[-1]['calledFunc'][0][0] == 'return'):
+        return indent+"    break;\n"
+    else:
+        return ''
+    
 
 #######################################################
 
@@ -701,7 +717,7 @@ def fetchXlators():
     xlators['doesLangHaveGlobals'] = "False"
     xlators['funcBodyIndent']      = "    "
     xlators['funcsDefInClass']     = "True"
-    xlators['MakeConstructors']    = "False"
+    xlators['MakeConstructors']    = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustIfConditional']          = adjustIfConditional
     xlators['includeDirective']             = includeDirective
@@ -739,5 +755,8 @@ def fetchXlators():
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
+    xlators['codeConstructorArgText']       = codeConstructorArgText
+    xlators['codeSwitchBreak']              = codeSwitchBreak
+    xlators['codeCopyConstructor']          = codeCopyConstructor
 
     return(xlators)

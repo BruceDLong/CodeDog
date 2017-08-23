@@ -66,7 +66,9 @@ def CheckFunctionsLocalVarArgList(itemName):
 def CheckObjectVars(objName, itemName, level):
     #print "Searching",objName,"for", itemName
     ObjectDef =  progSpec.findSpecOf(globalClassStore[0], objName, "struct")
-    if ObjectDef==None: return 0  # Model def not found
+    if ObjectDef==None: 
+        #print "WARNING: Model def not found."
+        return 0
     retVal=None
     wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, objName)
     if(wrappedTypeSpec != None):
@@ -89,7 +91,7 @@ def CheckObjectVars(objName, itemName, level):
             #print "Found", itemName
             return field
 
-   # print "WARNING: Could not find field",itemName ,"in", objName
+    #print "WARNING: Could not find field",itemName ,"in", objName
     return 0 # Field not found in model
 
 StaticMemberVars={} # Used to find parent-class of const and enums
@@ -239,7 +241,7 @@ def convertNameSeg(typeSpecOut, name, paramList, xlator):
 
 ################################  C o d e   E x p r e s s i o n s
 
-def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, xlator):
+def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, xlator):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
     global specialArrayFormatFieldVars
     #print "CODENAMESEG:", segSpec, "TSI:",typeSpecIn
@@ -309,7 +311,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, xlato
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
                    #print "TESTTYPES:", fType, progSpec.fieldTypeKeyword(typeSpecOut['fieldType'])
-                #else: print "WARNING: TYPESPEC IS ", typeSpecOut, "for", fType + '::' + name
+                else: 
+                    print "WARNING: TYPESPEC IS ", typeSpecOut, "for ", fType + '::' + name
+                    #print "typeSpecIn: ", typeSpecIn
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
@@ -361,6 +365,7 @@ def codeUnknownNameSeg(segSpec, xlator):
 def codeItemRef(name, LorR_Val, xlator):
     global currentObjName
     previousSegName = ""
+    previousTypeSpec = ""
     S=''
     segStr=''
     segType={'owner':'', 'dummyType':True}
@@ -389,10 +394,9 @@ def codeItemRef(name, LorR_Val, xlator):
             if segType and 'fieldType' in segType:
                 LHSParentType = progSpec.fieldTypeKeyword(segType['fieldType'])
             else: LHSParentType = progSpec.fieldTypeKeyword(currentObjName)   # Landed here because this is the first segment
-            [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, previousSegName, xlator)
-
+            [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, previousSegName, previousTypeSpec, xlator)
             if AltIDXFormat!=None:
-                AltFormat=[S, AltIDXFormat]   # This is in case of an alternate index format such as Java's string.put(idx, val)
+                AltFormat=[S, previousTypeSpec, AltIDXFormat]   # This is in case of an alternate index format such as Java's string.put(idx, val)
             #print "segStr: ", segStr
         else:
             segStr= codeUnknownNameSeg(segSpec, xlator)
@@ -423,6 +427,7 @@ def codeItemRef(name, LorR_Val, xlator):
         else: S+=segStr
 
         previousSegName = segName
+        previousTypeSpec = segType
         segIDX+=1
 
     # Handle cases where seg's type is flag or mode
@@ -702,7 +707,7 @@ def codeAction(action, indent, xlator):
                 actionText += indent+"    case "+caseKeyValue+": "
                 caseAction = sCases[1]
                 actionText += codeActionSeq(False, caseAction, indent+'    ', xlator)
-                actionText += indent+"    break;\n"
+                actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
             actionText+=indent+"default: "
@@ -752,6 +757,7 @@ def codeConstructor(classes, ClassName, tags, xlator):
     ClassName = progSpec.flattenObjectName(ClassName)
     constructorInit=""
     constructorArgs=""
+    copyConstructorArgs=""
     count=0
     for field in progSpec.generateListOfFieldsToImplement(classes, ClassName):
         typeSpec =field['typeSpec']
@@ -768,21 +774,25 @@ def codeConstructor(classes, ClassName, tags, xlator):
         if not isinstance(fieldType, basestring): fieldType=fieldType[0]
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
-                constructorArgs += convertedType+" _"+fieldName+"=0,"
-                constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator)
+                defaultVal = "NULL"
+                constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
+                constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
                 count += 1
         elif (isinstance(fieldType, basestring)):
             if(fieldType[0:3]=="int" or fieldType[0:4]=="uint"):
-                constructorArgs += xlator['codeArgText'](" _"+fieldName, convertedType, xlator) +"=0,"
-                constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator)
+                defaultVal = "0"
+                constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
+                constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
                 count += 1
             elif(fieldType=="string"):
-                constructorArgs += xlator['codeArgText'](" _"+fieldName, convertedType, xlator) +'="",'
-                constructorInit += xlator['codeConstructorInit'](fieldName, count, xlator)
+                defaultVal = '""'
+                constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
+                constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
                 count += 1
+        copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-        constructCode = "    "+xlator['codeConstructionHeader'](ClassName, constructorArgs, constructorInit, xlator)
+        constructCode = xlator['codeConstructionHeader'](ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator)
     else: constructCode=''
     return constructCode
 
