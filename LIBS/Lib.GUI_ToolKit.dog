@@ -16,7 +16,6 @@ struct widget{
     me uint32: scale
     me uint32: alpha
     me color: defaultColor
-    flag: isActive
     flag: skipEvents
 
     void: draw(me GUI_ctxt: cr) <- {}
@@ -30,7 +29,6 @@ struct widget{
         scale <- Scale
         alpha <- Alpha
         /-our infon: myData
-        isActive <- true
         skipEvents <- false
     }
     bool: isTouchingMe(me int: x, me int: y) <- {

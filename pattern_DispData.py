@@ -159,10 +159,14 @@ def EncodeDumpFunction(classes, className, dispMode):
                 [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode(
                     'our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
                 structTextAcc   += structText
-                updateFuncText = '    if(data.'+fieldName+' != NULL){\n        Allocate('+fieldName+')\n'+updateFuncText+'\n    } else {'+fieldName+' <- NULL}\n'
+                updateFuncText = ('    if(data.'+fieldName+' != NULL)'+
+                                    '{\n        Allocate('+fieldName+')\n'+
+                                    updateFuncText+
+                                    '\n        dashBoard.addDependant( data.'+fieldName+'.mySymbol(data.'+fieldName+'), '+fieldName+', '+fieldName+'Ptr.refHidden)'+
+                                    '\n    } else {'+fieldName+' <- NULL}\n')
                 updateFuncTextPart2Acc += updateFuncText
                 setPosFuncTextAcc      += '    if('+fieldName+' != NULL){\n'+fieldName+'.setPos(extX,extY)' + '\n        extY <- extY + '+fieldName+'.height\n'+'\n    }\n'
-                drawFuncTextPart2Acc   += '    if('+fieldName+' != NULL){\n'+drawFuncText+'\n    }\n'
+            #    drawFuncTextPart2Acc   += '    if('+fieldName+' != NULL){\n'+drawFuncText+'\n    }\n'
                 handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL){\n'+handleClicksFuncText+'\n    }\n'
 
         Code='''
@@ -281,21 +285,34 @@ struct widget::dash::dataField {
 }
 
 struct widget::dash::ptrToItem {
-    me widget::dash::dataField: header
+    me widget::dash::dataField: refedItem
+    me bool: refHidden
     our widget::dash: dashPtr
 
     void: update(me string: Label, me string: textValue) <- {
-        header.update(90, 150, Label, textValue)
+        refHidden <- 1
+        print("PTRField:", Label, ", ", textValue, "\\n")
+        refedItem.update(90, 150, Label, textValue)
     }
 
     void: setPos(me int:x, me int:y) <- {
         posX <- x; posY <- y;
-        header.setPos(x, y)
-        height <- header.height
+        refedItem.setPos(x, y)
+        height <- refedItem.height
+    }
+
+    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
+        if(skipEvents!=0){return(false)}
+        if(!isTouchingMe(event.x, event.y)){return(false)}
+        if(event.type==4){
+            if(refHidden){refHidden<-false}
+            else {refHidden<-true}
+        }
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        header.draw(cr)
+            refedItem.draw(cr)
+
     }
 }
 
