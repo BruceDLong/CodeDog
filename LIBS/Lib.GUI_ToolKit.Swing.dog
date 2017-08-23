@@ -225,5 +225,6 @@ struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implM
     me void: strokeNow() <- <%!gr.draw(cr.GPath)%>
     me void: fillNow() <- <%!gr.fill(cr.GPath)%>
     me void: renderFrame() <- <%!repaint()%>
+    me void: rectangle() <- <%!%0.gr.drawRect(%1, %2, %3, %4)%>
 }
 
