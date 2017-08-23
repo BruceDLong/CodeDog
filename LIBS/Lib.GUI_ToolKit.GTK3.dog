@@ -182,6 +182,21 @@ struct GLOBAL{
     } %>
 
 
+    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
+        PangoLayout *layout=pango_cairo_create_layout(cr);
+        pango_layout_set_text(layout, text.data(), -1);
+
+        string fontDesc=fontName+' '+ std::to_string(fontSize);
+        PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
+        pango_layout_set_font_description(layout, desc);
+        pango_font_description_free(desc);
+
+        deltaSize size;
+        pango_layout_get_pixel_size(layout, &size.width, &size.height);
+        g_object_unref(layout);
+        return(size);
+    } %>
+
     me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
         cairo_move_to(cr,x+r,y);                      /-# Move to A
         cairo_line_to(cr,x+w-r,y);                    /-# Straight line to B

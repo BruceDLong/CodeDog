@@ -559,6 +559,8 @@ def codeAction(action, indent, xlator):
             print 'Problem: typeSpec is', typeSpec, '\n';
             LHS_FieldType='string'
         else: LHS_FieldType=typeSpec['fieldType']
+
+        if LHS == 'dependantItems[key]': print LHS, "'"+assignTag+"'", LHS_FieldType
         if assignTag == '':
             if LHS_FieldType=='flag':
                 divPoint=startPointOfNamesLastSegment(LHS)
@@ -580,13 +582,15 @@ def codeAction(action, indent, xlator):
                 setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
                 actionText=indent + setBits
             else:
+                if LHS == 'dependantItems[key]': print LHS, "'"+str(AltIDXFormat)+"'"
                 if AltIDXFormat!=None:
                     # Handle special forms of assignment such as LVal(idx, RVal)
-                    actionText = indent + xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsType)
+                    actionText = xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsType)
+                    if actionText != '': actionText = indent+actionText
                 if actionText=="":
                     # Handle the normal assignment case
                     actionText = indent + LHS + " = " + RHS + ";\n"
-
+            if LHS == 'dependantItems[key]': print LHS, "'"+actionText+"'"
         else:
             if(assignTag=='deep'):
                 actionText = indent + LHS + " = " + RHS + ";\n"
