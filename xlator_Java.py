@@ -454,6 +454,7 @@ def codeActTextMain(actSeq, indent, xlator):
     return actSeqText
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
+    # TODO: make next line so it is not hard coded
     if (structName == 'widget'):
         classAttrs = "abstract " 
     if parentClass != "":
@@ -610,9 +611,10 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
     S=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
-    if (fieldName == "static_Global" or fieldName == "static_gui_tk"):  # TODO: make static_Global so it is not hard coded
+    # TODO: make next line so it is not hard coded
+    if (fieldName == "static_Global" or fieldName == "static_gui_tk"):
         S += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-    # TODO: The next line is too hard-coded.
+    # TODO: make next line so it is not hard coded
     elif(className == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager")):
         print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
