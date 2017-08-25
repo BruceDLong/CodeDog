@@ -80,6 +80,17 @@ struct GUI_frame{me JFrame:GUI_frame}
 struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
+
+/- TODO: need to complete ButtonEvent code.  This is just enough to allow Java build
+struct ButtonEvent {
+  me uint: type
+  me double: x
+  me double: y
+
+  me uint: state
+  me uint: button
+}
+
 struct GUI {
     me uint32: GUI_Init() <- <%{return(0);}%>
 
