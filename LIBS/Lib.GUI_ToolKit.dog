@@ -1,12 +1,83 @@
-/- this for is model
+/- CodeDog GUI toolikt
 requirements = [
     [require, GUI_ToolKit_implementation]
 ]
 
-/------------------------ CANVAS
+/- Set up a complete application: fonts, colors, a window/frame with a menu, toolbar, app area and optionally a statusbar.
+/- Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
+
+struct deltaSize{me int: width    me int: height}
+struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
+struct GUI_offset{}
+struct GUI_ctxt{}
+
+
+struct GUI_item{}
+struct GUI_menuBar{}
+struct GUI_menu{}
+struct GUI_menuItem{}
+struct GUI_canvas{}
+struct GUI_container{}
+struct GUI_frame{}
+struct GUI_ScrollingWindow{}
+struct GUI_callback{}
+struct GUI_MotionEvent{}
+struct ButtonEvent{}
+struct INK_Image{}
+
+struct GUI{
+    me void: showWidget(me GUI_item: widget) <- {}
+    me GUI_item: newCanvas() <- {}
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- {}
+    me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- {}
+    me GUI_item: newScrollingWindow() <- {}
+    me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- {}
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- {}
+    me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- {}
+    me void: addMenuBar(me GUI_menuBar: menubar) <- {}
+    me void: create_MenuItem()<- {}
+    me void: create_TopSubMenu()<- {}
+    me void: create_SubMenu()<- {}
+    me void: setCallback() <- {}
+}
+
+struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:cairo_t" {
+    their cairo_t:GUI_ctxt
+    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- {}
+    me void: reset() <- {}
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- {}
+    me void: setRGB (me double: red, me double: green, me double: blue) <- {}
+    me void: setLineWidth(me double: width) <- {}
+    me void: moveTo(me double: x, me double: y) <- {}
+    me void: lineTo(me double: x, me double: y) <- {}
+    me void: moveRel(me double: dx, me double: dy) <- {}
+    me void: lineRel(me double: dx, me double: dy) <- {}
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- {}
+    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- {}
+    me void: rectangle() <- {}
+    me void: paintNow() <- {}
+    me void: strokeNow() <- {}
+    me void: fillNow() <- {}
+}
+
 
 struct color{}
- struct deltaSize{me int: width    me int: height}
+struct colorScheme{}
+struct fontSpec{}
+struct fontScheme{}
+
+struct App{
+    me colorScheme: colors
+    me fontScheme: fonts
+    me void: createAppMenu(me GUI_frame: frame) <- {}
+    me void: createToolBar(me GUI_frame: frame) <- {}
+    me void: createAppArea(me GUI_frame: frame) <- {}
+    me void: createStatusBar(me GUI_frame: frame) <- {}
+}
+
+
+
+/------------------------ CANVAS
 
 struct widget{
     me uint32: posX
@@ -28,7 +99,6 @@ struct widget{
         height <- Height
         scale <- Scale
         alpha <- Alpha
-        /-our infon: myData
         skipEvents <- false
     }
     bool: isTouchingMe(me int: x, me int: y) <- {

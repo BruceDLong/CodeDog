@@ -79,15 +79,12 @@ struct GUI{
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
     me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
-  /-  me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
- /-   me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew JMenuItem(%1)%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
     me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
     me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
     me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!%Ggtk_viewport_new(%1, %2)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
-   /- me void: addItemToMenu(me GUI_menu: ParentMenu, me GUI_menuItem: menuitem) <- <%!%G%1.add(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     me void: create_MenuItem()<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu()<- <%!%Gcreate_TopSubMenu(%1, %2)%>
@@ -112,7 +109,6 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     me void: paintNow() <- <%!cairo_paint(%0)%>
     me void: strokeNow() <- <%!cairo_stroke(%0)%>
     me void: fillNow() <- <%!cairo_fill(%0)%>
-    /-me void: renderFrame() <- <%!%G ;%>
 }
 
 struct tm{
@@ -153,7 +149,7 @@ struct timeStringer{
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
         me GUI: gui_tk
-        me thisApp: appFuncs
+        me APP: thisApp
 
     /- TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
@@ -322,7 +318,7 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     gtk_box_pack_start (GTK_BOX (boxForMenubar), menubar, TRUE, TRUE, 0);
     gtk_widget_show (menubar);
 
-    appFuncs.createAppMenu(menubar);
+    thisApp.createAppMenu(menubar);
 
       /-///////////////////  A d d   A p p l i c a t i o n   I t e m s
 
@@ -335,7 +331,7 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
 
     g_signal_connect(window, "button-press-event", G_CALLBACK(handleClicks_cb), NULL);
 
-    appFuncs.createAppArea(frame);
+    thisApp.createAppArea(frame);
     /- gtk_container_add (GTK_CONTAINER (frame), appArea);
 
 

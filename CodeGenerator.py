@@ -141,7 +141,6 @@ def fetchItemsTypeSpec(itemName, xlator):
 ###### End of type tracking code
 
 
-fieldNamesAlreadyUsed={}
 specialArrayFormatFieldVars={}
 def getSpecialArrayFormatFieldVars():
     global specialArrayFormatFieldVars
@@ -149,7 +148,6 @@ def getSpecialArrayFormatFieldVars():
 
 def codeFlagAndModeFields(classes, className, tags, xlator):
     cdlog(5, "                    Coding flags and modes for: {}".format(className))
-    global fieldNamesAlreadyUsed
     global StaticMemberVars
     global specialArrayFormatFieldVars
     flagsVarNeeded = False
@@ -162,8 +160,6 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
         fieldName=field['fieldName'];
         if fieldType=='flag' or fieldType=='mode':
             flagsVarNeeded=True
-            if fieldName in fieldNamesAlreadyUsed: continue
-            else:fieldNamesAlreadyUsed[fieldName]=className
 
             fieldName = progSpec.flattenObjectName(fieldName)
             if fieldType=='flag':
@@ -832,7 +828,7 @@ def codeStructFields(classes, className, tags, indent, xlator):
             fieldName='operator='
             #print "                         opAssign: ", fieldType, fieldName
 
-        ##CALCULATE RHS###############################################
+        # CALCULATE RHS
         if(fieldValue == None):
             fieldValueText=xlator['codeVarFieldRHS_Str'](fieldValue, convertedType, fieldOwner, field['paramList'], xlator)
            # print "                            RHS none: ", fieldValueText
@@ -995,7 +991,7 @@ def fetchListOfStructsToImplement(classes, tags):
     classList=sortClassesForDependancies(classes, classList)
     return classList
 
-def codeOneStruct(classes, tags, constFieldAccs, className, xlator):
+def codeOneStruct(classes, tags, constFieldCode, className, xlator):
     global currentObjName
     global structsNeedingModification
     cdlog(2, "COMPILING: " + className)
@@ -1026,7 +1022,7 @@ def codeOneStruct(classes, tags, constFieldAccs, className, xlator):
         elif(implMode and implMode[:9]=="implement"):
             parentClass='!' + implMode[10:]
         [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', xlator)
-        structCode+= constFieldAccs[progSpec.baseStructName(className)]
+        structCode+= constFieldCode
         LangFormOfObjName = progSpec.flattenObjectName(className)
         [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, LangFormOfObjName, structCode)
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
@@ -1048,7 +1044,7 @@ def codeAllNonGlobalStructs(classes, tags, xlator):
         currentObjName=className
         CodeDogAddendumsAcc=''
         [needsFlagsVar, strOut, CodeDogAddendums]=codeFlagAndModeFields(classes, className, tags, xlator)
-        objectNameBase=progSpec.baseStructName(className)
+        objectNameBase=progSpec.flattenObjectName(className) #progSpec.baseStructName(className)
         if not objectNameBase in constFieldAccs: constFieldAccs[objectNameBase]=""
         constFieldAccs[objectNameBase]+=strOut
         CodeDogAddendumsAcc+=CodeDogAddendums
@@ -1060,7 +1056,7 @@ def codeAllNonGlobalStructs(classes, tags, xlator):
         currentObjName=''
 
     for className in structsToImplement:
-        classRecord = codeOneStruct(classes, tags, constFieldAccs, className, xlator)
+        classRecord = codeOneStruct(classes, tags, constFieldAccs[progSpec.flattenObjectName(className)], className, xlator)
         if classRecord != None:
             fileSpecs[className]=classRecord
     return fileSpecs
@@ -1227,7 +1223,6 @@ def clearBuild():
     global libInterfacesText
     global libInitCodeAcc
     global libDeinitCodeAcc
-    global fieldNamesAlreadyUsed
     global StaticMemberVars
     global globalFuncDeclAcc
     global globalFuncDefnAcc
@@ -1235,7 +1230,6 @@ def clearBuild():
 
     localVarsAllocated = []
     localArgsAllocated = []
-    fieldNamesAlreadyUsed={}
     currentObjName=''
     libInterfacesText=''
     libInitCodeAcc=''

@@ -28,13 +28,13 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
 
         switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
-            /-returnVal = GLOBAL.static_Global.appFuncs.gui.pointerDown(cr, scrollX + eventX, scrollY + eventY);
+            /-returnVal = GLOBAL.static_Global.thisApp.gui.pointerDown(cr, scrollX + eventX, scrollY + eventY);
             return true;
         case MotionEvent.ACTION_MOVE:
-            /-returnVal = GLOBAL.static_Global.appFuncs.gui.pointerMoved(cr, scrollX + eventX, scrollY + eventY);
+            /-returnVal = GLOBAL.static_Global.thisApp.gui.pointerMoved(cr, scrollX + eventX, scrollY + eventY);
             break;
         case MotionEvent.ACTION_UP:
-            /-returnVal = GLOBAL.static_Global.appFuncs.gui.pointerUp();
+            /-returnVal = GLOBAL.static_Global.thisApp.gui.pointerUp();
             break;
         case MotionEvent.ACTION_CANCEL:
             /-
@@ -89,7 +89,7 @@ struct GUI: implMode="inherit:LinearLayout" {
         frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
 /-        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
         GLOBAL.static_Global.setContentView(frame);
-        GLOBAL.static_Global.appFuncs.createAppArea(frame);
+        GLOBAL.static_Global.thisApp.createAppArea(frame);
     } %>
 
     me uint32: GUI_Run() <- <% {
@@ -129,7 +129,7 @@ struct timeStringer{
 
 struct GLOBAL{
     me SubMenu: parentMenu
-    me thisApp: appFuncs
+    me APP: thisApp
     me AssetManager: assetManager
     me void: close_window() <- {
          /- gtk_main_quit()
@@ -163,13 +163,13 @@ struct GLOBAL{
 
     me boolean: onCreateOptionsMenu(me Menu: androidMenu) <- {
         super.onCreateOptionsMenu(androidMenu)
-        appFuncs.createAppMenu(appFuncs.gui.frame)
+        thisApp.createAppMenu(thisApp.gui.frame)
         addAndroidMenu(androidMenu)
         return (true)
     }
 
     me void: addAndroidMenu(me Menu: androidMenu) <- {
-        withEach thisSubMenu in appFuncs.menubar.items:{
+        withEach thisSubMenu in thisApp.menubar.items:{
             if (thisSubMenu.items.size()==0){
                 androidMenu.add(thisSubMenu.name)
             }
@@ -196,7 +196,7 @@ struct GUI: implMode="inherit:LinearLayout"{
     me void: setCallback() <- <%!%G %>
     me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenubar, me string: text) <- {
         me ourSubMenu:: subMenu(text)
-        GLOBAL.static_Global.appFuncs.menubar.items.add(subMenu)
+        GLOBAL.static_Global.thisApp.menubar.items.add(subMenu)
         return(subMenu)
     }
     me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
@@ -242,8 +242,8 @@ struct GUI_ctxt: ctxTag="Android" Platform='Android' Lang='Java' LibReq="swing" 
 /-    me void: renderFrame() <- <%!repaint()%>
 }
 
-struct thisApp: implMode="inherit:LinearLayout"{
-    me none: thisApp() <- {super(GLOBAL.static_Global)}
+struct APP: implMode="inherit:LinearLayout"{
+    me none: APP() <- {super(GLOBAL.static_Global)}
     me ourSubMenu:: menubar("menubar")
 }
 

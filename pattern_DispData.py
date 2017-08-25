@@ -291,7 +291,7 @@ struct widget::dash::ptrToItem {
 
     void: update(me string: Label, me string: textValue) <- {
         refHidden <- 1
-        print("PTRField:", Label, ", ", textValue, "\\n")
+        /-print("PTRField:", Label, ", ", textValue, "\\n")
         refedItem.update(90, 150, Label, textValue)
     }
 

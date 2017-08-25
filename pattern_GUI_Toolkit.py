@@ -5,9 +5,9 @@ import codeDogParser
 
 
 def apply(classes, globalTags):
-    progSpec.appendToStringTagValue(globalTags, 'initCode', ' Allocate(appFuncs.gui) \n appFuncs.gui.GUI_Init()')
-    progSpec.appendToStringTagValue(globalTags, 'runCode', 'appFuncs.gui.GUI_Run()')
-    progSpec.appendToStringTagValue(globalTags, 'deinitCode', 'appFuncs.gui.GUI_Deinit()')
+    progSpec.appendToStringTagValue(globalTags, 'initCode', ' Allocate(thisApp.gui) \n thisApp.gui.GUI_Init()')
+    progSpec.appendToStringTagValue(globalTags, 'runCode', 'thisApp.gui.GUI_Run()')
+    progSpec.appendToStringTagValue(globalTags, 'deinitCode', 'thisApp.gui.GUI_Deinit()')
 
     progSpec.setFeaturesNeeded(globalTags, ['GUI_ToolKit'])
 

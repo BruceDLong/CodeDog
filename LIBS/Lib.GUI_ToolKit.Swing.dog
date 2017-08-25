@@ -40,7 +40,7 @@ struct CustomMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="s
     me void: mousePressed(me MouseEvent: e)<-     {
         me float: eventX <- e.getX()
         me float: eventY <- e.getY()
-        /-GLOBAL.static_Global.appFuncs.gui.pointerDown(GLOBAL.static_Global.drawing_area, eventX, eventY)
+        /-GLOBAL.static_Global.thisApp.gui.pointerDown(GLOBAL.static_Global.drawing_area, eventX, eventY)
     }
     me void: mouseReleased(me MouseEvent: e)<-     {
         me float: eventX <- e.getX()
@@ -87,8 +87,8 @@ struct GUI {
         JFrame frame = new JFrame(title);
         frame.setSize(1000, 700);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        GLOBAL.static_Global.appFuncs.createAppMenu(frame);
-        GLOBAL.static_Global.appFuncs.createAppArea(frame);
+        GLOBAL.static_Global.thisApp.createAppMenu(frame);
+        GLOBAL.static_Global.thisApp.createAppArea(frame);
         frame.setVisible(true);
     } %>
 
@@ -108,21 +108,21 @@ struct GUI {
 
     me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <%  {
         JMenuItem menuitem = new JMenuItem(label);
-	ParentMenu.add(menuitem);
-	ParentMenu.setVisible(true);
+    ParentMenu.add(menuitem);
+    ParentMenu.setVisible(true);
 
         return(menuitem);
     } %>
 
     me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%  {
         JMenu SubMenu = new JMenu(label);
-	ParentMenu.add(SubMenu);
+    ParentMenu.add(SubMenu);
         return(SubMenu);
     } %>
 
     me GUI_menu: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label) <- <%  {
         JMenu SubMenu = new JMenu(label);
-	ParentMenu.add(SubMenu);
+    ParentMenu.add(SubMenu);
         return(SubMenu);
     } %>
 }
@@ -156,7 +156,7 @@ struct timeStringer{
 struct INK_Image{me BufferedImage: INK_Image}
 struct GLOBAL{
 
-    me thisApp: appFuncs
+    me APP: thisApp
 
     /- DRAWING ROUTINES:
 
@@ -227,4 +227,3 @@ struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implM
     me void: renderFrame() <- <%!repaint()%>
     me void: rectangle() <- <%!%0.gr.drawRect(%1, %2, %3, %4)%>
 }
-

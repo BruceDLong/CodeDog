@@ -4,7 +4,7 @@
 import sys
 import re
 
-MaxLogLevelToShow = 2
+MaxLogLevelToShow = 1
 
 storeOfBaseTypesUsed={} # Registry of all types used
 
