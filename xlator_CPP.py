@@ -199,6 +199,7 @@ def getEnumStr(fieldName, enumList):
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
     convertedIdxType = ""
+    print containerType, name
     if containerType=='deque':
         if name=='at' or name=='insert': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
