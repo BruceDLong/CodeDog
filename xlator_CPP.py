@@ -144,6 +144,7 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     return ['','']
 
 def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
+    #TODO: make test case
     # Returns left and right text decorations for both LHS and RHS of assignment
     if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
     if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['','',  '','']
@@ -604,6 +605,7 @@ struct GLOBAL{
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
+    #TODO: make test case
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):
@@ -703,14 +705,16 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
+def codeVarFieldRHS_Str( convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
+    #TODO: make test case
     if paramList!=None:
         [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
         fieldValueText += CPL
     return fieldValueText
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
+    #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
         defn = indent + convertedType + ' ' + fieldName +';\n'

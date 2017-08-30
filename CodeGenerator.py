@@ -552,6 +552,7 @@ def codeAction(action, indent, xlator):
         RHS = RHS_leftMod+S2+RHS_rightMod
         cdlog(5, "Assignment: {} = {}".format(LHS, RHS))
         if not isinstance (typeSpec, dict):
+            #TODO: make test case
             print 'Problem: typeSpec is', typeSpec, '\n';
             LHS_FieldType='string'
         else: LHS_FieldType=typeSpec['fieldType']
@@ -840,11 +841,12 @@ def codeStructFields(classes, className, tags, indent, xlator):
 
         # CALCULATE RHS
         if(fieldValue == None):
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldValue, convertedType, fieldOwner, field['paramList'], xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](convertedType, fieldOwner, field['paramList'], xlator)
            # print "                            RHS none: ", fieldValueText
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, basestring):
                 fieldValueText = ' = "'+ fieldValue + '"'
+                #TODO:  make test case
             else:
                 fieldValueText = " = "+ xlator['codeExpr'](fieldValue, xlator)[0]
            # print "                            RHS const: ", fieldValueText
