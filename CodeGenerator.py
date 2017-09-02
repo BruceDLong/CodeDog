@@ -66,7 +66,7 @@ def CheckFunctionsLocalVarArgList(itemName):
 def CheckObjectVars(objName, itemName, level):
     #print "Searching",objName,"for", itemName
     ObjectDef =  progSpec.findSpecOf(globalClassStore[0], objName, "struct")
-    if ObjectDef==None: 
+    if ObjectDef==None:
         #print "WARNING: Model def not found."
         return 0
     retVal=None
@@ -307,7 +307,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
                    #print "TESTTYPES:", fType, progSpec.fieldTypeKeyword(typeSpecOut['fieldType'])
-                else: 
+                else:
                     print "WARNING: TYPESPEC IS ", typeSpecOut, "for ", fType + '::' + name
                     #print "typeSpecIn: ", typeSpecIn
 
@@ -556,7 +556,7 @@ def codeAction(action, indent, xlator):
             LHS_FieldType='string'
         else: LHS_FieldType=typeSpec['fieldType']
 
-        if LHS == 'dependantItems[key]': print LHS, "'"+assignTag+"'", LHS_FieldType
+        if LHS == 'dependentItems[key]': print LHS, "'"+assignTag+"'", LHS_FieldType
         if assignTag == '':
             if LHS_FieldType=='flag':
                 divPoint=startPointOfNamesLastSegment(LHS)
@@ -578,7 +578,7 @@ def codeAction(action, indent, xlator):
                 setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
                 actionText=indent + setBits
             else:
-                if LHS == 'dependantItems[key]': print LHS, "'"+str(AltIDXFormat)+"'"
+                if LHS == 'dependentItems[key]': print LHS, "'"+str(AltIDXFormat)+"'"
                 if AltIDXFormat!=None:
                     # Handle special forms of assignment such as LVal(idx, RVal)
                     actionText = xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsType)
@@ -586,7 +586,7 @@ def codeAction(action, indent, xlator):
                 if actionText=="":
                     # Handle the normal assignment case
                     actionText = indent + LHS + " = " + RHS + ";\n"
-            if LHS == 'dependantItems[key]': print LHS, "'"+actionText+"'"
+            if LHS == 'dependentItems[key]': print LHS, "'"+actionText+"'"
         else:
             if(assignTag=='deep'):
                 actionText = indent + LHS + " = " + RHS + ";\n"

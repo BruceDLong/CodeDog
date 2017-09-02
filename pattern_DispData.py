@@ -68,6 +68,7 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
     if progSpec.typeIsPointer(typeSpec) and skipFlags != 'skipPtr':  # Header for a POINTER
         fieldName+='Ptr'
         updateFuncText+="        "+fieldName+'.update('+fieldLabel+', data.'+fieldRef+'.mySymbol(data.'+fieldRef+'))\n'
+        updateFuncText+="        "+fieldName+'.isHidden<-true\n'
         structText += "    "+owner+" widget::dash::ptrToItem: "+fieldName+"\n"
 
     elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
@@ -112,7 +113,7 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
     setPosFuncText+="        "+fieldName+'.setPos(x,y)' + '\n        y <- y + '+fieldName+'.height\n'
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
-    handleClicksFuncText = '            '+fieldName+'.handleClicks(Widget, event)'
+    handleClicksFuncText = '            '+fieldName+'.primaryClick(event)'
     return [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]
 
 #---------------------------------------------------------------  DUMP MAKING CODE
@@ -150,24 +151,31 @@ def EncodeDumpFunction(classes, className, dispMode):
 
     if(dispMode=='draw' or dispMode=='both'):
         setPosFuncTextAcc += '\n        extX <- posX+width+20; extY <- posY+20\n'
+        countOfRefs=0
         for field in modelRef['fields']:
             typeSpec=field['typeSpec']
             fldCat=progSpec.fieldsTypeCategory(typeSpec)
             if fldCat=='func': continue
             if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
                 fieldName=field['fieldName']
+                declSymbolStr='    '
+                if(countOfRefs==0):declSymbolStr+='me string: '
+                countOfRefs+=1
                 [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode(
                     'our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
-                structTextAcc   += structText
-                updateFuncText = ('    if(data.'+fieldName+' != NULL)'+
-                                    '{\n        Allocate('+fieldName+')\n'+
-                                    updateFuncText+
-                                    '\n        dashBoard.addDependant( data.'+fieldName+'.mySymbol(data.'+fieldName+'), '+fieldName+', '+fieldName+'Ptr.refHidden)'+
-                                    '\n    } else {'+fieldName+' <- NULL}\n')
+                structTextAcc += structText
+                tempFuncText = updateFuncText
+                updateFuncText = declSymbolStr+'mySymbol <- data.'+fieldName+'.mySymbol(data.'+fieldName+')\n'
+                updateFuncText += (  '    if(data.'+fieldName+' != NULL){\n'+
+                                    '        if(!dashBoard.dependentIsRegistered(mySymbol)){'
+                                    '\n            Allocate('+fieldName+')\n'+
+                                    tempFuncText+
+                                    '\n            dashBoard.addDependent(mySymbol, '+fieldName+')'+
+                                    '\n        }\n    } else {'+fieldName+' <- NULL}\n')
                 updateFuncTextPart2Acc += updateFuncText
-                setPosFuncTextAcc      += '    if('+fieldName+' != NULL){\n'+fieldName+'.setPos(extX,extY)' + '\n        extY <- extY + '+fieldName+'.height\n'+'\n    }\n'
+                setPosFuncTextAcc      += '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.setPos(extX,extY)' + '\n        extY <- extY + '+fieldName+'.height\n'+'\n    }\n'
             #    drawFuncTextPart2Acc   += '    if('+fieldName+' != NULL){\n'+drawFuncText+'\n    }\n'
-                handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL){\n'+handleClicksFuncText+'\n    }\n'
+                handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
 
         Code='''
 struct widget::dash::display_'''+className+'''{
@@ -198,23 +206,21 @@ struct widget::dash::display_'''+className+'''{
         height <- y-posY
     }
 
-    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
-        if(skipEvents!=0){return(false)}
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        if(skipEvents or isHidden){return(false)}
         me int: eventX <- event.x
         me int: eventY <- event.y
     /-    if(isTouchingMe(eventX, eventY)){
-            if(event.type==4){ /-GDK_BUTTON_PRESS){
-                if( header.isTouchingMe(eventX, eventY)){
-                    if(displayMode==headerOnly){displayMode <- fullDisplay}
-                    else if(displayMode==fullDisplay){displayMode <- headerOnly}
-                } else {
-    '''+handleClicksFuncTextAcc+'''
-                }
+            if( header.isTouchingMe(eventX, eventY)){
+                if(displayMode==headerOnly){displayMode <- fullDisplay}
+                else if(displayMode==fullDisplay){displayMode <- headerOnly}
+            } else {
+'''+handleClicksFuncTextAcc+'''
             }
 
-    '''+handleClicksFuncTxtAcc2+'''
+'''+handleClicksFuncTxtAcc2+'''
 
-        return(false)
+        return(true)
     }
 
     void: draw(me GUI_ctxt: cr) <- {
@@ -287,11 +293,13 @@ struct widget::dash::dataField {
 struct widget::dash::ptrToItem {
     me widget::dash::dataField: refedItem
     me bool: refHidden
+    me string: symbol
     our widget::dash: dashPtr
 
     void: update(me string: Label, me string: textValue) <- {
+        symbol <- textValue
         refHidden <- 1
-        /-print("PTRField:", Label, ", ", textValue, "\\n")
+        dashPtr<-dashBoard.dependentIsRegistered(textValue)
         refedItem.update(90, 150, Label, textValue)
     }
 
@@ -299,19 +307,23 @@ struct widget::dash::ptrToItem {
         posX <- x; posY <- y;
         refedItem.setPos(x, y)
         height <- refedItem.height
-    }
-
-    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
-        if(skipEvents!=0){return(false)}
-        if(!isTouchingMe(event.x, event.y)){return(false)}
-        if(event.type==4){
-            if(refHidden){refHidden<-false}
-            else {refHidden<-true}
+        width <- 150
+        dashPtr <- dashBoard.dependentIsRegistered(symbol)
+        if((!refHidden) and dashPtr!=NULL and dashPtr.isHidden){
+            dashPtr.isHidden<-false
         }
     }
 
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        if(skipEvents!=0){return(false)}
+        if(!isTouchingMe(event.x, event.y)){return(false)}
+        if(refHidden){refHidden<-false}
+        else {refHidden<-true}
+        return(true)
+    }
+
     void: draw(me GUI_ctxt: cr) <- {
-            refedItem.draw(cr)
+        refedItem.draw(cr)
 
     }
 }
@@ -348,22 +360,20 @@ struct widget::dash::listOfItems {
         height <- y-posY
     }
 
-    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
+   me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         if(skipEvents!=0){return(false)}
         me int: eventX <- event.x
         me int: eventY <- event.y
      /-   if(!isTouchingMe(eventX, eventY)){return(false)}
-        if(event.type==4){ /-GDK_BUTTON_PRESS){
-            if( header.isTouchingMe(eventX, eventY)){
-                if(displayMode==headerOnly){displayMode <- fullDisplay}
-                else if(displayMode==fullDisplay){displayMode <- headerOnly}
-            } else {
-                withEach element in elements:{
-                    element.handleClicks(Widget, event)
-                }
+        if( header.isTouchingMe(eventX, eventY)){
+            if(displayMode==headerOnly){displayMode <- fullDisplay}
+            else if(displayMode==fullDisplay){displayMode <- headerOnly}
+        } else {
+            withEach element in elements:{
+                element.primaryClick(event)
             }
         }
-        return(false)
+        return(true)
     }
 
     void: draw(me GUI_ctxt: cr) <- {
