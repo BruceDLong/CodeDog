@@ -131,7 +131,7 @@ struct widget{
     me bool: unfocused(their GUI_PointerEvent: event) <- {return(false)}
 
     bool: isTouchingMe(me int: x, me int: y) <- {
-        return ((x >= posX) and (x < posX + width) and (y-20 >= posY) and (y-20 < posY + height))
+        return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
     }
     void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
         posX <- PosX

@@ -174,13 +174,13 @@ struct GTK_eventDispatcher{
   /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     /- Also: timer, data and user events
 
-    me void: registerSelfAsTheEventDispatcher() <- <%{
-     /-   g_signal_connect (window, "expose_event",      G_CALLBACK(expose_event), NULL);
-     /-   g_signal_connect (window, "configure_event",   G_CALLBACK(configure_event), NULL);
-        g_signal_connect (window, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
-        g_signal_connect (window, "button_press_event",  G_CALLBACK(button_press_event), NULL);
+    me void: registerWidgetForEventDispatcher(me GUI_item: widget) <- <%{
+     /-   g_signal_connect (widget, "expose_event",      G_CALLBACK(expose_event), NULL);
+     /-   g_signal_connect (widget, "configure_event",   G_CALLBACK(configure_event), NULL);
+        g_signal_connect (widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
+        g_signal_connect (widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
 
-        gtk_widget_set_events (window, GDK_EXPOSURE_MASK
+        gtk_widget_set_events (widget, GDK_EXPOSURE_MASK
              | GDK_LEAVE_NOTIFY_MASK
              | GDK_BUTTON_PRESS_MASK
              | GDK_POINTER_MOTION_MASK
@@ -382,7 +382,7 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
     gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
 
-    EventDispatcher.registerSelfAsTheEventDispatcher();
+    /-EventDispatcher.registerWidgetForEventDispatcher();
     thisApp.createAppArea(frame);
 
 
