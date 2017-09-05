@@ -110,9 +110,9 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
-    setPosFuncText+="        "+fieldName+'.setPos(x,y)' + '\n        y <- y + '+fieldName+'.height\n'
+    setPosFuncText+="        "+fieldName+'.setPos(x,y,extY)' + '\n        y <- y + '+fieldName+'.height\n        extX<-max(extX, '+fieldName+'.extX)\n        width<-max(width, '+fieldName+'.width)\n'
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
-    handleClicksFuncText = '            '+fieldName+'.handleClicks(Widget, event)'
+    handleClicksFuncText = '            '+fieldName+'.primaryClick(event)'
     return [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]
 
 #---------------------------------------------------------------  DUMP MAKING CODE
@@ -149,25 +149,46 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
-        setPosFuncTextAcc += '\n        extX <- posX+width+20; extY <- posY+20\n'
+        setPosFuncTextAcc += '\n        me int:depX <- extX+30; me int:depY <- extY+100\n'
+        countOfRefs=0
         for field in modelRef['fields']:
             typeSpec=field['typeSpec']
             fldCat=progSpec.fieldsTypeCategory(typeSpec)
             if fldCat=='func': continue
             if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
                 fieldName=field['fieldName']
+                declSymbolStr='    '
+                if(countOfRefs==0):declSymbolStr+='me string: '
+                countOfRefs+=1
                 [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode(
                     'our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
-                structTextAcc   += structText
-                updateFuncText = ('    if(data.'+fieldName+' != NULL)'+
-                                    '{\n        Allocate('+fieldName+')\n'+
-                                    updateFuncText+
-                                    '\n        dashBoard.addDependant( data.'+fieldName+'.mySymbol(data.'+fieldName+'), '+fieldName+', '+fieldName+'Ptr.refHidden)'+
-                                    '\n    } else {'+fieldName+' <- NULL}\n')
+                structTextAcc += structText
+                tempFuncText = updateFuncText
+                updateFuncText = declSymbolStr+'mySymbol <- data.'+fieldName+'.mySymbol(data.'+fieldName+')\n'
+                updateFuncText += (  '    if(data.'+fieldName+' != NULL){\n'+
+                                    '        if(!dashBoard.dependentIsRegistered(mySymbol)){'
+                                    '\n            Allocate('+fieldName+')\n'+
+                                    tempFuncText+
+                                    '\n            dashBoard.addDependent(mySymbol, '+fieldName+')'+
+                                    '\n        }\n    } else {'+fieldName+' <- NULL}\n')
                 updateFuncTextPart2Acc += updateFuncText
-                setPosFuncTextAcc      += '    if('+fieldName+' != NULL){\n'+fieldName+'.setPos(extX,extY)' + '\n        extY <- extY + '+fieldName+'.height\n'+'\n    }\n'
-            #    drawFuncTextPart2Acc   += '    if('+fieldName+' != NULL){\n'+drawFuncText+'\n    }\n'
-                handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL){\n'+handleClicksFuncText+'\n    }\n'
+                setPosFuncTextAcc      += '''
+    if(<fieldName> != NULL and !<fieldName>Ptr.refHidden){
+        <fieldName>.setPos(depX,depY, extY)
+        extX <- max(extX, <fieldName>.extX)
+        extY <- extY + <fieldName>.height
+        depY <- extY+100
+        me int: fromX<fieldName> <- <fieldName>Ptr.posX+135
+        me int: fromY<fieldName> <- <fieldName>Ptr.posY+12
+        me int: smallToX<fieldName> <- <fieldName>.posX
+        me int: largeToX<fieldName> <- <fieldName>.posX + <fieldName>.width
+        me int: smallToY<fieldName> <- <fieldName>.posX
+        me int: largeToY<fieldName> <- <fieldName>.posY + <fieldName>.height
+        our decor::arrow:: arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
+        dashBoard.decorations.pushLast(arrow)
+    }
+'''.replace('<fieldName>', fieldName)
+                handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
 
         Code='''
 struct widget::dash::display_'''+className+'''{
@@ -185,36 +206,39 @@ struct widget::dash::display_'''+className+'''{
 '''+updateFuncTextPart2Acc+'''
     }
 
-    void: setPos(me int:x, me int:y) <- {
+    void: setPos(me int:x, me int:y, me int: ExtY) <- {
+        extY <- ExtY
         posX <- x; posY <- y;
-        header.setPos(x,y)
+        header.setPos(x,y,0)
+        isHidden<-false
+        width <- header.width
         y <- y+header.height
+        extX <- header.extX
         if(displayMode!=headerOnly){
             x <- x+10    /- Indent fields in a struct
 '''+setPosFuncTextAcc+'''
+            width <- width+10
         }
         y <- y+5
-        width <- 150
         height <- y-posY
     }
 
-    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
-        if(skipEvents!=0){return(false)}
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        if(isHidden){return(false)}
         me int: eventX <- event.x
         me int: eventY <- event.y
     /-    if(isTouchingMe(eventX, eventY)){
-            if(event.type==4){ /-GDK_BUTTON_PRESS){
-                if( header.isTouchingMe(eventX, eventY)){
-                    if(displayMode==headerOnly){displayMode <- fullDisplay}
-                    else if(displayMode==fullDisplay){displayMode <- headerOnly}
-                } else {
-    '''+handleClicksFuncTextAcc+'''
-                }
+            if( header.isTouchingMe(eventX, eventY)){
+                if(displayMode==headerOnly){displayMode <- fullDisplay}
+                else if(displayMode==fullDisplay){displayMode <- headerOnly}
+            } else {
+'''+handleClicksFuncTextAcc+'''
             }
 
-    '''+handleClicksFuncTxtAcc2+'''
+'''+handleClicksFuncTxtAcc2+'''
 
-        return(false)
+        return(true)
     }
 
     void: draw(me GUI_ctxt: cr) <- {
@@ -256,125 +280,16 @@ struct GLOBAL{
         if(dispMode=='draw' or dispMode=='both'):
             CODE+="""
     const int: fontSize <- 10
-}
 
-struct widget::dash{
-    me int: extX
-    me int: extY
-    void: activatePropertyEditor()<- {}
-}
-
-struct widget::dash::dataField {
-    me string: label
-    me string: value
-    me int: midPos
-    void: update(me int:MidPos, me int:w, me string: Label, me string: Value) <- {
-        midPos<-MidPos; label<-Label; value<-Value;
-    }
-
-    void: setPos(me int:x, me int:y) <- {
-        posX <- x; posY <- y;
-        height <- 15
-        width <- 150
-    }
-
-    void: draw(me GUI_ctxt: cr) <- {
-        renderText(cr, label, "Ariel",  fontSize, posX, posY+15)
-        renderText(cr, value, "Ariel",  fontSize, posX+midPos, posY+15)
+    me int: intersectPoint(me int:outsidePt, me int:smallPt,me int: largePt) <- {
+        me int: ret
+        if(outsidePt<smallPt){ret<-smallPt}
+        else if(outsidePt>largePt){ret<-largePt}
+        else{ret<-outsidePt}
+        return(ret)
     }
 }
 
-struct widget::dash::ptrToItem {
-    me widget::dash::dataField: refedItem
-    me bool: refHidden
-    our widget::dash: dashPtr
-
-    void: update(me string: Label, me string: textValue) <- {
-        refHidden <- 1
-        /-print("PTRField:", Label, ", ", textValue, "\\n")
-        refedItem.update(90, 150, Label, textValue)
-    }
-
-    void: setPos(me int:x, me int:y) <- {
-        posX <- x; posY <- y;
-        refedItem.setPos(x, y)
-        height <- refedItem.height
-    }
-
-    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
-        if(skipEvents!=0){return(false)}
-        if(!isTouchingMe(event.x, event.y)){return(false)}
-        if(event.type==4){
-            if(refHidden){refHidden<-false}
-            else {refHidden<-true}
-        }
-    }
-
-    void: draw(me GUI_ctxt: cr) <- {
-            refedItem.draw(cr)
-
-    }
-}
-
-
-struct widget::dash::listOfItems {
-    me mode[headerOnly, fullDisplay, noZeros]: displayMode
-    me widget::dash::dataField: header
-    our widget::dash[list]: elements
-
-    void: update(me string: Label, me string: textValue) <- {
-        header.update(90, 150, Label, textValue)
-        elements.clear()
-        displayMode<-headerOnly
-    }
-
-    void: updatePush(our widget::dash: element) <- {
-        elements.pushLast(element)
-    }
-
-    void: setPos(me int:x, me int:y) <- {
-        posX <- x; posY <- y;
-        header.setPos(x, y)
-        y <- y+header.height
-        if(displayMode!=headerOnly){
-            x <- x+8
-            withEach element in elements:{
-                element.setPos(x,y)
-
-                y <- y+element.height
-            }
-        }
-        width <- 150
-        height <- y-posY
-    }
-
-    me bool: handleClicks(me GUI_item: Widget, their ButtonEvent: event) <- {
-        if(skipEvents!=0){return(false)}
-        me int: eventX <- event.x
-        me int: eventY <- event.y
-     /-   if(!isTouchingMe(eventX, eventY)){return(false)}
-        if(event.type==4){ /-GDK_BUTTON_PRESS){
-            if( header.isTouchingMe(eventX, eventY)){
-                if(displayMode==headerOnly){displayMode <- fullDisplay}
-                else if(displayMode==fullDisplay){displayMode <- headerOnly}
-            } else {
-                withEach element in elements:{
-                    element.handleClicks(Widget, event)
-                }
-            }
-        }
-        return(false)
-    }
-
-    void: draw(me GUI_ctxt: cr) <- {
-        header.draw(cr)
-        if(displayMode!=headerOnly){
-            withEach element in elements:{
-                element.draw(cr)
-            }
-        }
-    }
-}
 
     """
 

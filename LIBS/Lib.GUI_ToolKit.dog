@@ -22,7 +22,7 @@ struct GUI_frame{}
 struct GUI_ScrollingWindow{}
 struct GUI_callback{}
 struct GUI_MotionEvent{}
-struct ButtonEvent{}
+struct GUI_ButtonEvent{}
 struct INK_Image{}
 
 struct GUI{
@@ -75,33 +75,104 @@ struct App{
     me void: createStatusBar(me GUI_frame: frame) <- {}
 }
 
+/------------------------ Widgets and events
+
+struct GUI_PointerEvent{}
+struct GUI_ButtonEvent{}
+struct GUI_KeyboardEvent{}
+struct GUI_WindowEvent{}
+struct GUI_DataEvent{}
+struct GUI_TimeEvent{}
+struct GUI_UserEvent{}
+struct GUI_DrawEvent{}
 
 
-/------------------------ CANVAS
+/- decor(ations) are like light weight widgets. They have only draw().
+
+struct decor{
+    void: draw(me GUI_ctxt: cr) <- {}
+}
+
+struct decor::arrow{
+    me int: startX
+    me int: startY
+    me int: endX
+    me int: endY
+    void: draw(me GUI_ctxt: cr) <- {
+        me double: tipLength <- 10
+        me double: tipAngle <- 0.35
+
+        me double: angle <- atan2(endY - startY, endX - startX) + 3.14159265359
+
+        me double: x1 <- endX + tipLength * cos(angle - tipAngle)
+        me double: y1 <- endY + tipLength * sin(angle - tipAngle)
+        me double: x2 <- endX + tipLength * cos(angle + tipAngle)
+        me double: y2 <- endY + tipLength * sin(angle + tipAngle)
+
+        cr.moveTo(startX, startY)
+        cr.lineTo(endX, endY)
+        cr.lineTo(x1, y1)
+        cr.lineTo(x2, y2)
+        cr.lineTo(endX, endY)
+        cr.closePath()
+        cr.fillKeep()
+        cr.strokeNow()
+    }
+}
 
 struct widget{
-    me uint32: posX
-    me uint32: posY
-    me uint32: width
-    me uint32: height
-    me uint32: scale
-    me uint32: alpha
+    me int: posX
+    me int: posY
+    me int: extY
+    me int: width
+    me int: height
+    me int: scale
     me color: defaultColor
-    flag: skipEvents
+    bool: isHidden
+
+    void: setPos(me int:x, me int:y, me int: ExtY) <- {extY <- ExtY; posX<-x; posY<-y}
 
     void: draw(me GUI_ctxt: cr) <- {}
-    void: setPos(me int:x, me int:y) <- {posX<-x; posY<-y}
-    me bool: handleClicks(me GUI_item: Widget, their GUI_PointerEvent: event) <- {return(false)}
+    me bool: handleAllClicks(their GUI_ButtonEvent: event) <- {return(false)}
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {return(false)}
+    me bool: primaryDblClick(their GUI_ButtonEvent: event) <- {return(false)}
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {return(false)}
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {return(false)}
+    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {return(false)}
+    me bool: secondaryDblClick(their GUI_ButtonEvent: event) <- {return(false)}
+    me bool: secondaryDn(their GUI_ButtonEvent: event) <- {return(false)}
+    me bool: secondaryUp(their GUI_ButtonEvent: event) <- {return(false)}
+    me bool: mouseMoved(their GUI_PointerEvent: event) <- {return(false)}
+    me bool: mouseDragged(their GUI_PointerEvent: event) <- {return(false)}
+    me bool: mouseEnter(their GUI_PointerEvent: event) <- {return(false)}
+    me bool: mouseExit(their GUI_PointerEvent: event) <- {return(false)}
+    me bool: mouseWheel(their GUI_PointerEvent: event) <- {return(false)}
+    me bool: fingerSqueeze(their GUI_PointerEvent: event) <- {return(false)}
+
+    me bool: keyTyped(their GUI_KeyboardEvent: event) <- {return(false)}
+    me bool: keyDown(their GUI_KeyboardEvent: event) <- {return(false)}
+    me bool: keyUp(their GUI_KeyboardEvent: event) <- {return(false)}
+
+    me bool: windowChange(their GUI_WindowEvent: event) <- {return(false)}
+    me bool: dataUpdated(their GUI_DataEvent: event) <- {return(false)}         /- This widget's data has been updated
+    me bool: timerTick(their GUI_TimeEvent: event) <- {return(false)}           /- Timer to change data
+    me bool: tweenTick(their GUI_TimeEvent: event) <- {return(false)}           /- Timer for state-change animation frame
+    me bool: userEvent(their GUI_UserEvent: event) <- {return(false)}
+    me bool: focused(their GUI_PointerEvent: event) <- {return(false)}
+    me bool: unfocused(their GUI_PointerEvent: event) <- {return(false)}
+
+    bool: isTouchingMe(me int: x, me int: y) <- {
+        return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
+    }
     void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
         posX <- PosX
         posY <- PosY
         width <- Width
         height <- Height
         scale <- Scale
-        alpha <- Alpha
-        skipEvents <- false
     }
-    bool: isTouchingMe(me int: x, me int: y) <- {
-        return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
-    }
+}
+
+struct GLOBAL{
+    their widget::dashboard: masterWidget   /-  The widget that will handle most events.
 }

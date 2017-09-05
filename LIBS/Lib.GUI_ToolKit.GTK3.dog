@@ -22,7 +22,7 @@ LibDescription ={
     headers=[gtk/gtk.h]
 }
 
-
+/-----------------------------
 struct GUI_ctxt{their cairo_t:GUI_ctxt}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
@@ -41,8 +41,8 @@ struct GUI_callback{me GCallback: GUI_callback}
 
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-struct ButtonEvent{their GdkEventButton: ButtonEvent}
-struct ButtonEvent {
+struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
+struct GUI_ButtonEvent{
   me uint: type
  /- GdkWindow *window;
  /- gint8 send_event;
@@ -53,7 +53,19 @@ struct ButtonEvent {
   me uint: state
   me uint: button
 }
+
 struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
+struct GUI_PointerEvent{
+  me uint: type
+ /- GdkWindow *window;
+ /- gint8 send_event;
+ /- guint32 time;
+  me double: x
+  me double: y
+
+  me uint: state
+  me uint: button
+}
 
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 
@@ -105,10 +117,13 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(%0, %1, %2)%>
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
+    me void: closePath() <- <%!cairo_close_path(%0)%>
     me void: rectangle() <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
     me void: paintNow() <- <%!cairo_paint(%0)%>
     me void: strokeNow() <- <%!cairo_stroke(%0)%>
     me void: fillNow() <- <%!cairo_fill(%0)%>
+    me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
+    me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
 }
 
 struct tm{
@@ -145,6 +160,36 @@ struct timeStringer{
     } %>
 }
 
+
+struct GTK_eventDispatcher{
+    their widget::dashboard: topWidget
+    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
+    me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
+        if(event->type==GDK_BUTTON_PRESS){
+            if(event->button==1){
+                topWidget->primaryClick(event);
+            } else if(event->button==3){
+                topWidget->secondaryClick(event);
+            }
+        }
+    } %>
+    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
+  /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+    /- Also: timer, data and user events
+
+    me void: registerWidgetForEventDispatcher(me GUI_item: widget) <- <%{
+     /-   g_signal_connect (widget, "expose_event",      G_CALLBACK(expose_event), NULL);
+     /-   g_signal_connect (widget, "configure_event",   G_CALLBACK(configure_event), NULL);
+        g_signal_connect (widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
+        g_signal_connect (widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
+
+        gtk_widget_set_events (widget, GDK_EXPOSURE_MASK
+             | GDK_LEAVE_NOTIFY_MASK
+             | GDK_BUTTON_PRESS_MASK
+             | GDK_POINTER_MOTION_MASK
+             | GDK_POINTER_MOTION_HINT_MASK);
+    } %>
+}
 
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
@@ -271,6 +316,8 @@ me GUI_menu: create_TopSubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
   return SubMenu;
 } %>
 
+me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
+me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
 
 me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(%1)%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
@@ -281,18 +328,29 @@ me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
 me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
-me void: setCallback(me GUI_item: widget, me string: eventID, me GUI_callback: callback) <- <% {
-    g_signal_connect(widget, eventID.data(), G_CALLBACK (callback), NULL);
-    if(eventID=="button-press-event"){
-        gtk_widget_set_events(widget, gtk_widget_get_events(widget) | GDK_BUTTON_PRESS_MASK);
-    }
-    if(eventID=="motion-notify-event"){
-        gtk_widget_set_events(widget, gtk_widget_get_events(widget) | GDK_POINTER_MOTION_MASK);
-    }
+/--------------- Event callbacks for GTK3
+me GTK_eventDispatcher: EventDispatcher
+me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event) <- <%{
+    EventDispatcher.dispatchPointerClickEvent(event);
+} %>
+me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event) <- <%{
+    EventDispatcher.dispatchPointerMotionEvent(event);
+} %>
+me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event) <- <%{
+  /-  EventDispatcher.dispatchWindowEvent(event);
+} %>
+me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event) <- <%{
+    EventDispatcher.dispatchKeyboardEvent(event);
+} %>
+me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event) <- <%{
+  /-  EventDispatcher.dispatchWindowEvent(event);
 } %>
 
+their GtkWidget: window
+void: setMasterWidget(their widget::dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
+/--------------- Application areas
 me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
-    GtkWidget *window;
+  /-  GtkWidget *window;
     GtkWidget *topBox;
 
     window = gtk_application_window_new (app);
@@ -329,10 +387,8 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
     gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
 
-    g_signal_connect(window, "button-press-event", G_CALLBACK(handleClicks_cb), NULL);
-
+    /-EventDispatcher.registerWidgetForEventDispatcher();
     thisApp.createAppArea(frame);
-    /- gtk_container_add (GTK_CONTAINER (frame), appArea);
 
 
     /-///////////////////  A d d  S t a t u s   A r e a

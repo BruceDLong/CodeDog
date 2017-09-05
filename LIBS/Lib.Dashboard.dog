@@ -1,0 +1,240 @@
+/- CodeDog GUI Dashoard
+
+/- Widgets for constructing a dashboard
+
+featuresNeeded = [GUI_ToolKit]
+
+
+struct widget::dashboard{
+    our widget::dash[list]: children
+    our widget::dash[map string]: dependentItems
+    our decor[list]: decorations
+
+
+    our widget::dash: dependentIsRegistered(me string: key) <- {
+        our widget::dash[itr map string]: dashItr <- dependentItems.find(key)
+        if (dashItr==dependentItems.end()){return(NULL)}
+        return(dashItr.second)  /-// TODO: This can't say second. But the type of thing being returned must be compared to the type of the return parameter so the itr can be derefed.
+    }
+
+    me bool: addDependent(me string: key, our widget::dash: dashPtr) <- {
+        our widget::dash[itr map string]: dashItr <- dependentItems.find(key)
+        if (dashItr==dependentItems.end()){
+            dashPtr.isHidden <- true
+            dependentItems[key] <- dashPtr
+        }
+    }
+
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        if(! isTouchingMe(event.x, event.y)){return(false)}
+        withEach Dash in children:{
+            Dash.primaryClick(event)
+        }
+        withEach Dash in dependentItems:{
+            if(! Dash.isHidden){
+                Dash.primaryClick(event)
+            }
+        }
+        setPos(0, 0, 0)
+        markDirtyArea(drawing_area, 0,0,2000,2000)
+        return(true)
+    }
+
+    me bool: secondaryClick(their GUI_PointerEvent: event) <- {print("RIGHT BUTTON!\n"); return(true)}
+
+    void: update() <- {
+    }
+
+    void: setPos(me int:x, me int:y, me int: ExtY) <- {
+        /- ExtY tells the vertical starting position for any external items such as pointer referenced items or list items.
+        /- If there ARE such external items, then on return, extY should be the next y point down from the lowest one.
+        /- So if there are no external items extY will equal the ExtY in.
+        extY <- ExtY
+        decorations.clear()
+        width <- 10
+        height <- 10
+        withEach Dash in dependentItems:{
+            Dash.isHidden<-true
+        }
+        withEach Dash in children:{
+            extY <- Dash.posY+25
+            Dash.setPos(Dash.posX, Dash.posY, extY)
+            width<-max(width, Dash.extX)
+            height<-max(height, Dash.height+y)
+        }
+        withEach depDash in dependentItems:{
+            if(!depDash.isHidden){
+                width<-max(width, depDash.extX)
+                height<-max(height, depDash.extY)
+            }
+        }
+    }
+
+    void: draw(me GUI_ctxt: cr) <- {
+        cr.setRGBA(255, 255, 255, 255)
+        cr.rectangle(0,0, width, height)
+        cr.fillNow()
+
+        cr.moveTo(0,0); cr.lineTo(width, height); cr.setRGBA(255, 50, 50, 255); cr.strokeNow();
+
+        cr.setRGBA(0, 0, 0, 255)
+        cr.setLineWidth(2)
+        withEach Dash in children:{
+            Dash.draw(cr)
+        }
+        withEach depDash in dependentItems:{
+            if(!depDash.isHidden){
+                depDash.draw(cr)
+            }
+        }
+        withEach decoration in decorations:{
+            decoration.draw(cr)
+        }
+    }
+}
+
+struct widget::dash{
+    me int: extX
+    me int: extY
+    void: activatePropertyEditor()<- {}
+}
+
+struct widget::dash::dataField {
+    me string: label
+    me string: value
+    me int: midPos
+    void: update(me int:MidPos, me int:w, me string: Label, me string: Value) <- {
+        midPos<-MidPos; label<-Label; value<-Value;
+    }
+
+   void: setPos(me int:x, me int:y, me int: ExtY) <- {
+        extY <- ExtY
+        posX <- x; posY <- y;
+        height <- 15
+        width <- 150
+        extX <- posX+width
+       /- extY <- posY+height
+    }
+
+    void: draw(me GUI_ctxt: cr) <- {
+        renderText(cr, label, "Ariel",  fontSize, posX, posY+15)
+        renderText(cr, value, "Ariel",  fontSize, posX+midPos, posY+15)
+    }
+}
+
+struct widget::dash::ptrToItem {
+    me widget::dash::dataField: refedItem
+    me bool: refHidden
+    me string: symbol
+    our widget::dash: dashPtr
+
+    void: update(me string: Label, me string: textValue) <- {
+        symbol <- textValue
+        refHidden <- 1
+        dashPtr<-dashBoard.dependentIsRegistered(textValue)
+        refedItem.update(90, 150, Label, textValue)
+    }
+
+    void: setPos(me int:x, me int:y, me int: ExtY) <- {
+        extY <- ExtY
+        posX <- x; posY <- y;
+        refedItem.setPos(x, y, extY)
+        height <- refedItem.height
+        width <- 150
+        dashPtr <- dashBoard.dependentIsRegistered(symbol)
+        if((!refHidden) and dashPtr!=NULL and dashPtr.isHidden){
+            dashPtr.isHidden<-false
+        }
+        extX <- posX+width
+        /-extY <- posY+height
+    }
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        if(!isTouchingMe(event.x, event.y)){return(false)}
+        if(refHidden){refHidden<-false}
+        else {refHidden<-true}
+        return(true)
+    }
+
+    void: draw(me GUI_ctxt: cr) <- {
+        refedItem.draw(cr)
+
+    }
+}
+
+
+struct widget::dash::listOfItems {
+    me mode[headerOnly, fullDisplay, noZeros]: displayMode
+    me mode[vertical, horizontal]: orientation
+    me widget::dash::dataField: header
+    our widget::dash[list]: elements
+
+    void: update(me string: Label, me string: textValue) <- {
+        header.update(90, 150, Label, textValue)
+        elements.clear()
+        displayMode<-headerOnly
+    }
+
+    void: updatePush(our widget::dash: element) <- {
+        elements.pushLast(element)
+    }
+
+    void: setPos(me int:x, me int:y, me int: ExtY) <- {
+        extY <- ExtY
+        posX <- x; posY <- y; extX <- x;
+        header.setPos(x, y, extY)
+        width <- header.width
+        y <- y+header.height
+        extX <- max(extX, header.extX)
+        if(displayMode!=headerOnly){
+            if(orientation==vertical){
+                x <- x+8
+                withEach element in elements:{
+                    element.setPos(x,y,extY)
+                    extX <- max(extX, element.extX)
+                    y <- y+element.height
+                }
+                width <- extX-posX
+            } else if(orientation==horizontal){
+                me int: listX <- posX + header.width+30
+                me int: listY <- extY
+                withEach element in elements:{
+                    element.isHidden <- false
+                    element.setPos(listX,listY,extY)
+                    extY <- max(extY, element.extY)
+                    listX <- element.extX + 20
+                    extX<-element.extX
+                }
+            }
+        }
+        height <- y-posY
+    }
+
+   me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        me int: eventX <- event.x
+        me int: eventY <- event.y
+     /-   if(!isTouchingMe(eventX, eventY)){return(false)}
+        if( header.isTouchingMe(eventX, eventY)){
+            if(displayMode==headerOnly){displayMode <- fullDisplay; orientation <- vertical}
+            else if(displayMode==fullDisplay and orientation==vertical){
+                orientation<-horizontal
+            } else {displayMode <- headerOnly}
+        } else {
+            withEach element in elements:{
+                print("List Click\n")
+                element.primaryClick(event)
+            }
+        }
+        return(true)
+    }
+
+    void: draw(me GUI_ctxt: cr) <- {
+        header.draw(cr)
+        if(displayMode!=headerOnly){
+            withEach element in elements:{
+                element.draw(cr)
+            }
+        }
+    }
+}

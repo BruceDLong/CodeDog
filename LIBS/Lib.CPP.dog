@@ -7,7 +7,7 @@ interface={
     features=[System]
     CPUs     =[i386, amd64, arm7]
     libFiles=[]
-    headers=[signal.h, string, cstring, memory, cstdint, cctype, deque, map, cstdarg, iostream, fstream, sys/stat.h]
+    headers=[signal.h, string, cstring, memory, cstdint, cctype, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h]
 }
 
 initCode = "signal(SIGSEGV, reportFault)"
