@@ -111,7 +111,7 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
-    setPosFuncText+="        "+fieldName+'.setPos(x,y)' + '\n        y <- y + '+fieldName+'.height\n'
+    setPosFuncText+="        "+fieldName+'.setPos(x,y,extY)' + '\n        y <- y + '+fieldName+'.height\n        extX<-max(extX, '+fieldName+'.extX)\n        width<-max(width, '+fieldName+'.width)\n'
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
     handleClicksFuncText = '            '+fieldName+'.primaryClick(event)'
     return [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]
@@ -150,7 +150,7 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
-        setPosFuncTextAcc += '\n        extX <- posX+width+20; extY <- posY+20\n'
+        setPosFuncTextAcc += '\n        me int:depX <- extX+30; me int:depY <- extY+10\n'
         countOfRefs=0
         for field in modelRef['fields']:
             typeSpec=field['typeSpec']
@@ -173,8 +173,22 @@ def EncodeDumpFunction(classes, className, dispMode):
                                     '\n            dashBoard.addDependent(mySymbol, '+fieldName+')'+
                                     '\n        }\n    } else {'+fieldName+' <- NULL}\n')
                 updateFuncTextPart2Acc += updateFuncText
-                setPosFuncTextAcc      += '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.setPos(extX,extY)' + '\n        extY <- extY + '+fieldName+'.height\n'+'\n    }\n'
-            #    drawFuncTextPart2Acc   += '    if('+fieldName+' != NULL){\n'+drawFuncText+'\n    }\n'
+                setPosFuncTextAcc      += '''
+    if(<fieldName> != NULL and !<fieldName>Ptr.refHidden){
+        <fieldName>.setPos(depX,depY, extY)
+        extX <- max(extX, <fieldName>.extX)
+        extY <- extY + <fieldName>.height
+        depY <- extY+10
+        me int: fromX<fieldName> <- <fieldName>Ptr.posX+135
+        me int: fromY<fieldName> <- <fieldName>Ptr.posY+12
+        me int: smallToX<fieldName> <- <fieldName>.posX
+        me int: largeToX<fieldName> <- <fieldName>.posX + <fieldName>.width
+        me int: smallToY<fieldName> <- <fieldName>.posX
+        me int: largeToY<fieldName> <- <fieldName>.posY + <fieldName>.height
+        our decor::arrow:: arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
+        dashBoard.decorations.pushLast(arrow)
+    }
+'''.replace('<fieldName>', fieldName)
                 handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
 
         Code='''
@@ -193,21 +207,26 @@ struct widget::dash::display_'''+className+'''{
 '''+updateFuncTextPart2Acc+'''
     }
 
-    void: setPos(me int:x, me int:y) <- {
+    void: setPos(me int:x, me int:y, me int: ExtY) <- {
+        extY <- ExtY
         posX <- x; posY <- y;
-        header.setPos(x,y)
+        header.setPos(x,y,0)
+        width <- header.width
         y <- y+header.height
+        extX <- header.extX
         if(displayMode!=headerOnly){
             x <- x+10    /- Indent fields in a struct
 '''+setPosFuncTextAcc+'''
+            width <- width+10
         }
         y <- y+5
-        width <- 150
         height <- y-posY
+       /- extY <- posY+height
     }
 
+
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        if(skipEvents or isHidden){return(false)}
+        if(isHidden){return(false)}
         me int: eventX <- event.x
         me int: eventY <- event.y
     /-    if(isTouchingMe(eventX, eventY)){
@@ -262,129 +281,16 @@ struct GLOBAL{
         if(dispMode=='draw' or dispMode=='both'):
             CODE+="""
     const int: fontSize <- 10
-}
 
-struct widget::dash{
-    me int: extX
-    me int: extY
-    void: activatePropertyEditor()<- {}
-}
-
-struct widget::dash::dataField {
-    me string: label
-    me string: value
-    me int: midPos
-    void: update(me int:MidPos, me int:w, me string: Label, me string: Value) <- {
-        midPos<-MidPos; label<-Label; value<-Value;
-    }
-
-    void: setPos(me int:x, me int:y) <- {
-        posX <- x; posY <- y;
-        height <- 15
-        width <- 150
-    }
-
-    void: draw(me GUI_ctxt: cr) <- {
-        renderText(cr, label, "Ariel",  fontSize, posX, posY+15)
-        renderText(cr, value, "Ariel",  fontSize, posX+midPos, posY+15)
+    me int: intersectPoint(me int:outsidePt, me int:smallPt,me int: largePt) <- {
+        me int: ret
+        if(outsidePt<smallPt){ret<-smallPt}
+        else if(outsidePt>largePt){ret<-largePt}
+        else{ret<-outsidePt}
+        return(ret)
     }
 }
 
-struct widget::dash::ptrToItem {
-    me widget::dash::dataField: refedItem
-    me bool: refHidden
-    me string: symbol
-    our widget::dash: dashPtr
-
-    void: update(me string: Label, me string: textValue) <- {
-        symbol <- textValue
-        refHidden <- 1
-        dashPtr<-dashBoard.dependentIsRegistered(textValue)
-        refedItem.update(90, 150, Label, textValue)
-    }
-
-    void: setPos(me int:x, me int:y) <- {
-        posX <- x; posY <- y;
-        refedItem.setPos(x, y)
-        height <- refedItem.height
-        width <- 150
-        dashPtr <- dashBoard.dependentIsRegistered(symbol)
-        if((!refHidden) and dashPtr!=NULL and dashPtr.isHidden){
-            dashPtr.isHidden<-false
-        }
-    }
-
-    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        if(skipEvents!=0){return(false)}
-        if(!isTouchingMe(event.x, event.y)){return(false)}
-        if(refHidden){refHidden<-false}
-        else {refHidden<-true}
-        return(true)
-    }
-
-    void: draw(me GUI_ctxt: cr) <- {
-        refedItem.draw(cr)
-
-    }
-}
-
-
-struct widget::dash::listOfItems {
-    me mode[headerOnly, fullDisplay, noZeros]: displayMode
-    me widget::dash::dataField: header
-    our widget::dash[list]: elements
-
-    void: update(me string: Label, me string: textValue) <- {
-        header.update(90, 150, Label, textValue)
-        elements.clear()
-        displayMode<-headerOnly
-    }
-
-    void: updatePush(our widget::dash: element) <- {
-        elements.pushLast(element)
-    }
-
-    void: setPos(me int:x, me int:y) <- {
-        posX <- x; posY <- y;
-        header.setPos(x, y)
-        y <- y+header.height
-        if(displayMode!=headerOnly){
-            x <- x+8
-            withEach element in elements:{
-                element.setPos(x,y)
-
-                y <- y+element.height
-            }
-        }
-        width <- 150
-        height <- y-posY
-    }
-
-   me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        if(skipEvents!=0){return(false)}
-        me int: eventX <- event.x
-        me int: eventY <- event.y
-     /-   if(!isTouchingMe(eventX, eventY)){return(false)}
-        if( header.isTouchingMe(eventX, eventY)){
-            if(displayMode==headerOnly){displayMode <- fullDisplay}
-            else if(displayMode==fullDisplay){displayMode <- headerOnly}
-        } else {
-            withEach element in elements:{
-                element.primaryClick(event)
-            }
-        }
-        return(true)
-    }
-
-    void: draw(me GUI_ctxt: cr) <- {
-        header.draw(cr)
-        if(displayMode!=headerOnly){
-            withEach element in elements:{
-                element.draw(cr)
-            }
-        }
-    }
-}
 
     """
 

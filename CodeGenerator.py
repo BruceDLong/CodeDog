@@ -556,7 +556,6 @@ def codeAction(action, indent, xlator):
             LHS_FieldType='string'
         else: LHS_FieldType=typeSpec['fieldType']
 
-        if LHS == 'dependentItems[key]': print LHS, "'"+assignTag+"'", LHS_FieldType
         if assignTag == '':
             if LHS_FieldType=='flag':
                 divPoint=startPointOfNamesLastSegment(LHS)
@@ -578,7 +577,6 @@ def codeAction(action, indent, xlator):
                 setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
                 actionText=indent + setBits
             else:
-                if LHS == 'dependentItems[key]': print LHS, "'"+str(AltIDXFormat)+"'"
                 if AltIDXFormat!=None:
                     # Handle special forms of assignment such as LVal(idx, RVal)
                     actionText = xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsType)
@@ -586,7 +584,6 @@ def codeAction(action, indent, xlator):
                 if actionText=="":
                     # Handle the normal assignment case
                     actionText = indent + LHS + " = " + RHS + ";\n"
-            if LHS == 'dependentItems[key]': print LHS, "'"+actionText+"'"
         else:
             if(assignTag=='deep'):
                 actionText = indent + LHS + " = " + RHS + ";\n"
@@ -754,7 +751,7 @@ def codeConstructor(classes, ClassName, tags, xlator):
     if not ClassName in classes[0]: return ''
     cdlog(4, "Generating Constructor for: {}".format(ClassName))
     ObjectDef = classes[0][ClassName]
-    ClassName = progSpec.flattenObjectName(ClassName)
+    flatClassName = progSpec.flattenObjectName(ClassName)
     constructorInit=""
     constructorArgs=""
     copyConstructorArgs=""
@@ -792,7 +789,7 @@ def codeConstructor(classes, ClassName, tags, xlator):
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-        constructCode = xlator['codeConstructionHeader'](ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator)
+        constructCode = xlator['codeConstructionHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator)
     else: constructCode=''
     return constructCode
 

@@ -117,10 +117,13 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(%0, %1, %2)%>
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
+    me void: closePath() <- <%!cairo_close_path(%0)%>
     me void: rectangle() <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
     me void: paintNow() <- <%!cairo_paint(%0)%>
     me void: strokeNow() <- <%!cairo_stroke(%0)%>
     me void: fillNow() <- <%!cairo_fill(%0)%>
+    me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
+    me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
 }
 
 struct tm{
@@ -313,6 +316,8 @@ me GUI_menu: create_TopSubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
   return SubMenu;
 } %>
 
+me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
+me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
 
 me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(%1)%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
