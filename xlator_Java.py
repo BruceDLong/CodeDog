@@ -416,6 +416,7 @@ def codeSpecialFunc(segSpec, xlator):
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if LorR_Val=='RVAL':
+        #Next line may be cause of bug with printing modes.  remove 'not'?
         if (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap') and not(previousSegName in getSpecialArrayFormatFieldVars()):
             S= '.get(' + idx + ')'
         elif (containerType== 'string'):
@@ -430,9 +431,9 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     # Check for string A[x] = B;  If so, render A.put(B,x)
     [containerType, idxType, owner]=getContainerType(AltIDXFormat[1])
     if containerType == "ArrayList":
-        S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');'
+        S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     elif containerType == "TreeMap":
-        S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');'
+        S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     else:
         print "ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType
         exit(1)
@@ -485,7 +486,7 @@ struct GLOBAL{
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
-    if isinstance(typeSpec['fieldType'], basestring):
+    if isinstance(typeSpec['fieldType'], basestring) and typeSpec['arraySpec'] == None:
         if(fieldDef['value']):
             [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
             RHS = S2

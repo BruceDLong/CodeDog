@@ -245,8 +245,10 @@ def ExecCodeDogTest(testSpec, buildSpec):
 def runDeps(testKey):
     global buildSpec
     global testDefinitions
-    depsList = testDefinitions[testKey][2]
+    depsList=[]
     depsReportText = ""
+    if (len(testDefinitions[testKey])>2):
+        depsList = testDefinitions[testKey][2]
     for dep in depsList:
         testResult = ExecCodeDogTest(testDefinitions[dep], buildSpec)
         depsReportText +=  "        " + dep + ": "+testResult+  "\n"
