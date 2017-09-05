@@ -198,9 +198,10 @@ struct widget::dash::listOfItems {
                 width <- extX-posX
             } else if(orientation==horizontal){
                 me int: listX <- posX + header.width+30
+                me int: listY <- extY
                 withEach element in elements:{
-                    element.setPos(listX,extY,extY)
                     element.isHidden <- false
+                    element.setPos(listX,listY,extY)
                     extY <- max(extY, element.extY)
                     listX <- element.extX + 20
                     extX<-element.extX

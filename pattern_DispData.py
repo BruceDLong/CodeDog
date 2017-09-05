@@ -68,7 +68,6 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
     if progSpec.typeIsPointer(typeSpec) and skipFlags != 'skipPtr':  # Header for a POINTER
         fieldName+='Ptr'
         updateFuncText+="        "+fieldName+'.update('+fieldLabel+', data.'+fieldRef+'.mySymbol(data.'+fieldRef+'))\n'
-        updateFuncText+="        "+fieldName+'.isHidden<-true\n'
         structText += "    "+owner+" widget::dash::ptrToItem: "+fieldName+"\n"
 
     elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
@@ -150,7 +149,7 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
-        setPosFuncTextAcc += '\n        me int:depX <- extX+30; me int:depY <- extY+10\n'
+        setPosFuncTextAcc += '\n        me int:depX <- extX+30; me int:depY <- extY+100\n'
         countOfRefs=0
         for field in modelRef['fields']:
             typeSpec=field['typeSpec']
@@ -178,7 +177,7 @@ def EncodeDumpFunction(classes, className, dispMode):
         <fieldName>.setPos(depX,depY, extY)
         extX <- max(extX, <fieldName>.extX)
         extY <- extY + <fieldName>.height
-        depY <- extY+10
+        depY <- extY+100
         me int: fromX<fieldName> <- <fieldName>Ptr.posX+135
         me int: fromY<fieldName> <- <fieldName>Ptr.posY+12
         me int: smallToX<fieldName> <- <fieldName>.posX
@@ -211,6 +210,7 @@ struct widget::dash::display_'''+className+'''{
         extY <- ExtY
         posX <- x; posY <- y;
         header.setPos(x,y,0)
+        isHidden<-false
         width <- header.width
         y <- y+header.height
         extX <- header.extX
@@ -221,7 +221,6 @@ struct widget::dash::display_'''+className+'''{
         }
         y <- y+5
         height <- y-posY
-       /- extY <- posY+height
     }
 
 
