@@ -199,7 +199,7 @@ def getEnumStr(fieldName, enumList):
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
     convertedIdxType = ""
-    print containerType, name
+    #print containerType, name
     if containerType=='deque':
         if name=='at' or name=='insert': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -661,7 +661,8 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
+def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,isBackward,indent,xlator):
+    #TODO: handle isBackward
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""

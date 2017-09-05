@@ -673,8 +673,11 @@ def codeAction(action, indent, xlator):
             #print "ITERATE OVER", action['repList'][0], datastructID, containerType
             wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):containerType=wrappedTypeSpec
-
-            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType, ContainerOwner,indent,xlator)
+            if(traversalMode=='Forward' or traversalMode==None):
+                isBackward=False
+            elif(traversalMode=='Backward'):
+                isBackward=True
+            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType, ContainerOwner, isBackward,indent,xlator)
             actionText += actionTextOut
 
         if action['whereExpr']:

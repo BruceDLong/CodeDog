@@ -128,7 +128,7 @@ struct testClass{
      'actions/mapRep':       ['struct testClass{me void: runTest()<-{me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap:{print(M," ")}}}', 'PGBR:boy does every fine good '],
      'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey:{print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
      'actions/deleteMapRep': ['struct testClass{me void: runTest()<-{me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"\nwithEach MD in testMapDel:{if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}}}', 'PGBR:D-does E-every F-fine G-good '],
-     'actions/deleteListRep':['struct testClass{me void: runTest()<-{me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList:{if(TD_key==3){testDelList.erase(TD_key)}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
+     'actions/deleteListRep':['struct testClass{me void: runTest()<-{me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList:{if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
      'actions/repetitions':  ['''
 struct testClass{
     me void: runTest()<-{
@@ -146,8 +146,7 @@ struct testClass{
         withEach MK in testMapKey:{print(MK_key,"-",MK," ")}
         me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"
         withEach MD in testMapDel:{if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}
-        
-        me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList:{if(TD_key==3){testDelList.erase(TD_key)}\nelse{print(TD, " ")}}
+        me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList:{if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}
     }
 }''', 'PGBR:BB',['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep']],
 #####################################################################################################

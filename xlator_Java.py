@@ -553,7 +553,7 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
+def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, indent,xlator):
     actionText = ""
     loopCounterName=""
     containedType=containerType['fieldType']
@@ -585,7 +585,10 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
 
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     loopVarName=repName+"Idx";
-    actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + repContainer+'.size(); ' + loopVarName+' += 1){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
+    if(isBackward==False):
+        actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + repContainer+'.size(); ' + loopVarName+' += 1){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
+    else:
+        actionText += (indent + "for(int "+loopVarName+'='+repContainer+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+' ){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
     return [actionText, loopCounterName]
 
 def codeIncrement(varName):
