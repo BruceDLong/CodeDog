@@ -645,29 +645,28 @@ def isNumericType(convertedType):
     else:
         return False
 
-def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
+def codeVarFieldRHS_Str( convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
-    if(fieldValue == None):
-        if (fieldOwner=='me'):
-            if paramList!=None:
-                print "convertedType, paramList:", convertedType, paramList
-                [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
-                fieldValueText=" = new " + convertedType + CPL
+    if (fieldOwner=='me'):
+        if paramList!=None:
+            print "convertedType, paramList:", convertedType, paramList
+            [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+            fieldValueText=" = new " + convertedType + CPL
+        else:
+            print "convertedType: ", convertedType
+            if (convertedType == "String"):
+                fieldValueText=' = ""'
+            elif (convertedType.startswith("[")):
+                fieldValueText=" = " + convertedType + "()"
+            elif (convertedType == "Bool"):
+                fieldValueText=' = false'
+            elif (isNumericType(convertedType)):
+                fieldValueText=' = 0'
+            elif (convertedType == "Character"):
+                fieldValueText=' = ""'
             else:
-                print "convertedType: ", convertedType
-                if (convertedType == "String"):
-                    fieldValueText=' = ""'
-                elif (convertedType.startswith("[")):
-                    fieldValueText=" = " + convertedType + "()"
-                elif (convertedType == "Bool"):
-                    fieldValueText=' = false'
-                elif (isNumericType(convertedType)):
-                    fieldValueText=' = 0'
-                elif (convertedType == "Character"):
-                    fieldValueText=' = ""'
-                else:
-                    print convertedType, " not initialized."
-                    exit (2)
+                print convertedType, " not initialized."
+                exit (2)
     return fieldValueText
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):

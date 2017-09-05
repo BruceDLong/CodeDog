@@ -490,6 +490,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
             [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
             RHS = S2
             assignValue=' = '+ RHS
+            #TODO: make test case
         else: assignValue=''
     elif(fieldDef['value']):
         [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
@@ -497,6 +498,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
         if varTypeIsValueType(fieldType):
             assignValue=' = '+ RHS
         else:
+	    #TODO: make test case
             constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
             if (constructorExists):
                 assignValue=' = new ' + fieldType +'('+ RHS + ')'
@@ -504,8 +506,9 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
                 assignValue=' = new ' + fieldType +'();  ' + varName+' = '+RHS
     else: # If no value was given:
         #print "TYPE:", fieldType
-        if fieldDef['paramList'] != None:
+        if fieldDef['paramList'] != None:       # call constructor
             # Code the constructor's arguments
+	    #TODO: make test case
             [CPL, paramTypeList] = codeParameterList(fieldDef['paramList'], None, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
@@ -596,18 +599,19 @@ def varTypeIsValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(fieldValue, convertedType, fieldOwner, paramList, xlator):
+def codeVarFieldRHS_Str( convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
-    if(fieldValue == None):
-        if (not varTypeIsValueType(convertedType) and fieldOwner=='me'):
-            if paramList!=None:
-                [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
-                fieldValueText=" = new " + convertedType + CPL
-            else:
-                fieldValueText=" = new " + convertedType + "()"
+    if (not varTypeIsValueType(convertedType) and fieldOwner=='me'):
+        if paramList!=None:
+            #TODO: make test case
+            [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+            fieldValueText=" = new " + convertedType + CPL
+        else:
+            fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
+    # TODO: make test case
     S=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
@@ -623,9 +627,10 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
     return [S, '']
 
 def codeConstructionHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
-    copyConstructor = "    public " + ClassName + "(" + ClassName + " copyThis" +"){\n"+copyConstructorArgs+"    };\n    public "  + ClassName + "(){"+"};\n"
     withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+constructorInit+"    };\n"
-    return withArgConstructor + copyConstructor
+    copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
+    noArgConstructor = "    public "  + ClassName + "(){"+"};\n"
+    return withArgConstructor + copyConstructor + noArgConstructor
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     return "        " + fieldName+"="+defaultVal+";\n"
