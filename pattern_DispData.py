@@ -110,7 +110,10 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
-    setPosFuncText+="        "+fieldName+'.setPos(x,y,extY)' + '\n        y <- y + '+fieldName+'.height\n        extX<-max(extX, '+fieldName+'.extX)\n        width<-max(width, '+fieldName+'.width)\n'
+    setPosFuncText += ("        "+fieldName+'.setPos(x,y,extC)'
+                    + '\n        extC<-'+fieldName+'.extC'+'\n        y <- y + '+fieldName+'.height'
+                    + '\n        extX<-max(extX, '+fieldName+'.extX)'
+                    + '\n        width<-max(width, '+fieldName+'.width)\n')
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
     handleClicksFuncText = '            '+fieldName+'.primaryClick(event)'
     return [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]
@@ -149,7 +152,7 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
-        setPosFuncTextAcc += '\n        me int:depX <- extX+30; me int:depY <- extY+100\n'
+        setPosFuncTextAcc += '\n        me int:depX <- posX+width+40\n'
         countOfRefs=0
         for field in modelRef['fields']:
             typeSpec=field['typeSpec']
@@ -174,15 +177,15 @@ def EncodeDumpFunction(classes, className, dispMode):
                 updateFuncTextPart2Acc += updateFuncText
                 setPosFuncTextAcc      += '''
     if(<fieldName> != NULL and !<fieldName>Ptr.refHidden){
-        <fieldName>.setPos(depX,depY, extY)
+        <fieldName>.setPos(depX, extC, extC)
+        extC <- <fieldName>.extY
         extX <- max(extX, <fieldName>.extX)
-        extY <- extY + <fieldName>.height
-        depY <- extY+100
+        extY <- max(posY+height, <fieldName>.extY)
         me int: fromX<fieldName> <- <fieldName>Ptr.posX+135
         me int: fromY<fieldName> <- <fieldName>Ptr.posY+12
         me int: smallToX<fieldName> <- <fieldName>.posX
         me int: largeToX<fieldName> <- <fieldName>.posX + <fieldName>.width
-        me int: smallToY<fieldName> <- <fieldName>.posX
+        me int: smallToY<fieldName> <- <fieldName>.posY
         me int: largeToY<fieldName> <- <fieldName>.posY + <fieldName>.height
         our decor::arrow:: arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
         dashBoard.decorations.pushLast(arrow)
@@ -206,14 +209,17 @@ struct widget::dash::display_'''+className+'''{
 '''+updateFuncTextPart2Acc+'''
     }
 
-    void: setPos(me int:x, me int:y, me int: ExtY) <- {
-        extY <- ExtY
-        posX <- x; posY <- y;
-        header.setPos(x,y,0)
+    void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        posX <- x;
+        posY <- y;
+        extC <- extCursor
         isHidden<-false
-        width <- header.width
+        header.setPos(x,y,extC)
         y <- y+header.height
+        width <- header.width
+        height <- y-posY
         extX <- header.extX
+        extY <- max(y, extC)
         if(displayMode!=headerOnly){
             x <- x+10    /- Indent fields in a struct
 '''+setPosFuncTextAcc+'''
@@ -281,13 +287,6 @@ struct GLOBAL{
             CODE+="""
     const int: fontSize <- 10
 
-    me int: intersectPoint(me int:outsidePt, me int:smallPt,me int: largePt) <- {
-        me int: ret
-        if(outsidePt<smallPt){ret<-smallPt}
-        else if(outsidePt>largePt){ret<-largePt}
-        else{ret<-outsidePt}
-        return(ret)
-    }
 }
 
 
