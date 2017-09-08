@@ -114,6 +114,7 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
                     + '\n        extC<-'+fieldName+'.extC'
                     + '\n        y <- y + '+fieldName+'.height'
                     + '\n        extX<-max(extX, '+fieldName+'.extX)'
+                    + '\n        extY <- max(extY, '+fieldName+'.extY)'
                     + '\n        width<-max(width, '+fieldName+'.width)\n')
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
     handleClicksFuncText = '            '+fieldName+'.primaryClick(event)'
@@ -153,7 +154,7 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
-        setPosFuncTextAcc += '\n        extY <- y+5'+'\n        height <- extY-posY'+'\n        me int:depX <- posX+width+40\n'
+        setPosFuncTextAcc += '\n        y <- y+5'+'\n        height <- y-posY'+'\n        me int:depX <- posX+width+40\n'
         countOfRefs=0
         for field in modelRef['fields']:
             typeSpec=field['typeSpec']

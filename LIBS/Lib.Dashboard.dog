@@ -6,6 +6,8 @@ featuresNeeded = [GUI_ToolKit]
 
 
 struct widget::dashboard{
+    me int: extX        /- right-most extent
+    me int: extY        /- lowest extent
     our widget::dash[list]: children
     our widget::dash[map string]: dependentItems
     our decor[list]: decorations
@@ -37,7 +39,7 @@ struct widget::dashboard{
             }
         }
         setPos(0, 0, 0)
-        markDirtyArea(drawing_area, 0,0,2000,2000)
+        markDirtyArea(drawing_area, 0,0, widgetWidth(thisApp.scrollerRef), widgetHeight(thisApp.scrollerRef))
         return(true)
     }
 
@@ -65,14 +67,16 @@ struct widget::dashboard{
                 height<-max(height, depDash.extY)
             }
         }
+        width <- width +30
+        height <- height +30
     }
 
     void: draw(me GUI_ctxt: cr) <- {
         cr.setRGBA(255, 255, 255, 255)
-        cr.rectangle(0,0, width, height)
+        cr.rectangle(0,0, widgetWidth(thisApp.scrollerRef), widgetHeight(thisApp.scrollerRef))
         cr.fillNow()
 
-        cr.moveTo(0,0); cr.lineTo(width, height); cr.setRGBA(255, 50, 50, 255); cr.strokeNow();
+     /-   cr.moveTo(0,0); cr.lineTo(width, height); cr.setRGBA(255, 50, 50, 255); cr.strokeNow();
 
         cr.setRGBA(0, 0, 0, 255)
         cr.setLineWidth(2)
