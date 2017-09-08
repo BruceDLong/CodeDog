@@ -201,15 +201,20 @@ struct widget::dash::listOfItems {
                 }
                 height <- y-posY
             } else if(orientation==horizontal){
-                me int: listX <- posX + header.width+30
+                me int: listX <- posX + header.width+30    /- This 30 should really be calculated to compensate for nested items. Actual distance should be 40.
                 me int: listY <- extC
+                me int: listC <- extC+40;
                 withEach element in elements:{
                     element.isHidden <- false
-                    element.setPos(listX,listY,extC+40)
-                    extC <- element.extY
-                    extY <- max(extY, extC)
+                    element.setPos(listX,listY,listC)
+                    extC  <- max(extC, element.extY)
+                    extY  <- max(extY, extC)
                     listX <- element.extX + 20
-                    extX<-element.extX
+                    extX  <- element.extX
+                }
+                if(extC > listC){
+                    extC <- extC+40
+                    extY <- max(extY, extC)
                 }
             }
         }

@@ -111,7 +111,8 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
     setPosFuncText += ("        "+fieldName+'.setPos(x,y,extC)'
-                    + '\n        extC<-'+fieldName+'.extC'+'\n        y <- y + '+fieldName+'.height'
+                    + '\n        extC<-'+fieldName+'.extC'
+                    + '\n        y <- y + '+fieldName+'.height'
                     + '\n        extX<-max(extX, '+fieldName+'.extX)'
                     + '\n        width<-max(width, '+fieldName+'.width)\n')
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
@@ -152,7 +153,7 @@ def EncodeDumpFunction(classes, className, dispMode):
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
     if(dispMode=='draw' or dispMode=='both'):
-        setPosFuncTextAcc += '\n        me int:depX <- posX+width+40\n'
+        setPosFuncTextAcc += '\n        extY <- y+5'+'\n        height <- extY-posY'+'\n        me int:depX <- posX+width+40\n'
         countOfRefs=0
         for field in modelRef['fields']:
             typeSpec=field['typeSpec']
@@ -178,9 +179,9 @@ def EncodeDumpFunction(classes, className, dispMode):
                 setPosFuncTextAcc      += '''
     if(<fieldName> != NULL and !<fieldName>Ptr.refHidden){
         <fieldName>.setPos(depX, extC, extC)
-        extC <- <fieldName>.extY
+        extC <- <fieldName>.extY + 40
         extX <- max(extX, <fieldName>.extX)
-        extY <- max(posY+height, <fieldName>.extY)
+        extY <- max(extY, <fieldName>.extY)
         me int: fromX<fieldName> <- <fieldName>Ptr.posX+135
         me int: fromY<fieldName> <- <fieldName>Ptr.posY+12
         me int: smallToX<fieldName> <- <fieldName>.posX
@@ -225,8 +226,6 @@ struct widget::dash::display_'''+className+'''{
 '''+setPosFuncTextAcc+'''
             width <- width+10
         }
-        y <- y+5
-        height <- y-posY
     }
 
 
