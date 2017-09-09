@@ -1159,7 +1159,7 @@ def connectLibraries(classes, tags, libsToUse, xlator):
     for libFilename in libsToUse:
         headerStr += integrateLibraries(tags, tagsFromLibFiles, libFilename, xlator)
         macroDefs= {}
-        [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], macroDefs)
+        [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], tags[0], macroDefs)
 
     return headerStr
 
@@ -1266,7 +1266,9 @@ def generate(classes, tags, libsToUse, xlator):
     addGLOBALSpecialCode(classes, tags, xlator)
 
     cdlog(1, "Generating Top-level (e.g., main())...")
-    if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program": generateBuildSpecificMainFunctionality(classes, tags, xlator)
+    testMode = progSpec.fetchTagValue(tags, 'testMode')
+    if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program"  or testMode == "makeTests"  or testMode == "runTests":
+        generateBuildSpecificMainFunctionality(classes, tags, xlator)
 
     codeStructureCommands(classes, tags, xlator)
     cdlog(1, "Generating Classes...")
@@ -1302,9 +1304,11 @@ def GroomTags(tags):
             print 'NOTE: Need Large Numbers'
             progSpec.setFeatureNeeded(TopLevelTags, 'largeNumbers', progSpec.storeOfBaseTypesUsed[typeName])
 
-def ScanAndApplyPatterns(classes, tags):
+def ScanAndApplyPatterns(classes, topTags, newTags):
     global globalTagStore
-    if globalTagStore==None: TopLevelTags=tags
+    if globalTagStore==None:
+        if topTags!={}: TopLevelTags=topTags
+        else: TopLevelTags=newTags
     else: TopLevelTags=globalTagStore
     cdlog(1, "Applying Patterns...")
     itemsToDelete=[]; count=0;
@@ -1315,25 +1319,22 @@ def ScanAndApplyPatterns(classes, tags):
             patternArgs=classes[0][pattName]['parameters']
             cdlog(2, "PATTERN: {}: {}".format( pattName, patternArgs))
 
-            if pattName=='Write_Main': pattern_Write_Main.apply(classes, tags, patternArgs[0])
-            elif pattName=='Gen_EventHandler': pattern_Gen_EventHandler.apply(classes, tags, patternArgs[0])
-            elif pattName=='useBigNums': pattern_BigNums.apply(tags)
-            elif pattName=='makeGUI': pattern_GUI_Toolkit.apply(classes, TopLevelTags)
-            elif pattName=='ManageCmdLine': pattern_ManageCmdLine.apply(classes, tags)
-            elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, tags, patternArgs[0])
-            elif pattName=='codeDataDisplay': pattern_DispData.apply(classes, tags, patternArgs[0], patternArgs[1])
+            if   pattName=='makeGUI':            pattern_GUI_Toolkit.apply(classes, TopLevelTags)
+            elif pattName=='ManageCmdLine':      pattern_ManageCmdLine.apply(classes, newTags)
+            elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, newTags, patternArgs[0])
+            elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1
     for toDel in reversed(itemsToDelete):
         del(classes[1][toDel])
 
 
-def loadProgSpecFromDogFile(filename, ProgSpec, objNames, macroDefs):
+def loadProgSpecFromDogFile(filename, ProgSpec, objNames, topLvlTags, macroDefs):
     codeDogStr = progSpec.stringFromFile(filename)
     codeDogStr = libraryMngr.processIncludedFiles(codeDogStr)
   #  cdlog(0, "######################   P A R S I N G   F I L E  ({})".format(filename))
     [tagStore, buildSpecs, FileClasses, newClasses] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs)
     GroomTags(tagStore)
-    ScanAndApplyPatterns(FileClasses, tagStore)
+    ScanAndApplyPatterns(FileClasses, topLvlTags, tagStore)
     stringStructs.CreateStructsForStringModels(FileClasses, newClasses, tagStore)
     return [tagStore, buildSpecs, FileClasses]

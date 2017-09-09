@@ -260,6 +260,13 @@ struct widget::dash::display_'''+className+'''{
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
 
 def apply(classes, tags, className, dispMode):
+    if dispMode[:4]=='TAG_':
+        dispModeTagName=dispMode[4:]
+        dispMode=progSpec.fetchTagValue(tags, dispModeTagName)
+    if(dispMode!='none' and dispMode!='text' and dispMode!='draw' and dispMode!='both'):
+        cdErr('Invalid parameter for display mode in Code Data Display pattern: '+str(dispMode))
+    if dispMode=='none': return
+
     global classesToProcess
     global thisPatternAlreadyUsedOnce
     if(not thisPatternAlreadyUsedOnce):
@@ -286,11 +293,8 @@ struct GLOBAL{
         if(dispMode=='draw' or dispMode=='both'):
             CODE+="""
     const int: fontSize <- 10
-
-}
-
-
     """
+        CODE+='}\n'
 
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE)
 

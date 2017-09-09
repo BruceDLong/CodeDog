@@ -72,9 +72,8 @@ struct widget::dashboard{
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        cr.setRGBA(255, 255, 255, 255)
-        cr.rectangle(0,0, widgetWidth(thisApp.scrollerRef), widgetHeight(thisApp.scrollerRef))
-        cr.fillNow()
+        cr.setRGB(255, 255, 255)
+        cr.paintNow()
 
      /-   cr.moveTo(0,0); cr.lineTo(width, height); cr.setRGBA(255, 50, 50, 255); cr.strokeNow();
 
