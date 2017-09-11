@@ -142,16 +142,16 @@ def fetchItemsTypeSpec(itemName, xlator):
 
 ###### End of type tracking code
 
+modeStateNames={}
 
-specialArrayFormatFieldVars={}
-def getSpecialArrayFormatFieldVars():
-    global specialArrayFormatFieldVars
-    return specialArrayFormatFieldVars
+def getModeStateNames():
+    global modeStateNames
+    return modeStateNames
 
 def codeFlagAndModeFields(classes, className, tags, xlator):
     cdlog(5, "                    Coding flags and modes for: {}".format(className))
     global StaticMemberVars
-    global specialArrayFormatFieldVars
+    global modeStateNames
     flagsVarNeeded = False
     bitCursor=0
     structEnums=""
@@ -194,7 +194,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
                 StaticMemberVars[offsetVarName]=className
                 StaticMemberVars[maskVarName]  =className
                 StaticMemberVars[fieldName+'Strings']  = className
-                specialArrayFormatFieldVars[fieldName+'Strings']=className
+                modeStateNames[fieldName+'Strings']=className
                 for eItem in enumList:
                     StaticMemberVars[eItem]=className
 
@@ -239,7 +239,6 @@ def convertNameSeg(typeSpecOut, name, paramList, xlator):
 
 def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, xlator):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
-    global specialArrayFormatFieldVars
     #print "CODENAMESEG:", segSpec, "TSI:",typeSpecIn
     S=''
     S_alt=''
@@ -331,6 +330,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             [CPL, paramTypeList] = codeParameterList(paramList, modelParams, xlator)
             S+= CPL
     if(typeSpecOut==None): cdlog(logLvl(), "Type for {} was not found.".format(name))
+    if ("<MODENAME>" in S):
+        S=S.replace("<MODENAME>", ".get(")
+        S=S.replace("<MODENAMEend>", ")")
     return [S,  typeSpecOut, None]
 
 def codeUnknownNameSeg(segSpec, xlator):
@@ -534,7 +536,7 @@ def codeAction(action, indent, xlator):
         cdlog(5, "New Var: {}: ".format(varName))
         [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
         cdlog(5, "Action newVar: {}".format(varName))
-        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, xlator)
+        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, indent, xlator)
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
@@ -945,7 +947,7 @@ def codeStructFields(classes, className, tags, indent, xlator):
 
     if MakeConstructors=='True' and (className!='GLOBAL'):
         constructCode=codeConstructor(classes, className, tags, xlator)
-        structCodeAcc+=constructCode
+        structCodeAcc+= "\n"+constructCode
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
 def processDependancies(classes, item, searchList, newList):

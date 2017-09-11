@@ -41,8 +41,7 @@ struct GUI{
     me void: setCallback() <- {}
 }
 
-struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:cairo_t" {
-    their cairo_t:GUI_ctxt
+struct GUI_ctxt {
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- {}
     me void: reset() <- {}
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- {}

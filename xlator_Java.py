@@ -10,7 +10,7 @@ import progSpec
 import codeDogParser
 import Lib_Android
 from progSpec import cdlog, cdErr, logLvl
-from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getSpecialArrayFormatFieldVars
+from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getModeStateNames
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
@@ -116,6 +116,8 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 langType="TreeMap<"+idxType+', '+langType+">"
             elif containerType=='multimap':
                 langType="multimap<"+idxType+', '+langType+">"
+            if(owner=="we"):
+                langType="static "+langType
     return [langType, langType]
 
 
@@ -386,6 +388,9 @@ def codeSpecialFunc(segSpec, xlator):
                 if(count!=0): S+=" + "
                 count+=1
                 [S2, argType]=xlator['codeExpr'](P[0], xlator)
+                if ("<MODENAME>" in S2):
+                    S2=S2.replace("<MODENAME>", ".get(")
+                    S2=S2.replace("<MODENAMEend>", ")")
                 S+=S2
             S+=")"
         elif(funcName=='AllocateOrClear'):
@@ -417,7 +422,9 @@ def codeSpecialFunc(segSpec, xlator):
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if LorR_Val=='RVAL':
         #Next line may be cause of bug with printing modes.  remove 'not'?
-        if (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap') and not(previousSegName in getSpecialArrayFormatFieldVars()):
+        if (previousSegName in getModeStateNames()):
+            S= '<MODENAME>' + idx + '<MODENAMEend>'
+        elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
             S= '.get(' + idx + ')'
         elif (containerType== 'string'):
             S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
@@ -485,7 +492,7 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, xlator):
     if isinstance(typeSpec['fieldType'], basestring) and typeSpec['arraySpec'] == None:
         if(fieldDef['value']):
             [S2, rhsType]=codeExpr(fieldDef['value'][0], xlator)
@@ -504,7 +511,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
             if (constructorExists):
                 assignValue=' = new ' + fieldType +'('+ RHS + ')'
             else:
-                assignValue=' = new ' + fieldType +'();  ' + varName+' = '+RHS
+                assignValue=' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
     else: # If no value was given:
         #print "TYPE:", fieldType
         if fieldDef['paramList'] != None:       # call constructor
@@ -624,7 +631,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         S += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
     # TODO: make next line so it is not hard coded
     elif(className == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager")):
-        print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
+        #print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
@@ -637,10 +644,10 @@ def codeConstructionHeader(ClassName, constructorArgs, constructorInit, copyCons
     return withArgConstructor + copyConstructor + noArgConstructor
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
-    return "        " + fieldName+"="+defaultVal+";\n"
+    return "        " + fieldName+"= arg_"+fieldName+";\n"
 
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
-    return argType + " "+ argFieldName 
+    return argType + " arg_"+ argFieldName 
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"

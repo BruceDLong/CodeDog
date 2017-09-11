@@ -381,9 +381,9 @@ def isWrappedType(objMap, structname):
     fieldListToSearch = structToSearch["fields"]
     if not fieldListToSearch: return None
     if len(fieldListToSearch)>0:
-        theField=fieldListToSearch[0]
-        if theField['fieldName']==structname:
-            return theField['typeSpec']
+        for field in fieldListToSearch:
+            if field['fieldName']==structname:
+                return field['typeSpec']
     return None
 
 def createTypedefName(ItmType):

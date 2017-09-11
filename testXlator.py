@@ -48,6 +48,7 @@ struct testClass{
      'class/funcDecl':       ['struct testClass{me void: runTest()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
      'class/funcCallArgs':   ['struct testClass{me void: runTest()<-{testFunc2("Pass func arg.")}\nme void: testFunc2(me string: strArg)<-{print(strArg)}}', 'PGBR:Pass func arg.'],
      'class/pureVirtualFunc':['struct testClass{me void: runTest()<-{me pureVirtualClass::derivedClass: DC\nDC.pureVirtualFunc ()}}\nstruct pureVirtualClass{me void: pureVirtualFunc()}\nstruct pureVirtualClass::derivedClass{me void: pureVirtualFunc()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
+     'class/funcDefaultParams':['struct testClass{me void: runTest()<-{testFunc2()}\nme void: testFunc2(me string: defaultParam<-"Default func param.")<-{print(defaultParam)}}', 'PGBR:Default func param.'],
      'class/funcs':          ['''
 struct testClass{
     me void: runTest()<-{

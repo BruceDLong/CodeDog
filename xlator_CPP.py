@@ -605,7 +605,7 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, xlator):
     #TODO: make test case
     varDeclareStr=''
     assignValue=''
