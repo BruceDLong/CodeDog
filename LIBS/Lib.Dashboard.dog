@@ -6,6 +6,8 @@ featuresNeeded = [GUI_ToolKit]
 
 
 struct widget::dashboard{
+    me int: extX        /- right-most extent
+    me int: extY        /- lowest extent
     our widget::dash[list]: children
     our widget::dash[map string]: dependentItems
     our decor[list]: decorations
@@ -37,7 +39,7 @@ struct widget::dashboard{
             }
         }
         setPos(0, 0, 0)
-        markDirtyArea(drawing_area, 0,0,2000,2000)
+        markDirtyArea(drawing_area, 0,0, widgetWidth(thisApp.scrollerRef), widgetHeight(thisApp.scrollerRef))
         return(true)
     }
 
@@ -46,11 +48,7 @@ struct widget::dashboard{
     void: update() <- {
     }
 
-    void: setPos(me int:x, me int:y, me int: ExtY) <- {
-        /- ExtY tells the vertical starting position for any external items such as pointer referenced items or list items.
-        /- If there ARE such external items, then on return, extY should be the next y point down from the lowest one.
-        /- So if there are no external items extY will equal the ExtY in.
-        extY <- ExtY
+    void: setPos(me int:x, me int:y, me int: extCursor) <- {
         decorations.clear()
         width <- 10
         height <- 10
@@ -69,14 +67,15 @@ struct widget::dashboard{
                 height<-max(height, depDash.extY)
             }
         }
+        width <- width +30
+        height <- height +30
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        cr.setRGBA(255, 255, 255, 255)
-        cr.rectangle(0,0, width, height)
-        cr.fillNow()
+        cr.setRGB(255, 255, 255)
+        cr.paintNow()
 
-        cr.moveTo(0,0); cr.lineTo(width, height); cr.setRGBA(255, 50, 50, 255); cr.strokeNow();
+     /-   cr.moveTo(0,0); cr.lineTo(width, height); cr.setRGBA(255, 50, 50, 255); cr.strokeNow();
 
         cr.setRGBA(0, 0, 0, 255)
         cr.setLineWidth(2)
@@ -95,8 +94,9 @@ struct widget::dashboard{
 }
 
 struct widget::dash{
-    me int: extX
-    me int: extY
+    me int: extX        /- Dashes right-most extent
+    me int: extY        /- Dashes lowest extent
+    me int: extC        /- The current position where the next external item should be drawn
     void: activatePropertyEditor()<- {}
 }
 
@@ -108,13 +108,14 @@ struct widget::dash::dataField {
         midPos<-MidPos; label<-Label; value<-Value;
     }
 
-   void: setPos(me int:x, me int:y, me int: ExtY) <- {
-        extY <- ExtY
-        posX <- x; posY <- y;
+   void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        posX <- x;
+        posY <- y;
+        extC <- extCursor
         height <- 15
         width <- 150
         extX <- posX+width
-       /- extY <- posY+height
+        extY <- posY+height
     }
 
     void: draw(me GUI_ctxt: cr) <- {
@@ -124,7 +125,7 @@ struct widget::dash::dataField {
 }
 
 struct widget::dash::ptrToItem {
-    me widget::dash::dataField: refedItem
+    me widget::dash::dataField: header
     me bool: refHidden
     me string: symbol
     our widget::dash: dashPtr
@@ -133,21 +134,22 @@ struct widget::dash::ptrToItem {
         symbol <- textValue
         refHidden <- 1
         dashPtr<-dashBoard.dependentIsRegistered(textValue)
-        refedItem.update(90, 150, Label, textValue)
+        header.update(90, 150, Label, textValue)
     }
 
-    void: setPos(me int:x, me int:y, me int: ExtY) <- {
-        extY <- ExtY
-        posX <- x; posY <- y;
-        refedItem.setPos(x, y, extY)
-        height <- refedItem.height
-        width <- 150
+    void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        posX <- x;
+        posY <- y;
+        extC <- extCursor
+        header.setPos(x, y, extY)
+        height <- header.height
+        width <- header.width
         dashPtr <- dashBoard.dependentIsRegistered(symbol)
         if((!refHidden) and dashPtr!=NULL and dashPtr.isHidden){
             dashPtr.isHidden<-false
         }
         extX <- posX+width
-        /-extY <- posY+height
+        extY <- posY+height
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
@@ -158,7 +160,7 @@ struct widget::dash::ptrToItem {
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        refedItem.draw(cr)
+        header.draw(cr)
 
     }
 }
@@ -180,35 +182,45 @@ struct widget::dash::listOfItems {
         elements.pushLast(element)
     }
 
-    void: setPos(me int:x, me int:y, me int: ExtY) <- {
-        extY <- ExtY
-        posX <- x; posY <- y; extX <- x;
-        header.setPos(x, y, extY)
-        width <- header.width
+    void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        posX <- x;
+        posY <- y;
+        extC <- extCursor
+        header.setPos(x, y, y)
         y <- y+header.height
-        extX <- max(extX, header.extX)
+        width <- header.width
+        height <- y-posY
+        extX <- header.extX
+        extY <- max(y, extC)
         if(displayMode!=headerOnly){
             if(orientation==vertical){
                 x <- x+8
                 withEach element in elements:{
-                    element.setPos(x,y,extY)
-                    extX <- max(extX, element.extX)
+                    element.setPos(x,y,extC)
                     y <- y+element.height
+                    width <- max(width, element.width+8)
+                    extX <- max(extX, element.extX)
+                    extY <- max(extY, element.extY)
                 }
-                width <- extX-posX
+                height <- y-posY
             } else if(orientation==horizontal){
-                me int: listX <- posX + header.width+30
-                me int: listY <- extY
+                me int: listX <- posX + header.width+30    /- This 30 should really be calculated to compensate for nested items. Actual distance should be 40.
+                me int: listY <- extC
+                me int: listC <- extC+40;
                 withEach element in elements:{
                     element.isHidden <- false
-                    element.setPos(listX,listY,extY)
-                    extY <- max(extY, element.extY)
+                    element.setPos(listX,listY,listC)
+                    extC  <- max(extC, element.extY)
+                    extY  <- max(extY, extC)
                     listX <- element.extX + 20
-                    extX<-element.extX
+                    extX  <- element.extX
+                }
+                if(extC > listC){
+                    extC <- extC+40
+                    extY <- max(extY, extC)
                 }
             }
         }
-        height <- y-posY
     }
 
    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
@@ -222,7 +234,6 @@ struct widget::dash::listOfItems {
             } else {displayMode <- headerOnly}
         } else {
             withEach element in elements:{
-                print("List Click\n")
                 element.primaryClick(event)
             }
         }
@@ -235,6 +246,37 @@ struct widget::dash::listOfItems {
             withEach element in elements:{
                 element.draw(cr)
             }
+            if(orientation==horizontal){
+                me int:lastElIdx <- elements.size()
+                if(lastElIdx>=1){
+                    me int: fromX <- posX+135
+                    me int: fromY <- posY+12
+                    me int: smallToX <- elements[0].posX
+                    me int: largeToX <- elements[0].posX + elements[0].width
+                    me int: smallToY <- elements[0].posY
+                    me int: largeToY <- elements[0].posY + elements[0].height
+                    our decor::arrow:: arrow(fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
+                    dashBoard.decorations.pushLast(arrow)
+
+                    lastElIdx <- lastElIdx-1
+                    cr.moveTo(elements[0].posX, elements[0].posY)
+                    cr.lineTo(elements[lastElIdx].posX + elements[lastElIdx].width, elements[lastElIdx].posY)
+                    cr.moveTo(elements[0].posX, elements[0].posY+18)
+                    cr.lineTo(elements[lastElIdx].posX + elements[lastElIdx].width, elements[lastElIdx].posY+18)
+                    cr.strokeNow()
+                }
+            }
         }
+    }
+}
+
+struct GLOBAL{
+
+    me int: intersectPoint(me int:outsidePt, me int:smallPt, me int: largePt) <- {
+        me int: ret
+        if(outsidePt<smallPt){ret<-smallPt}
+        else if(outsidePt>largePt){ret<-largePt}
+        else{ret<-outsidePt}
+        return(ret)
     }
 }

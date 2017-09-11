@@ -435,7 +435,7 @@ def extractBuildSpecs(buildSpecResults):
     resultBuildSpecs = []
     #print "buildSpecResults: ", buildSpecResults
     if (len(buildSpecResults)==0):
-        resultBuildSpecs = [['LinuxBuild', {'': ''}]]
+        resultBuildSpecs = []
     else:
         for localBuildSpecs in buildSpecResults:
             spec = [localBuildSpecs.buildID, extractTagDefs(localBuildSpecs.buildDefList[0])]
