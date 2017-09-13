@@ -321,14 +321,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
 
     # Add parameters if this is a function call
     if(paramList != None):
-        if(len(paramList)==0):
-            if name != 'return' and name!='break' and name!='continue':
-                S+="()"
-        else:
-            modelParams=None
-            if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList']
-            [CPL, paramTypeList] = codeParameterList(paramList, modelParams, xlator)
-            S+= CPL
+        modelParams=None
+        if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList']
+        [CPL, paramTypeList] = codeParameterList(name, paramList, modelParams, xlator)
+        S+= CPL
     if(typeSpecOut==None): cdlog(logLvl(), "Type for {} was not found.".format(name))
     if ("<MODENAME>" in S):
         S=S.replace("<MODENAME>", ".get(")
@@ -356,7 +352,7 @@ def codeUnknownNameSeg(segSpec, xlator):
         if(len(paramList)==0):
             S+="()"
         else:
-            [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+            [CPL, paramTypeList] = codeParameterList("", paramList, None, xlator)
             S+= CPL
     return S;
 
@@ -456,23 +452,45 @@ def codeUserMesg(item, xlator):
     return S
 
 
-def codeParameterList(paramList, modelParams, xlator):
+def codeParameterList(name, paramList, modelParams, xlator):
     S=''
     #if(modelParams):  print "CODE-PARAMS:", len(paramList),"=",len(modelParams)
     count = 0
     paramTypeList=[]
-    for P in paramList:
-        if(count>0): S+=', '
-        [S2, argType]=xlator['codeExpr'](P[0], xlator)
-        paramTypeList.append(argType)
-    #    print "    PARAM",P, '<',argType,'>'
-    #    print "    MODEL", modelParams[count], '\n'
-        if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
-            [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](modelParams[count]['typeSpec'], argType)
-            S += leftMod+S2+rightMod
-        else: S += S2
-        count+=1
-    S='(' + S + ')'
+    totalParams= len(paramList)
+    totalDefaultValue=0
+    if (modelParams==[]):
+        modelParams = None
+    if (modelParams!=None):
+        for P in modelParams:
+            if P['value']:
+                totalDefaultValue=len(modelParams)
+    
+    if(totalDefaultValue>0):
+        count=0
+        for MP in modelParams:
+            if not(count<totalParams) and MP['value']: 
+                paramList.insert(count, MP['value'])
+            #print "    paramList[", count, "]: ", paramList[count]
+            count+=1
+
+    if(len(paramList)==0 ):
+        if name != 'return' and name!='break' and name!='continue':
+            S+="()"
+    else:
+        count = 0
+        for P in paramList:
+            if(count>0): S+=', '
+            [S2, argType]=xlator['codeExpr'](P[0], xlator)
+            paramTypeList.append(argType)
+        #    print "    PARAM",P, '<',argType,'>'
+        #    print "    MODEL", modelParams[count], '\n'
+            if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
+                [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](modelParams[count]['typeSpec'], argType)
+                S += leftMod+S2+rightMod
+            else: S += S2
+            count+=1
+        S='(' + S + ')'
     return [S, paramTypeList]
 
 
@@ -843,7 +861,7 @@ def codeStructFields(classes, className, tags, indent, xlator):
 
         # CALCULATE RHS
         if(fieldValue == None):
-            fieldValueText=xlator['codeVarFieldRHS_Str'](convertedType, fieldOwner, field['paramList'], xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, fieldOwner, field['paramList'], xlator)
            # print "                            RHS none: ", fieldValueText
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, basestring):

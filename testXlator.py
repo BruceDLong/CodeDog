@@ -44,18 +44,27 @@ struct testClass{
      #'class/graphDecl':   [],
      #const string: constStr <- "Hello"
      #const double: pi <- 3.14
-     'class/funcDefn':       ['struct testClass{me int: myInt <- 7-3}', 'PGB:'],
-     'class/funcDecl':       ['struct testClass{me void: runTest()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
-     'class/funcCallArgs':   ['struct testClass{me void: runTest()<-{testFunc2("Pass func arg.")}\nme void: testFunc2(me string: strArg)<-{print(strArg)}}', 'PGBR:Pass func arg.'],
-     'class/pureVirtualFunc':['struct testClass{me void: runTest()<-{me pureVirtualClass::derivedClass: DC\nDC.pureVirtualFunc ()}}\nstruct pureVirtualClass{me void: pureVirtualFunc()}\nstruct pureVirtualClass::derivedClass{me void: pureVirtualFunc()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
-     'class/funcDefaultParams':['struct testClass{me void: runTest()<-{testFunc2()}\nme void: testFunc2(me string: defaultParam<-"Default func param.")<-{print(defaultParam)}}', 'PGBR:Default func param.'],
-     'class/funcs':          ['''
+     'class/funcDefn':          ['struct testClass{me int: myInt <- 7-3}', 'PGB:'],
+     'class/funcDecl':          ['struct testClass{me void: runTest()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
+     'class/funcCallArgs':      ['struct testClass{me void: runTest()<-{testFunc2("Pass func arg.")}\nme void: testFunc2(me string: strArg)<-{print(strArg)}}', 'PGBR:Pass func arg.'],
+     'class/pureVirtualFunc':   ['struct testClass{me void: runTest()<-{me pureVirtualClass::derivedClass: DC\nDC.pureVirtualFunc ()}}\nstruct pureVirtualClass{me void: pureVirtualFunc()}\nstruct pureVirtualClass::derivedClass{me void: pureVirtualFunc()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
+     'class/funcDefaultParams': ['struct testClass{me void: runTest()<-{DefaultParams()}\nme void: DefaultParams(me string: defaultParam<-"Default func param1.  ",me string: defaultParam2<-"Default func param2. ")<-{print(defaultParam,defaultParam2)}}', 'PGBR:Default func param1.  Default func param2. '],
+     'class/funcPassAndDefault':['struct testClass{me void: runTest()<-{PassAndDefault("Pass func arg.  ")}\nme void: PassAndDefault(me string: defaultParam<-"Default func param1.  ",me string: defaultParam2<-"Default func param2. ")<-{print(defaultParam,defaultParam2)}}', 'PGBR:Pass func arg.  Default func param2. '],
+     'class/funcs':             ['''
 struct testClass{
     me void: runTest()<-{
         testFunc2("Pass func arg.  ")
         me pureVirtualClass::derivedClass: DC\nDC.pureVirtualFunc ()
+        DefaultParams()
+        PassAndDefault("Pass func arg.  ")
     }
     me void: testFunc2(me string: strArg)<-{print(strArg)}
+    me void: DefaultParams(me string: defaultParam<-"Default func param1.  ",me string: defaultParam2<-"Default func param2. ")<-{
+        print(defaultParam,defaultParam2)
+    }
+    me void: PassAndDefault(me string: defaultParam<-"Default func param1.  ",me string: defaultParam2<-"Default func param2. ")<-{
+        print(defaultParam,defaultParam2)
+    }
 }
 struct pureVirtualClass{
     me void: pureVirtualFunc()
@@ -65,7 +74,7 @@ struct pureVirtualClass::derivedClass{
         print("Function was called.")
     }
 }
-''', 'PGBR:Pass func arg.  Function was called.',['class/funcDefn','class/funcDecl','class/funcCallArgs','class/pureVirtualFunc']],
+''', 'PGBR:Pass func arg.  Function was called.Default func param1.  Default func param2. Pass func arg.  Default func param2. ',['class/funcDefn','class/funcDecl','class/funcCallArgs','class/pureVirtualFunc', 'class/funcDefaultParams', 'class/funcPassAndDefault']],
 #####################################################################################################
      'actions/varDecl':      ['struct testClass{me void: runTest()<-{me int: actionVarDecl}}', 'PGB:'],
      'actions/mapDecl':      ['struct testClass{me void: runTest()<-{me string[map string]:testMap}}', 'PGB:'],
@@ -221,7 +230,7 @@ def ExecCodeDogTest(testSpec, buildSpec):
 
     testString += testSpec[0] + "\n"
     out, err = RunCodeDogPrg(testString)
-    #print "out: ", out
+    print "out: ", out
     if out: 
         if(out.find('Marker: Parse Successful')==-1):
             return "***Parse Fail***"

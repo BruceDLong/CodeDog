@@ -618,7 +618,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, xl
         CPL=''
         if fieldDef['paramList'] != None:
             # Code the constructor's arguments
-            [CPL, paramTypeList] = codeParameterList(fieldDef['paramList'], None, xlator)
+            [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
                     print "\nPROBLEM: The return type of the parameter '", CPL, "' cannot be found and is needed. Try to define it.\n"
@@ -707,11 +707,11 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str( convertedType, fieldOwner, paramList, xlator):
+def codeVarFieldRHS_Str(name,  convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
-        [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+        [CPL, paramTypeList] = codeParameterList(name, paramList, None, xlator)
         fieldValueText += CPL
     return fieldValueText
 

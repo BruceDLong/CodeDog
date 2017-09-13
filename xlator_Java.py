@@ -517,7 +517,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, xl
         if fieldDef['paramList'] != None:       # call constructor
             # Code the constructor's arguments
 	    #TODO: make test case
-            [CPL, paramTypeList] = codeParameterList(fieldDef['paramList'], None, xlator)
+            [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
                     print "\nPROBLEM: The return type of the parameter '", CPL, "' cannot be found and is needed. Try to define it.\n"
@@ -610,12 +610,12 @@ def varTypeIsValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str( convertedType, fieldOwner, paramList, xlator):
+def codeVarFieldRHS_Str(name, convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
     if (not varTypeIsValueType(convertedType) and fieldOwner=='me'):
         if paramList!=None:
             #TODO: make test case
-            [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+            [CPL, paramTypeList] = codeParameterList(name, paramList, None, xlator)
             fieldValueText=" = new " + convertedType + CPL
         else:
             fieldValueText=" = new " + convertedType + "()"
