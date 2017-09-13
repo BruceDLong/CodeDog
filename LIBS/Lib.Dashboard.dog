@@ -43,7 +43,14 @@ struct widget::dashboard{
         return(true)
     }
 
-    me bool: secondaryClick(their GUI_PointerEvent: event) <- {print("RIGHT BUTTON!\n"); return(true)}
+    me void: drawToPDF(me string: filename, me double: inchesWide, me double: inchesHigh, me double: scale) <- {
+        me GUI_ctxt: PDF <- gui_tk.newPDF_ctxt(filename, inchesWide, inchesHigh)
+        PDF.setScale(scale, scale)
+        draw(PDF)
+        PDF.finishPDF()
+    }
+
+    me bool: secondaryClick(their GUI_PointerEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
 
     void: update() <- {
     }
@@ -104,7 +111,8 @@ struct widget::dash::dataField {
     me string: label
     me string: value
     me int: midPos
-    void: update(me int:MidPos, me int:w, me string: Label, me string: Value) <- {
+    void: update(me int:MidPos, me int:minWidth, me string: Label, me string: Value, me bool: hideThis) <- {
+        isHidden<-hideThis
         midPos<-MidPos; label<-Label; value<-Value;
     }
 
@@ -112,6 +120,7 @@ struct widget::dash::dataField {
         posX <- x;
         posY <- y;
         extC <- extCursor
+    /-    me deltaSize: DS <- getTextSize(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize)
         height <- 15
         width <- 150
         extX <- posX+width
@@ -130,11 +139,12 @@ struct widget::dash::ptrToItem {
     me string: symbol
     our widget::dash: dashPtr
 
-    void: update(me string: Label, me string: textValue) <- {
+    void: update(me string: Label, me string: textValue, me bool: hideThis) <- {
+        isHidden<-hideThis
         symbol <- textValue
         refHidden <- 1
         dashPtr<-dashBoard.dependentIsRegistered(textValue)
-        header.update(90, 150, Label, textValue)
+        header.update(90, 150, Label, textValue, false)
     }
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
@@ -172,8 +182,9 @@ struct widget::dash::listOfItems {
     me widget::dash::dataField: header
     our widget::dash[list]: elements
 
-    void: update(me string: Label, me string: textValue) <- {
-        header.update(90, 150, Label, textValue)
+    void: update(me string: Label, me string: textValue, me bool: hideThis) <- {
+        isHidden<-hideThis
+        header.update(90, 150, Label, textValue, false)
         elements.clear()
         displayMode<-headerOnly
     }

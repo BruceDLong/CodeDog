@@ -67,11 +67,13 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
     if fldCat=='func': return ['', '', '', '', '']
     if progSpec.typeIsPointer(typeSpec) and skipFlags != 'skipPtr':  # Header for a POINTER
         fieldName+='Ptr'
-        updateFuncText+="        "+fieldName+'.update('+fieldLabel+', data.'+fieldRef+'.mySymbol(data.'+fieldRef+'))\n'
+        innerUpdateFuncStr = 'data.'+fieldRef+'.mySymbol(data.'+fieldRef+')'
+        updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'))\n'
         structText += "    "+owner+" widget::dash::ptrToItem: "+fieldName+"\n"
 
     elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
-        updateFuncText="        "+fieldName+'.update('+fieldLabel+', "Size:"+toString(data.'+fieldName+'.size()))\n'
+        innerUpdateFuncStr = '"Size:"+toString(data.'+fieldName+'.size())'
+        updateFuncText="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'))\n'
          ## Now push each item
         innerFieldType=typeSpec['fieldType']
         #print "ARRAYSPEC:",innerFieldType, field
@@ -106,16 +108,19 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         elif(fldCat=='mode'):
             valStr= fieldRef+'Strings[data.'+fieldName+'] '
 
-        updateFuncText="        "+fieldName+'.update(90, 150, '+fieldLabel+', '+valStr+')\n'
+        updateFuncText="        "+fieldName+'.update(90, 150, '+fieldLabel+', '+valStr+', isNull('+valStr+'))\n'
         structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
-    setPosFuncText += ("        "+fieldName+'.setPos(x,y,extC)'
-                    + '\n        extC<-'+fieldName+'.extC'
-                    + '\n        y <- y + '+fieldName+'.height'
-                    + '\n        extX<-max(extX, '+fieldName+'.extX)'
-                    + '\n        extY <- max(extY, '+fieldName+'.extY)'
-                    + '\n        width<-max(width, '+fieldName+'.width)\n')
+    setPosFuncText += '''        if(!<fieldName>.isHidden and displayMode==noZeros){
+            <fieldName>.setPos(x,y,extC)
+            extC <- <fieldName>.extC
+            y <- y + <fieldName>.height
+            extX <- max(extX, <fieldName>.extX)
+            extY <- max(extY, <fieldName>.extY)
+            width<- max(width, <fieldName>.width)
+        }
+'''.replace('<fieldName>', fieldName)
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
     handleClicksFuncText = '            '+fieldName+'.primaryClick(event)'
     return [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]
@@ -204,7 +209,7 @@ struct widget::dash::display_'''+className+'''{
 
     void: update(me string: _label, me string: textValue, their '''+className+''': _Data) <- {
         data <- _Data
-        header.update(90, 150, _label, textValue)
+        header.update(90, 150, _label, textValue, false)
         displayMode<-headerOnly
 '''+updateFuncTextAcc+'''
 
@@ -234,13 +239,13 @@ struct widget::dash::display_'''+className+'''{
         if(isHidden){return(false)}
         me int: eventX <- event.x
         me int: eventY <- event.y
-    /-    if(isTouchingMe(eventX, eventY)){
-            if( header.isTouchingMe(eventX, eventY)){
-                if(displayMode==headerOnly){displayMode <- fullDisplay}
-                else if(displayMode==fullDisplay){displayMode <- headerOnly}
-            } else {
+        if( header.isTouchingMe(eventX, eventY)){
+            if(displayMode==headerOnly){displayMode <- noZeros}
+            else if(displayMode==noZeros){displayMode <- fullDisplay}
+            else if(displayMode==fullDisplay){displayMode <- headerOnly}
+        } else {
 '''+handleClicksFuncTextAcc+'''
-            }
+        }
 
 '''+handleClicksFuncTxtAcc2+'''
 
@@ -293,6 +298,11 @@ struct GLOBAL{
         if(dispMode=='draw' or dispMode=='both'):
             CODE+="""
     const int: fontSize <- 10
+
+    me bool: isNull(me string: value) <- {
+        if(value=="0" or value=="''" or value=="Size:0" or value=="NULL" or value=="false"){return(true)}
+        else{return(false)}
+    }
     """
         CODE+='}\n'
 
