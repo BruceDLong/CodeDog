@@ -142,16 +142,16 @@ def fetchItemsTypeSpec(itemName, xlator):
 
 ###### End of type tracking code
 
+modeStateNames={}
 
-specialArrayFormatFieldVars={}
-def getSpecialArrayFormatFieldVars():
-    global specialArrayFormatFieldVars
-    return specialArrayFormatFieldVars
+def getModeStateNames():
+    global modeStateNames
+    return modeStateNames
 
 def codeFlagAndModeFields(classes, className, tags, xlator):
     cdlog(5, "                    Coding flags and modes for: {}".format(className))
     global StaticMemberVars
-    global specialArrayFormatFieldVars
+    global modeStateNames
     flagsVarNeeded = False
     bitCursor=0
     structEnums=""
@@ -194,7 +194,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
                 StaticMemberVars[offsetVarName]=className
                 StaticMemberVars[maskVarName]  =className
                 StaticMemberVars[fieldName+'Strings']  = className
-                specialArrayFormatFieldVars[fieldName+'Strings']=className
+                modeStateNames[fieldName+'Strings']=className
                 for eItem in enumList:
                     StaticMemberVars[eItem]=className
 
@@ -239,7 +239,6 @@ def convertNameSeg(typeSpecOut, name, paramList, xlator):
 
 def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, xlator):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
-    global specialArrayFormatFieldVars
     #print "CODENAMESEG:", segSpec, "TSI:",typeSpecIn
     S=''
     S_alt=''
@@ -322,15 +321,14 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
 
     # Add parameters if this is a function call
     if(paramList != None):
-        if(len(paramList)==0):
-            if name != 'return' and name!='break' and name!='continue':
-                S+="()"
-        else:
-            modelParams=None
-            if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList']
-            [CPL, paramTypeList] = codeParameterList(paramList, modelParams, xlator)
-            S+= CPL
+        modelParams=None
+        if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList']
+        [CPL, paramTypeList] = codeParameterList(name, paramList, modelParams, xlator)
+        S+= CPL
     if(typeSpecOut==None): cdlog(logLvl(), "Type for {} was not found.".format(name))
+    if ("<MODENAME>" in S):
+        S=S.replace("<MODENAME>", ".get(")
+        S=S.replace("<MODENAMEend>", ")")
     return [S,  typeSpecOut, None]
 
 def codeUnknownNameSeg(segSpec, xlator):
@@ -354,7 +352,7 @@ def codeUnknownNameSeg(segSpec, xlator):
         if(len(paramList)==0):
             S+="()"
         else:
-            [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
+            [CPL, paramTypeList] = codeParameterList("", paramList, None, xlator)
             S+= CPL
     return S;
 
@@ -454,23 +452,45 @@ def codeUserMesg(item, xlator):
     return S
 
 
-def codeParameterList(paramList, modelParams, xlator):
+def codeParameterList(name, paramList, modelParams, xlator):
     S=''
     #if(modelParams):  print "CODE-PARAMS:", len(paramList),"=",len(modelParams)
     count = 0
     paramTypeList=[]
-    for P in paramList:
-        if(count>0): S+=', '
-        [S2, argType]=xlator['codeExpr'](P[0], xlator)
-        paramTypeList.append(argType)
-    #    print "    PARAM",P, '<',argType,'>'
-    #    print "    MODEL", modelParams[count], '\n'
-        if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
-            [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](modelParams[count]['typeSpec'], argType)
-            S += leftMod+S2+rightMod
-        else: S += S2
-        count+=1
-    S='(' + S + ')'
+    totalParams= len(paramList)
+    totalDefaultValue=0
+    if (modelParams==[]):
+        modelParams = None
+    if (modelParams!=None):
+        for P in modelParams:
+            if P['value']:
+                totalDefaultValue=len(modelParams)
+    
+    if(totalDefaultValue>0):
+        count=0
+        for MP in modelParams:
+            if not(count<totalParams) and MP['value']: 
+                paramList.insert(count, MP['value'])
+            #print "    paramList[", count, "]: ", paramList[count]
+            count+=1
+
+    if(len(paramList)==0 ):
+        if name != 'return' and name!='break' and name!='continue':
+            S+="()"
+    else:
+        count = 0
+        for P in paramList:
+            if(count>0): S+=', '
+            [S2, argType]=xlator['codeExpr'](P[0], xlator)
+            paramTypeList.append(argType)
+        #    print "    PARAM",P, '<',argType,'>'
+        #    print "    MODEL", modelParams[count], '\n'
+            if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
+                [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](modelParams[count]['typeSpec'], argType)
+                S += leftMod+S2+rightMod
+            else: S += S2
+            count+=1
+        S='(' + S + ')'
     return [S, paramTypeList]
 
 
@@ -534,7 +554,7 @@ def codeAction(action, indent, xlator):
         cdlog(5, "New Var: {}: ".format(varName))
         [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
         cdlog(5, "Action newVar: {}".format(varName))
-        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, xlator)
+        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, indent, xlator)
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
@@ -841,7 +861,7 @@ def codeStructFields(classes, className, tags, indent, xlator):
 
         # CALCULATE RHS
         if(fieldValue == None):
-            fieldValueText=xlator['codeVarFieldRHS_Str'](convertedType, fieldOwner, field['paramList'], xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, fieldOwner, field['paramList'], xlator)
            # print "                            RHS none: ", fieldValueText
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, basestring):
@@ -945,7 +965,7 @@ def codeStructFields(classes, className, tags, indent, xlator):
 
     if MakeConstructors=='True' and (className!='GLOBAL'):
         constructCode=codeConstructor(classes, className, tags, xlator)
-        structCodeAcc+=constructCode
+        structCodeAcc+= "\n"+constructCode
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
 def processDependancies(classes, item, searchList, newList):

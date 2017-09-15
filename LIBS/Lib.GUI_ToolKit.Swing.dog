@@ -1,4 +1,4 @@
-/-////////////////  Add GUI-Toolkit features using Java Swing
+/-############  Add GUI-Toolkit features using Java Swing
 requirements = [
     [tagOneOf, Platform, [Java]]
 ]
@@ -6,32 +6,62 @@ requirements = [
 interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
-    headers=[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*, java.awt.Font, java.awt.image.BufferedImage, java.awt.Graphics, java.awt.Graphics2D, javax.imageio.ImageIO, java.nio.file.Paths, java.awt.event.MouseAdapter, javax.swing.event.MouseInputAdapter]
+    headers =[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*, java.awt.Font, java.awt.image.BufferedImage, java.awt.Graphics, java.awt.Graphics2D, javax.imageio.ImageIO, java.nio.file.Paths, java.awt.event.MouseAdapter, javax.swing.event.MouseInputAdapter]
 }
 
-LibDescription = {
-    description='Swing is a GUI widget toolkit for Java '
+LibDescription ={
     useStatus='dynamic'
+    description='Swing is a GUI widget toolkit for Java '
+    features =[]
+    platforms=[]
+    bindings =[]
+    CPUs     =[]
 }
 
+/-///////////////////////////////  STRUCT CONVERTERS
+struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
+struct GUI_offset{their GtkAdjustment:GUI_offset}
+struct GUI_item{me Object: GUI_item}
+struct GUI_menuBar{me JMenuBar: GUI_menuBar}
+struct GUI_menu{me JMenu: GUI_menu}
+struct GUI_menuItem{me JMenuItem: GUI_menuItem}
+struct GUI_canvas{me JavaGUI_ctxt: GUI_canvas}
+struct GUI_container{me JFrame:GUI_container}
+struct GUI_frame{me JFrame:GUI_frame}
+struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
+struct INK_Image{me BufferedImage: INK_Image}
+struct GUI_callback{me GCallback: GUI_callback}
+struct GUI_ctxt{their JavaGUI_ctxt:GUI_ctxt}
 
-struct JavaGUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
-    their Graphics2D: gr
-    me GeneralPath: GPath
-    me double: cur_x
-    me double: cur_y
+/-///////////////////////////////  HANDLE EVENTS
+struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-
-    me void: paintComponent(me Graphics: g) <- <%    {
-        super.paintComponent(g);
-        this.addMouseListener(new CustomMouseListener());
-        this.addMouseMotionListener(new CustomMouseMotionListener());
-        GPath.reset();
-        gr=(Graphics2D)(g);
-        GLOBAL.static_Global.drawAppArea_cb(this, this);
-    }%>
+struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
+struct GUI_ButtonEvent{
+  me uint: type
+ /- GdkWindow *window;
+ /- gint8 send_event;
+ /- guint32 time;
+  me double: x
+  me double: y
+  me uint: state
+  me uint: button
 }
 
+struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
+struct GUI_PointerEvent{
+  me uint: type
+ /- GdkWindow *window;
+ /- gint8 send_event;
+ /- guint32 time;
+  me double: x
+  me double: y
+
+  me uint: state
+  me uint: button
+}
+
+/-///////////////////////////////  HANDLE LISTENERS
 struct CustomMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseListener" {
     me void: mouseClicked(me MouseEvent: e)<-     {
         me float: eventX <- e.getX()
@@ -67,31 +97,8 @@ struct CustomMouseMotionListener: ctxTag="Swing" Platform='Java' Lang='Java' Lib
     }
 }
 
-struct GUI_ctxt{their JavaGUI_ctxt:GUI_ctxt}
-struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-struct GUI_offset{their GtkAdjustment:GUI_offset}
-struct GUI_item{me Object: GUI_item}
-struct GUI_menuBar{me JMenuBar: GUI_menuBar}
-struct GUI_menu{me JMenu: GUI_menu}
-struct GUI_menuItem{me JMenuItem: GUI_menuItem}
-struct GUI_canvas{me JavaGUI_ctxt: GUI_canvas}
-struct GUI_container{me JFrame:GUI_container}
-struct GUI_frame{me JFrame:GUI_frame}
-struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
-struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
-
-/- TODO: need to complete ButtonEvent code.  This is just enough to allow Java build
-struct ButtonEvent {
-  me uint: type
-  me double: x
-  me double: y
-
-  me uint: state
-  me uint: button
-}
-
-struct GUI {
+/-///////////////////////////////  HANDLE GUI
+struct GUI{
     me uint32: GUI_Init() <- <%{return(0);}%>
 
     me void: GUI_PopulateAndExec() <- <% {
@@ -138,9 +145,63 @@ struct GUI {
     } %>
 }
 
+struct GUI{
+    me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
+    me GUI_item: newCanvas() <- <%!%Gnew JavaGUI_ctxt()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setPreferredSize(new Dimension(%2, %3))%>
+    me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
+    me GUI_item: newScrollingWindow() <- <%!%Gnew JScrollPane()%>
+    me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.add(%2)%>
+    me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.setViewportView(%2)%>
+    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%1.setJMenuBar(%2)%>
+    me void: setCallback() <- <%!%G %>
+    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
+    me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
+}
+
+struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
+    me void: reset() <- <%!GPath = new GeneralPath()%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!gr.setColor(new Color(%1, %2, %3, %4))%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!gr.setColor(new Color(%1, %2, %3))%>
+    me void: setLineWidth(me double: width) <- <%!gr.setStroke(new BasicStroke(%1))%>
+    me void: moveTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo(%1, %2)%>
+    me void: lineTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo(%1, %2)%>
+    me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo(cr.cur_x+%1, cr.cur_y+%2)%>
+    me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo(cr.cur_x+%1, cr.cur_y+%2)%>
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
+    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
+    me void: closePath() <- <%!cairo_close_path(%0)%>
+    me void: rectangle() <- <%!%0.gr.drawRect(%1, %2, %3, %4)%>
+    me void: paintNow() <- <%!gr.fill(cr.GPath)%>
+    me void: strokeNow() <- <%!gr.draw(cr.GPath)%>
+    me void: fillNow() <- <%!gr.fill(cr.GPath)%>
+    me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
+    me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
+    me void: renderFrame() <- <%!repaint()%>
+}
+
+struct JavaGUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
+    their Graphics2D: gr
+    me GeneralPath: GPath
+    me double: cur_x
+    me double: cur_y
+
+
+    me void: paintComponent(me Graphics: g) <- <%    {
+        super.paintComponent(g);
+        this.addMouseListener(new CustomMouseListener());
+        this.addMouseMotionListener(new CustomMouseMotionListener());
+        GPath.reset();
+        gr=(Graphics2D)(g);
+        GLOBAL.static_Global.drawAppArea_cb(this, this);
+    }%>
+}
+/-/////////////////////////////// TIME
 struct tm{
     me Calendar: tm
 }
+
 struct timeStringer{
     me String: time12Hour() <- <%{
         Calendar timeRec = Calendar.getInstance();
@@ -163,10 +224,8 @@ struct timeStringer{
     } %>
 }
 
-
-struct INK_Image{me BufferedImage: INK_Image}
+/-///////////////////////////////  G L O B A L
 struct GLOBAL{
-
     me APP: thisApp
 
     /- DRAWING ROUTINES:
@@ -204,37 +263,10 @@ struct GLOBAL{
         System.out.println("Current relative path is: " + s);
         return s;
     }%>
+
+    me int: widgetHeight() <- <%!%G%1.getHeight()%>
+    me int: widgetWidth() <- <%!%G%1.getWidth()%>
+
 }
 
-struct GUI{
-    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
-    me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-    me GUI_item: newCanvas() <- <%!%Gnew JavaGUI_ctxt()%>
-    me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setPreferredSize(new Dimension(%2, %3))%>
-    me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
-    me GUI_item: newScrollingWindow() <- <%!%Gnew JScrollPane()%>
-    me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.add(%2)%>
-    me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.setViewportView(%2)%>
-    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%1.setJMenuBar(%2)%>
-    me void: setCallback() <- <%!%G %>
-}
 
-struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
-    me void: reset() <- <%!GPath = new GeneralPath()%>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!gr.setColor(new Color(%1, %2, %3, %4))%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!gr.setColor(new Color(%1, %2, %3))%>
-    me void: setLineWidth(me double: width) <- <%!gr.setStroke(new BasicStroke(%1))%>
-    me void: moveTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo(%1, %2)%>
-    me void: lineTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo(%1, %2)%>
-    me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo(cr.cur_x+%1, cr.cur_y+%2)%>
-    me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo(cr.cur_x+%1, cr.cur_y+%2)%>
-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    me void: paintNow() <- <%!gr.fill(cr.GPath)%>
-    me void: strokeNow() <- <%!gr.draw(cr.GPath)%>
-    me void: fillNow() <- <%!gr.fill(cr.GPath)%>
-    me void: renderFrame() <- <%!repaint()%>
-    me void: rectangle() <- <%!%0.gr.drawRect(%1, %2, %3, %4)%>
-}

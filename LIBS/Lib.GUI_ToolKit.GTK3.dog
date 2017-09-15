@@ -4,8 +4,6 @@ requirements = [
 ]
 
 interface={
-    useStatus='dynamic'
-    description='GTK is a GUI Toolkit'
     provides=[GUI_ToolKit_implementation]
     libFiles=[`pkg-config --cflags --libs gtk+-3.0`]
     headers=[gtk/gtk.h, cairo-pdf.h]
@@ -18,15 +16,13 @@ LibDescription ={
     platforms=[Linux, OS-X_Devices, Windows]
     bindings =[C, CPP, perl, python]
     CPUs     =[i386, amd64, arm7]
-
+    libFiles=[`pkg-config --cflags --libs gtk+-3.0`]
+    headers=[gtk/gtk.h]
 }
 
-/-----------------------------
-struct GUI_ctxt{their cairo_t:GUI_ctxt}
+/-///////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
-
-
 struct GUI_item{their GtkWidget: GUI_item}
 struct GUI_menuBar{their GtkWidget: GUI_menuBar}
 struct GUI_menu{their GtkWidget: GUI_menu}
@@ -35,9 +31,10 @@ struct GUI_canvas{their GtkWidget: GUI_canvas}
 struct GUI_container{their GtkContainer:GUI_container}
 struct GUI_frame{their GtkWidget:GUI_frame}
 struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
-
+struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 
+/-///////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
 struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
@@ -48,7 +45,6 @@ struct GUI_ButtonEvent{
  /- guint32 time;
   me double: x
   me double: y
-
   me uint: state
   me uint: button
 }
@@ -66,8 +62,38 @@ struct GUI_PointerEvent{
   me uint: button
 }
 
-struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
+/-///////////////////////////////  HANDLE LISTENERS
+struct GTK_eventDispatcher{
+    their widget::dashboard: topWidget
+    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
+    me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
+        if(event->type==GDK_BUTTON_PRESS){
+            if(event->button==1){
+                topWidget->primaryClick(event);
+            } else if(event->button==3){
+                topWidget->secondaryClick(event);
+            }
+        }
+    } %>
+    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
+  /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+    /- Also: timer, data and user events
 
+    me void: registerWidgetForEventDispatcher(me GUI_item: widget) <- <%{
+     /-   g_signal_connect (widget, "expose_event",      G_CALLBACK(expose_event), NULL);
+     /-   g_signal_connect (widget, "configure_event",   G_CALLBACK(configure_event), NULL);
+        g_signal_connect (widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
+        g_signal_connect (widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
+
+        gtk_widget_set_events (widget, GDK_EXPOSURE_MASK
+             | GDK_LEAVE_NOTIFY_MASK
+             | GDK_BUTTON_PRESS_MASK
+             | GDK_POINTER_MOTION_MASK
+             | GDK_POINTER_MOTION_HINT_MASK);
+    } %>
+}
+
+/-///////////////////////////////  HANDLE GUI
 struct GUI{
     their GtkApplication: app
     their GtkWidget: window
@@ -128,7 +154,7 @@ struct GUI_ctxt: ctxTag="GTK3" Platform='PC' LibReq="GTK3" implMode="fromLibAs:c
     me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
     me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
 }
-
+/-/////////////////////////////// TIME
 struct tm{
     me tm: tm
     me int: tm_hour
@@ -160,37 +186,6 @@ struct timeStringer{
         SH = SH + to_string(sec);
         SH=SH+AmPm;
         return(SH);
-    } %>
-}
-
-
-struct GTK_eventDispatcher{
-    their widget::dashboard: topWidget
-    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
-    me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
-        if(event->type==GDK_BUTTON_PRESS){
-            if(event->button==1){
-                topWidget->primaryClick(event);
-            } else if(event->button==3){
-                topWidget->secondaryClick(event);
-            }
-        }
-    } %>
-    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
-  /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
-    /- Also: timer, data and user events
-
-    me void: registerWidgetForEventDispatcher(me GUI_item: widget) <- <%{
-     /-   g_signal_connect (widget, "expose_event",      G_CALLBACK(expose_event), NULL);
-     /-   g_signal_connect (widget, "configure_event",   G_CALLBACK(configure_event), NULL);
-        g_signal_connect (widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
-        g_signal_connect (widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
-
-        gtk_widget_set_events (widget, GDK_EXPOSURE_MASK
-             | GDK_LEAVE_NOTIFY_MASK
-             | GDK_BUTTON_PRESS_MASK
-             | GDK_POINTER_MOTION_MASK
-             | GDK_POINTER_MOTION_HINT_MASK);
     } %>
 }
 
@@ -402,3 +397,4 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
 }%>
 
 }
+
