@@ -297,7 +297,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         elif(name[0]=='[' and fType=='string'):
             typeSpecOut={'owner':owner, 'fieldType': fType}
             [S2, idxType] = xlator['codeExpr'](name[1], xlator)
-            S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, '')
+            S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, previousSegName)
             return [S, typeSpecOut, S2]  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
             if fType!='string':
@@ -475,7 +475,7 @@ def codeParameterList(name, paramList, modelParams, xlator):
             count+=1
 
     if(len(paramList)==0 ):
-        if name != 'return' and name!='break' and name!='continue':
+        if name != 'return' and name!='break' and name!='continue' and name!='characters.count':
             S+="()"
     else:
         count = 0
@@ -654,10 +654,7 @@ def codeAction(action, indent, xlator):
             [S_hi,   hiValType] = xlator['codeExpr'](rangeSpec[4][0], xlator)
             #print "RANGE:", S_low, "..", S_hi
             ctrlVarsTypeSpec = lowValType
-            if(traversalMode=='Forward' or traversalMode==None):
-                actionText += indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ xlator['codeIncrement'](repName) + "){\n"
-            elif(traversalMode=='Backward'):
-                actionText += indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+            actionText += xlator['codeRangeSpec'](traversalMode, ctrType, repName, S_low, S_hi, indent, xlator)
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
             [whileExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)

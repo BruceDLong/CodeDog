@@ -13,7 +13,7 @@ struct stringScanner{
 
     me int: skipWS() <- {       /- Skip past 0 or more whitespace characters.  Return the new pos
         me char: ch
-        me uint32: txtSize <- S.size()
+        me int: txtSize <- S.size()
         withEach p in RANGE(pos .. txtSize):{
             ch <- S[p]
             if(! isspace(ch) or p==txtSize){pos<-p break()}
@@ -23,8 +23,8 @@ struct stringScanner{
 
     me int: skipPast(me string: findStr) <- {       /- Skip past <txt>.  Return pos or -1 if End-of-string reached
         me char: ch
-        me uint32: txtSize <- S.size()
-        me uint32: fs <- findStr.size()
+        me int: txtSize <- S.size()
+        me int: fs <- findStr.size()
         withEach p in RANGE(pos .. txtSize):{
             withEach i in RANGE(0 .. fs):{
                 /-print(">> fs/p/i:", fs, " ", p, " ", i, ", findStr[i]:", findStr[i], " S[p+i]:", S[p+i], "\n")

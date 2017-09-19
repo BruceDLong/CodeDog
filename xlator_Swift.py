@@ -98,7 +98,7 @@ def convertType(classes, TypeSpec, varMode, xlator):
     return xlateLangType(TypeSpec, owner, fieldType, varMode, xlator)
 
 def recodeStringFunctions(name, typeSpec):
-    if name == "size": name = "length"
+    if name == "size": name = "characters.count"
     elif name == "subStr": name = "substr"
 
     return [name, typeSpec]
@@ -521,7 +521,7 @@ def addSpecialCode(filename):
         file.seekg(0, std::ios::end);
         S.resize(file.tellg());
         file.seekg(0, std::ios::beg);
-        file.read((char*)S.c_str(), S.length());
+        file.read((char*)S.c_str(), S.characters.count);
         return S;  //No errors
     }"""
     #appendGlobalFuncAcc(decl, defn)
@@ -539,7 +539,7 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, xlator):
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):
@@ -563,12 +563,19 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, xlator):
                     assignValue = " = " + CPL   # Act like a copy constructor
 
     if(isStruct(typeSpec['fieldType'])):
-        varDeclareStr= "var " + varName + "="+ fieldType + "()"
+        varDeclareStr= "let " + varName + "="+ fieldType + "()"
     else:
-        varDeclareStr= "var " + varName + ":"+ fieldType + assignValue
+        varDeclareStr= "let " + varName + ":"+ fieldType + assignValue
 
     return(varDeclareStr)
 
+def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
+    if(traversalMode=='Forward' or traversalMode==None):
+        S = indent + "for "+ repName+' in '+ S_low + "...Int(" + S_hi + ") {\n"
+    elif(traversalMode=='Backward'):
+        S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+    return (S)
+    
 def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
@@ -645,7 +652,7 @@ def isNumericType(convertedType):
     else:
         return False
 
-def codeVarFieldRHS_Str( convertedType, fieldOwner, paramList, xlator):
+def codeVarFieldRHS_Str(name, convertedType, fieldOwner, paramList, xlator):
     fieldValueText=""
     if (fieldOwner=='me'):
         if paramList!=None:
@@ -681,7 +688,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
             S=indent + "var "+ fieldName + ":" +  convertedType + '\n'
         else:
             S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText + '\n'
-    return S
+    return [S, '']
 
 def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
     return "init (" + constructorArgs+"){"+constructorInit+"\n    }\n"
@@ -696,7 +703,7 @@ def codeConstructorInit(fieldName, count, xlator):
         exit(2)
 
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
@@ -705,13 +712,19 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            structCode +="func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode +="mutating func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
-        structCode += indent + "func " + fieldName +"("+argListText+") -> " + typeDefName
+        if fieldName=="init":
+            structCode += indent + fieldName +"("+argListText+")"
+        else:
+            structCode += indent + "mutating func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
-def codeArrayIndex(idx, containerType, LorR_Val):
-    S= '[' + idx +']'
+def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
+    if (containerType == "string"):
+        S= '[' + previousSegName+ ".index(" + previousSegName + ".startIndex, offsetBy: " + idx +')]'
+    else:
+        S= '[' + idx +']'
     return S
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):
@@ -798,4 +811,5 @@ def fetchXlators():
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
+    xlators['codeRangeSpec']                = codeRangeSpec
     return(xlators)

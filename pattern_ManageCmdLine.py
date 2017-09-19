@@ -70,7 +70,7 @@ def apply(classes, tags):
 
         void: processCmdLine(me string:prgArgs, me bool: exitOnInvalid) <- {
             cmdLineText <- prgArgs
-            me uint32: txtSize <- cmdLineText.size()
+            me int: txtSize <- cmdLineText.size()
 
     /- TODO: make this handle multiple options of each kind e.g., as with a compiler having multiple link options.
     /-          ALSO: add features from posix's or java's command line style

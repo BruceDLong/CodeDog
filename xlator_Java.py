@@ -534,6 +534,13 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, xl
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
+def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
+    if(traversalMode=='Forward' or traversalMode==None):
+        S = indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ xlator['codeIncrement'](repName) + "){\n"
+    elif(traversalMode=='Backward'):
+        S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+    return (S)
+
 def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
@@ -776,5 +783,6 @@ def fetchXlators():
     xlators['codeConstructorArgText']       = codeConstructorArgText
     xlators['codeSwitchBreak']              = codeSwitchBreak
     xlators['codeCopyConstructor']          = codeCopyConstructor
+    xlators['codeRangeSpec']                = codeRangeSpec
 
     return(xlators)
