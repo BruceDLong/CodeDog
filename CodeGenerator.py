@@ -516,7 +516,7 @@ def startPointOfNamesLastSegment(name):
 def genIfBody(ifBody, indent, xlator):
     ifBodyText = ""
     for ifAction in ifBody:
-        actionOut = codeAction(ifAction, indent + "    ", xlator)
+        [actionOut, hasMutating] = codeAction(ifAction, indent + "    ", xlator)
         #print "If action: ", actionOut
         ifBodyText += actionOut
     return ifBodyText
@@ -536,7 +536,7 @@ def encodeConditionalStatement(action, indent, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq(False, elseAction, indent, xlator)
+            [elseText, hasMutating] = codeActionSeq(False, elseAction, indent, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -546,6 +546,7 @@ def codeAction(action, indent, xlator):
     global localVarsAllocated
     actionText = ""
     typeOfAction = action['typeOfAction']
+    hasMutating = False
 
     if (typeOfAction =='newVar'):
         fieldDef=action['fieldDef']
@@ -634,7 +635,7 @@ def codeAction(action, indent, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq(False, elseAction, indent, xlator)
+                [elseText, hasMutating]  = codeActionSeq(False, elseAction, indent, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -702,7 +703,7 @@ def codeAction(action, indent, xlator):
             actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
         repBodyText = ''
         for repAction in repBody:
-            actionOut = codeAction(repAction, indent + "    ", xlator)
+            [actionOut, hasMutating] = codeAction(repAction, indent + "    ", xlator)
             repBodyText += actionOut
         if loopCounterName!='':
             actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
@@ -724,19 +725,21 @@ def codeAction(action, indent, xlator):
                 [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], xlator)
                 actionText += indent+"    case "+caseKeyValue+": "
                 caseAction = sCases[1]
-                actionText += codeActionSeq(False, caseAction, indent+'    ', xlator)
+                [actSeqText, hasMutating] = codeActionSeq(False, caseAction, indent+'    ', xlator)
+                actionText += actSeqText
                 actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
             actionText+=indent+"default: "
-            actionText += codeActionSeq(False, defaultCase, indent, xlator)
+            [actSeqText, hasMutating] = codeActionSeq(False, defaultCase, indent, xlator)
+            actionText += actSeqText
         actionText += indent + "}\n"
     elif (typeOfAction =='actionSeq'):
         cdlog(5, "Action Sequence")
         actionListIn = action['actionList']
         actionListText = ''
         for action in actionListIn:
-            actionListOut = codeAction(action, indent + "    ", xlator)
+            [actionListOut, hasMutating] = codeAction(action, indent + "    ", xlator)
             actionListText += actionListOut
         #print "actionSeq: ", actionListText
         actionText += indent + "{\n" + actionListText + indent + '}\n'
@@ -744,19 +747,21 @@ def codeAction(action, indent, xlator):
         print "error in codeAction: ", action
         exit(2)
  #   print "actionText", actionText
-    return actionText
+    return [actionText, hasMutating]
 
 def codeActionSeq(isMain, actSeq, indent, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = ""
+    hasMutating = False
 
     if (isMain):
-        actSeqText += xlator['codeActTextMain'](actSeq, indent, xlator)
+        [actTextMain, hasMutating]= xlator['codeActTextMain'](actSeq, indent, xlator)
+        actSeqText += actTextMain
     else:
         actSeqText = "{\n"
         for action in actSeq:
-            actionText = codeAction(action, indent + '    ', xlator)
+            [actionText, hasMutating] = codeAction(action, indent + '    ', xlator)
             actSeqText += actionText
         actSeqText += indent + "}"
 
@@ -764,7 +769,7 @@ def codeActionSeq(isMain, actSeq, indent, xlator):
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
-    return actSeqText
+    return [actSeqText, hasMutating]
 
 def codeConstructor(classes, ClassName, tags, xlator):
     baseType = progSpec.isWrappedType(classes, ClassName)
@@ -922,6 +927,7 @@ def codeStructFields(classes, className, tags, indent, xlator):
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
 
             #### FUNC BODY
+            hasMutating =False
             if abstractFunction: # i.e., if no function body is given.
                 cdlog(5, "Function "+className+":::"+fieldName+" has no implementation defined.")
             else:
@@ -937,13 +943,19 @@ def codeStructFields(classes, className, tags, indent, xlator):
                         if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
-                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
+                    [funcText, hasMutating] =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
                     if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Func Body from Action Sequence"
                 else:
                     print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                     exit(1)
 
+            if("<MUTATING>" in structCode):
+                if(hasMutating):
+                    structCode = structCode.replace("<MUTATING>", "mutating")
+                else:
+                    structCode = structCode.replace("<MUTATING>", "")
+            
             if(funcsDefInClass=='True' ):
                 structCode += funcText
 

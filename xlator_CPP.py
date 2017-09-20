@@ -494,10 +494,10 @@ def codeArgText(argFieldName, argType, xlator):
 def codeActTextMain(actSeq, indent, xlator):
     actSeqText = "{\n"
     for action in actSeq:
-        actionText = codeAction(action, indent + '    ', xlator)
+        [actionText, hasMutating] = codeAction(action, indent + '    ', xlator)
         actSeqText += actionText
     actSeqText += indent + "}"
-    return actSeqText
+    return [actSeqText, hasMutating]
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":

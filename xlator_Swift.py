@@ -475,10 +475,11 @@ def codeMain(classes, tags, xlator):
 def codeActTextMain(actSeq, indent, xlator):
     indent = ""
     actSeqText = ""
+    hasMutating = False
     for action in actSeq:
-        actionText = codeAction(action, indent, xlator)
+        [actionText, hasMutating] = codeAction(action, indent, xlator)
         actSeqText += actionText
-    return actSeqText
+    return [actSeqText, hasMutating]
 
 def codeArgText(argFieldName, argType, xlator):
     return "_ " + argFieldName + ": " + argType
@@ -565,7 +566,10 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, xl
     if(isStruct(typeSpec['fieldType'])):
         varDeclareStr= "let " + varName + "="+ fieldType + "()"
     else:
-        varDeclareStr= "let " + varName + ":"+ fieldType + assignValue
+        if (assignValue == ""):
+            varDeclareStr= "var " + varName + ":"+ fieldType + assignValue
+        else:
+            varDeclareStr= "let " + varName + ":"+ fieldType + assignValue
 
     return(varDeclareStr)
 
@@ -660,7 +664,6 @@ def codeVarFieldRHS_Str(name, convertedType, fieldOwner, paramList, xlator):
             [CPL, paramTypeList] = codeParameterList(paramList, None, xlator)
             fieldValueText=" = new " + convertedType + CPL
         else:
-            print "convertedType: ", convertedType
             if (convertedType == "String"):
                 fieldValueText=' = ""'
             elif (convertedType.startswith("[")):
@@ -712,12 +715,12 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            structCode +="mutating func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode +="<MUTATING> func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
         if fieldName=="init":
             structCode += indent + fieldName +"("+argListText+")"
         else:
-            structCode += indent + "mutating func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode += indent + "<MUTATING> func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
