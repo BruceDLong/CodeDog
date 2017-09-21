@@ -105,13 +105,13 @@ repeatedAction = Group(
 
 action = Group((assign("assign") | funcCall("funcCall") | fieldDef('fieldDef')) + Optional(comment)) + Optional(";").suppress()
 actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (switchStmt | conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
-funcBodyVerbatim = Group( "<%" + SkipTo("%>", include=True))("funcBodyVerbatim")
-funcBody = (actionSeq | funcBodyVerbatim)("funcBody")
+rValueVerbatim = Group( "<%" + SkipTo("%>", include=True))("rValueVerbatim")
+funcBody = (actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
           (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" + funcBody )         # Function Definition
-        | (Literal(":") + CID("fieldName")  + "<-" + rValue("givenValue"))
+        | (Literal(":") + CID("fieldName")  + "<-" + (rValue("givenValue") | rValueVerbatim))
         | (Literal(":") + "<-" + (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
         | (Literal("::") + CID("fieldName")  + Group(parameters)("parameters"))

@@ -136,6 +136,14 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
+
+def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
+    LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
+    RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
+    if LHS_KeyType == 'bool' and progSpec.typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
+    if LHS_KeyType == 'bool' and RHS_KeyType=='int': return '(' + codeStr + ' != 0)'
+    return codeStr
+
 def chooseVirtualRValOwner(LVAL, RVAL):
     return ['','']
 
@@ -250,7 +258,10 @@ def codeFactor(item, xlator):
             S+='(' + S2 +')'
         elif item0=='!':
             [S2, retType] = codeExpr(item[1], xlator)
-            S+='!' + S2
+            if(progSpec.typeIsPointer(retType)):
+                S= '('+S2+' == null)'
+                retType='bool'
+            else: S+='!' + S2
         elif item0=='-':
             [S2, retType] = codeExpr(item[1], xlator)
             S+='-' + S2
@@ -348,6 +359,8 @@ def codeLogAnd(item, xlator):
             #print '   AND ', i
             if (i[0] == 'and'):
                 [S2, retType] = codeIsEQ(i[1], xlator)
+                S = checkForTypeCastNeed('bool', retType, S)
+                S2= checkForTypeCastNeed('bool', retType, S2)
                 S+=' && ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)
             retType='bool'
@@ -360,18 +373,21 @@ def codeExpr(item, xlator):
         for i in item[1]:
             #print 'OR ', i
             if (i[0] == 'or'):
-                S+=' || ' + codeLogAnd(i[1], xlator)[0]
+                [S2, retType] = codeLogAnd(i[1], xlator)
+                S = checkForTypeCastNeed('bool', retType, S)
+                S2= checkForTypeCastNeed('bool', retType, S2)
+                S+=' || ' + S2
             else: print "ERROR: 'or' expected in code generator."; exit(2)
             retType='bool'
     #print "S:",S
     return [S, retType]
 
-def adjustIfConditional(S2, conditionType):
+def adjustConditional(S2, conditionType):
     #print "CONDITIONTYPE:", conditionType, '[', S2, ']'
     if not isinstance(conditionType, basestring):
-        if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my':
+        if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):
             S2+=" != null"
-        elif conditionType['owner']=='me' and conditionType['fieldType']=='flag':
+        elif conditionType['owner']=='me' and (conditionType['fieldType']=='flag' or progSpec.typeIsInteger(conditionType['fieldType'])):
             S2+=" != 0"
         conditionType='bool'
     return [S2, conditionType]
@@ -464,7 +480,7 @@ def codeActTextMain(actSeq, indent, xlator):
 def codeStructText(classAttrs, parentClass, structName, structCode):
     # TODO: make next line so it is not hard coded
     if (structName == 'widget'):
-        classAttrs = "abstract " 
+        classAttrs = "abstract "
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
         if parentClass[0]=="!": parentClass=' implements '+parentClass[1:]+' '
@@ -506,7 +522,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, xl
         if varTypeIsValueType(fieldType):
             assignValue=' = '+ RHS
         else:
-	    #TODO: make test case
+        #TODO: make test case
             constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
             if (constructorExists):
                 assignValue=' = new ' + fieldType +'('+ RHS + ')'
@@ -516,7 +532,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, xl
         #print "TYPE:", fieldType
         if fieldDef['paramList'] != None:       # call constructor
             # Code the constructor's arguments
-	    #TODO: make test case
+        #TODO: make test case
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
@@ -647,11 +663,11 @@ def codeConstructorInit(fieldName, count, defaultVal, xlator):
     return "        " + fieldName+"= arg_"+fieldName+";\n"
 
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
-    return argType + " arg_"+ argFieldName 
+    return argType + " arg_"+ argFieldName
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
-    
+
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     if inheritMode=='pure-virtual':
@@ -688,7 +704,7 @@ def codeSwitchBreak(caseAction, indent, xlator):
         return indent+"    break;\n"
     else:
         return ''
-    
+
 
 #######################################################
 
@@ -737,7 +753,7 @@ def fetchXlators():
     xlators['funcsDefInClass']     = "True"
     xlators['MakeConstructors']    = "True"
     xlators['codeExpr']                     = codeExpr
-    xlators['adjustIfConditional']          = adjustIfConditional
+    xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
     xlators['codeMain']                     = codeMain
     xlators['produceTypeDefs']              = produceTypeDefs

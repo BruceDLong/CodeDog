@@ -79,6 +79,7 @@ struct widget::dashboard{
     }
 
     void: draw(me GUI_ctxt: cr) <- {
+        if (isHidden){return()}
         cr.setRGB(255, 255, 255)
         cr.paintNow()
 
@@ -104,6 +105,7 @@ struct widget::dash{
     me int: extX        /- Dashes right-most extent
     me int: extY        /- Dashes lowest extent
     me int: extC        /- The current position where the next external item should be drawn
+    me bool: isNullLike
     void: activatePropertyEditor()<- {}
 }
 
@@ -112,7 +114,7 @@ struct widget::dash::dataField {
     me string: value
     me int: midPos
     void: update(me int:MidPos, me int:minWidth, me string: Label, me string: Value, me bool: hideThis) <- {
-        isHidden<-hideThis
+        isNullLike<-hideThis
         midPos<-MidPos; label<-Label; value<-Value;
     }
 
@@ -128,6 +130,7 @@ struct widget::dash::dataField {
     }
 
     void: draw(me GUI_ctxt: cr) <- {
+        if (isHidden){return()}
         renderText(cr, label, "Ariel",  fontSize, posX, posY+15)
         renderText(cr, value, "Ariel",  fontSize, posX+midPos, posY+15)
     }
@@ -140,9 +143,9 @@ struct widget::dash::ptrToItem {
     our widget::dash: dashPtr
 
     void: update(me string: Label, me string: textValue, me bool: hideThis) <- {
-        isHidden<-hideThis
+        isNullLike<-hideThis
         symbol <- textValue
-        refHidden <- 1
+        refHidden <- true
         dashPtr<-dashBoard.dependentIsRegistered(textValue)
         header.update(90, 150, Label, textValue, false)
     }
@@ -170,6 +173,7 @@ struct widget::dash::ptrToItem {
     }
 
     void: draw(me GUI_ctxt: cr) <- {
+        if (isHidden){return()}
         header.draw(cr)
 
     }
@@ -183,7 +187,7 @@ struct widget::dash::listOfItems {
     our widget::dash[list]: elements
 
     void: update(me string: Label, me string: textValue, me bool: hideThis) <- {
-        isHidden<-hideThis
+        isNullLike<-hideThis
         header.update(90, 150, Label, textValue, false)
         elements.clear()
         displayMode<-headerOnly
@@ -252,9 +256,11 @@ struct widget::dash::listOfItems {
     }
 
     void: draw(me GUI_ctxt: cr) <- {
+        if (isHidden){return()}
         header.draw(cr)
         if(displayMode!=headerOnly){
             withEach element in elements:{
+                element.isHidden <- false
                 element.draw(cr)
             }
             if(orientation==horizontal){

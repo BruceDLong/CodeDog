@@ -110,6 +110,13 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
+def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
+    LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
+    RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
+    #if LHS_KeyType == 'bool' and typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
+    #if LHS_KeyType == 'bool' and RHS_KeyType=='int'): return '(' + codeStr + ' != 0)'
+    return codeStr
+
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
         if progSpec.typeIsPointer(itemTypeSpec):
@@ -416,7 +423,7 @@ def codeExpr(item, xlator):
     #print "S:",S
     return [S, retType]
 
-def adjustIfConditional(S2, conditionType):
+def adjustConditional(S2, conditionType):
     return [S2, conditionType]
 
 def codeSpecialFunc(segSpec, xlator):
@@ -823,7 +830,7 @@ def fetchXlators():
     xlators['funcsDefInClass']      = "False"
     xlators['MakeConstructors']     = "True"
     xlators['codeExpr']                     = codeExpr
-    xlators['adjustIfConditional']          = adjustIfConditional
+    xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
     xlators['codeMain']                     = codeMain
     xlators['produceTypeDefs']              = produceTypeDefs

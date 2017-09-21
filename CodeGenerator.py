@@ -135,6 +135,7 @@ def fetchItemsTypeSpec(itemName, xlator):
                         if(parentClassName != ''):
                             return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
                         else: return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "CONST"]
+                    if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None}, "CONST"]
                     cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                     return [None, "LIB"]      # TODO: Return correct type
     return [REF['typeSpec'], RefType]
@@ -243,7 +244,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     S=''
     S_alt=''
     namePrefix=''  # For static_Global vars
-    typeSpecOut={'owner':''}
+    typeSpecOut={'owner':'', 'fieldType':'void'}
     paramList=None
     if len(segSpec) > 1 and segSpec[1]=='(':
         if(len(segSpec)==2):
@@ -465,11 +466,11 @@ def codeParameterList(name, paramList, modelParams, xlator):
         for P in modelParams:
             if P['value']:
                 totalDefaultValue=len(modelParams)
-    
+
     if(totalDefaultValue>0):
         count=0
         for MP in modelParams:
-            if not(count<totalParams) and MP['value']: 
+            if not(count<totalParams) and MP['value']:
                 paramList.insert(count, MP['value'])
             #print "    paramList[", count, "]: ", paramList[count]
             count+=1
@@ -545,6 +546,7 @@ def codeAction(action, indent, xlator):
     #make a string and return it
     global localVarsAllocated
     actionText = ""
+    action['sideEffects']=[]
     typeOfAction = action['typeOfAction']
 
     if (typeOfAction =='newVar'):
@@ -618,7 +620,7 @@ def codeAction(action, indent, xlator):
     elif (typeOfAction =='conditional'):
         cdlog(5, "If-statement...")
         [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], xlator)
-        [S2, conditionType] =  xlator['adjustIfConditional'](S2, conditionType)
+        [S2, conditionType] =  xlator['adjustConditional'](S2, conditionType)
         cdlog(5, "If-statement: Condition is ".format(S2))
         ifCondition = S2
 
@@ -661,7 +663,7 @@ def codeAction(action, indent, xlator):
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
             [whileExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
-            [whileExpr, whereConditionType] =  xlator['adjustIfConditional'](whileExpr, whereConditionType)
+            [whileExpr, whereConditionType] =  xlator['adjustConditional'](whileExpr, whereConditionType)
             actionText += indent + "while(" + whileExpr + "){\n"
             loopCounterName=repName
         elif(fileSpec):

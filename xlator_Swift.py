@@ -398,7 +398,7 @@ def codeExpr(item, xlator):
     #print "S:",S
     return [S, retType]
 
-def adjustIfConditional(S2, conditionType):
+def adjustConditional(S2, conditionType):
     return [S2, conditionType]
 
 def codeSpecialFunc(segSpec, xlator):
@@ -762,7 +762,7 @@ def fetchXlators():
     xlators['funcsDefInClass']      = "True"
     xlators['MakeConstructors']     = "False"
     xlators['codeExpr']                     = codeExpr
-    xlators['adjustIfConditional']          = adjustIfConditional
+    xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
     xlators['codeMain']                     = codeMain
     xlators['produceTypeDefs']              = produceTypeDefs

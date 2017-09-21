@@ -10,14 +10,12 @@ interface={
 }
 
 LibDescription ={
-    useStatus='dynamic'
-    description='GTK is a GUI Toolkit'
-    features=[GUI_ToolKit, Mouse, Keyboard, Audio]
-    platforms=[Linux, OS-X_Devices, Windows]
-    bindings =[C, CPP, perl, python]
-    CPUs     =[i386, amd64, arm7]
-    libFiles=[`pkg-config --cflags --libs gtk+-3.0`]
-    headers=[gtk/gtk.h]
+    useStatus   ='dynamic'
+    description ='GTK is a GUI Toolkit'
+    features    =[GUI_ToolKit, Mouse, Keyboard, Audio]
+    platforms   =[Linux, OS-X_Devices, Windows]
+    bindings    =[C, CPP, perl, python]
+    CPUs        =[i386, amd64, arm7]
 }
 
 /-///////////////////////////////  STRUCT CONVERTERS
@@ -90,6 +88,26 @@ struct GTK_eventDispatcher{
              | GDK_BUTTON_PRESS_MASK
              | GDK_POINTER_MOTION_MASK
              | GDK_POINTER_MOTION_HINT_MASK);
+    } %>
+}
+
+/-///////////////////////////////   Event callbacks for GTK3
+struct GLOBAL{
+    me GTK_eventDispatcher: EventDispatcher
+    me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event) <- <%{
+        EventDispatcher.dispatchPointerClickEvent(event);
+    } %>
+    me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event) <- <%{
+        EventDispatcher.dispatchPointerMotionEvent(event);
+    } %>
+    me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event) <- <%{
+      /-  EventDispatcher.dispatchWindowEvent(event);
+    } %>
+    me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event) <- <%{
+        EventDispatcher.dispatchKeyboardEvent(event);
+    } %>
+    me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event) <- <%{
+      /-  EventDispatcher.dispatchWindowEvent(event);
     } %>
 }
 
@@ -326,27 +344,12 @@ me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
 me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
-/--------------- Event callbacks for GTK3
-me GTK_eventDispatcher: EventDispatcher
-me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event) <- <%{
-    EventDispatcher.dispatchPointerClickEvent(event);
-} %>
-me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event) <- <%{
-    EventDispatcher.dispatchPointerMotionEvent(event);
-} %>
-me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event) <- <%{
-  /-  EventDispatcher.dispatchWindowEvent(event);
-} %>
-me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event) <- <%{
-    EventDispatcher.dispatchKeyboardEvent(event);
-} %>
-me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event) <- <%{
-  /-  EventDispatcher.dispatchWindowEvent(event);
-} %>
 
+
+/--------------- Application areas
 their GtkWidget: window
 void: setMasterWidget(their widget::dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
-/--------------- Application areas
+
 me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
   /-  GtkWidget *window;
     GtkWidget *topBox;
@@ -397,4 +400,3 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
 }%>
 
 }
-

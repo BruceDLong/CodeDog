@@ -412,6 +412,8 @@ def baseStructName(structName):
     return structName[0:colonIndex]
 
 def fieldTypeKeyword(fieldType):
+    if fieldType==None: return 'NONE'
+    if 'fieldType' in fieldType: fieldType = fieldType['fieldType'];  print 'FIELDTYPE:', fieldType
     if isinstance(fieldType, basestring): return fieldType
     return fieldType[0]
 

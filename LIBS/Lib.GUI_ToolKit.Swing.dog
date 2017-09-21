@@ -34,21 +34,33 @@ struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_ctxt{their JavaGUI_ctxt:GUI_ctxt}
 
 /-///////////////////////////////  HANDLE EVENTS
-struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
-struct GUI_ButtonEvent{
+struct MouseEvent{
   me uint: type
  /- GdkWindow *window;
  /- gint8 send_event;
  /- guint32 time;
-  me double: x
+  me double: x <- <%!getX()%>
   me double: y
   me uint: state
   me uint: button
 }
 
-struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
+struct GUI_MotionEvent{their MouseEvent: GUI_MotionEvent}
+
+struct GUI_ButtonEvent{their MouseEvent: GUI_ButtonEvent}
+struct GUI_ButtonEvent{
+  me uint: type
+ /- GdkWindow *window;
+ /- gint8 send_event;
+ /- guint32 time;
+  me double: x <- <%!getX()%>
+  me double: y
+  me uint: state
+  me uint: button
+}
+
+struct GUI_PointerEvent{their MouseEvent: GUI_PointerEvent}
 struct GUI_PointerEvent{
   me uint: type
  /- GdkWindow *window;
@@ -60,42 +72,77 @@ struct GUI_PointerEvent{
   me uint: state
   me uint: button
 }
-
 /-///////////////////////////////  HANDLE LISTENERS
-struct CustomMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseListener" {
+struct MasterMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseListener" {
     me void: mouseClicked(me MouseEvent: e)<-     {
-        me float: eventX <- e.getX()
-        me float: eventY <- e.getY()
+        me double: eventX <- e.x
+        me double: eventY <- e.y
     }
     me void: mousePressed(me MouseEvent: e)<-     {
-        me float: eventX <- e.getX()
-        me float: eventY <- e.getY()
+        me double: eventX <- e.x
+        me double: eventY <- e.y
         /-GLOBAL.static_Global.thisApp.gui.pointerDown(GLOBAL.static_Global.drawing_area, eventX, eventY)
     }
     me void: mouseReleased(me MouseEvent: e)<-     {
-        me float: eventX <- e.getX()
-        me float: eventY <- e.getY()
+        me double: eventX <- e.x
+        me double: eventY <- e.y
     }
     me void: mouseEntered(me MouseEvent: e)<-     {
-        me float: eventX <- e.getX()
-        me float: eventY <- e.getY()
+        me double: eventX <- e.x
+        me double: eventY <- e.y
     }
     me void: mouseExited(me MouseEvent: e)<-     {
-        me float: eventX <- e.getX()
-        me float: eventY <- e.getY()
+        me double: eventX <- e.x
+        me double: eventY <- e.y
     }
 }
 
-struct CustomMouseMotionListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseMotionListener" {
+struct MasterMouseMotionListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseMotionListener" {
     me void: mouseMoved(me MouseEvent: e)<-     {
-        me float: eventX <- e.getX()
-        me float: eventY <- e.getY()
+        me double: eventX <- e.x
+        me double: eventY <- e.y
     }
     me void: mouseDragged(me MouseEvent: e)<-     {
-        me float: eventX <- e.getX()
-        me float: eventY <- e.getY()
+        me double: eventX <- e.x
+        me double: eventY <- e.y
     }
 }
+
+/-///////////////////////////////  HANDLE LISTENERS
+struct Swing_eventDispatcher{
+    their widget::dashboard: topWidget
+
+    me MasterMouseListener: mouseListener
+    me MasterMouseMotionListener: mouseMotionListener
+
+    me bool: dispatchPointerMotionEvent(their MouseEvent: event) <- {return(false)}
+    me bool: dispatchPointerClickEvent(their MouseEvent: event) <- <%{
+      /*  if(event->type==GDK_BUTTON_PRESS){
+            if(event->button==1){
+                topWidget->primaryClick(event);
+            } else if(event->button==3){
+                topWidget->secondaryClick(event);
+            }
+        } */
+    } %>
+  /-  me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
+  /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+    /- Also: timer, data and user events
+
+    me void: registerWidgetForEventDispatcher(me JavaGUI_ctxt: appWidget) <- <%{
+        appWidget.addMouseListener(mouseListener);
+        appWidget.addMouseMotionListener(mouseMotionListener);
+
+
+    } %>
+}
+
+/-///////////////////////////////   Event callbacks for GTK3
+struct GLOBAL{
+    me Swing_eventDispatcher: EventDispatcher
+
+}
+
 
 /-///////////////////////////////  HANDLE GUI
 struct GUI{
@@ -171,13 +218,13 @@ struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implM
     me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo(cr.cur_x+%1, cr.cur_y+%2)%>
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    me void: closePath() <- <%!cairo_close_path(%0)%>
+    me void: closePath() <- <%!GPath.closePath()%>
     me void: rectangle() <- <%!%0.gr.drawRect(%1, %2, %3, %4)%>
     me void: paintNow() <- <%!gr.fill(cr.GPath)%>
     me void: strokeNow() <- <%!gr.draw(cr.GPath)%>
     me void: fillNow() <- <%!gr.fill(cr.GPath)%>
-    me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
-    me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
+    me void: strokeKeep() <- <%!gr.draw(cr.GPath)%>
+    me void: fillKeep() <- <%!gr.fill(cr.GPath)%>
     me void: renderFrame() <- <%!repaint()%>
 }
 
@@ -190,8 +237,6 @@ struct JavaGUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" i
 
     me void: paintComponent(me Graphics: g) <- <%    {
         super.paintComponent(g);
-        this.addMouseListener(new CustomMouseListener());
-        this.addMouseMotionListener(new CustomMouseMotionListener());
         GPath.reset();
         gr=(Graphics2D)(g);
         GLOBAL.static_Global.drawAppArea_cb(this, this);
@@ -268,5 +313,3 @@ struct GLOBAL{
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
 
 }
-
-

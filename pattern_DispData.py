@@ -112,14 +112,15 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
-    setPosFuncText += '''        if(!<fieldName>.isHidden and displayMode==noZeros){
+    setPosFuncText += '''        if(!<fieldName>.isNullLike or displayMode==fullDisplay){
             <fieldName>.setPos(x,y,extC)
             extC <- <fieldName>.extC
             y <- y + <fieldName>.height
             extX <- max(extX, <fieldName>.extX)
             extY <- max(extY, <fieldName>.extY)
             width<- max(width, <fieldName>.width)
-        }
+            <fieldName>.isHidden<-false
+        } else {<fieldName>.isHidden<-true}
 '''.replace('<fieldName>', fieldName)
   #  updateFuncText+='        if(crntWidth<'+fieldName+'.width){crntWidth <- '+fieldName+'.width}'
     handleClicksFuncText = '            '+fieldName+'.primaryClick(event)'
@@ -237,8 +238,8 @@ struct widget::dash::display_'''+className+'''{
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         if(isHidden){return(false)}
-        me int: eventX <- event.x
-        me int: eventY <- event.y
+        me double: eventX <- event.x
+        me double: eventY <- event.y
         if( header.isTouchingMe(eventX, eventY)){
             if(displayMode==headerOnly){displayMode <- noZeros}
             else if(displayMode==noZeros){displayMode <- fullDisplay}
@@ -253,6 +254,7 @@ struct widget::dash::display_'''+className+'''{
     }
 
     void: draw(me GUI_ctxt: cr) <- {
+        header.isHidden <- false
         header.draw(cr)
         if(displayMode!=headerOnly){
 '''+drawFuncTextAcc+'''
