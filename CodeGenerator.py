@@ -222,13 +222,13 @@ def codeAllocater(typeSpec, xlator):
     S= xlator['getCodeAllocStr'](varTypeStr, owner);
     return S
 
-def convertNameSeg(typeSpecOut, name, paramList, xlator):
+def convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator):
     newName = typeSpecOut['codeConverter']
     if paramList != None:
         count=1
         for P in paramList:
             oldTextTag='%'+str(count)
-            [S2, argType]=xlator['codeExpr'](P[0], xlator)
+            [S2, argType]=xlator['codeExpr'](P[0], objsRefed, xlator)
             if(isinstance(newName, basestring)):
                 newName=newName.replace(oldTextTag, S2)
             else: exit(2)
@@ -238,7 +238,7 @@ def convertNameSeg(typeSpecOut, name, paramList, xlator):
 
 ################################  C o d e   E x p r e s s i o n s
 
-def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, xlator):
+def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, xlator):
     # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
     #print "CODENAMESEG:", segSpec, "TSI:",typeSpecIn
     S=''
@@ -277,13 +277,13 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
         #print "                                                 arraySpec:",typeSpecOut
         if(name[0]=='['):
-            [S2, idxType] = xlator['codeExpr'](name[1], xlator)
+            [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName)
             return [S, typeSpecOut, S2]
         [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxType, typeSpecOut, paramList, xlator)
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
-        tmp=xlator['codeSpecialFunc'](segSpec, xlator)   # Check if it's a special function like 'print'
+        tmp=xlator['codeSpecialFunc'](segSpec, objsRefed, xlator)   # Check if it's a special function like 'print'
         if(tmp!=''):
             S=tmp
             return [S, '', None]
@@ -297,7 +297,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif(name[0]=='[' and fType=='string'):
             typeSpecOut={'owner':owner, 'fieldType': fType}
-            [S2, idxType] = xlator['codeExpr'](name[1], xlator)
+            [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, xlator)
             S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, '')
             return [S, typeSpecOut, S2]  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
@@ -312,7 +312,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                     #print "typeSpecIn: ", typeSpecIn
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
-        [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, xlator)
+        [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
         #print"                             codeConverter:", name, "->", convertedName
         name = convertedName
         callAsGlobal=name.find("%G")
@@ -324,7 +324,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     if(paramList != None):
         modelParams=None
         if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList']
-        [CPL, paramTypeList] = codeParameterList(name, paramList, modelParams, xlator)
+        [CPL, paramTypeList] = codeParameterList(name, paramList, modelParams, objsRefed, xlator)
         S+= CPL
     if(typeSpecOut==None): cdlog(logLvl(), "Type for {} was not found.".format(name))
     if ("<MODENAME>" in S):
@@ -332,7 +332,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         S=S.replace("<MODENAMEend>", ")")
     return [S,  typeSpecOut, None]
 
-def codeUnknownNameSeg(segSpec, xlator):
+def codeUnknownNameSeg(segSpec, objsRefed, xlator):
     S=''
     paramList=None
     segName=segSpec[0]
@@ -353,11 +353,11 @@ def codeUnknownNameSeg(segSpec, xlator):
         if(len(paramList)==0):
             S+="()"
         else:
-            [CPL, paramTypeList] = codeParameterList("", paramList, None, xlator)
+            [CPL, paramTypeList] = codeParameterList("", paramList, None, objsRefed, xlator)
             S+= CPL
     return S;
 
-def codeItemRef(name, LorR_Val, xlator):
+def codeItemRef(name, LorR_Val, objsRefed, xlator):
     global currentObjName
     previousSegName = ""
     previousTypeSpec = ""
@@ -389,12 +389,12 @@ def codeItemRef(name, LorR_Val, xlator):
             if segType and 'fieldType' in segType:
                 LHSParentType = progSpec.fieldTypeKeyword(segType['fieldType'])
             else: LHSParentType = progSpec.fieldTypeKeyword(currentObjName)   # Landed here because this is the first segment
-            [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, previousSegName, previousTypeSpec, xlator)
+            [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, xlator)
             if AltIDXFormat!=None:
                 AltFormat=[S, previousTypeSpec, AltIDXFormat]   # This is in case of an alternate index format such as Java's string.put(idx, val)
             #print "segStr: ", segStr
         else:
-            segStr= codeUnknownNameSeg(segSpec, xlator)
+            segStr= codeUnknownNameSeg(segSpec, objsRefed, xlator)
             #print "segStr: ", segStr
         prevLen=len(S)
 
@@ -453,7 +453,7 @@ def codeUserMesg(item, xlator):
     return S
 
 
-def codeParameterList(name, paramList, modelParams, xlator):
+def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
     S=''
     #if(modelParams):  print "CODE-PARAMS:", len(paramList),"=",len(modelParams)
     count = 0
@@ -482,7 +482,7 @@ def codeParameterList(name, paramList, modelParams, xlator):
         count = 0
         for P in paramList:
             if(count>0): S+=', '
-            [S2, argType]=xlator['codeExpr'](P[0], xlator)
+            [S2, argType]=xlator['codeExpr'](P[0], objsRefed, xlator)
             paramTypeList.append(argType)
         #    print "    PARAM",P, '<',argType,'>'
         #    print "    MODEL", modelParams[count], '\n'
@@ -495,13 +495,13 @@ def codeParameterList(name, paramList, modelParams, xlator):
     return [S, paramTypeList]
 
 
-def codeFuncCall(funcCallSpec, xlator):
+def codeFuncCall(funcCallSpec, objsRefed, xlator):
     S=''
    # if(len(funcCallSpec)==1):
        # tmpStr=xlator['codeSpecialFunc'](funcCallSpec)
        # if(tmpStr != ''):
        #     return tmpStr
-    [codeStr, typeSpec, LHSParentType, AltIDXFormat]=codeItemRef(funcCallSpec, 'RVAL', xlator)
+    [codeStr, typeSpec, LHSParentType, AltIDXFormat]=codeItemRef(funcCallSpec, 'RVAL', objsRefed, xlator)
     S+=codeStr
     return S
 
@@ -514,35 +514,35 @@ def startPointOfNamesLastSegment(name):
     return -1
 
 
-def genIfBody(ifBody, indent, xlator):
+def genIfBody(ifBody, indent, objsRefed, xlator):
     ifBodyText = ""
     for ifAction in ifBody:
-        actionOut = codeAction(ifAction, indent + "    ", xlator)
+        actionOut = codeAction(ifAction, indent + "    ", objsRefed, xlator)
         #print "If action: ", actionOut
         ifBodyText += actionOut
     return ifBodyText
 
-def encodeConditionalStatement(action, indent, xlator):
+def encodeConditionalStatement(action, indent, objsRefed, xlator):
     #print "                                         encodeConditionalStatement: "
-    [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], xlator)
+    [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], objsRefed, xlator)
     ifCondition = S2
-    ifBodyText = genIfBody(action['ifBody'], indent, xlator)
+    ifBodyText = genIfBody(action['ifBody'], indent, objsRefed, xlator)
     actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
     elseBodyText = ""
     elseBody = action['elseBody']
     if (elseBody):
         if (elseBody[0]=='if'):
             elseAction = elseBody[1]
-            elseText = encodeConditionalStatement(elseAction[0], indent, xlator)
+            elseText = encodeConditionalStatement(elseAction[0], indent, objsRefed, xlator)
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq(False, elseAction, indent, xlator)
+            elseText = codeActionSeq(False, elseAction, indent, objsRefed, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
 
-def codeAction(action, indent, xlator):
+def codeAction(action, indent, objsRefed, xlator):
     #make a string and return it
     global localVarsAllocated
     actionText = ""
@@ -556,18 +556,18 @@ def codeAction(action, indent, xlator):
         cdlog(5, "New Var: {}: ".format(varName))
         [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
         cdlog(5, "Action newVar: {}".format(varName))
-        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, indent, xlator)
+        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, indent, objsRefed, xlator)
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         cdlog(5, "PREASSIGN:" + str(action['LHS']))
         # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
         cdlog(5, "Pre-assignment... ")
-        [codeStr, typeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', xlator)
+        [codeStr, typeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', objsRefed, xlator)
         assignTag = action['assignTag']
         LHS = codeStr
         cdlog(5, "Assignment: {}".format(LHS))
-        [S2, rhsType]=xlator['codeExpr'](action['RHS'][0], xlator)
+        [S2, rhsType]=xlator['codeExpr'](action['RHS'][0], objsRefed, xlator)
         #print "LHS / RHS:", LHS, ' / ', S2, typeSpec, rhsType
         [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](typeSpec, rhsType, assignTag)
         LHS = LHS_leftMod+LHS+LHS_rightMod
@@ -619,24 +619,24 @@ def codeAction(action, indent, xlator):
         actionText = indent + "swap (" + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='conditional'):
         cdlog(5, "If-statement...")
-        [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], xlator)
+        [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], objsRefed, xlator)
         [S2, conditionType] =  xlator['adjustConditional'](S2, conditionType)
         cdlog(5, "If-statement: Condition is ".format(S2))
         ifCondition = S2
 
 
-        ifBodyText = genIfBody(action['ifBody'], indent, xlator)
+        ifBodyText = genIfBody(action['ifBody'], indent, objsRefed, xlator)
         actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
         elseBodyText = ""
         elseBody = action['elseBody']
         if (elseBody):
             if (elseBody[0]=='if'):
                 elseAction = elseBody[1][0]
-                elseText = encodeConditionalStatement(elseAction, indent, xlator)
+                elseText = encodeConditionalStatement(elseAction, indent, objsRefed, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq(False, elseAction, indent, xlator)
+                elseText = codeActionSeq(False, elseAction, indent, objsRefed, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -652,8 +652,8 @@ def codeAction(action, indent, xlator):
         # TODO: add cases for traversing trees and graphs in various orders or ways.
         loopCounterName=''
         if(rangeSpec): # iterate over range
-            [S_low, lowValType] = xlator['codeExpr'](rangeSpec[2][0], xlator)
-            [S_hi,   hiValType] = xlator['codeExpr'](rangeSpec[4][0], xlator)
+            [S_low, lowValType] = xlator['codeExpr'](rangeSpec[2][0], objsRefed, xlator)
+            [S_hi,   hiValType] = xlator['codeExpr'](rangeSpec[4][0], objsRefed, xlator)
             #print "RANGE:", S_low, "..", S_hi
             ctrlVarsTypeSpec = lowValType
             if(traversalMode=='Forward' or traversalMode==None):
@@ -662,20 +662,20 @@ def codeAction(action, indent, xlator):
                 actionText += indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
-            [whileExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], xlator)
+            [whileExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], objsRefed, xlator)
             [whileExpr, whereConditionType] =  xlator['adjustConditional'](whileExpr, whereConditionType)
             actionText += indent + "while(" + whileExpr + "){\n"
             loopCounterName=repName
         elif(fileSpec):
-            [filenameExpr, filenameType] = xlator['codeExpr'](fileSpec[2], xlator)
+            [filenameExpr, filenameType] = xlator['codeExpr'](fileSpec[2], objsRefed, xlator)
             if filenameType!='string':
                 print "Filename must be a string.\n"; exit(1);
             print "File iteration not implemeted yet.\n"
             exit(2)
         elif(keyRange):
-            [repContainer, containerType] = xlator['codeExpr'](keyRange[0][0], xlator)
-            [StartKey, StartType] = xlator['codeExpr'](keyRange[2][0], xlator)
-            [EndKey,   EndType] = xlator['codeExpr'](keyRange[4][0], xlator)
+            [repContainer, containerType] = xlator['codeExpr'](keyRange[0][0], objsRefed, xlator)
+            [StartKey, StartType] = xlator['codeExpr'](keyRange[2][0], objsRefed, xlator)
+            [EndKey,   EndType] = xlator['codeExpr'](keyRange[4][0], objsRefed, xlator)
 
             [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerType)
             wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerType['fieldType'][0])
@@ -685,7 +685,7 @@ def codeAction(action, indent, xlator):
             actionText += actionTextOut
 
         else: # interate over a container
-            [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], xlator)
+            [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], objsRefed, xlator)
             if containerType['arraySpec']==None: cdErr("'"+repContainer+"' is not a container so cannot be iterated over.")
             [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerType)
 
@@ -700,14 +700,14 @@ def codeAction(action, indent, xlator):
             actionText += actionTextOut
 
         if action['whereExpr']:
-            [whereExpr, whereConditionType] = xlator['codeExpr'](action['whereExpr'], xlator)
+            [whereExpr, whereConditionType] = xlator['codeExpr'](action['whereExpr'], objsRefed, xlator)
             actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
         if action['untilExpr']:
-            [untilExpr, untilConditionType] = xlator['codeExpr'](action['untilExpr'], xlator)
+            [untilExpr, untilConditionType] = xlator['codeExpr'](action['untilExpr'], objsRefed, xlator)
             actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
         repBodyText = ''
         for repAction in repBody:
-            actionOut = codeAction(repAction, indent + "    ", xlator)
+            actionOut = codeAction(repAction, indent + "    ", objsRefed, xlator)
             repBodyText += actionOut
         if loopCounterName!='':
             actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
@@ -719,29 +719,29 @@ def codeAction(action, indent, xlator):
             print "\nERROR: It is not allowed to name a function", calledFunc[0][0]
             exit(2)
         cdlog(5, "Function Call: {}()".format(str(calledFunc[0][0])))
-        actionText = indent + codeFuncCall(calledFunc, xlator) + ';\n'
+        actionText = indent + codeFuncCall(calledFunc, objsRefed, xlator) + ';\n'
     elif (typeOfAction == 'switchStmt'):
         cdlog(5, "Switch statement: switch({})".format(str(action['switchKey'])))
-        [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], xlator)
+        [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], objsRefed, xlator)
         actionText += indent+"switch("+ switchKeyExpr + "){\n"
         for sCases in action['switchCases']:
             for sCase in sCases[0]:
-                [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], xlator)
+                [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], objsRefed, xlator)
                 actionText += indent+"    case "+caseKeyValue+": "
                 caseAction = sCases[1]
-                actionText += codeActionSeq(False, caseAction, indent+'    ', xlator)
+                actionText += codeActionSeq(False, caseAction, indent+'    ', objsRefed, xlator)
                 actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
             actionText+=indent+"default: "
-            actionText += codeActionSeq(False, defaultCase, indent, xlator)
+            actionText += codeActionSeq(False, defaultCase, indent, objsRefed, xlator)
         actionText += indent + "}\n"
     elif (typeOfAction =='actionSeq'):
         cdlog(5, "Action Sequence")
         actionListIn = action['actionList']
         actionListText = ''
         for action in actionListIn:
-            actionListOut = codeAction(action, indent + "    ", xlator)
+            actionListOut = codeAction(action, indent + "    ", objsRefed, xlator)
             actionListText += actionListOut
         #print "actionSeq: ", actionListText
         actionText += indent + "{\n" + actionListText + indent + '}\n'
@@ -751,17 +751,17 @@ def codeAction(action, indent, xlator):
  #   print "actionText", actionText
     return actionText
 
-def codeActionSeq(isMain, actSeq, indent, xlator):
+def codeActionSeq(isMain, actSeq, indent, objsRefed, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = ""
 
     if (isMain):
-        actSeqText += xlator['codeActTextMain'](actSeq, indent, xlator)
+        actSeqText += xlator['codeActTextMain'](actSeq, indent, objsRefed, xlator)
     else:
         actSeqText = "{\n"
         for action in actSeq:
-            actionText = codeAction(action, indent + '    ', xlator)
+            actionText = codeAction(action, indent + '    ', objsRefed, xlator)
             actSeqText += actionText
         actSeqText += indent + "}"
 
@@ -819,7 +819,7 @@ def codeConstructor(classes, ClassName, tags, xlator):
     else: constructCode=''
     return constructCode
 
-def codeStructFields(classes, className, tags, indent, xlator):
+def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     global currentObjName
     global ForwardDeclsForGlobalFuncs
     cdlog(3, "Coding fields for {}...".format(className))
@@ -863,17 +863,17 @@ def codeStructFields(classes, className, tags, indent, xlator):
 
         # CALCULATE RHS
         if(fieldValue == None):
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, fieldOwner, field['paramList'], xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, fieldOwner, field['paramList'], objsRefed, xlator)
            # print "                            RHS none: ", fieldValueText
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, basestring):
                 fieldValueText = ' = "'+ fieldValue + '"'
                 #TODO:  make test case
             else:
-                fieldValueText = " = "+ xlator['codeExpr'](fieldValue, xlator)[0]
+                fieldValueText = " = "+ xlator['codeExpr'](fieldValue, objsRefed, xlator)[0]
            # print "                            RHS const: ", fieldValueText
         elif(fieldArglist==None):
-            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], xlator)[0]
+            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], objsRefed, xlator)[0]
            # print "                            RHS var: ", fieldValueText
         else:
             fieldValueText = " = "+ str(fieldValue)
@@ -942,7 +942,7 @@ def codeStructFields(classes, className, tags, indent, xlator):
                         if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
-                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, xlator)
+                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, objsRefed, xlator)
                     if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Func Body from Action Sequence"
                 else:
@@ -1055,7 +1055,8 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
             parentClass=implMode[8:]
         elif(implMode and implMode[:9]=="implement"):
             parentClass='!' + implMode[10:]
-        [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', xlator)
+        objsRefed={}
+        [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
         structCode+= constFieldCode
         LangFormOfObjName = progSpec.flattenObjectName(className)
         [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, LangFormOfObjName, structCode)
@@ -1114,7 +1115,7 @@ def codeStructureCommands(classes, tags, xlator):
                         count=1
                         for P in paramList:
                             oldTextTag='%'+str(count)
-                            [newText, argType]=xlator['codeExpr'](P[0], xlator)
+                            [newText, argType]=xlator['codeExpr'](P[0], {}, xlator)
                             commandArgs=commandArgs.replace(oldTextTag, newText)
                             count+=1
                         #print commandArgs

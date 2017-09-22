@@ -413,7 +413,7 @@ def baseStructName(structName):
 
 def fieldTypeKeyword(fieldType):
     if fieldType==None: return 'NONE'
-    if 'fieldType' in fieldType: fieldType = fieldType['fieldType'];  print 'FIELDTYPE:', fieldType
+    if 'fieldType' in fieldType: fieldType = fieldType['fieldType'];
     if isinstance(fieldType, basestring): return fieldType
     return fieldType[0]
 
