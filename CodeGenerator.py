@@ -243,6 +243,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     #print "CODENAMESEG:", segSpec, "TSI:",typeSpecIn
     S=''
     S_alt=''
+    SRC=''
     namePrefix=''  # For static_Global vars
     typeSpecOut={'owner':'', 'fieldType':'void'}
     paramList=None
@@ -279,14 +280,14 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if(name[0]=='['):
             [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName)
-            return [S, typeSpecOut, S2]
+            return [S, typeSpecOut, S2,'']
         [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxType, typeSpecOut, paramList, xlator)
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
         tmp=xlator['codeSpecialFunc'](segSpec, objsRefed, xlator)   # Check if it's a special function like 'print'
         if(tmp!=''):
             S=tmp
-            return [S, '', None]
+            return [S, '', None, '']
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name, xlator)
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:]
@@ -299,7 +300,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             typeSpecOut={'owner':owner, 'fieldType': fType}
             [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, xlator)
             S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, '')
-            return [S, typeSpecOut, S2]  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
+            return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
             if fType!='string':
                 typeSpecOut=CheckObjectVars(fType, name, 1)
@@ -330,7 +331,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     if ("<MODENAME>" in S):
         S=S.replace("<MODENAME>", ".get(")
         S=S.replace("<MODENAMEend>", ")")
-    return [S,  typeSpecOut, None]
+    return [S,  typeSpecOut, None, SRC]
 
 def codeUnknownNameSeg(segSpec, objsRefed, xlator):
     S=''
@@ -363,6 +364,8 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
     previousTypeSpec = ""
     S=''
     segStr=''
+    if(LorR_Val=='RVAL'): canonicalName ='>'
+    else: canonicalName = '<'
     segType={'owner':'', 'dummyType':True}
 
     connector=''
@@ -389,7 +392,8 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             if segType and 'fieldType' in segType:
                 LHSParentType = progSpec.fieldTypeKeyword(segType['fieldType'])
             else: LHSParentType = progSpec.fieldTypeKeyword(currentObjName)   # Landed here because this is the first segment
-            [segStr, segType, AltIDXFormat]=codeNameSeg(segSpec, segType, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, xlator)
+            [segStr, segType, AltIDXFormat, nameSource]=codeNameSeg(segSpec, segType, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, xlator)
+            if nameSource!='': canonicalName+=nameSource
             if AltIDXFormat!=None:
                 AltFormat=[S, previousTypeSpec, AltIDXFormat]   # This is in case of an alternate index format such as Java's string.put(idx, val)
             #print "segStr: ", segStr
@@ -398,6 +402,11 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             #print "segStr: ", segStr
         prevLen=len(S)
 
+        # Record canonical name for record keeping
+        if not isinstance(segName, basestring):
+            if segName[0]=='[': canonicalName+='[...]'
+            else: cdErr('Odd segment name:'+str(segName))
+        else: canonicalName+='.'+segName
 
         # Should this be called as a global?
         callAsGlobal=segStr.find("%G")
@@ -421,6 +430,7 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             S=S[len(connector):]
         else: S+=segStr
 
+        objsRefed[canonicalName]=0
         previousSegName = segName
         previousTypeSpec = segType
         segIDX+=1
@@ -436,6 +446,7 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName+"Mask", xlator)
             S="((" + S[0:prevLen] + connector +  "flags&"+prefix+segName+"Mask)"+">>"+prefix+segName+"Offset)"
+
     return [S, segType, LHSParentType, AltFormat]
 
 
@@ -939,7 +950,11 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                         if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
-                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, objsRefed, xlator)
+                    objsRefed2={}
+                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, objsRefed2, xlator)
+                    print "Called by function " + fieldName +':'
+                    for rec in sorted(objsRefed2):
+                        print "     ", rec
                     if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Func Body from Action Sequence"
                 else:
@@ -1293,7 +1308,7 @@ def generate(classes, tags, libsToUse, xlator):
     codeStructureCommands(classes, tags, xlator)
     cdlog(1, "Generating Classes...")
     fileSpecs=codeAllNonGlobalStructs(classes, tags, xlator)
-    topBottomStrings = xlator['codeMain'](classes, tags, xlator)
+    topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 
     fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, fileSpecs, [], topBottomStrings, xlator)

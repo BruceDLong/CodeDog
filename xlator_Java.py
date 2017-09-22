@@ -463,7 +463,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     return S
 
 ################################################
-def codeMain(classes, tags, xlator):
+def codeMain(classes, tags, objsRefed, xlator):
     return ["", ""]
 
 def codeArgText(argFieldName, argType, xlator):
