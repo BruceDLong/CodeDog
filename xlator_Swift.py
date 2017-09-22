@@ -475,7 +475,6 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeActTextMain(actSeq, indent, objsRefed, xlator):
     indent = ""
     actSeqText = ""
-    hasMutating = False
     for action in actSeq:
         actionText = codeAction(action, indent, objsRefed, xlator)
         actSeqText += actionText
@@ -579,7 +578,7 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
     elif(traversalMode=='Backward'):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
-    
+
 def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""

@@ -746,13 +746,12 @@ def codeAction(action, indent, objsRefed, xlator):
         print "error in codeAction: ", action
         exit(2)
  #   print "actionText", actionText
-    return [actionText, hasMutating]
+    return actionText
 
 def codeActionSeq(isMain, actSeq, indent, objsRefed, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = ""
-    hasMutating = False
 
     if (isMain):
         actSeqText += xlator['codeActTextMain'](actSeq, indent, objsRefed, xlator)
