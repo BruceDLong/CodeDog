@@ -307,6 +307,10 @@ elif(xlatorName == "swing"):
     buildSpec = "SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';"
     runSpec = "java GLOBAL"
     runDirectory = workingDirectory + "/SwingBuild"
+elif(xlatorName == "swift"):
+    buildSpec = "SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed'"
+    runSpec = "swift package init --type executable"
+    runDirectory = workingDirectory + "/SwiftBuild"
 else:
     print "UNKNOWN XLATOR: ", xlatorName
     exit(0)

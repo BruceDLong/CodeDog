@@ -656,10 +656,7 @@ def codeAction(action, indent, objsRefed, xlator):
             [S_hi,   hiValType] = xlator['codeExpr'](rangeSpec[4][0], objsRefed, xlator)
             #print "RANGE:", S_low, "..", S_hi
             ctrlVarsTypeSpec = lowValType
-            if(traversalMode=='Forward' or traversalMode==None):
-                actionText += indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ xlator['codeIncrement'](repName) + "){\n"
-            elif(traversalMode=='Backward'):
-                actionText += indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+            actionText += xlator['codeRangeSpec'](traversalMode, ctrType, repName, S_low, S_hi, indent, xlator)
             localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         elif(whileSpec):
             [whileExpr, whereConditionType] = xlator['codeExpr'](whileSpec[2], objsRefed, xlator)
@@ -749,12 +746,13 @@ def codeAction(action, indent, objsRefed, xlator):
         print "error in codeAction: ", action
         exit(2)
  #   print "actionText", actionText
-    return actionText
+    return [actionText, hasMutating]
 
 def codeActionSeq(isMain, actSeq, indent, objsRefed, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = ""
+    hasMutating = False
 
     if (isMain):
         actSeqText += xlator['codeActTextMain'](actSeq, indent, objsRefed, xlator)

@@ -261,7 +261,7 @@ struct EParser{
     me int64: scrapeUntil(me uint32:pos, me string:endChar) <- {
         me char: ender <- endChar[0]
         me char: ch
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         withEach p in RANGE(pos .. txtSize):{
             ch <- textToParse[p]
             if(ch==ender){return(p-pos)}
@@ -274,7 +274,7 @@ struct EParser{
         me string: prevCharStr <- " "
         me char: prevChar <- prevCharStr[0]
         me char: ender <- endChar[0]
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         me string: escCharStr <- "\\ "
         me char: escChar <- escCharStr[0]
         withEach p in RANGE(pos .. txtSize):{
@@ -289,7 +289,7 @@ struct EParser{
 
     me int64: scrapeAlphaSeq(me uint32: pos) <- {
         me char: ch
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         withEach p in RANGE(pos .. txtSize):{
             ch <- textToParse[p]
             if(isalpha(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
@@ -298,7 +298,7 @@ struct EParser{
     }
     me int64: scrapeUintSeq(me uint32: pos) <- {
         me char: ch
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         withEach p in RANGE(pos .. txtSize):{
             ch <- textToParse[p]
             if(isdigit(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
@@ -307,7 +307,7 @@ struct EParser{
     }
     me int64: scrapeAlphaNumSeq(me uint32: pos) <- {
         me char: ch
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         withEach p in RANGE(pos .. txtSize):{
             ch <- textToParse[p]
             if(isalnum(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
@@ -317,7 +317,7 @@ struct EParser{
     me int64: scrapeAlphaNum_Seq(me uint32: pos) <- {
         me char: ch
         me string: chars <- "_"
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         withEach p in RANGE(pos .. txtSize):{
             ch <- textToParse[p]
             if(isalnum(ch) or ch==chars[0]){}else{if(p==pos){return(-1)} else{return(p-pos)}}
@@ -327,7 +327,7 @@ struct EParser{
 
     me int64: scrapePrintableSeq(me uint32: pos) <- {
         me char: ch
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         withEach p in RANGE(pos .. txtSize):{
             ch <- textToParse[p]
             if(isprint(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
@@ -337,7 +337,7 @@ struct EParser{
 
     me int64: scrapeWS(me uint32: pos) <- {
         me char: ch
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         withEach p in RANGE(pos .. txtSize):{
             ch <- textToParse[p]
             if(isspace(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
@@ -359,7 +359,7 @@ struct EParser{
         return(sLen+2)
     }
     me int64: scrapeCID(me uint32: pos) <- {
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         me string: chars <- "_"
         if(pos >= txtSize){
             /- Set I/O Error: Read past EOS
@@ -374,7 +374,7 @@ struct EParser{
 
     me int64: scrapeIntSeq(me uint32: pos) <- {
         me char: ch <- textToParse[pos]
-        me uint32: txtSize <- textToParse.size()
+        me int: txtSize <- textToParse.size()
         me uint32: initialChars <- 0
         me string: chars <- "+-"
         if(pos >= txtSize){
