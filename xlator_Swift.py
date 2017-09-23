@@ -539,7 +539,7 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, objsRefed, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, objsRefed, xlator):
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):
@@ -655,7 +655,7 @@ def isNumericType(convertedType):
     else:
         return False
 
-def codeVarFieldRHS_Str( convertedType, fieldOwner, paramList, objsRefed, xlator):
+def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRefed, xlator):
     fieldValueText=""
     if (fieldOwner=='me'):
         if paramList!=None:
@@ -690,7 +690,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
             S=indent + "var "+ fieldName + ":" +  convertedType + '\n'
         else:
             S=indent + "var "+ fieldName + ":" +  convertedType + fieldValueText + '\n'
-    return S
+    return [S, '']
 
 def codeConstructionHeader(ClassName, constructorArgs, constructorInit, xlator):
     return "init (" + constructorArgs+"){"+constructorInit+"\n    }\n"
@@ -714,12 +714,12 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            structCode +="<MUTATING> func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode +="<MUTATING>func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
         if fieldName=="init":
             structCode += indent + fieldName +"("+argListText+")"
         else:
-            structCode += indent + "<MUTATING> func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode += indent + "<MUTATING>func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
