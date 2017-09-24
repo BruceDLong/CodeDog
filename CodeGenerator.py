@@ -294,7 +294,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         elif(name[0]=='[' and fType=='string'):
             typeSpecOut={'owner':owner, 'fieldType': fType}
             [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, xlator)
-            S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, '')
+            S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, previousSegName)
             return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
             if fType!='string':
@@ -482,7 +482,7 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
             count+=1
 
     if(len(paramList)==0 ):
-        if name != 'return' and name!='break' and name!='continue':
+        if name != 'return' and name!='break' and name!='continue' and name!='characters.count':
             S+="()"
     else:
         count = 0
@@ -930,6 +930,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
 
             #### FUNC BODY
+            hasMutating = False
             if abstractFunction: # i.e., if no function body is given.
                 cdlog(5, "Function "+className+":::"+fieldName+" has no implementation defined.")
             else:
@@ -941,20 +942,25 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                         funcDefCode=""
                         globalFuncs=""
                     else:
-                        funcText=verbatimText
+                        funcText=verbatimText + "\n\n"
                         if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
                     objsRefed2={}
                     funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, objsRefed2, xlator)
-        #            print "Called by function " + fieldName +':'
-        #            for rec in sorted(objsRefed2):
-        #                print "     ", rec
+                    print "Called by function " + fieldName +':'
+                    for rec in sorted(objsRefed2):
+                        print "     ", rec
                     if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Func Body from Action Sequence"
                 else:
                     print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                     exit(1)
+            if(structCode.find("<MUTATING>")>=0):
+                if(hasMutating):
+                    structCode=structCode.replace("<MUTATING>", "mutating ")
+                else:
+                    structCode=structCode.replace("<MUTATING>", "")
 
             if(funcsDefInClass=='True' ):
                 structCode += funcText

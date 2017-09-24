@@ -22,7 +22,6 @@ struct stringScanner{
     }
 
     me int: skipPast(me string: findStr) <- {       /- Skip past <txt>.  Return pos or -1 if End-of-string reached
-        me char: ch
         me int: txtSize <- S.size()
         me int: fs <- findStr.size()
         withEach p in RANGE(pos .. txtSize):{

@@ -27,11 +27,15 @@ struct stream{
 }
 
 struct GLOBAL{
+    me bool: isspace(me char: ch)<- <%{
+	return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
+    }%>
+    
     me void: endFunc(me int: val) <- <%!return(0)%>
     me int: randInt(me int: val) <- <%!(rand() % %1)%>
     me string: toString(me int: val) <- <%!std::to_string(%1)%>
     /-///////////////////////////////////////////////////
-    me bool: isspace(me char: ch) <- <%!%G(Character(String(%1)).isWhiteSpace)%>
+    
 
 }
 struct timeValue{me int64: timeValue}

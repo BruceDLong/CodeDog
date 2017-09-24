@@ -76,7 +76,8 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     #TODO check if above is typo
     workingDirectory = currentDirectory + "/" + buildName
     buildStr = langStr + debugMode + " " + minLangStr + fileStr  + " " + libStr + " " + outputFileStr
-    return [workingDirectory, buildStr]
+    runStr = "./" + fileName
+    return [workingDirectory, buildStr, runStr]
 
 def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
     buildStr = ''
@@ -99,17 +100,20 @@ def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     #TODO check if above is typo
     workingDirectory = currentDirectory + "/" + buildName
     buildStr = langStr + debugMode + " " + minLangStr + fileStr + libStr + " " + outputFileStr
-    return [workingDirectory, buildStr]
+    runStr = "java GLOBAL"
+    return [workingDirectory, buildStr, runStr]
 
 def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+    # reference https://swift.org/getting-started/#using-the-package-manager
     buildStr = ''
     libStr = ''
     fileExtension = '.swift'
-    sourcePath = buildName + "/" + "Sources"
+    sourcePath = buildName + "/" + fileName + "/" + "Sources"
     currentDirectory = currentWD = os.getcwd()
-    workingDirectory = currentDirectory + "/" + buildName
+    workingDirectory = currentDirectory + "/" + buildName + "/" + fileName
 
     makeDir(buildName)
+    makeDir(buildName + "/" + fileName)
     runCMD("swift package init --type executable", workingDirectory)
     writeFile(sourcePath, "main", fileSpecs, fileExtension)
 
@@ -123,11 +127,13 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
         #print "libStr: " + libStr
 
     buildStr = "swift build"
-    return [workingDirectory, buildStr]
+    runStr = ".build/debug/" + fileName
+    return [workingDirectory, buildStr, runStr]
 
-def printResults(workingDirectory, buildStr):
+def printResults(workingDirectory, buildStr, runStr):
     cdlog(1, "Compiling From: {}".format(workingDirectory))
     print "     NOTE: Build Command is: ", buildStr, "\n"
+    print "     NOTE: Run Command is: ", runStr, "\n"
     #print "workingDirectory: ", workingDirectory
     pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
@@ -141,16 +147,16 @@ def printResults(workingDirectory, buildStr):
 def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
     if platform == 'Linux':
-        [workingDirectory, buildStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-        printResults(workingDirectory, buildStr)
+        [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        printResults(workingDirectory, buildStr, runStr)
     elif platform == 'Java':
-        [workingDirectory, buildStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-        printResults(workingDirectory, buildStr)
+        [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        printResults(workingDirectory, buildStr, runStr)
     elif platform == 'Android':
         buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'XCODE':
-        [workingDirectory, buildStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-        printResults(workingDirectory, buildStr)
+        [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        printResults(workingDirectory, buildStr, runStr)
     else:
         print "buildDog.py error: build string not generated for "+ buildName
         exit(2)
