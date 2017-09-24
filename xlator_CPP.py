@@ -78,9 +78,7 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
 
             InnerLangType = langType
             if varMode != 'alloc':
-                #if varMode=='arg' and containerOwner=='their': langType+='&' # Pass these as references
-                #else:
-                    langType=applyOwner(containerOwner, langType, varMode)
+                langType=applyOwner(containerOwner, langType, varMode)
     return [langType, InnerLangType]
 
 def convertType(classes, TypeSpec, varMode, xlator):
@@ -99,6 +97,14 @@ def convertType(classes, TypeSpec, varMode, xlator):
     langType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     return xlateLangType(TypeSpec, owner, fieldType, varMode, xlator)
+
+def codeIteratorOperation(itrCommand):
+    result = ''
+    if itrCommand=='goNext':  result='%0++'
+    elif itrCommand=='goPrev':result='--%0'
+    elif itrCommand=='key':   result='%0->first'
+    elif itrCommand=='val':   result='%0->second'
+    return result
 
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
@@ -843,6 +849,7 @@ def fetchXlators():
     xlators['produceTypeDefs']              = produceTypeDefs
     xlators['addSpecialCode']               = addSpecialCode
     xlators['convertType']                  = convertType
+    xlators['codeIteratorOperation']        = codeIteratorOperation
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
     xlators['recodeStringFunctions']        = recodeStringFunctions

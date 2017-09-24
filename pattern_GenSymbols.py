@@ -26,7 +26,7 @@ def apply(classes, tags, classesToTrack):
             return(classTag + toString(symbolCount))
         }
         else {
-            me uint: symbol <- item
+            me uint: symbol <- item.val
             return(classTag + toString(symbol))
         }
     }

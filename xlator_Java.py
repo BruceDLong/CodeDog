@@ -22,7 +22,7 @@ def getContainerType(typeSpec):
         if 'IDXowner' in containerSpec:
             idxOwner=containerSpec['IDXowner']
             idxType=containerSpec['idxBaseType']
-            idxType=applyOwner(idxOwner, idxType, '')
+            idxType=applyOwner(idxOwner, idxType, 'IDX ERROR', containerSpec['indexType'], '')
         else: idxType=containerSpec['idxBaseType']
         #idxType=containerSpec['indexType']
     if idxType[0:4]=='uint': idxType = 'int'
@@ -73,8 +73,15 @@ def convertType(classes, TypeSpec, varMode, xlator):
     if(fieldType=='<%'): return fieldType[1][0]
     return xlateLangType(TypeSpec,owner, fieldType, varMode, xlator)
 
+def codeIteratorOperation(itrCommand):
+    result = ''
+    if itrCommand=='goNext':  result='%0.next()'
+    elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
+    elif itrCommand=='key':   result='%0.getKey()'
+    elif itrCommand=='val':   result='%0.next().getValue()'
+    return result
 
-def applyOwner(owner, langType, varMode):
+def applyOwner(owner, langType, innerType, idxType, varMode):
     if owner=='const':
         langType = "final static "+langType
     elif owner=='me':
@@ -85,6 +92,8 @@ def applyOwner(owner, langType, varMode):
         langType = langType
     elif owner=='their':
         langType = langType
+    elif owner=='itr':
+        langType = langType="Iterator<Map.Entry<"+idxType+', '+innerType+"> >"
     elif owner=='we':
         langType = 'static '+langType
     else:
@@ -98,15 +107,19 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
         langType= convertToJavaType(fieldType)
     else: langType=progSpec.flattenObjectName(fieldType[0])
-    langType = applyOwner(owner, langType, varMode)
+    langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', varMode)
     if langType=='TYPE ERROR': print langType, owner, fieldType;
+    InnerLangType = langType
 
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
             [containerType, idxType, owner]=getContainerType(TypeSpec)
+            if 'owner' in TypeSpec['arraySpec']:
+                containerOwner=TypeSpec['arraySpec']['owner']
+            else: containerOwner='me'
             if idxType=='int': idxType = "Integer"
-            if langType=='int': langType = "Integer"
+            if langType=='int': langType = "Integer"; InnerLangType = "Integer"
             if idxType=='long': idxType = "Long"
             if langType=='long': langType = "Long"
             if idxType=='timeValue': idxType = "Long" # this is hack and should be removed ASAP
@@ -116,9 +129,10 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 langType="TreeMap<"+idxType+', '+langType+">"
             elif containerType=='multimap':
                 langType="multimap<"+idxType+', '+langType+">"
-            if(owner=="we"):
-                langType="static "+langType
-    return [langType, langType]
+
+            if varMode != 'alloc':
+                langType=applyOwner(containerOwner, langType, InnerLangType, idxType, varMode)
+    return [langType, InnerLangType]
 
 
 def recodeStringFunctions(name, typeSpec):
@@ -203,11 +217,11 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put';
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='find'     : name='get';     typeSpecOut['owner']='itr';
+        elif name=='find'     : typeSpecOut['codeConverter']='tailMap(%1).entrySet().iterator()';     typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='end'      : name='lastKey()';    typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='rend'     : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
@@ -222,8 +236,8 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='rend'     : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
@@ -527,7 +541,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, ob
             if (constructorExists):
                 assignValue=' = new ' + fieldType +'('+ RHS + ')'
             else:
-                assignValue=' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
+                assignValue= ' = '+ RHS   #' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
     else: # If no value was given:
         #print "TYPE:", fieldType
         if fieldDef['paramList'] != None:       # call constructor
@@ -766,6 +780,7 @@ def fetchXlators():
     xlators['produceTypeDefs']              = produceTypeDefs
     xlators['addSpecialCode']               = addSpecialCode
     xlators['convertType']                  = convertType
+    xlators['codeIteratorOperation']        = codeIteratorOperation
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
     xlators['recodeStringFunctions']        = recodeStringFunctions

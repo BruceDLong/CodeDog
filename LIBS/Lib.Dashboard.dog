@@ -16,10 +16,10 @@ struct widget::dashboard{
     our widget::dash: dependentIsRegistered(me string: key) <- {
         our widget::dash[itr map string]: dashItr <- dependentItems.find(key)
         if (dashItr==dependentItems.end()){return(NULL)}
-        return(dashItr.second)  /-// TODO: This can't say second. But the type of thing being returned must be compared to the type of the return parameter so the itr can be derefed.
+        return(dashItr.val)
     }
 
-    me bool: addDependent(me string: key, our widget::dash: dashPtr) <- {
+    me void: addDependent(me string: key, our widget::dash: dashPtr) <- {
         our widget::dash[itr map string]: dashItr <- dependentItems.find(key)
         if (dashItr==dependentItems.end()){
             dashPtr.isHidden <- true

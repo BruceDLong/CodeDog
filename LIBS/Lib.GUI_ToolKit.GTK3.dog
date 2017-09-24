@@ -72,6 +72,7 @@ struct GTK_eventDispatcher{
                 topWidget->secondaryClick(event);
             }
         }
+        return false;
     } %>
     me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
   /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}

@@ -147,9 +147,9 @@ struct EParser{
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
             if(crntPos+1 != SSets.size()) {
-                ch <- textToParse[crntPos]
+                ch <- ""+textToParse[crntPos]
             }
-            print('SLOT: %i`crntPos` (%s`ch.data()`) - size:%i`(int)SSet->stateRecs.size()`\n')
+         /-   print("SLOT: ", crntPos, "(", ch, ") - size: ", SSet->stateRecs.size(), "\n")
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
                 print("    ")

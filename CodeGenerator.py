@@ -264,14 +264,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             [name, typeSpecOut] = xlator['recodeStringFunctions'](name, typeSpecOut)
 
     if owner=='itr':
-        if name=='goNext':
-            typeSpecOut['codeConverter']='%0++'
-        elif name=='goPrev':
-            typeSpecOut['codeConverter']='--%0'
-        elif name=='key':
-            typeSpecOut['codeConverter']='%0->first'
-        elif name=='val':
-            typeSpecOut['codeConverter']='%0->second'
+        codeCvrtText = xlator['codeIteratorOperation'](name)
+        if codeCvrtText!='':
+            typeSpecOut['codeConverter'] = codeCvrtText
 
     elif('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
         [containerType, idxType, owner]=xlator['getContainerType'](typeSpecIn)
@@ -952,9 +947,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 elif field['value'][0]!='':
                     objsRefed2={}
                     funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, objsRefed2, xlator)
-                    print "Called by function " + fieldName +':'
-                    for rec in sorted(objsRefed2):
-                        print "     ", rec
+        #            print "Called by function " + fieldName +':'
+        #            for rec in sorted(objsRefed2):
+        #                print "     ", rec
                     if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Func Body from Action Sequence"
                 else:

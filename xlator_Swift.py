@@ -97,6 +97,15 @@ def convertType(classes, TypeSpec, varMode, xlator):
     if(fieldType=='<%'): return fieldType[1][0]
     return xlateLangType(TypeSpec, owner, fieldType, varMode, xlator)
 
+def codeIteratorOperation(itrCommand):
+    result = ''
+    if itrCommand=='goNext':  result='%0.next()'
+    elif itrCommand=='goPrev':result='$0.Swift ERROR!'
+    elif itrCommand=='key':   result='%0.getKey()'
+    elif itrCommand=='val':   result='%0.getValue()'
+    return result
+
+
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "characters.count"
     elif name == "subStr": name = "substr"
@@ -783,6 +792,7 @@ def fetchXlators():
     xlators['produceTypeDefs']              = produceTypeDefs
     xlators['addSpecialCode']               = addSpecialCode
     xlators['convertType']                  = convertType
+    xlators['codeIteratorOperation']        = codeIteratorOperation
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
