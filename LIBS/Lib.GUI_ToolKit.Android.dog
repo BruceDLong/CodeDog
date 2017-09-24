@@ -42,7 +42,7 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
     me GUI_ctxt: cr
 
     me none: CanvasView() <- {super(GLOBAL.static_Global)}
-    me void: onDraw(me Canvas: canvas) <- <%    {
+    me void: onDraw(me Canvas: canvas) <- <%{
         super.onDraw(canvas);
         cr = new GUI_ctxt(canvas);
         cr.cur_x=0; cr.cur_y=0;
@@ -51,7 +51,7 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
         invalidate();
     }%>
 
-    me bool: onTouchEvent(me MotionEvent: event) <- <%     {
+    me bool: onTouchEvent(me MotionEvent: event) <- <%{
         float eventX = event.getX();
         float eventY = event.getY();
         float scrollX = getScrollX();
@@ -127,7 +127,7 @@ struct GUI: implMode="inherit:LinearLayout" {
 
 struct GUI: implMode="inherit:LinearLayout"{
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-    me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
+/-    me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
     me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
@@ -253,6 +253,21 @@ struct GLOBAL{
 
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
     me long: ticksPerSec() <- <%!%G1000%>
+    me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
+        try {
+            InputStream inStream = GLOBAL.static_Global.getAssets().open(fromPath);
+            OutputStream outStream = GLOBAL.static_Global.openFileOutput(toPath, Context.MODE_PRIVATE);
+            byte[] buf = new byte[1024];
+            int len;
+            while ((len = inStream.read(buf)) > 0) {
+                outStream.write(buf, 0, len);
+            }
+            outStream.close();
+            inStream.close();
+        } catch (Exception e) {
+            System.out.print(e.getMessage());
+        }
+    }%>
 
     /- MENU ROUTINES:
     me boolean: onCreateOptionsMenu(me Menu: androidMenu) <- <%{
@@ -282,6 +297,39 @@ struct GLOBAL{
         }
      }%>
      
+    me void: onCreate(me Bundle: savedInstanceState) <- {
+        super.onCreate(savedInstanceState)
+        GLOBAL.static_Global <- this
+        Allocate(thisApp)
+        initialize("")
+    }
+
+    me void: onStart() <- {
+        super.onStart()
+        /- The activity is about to become visible. Load state
+        """ + runCode + """
+    }
+
+    me void: onResume() <- {
+        super.onResume()
+        /- The activity has become visible (it is now "resumed"). Restart animations, etc.
+    }
+
+    me void:  onPause() <- {
+        super.onPause()
+        /- Another activity is taking focus (this activity is about to be "paused"). Pause animations, etc.
+    }
+
+    me void:  onStop() <- {
+        super.onStop()
+        /- The activity is no longer visible (it is now "stopped")
+        /- Make sure state is saved as we may quit soon.
+    }
+
+    me void:  onDestroy() <- {
+        super.onDestroy()
+        deinitialize()
+    }
 }
 
 
