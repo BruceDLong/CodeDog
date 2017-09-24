@@ -947,12 +947,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                         funcDefCode=""
                         globalFuncs=""
                     else:
-                        funcText=verbatimText
+                        funcText=verbatimText + "\n\n"
                         if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
                     objsRefed2={}
-                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, objsRefed2, xlator)
+                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, objsRefed2, xlator)+ "\n"
                     print "Called by function " + fieldName +':'
                     for rec in sorted(objsRefed2):
                         print "     ", rec

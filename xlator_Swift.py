@@ -562,13 +562,10 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, ob
                 if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
 
-    if(isStruct(typeSpec['fieldType'])):
-        varDeclareStr= "let " + varName + "="+ fieldType + "()"
+    if (assignValue == ""):
+        varDeclareStr= "var " + varName + ":"+ fieldType + assignValue
     else:
-        if (assignValue == ""):
-            varDeclareStr= "var " + varName + ":"+ fieldType + assignValue
-        else:
-            varDeclareStr= "let " + varName + ":"+ fieldType + assignValue
+        varDeclareStr= "let " + varName + ":"+ fieldType + assignValue
 
     return(varDeclareStr)
 
