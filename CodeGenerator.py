@@ -233,7 +233,7 @@ def convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator):
                 newName=newName.replace(oldTextTag, S2)
             else: exit(2)
             count+=1
-        paramList=None;
+        paramList=None
     return [newName, paramList]
 
 ################################  C o d e   E x p r e s s i o n s
@@ -313,6 +313,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         name = convertedName
         callAsGlobal=name.find("%G")
         if(callAsGlobal >= 0): namePrefix=''
+
     if S_alt=='': S+=namePrefix+connector+name
     else: S += S_alt
 
@@ -351,6 +352,7 @@ def codeUnknownNameSeg(segSpec, objsRefed, xlator):
         else:
             [CPL, paramTypeList] = codeParameterList("", paramList, None, objsRefed, xlator)
             S+= CPL
+    print "UNKNOWN NAME SEGMENT:", S
     return S;
 
 def codeItemRef(name, LorR_Val, objsRefed, xlator):
@@ -1098,7 +1100,6 @@ def codeAllNonGlobalStructs(classes, tags, xlator):
         CodeDogAddendumsAcc+=CodeDogAddendums
         if(needsFlagsVar):
             CodeDogAddendumsAcc += 'me uint64: flags\n'
-            #progSpec.addField(classes[0], className, 'struct', progSpec.packField(False, 'me', "uint64", None, 'flags', None, None, None))
         if CodeDogAddendumsAcc!='':
             codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(className,  CodeDogAddendumsAcc ))
         currentObjName=''

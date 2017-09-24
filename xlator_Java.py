@@ -649,7 +649,9 @@ def varTypeIsValueType(convertedType):
 
 def codeVarFieldRHS_Str(name, convertedType, fieldOwner, paramList, objsRefed, xlator):
     fieldValueText=""
-    if (not varTypeIsValueType(convertedType) and fieldOwner=='me'):
+    if fieldOwner=='we':
+        convertedType = convertedType.replace('static ', '', 1)
+    if (not varTypeIsValueType(convertedType) and (fieldOwner=='me' or fieldOwner=='we')):
         if paramList!=None:
             #TODO: make test case
             [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)

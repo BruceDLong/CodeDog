@@ -228,6 +228,8 @@ def packFieldDef(fieldResult, className, indent):
             givenValue=[funcBodyOut, funcTextVerbatim]
             #print "\n\n[funcBodyOut, funcTextVerbatim] ", givenValue
 
+        elif(nameAndVal.rValueVerbatim):
+            givenValue = ['', nameAndVal.rValueVerbatim[1]]
         else: givenValue=None;
         if(nameAndVal.argListTag):
             for argSpec in nameAndVal.argList:

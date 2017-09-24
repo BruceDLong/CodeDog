@@ -35,13 +35,14 @@ struct GUI_ctxt{their JavaGUI_ctxt:GUI_ctxt}
 
 /-///////////////////////////////  HANDLE EVENTS
 
-struct MouseEvent{
+struct GUI_MouseEvent{
+    their MouseEvent: GUI_MouseEvent
   me uint: type
  /- GdkWindow *window;
  /- gint8 send_event;
  /- guint32 time;
-  me double: x <- <%!getX()%>
-  me double: y
+  me int: x() <- <%!getX()%>
+  me int: y <- <%!getY()%>
   me uint: state
   me uint: button
 }
@@ -54,8 +55,8 @@ struct GUI_ButtonEvent{
  /- GdkWindow *window;
  /- gint8 send_event;
  /- guint32 time;
-  me double: x <- <%!getX()%>
-  me double: y
+  me int: x <- <%!getX()%>
+  me int: y <- <%!getY()%>
   me uint: state
   me uint: button
 }
@@ -66,45 +67,45 @@ struct GUI_PointerEvent{
  /- GdkWindow *window;
  /- gint8 send_event;
  /- guint32 time;
-  me double: x
-  me double: y
+  me int: x <- <%!getX()%>
+  me int: y <- <%!getY()%>
 
   me uint: state
   me uint: button
 }
 /-///////////////////////////////  HANDLE LISTENERS
 struct MasterMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseListener" {
-    me void: mouseClicked(me MouseEvent: e)<-     {
-        me double: eventX <- e.x
-        me double: eventY <- e.y
+    me void: mouseClicked(me GUI_MouseEvent: e)<-     {
+        me int: eventX <- e.x
+        me int: eventY <- e.y
     }
-    me void: mousePressed(me MouseEvent: e)<-     {
-        me double: eventX <- e.x
-        me double: eventY <- e.y
+    me void: mousePressed(me GUI_MouseEvent: e)<-     {
+        me int: eventX <- e.x
+        me int: eventY <- e.y
         /-GLOBAL.static_Global.thisApp.gui.pointerDown(GLOBAL.static_Global.drawing_area, eventX, eventY)
     }
-    me void: mouseReleased(me MouseEvent: e)<-     {
-        me double: eventX <- e.x
-        me double: eventY <- e.y
+    me void: mouseReleased(me GUI_MouseEvent: e)<-     {
+        me int: eventX <- e.x
+        me int: eventY <- e.y
     }
-    me void: mouseEntered(me MouseEvent: e)<-     {
-        me double: eventX <- e.x
-        me double: eventY <- e.y
+    me void: mouseEntered(me GUI_MouseEvent: e)<-     {
+        me int: eventX <- e.x
+        me int: eventY <- e.y
     }
-    me void: mouseExited(me MouseEvent: e)<-     {
-        me double: eventX <- e.x
-        me double: eventY <- e.y
+    me void: mouseExited(me GUI_MouseEvent: e)<-     {
+        me int: eventX <- e.x
+        me int: eventY <- e.y
     }
 }
 
 struct MasterMouseMotionListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseMotionListener" {
-    me void: mouseMoved(me MouseEvent: e)<-     {
-        me double: eventX <- e.x
-        me double: eventY <- e.y
+    me void: mouseMoved(me GUI_MouseEvent: e)<-     {
+        me int: eventX <- e.x
+        me int: eventY <- e.y
     }
-    me void: mouseDragged(me MouseEvent: e)<-     {
-        me double: eventX <- e.x
-        me double: eventY <- e.y
+    me void: mouseDragged(me GUI_MouseEvent: e)<-     {
+        me int: eventX <- e.x
+        me int: eventY <- e.y
     }
 }
 
@@ -115,8 +116,8 @@ struct Swing_eventDispatcher{
     me MasterMouseListener: mouseListener
     me MasterMouseMotionListener: mouseMotionListener
 
-    me bool: dispatchPointerMotionEvent(their MouseEvent: event) <- {return(false)}
-    me bool: dispatchPointerClickEvent(their MouseEvent: event) <- <%{
+    me bool: dispatchPointerMotionEvent(their GUI_MouseEvent: event) <- {return(false)}
+    me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
       /*  if(event->type==GDK_BUTTON_PRESS){
             if(event->button==1){
                 topWidget->primaryClick(event);
@@ -206,6 +207,7 @@ struct GUI{
     me void: setCallback() <- <%!%G %>
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
+    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 }
 
 struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
@@ -213,6 +215,7 @@ struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implM
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!gr.setColor(new Color(%1, %2, %3, %4))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!gr.setColor(new Color(%1, %2, %3))%>
     me void: setLineWidth(me double: width) <- <%!gr.setStroke(new BasicStroke(%1))%>
+    me void: finishPDF() <- <%!%GSystem.out.print("PDF Functions not given.")%>
     me void: moveTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo(%1, %2)%>
     me void: lineTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo(%1, %2)%>
     me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo(cr.cur_x+%1, cr.cur_y+%2)%>

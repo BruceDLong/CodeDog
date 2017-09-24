@@ -238,8 +238,8 @@ struct widget::dash::display_'''+className+'''{
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         if(isHidden){return(false)}
-        me double: eventX <- event.x
-        me double: eventY <- event.y
+        me int: eventX <- event.x
+        me int: eventY <- event.y
         if( header.isTouchingMe(eventX, eventY)){
             if(displayMode==headerOnly){displayMode <- noZeros}
             else if(displayMode==noZeros){displayMode <- fullDisplay}

@@ -44,10 +44,10 @@ struct widget::dashboard{
     }
 
     me void: drawToPDF(me string: filename, me double: inchesWide, me double: inchesHigh, me double: scale) <- {
-        me GUI_ctxt: PDF <- gui_tk.newPDF_ctxt(filename, inchesWide, inchesHigh)
+  /*      me GUI_ctxt: PDF <- gui_tk.newPDF_ctxt(filename, inchesWide, inchesHigh)
         PDF.setScale(scale, scale)
         draw(PDF)
-        PDF.finishPDF()
+        PDF.finishPDF()*/
     }
 
     me bool: secondaryClick(their GUI_PointerEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
