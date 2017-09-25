@@ -1,4 +1,4 @@
-/-############  Add GUI-Toolkit features using Android
+/-////////////  Add GUI-Toolkit features using Android
 requirements = [
     [tagOneOf, Platform, [Android]]
 ]
@@ -6,7 +6,13 @@ requirements = [
 interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
-    headers=[android.view.View, android.widget.LinearLayout, android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.view.Menu, android.graphics.Path, android.widget.ScrollView, android.widget.HorizontalScrollView, android.view.SubMenu, android.widget.TextView, android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.content.res.AssetManager, android.view.MotionEvent ]
+    headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent,
+	    android.widget.LinearLayout, android.widget.ScrollView, android.widget.HorizontalScrollView, android.widget.TextView,
+	    android.app.Activity, 
+	    android.os.Bundle, 
+	    android.util.Log, 
+	    android.content.res.AssetManager, android.content.Context,
+	    android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory]
 }
 
 LibDescription ={
@@ -20,7 +26,7 @@ LibDescription ={
 
 /-///////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me Rect: GUI_rect}
-/-struct GUI_offset{their GtkAdjustment:GUI_offset}
+struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me Object: GUI_item}
 struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
 struct GUI_menu{me ourSubMenu: GUI_menu}
@@ -92,25 +98,9 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
 struct GUI: implMode="inherit:LinearLayout" {
     me LinearLayout:: frame(GLOBAL.static_Global)
     me LinearLayout:: layoutArea(GLOBAL.static_Global)
-    me none: GUI() <- {super(GLOBAL.static_Global)}
-    me uint32: GUI_Init() <- <%{return(0);}%>
-
-    me void: GUI_PopulateAndExec() <- <% {
-        LinearLayout frame = new LinearLayout(GLOBAL.static_Global);
-        frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
-/-        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
-        GLOBAL.static_Global.setContentView(frame);
-        GLOBAL.static_Global.thisApp.createAppArea(frame);
-    } %>
-
-    me uint32: GUI_Run() <- <% {
-        int status=0;
-        GUI_PopulateAndExec();
-        return(status);
-    } %>
-    me void: GUI_Deinit() <- {
-
-    }
+    me ScrollView: vScroller
+    me HorizontalScrollView: hScroller
+    
     me ScrollView: newScrollingWindow(me Long: A, me Long:B) <- <%{
         ScrollView vScroller = new ScrollView(GLOBAL.static_Global);
         HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
@@ -121,14 +111,46 @@ struct GUI: implMode="inherit:LinearLayout" {
         return(vScroller);
     }%>
 
+    me none: GUI() <- {super(GLOBAL.static_Global)}
+    
+    me uint32: GUI_Init() <- <%{return(0);}%>
+    
+    me uint32: GUI_Run() <- <% {
+        int status=0;
+        GUI_PopulateAndExec();
+        return(status);
+    } %>
 
+    me void: GUI_PopulateAndExec() <- <% {
+        LinearLayout frame = new LinearLayout(GLOBAL.static_Global);
+        frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
+/-        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
+        GLOBAL.static_Global.setContentView(frame);
+        GLOBAL.static_Global.thisApp.createAppArea(frame);
+    } %>
+
+    me void: GUI_Deinit() <- {
+
+    }
+
+    me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenubar, me string: text) <- {
+        me ourSubMenu:: subMenu(text)
+        GLOBAL.static_Global.thisApp.menubar.items.add(subMenu)
+        return(subMenu)
+    }
+    
+    me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
+        our ourSubMenu:: thisMenuItem(menuLabel)
+        menu.items.pushLast(thisMenuItem)
+    }
 
 }
 
 struct GUI: implMode="inherit:LinearLayout"{
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-/-    me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
+    me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
+    me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
     me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
@@ -138,15 +160,6 @@ struct GUI: implMode="inherit:LinearLayout"{
 /-    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
 /-    me GUI_ctxt: newPDF_ctxt()
-    me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenubar, me string: text) <- {
-        me ourSubMenu:: subMenu(text)
-        GLOBAL.static_Global.thisApp.menubar.items.add(subMenu)
-        return(subMenu)
-    }
-    me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
-        our ourSubMenu:: thisMenuItem(menuLabel)
-        menu.items.pushLast(thisMenuItem)
-    }
 
 }
 
@@ -162,13 +175,13 @@ struct GUI_ctxt: ctxTag="Android" Platform='Android' Lang='Java' LibReq="swing" 
     me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
 /-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 /-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-/-    me void: closePath() <- <%!GPath.closePath()%>
-/-    me void: rectangle() <- <%!%0.gr.drawRect(%1, %2, %3, %4)%>
+    me void: closePath() <- <%!path.close()%>
+    me void: rectangle() <- <%!%0.gr.Rect(%1, %2, %3, %4)%>
 /-    me void: paintNow() <- <%!gr.fill(cr.GPath)%>
     me void: strokeNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: fillNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
 /-    me void: strokeKeep() <- <%!gr.draw(cr.GPath)%>
-/-    me void: fillKeep() <- <%!gr.fill(cr.GPath)%>
+    me void: fillKeep() <- <%!gr.fill(cr.GPath)%>
 /-    me void: renderFrame() <- <%!repaint()%>
 }
 
@@ -207,7 +220,6 @@ struct timeStringer{
         int min = timeRec.get(Calendar.MINUTE);
         if (min<10){SH = SH+"0";}
         SH = SH + Integer.toString(min);
-
         SH=SH+":";
         int sec = timeRec.get(Calendar.SECOND);
         if (sec<10){SH = SH+"0";}
@@ -220,23 +232,25 @@ struct timeStringer{
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
     me APP: thisApp
+    void: setMasterWidget(their widget::dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
     me SubMenu: parentMenu
     me AssetManager: assetManager
+    me int: widgetHeight() <- <%!%G%1.getHeight()%>
+    me int: widgetWidth() <- <%!%G%1.getWidth()%>
+    me INK_Image[map string]: InkImgCache
+    me long: ticksPerSec() <- <%!%G1000%>
     
     me void: close_window() <- {
          /- gtk_main_quit()
     }
 
-    /- DRAWING ROUTINES:
-
+    /- //DRAWING ROUTINES:
     me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         cr.paint.setTextSize(fontSize);
         cr.paint.setTypeface(Typeface.create(fontName, Typeface.NORMAL));
         cr.GCanvas.drawText(text, x, y, cr.paint);
     }%>
 
-    me INK_Image[map string]: InkImgCache
-    
     me void: displayImage(me GUI_ctxt: cr, me string: filename, me float: x, me float: y, me double: scale) <- <%{
         boolean filter = false;
         try {
@@ -252,7 +266,7 @@ struct GLOBAL{
    }%>
 
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
-    me long: ticksPerSec() <- <%!%G1000%>
+    
     me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
         try {
             InputStream inStream = GLOBAL.static_Global.getAssets().open(fromPath);
@@ -269,7 +283,7 @@ struct GLOBAL{
         }
     }%>
 
-    /- MENU ROUTINES:
+    /- //MENU ROUTINES:
     me boolean: onCreateOptionsMenu(me Menu: androidMenu) <- <%{
         super.onCreateOptionsMenu(androidMenu);
         GLOBAL.static_Global.thisApp.createAppMenu(GLOBAL.static_Global.thisApp.gui.frame);
@@ -332,13 +346,10 @@ struct GLOBAL{
     }
 }
 
-
-
-
-
-
-
 struct APP: implMode="inherit:LinearLayout"{
+    me LinearLayout: thisFrame
+    me GUI: gui
+    me Menu: androidMenu
     me none: APP() <- {super(GLOBAL.static_Global)}
     me ourSubMenu:: menubar("menubar")
 }
