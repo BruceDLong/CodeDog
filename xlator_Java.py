@@ -8,7 +8,6 @@ This file, along with Lib_Java.py specify to the CodeGenerater how to compile Co
 
 import progSpec
 import codeDogParser
-import Lib_Android
 from progSpec import cdlog, cdErr, logLvl
 from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getModeStateNames
 
@@ -742,7 +741,8 @@ def generateMainFunctionality(classes, tags):
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if Platform == 'Android':
-        Lib_Android.GenerateMainActivity(classes, tags, runCode)
+        print Platform
+        #Lib_Android.GenerateMainActivity(classes, tags, runCode)
     else:
         mainFuncCode="""
         me void: main( ) <- {

@@ -9,16 +9,6 @@ import TestDog
 
 ##########  Library Shells
 import libraryMngr
-import Lib_GTK3
-import Lib_Java
-import Lib_CPP
-import Lib_Swing
-import Lib_Android
-import Lib_AndroidGUI
-import Lib_Swift
-
-import Lib_CodeDog
-
 import CodeGenerator
 import xlator_CPP
 import xlator_Java

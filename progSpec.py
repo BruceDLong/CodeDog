@@ -382,7 +382,8 @@ def isWrappedType(objMap, structname):
     if not fieldListToSearch: return None
     if len(fieldListToSearch)>0:
         for field in fieldListToSearch:
-            if field['fieldName']==structname:
+            if field['fieldName']==structname and field['typeSpec']['argList']==None:
+                #print "isWrappedType: ", field['typeSpec']['argList'], structname
                 return field['typeSpec']
     return None
 
