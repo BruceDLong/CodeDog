@@ -217,6 +217,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
+        elif name=='containsKey'   : name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'Void'}
@@ -495,7 +496,7 @@ def codeArgText(argFieldName, argType, xlator):
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
-    S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
+    S= "\nclass "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls=""
     return([S,forwardDecls])
 
@@ -720,12 +721,12 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            structCode +="<MUTATING>func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode +="func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
         if fieldName=="init":
             structCode += indent + fieldName +"("+argListText+")"
         else:
-            structCode += indent + "<MUTATING>func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode += indent + "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):

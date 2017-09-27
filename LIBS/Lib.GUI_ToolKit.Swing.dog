@@ -78,6 +78,7 @@ struct MasterMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="s
     me void: mouseClicked(me GUI_MouseEvent: e)<-     {
         me int: eventX <- e.x
         me int: eventY <- e.y
+        EventDispatcher.dispatchPointerClickEvent(e)
     }
     me void: mousePressed(me GUI_MouseEvent: e)<-     {
         me int: eventX <- e.x
@@ -118,13 +119,21 @@ struct Swing_eventDispatcher{
 
     me bool: dispatchPointerMotionEvent(their GUI_MouseEvent: event) <- {return(false)}
     me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
-      /*  if(event->type==GDK_BUTTON_PRESS){
-            if(event->button==1){
-                topWidget->primaryClick(event);
-            } else if(event->button==3){
-                topWidget->secondaryClick(event);
+        if(event.getID() == event.MOUSE_CLICKED){
+            if(event.getButton() == event.BUTTON1){
+                if(event.getClickCount()==1){
+                    topWidget.primaryClick(event);
+                } else if(event.getClickCount()==2){
+                    topWidget.primaryDblClick(event);
+                }
+            } else if(event.getButton()==2){
+                if(event.getClickCount()==1){
+                    topWidget.secondaryClick(event);
+                } else if(event.getClickCount()==2){
+                    topWidget.secondaryDblClick(event);
+                }
             }
-        } */
+        }
         return false;
     } %>
   /-  me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}

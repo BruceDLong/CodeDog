@@ -14,14 +14,14 @@ struct widget::dashboard{
 
 
     our widget::dash: dependentIsRegistered(me string: key) <- {
-        our widget::dash[itr map string]: dashItr <- dependentItems.find(key)
-        if (dashItr==dependentItems.end()){return(NULL)}
-        return(dashItr.val)
+        if(dependentItems.containsKey(key)){
+            return(dependentItems.get(key))
+        }
+        return(NULL)
     }
 
     me void: addDependent(me string: key, our widget::dash: dashPtr) <- {
-        our widget::dash[itr map string]: dashItr <- dependentItems.find(key)
-        if (dashItr==dependentItems.end()){
+        if(! dependentItems.containsKey(key)){
             dashPtr.isHidden <- true
             dependentItems[key] <- dashPtr
         }

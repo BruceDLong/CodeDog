@@ -78,7 +78,7 @@ def codeIteratorOperation(itrCommand):
     if itrCommand=='goNext':  result='%0.next()'
     elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
     elif itrCommand=='key':   result='%0.getKey()'
-    elif itrCommand=='val':   result='%0.next().getValue()'
+    elif itrCommand=='val':   result='%0'
     return result
 
 def applyOwner(owner, langType, innerType, idxType, varMode):
@@ -194,15 +194,15 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
     convertedIdxType = ""
     if containerType=='ArrayList':
         if name=='at': pass
-        elif name=='erase': name='remove'
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
+        elif name=='erase'    : name='remove'
+        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='add';
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='nthItr'   :    typeSpecOut['codeConverter']='%G%1';  typeSpecOut['owner']='itr';
+        elif name=='nthItr'   : typeSpecOut['codeConverter']='%G%1';  typeSpecOut['owner']='itr';
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
@@ -214,10 +214,12 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         convertedIdxType=idxType
         [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='at' or name=='erase': pass
+        elif name=='containsKey'   : name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put';
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='find'     : typeSpecOut['codeConverter']='tailMap(%1).entrySet().iterator()';     typeSpecOut['owner']='itr';
+        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='find'     : typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;  typeSpecOut['codeConverter']='tailMap(%1).entrySet().iterator()';
+        elif name=='get'      : name='get';      typeSpecOut['owner']='me';  typeSpecOut['fieldType']=convertedItmType;
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
@@ -493,8 +495,7 @@ def codeActTextMain(actSeq, indent, objsRefed, xlator):
 
 def codeStructText(classAttrs, parentClass, structName, structCode):
     # TODO: make next line so it is not hard coded
-    if (structName == 'widget'):
-        classAttrs = "abstract "
+    if (structName == 'widget'): classAttrs = "abstract "
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
         if parentClass[0]=="!": parentClass=' implements '+parentClass[1:]+' '
@@ -666,10 +667,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     # TODO: make next line so it is not hard coded
-    if (fieldName == "static_Global" or fieldName == "static_gui_tk"):
-        S += indent + "public static " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-    # TODO: make next line so it is not hard coded
-    elif(className == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager")):
+    if(className == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager")):
         #print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:

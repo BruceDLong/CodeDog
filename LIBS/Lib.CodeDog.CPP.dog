@@ -30,6 +30,7 @@ struct GLOBAL{
     me void: endFunc(me int: val) <- <%!return(0)%>
     me int: randInt(me int: val) <- <%!(rand() % %1)%>
     me string: toString(me int: val) <- <%!std::to_string(%1)%>
+    me int: uniqueObjectID(their any:obj)  <- <%!%G(intptr_t)%1%>
 
 }
 struct timeValue{me int64: timeValue}

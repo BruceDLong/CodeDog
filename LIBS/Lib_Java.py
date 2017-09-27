@@ -37,7 +37,7 @@ def use(classes, buildSpec, tags, platform):
 
     GLOBAL_CODE="""
         struct GLOBAL{
-            me GLOBAL: static_Global
+            we GLOBAL: static_Global
             me Random: javaRandomVar
             me string: readFileAsString(me string: filePath)<- <%{
                 try {

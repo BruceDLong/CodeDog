@@ -932,7 +932,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
 
             #### FUNC BODY
-            hasMutating = False
             if abstractFunction: # i.e., if no function body is given.
                 cdlog(5, "Function "+className+":::"+fieldName+" has no implementation defined.")
             else:
@@ -958,11 +957,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 else:
                     print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
                     exit(1)
-            if(structCode.find("<MUTATING>")>=0):
-                if(hasMutating):
-                    structCode=structCode.replace("<MUTATING>", "mutating ")
-                else:
-                    structCode=structCode.replace("<MUTATING>", "")
 
             if(funcsDefInClass=='True' ):
                 structCode += funcText
@@ -980,7 +974,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         funcDefCodeAcc += funcDefCode
         globalFuncsAcc += globalFuncs
 
-    if MakeConstructors=='True' and (className!='GLOBAL'):
+    # NOTE: Remove this Hard Coded widget. It should apply to any abstract class.
+    if MakeConstructors=='True' and (className!='GLOBAL')  and (className!='widget'):
         constructCode=codeConstructor(classes, className, tags, xlator)
         structCodeAcc+= "\n"+constructCode
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
@@ -1090,6 +1085,8 @@ def codeAllNonGlobalStructs(classes, tags, xlator):
     constFieldAccs={}
     fileSpecs={}
     structsToImplement = fetchListOfStructsToImplement(classes, tags)
+
+    # Set up flag and mode fields
     for className in structsToImplement:
         currentObjName=className
         CodeDogAddendumsAcc=''
@@ -1104,10 +1101,15 @@ def codeAllNonGlobalStructs(classes, tags, xlator):
             codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(className,  CodeDogAddendumsAcc ))
         currentObjName=''
 
+    # Write the class
     for className in structsToImplement:
         classRecord = codeOneStruct(classes, tags, constFieldAccs[progSpec.flattenObjectName(className)], className, xlator)
         if classRecord != None:
             fileSpecs[className]=classRecord
+
+    # Check for final class attributes to add. E.g., 'abstract' or 'mutating'
+ #   for className in structsToImplement:
+ #       specialAttributes = xlator['addSpecialClassAttributes'](classes, className))
     return fileSpecs
 
 def codeStructureCommands(classes, tags, xlator):

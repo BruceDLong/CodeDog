@@ -13,20 +13,21 @@ def apply(classes, tags, classesToTrack):
         C= '''
     struct <CLASSNAME> {
         we uint: symbolCount
-        me uint[we map their <CLASSNAME>]: ptrToUint
+        me uint[we map int]: ptrToUint
     /-    me <CLASSNAME>[their map]: uintToPtr
         we string: classTag <- "<CLASSNAME>"
 
     we string: mySymbol(their <CLASSNAME>: obj) <- {  /- find or generate symbol
         if(obj==NULL){return("NULL")}
-        me uint[itr map their <CLASSNAME>]: item <- ptrToUint.find(obj)
-        if (item==ptrToUint.end()){
+        me int: objID <- uniqueObjectID(obj)
+        if(! ptrToUint.containsKey(objID)){
             symbolCount <- symbolCount+1
-            ptrToUint[obj] <- symbolCount
+            ptrToUint[objID] <- symbolCount
             return(classTag + toString(symbolCount))
         }
         else {
-            me uint: symbol <- item.val
+            me int: item <- ptrToUint.get(objID)
+            me int: symbol <- item
             return(classTag + toString(symbol))
         }
     }
