@@ -82,7 +82,7 @@ def codeIteratorOperation(itrCommand):
 
 def applyOwner(owner, langType, innerType, idxType, varMode):
     if owner=='const':
-        langType = "final static "+langType
+        langType = "final "+langType
     elif owner=='me':
         langType = langType
     elif owner=='my':
@@ -741,8 +741,17 @@ def generateMainFunctionality(classes, tags):
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if Platform == 'Android':
-        print Platform
-        #Lib_Android.GenerateMainActivity(classes, tags, runCode)
+        GLOBAL_CODE="""
+    struct GLOBAL: ctxTag="Android" Platform='Android' Lang='Java' LibReq="Android" attrs="public" implMode="inherit:Activity" {
+        me void: onCreate(me Bundle: savedInstanceState) <- {
+            super.onCreate(savedInstanceState)
+            GLOBAL.static_Global <- this
+            Allocate(thisApp)
+            initialize("")
+        }
+    }
+"""
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
     else:
         mainFuncCode="""
         me void: main( ) <- {
