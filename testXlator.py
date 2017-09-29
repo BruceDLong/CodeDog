@@ -309,8 +309,8 @@ elif(xlatorName == "swing"):
     runDirectory = workingDirectory + "/SwingBuild"
 elif(xlatorName == "swift"):
     buildSpec = "SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed';"
-    runSpec = "swift package init --type executable"
-    runDirectory = workingDirectory + "/SwiftBuild"
+    runSpec = ".build/debug/testXlator"
+    runDirectory = workingDirectory + "/SwiftBuild/testXlator"
 else:
     print "UNKNOWN XLATOR: ", xlatorName
     exit(0)

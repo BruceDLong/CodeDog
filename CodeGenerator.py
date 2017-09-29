@@ -887,7 +887,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         ############ CODE MEMBER VARIABLE ##########################################################
         #registerType(className, fieldName, convertedType, "")
         if(fieldOwner=='const'):
-            structCode += indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+            structCode += xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, indent, xlator )
         elif(fieldArglist==None):
             [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent)
 

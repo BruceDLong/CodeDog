@@ -37,7 +37,7 @@ def adjustBaseTypes(fieldType):
 
 def applyOwner(owner, langType, varMode):
     if owner=='const':
-        langType = "let "+langType
+        langType = langType
     elif owner=='me':
         langType = langType
     elif owner=='my':
@@ -422,12 +422,22 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
         paramList=segSpec[2]
         if(funcName=='print'):
             # TODO: have a tag to choose cout vs printf()
-            S+='cout'
+            S+='print("'
+            count = 0
             for P in paramList:
                 [S2, argType]=xlator['codeExpr'](P[0], objsRefed, xlator)
+                print"codeSpecialFunc: ", S2
                 S2=derefPtr(S2, argType)
-                S+=' << '+S2
-            S+=" << flush"
+                
+                if(argType=="string"):
+                        S += S2
+                else:
+                    if(count>0):
+                        S+='\('+S2+')'
+                    else:
+                        S+='\('+S2+')'
+                count= count + 1
+            S+='", terminator:"")'
         elif(funcName=='AllocateOrClear'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
             if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
@@ -578,7 +588,9 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, ob
                     assignValue = " = " + CPL   # Act like a copy constructor
 
     if (assignValue == ""):
-        varDeclareStr= "var " + varName + ":"+ fieldType + assignValue
+        print"paramList None: ", typeSpec
+        varDeclareStr= "var " + varName + ":"+ fieldType + " = " + fieldType + '()'
+        print "varDeclareStr: ", varDeclareStr
     else:
         varDeclareStr= "let " + varName + ":"+ fieldType + assignValue
 
@@ -689,6 +701,9 @@ def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRe
                 convertedType =' = ' + convertedType +'()'
     return fieldValueText
 
+def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
+    return indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
+    
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     convertedType = adjustBaseTypes(convertedType)
     if 'arraySpec' in typeSpec:
@@ -830,4 +845,5 @@ def fetchXlators():
     xlators['codeDecrement']                = codeDecrement
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeSwitchBreak']              = codeSwitchBreak
+    xlators['codeConstField_Str']           = codeConstField_Str
     return(xlators)
