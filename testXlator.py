@@ -163,7 +163,7 @@ struct testClass{
      
 }
 
-tags = """BuildCmd = "g++ -g -std=gnu++14 `pkg-config --cflags gtk+-3.0` testXlator.cpp `pkg-config --libs gtk+-3.0` -o testXlator"
+tags = """BuildCmd = ""
 Title = "Infomage - DataDog"
 FileName = "testXlator"
 Version = "0.1"
@@ -260,7 +260,7 @@ def runDeps(testKey):
         depsList = testDefinitions[testKey][2]
     for dep in depsList:
         testResult = ExecCodeDogTest(testDefinitions[dep], buildSpec)
-        depsReportText +=  "        " + dep + ": "+testResult+  "\n"
+        depsReportText +=  "        " + dep + " : "+testResult+  "\n"
     return depsReportText
 
     
@@ -308,7 +308,7 @@ elif(xlatorName == "swing"):
     runSpec = "java GLOBAL"
     runDirectory = workingDirectory + "/SwingBuild"
 elif(xlatorName == "swift"):
-    buildSpec = "SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed'"
+    buildSpec = "SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed';"
     runSpec = "swift package init --type executable"
     runDirectory = workingDirectory + "/SwiftBuild"
 else:

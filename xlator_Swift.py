@@ -48,6 +48,8 @@ def applyOwner(owner, langType, varMode):
         langType += '*'
     elif owner=='itr':
         langType += '::iterator'
+    elif owner=='we':
+        langType += 'public static'
     else:
         print "ERROR: Owner of type not valid '" + owner + "'"
         exit(1)
@@ -71,7 +73,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
             if containerType=='deque':
                 langType="["+langType+"]"
             elif containerType=='map':
-                langType="map< "+idxType+', '+langType+" >"
+                langType="NSMutableOrderedSet< "+idxType+', '+langType+" >"
             elif containerType=='multimap':
                 langType="multimap< "+idxType+', '+langType+" >"
 
@@ -198,9 +200,8 @@ def getEnumStr(fieldName, enumList):
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
     convertedIdxType = ""
     if containerType=='deque':
-        if name=='at' or name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
+        if name=='size'       : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
@@ -211,32 +212,35 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front'
         elif name=='pushLast' : name='push_back'
-        else: print "Unknown deque command:", name; exit(2);
+        elif name=='erase'    : name='xlator_Swift.getContainerTypeInfo'
+        elif name=='deleteNth': name='xlator_Swift.getContainerTypeInfo'
+        elif name=='nthItr'   : name='xlator_Swift.getContainerTypeInfo'
+        else: print "xlator_Swift.getContainerTypeInfo Unknown deque command:", name; exit(2);
     elif containerType=='map':
+        # https://developer.apple.com/documentation/foundation/nsmutableorderedset
         if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
-        if name=='at' or name=='erase': pass
-        elif name=='containsKey'   : name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
+        if name=='containsKey': name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'Void'}
         elif name=='find'     : name='find';     typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : name='endIndex';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
         elif name=='first'    : name='begin()->second';  paramList=None;
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
-        else: print "Unknown map command:", name; exit(2);
+        elif name=='get'      : name='xlator_Swift.getContainerTypeInfo'
+        else: print "xlator_Swift.getContainerTypeInfo Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
         convertedItmType=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
-        if name=='at' or name=='erase': pass
-        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        if name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
@@ -247,17 +251,15 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
-        else: print "Unknown multimap command:", name; exit(2);
+        else: print "xlator_Swift.getContainerTypeInfo Unknown multimap command:", name; exit(2);
     elif containerType=='tree': # TODO: Make trees work
-        if name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        if name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
-        else: print "Unknown tree command:", name; exit(2)
+        else: print "xlator_Swift.getContainerTypeInfo Unknown tree command:", name; exit(2)
     elif containerType=='graph': # TODO: Make graphs work
-        if name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        if name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
-        else: print "Unknown graph command:", name; exit(2);
+        else: print "xlator_Swift.getContainerTypeInfo Unknown graph command:", name; exit(2);
     elif containerType=='stream': # TODO: Make stream work
         pass
     elif containerType=='filesystem': # TODO: Make filesystem work
@@ -361,17 +363,19 @@ def codeIsEQ(item, objsRefed, xlator):
     [S, retType]=codeComparison(item[0], objsRefed, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print "Error: Chained == or !=.\n"; exit(1);
+        if (isinstance(retType, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retType)
         S_derefd = derefPtr(S, retType)
         for i in item[1]:
             #print '      IsEq ', i
             if   (i[0] == '=='): op=' == '
             elif (i[0] == '!='): op=' != '
-            else: print "ERROR: '==' or '!=' expected in code generator."; exit(2)
+            elif (i[0] == '==='): op=' == '
+            else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
             [S2, retType] = codeComparison(i[1], objsRefed, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType)
-            if not( leftOwner=='itr' and rightOwner=='itr'):
-                if S2!='NULL': S=S_derefd
+            if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
+                if (S2!='NULL' and S2!='nullptr' ): S=S_derefd
                 S2=derefPtr(S2, retType)
             S+= op+S2
             retType='bool'
@@ -414,41 +418,34 @@ def adjustConditional(S2, conditionType):
 def codeSpecialFunc(segSpec, objsRefed, xlator):
     S=''
     funcName=segSpec[0]
-    if(funcName=='print'):
-        # TODO: have a tag to choose cout vs printf()
-        S+='print ('
-        if(len(segSpec)>2):
-            paramList=segSpec[2]
-            i =0
+    if(len(segSpec)>2):  # If there are arguments...
+        paramList=segSpec[2]
+        if(funcName=='print'):
+            # TODO: have a tag to choose cout vs printf()
+            S+='cout'
             for P in paramList:
                 [S2, argType]=xlator['codeExpr'](P[0], objsRefed, xlator)
                 S2=derefPtr(S2, argType)
-                if (i>0):
-                    S+=' + '
-                S+=S2
-                i = i+1
-            S+=")"
-    elif(funcName=='AllocateOrClear'):
-        if(len(segSpec)>2):
-            #print "ALLOCATE-OR-CLEAR():", segSpec[2][0]
-            paramList=segSpec[2]
+                S+=' << '+S2
+            S+=" << flush"
+        elif(funcName=='AllocateOrClear'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
+            if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
-    elif(funcName=='Allocate'):
-        if(len(segSpec)>2):
-            paramList=segSpec[2]
+        elif(funcName=='Allocate'):
+            #print 'Allocate: ', segSpec
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
+            print 'Allocate: ', varName,  varTypeSpec
+            if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
             for P in paramList[1:]:
                 if(count>0): S+=', '
                 [S2, argType]=xlator['codeExpr'](P[0], objsRefed, xlator)
                 S+=S2
+                count=count+1
             S+=")"
-    elif(funcName=='callPeriodically'):
-        if(len(segSpec)>2):
-            # Call g_timeout_add()
-            paramList=segSpec[2]
+        elif(funcName=='callPeriodically'):
             [objName,  retType]=xlator['codeExpr'](paramList[1][0], objsRefed, xlator)
             [interval,  intSpec]   =xlator['codeExpr'](paramList[2][0], objsRefed, xlator)
             varTypeSpec= retType['fieldType'][0]
@@ -456,12 +453,20 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
             S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
 
             # Create a global function wrapping the class
-            decl='\nInt '+wrapperName+'(Void* data)'
+            decl='\nint '+wrapperName+'(void* data)'
             defn='{'+varTypeSpec+'* self = ('+varTypeSpec+'*)data; self->run(); return true;}\n\n'
             appendGlobalFuncAcc(decl, defn)
-    #elif(funcName=='break'):
-    #elif(funcName=='return'):
-    #elif(funcName==''):
+        elif(funcName=='break'):
+            if len(paramList)==0: S='break'
+        elif(funcName=='return'):
+            if len(paramList)==0: S+='return'
+        elif(funcName=='toStr'):
+            if len(paramList)==1:
+                [S2, argType]=xlator['codeExpr'](P[0][0], objsRefed, xlator)
+                S2=derefPtr(S2, argType)
+                S+='to_string('+S2+')'
+        #elif(funcName==''):
+
 
     return S
 
@@ -560,7 +565,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, ob
     else: # If no value was given:
         if fieldDef['paramList'] != None:
             # Code the constructor's arguments
-            [CPL, paramTypeList] = codeParameterList(fieldDef['paramList'], None, objsRefed, xlator)
+            [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
                     print "\nPROBLEM: The return type of the parameter '", CPL, "' cannot be found and is needed. Try to define it.\n"
@@ -612,7 +617,7 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,indent,xlator):
+def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
@@ -667,7 +672,7 @@ def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRe
     if (fieldOwner=='me'):
         if paramList!=None:
             print "convertedType, paramList:", convertedType, paramList
-            [CPL, paramTypeList] = codeParameterList(paramList, None, objsRefed, xlator)
+            [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
             fieldValueText=" = new " + convertedType + CPL
         else:
             if (convertedType == "String"):
@@ -681,8 +686,7 @@ def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRe
             elif (convertedType == "Character"):
                 fieldValueText=' = ""'
             else:
-                print convertedType, " not initialized."
-                exit (2)
+                convertedType =' = ' + convertedType +'()'
     return fieldValueText
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
@@ -721,7 +725,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
             localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
-            structCode +="func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode +="public func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
         if fieldName=="init":
             structCode += indent + fieldName +"("+argListText+")"
@@ -736,12 +740,15 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
         S= '[' + idx +']'
     return S
 
-def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS):
+def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
         return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS + ");\n"
     elif (LHS_FieldType =='mode' ):
         return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
 
+def codeSwitchBreak(caseAction, indent, xlator):
+    return indent+"    break;\n"
+    
 #######################################################
 
 def includeDirective(libHdr):
@@ -822,4 +829,5 @@ def fetchXlators():
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
     xlators['codeRangeSpec']                = codeRangeSpec
+    xlators['codeSwitchBreak']              = codeSwitchBreak
     return(xlators)
