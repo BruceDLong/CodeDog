@@ -739,7 +739,7 @@ def codeVarFieldRHS_Str(name,  convertedType, fieldOwner, paramList, objsRefed, 
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
-    indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+    return indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     #TODO: make test case

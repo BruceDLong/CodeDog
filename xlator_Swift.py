@@ -119,49 +119,15 @@ def langStringFormatterCommand(fmtStr, argStr):
     return S
 
 def getTheDerefPtrMods(itemTypeSpec):
-    if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-        if progSpec.typeIsPointer(itemTypeSpec):
-            owner=progSpec.getTypeSpecOwner(itemTypeSpec)
-            if owner=='itr':
-                containerType = itemTypeSpec['arraySpec'][2]
-                if containerType =='map' or containerType == 'multimap':
-                    return ['', '->second']
-            return ['(*', ')']
     return ['', '']
 
 def derefPtr(varRef, itemTypeSpec):
-    [leftMod, rightMod] = getTheDerefPtrMods(itemTypeSpec)
-    return leftMod + varRef + rightMod
+    return varRef 
 
 def chooseVirtualRValOwner(LVAL, RVAL):
-    # Returns left and right text decorations for RHS of function arguments, return values, etc.
-    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
-    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
-    LeftOwner =progSpec.getTypeSpecOwner(LVAL)
-    RightOwner=progSpec.getTypeSpecOwner(RVAL)
-    if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner!='itr' and RightOwner=='itr': return ["", "->second"]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", "   )"]
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ["&", '']
-    if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
 
 def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
-    # Returns left and right text decorations for both LHS and RHS of assignment
-    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
-    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['','',  '','']
-    LeftOwner =progSpec.getTypeSpecOwner(LVAL)
-    RightOwner=progSpec.getTypeSpecOwner(RVAL)
-    if LeftOwner == RightOwner: return ['','',  '','']
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
-        [leftMod, rightMod] = getTheDerefPtrMods(RVAL)
-        return ['','',  leftMod, rightMod]  # ['', '', "(*", ")"]
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
-        if assignTag=='deep' :return ['(*',')',  '', '']
-        else: return ['','',  "&", '']
-
-    if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
-
     return ['','',  '','']
 
 
@@ -426,11 +392,11 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
             count = 0
             for P in paramList:
                 [S2, argType]=xlator['codeExpr'](P[0], objsRefed, xlator)
-                print"codeSpecialFunc: ", S2
                 S2=derefPtr(S2, argType)
-                
                 if(argType=="string"):
-                        S += S2
+                    if S2.startswith('"') and S2.endswith('"'):
+                        S2 = S2[1:-1]
+                    S += S2
                 else:
                     if(count>0):
                         S+='\('+S2+')'
@@ -588,9 +554,7 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, ob
                     assignValue = " = " + CPL   # Act like a copy constructor
 
     if (assignValue == ""):
-        print"paramList None: ", typeSpec
         varDeclareStr= "var " + varName + ":"+ fieldType + " = " + fieldType + '()'
-        print "varDeclareStr: ", varDeclareStr
     else:
         varDeclareStr= "let " + varName + ":"+ fieldType + assignValue
 
