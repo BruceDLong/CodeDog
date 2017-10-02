@@ -545,7 +545,7 @@ def encodeConditionalStatement(action, indent, objsRefed, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq(False, elseAction, indent, objsRefed, xlator)
+            elseText = codeActionSeq("True", elseAction, indent, objsRefed, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -644,7 +644,7 @@ def codeAction(action, indent, objsRefed, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq(False, elseAction, indent, objsRefed, xlator)
+                elseText = codeActionSeq("True", elseAction, indent, objsRefed, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -729,17 +729,18 @@ def codeAction(action, indent, objsRefed, xlator):
         cdlog(5, "Switch statement: switch({})".format(str(action['switchKey'])))
         [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], objsRefed, xlator)
         actionText += indent+"switch("+ switchKeyExpr + "){\n"
+        curlyBrackets = xlator['hasSwitchCurlyBrackets']
         for sCases in action['switchCases']:
             for sCase in sCases[0]:
                 [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], objsRefed, xlator)
                 actionText += indent+"    case "+caseKeyValue+": "
                 caseAction = sCases[1]
-                actionText += codeActionSeq(False, caseAction, indent+'    ', objsRefed, xlator)
+                actionText += codeActionSeq(curlyBrackets, caseAction, indent+'    ', objsRefed, xlator)
                 actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
             actionText+=indent+"default: "
-            actionText += codeActionSeq(False, defaultCase, indent, objsRefed, xlator)
+            actionText += codeActionSeq(curlyBrackets, defaultCase, indent, objsRefed, xlator)
         actionText += indent + "}\n"
     elif (typeOfAction =='actionSeq'):
         cdlog(5, "Action Sequence")
@@ -756,19 +757,22 @@ def codeAction(action, indent, objsRefed, xlator):
  #   print "actionText", actionText
     return actionText
 
-def codeActionSeq(isMain, actSeq, indent, objsRefed, xlator):
+def codeActionSeq(curlyBrackets, actSeq, indent, objsRefed, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = ""
-
-    if (isMain):
-        actSeqText += xlator['codeActTextMain'](actSeq, indent, objsRefed, xlator)
+    if (curlyBrackets == "True"):
+        openCurly = "{\n"
+        closeCurly = indent + "}"
     else:
-        actSeqText = "{\n"
-        for action in actSeq:
-            actionText = codeAction(action, indent + '    ', objsRefed, xlator)
-            actSeqText += actionText
-        actSeqText += indent + "}"
+        openCurly = ""
+        closeCurly = ""
+
+    actSeqText = openCurly
+    for action in actSeq:
+        actionText = codeAction(action, indent + '    ', objsRefed, xlator)
+        actSeqText += actionText
+    actSeqText += closeCurly
 
     actSeqText += "\n"
     localVarRecord=['','']
@@ -856,10 +860,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         [intermediateType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)
         convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
-        if(fieldName == "main"):
-            isMain = True
-        else:
-            isMain = False
 
         ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
@@ -947,8 +947,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                         if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
+                    if(fieldName == "main" and xlator['hasMainCurlyBrackets']=="False"):
+                        curlyBrackets = xlator['hasMainCurlyBrackets']
+                    else:
+                        curlyBrackets = "True"
                     objsRefed2={}
-                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, objsRefed2, xlator)
+                    funcText =  codeActionSeq(curlyBrackets, field['value'][0], funcBodyIndent, objsRefed2, xlator)
                  #   print "Called by function " + fieldName +':'
                  #   for rec in sorted(objsRefed2):
                  #       print "     ", rec

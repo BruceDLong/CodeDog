@@ -463,14 +463,6 @@ def codeMain(classes, tags, objsRefed, xlator):
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeActTextMain(actSeq, indent, objsRefed, xlator):
-    indent = ""
-    actSeqText = ""
-    for action in actSeq:
-        actionText = codeAction(action, indent, objsRefed, xlator)
-        actSeqText += actionText
-    return actSeqText
-
 def codeArgText(argFieldName, argType, xlator):
     return "_ " + argFieldName + ": " + argType
 
@@ -756,19 +748,22 @@ def generateMainFunctionality(classes, tags):
 def fetchXlators():
     xlators = {}
 
-    xlators['LanguageName']         = "Swift"
-    xlators['BuildStrPrefix']       = ""
-    xlators['fileExtension']        = ".swift"
-    xlators['typeForCounterInt']    = "Int64"
-    xlators['GlobalVarPrefix']      = ""
-    xlators['PtrConnector']         = "->"                      # Name segment connector for pointers.
-    xlators['ObjConnector']         = "::"                      # Name segment connector for classes.
-    xlators['NameSegConnector']     = "."
-    xlators['NameSegFuncConnector'] = "()."
-    xlators['doesLangHaveGlobals']  = "True"
-    xlators['funcBodyIndent']       = "    "
-    xlators['funcsDefInClass']      = "True"
-    xlators['MakeConstructors']     = "False"
+    xlators['LanguageName']          = "Swift"
+    xlators['BuildStrPrefix']        = ""
+    xlators['fileExtension']         = ".swift"
+    xlators['typeForCounterInt']     = "Int64"
+    xlators['GlobalVarPrefix']       = ""
+    xlators['PtrConnector']          = "->"                      # Name segment connector for pointers.
+    xlators['ObjConnector']          = "::"                      # Name segment connector for classes.
+    xlators['NameSegConnector']      = "."
+    xlators['NameSegFuncConnector']  = "()."
+    xlators['doesLangHaveGlobals']   = "True"
+    xlators['funcBodyIndent']        = "    "
+    xlators['funcsDefInClass']       = "True"
+    xlators['MakeConstructors']      = "False"
+    xlators['funcsDefInClass']       = "True"
+    xlators['hasMainCurlyBrackets']  = "False"
+    xlators['hasSwitchCurlyBrackets']= "False"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
@@ -801,7 +796,6 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeActTextMain']              = codeActTextMain
     xlators['recodeStringFunctions']        = recodeStringFunctions
     xlators['codeConstructionHeader']       = codeConstructionHeader
     xlators['codeConstructorInit']          = codeConstructorInit

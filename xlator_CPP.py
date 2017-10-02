@@ -507,14 +507,6 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeActTextMain(actSeq, indent, objsRefed, xlator):
-    actSeqText = "{\n"
-    for action in actSeq:
-        actionText = codeAction(action, indent + '    ', objsRefed, xlator)
-        actSeqText += actionText
-    actSeqText += indent + "}"
-    return actSeqText
-
 def codeStructText(classAttrs, parentClass, structName, structCode):
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
@@ -848,6 +840,8 @@ def fetchXlators():
     xlators['funcBodyIndent']       = ""
     xlators['funcsDefInClass']      = "False"
     xlators['MakeConstructors']     = "True"
+    xlators['hasMainCurlyBrackets']  = "True"
+    xlators['hasSwitchCurlyBrackets']= "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
@@ -881,7 +875,6 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeActTextMain']              = codeActTextMain
     xlators['codeConstructionHeader']       = codeConstructionHeader
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
