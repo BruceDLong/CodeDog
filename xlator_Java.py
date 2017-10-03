@@ -668,7 +668,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
     return [S, '']
 
-def codeConstructionHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
+def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
     withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
     noArgConstructor = "    public "  + ClassName + "(){"+"};\n"
@@ -812,7 +812,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeConstructionHeader']       = codeConstructionHeader
+    xlators['codeConstructorHeader']        = codeConstructorHeader
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement

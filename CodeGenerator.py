@@ -824,7 +824,7 @@ def codeConstructor(classes, ClassName, tags, xlator):
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-        constructCode = xlator['codeConstructionHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator)
+        constructCode = xlator['codeConstructorHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator)
     else: constructCode=''
     return constructCode
 

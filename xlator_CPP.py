@@ -85,7 +85,6 @@ def convertType(classes, TypeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
-    #print "fieldType: ", fieldType
     if not isinstance(fieldType, basestring):
         #if len(fieldType)>1: exit(2)
         fieldType=fieldType[0]
@@ -744,7 +743,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         decl = ''
     return [defn, decl]
 
-def codeConstructionHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
+def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
     return "    " + ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -827,19 +826,19 @@ def generateMainFunctionality(classes, tags):
 def fetchXlators():
     xlators = {}
 
-    xlators['LanguageName']         = "C++"
-    xlators['BuildStrPrefix']       = "g++ -g -std=gnu++14  "
-    xlators['fileExtension']        = ".cpp"
-    xlators['typeForCounterInt']    = "int64_t"
-    xlators['GlobalVarPrefix']      = ""
-    xlators['PtrConnector']         = "->"                      # Name segment connector for pointers.
-    xlators['ObjConnector']         = "::"                      # Name segment connector for classes.
-    xlators['NameSegConnector']     = "."
-    xlators['NameSegFuncConnector'] = "."
-    xlators['doesLangHaveGlobals']  = "True"
-    xlators['funcBodyIndent']       = ""
-    xlators['funcsDefInClass']      = "False"
-    xlators['MakeConstructors']     = "True"
+    xlators['LanguageName']          = "C++"
+    xlators['BuildStrPrefix']        = "g++ -g -std=gnu++14  "
+    xlators['fileExtension']         = ".cpp"
+    xlators['typeForCounterInt']     = "int64_t"
+    xlators['GlobalVarPrefix']       = ""
+    xlators['PtrConnector']          = "->"                      # Name segment connector for pointers.
+    xlators['ObjConnector']          = "::"                      # Name segment connector for classes.
+    xlators['NameSegConnector']      = "."
+    xlators['NameSegFuncConnector']  = "."
+    xlators['doesLangHaveGlobals']   = "True"
+    xlators['funcBodyIndent']        = ""
+    xlators['funcsDefInClass']       = "False"
+    xlators['MakeConstructors']      = "True"
     xlators['hasMainCurlyBrackets']  = "True"
     xlators['hasSwitchCurlyBrackets']= "True"
     xlators['codeExpr']                     = codeExpr
@@ -875,7 +874,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeConstructionHeader']       = codeConstructionHeader
+    xlators['codeConstructorHeader']        = codeConstructorHeader
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
