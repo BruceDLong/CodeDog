@@ -101,7 +101,7 @@ def staticVarNamePrefix(staticVarName, xlator):
     if staticVarName in StaticMemberVars:
         crntBaseName = progSpec.baseStructName(currentObjName)
         refedClass=progSpec.baseStructName(StaticMemberVars[staticVarName])
-        if(crntBaseName != refedClass):
+        if(xlator['usePrefixOnStatics'] == 'True' or crntBaseName != refedClass):
             return refedClass + xlator['ObjConnector']
     return ''
 
@@ -123,7 +123,11 @@ def fetchItemsTypeSpec(itemName, xlator):
         else:
             REF=CheckObjectVars(currentObjName, itemName, 1)
             if (REF):
-                RefType="OBJVAR"
+                parentClassName = staticVarNamePrefix(itemName, xlator)
+                if(parentClassName != ''):
+                    RefType="STATIC:"+parentClassName
+                else:
+                    RefType="OBJVAR"
                 if(currentObjName=='GLOBAL'): RefType="GLOBAL"
             else:
                 REF=CheckObjectVars("GLOBAL", itemName, 0)

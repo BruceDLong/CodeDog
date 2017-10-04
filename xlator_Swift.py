@@ -129,19 +129,16 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "static let "+fieldName+ ": Int = " + fieldValue+ ";"
+    S= "static let "+fieldName+ ": UInt64 = " + fieldValue+ ";\n"
     return(S)
 
 def getEnumStr(fieldName, enumList):
-    S = "\n    enum " + fieldName +" {"
-    enumSize = len (enumList)
+    S=''
     count=0
     for enumName in enumList:
-        S += enumName+"="+hex(count)
+        S += "    " + getConstIntFieldStr(enumName, str(count))
         count=count+1
-        if(count<enumSize): S += ", "
-    S += "};\n";
-   # S += 'string ' + fieldName+'Strings['+str(len(enumList))+'] = {"'+('", "'.join(enumList))+'"};\n'
+    S += "\n"
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
@@ -696,9 +693,16 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
-        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS + ");\n"
+        item = LHS_Left+"flags"
+        mask = prefix+bitMask
+        if (RHS != 'true' and RHS !='false'):
+            RHS += '!=0'
+        val = '('+ RHS +')?'+mask+':0'
     elif (LHS_FieldType =='mode' ):
-        return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
+        item = LHS_Left+"flags"
+        mask = prefix+bitMask+"Mask"
+        val = RHS+"<<"+prefix+bitMask+"Offset"
+    return "{"+item+" &= ~"+mask+"; "+item+" |= ("+val+");}\n"
 
 def codeSwitchBreak(caseAction, indent, xlator):
     return indent+"    break;\n"
@@ -737,7 +741,7 @@ def fetchXlators():
     xlators['typeForCounterInt']     = "var"
     xlators['GlobalVarPrefix']       = ""
     xlators['PtrConnector']          = "->"                      # Name segment connector for pointers.
-    xlators['ObjConnector']          = "::"                      # Name segment connector for classes.
+    xlators['ObjConnector']          = "."                       # Name segment connector for classes.
     xlators['NameSegConnector']      = "."
     xlators['NameSegFuncConnector']  = "()."
     xlators['doesLangHaveGlobals']   = "True"
@@ -747,6 +751,7 @@ def fetchXlators():
     xlators['funcsDefInClass']       = "True"
     xlators['hasMainCurlyBrackets']  = "False"
     xlators['hasSwitchCurlyBrackets']= "False"
+    xlators['usePrefixOnStatics']    = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective

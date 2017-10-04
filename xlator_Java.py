@@ -779,6 +779,7 @@ def fetchXlators():
     xlators['MakeConstructors']      = "True"
     xlators['hasMainCurlyBrackets']  = "True"
     xlators['hasSwitchCurlyBrackets']= "True"
+    xlators['usePrefixOnStatics']    = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
