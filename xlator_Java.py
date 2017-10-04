@@ -82,7 +82,7 @@ def codeIteratorOperation(itrCommand):
 
 def applyOwner(owner, langType, innerType, idxType, varMode):
     if owner=='const':
-        langType = "final static "+langType
+        langType = "final "+langType
     elif owner=='me':
         langType = langType
     elif owner=='my':
@@ -182,7 +182,7 @@ def getEnumStr(fieldName, enumList):
     S=''
     count=0
     for enumName in enumList:
-        S += getConstIntFieldStr(enumName, str(count))
+        S += "    " + getConstIntFieldStr(enumName, str(count))
         count=count+1
     S += "\n"
    # S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
@@ -484,14 +484,6 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeActTextMain(actSeq, indent, objsRefed, xlator):
-    actSeqText = "{\n"
-    for action in actSeq:
-        actionText = codeAction(action, indent + '    ', objsRefed, xlator)
-        actSeqText += actionText
-    actSeqText += indent + "}"
-    return actSeqText
-
 def codeStructText(classAttrs, parentClass, structName, structCode):
     # TODO: make next line so it is not hard coded
     if (structName == 'widget'): classAttrs = "abstract "
@@ -660,7 +652,10 @@ def codeVarFieldRHS_Str(name, convertedType, fieldOwner, paramList, objsRefed, x
             fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
-def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
+def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
+    return indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+
+def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     # TODO: make test case
     S=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
@@ -673,7 +668,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
     return [S, '']
 
-def codeConstructionHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
+def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
     withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
     noArgConstructor = "    public "  + ClassName + "(){"+"};\n"
@@ -741,8 +736,17 @@ def generateMainFunctionality(classes, tags):
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if Platform == 'Android':
-        print Platform
-        #Lib_Android.GenerateMainActivity(classes, tags, runCode)
+        GLOBAL_CODE="""
+    struct GLOBAL: ctxTag="Android" Platform='Android' Lang='Java' LibReq="Android" attrs="public" implMode="inherit:Activity" {
+        me void: onCreate(me Bundle: savedInstanceState) <- {
+            super.onCreate(savedInstanceState)
+            GLOBAL.static_Global <- this
+            Allocate(thisApp)
+            initialize("")
+        }
+    }
+"""
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
     else:
         mainFuncCode="""
         me void: main( ) <- {
@@ -760,19 +764,21 @@ def generateMainFunctionality(classes, tags):
 def fetchXlators():
     xlators = {}
 
-    xlators['LanguageName']        = "Java"
-    xlators['BuildStrPrefix']      = "Javac "
-    xlators['fileExtension']       = ".java"
-    xlators['typeForCounterInt']   = "int"
-    xlators['GlobalVarPrefix']     = "GLOBAL.static_Global."
-    xlators['PtrConnector']        = "."                      # Name segment connector for pointers.
-    xlators['ObjConnector']        = "."                      # Name segment connector for classes.
-    xlators['NameSegConnector']     = "."
-    xlators['NameSegFuncConnector'] = "."
-    xlators['doesLangHaveGlobals'] = "False"
-    xlators['funcBodyIndent']      = "    "
-    xlators['funcsDefInClass']     = "True"
-    xlators['MakeConstructors']    = "True"
+    xlators['LanguageName']          = "Java"
+    xlators['BuildStrPrefix']        = "Javac "
+    xlators['fileExtension']         = ".java"
+    xlators['typeForCounterInt']     = "int"
+    xlators['GlobalVarPrefix']       = "GLOBAL.static_Global."
+    xlators['PtrConnector']          = "."                      # Name segment connector for pointers.
+    xlators['ObjConnector']          = "."                      # Name segment connector for classes.
+    xlators['NameSegConnector']      = "."
+    xlators['NameSegFuncConnector']  = "."
+    xlators['doesLangHaveGlobals']   = "False"
+    xlators['funcBodyIndent']        = "    "
+    xlators['funcsDefInClass']       = "True"
+    xlators['MakeConstructors']      = "True"
+    xlators['hasMainCurlyBrackets']  = "True"
+    xlators['hasSwitchCurlyBrackets']= "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
@@ -806,8 +812,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeActTextMain']              = codeActTextMain
-    xlators['codeConstructionHeader']       = codeConstructionHeader
+    xlators['codeConstructorHeader']        = codeConstructorHeader
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
@@ -815,5 +820,6 @@ def fetchXlators():
     xlators['codeSwitchBreak']              = codeSwitchBreak
     xlators['codeCopyConstructor']          = codeCopyConstructor
     xlators['codeRangeSpec']                = codeRangeSpec
+    xlators['codeConstField_Str']           = codeConstField_Str
 
     return(xlators)

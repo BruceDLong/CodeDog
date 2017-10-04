@@ -6,7 +6,7 @@ requirements = [
 
 
 struct stringScanner{
-    me string: S
+    me string: S 
     me int: pos
     void: init(me string: str) <- {S<-str  reset()}
     void: reset() <- {pos<-0}

@@ -130,7 +130,7 @@ struct testClass{
     }
 }''', 'PGBR:true 3',['actions/conditional','actions/switch']],
 #####################################################################################################
-     'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach R in RANGE(2..6):{print(R," ")}}}', 'PGBR:2 3 4 5 '],
+     'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in RANGE(2..6):{print(spec," ")}}}', 'PGBR:2 3 4 5 '],
      'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward RANGE(2..6):{print(RB," ")}}}', 'PGBR:5 4 3 2 '],
      'actions/listRep':      ['struct testClass{me void: runTest()<-{me int[list]:testList<-[2,13,-22,188]\nwithEach T in testList:{print(T," ")}}}', 'PGBR:2 13 -22 188 '],
      'actions/backListRep':  ['struct testClass{me void: runTest()<-{me int[list]:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward:{print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
@@ -142,7 +142,7 @@ struct testClass{
      'actions/repetitions':  ['''
 struct testClass{
     me void: runTest()<-{
-        withEach R in RANGE(2..6):{print(R," ")}
+        withEach spec in RANGE(2..6):{print(spec," ")}
         withEach RB in Backward RANGE(2..6):{print(RB," ")}
         me int[list]:testList<-[2,13,-22,188]
         withEach T in testList:{print(T," ")}
@@ -163,7 +163,7 @@ struct testClass{
      
 }
 
-tags = """BuildCmd = "g++ -g -std=gnu++14 `pkg-config --cflags gtk+-3.0` testXlator.cpp `pkg-config --libs gtk+-3.0` -o testXlator"
+tags = """BuildCmd = ""
 Title = "Infomage - DataDog"
 FileName = "testXlator"
 Version = "0.1"
@@ -260,7 +260,7 @@ def runDeps(testKey):
         depsList = testDefinitions[testKey][2]
     for dep in depsList:
         testResult = ExecCodeDogTest(testDefinitions[dep], buildSpec)
-        depsReportText +=  "        " + dep + ": "+testResult+  "\n"
+        depsReportText +=  "        " + dep + " : "+testResult+  "\n"
     return depsReportText
 
     
@@ -303,14 +303,14 @@ if (xlatorName == "cpp"):
     buildSpec = "LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';"
     runSpec = "./testXlator"
     runDirectory = workingDirectory + "/LinuxBuild"
-elif(xlatorName == "swing"):
+elif(xlatorName == "swing" or xlatorName == "java"):
     buildSpec = "SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';"
     runSpec = "java GLOBAL"
     runDirectory = workingDirectory + "/SwingBuild"
 elif(xlatorName == "swift"):
-    buildSpec = "SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed'"
-    runSpec = "swift package init --type executable"
-    runDirectory = workingDirectory + "/SwiftBuild"
+    buildSpec = "SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed';"
+    runSpec = ".build/debug/testXlator"
+    runDirectory = workingDirectory + "/SwiftBuild/testXlator"
 else:
     print "UNKNOWN XLATOR: ", xlatorName
     exit(0)
