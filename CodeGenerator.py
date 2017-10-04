@@ -13,6 +13,7 @@ import pattern_GUI_Toolkit
 import pattern_ManageCmdLine
 import pattern_DispData
 import pattern_GenSymbols
+import pattern_MakeMenu
 
 import stringStructs
 
@@ -1370,6 +1371,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
             elif pattName=='ManageCmdLine':      pattern_ManageCmdLine.apply(classes, newTags)
             elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, newTags, patternArgs[0])
             elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
+            elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, [newTags, topTags], patternArgs)
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1
     for toDel in reversed(itemsToDelete):
