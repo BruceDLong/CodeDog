@@ -66,8 +66,8 @@ struct fontSpec{}
 struct fontScheme{}
 
 struct App{
-    me colorScheme: colors
-    me fontScheme: fonts
+ /-   me colorScheme: colors
+ /-   me fontScheme: fonts
     me void: createAppMenu(me GUI_frame: frame) <- {}
     me void: createToolBar(me GUI_frame: frame) <- {}
     me void: createAppArea(me GUI_frame: frame) <- {}
@@ -126,7 +126,7 @@ struct widget{
     me int: width
     me int: height
     me int: scale
-    me color: defaultColor
+/-    me color: defaultColor
     bool: isHidden
 
     void: setPos(me int:x, me int:y, me int: ExtY) <- {extY <- ExtY; posX<-x; posY<-y}

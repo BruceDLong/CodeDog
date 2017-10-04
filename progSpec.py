@@ -98,6 +98,21 @@ def processParentClass(name):
 
     classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': []}
 
+# returns an identifier for functions that accounts for class and argument types
+def fieldIdentifierString(className, packedField):
+    fieldID=className+'::'+packedField['fieldName']
+    if 'typeSpec' in packedField: typeSpec=packedField['typeSpec']
+    if 'argList' in typeSpec:
+        argList = typeSpec['argList']
+        fieldID+='('
+        count=0
+        for arg in argList:
+            if count>0: fieldID+=','
+            fieldID+=arg['fieldName']
+            count+=1
+        fieldID+=')'
+    return fieldID
+
 def addObject(objSpecs, objectNameList, name, stateType, configType):
     global MarkItems
     global MarkedObjects
