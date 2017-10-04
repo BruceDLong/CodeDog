@@ -36,30 +36,16 @@ def adjustBaseTypes(fieldType):
     return langType
 
 def applyOwner(owner, langType, varMode):
-    if owner=='const':
-        langType = langType
-    elif owner=='me':
-        langType = langType
-    elif owner=='my':
-        langType="unique_ptr<"+langType + ' >'
-    elif owner=='our':
-        langType="shared_ptr<"+langType + ' >'
-    elif owner=='their':
-        langType += '*'
-    elif owner=='itr':
-        langType += '::iterator'
-    elif owner=='we':
-        langType += 'public static'
+    if owner=='we':
+        return 'public static'
     else:
-        print "ERROR: Owner of type not valid '" + owner + "'"
-        exit(1)
-    return langType
+        return ''
 
 def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     langType = adjustBaseTypes(fieldType)
     if varMode != 'alloc':
-        langType = applyOwner(owner, langType, varMode)
+        fieldAttrs = applyOwner(owner, langType, varMode)
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
@@ -78,11 +64,8 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 langType="multimap< "+idxType+', '+langType+" >"
 
             if varMode != 'alloc':
-                #if varMode=='arg' and containerOwner=='their': langType+='&' # Pass these as references
-                #else:
-                    langType=applyOwner(containerOwner, langType, varMode)
-
-    return [langType, langType]
+                fieldAttrs=applyOwner(containerOwner, langType, varMode)
+    return [langType, fieldAttrs]
 
 def convertType(classes, TypeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
@@ -186,7 +169,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         # https://developer.apple.com/documentation/foundation/nsmutableorderedset
         if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        [convertedItmType, fieldAttrs]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='containsKey': name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -205,7 +188,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
-        convertedItmType=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        [convertedItmType, fieldAttrs]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -517,7 +500,7 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, objsRefed, xlator):
+def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, fieldAttrs, indent, objsRefed, xlator):
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):
@@ -656,19 +639,16 @@ def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRe
 def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
     return indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
     
-def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
-    convertedType = adjustBaseTypes(convertedType)
-    if 'arraySpec' in typeSpec:
-        if (fieldValueText == ""):
-            S=indent + "var "+ fieldName + ": " +  convertedType + '\n'
-        else:
-            S=indent + "var "+ fieldName + ": " +  convertedType +  fieldValueText + '\n'
+def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldValueText, className, tags, indent):
+    #TODO: make test case
+    fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
+    if fieldOwner=='we':
+        defn = indent + fieldAttrs + " var "+ fieldName + ": " +  intermediateType  +  fieldValueText + '\n'
+        decl = ''
     else:
-        if (fieldValueText == ""):
-            S=indent + "var "+ fieldName + ": " +  convertedType + '\n'
-        else:
-            S=indent + "var "+ fieldName + ": " +  convertedType + fieldValueText + '\n'
-    return [S, '']
+        defn = indent + "var "+ fieldName + ": " +  intermediateType  +  fieldValueText + '\n'
+        decl = ''
+    return [defn, decl]
 
 def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
     return "    init (" + constructorArgs+"){"+constructorInit+"\n    }\n    init ("+"){"+"\n    }\n"

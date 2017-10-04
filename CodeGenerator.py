@@ -889,7 +889,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         if(fieldOwner=='const'):
             structCode += xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, indent, xlator )
         elif(fieldArglist==None):
-            [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent)
+            [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent)
 
         ###### ArgList exists so this is a FUNCTION###########
         else:

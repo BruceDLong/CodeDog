@@ -732,7 +732,7 @@ def codeVarFieldRHS_Str(name,  convertedType, fieldOwner, paramList, objsRefed, 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
     return indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
 
-def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
+def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':

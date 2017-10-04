@@ -182,7 +182,7 @@ def getEnumStr(fieldName, enumList):
     S=''
     count=0
     for enumName in enumList:
-        S += getConstIntFieldStr(enumName, str(count))
+        S += "    " + getConstIntFieldStr(enumName, str(count))
         count=count+1
     S += "\n"
    # S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
@@ -655,7 +655,7 @@ def codeVarFieldRHS_Str(name, convertedType, fieldOwner, paramList, objsRefed, x
 def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
     return indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
 
-def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
+def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     # TODO: make test case
     S=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
