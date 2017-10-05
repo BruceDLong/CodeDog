@@ -1,0 +1,29 @@
+/-############  Add GUI-Toolkit features for IOS
+requirements = [
+    [tagOneOf, Platform, [IOS]]
+]
+
+interface={
+    provides=[GUI_ToolKit_implementation]
+/-    libFiles=[`pkg-config --cflags --libs gtk+-3.0`]
+    headers=[Foundation, UIKit]
+}
+
+LibDescription ={
+    useStatus   ='dynamic'
+    description ='Provides a GUI Toolkit or iPhone, iPad, etc.'
+    features    =[GUI_ToolKit, Mouse, Keyboard, Audio]
+    platforms   =[Linux, OS-X_Devices, Windows]
+    bindings    =[C, CPP, Swift, ObjectiveC]
+    CPUs        =[i386, amd64, arm7]
+}
+
+struct APP {
+	me bool: application(me UIApplication: application, their any[map UIApplicationLaunchOptionsKey]: launchOptions) <- {
+		return(false)
+	}
+}
+struct GLOBAL{
+	me GUI: gui_tk
+	me APP: thisApp
+}
