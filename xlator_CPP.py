@@ -85,7 +85,6 @@ def convertType(classes, TypeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
-    #print "fieldType: ", fieldType
     if not isinstance(fieldType, basestring):
         #if len(fieldType)>1: exit(2)
         fieldType=fieldType[0]
@@ -507,18 +506,19 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeActTextMain(actSeq, indent, objsRefed, xlator):
-    actSeqText = "{\n"
-    for action in actSeq:
-        actionText = codeAction(action, indent + '    ', objsRefed, xlator)
-        actSeqText += actionText
-    actSeqText += indent + "}"
-    return actSeqText
-
-def codeStructText(classAttrs, parentClass, structName, structCode):
+def codeStructText(classAttrs, parentClass, classInherits, classImplements, structName, structCode):
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
         parentClass=': public '+parentClass+' '
+    if classInherits!=None: 
+        parentClass=' : '
+        count =0
+        for item in classInherits[0]:
+            if count>0:
+                parentClass+= ', '
+            parentClass+= item 
+            count += 1
+        print "parentClass" , parentClass
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
     return([S,forwardDecls])
@@ -739,9 +739,9 @@ def codeVarFieldRHS_Str(name,  convertedType, fieldOwner, paramList, objsRefed, 
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
-    indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+    return indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
 
-def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent):
+def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
@@ -752,7 +752,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         decl = ''
     return [defn, decl]
 
-def codeConstructionHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
+def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
     return "    " + ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -835,19 +835,22 @@ def generateMainFunctionality(classes, tags):
 def fetchXlators():
     xlators = {}
 
-    xlators['LanguageName']         = "C++"
-    xlators['BuildStrPrefix']       = "g++ -g -std=gnu++14  "
-    xlators['fileExtension']        = ".cpp"
-    xlators['typeForCounterInt']    = "int64_t"
-    xlators['GlobalVarPrefix']      = ""
-    xlators['PtrConnector']         = "->"                      # Name segment connector for pointers.
-    xlators['ObjConnector']         = "::"                      # Name segment connector for classes.
-    xlators['NameSegConnector']     = "."
-    xlators['NameSegFuncConnector'] = "."
-    xlators['doesLangHaveGlobals']  = "True"
-    xlators['funcBodyIndent']       = ""
-    xlators['funcsDefInClass']      = "False"
-    xlators['MakeConstructors']     = "True"
+    xlators['LanguageName']          = "C++"
+    xlators['BuildStrPrefix']        = "g++ -g -std=gnu++14  "
+    xlators['fileExtension']         = ".cpp"
+    xlators['typeForCounterInt']     = "int64_t"
+    xlators['GlobalVarPrefix']       = ""
+    xlators['PtrConnector']          = "->"                      # Name segment connector for pointers.
+    xlators['ObjConnector']          = "::"                      # Name segment connector for classes.
+    xlators['NameSegConnector']      = "."
+    xlators['NameSegFuncConnector']  = "."
+    xlators['doesLangHaveGlobals']   = "True"
+    xlators['funcBodyIndent']        = ""
+    xlators['funcsDefInClass']       = "False"
+    xlators['MakeConstructors']      = "True"
+    xlators['hasMainCurlyBrackets']  = "True"
+    xlators['hasSwitchCurlyBrackets']= "True"
+    xlators['usePrefixOnStatics']    = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
@@ -881,8 +884,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeActTextMain']              = codeActTextMain
-    xlators['codeConstructionHeader']       = codeConstructionHeader
+    xlators['codeConstructorHeader']        = codeConstructorHeader
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement

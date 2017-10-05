@@ -13,6 +13,7 @@ import pattern_GUI_Toolkit
 import pattern_ManageCmdLine
 import pattern_DispData
 import pattern_GenSymbols
+import pattern_MakeMenu
 
 import stringStructs
 
@@ -63,7 +64,7 @@ def CheckFunctionsLocalVarArgList(itemName):
             return [item[1], 'FUNCARG']
     return 0
 
-def CheckObjectVars(objName, itemName, level):
+def CheckObjectVars(objName, itemName):
     #print "Searching",objName,"for", itemName
     ObjectDef =  progSpec.findSpecOf(globalClassStore[0], objName, "struct")
     if ObjectDef==None:
@@ -75,7 +76,7 @@ def CheckObjectVars(objName, itemName, level):
         actualFieldType=wrappedTypeSpec['fieldType']
         if not isinstance(actualFieldType, basestring):
             #print "'actualFieldType", wrappedTypeSpec, actualFieldType, objName
-            retVal = CheckObjectVars(actualFieldType[0], itemName, 0)
+            retVal = CheckObjectVars(actualFieldType[0], itemName)
             if retVal!=0:
                 retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
                 return retVal
@@ -85,7 +86,9 @@ def CheckObjectVars(objName, itemName, level):
                 return wrappedTypeSpec
             else: return 0
 
-    for field in progSpec.populateCallableStructFields(globalClassStore, objName):
+    callableStructFields=[]
+    progSpec.populateCallableStructFields(callableStructFields, globalClassStore, objName)
+    for field in callableStructFields:
         fieldName=field['fieldName']
         if fieldName==itemName:
             #print "Found", itemName
@@ -121,12 +124,12 @@ def fetchItemsTypeSpec(itemName, xlator):
             RefType="LOCAL" # could also return FUNCARG
             return REF
         else:
-            REF=CheckObjectVars(currentObjName, itemName, 1)
+            REF=CheckObjectVars(currentObjName, itemName)
             if (REF):
                 RefType="OBJVAR"
                 if(currentObjName=='GLOBAL'): RefType="GLOBAL"
             else:
-                REF=CheckObjectVars("GLOBAL", itemName, 0)
+                REF=CheckObjectVars("GLOBAL", itemName)
                 if (REF):
                     RefType="GLOBAL"
                 else:
@@ -298,7 +301,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
             if fType!='string':
-                typeSpecOut=CheckObjectVars(fType, name, 1)
+                typeSpecOut=CheckObjectVars(fType, name)
                 if typeSpecOut!=0:
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
@@ -545,7 +548,7 @@ def encodeConditionalStatement(action, indent, objsRefed, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq(False, elseAction, indent, objsRefed, xlator)
+            elseText = codeActionSeq("True", elseAction, indent, objsRefed, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -644,7 +647,7 @@ def codeAction(action, indent, objsRefed, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq(False, elseAction, indent, objsRefed, xlator)
+                elseText = codeActionSeq("True", elseAction, indent, objsRefed, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -729,17 +732,18 @@ def codeAction(action, indent, objsRefed, xlator):
         cdlog(5, "Switch statement: switch({})".format(str(action['switchKey'])))
         [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], objsRefed, xlator)
         actionText += indent+"switch("+ switchKeyExpr + "){\n"
+        curlyBrackets = xlator['hasSwitchCurlyBrackets']
         for sCases in action['switchCases']:
             for sCase in sCases[0]:
                 [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], objsRefed, xlator)
                 actionText += indent+"    case "+caseKeyValue+": "
                 caseAction = sCases[1]
-                actionText += codeActionSeq(False, caseAction, indent+'    ', objsRefed, xlator)
+                actionText += codeActionSeq(curlyBrackets, caseAction, indent+'    ', objsRefed, xlator)
                 actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
             actionText+=indent+"default: "
-            actionText += codeActionSeq(False, defaultCase, indent, objsRefed, xlator)
+            actionText += codeActionSeq(curlyBrackets, defaultCase, indent, objsRefed, xlator)
         actionText += indent + "}\n"
     elif (typeOfAction =='actionSeq'):
         cdlog(5, "Action Sequence")
@@ -756,19 +760,22 @@ def codeAction(action, indent, objsRefed, xlator):
  #   print "actionText", actionText
     return actionText
 
-def codeActionSeq(isMain, actSeq, indent, objsRefed, xlator):
+def codeActionSeq(curlyBrackets, actSeq, indent, objsRefed, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText = ""
-
-    if (isMain):
-        actSeqText += xlator['codeActTextMain'](actSeq, indent, objsRefed, xlator)
+    if (curlyBrackets == "True"):
+        openCurly = "{\n"
+        closeCurly = indent + "}"
     else:
-        actSeqText = "{\n"
-        for action in actSeq:
-            actionText = codeAction(action, indent + '    ', objsRefed, xlator)
-            actSeqText += actionText
-        actSeqText += indent + "}"
+        openCurly = ""
+        closeCurly = ""
+
+    actSeqText = openCurly
+    for action in actSeq:
+        actionText = codeAction(action, indent + '    ', objsRefed, xlator)
+        actSeqText += actionText
+    actSeqText += closeCurly
 
     actSeqText += "\n"
     localVarRecord=['','']
@@ -820,7 +827,7 @@ def codeConstructor(classes, ClassName, tags, xlator):
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-        constructCode = xlator['codeConstructionHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator)
+        constructCode = xlator['codeConstructorHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator)
     else: constructCode=''
     return constructCode
 
@@ -856,10 +863,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         [intermediateType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)
         convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
-        if(fieldName == "main"):
-            isMain = True
-        else:
-            isMain = False
 
         ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
@@ -889,7 +892,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         if(fieldOwner=='const'):
             structCode += xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, indent, xlator )
         elif(fieldArglist==None):
-            [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, typeSpec, fieldName, fieldValueText, className, tags, indent)
+            [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent)
 
         ###### ArgList exists so this is a FUNCTION###########
         else:
@@ -947,8 +950,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                         if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
+                    if(fieldName == "main" and xlator['hasMainCurlyBrackets']=="False"):
+                        curlyBrackets = xlator['hasMainCurlyBrackets']
+                    else:
+                        curlyBrackets = "True"
                     objsRefed2={}
-                    funcText =  codeActionSeq(isMain, field['value'][0], funcBodyIndent, objsRefed2, xlator)
+                    funcText =  codeActionSeq(curlyBrackets, field['value'][0], funcBodyIndent, objsRefed2, xlator)
                  #   print "Called by function " + fieldName +':'
                  #   for rec in sorted(objsRefed2):
                  #       print "     ", rec
@@ -1022,12 +1029,10 @@ def fetchListOfStructsToImplement(classes, tags):
         # The next lines skip defining classes that will already be defined by a library
         ObjectDef = progSpec.findSpecOf(classes[0], className, 'struct')
         if(ObjectDef==None): continue
-        ctxTag  =progSpec.searchATagStore(ObjectDef['tags'], 'ctxTag')
         implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
-        if(ctxTag): ctxTag=ctxTag[0]
         if(implMode): implMode=implMode[0]
-        if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
-            cdlog(2, "SKIPPING: {} {} {}".format(className, ctxTag, implMode))
+        if(implMode!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
+            cdlog(2, "SKIPPING: {} {}".format(className, implMode))
             continue
         if className in progSpec.MarkedObjects: libNameList.append(className)
         else: progNameList.append(className)
@@ -1048,28 +1053,24 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         classAttrs=progSpec.searchATagStore(classDef['tags'], 'attrs')
         if(classAttrs): classAttrs=classAttrs[0]+' '
         else: classAttrs=''
+        classInherits=progSpec.searchATagStore(classDef, 'inherits')
+        classImplements=progSpec.searchATagStore(classDef, 'implements')
 
-        implMode=progSpec.searchATagStore(classDef['tags'], 'implMode')
-        if implMode:
-            implMode=implMode[0]
         if (className in structsNeedingModification):
             cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[className])))
             [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[className]
-            implMode='implement:' + interfaceImplemented
+            classInherits.append( interfaceImplemented)
 
         parentClass=''
         seperatorIdx=className.rfind('::')
         if(seperatorIdx != -1):
             parentClass=className[0:seperatorIdx]
-        elif(implMode and implMode[:7]=="inherit"):
-            parentClass=implMode[8:]
-        elif(implMode and implMode[:9]=="implement"):
-            parentClass='!' + implMode[10:]
+
         objsRefed={}
         [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
         structCode+= constFieldCode
         LangFormOfObjName = progSpec.flattenObjectName(className)
-        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, LangFormOfObjName, structCode)
+        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, classInherits, classImplements, LangFormOfObjName, structCode)
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
     currentObjName=''
     return classRecord
@@ -1362,6 +1363,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
             elif pattName=='ManageCmdLine':      pattern_ManageCmdLine.apply(classes, newTags)
             elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, newTags, patternArgs[0])
             elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
+            elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, [newTags, topTags], patternArgs)
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1
     for toDel in reversed(itemsToDelete):

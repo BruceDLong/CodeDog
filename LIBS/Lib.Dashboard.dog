@@ -5,22 +5,22 @@
 featuresNeeded = [GUI_ToolKit]
 
 
-struct widget::dashboard{
+struct dashboard: inherits = 'widget'{
     me int: extX        /- right-most extent
     me int: extY        /- lowest extent
-    our widget::dash[list]: children
-    our widget::dash[map string]: dependentItems
+    our dash[list]: children
+    our dash[map string]: dependentItems
     our decor[list]: decorations
 
 
-    our widget::dash: dependentIsRegistered(me string: key) <- {
+    our dash: dependentIsRegistered(me string: key) <- {
         if(dependentItems.containsKey(key)){
             return(dependentItems.get(key))
         }
         return(NULL)
     }
 
-    me void: addDependent(me string: key, our widget::dash: dashPtr) <- {
+    me void: addDependent(me string: key, our dash: dashPtr) <- {
         if(! dependentItems.containsKey(key)){
             dashPtr.isHidden <- true
             dependentItems[key] <- dashPtr
@@ -101,7 +101,7 @@ struct widget::dashboard{
     }
 }
 
-struct widget::dash{
+struct dash: inherits = 'widget'{
     me int: extX        /- Dashes right-most extent
     me int: extY        /- Dashes lowest extent
     me int: extC        /- The current position where the next external item should be drawn
@@ -109,7 +109,7 @@ struct widget::dash{
     void: activatePropertyEditor()<- {}
 }
 
-struct widget::dash::dataField {
+struct dataField: inherits = 'dash' {
     me string: label
     me string: value
     me int: midPos
@@ -136,11 +136,11 @@ struct widget::dash::dataField {
     }
 }
 
-struct widget::dash::ptrToItem {
-    me widget::dash::dataField: header
+struct ptrToItem: inherits = 'dash' {
+    me dataField: header
     me bool: refHidden
     me string: symbol
-    our widget::dash: dashPtr
+    our dash: dashPtr
 
     void: update(me string: Label, me string: textValue, me bool: hideThis) <- {
         isNullLike<-hideThis
@@ -180,11 +180,11 @@ struct widget::dash::ptrToItem {
 }
 
 
-struct widget::dash::listOfItems {
+struct listOfItems: inherits = 'dash' {
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     me mode[vertical, horizontal]: orientation
-    me widget::dash::dataField: header
-    our widget::dash[list]: elements
+    me dataField: header
+    our dash[list]: elements
 
     void: update(me string: Label, me string: textValue, me bool: hideThis) <- {
         isNullLike<-hideThis
@@ -193,7 +193,7 @@ struct widget::dash::listOfItems {
         displayMode<-headerOnly
     }
 
-    void: updatePush(our widget::dash: element) <- {
+    void: updatePush(our dash: element) <- {
         elements.pushLast(element)
     }
 
@@ -272,7 +272,7 @@ struct widget::dash::listOfItems {
                     me int: largeToX <- elements[0].posX + elements[0].width
                     me int: smallToY <- elements[0].posY
                     me int: largeToY <- elements[0].posY + elements[0].height
-                    our decor::arrow:: arrow(fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
+                    our arrow:: arrow(fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
                     dashBoard.decorations.pushLast(arrow)
 
                     lastElIdx <- lastElIdx-1

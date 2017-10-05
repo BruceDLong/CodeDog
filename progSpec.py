@@ -98,6 +98,21 @@ def processParentClass(name):
 
     classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': []}
 
+# returns an identifier for functions that accounts for class and argument types
+def fieldIdentifierString(className, packedField):
+    fieldID=className+'::'+packedField['fieldName']
+    if 'typeSpec' in packedField: typeSpec=packedField['typeSpec']
+    if 'argList' in typeSpec:
+        argList = typeSpec['argList']
+        fieldID+='('
+        count=0
+        for arg in argList:
+            if count>0: fieldID+=','
+            fieldID+=arg['fieldName']
+            count+=1
+        fieldID+=')'
+    return fieldID
+
 def addObject(objSpecs, objectNameList, name, stateType, configType):
     global MarkItems
     global MarkedObjects
@@ -114,17 +129,33 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     processParentClass(name)
     if MarkItems: MarkedObjects[name]=1
     return name
+    
+def appendToTagList(objRef, fieldName, commaSeparatedString ):
+    #fieldName ="inherits" or "implements"
+    #objRef = objSpecs[className]
+    if not fieldName in objRef:
+        objRef[fieldName] = []
+    commaSeparatedString = commaSeparatedString.replace(" ", "")
+    tmpList = commaSeparatedString.split(",")
+    for item in tmpList:
+        if (not item in objRef[fieldName]):
+            objRef[fieldName].append(item)
 
 def addObjTags(objSpecs, className, stateType, objTags):
     startTags = {}
     if stateType=='model': className='%'+className
     elif stateType=='string': className='$'+className
-    if ('tags' in objSpecs[className]):
-        objSpecs[className]['tags'].update(objTags)
+    objRef = objSpecs[className]
+    if ('tags' in objRef):
+        objRef['tags'].update(objTags)
         #print "    APPENDED Tags to "+className+".\t", str(objTags)
     else:
-        objSpecs[className]['tags']=objTags
+        objRef['tags']=objTags
         #print "    ADDED Tags to "+className+".\t", str(objTags)
+    if ('inherits' in objRef['tags']):
+        appendToTagList(objRef, 'inherits', objRef['tags']['inherits'])
+    if ('implements' in objRef['tags']):
+        appendToTagList(objRef, 'implements', objRef['tags']['implements'])
 
 def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems
@@ -307,25 +338,28 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
     for field in fieldsToCopy:
         insertOrReplaceField(fieldListToUpdate, field)
 
-def populateCallableStructFields(classes, structName):  # e.g. 'type::subType::subType2'
+def populateCallableStructFields(fList, classes, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
     structSpec=findSpecOf(classes[0], structName, 'struct')
-    if structSpec==None: return []
-    if structSpec['vFields']!=None: return structSpec['vFields']
-    fList=[]
-    segIdx=0
-    while(segIdx>=0):
-        segIdx=structName.find('::', segIdx);
-        if segIdx == -1: segStr=structName
-        else: segStr=structName[0:segIdx]
-        #print "     SEGSTR:", segStr
-        modelSpec=findSpecOf(classes[0], segStr, 'model')
-        if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
-        modelSpec=findSpecOf(classes[0], segStr, 'struct')
-        updateCpy(fList, modelSpec["fields"])
-        if(segIdx>=0): segIdx+=1
+    if structSpec==None: return 
+    if structSpec['vFields']!=None: 
+        fList.extend(structSpec['vFields'])
+        return 
+    classInherits = searchATagStore(structSpec['tags'], 'inherits')
+    if classInherits!=None:
+        for classParent in classInherits:
+            populateCallableStructFields(fList, classes, classParent)
+    classInherits = searchATagStore(structSpec['tags'], 'implements')
+    if classInherits!=None:
+        for classParent in classInherits:
+            populateCallableStructFields(fList, classes, classParent)
+
+    modelSpec=findSpecOf(classes[0], structName, 'model')
+    if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
+    modelSpec=findSpecOf(classes[0], structName, 'struct')
+    updateCpy(fList, modelSpec["fields"])
+
     structSpec['vFields'] = fList
-    return fList
 
 def generateListOfFieldsToImplement(classes, structName):
     fList=[]
@@ -342,19 +376,28 @@ def fieldDefIsInList(fList, fieldName):
     return False
 
 def fieldAlreadyDeclaredInStruct(classes, structName, fieldName):  # e.g. 'type::subType::subType2'
-    segIdx=0
-    while(segIdx>=0):
-        segIdx=structName.find('::', segIdx);
-        if segIdx == -1: segStr=structName
-        else: segStr=structName[0:segIdx]
-        #print "     SEGSTR:", segStr, fieldName
-        modelSpec=findSpecOf(classes, segStr, 'model')
-        if(modelSpec!=None):
-            if fieldDefIsInList(modelSpec["fields"], fieldName): return True
-        modelSpec=findSpecOf(classes, segStr, 'struct')
-        if(modelSpec!=None):
-            if fieldDefIsInList(modelSpec["fields"], fieldName): return True
-        if(segIdx>=0): segIdx+=1
+    structSpec=findSpecOf(classes, structName, 'struct')
+    if structSpec==None: return False;
+    if structSpec['vFields']!=None: return (fieldName in structSpec['vFields'])
+
+    classInherits = searchATagStore(structSpec['tags'], 'inherits')
+    if classInherits!=None:
+        for classParent in classInherits:
+            if fieldAlreadyDeclaredInStruct(classes, classParent, fieldName):
+                return True
+    classInherits = searchATagStore(structSpec['tags'], 'implements')
+    if classInherits!=None:
+        for classParent in classInherits:
+            if fieldAlreadyDeclaredInStruct(classes, classParent, fieldName):
+                return True
+
+    modelSpec=findSpecOf(classes, structName, 'model')
+    if(modelSpec!=None):
+        if fieldDefIsInList(modelSpec["fields"], fieldName): return True
+    modelSpec=findSpecOf(classes, structName, 'struct')
+    if(modelSpec!=None):
+        if fieldDefIsInList(modelSpec["fields"], fieldName): return True
+
     return False
 
 ###############  Various type-handling functions
