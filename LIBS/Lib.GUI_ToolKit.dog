@@ -92,7 +92,7 @@ struct decor{
     void: draw(me GUI_ctxt: cr) <- {}
 }
 
-struct arrow{
+struct arrow: inherits="decor"{
     me int: startX
     me int: startY
     me int: endX

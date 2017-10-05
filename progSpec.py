@@ -341,9 +341,10 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
 def populateCallableStructFields(fList, classes, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
     structSpec=findSpecOf(classes[0], structName, 'struct')
-    if structSpec==None: return []
-    if structSpec['vFields']!=None: return structSpec['vFields']
-  #  fList=[]
+    if structSpec==None: return 
+    if structSpec['vFields']!=None: 
+        fList.extend(structSpec['vFields'])
+        return 
     classInherits = searchATagStore(structSpec['tags'], 'inherits')
     if classInherits!=None:
         for classParent in classInherits:

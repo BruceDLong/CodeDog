@@ -156,7 +156,7 @@ struct GLOBAL{
 
 
 /-///////////////////////////////  HANDLE GUI
-struct GUI: implements="MouseListener" {
+struct GUI {
     me uint32: GUI_Init() <- <%{return(0);}%>
 
     me void: GUI_PopulateAndExec() <- <% {

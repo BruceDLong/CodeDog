@@ -202,7 +202,7 @@ def EncodeDumpFunction(classes, className, dispMode):
                 handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
 
         Code='''
-struct display_'''+className+'''{
+struct display_'''+className+": inherits = 'dash' "+'''{
     me dataField: header
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     their '''+className+''': data

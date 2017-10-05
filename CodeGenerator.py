@@ -64,7 +64,7 @@ def CheckFunctionsLocalVarArgList(itemName):
             return [item[1], 'FUNCARG']
     return 0
 
-def CheckObjectVars(objName, itemName, level):
+def CheckObjectVars(objName, itemName):
     #print "Searching",objName,"for", itemName
     ObjectDef =  progSpec.findSpecOf(globalClassStore[0], objName, "struct")
     if ObjectDef==None:
@@ -76,7 +76,7 @@ def CheckObjectVars(objName, itemName, level):
         actualFieldType=wrappedTypeSpec['fieldType']
         if not isinstance(actualFieldType, basestring):
             #print "'actualFieldType", wrappedTypeSpec, actualFieldType, objName
-            retVal = CheckObjectVars(actualFieldType[0], itemName, 0)
+            retVal = CheckObjectVars(actualFieldType[0], itemName)
             if retVal!=0:
                 retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
                 return retVal
@@ -124,12 +124,12 @@ def fetchItemsTypeSpec(itemName, xlator):
             RefType="LOCAL" # could also return FUNCARG
             return REF
         else:
-            REF=CheckObjectVars(currentObjName, itemName, 1)
+            REF=CheckObjectVars(currentObjName, itemName)
             if (REF):
                 RefType="OBJVAR"
                 if(currentObjName=='GLOBAL'): RefType="GLOBAL"
             else:
-                REF=CheckObjectVars("GLOBAL", itemName, 0)
+                REF=CheckObjectVars("GLOBAL", itemName)
                 if (REF):
                     RefType="GLOBAL"
                 else:
@@ -301,7 +301,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
             if fType!='string':
-                typeSpecOut=CheckObjectVars(fType, name, 1)
+                typeSpecOut=CheckObjectVars(fType, name)
                 if typeSpecOut!=0:
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
