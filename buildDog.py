@@ -154,7 +154,7 @@ def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fi
         printResults(workingDirectory, buildStr, runStr)
     elif platform == 'Android':
         buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-    elif platform == 'XCODE':
+    elif platform == 'IOS':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
         printResults(workingDirectory, buildStr, runStr)
     else:

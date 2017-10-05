@@ -41,11 +41,11 @@ def applyOwner(owner, langType, varMode):
     elif owner=='me':
         langType = langType
     elif owner=='my':
-        langType="unique_ptr<"+langType + ' >'
+        langType = langType
     elif owner=='our':
-        langType="shared_ptr<"+langType + ' >'
+        langType = langType
     elif owner=='their':
-        langType += '*'
+        langType  = langType
     elif owner=='itr':
         langType += '::iterator'
     elif owner=='we':
@@ -117,52 +117,20 @@ def recodeStringFunctions(name, typeSpec):
 def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
-
-def getTheDerefPtrMods(itemTypeSpec):
-    if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-        if progSpec.typeIsPointer(itemTypeSpec):
-            owner=progSpec.getTypeSpecOwner(itemTypeSpec)
-            if owner=='itr':
-                containerType = itemTypeSpec['arraySpec'][2]
-                if containerType =='map' or containerType == 'multimap':
-                    return ['', '->second']
-            return ['(*', ')']
-    return ['', '']
-
-def derefPtr(varRef, itemTypeSpec):
-    [leftMod, rightMod] = getTheDerefPtrMods(itemTypeSpec)
-    return leftMod + varRef + rightMod
-
+    
 def chooseVirtualRValOwner(LVAL, RVAL):
-    # Returns left and right text decorations for RHS of function arguments, return values, etc.
-    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
-    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
-    LeftOwner =progSpec.getTypeSpecOwner(LVAL)
-    RightOwner=progSpec.getTypeSpecOwner(RVAL)
-    if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner!='itr' and RightOwner=='itr': return ["", "->second"]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", "   )"]
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ["&", '']
-    if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
 
 def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
-    # Returns left and right text decorations for both LHS and RHS of assignment
-    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
-    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['','',  '','']
-    LeftOwner =progSpec.getTypeSpecOwner(LVAL)
-    RightOwner=progSpec.getTypeSpecOwner(RVAL)
-    if LeftOwner == RightOwner: return ['','',  '','']
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
-        [leftMod, rightMod] = getTheDerefPtrMods(RVAL)
-        return ['','',  leftMod, rightMod]  # ['', '', "(*", ")"]
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
-        if assignTag=='deep' :return ['(*',')',  '', '']
-        else: return ['','',  "&", '']
-
-    if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
-
     return ['','',  '','']
+
+
+    
+def getTheDerefPtrMods(itemTypeSpec):
+    return ['', '']
+
+def derefPtr(varRef, itemTypeSpec):
+    return varRef
 
 
 def getCodeAllocStr(varTypeStr, owner):
@@ -426,8 +394,8 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
             count = 0
             for P in paramList:
                 [S2, argType]=xlator['codeExpr'](P[0], objsRefed, xlator)
-                print"codeSpecialFunc: ", S2
-                S2=derefPtr(S2, argType)
+              #  print"codeSpecialFunc: ", S2
+               # S2=derefPtr(S2, argType)
                 
                 if(argType=="string"):
                         S += S2
@@ -445,7 +413,7 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
         elif(funcName=='Allocate'):
             #print 'Allocate: ', segSpec
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
-            print 'Allocate: ', varName,  varTypeSpec
+            #print 'Allocate: ', varName,  varTypeSpec
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
@@ -588,9 +556,9 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, ob
                     assignValue = " = " + CPL   # Act like a copy constructor
 
     if (assignValue == ""):
-        print"paramList None: ", typeSpec
+       # print"paramList None: ", typeSpec
         varDeclareStr= "var " + varName + ":"+ fieldType + " = " + fieldType + '()'
-        print "varDeclareStr: ", varDeclareStr
+       # print "varDeclareStr: ", varDeclareStr
     else:
         varDeclareStr= "let " + varName + ":"+ fieldType + assignValue
 
