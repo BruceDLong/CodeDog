@@ -195,8 +195,8 @@ def EncodeDumpFunction(classes, className, dispMode):
         me int: largeToX<fieldName> <- <fieldName>.posX + <fieldName>.width
         me int: smallToY<fieldName> <- <fieldName>.posY
         me int: largeToY<fieldName> <- <fieldName>.posY + <fieldName>.height
-        our arrow:: arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
-        dashBoard.decorations.pushLast(arrow)
+        our arrow:: Arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
+        dashBoard.decorations.pushLast(Arrow)
     }
 '''.replace('<fieldName>', fieldName)
                 handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'

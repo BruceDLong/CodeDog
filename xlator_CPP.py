@@ -510,8 +510,12 @@ def codeStructText(classAttrs, parentClass, classInherits, classImplements, stru
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
         parentClass=': public '+parentClass+' '
+        print "Warning: old style inheritance used: " , parentClass
+    if classImplements!=None: 
+        print "Error: Implements found for: " , parentClass
+        exit(1)
     if classInherits!=None: 
-        parentClass=' : '
+        parentClass=': public '
         count =0
         for item in classInherits[0]:
             if count>0:

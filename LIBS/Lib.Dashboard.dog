@@ -272,8 +272,8 @@ struct listOfItems: inherits = 'dash' {
                     me int: largeToX <- elements[0].posX + elements[0].width
                     me int: smallToY <- elements[0].posY
                     me int: largeToY <- elements[0].posY + elements[0].height
-                    our arrow:: arrow(fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
-                    dashBoard.decorations.pushLast(arrow)
+                    our arrow:: Arrow(fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
+                    dashBoard.decorations.pushLast(Arrow)
 
                     lastElIdx <- lastElIdx-1
                     cr.moveTo(elements[0].posX, elements[0].posY)
