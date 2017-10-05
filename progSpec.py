@@ -129,17 +129,33 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     processParentClass(name)
     if MarkItems: MarkedObjects[name]=1
     return name
+    
+def appendToTagList(objRef, fieldName, commaSeparatedString ):
+    #fieldName ="inherits" or "implements"
+    #objRef = objSpecs[className]
+    if not fieldName in objRef:
+        objRef[fieldName] = []
+    commaSeparatedString = commaSeparatedString.replace(" ", "")
+    tmpList = commaSeparatedString.split(",")
+    for item in tmpList:
+        if (not item in objRef[fieldName]):
+            objRef[fieldName].append(item)
 
 def addObjTags(objSpecs, className, stateType, objTags):
     startTags = {}
     if stateType=='model': className='%'+className
     elif stateType=='string': className='$'+className
-    if ('tags' in objSpecs[className]):
-        objSpecs[className]['tags'].update(objTags)
+    objRef = objSpecs[className]
+    if ('tags' in objRef):
+        objRef['tags'].update(objTags)
         #print "    APPENDED Tags to "+className+".\t", str(objTags)
     else:
-        objSpecs[className]['tags']=objTags
+        objRef['tags']=objTags
         #print "    ADDED Tags to "+className+".\t", str(objTags)
+    if ('inherits' in objRef['tags']):
+        appendToTagList(objRef, 'inherits', objRef['tags']['inherits'])
+    if ('implements' in objRef['tags']):
+        appendToTagList(objRef, 'implements', objRef['tags']['implements'])
 
 def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems

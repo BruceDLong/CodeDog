@@ -74,7 +74,7 @@ struct GUI_PointerEvent{
   me uint: button
 }
 /-///////////////////////////////  HANDLE LISTENERS
-struct MasterMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseListener" {
+struct MasterMouseListener: implements="MouseListener" {
     me void: mouseClicked(me GUI_MouseEvent: e)<-     {
         me int: eventX <- e.x
         me int: eventY <- e.y
@@ -99,7 +99,7 @@ struct MasterMouseListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="s
     }
 }
 
-struct MasterMouseMotionListener: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="implement:MouseMotionListener" {
+struct MasterMouseMotionListener: implements="MouseMotionListener" {
     me void: mouseMoved(me GUI_MouseEvent: e)<-     {
         me int: eventX <- e.x
         me int: eventY <- e.y
@@ -156,7 +156,7 @@ struct GLOBAL{
 
 
 /-///////////////////////////////  HANDLE GUI
-struct GUI{
+struct GUI: implements="MouseListener" {
     me uint32: GUI_Init() <- <%{return(0);}%>
 
     me void: GUI_PopulateAndExec() <- <% {
@@ -203,7 +203,7 @@ struct GUI{
     } %>
 }
 
-struct GUI{
+struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me GUI_item: newCanvas() <- <%!%Gnew JavaGUI_ctxt()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setPreferredSize(new Dimension(%2, %3))%>
@@ -219,7 +219,7 @@ struct GUI{
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 }
 
-struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
+struct GUI_ctxt: inherits="JPanel" {
     me void: reset() <- <%!GPath = new GeneralPath()%>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!gr.setColor(new Color(%1, %2, %3, %4))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!gr.setColor(new Color(%1, %2, %3))%>
@@ -241,7 +241,7 @@ struct GUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implM
     me void: renderFrame() <- <%!repaint()%>
 }
 
-struct JavaGUI_ctxt: ctxTag="Swing" Platform='Java' Lang='Java' LibReq="swing" implMode="inherit:JPanel" {
+struct JavaGUI_ctxt: inherits="JPanel" {
     their Graphics2D: gr
     me GeneralPath: GPath
     me double: cur_x

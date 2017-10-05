@@ -506,10 +506,19 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeStructText(classAttrs, parentClass, structName, structCode):
+def codeStructText(classAttrs, parentClass, classInherits, classImplements, structName, structCode):
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
         parentClass=': public '+parentClass+' '
+    if classInherits!=None: 
+        parentClass=' : '
+        count =0
+        for item in classInherits[0]:
+            if count>0:
+                parentClass+= ', '
+            parentClass+= item 
+            count += 1
+        print "parentClass" , parentClass
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
     return([S,forwardDecls])

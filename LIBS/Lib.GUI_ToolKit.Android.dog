@@ -44,7 +44,7 @@ struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
 
 
-struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMode="inherit:View" {
+struct CanvasView: inherits="View" {
     me GUI_ctxt: cr
 
     me none: CanvasView() <- {super(GLOBAL.static_Global)}
@@ -95,7 +95,7 @@ struct CanvasView: ctxTag="Android" Platform='Java' Lang='Java' LibReq="" implMo
 
 
 /-///////////////////////////////  HANDLE GUI
-struct GUI: implMode="inherit:LinearLayout" {
+struct GUI {
     me LinearLayout:: frame(GLOBAL.static_Global)
     me LinearLayout:: layoutArea(GLOBAL.static_Global)
     me ScrollView: vScroller
@@ -146,7 +146,7 @@ struct GUI: implMode="inherit:LinearLayout" {
 
 }
 
-struct GUI: implMode="inherit:LinearLayout"{
+struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
@@ -163,7 +163,7 @@ struct GUI: implMode="inherit:LinearLayout"{
 
 }
 
-struct GUI_ctxt: ctxTag="Android" Platform='Android' Lang='Java' LibReq="swing" implMode="inherit:Canvas" {
+struct GUI_ctxt: inherits="Canvas" {
 /-    me void: reset() <- <%!GPath = new Path()%>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!paint.setColor(Color.argb(%4, %1, %2, %3))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!paint.setColor(Color.rgb(%1, %2, %3))%>
@@ -185,7 +185,7 @@ struct GUI_ctxt: ctxTag="Android" Platform='Android' Lang='Java' LibReq="swing" 
 /-    me void: renderFrame() <- <%!repaint()%>
 }
 
-struct GUI_ctxt: implMode="inherit:Canvas"{
+struct GUI_ctxt {
     me Paint: paint
     me Path: GPath
     me double: cur_x
@@ -346,7 +346,7 @@ struct GLOBAL{
     }
 }
 
-struct APP: implMode="inherit:LinearLayout"{
+struct APP {
     me LinearLayout: thisFrame
     me GUI: gui
     me Menu: androidMenu

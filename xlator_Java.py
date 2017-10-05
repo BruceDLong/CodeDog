@@ -484,14 +484,25 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeStructText(classAttrs, parentClass, structName, structCode):
+def codeStructText(classAttrs, parentClass, classInherits, classImplements, structName, structCode):
     # TODO: make next line so it is not hard coded
     if (structName == 'widget'): classAttrs = "abstract "
-    if parentClass != "":
+    if (parentClass != ""):
         parentClass = parentClass.replace('::', '_')
-        if parentClass[0]=="!": parentClass=' implements '+parentClass[1:]+' '
-        else: parentClass=' extends '+parentClass+' '
-    S= "\n"+classAttrs +"class "+structName+parentClass+"{\n" + structCode + '};\n'
+        parentClass=' extends ' +parentClass 
+    elif classInherits!=None: 
+        parentClass=' extends ' + classInherits[0][0]
+        print "parentClass::: " , parentClass
+    if classImplements!=None: 
+        parentClass=' implements '
+        count =0
+        for item in classImplements[0]:
+            if count>0:
+                parentClass+= ', '
+            parentClass+= item 
+            count += 1
+        print "parentClass:: " , parentClass
+    S= "\n"+classAttrs +"class "+structName+''+parentClass+" {\n" + structCode + '};\n'
     return([S,""])
 
 
@@ -737,7 +748,7 @@ def generateMainFunctionality(classes, tags):
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if Platform == 'Android':
         GLOBAL_CODE="""
-    struct GLOBAL: ctxTag="Android" Platform='Android' Lang='Java' LibReq="Android" attrs="public" implMode="inherit:Activity" {
+    struct GLOBAL: attrs="public" inherits="Activity" {
         me void: onCreate(me Bundle: savedInstanceState) <- {
             super.onCreate(savedInstanceState)
             GLOBAL.static_Global <- this

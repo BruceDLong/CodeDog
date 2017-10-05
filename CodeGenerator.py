@@ -102,7 +102,7 @@ def staticVarNamePrefix(staticVarName, xlator):
     if staticVarName in StaticMemberVars:
         crntBaseName = progSpec.baseStructName(currentObjName)
         refedClass=progSpec.baseStructName(StaticMemberVars[staticVarName])
-        if(xlator['usePrefixOnStatics'] == 'True' or crntBaseName != refedClass):
+        if(crntBaseName != refedClass):
             return refedClass + xlator['ObjConnector']
     return ''
 
@@ -124,11 +124,7 @@ def fetchItemsTypeSpec(itemName, xlator):
         else:
             REF=CheckObjectVars(currentObjName, itemName, 1)
             if (REF):
-                parentClassName = staticVarNamePrefix(itemName, xlator)
-                if(parentClassName != ''):
-                    RefType="STATIC:"+parentClassName
-                else:
-                    RefType="OBJVAR"
+                RefType="OBJVAR"
                 if(currentObjName=='GLOBAL'): RefType="GLOBAL"
             else:
                 REF=CheckObjectVars("GLOBAL", itemName, 0)
@@ -1031,12 +1027,10 @@ def fetchListOfStructsToImplement(classes, tags):
         # The next lines skip defining classes that will already be defined by a library
         ObjectDef = progSpec.findSpecOf(classes[0], className, 'struct')
         if(ObjectDef==None): continue
-        ctxTag  =progSpec.searchATagStore(ObjectDef['tags'], 'ctxTag')
         implMode=progSpec.searchATagStore(ObjectDef['tags'], 'implMode')
-        if(ctxTag): ctxTag=ctxTag[0]
         if(implMode): implMode=implMode[0]
-        if(ctxTag!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
-            cdlog(2, "SKIPPING: {} {} {}".format(className, ctxTag, implMode))
+        if(implMode!=None and not (implMode=="declare" or implMode[:7]=="inherit" or implMode[:9]=="implement")):  # "useLibrary"
+            cdlog(2, "SKIPPING: {} {}".format(className, implMode))
             continue
         if className in progSpec.MarkedObjects: libNameList.append(className)
         else: progNameList.append(className)
@@ -1057,28 +1051,24 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         classAttrs=progSpec.searchATagStore(classDef['tags'], 'attrs')
         if(classAttrs): classAttrs=classAttrs[0]+' '
         else: classAttrs=''
+        classInherits=progSpec.searchATagStore(classDef, 'inherits')
+        classImplements=progSpec.searchATagStore(classDef, 'implements')
 
-        implMode=progSpec.searchATagStore(classDef['tags'], 'implMode')
-        if implMode:
-            implMode=implMode[0]
         if (className in structsNeedingModification):
             cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[className])))
             [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[className]
-            implMode='implement:' + interfaceImplemented
+            classInherits.append( interfaceImplemented)
 
         parentClass=''
         seperatorIdx=className.rfind('::')
         if(seperatorIdx != -1):
             parentClass=className[0:seperatorIdx]
-        elif(implMode and implMode[:7]=="inherit"):
-            parentClass=implMode[8:]
-        elif(implMode and implMode[:9]=="implement"):
-            parentClass='!' + implMode[10:]
+
         objsRefed={}
         [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
         structCode+= constFieldCode
         LangFormOfObjName = progSpec.flattenObjectName(className)
-        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, LangFormOfObjName, structCode)
+        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, classInherits, classImplements, LangFormOfObjName, structCode)
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
     currentObjName=''
     return classRecord

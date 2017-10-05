@@ -441,9 +441,19 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return "_ " + argFieldName + ": " + argType
 
-def codeStructText(classAttrs, parentClass, structName, structCode):
+def codeStructText(classAttrs, parentClass, classInherits, classImplements, structName, structCode):
     if parentClass != "":
         parentClass=':'+parentClass+' '
+    if classImplements!=None: 
+        parentClass=' implements '
+        count =0
+        for item in classImplements[0]:
+            if count>0:
+                parentClass+= ', '
+            parentClass+= item 
+            count += 1
+    if classInherits!=None: 
+        parentClass=' extends ' + classInherits[0][0]
     S= "\nclass "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls=""
     return([S,forwardDecls])
