@@ -62,7 +62,7 @@ struct GUI_PointerEvent{
 
 /-///////////////////////////////  HANDLE LISTENERS
 struct GTK_eventDispatcher{
-    their widget::dashboard: topWidget
+    their dashboard: topWidget
     me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
     me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
         if(event->type==GDK_BUTTON_PRESS){
@@ -349,7 +349,7 @@ me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
 /--------------- Application areas
 their GtkWidget: window
-void: setMasterWidget(their widget::dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
+void: setMasterWidget(their dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
 
 me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
   /-  GtkWidget *window;
