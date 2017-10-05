@@ -915,7 +915,8 @@ def Write_ALT_Extracter(classes, parentStructName, fields, VarTagBase, VarTagSuf
     # VarName is the LVAL variable name.
     global  globalFieldCount
     cdlog(logLvl, "WRITING code to extract one of {} from parse tree...".format(parentStructName))
-    InnerMemObjFields = progSpec.populateCallableStructFields(classes, parentStructName)
+    InnerMemObjFields = []
+    progSpec.populateCallableStructFields(InnerMemObjFields, classes, parentStructName)
     if parentStructName.find('::') != -1: cdErr("TODO: Make string parsing work on derived classes. Probably just select the correct fields for the destination struct.")
     S=""
     # Code to fetch the ruleIDX of this ALT. If the parse was terminal (i.e., 'const'), it will be at a different place.
@@ -1224,7 +1225,8 @@ extracterFunctionAccumulator = ""
 alreadyWrittenFunctions={}
 
 def Write_structExtracter(classes, ToStructName, fields, nameForFunc, logLvl):
-    memObjFields=progSpec.populateCallableStructFields(classes, ToStructName)
+    memObjFields=[]
+    progSpec.populateCallableStructFields(memObjFields, classes, ToStructName)
     if memObjFields==None: cdErr("struct {} is not defined".format(ToStructName.replace('str','mem')))
     S='    me string: tmpStr\n'
     for field in fields: # Extract all the fields in the string version.

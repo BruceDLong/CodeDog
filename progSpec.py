@@ -338,25 +338,27 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
     for field in fieldsToCopy:
         insertOrReplaceField(fieldListToUpdate, field)
 
-def populateCallableStructFields(classes, structName):  # e.g. 'type::subType::subType2'
+def populateCallableStructFields(fList, classes, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
     structSpec=findSpecOf(classes[0], structName, 'struct')
     if structSpec==None: return []
     if structSpec['vFields']!=None: return structSpec['vFields']
-    fList=[]
-    segIdx=0
-    while(segIdx>=0):
-        segIdx=structName.find('::', segIdx);
-        if segIdx == -1: segStr=structName
-        else: segStr=structName[0:segIdx]
-        #print "     SEGSTR:", segStr
-        modelSpec=findSpecOf(classes[0], segStr, 'model')
-        if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
-        modelSpec=findSpecOf(classes[0], segStr, 'struct')
-        updateCpy(fList, modelSpec["fields"])
-        if(segIdx>=0): segIdx+=1
+  #  fList=[]
+    classInherits = searchATagStore(structSpec['tags'], 'inherits')
+    if classInherits!=None:
+        for classParent in classInherits:
+            populateCallableStructFields(fList, classes, classParent)
+    classInherits = searchATagStore(structSpec['tags'], 'implements')
+    if classInherits!=None:
+        for classParent in classInherits:
+            populateCallableStructFields(fList, classes, classParent)
+
+    modelSpec=findSpecOf(classes[0], structName, 'model')
+    if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
+    modelSpec=findSpecOf(classes[0], structName, 'struct')
+    updateCpy(fList, modelSpec["fields"])
+
     structSpec['vFields'] = fList
-    return fList
 
 def generateListOfFieldsToImplement(classes, structName):
     fList=[]
@@ -373,19 +375,28 @@ def fieldDefIsInList(fList, fieldName):
     return False
 
 def fieldAlreadyDeclaredInStruct(classes, structName, fieldName):  # e.g. 'type::subType::subType2'
-    segIdx=0
-    while(segIdx>=0):
-        segIdx=structName.find('::', segIdx);
-        if segIdx == -1: segStr=structName
-        else: segStr=structName[0:segIdx]
-        #print "     SEGSTR:", segStr, fieldName
-        modelSpec=findSpecOf(classes, segStr, 'model')
-        if(modelSpec!=None):
-            if fieldDefIsInList(modelSpec["fields"], fieldName): return True
-        modelSpec=findSpecOf(classes, segStr, 'struct')
-        if(modelSpec!=None):
-            if fieldDefIsInList(modelSpec["fields"], fieldName): return True
-        if(segIdx>=0): segIdx+=1
+    structSpec=findSpecOf(classes, structName, 'struct')
+    if structSpec==None: return False;
+    if structSpec['vFields']!=None: return (fieldName in structSpec['vFields'])
+
+    classInherits = searchATagStore(structSpec['tags'], 'inherits')
+    if classInherits!=None:
+        for classParent in classInherits:
+            if fieldAlreadyDeclaredInStruct(classes, classParent, fieldName):
+                return True
+    classInherits = searchATagStore(structSpec['tags'], 'implements')
+    if classInherits!=None:
+        for classParent in classInherits:
+            if fieldAlreadyDeclaredInStruct(classes, classParent, fieldName):
+                return True
+
+    modelSpec=findSpecOf(classes, structName, 'model')
+    if(modelSpec!=None):
+        if fieldDefIsInList(modelSpec["fields"], fieldName): return True
+    modelSpec=findSpecOf(classes, structName, 'struct')
+    if(modelSpec!=None):
+        if fieldDefIsInList(modelSpec["fields"], fieldName): return True
+
     return False
 
 ###############  Various type-handling functions

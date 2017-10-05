@@ -86,7 +86,9 @@ def CheckObjectVars(objName, itemName, level):
                 return wrappedTypeSpec
             else: return 0
 
-    for field in progSpec.populateCallableStructFields(globalClassStore, objName):
+    callableStructFields=[]
+    progSpec.populateCallableStructFields(callableStructFields, globalClassStore, objName)
+    for field in callableStructFields:
         fieldName=field['fieldName']
         if fieldName==itemName:
             #print "Found", itemName

@@ -7,12 +7,12 @@ interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent,
-	    android.widget.LinearLayout, android.widget.ScrollView, android.widget.HorizontalScrollView, android.widget.TextView,
-	    android.app.Activity, 
-	    android.os.Bundle, 
-	    android.util.Log, 
-	    android.content.res.AssetManager, android.content.Context,
-	    android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory]
+        android.widget.LinearLayout, android.widget.ScrollView, android.widget.HorizontalScrollView, android.widget.TextView,
+        android.app.Activity,
+        android.os.Bundle,
+        android.util.Log,
+        android.content.res.AssetManager, android.content.Context,
+        android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory]
 }
 
 LibDescription ={
@@ -100,7 +100,7 @@ struct GUI {
     me LinearLayout:: layoutArea(GLOBAL.static_Global)
     me ScrollView: vScroller
     me HorizontalScrollView: hScroller
-    
+
     me ScrollView: newScrollingWindow(me Long: A, me Long:B) <- <%{
         ScrollView vScroller = new ScrollView(GLOBAL.static_Global);
         HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
@@ -112,9 +112,9 @@ struct GUI {
     }%>
 
     me none: GUI() <- {super(GLOBAL.static_Global)}
-    
+
     me uint32: GUI_Init() <- <%{return(0);}%>
-    
+
     me uint32: GUI_Run() <- <% {
         int status=0;
         GUI_PopulateAndExec();
@@ -138,7 +138,7 @@ struct GUI {
         GLOBAL.static_Global.thisApp.menubar.items.add(subMenu)
         return(subMenu)
     }
-    
+
     me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
         our ourSubMenu:: thisMenuItem(menuLabel)
         menu.items.pushLast(thisMenuItem)
@@ -232,14 +232,14 @@ struct timeStringer{
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
     me APP: thisApp
-    void: setMasterWidget(their widget::dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
+    void: setMasterWidget(their dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
     me SubMenu: parentMenu
     me AssetManager: assetManager
     me int: widgetHeight() <- <%!%G%1.getHeight()%>
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
     me INK_Image[map string]: InkImgCache
     me long: ticksPerSec() <- <%!%G1000%>
-    
+
     me void: close_window() <- {
          /- gtk_main_quit()
     }
@@ -266,7 +266,7 @@ struct GLOBAL{
    }%>
 
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
-    
+
     me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
         try {
             InputStream inStream = GLOBAL.static_Global.getAssets().open(fromPath);
@@ -306,11 +306,11 @@ struct GLOBAL{
                     parentMenu.add(item.name);
                     ++item_key;
                 }
-            } 
+            }
             ++thisSubMenu_key;
         }
      }%>
-     
+
     me void: onCreate(me Bundle: savedInstanceState) <- {
         super.onCreate(savedInstanceState)
         GLOBAL.static_Global <- this

@@ -112,7 +112,7 @@ struct MasterMouseMotionListener: implements="MouseMotionListener" {
 
 /-///////////////////////////////  HANDLE LISTENERS
 struct Swing_eventDispatcher{
-    their widget::dashboard: topWidget
+    their dashboard: topWidget
 
     me MasterMouseListener: mouseListener
     me MasterMouseMotionListener: mouseMotionListener
@@ -285,7 +285,7 @@ struct timeStringer{
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
     me APP: thisApp
-    void: setMasterWidget(their widget::dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
+    void: setMasterWidget(their dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
     /- DRAWING ROUTINES:
 
     me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{

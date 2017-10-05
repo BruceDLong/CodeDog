@@ -92,7 +92,7 @@ struct decor{
     void: draw(me GUI_ctxt: cr) <- {}
 }
 
-struct decor::arrow{
+struct arrow{
     me int: startX
     me int: startY
     me int: endX
@@ -173,5 +173,5 @@ struct widget{
 }
 
 struct GLOBAL{
-    their widget::dashboard: masterWidget   /-  The widget that will handle most events.
+    their dashboard: masterWidget   /-  The widget that will handle most events.
 }

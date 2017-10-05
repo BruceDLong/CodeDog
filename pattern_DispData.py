@@ -69,7 +69,7 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         fieldName+='Ptr'
         innerUpdateFuncStr = 'data.'+fieldRef+'.mySymbol(data.'+fieldRef+')'
         updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'))\n'
-        structText += "    "+owner+" widget::dash::ptrToItem: "+fieldName+"\n"
+        structText += "    "+owner+" ptrToItem: "+fieldName+"\n"
 
     elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
         innerUpdateFuncStr = '"Size:"+toString(data.'+fieldName+'.size())'
@@ -85,11 +85,11 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         updateFuncText+=innerStructText+'\n        Allocate(newItem)\n'+innerUpdateFuncText
         updateFuncText+="\n        "+fieldName+'.updatePush(newItem)'
         updateFuncText+='\n        }\n'
-        structText += "    "+owner+" widget::dash::listOfItems: "+fieldName+"\n"
+        structText += "    "+owner+" listOfItems: "+fieldName+"\n"
     elif(fldCat=='struct'):  # Header for a STRUCT
         updateFuncText="        "+fieldName+'.update('+fieldLabel+', ">", data.'+fieldRef+')\n'
         structTypeName=field['typeSpec']['fieldType'][0]
-        structText += "    "+owner+" widget::dash::display_"+structTypeName+': '+fieldName+"\n"
+        structText += "    "+owner+" display_"+structTypeName+': '+fieldName+"\n"
 
 
         # Add new classname to a list so it can be encoded.
@@ -109,7 +109,7 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
             valStr= fieldRef+'Strings[data.'+fieldName+'] '
 
         updateFuncText="        "+fieldName+'.update(90, 150, '+fieldLabel+', '+valStr+', isNull('+valStr+'))\n'
-        structText += "    "+owner+" widget::dash::dataField: "+fieldName+"\n"
+        structText += "    "+owner+" dataField: "+fieldName+"\n"
 
     drawFuncText  ="        "+fieldName+'.draw(cr)\n'
     setPosFuncText += '''        if(!<fieldName>.isNullLike or displayMode==fullDisplay){
@@ -195,15 +195,15 @@ def EncodeDumpFunction(classes, className, dispMode):
         me int: largeToX<fieldName> <- <fieldName>.posX + <fieldName>.width
         me int: smallToY<fieldName> <- <fieldName>.posY
         me int: largeToY<fieldName> <- <fieldName>.posY + <fieldName>.height
-        our decor::arrow:: arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
+        our arrow:: arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
         dashBoard.decorations.pushLast(arrow)
     }
 '''.replace('<fieldName>', fieldName)
                 handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
 
         Code='''
-struct widget::dash::display_'''+className+'''{
-    me widget::dash::dataField: header
+struct display_'''+className+'''{
+    me dataField: header
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     their '''+className+''': data
 '''+structTextAcc+'''
