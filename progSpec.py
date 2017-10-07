@@ -86,16 +86,12 @@ def addPattern(objSpecs, objectNameList, name, patternList):
     objectNameList.append(patternName)
     objSpecs[name]={'name':patternName, 'parameters':patternList}
 
-def processParentClass(name):
+def processParentClass(name, parentClass):
     global classHeirarchyInfo
     if name in classHeirarchyInfo: return
-    parentClass=None
-    colonPos = name.rfind('::')
-    if colonPos>=0:
-        parentClass=name[0:colonPos]
-        processParentClass(parentClass)
-        classHeirarchyInfo[parentClass]['childClasses'].append(name)
-
+    if not parentClass in classHeirarchyInfo: classHeirarchyInfo[parentClass]={}
+    if not 'childClasses' in classHeirarchyInfo[parentClass]: classHeirarchyInfo[parentClass]['childClasses']=[]
+    classHeirarchyInfo[parentClass]['childClasses'].append(name)
     classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': []}
 
 # returns an identifier for functions that accounts for class and argument types
@@ -126,20 +122,20 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
         return None
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType}
     objectNameList.append(name)
-    processParentClass(name)
     if MarkItems: MarkedObjects[name]=1
     return name
-    
-def appendToTagList(objRef, fieldName, commaSeparatedString ):
-    #fieldName ="inherits" or "implements"
+
+def appendToAncestorList(objRef, className, subClassMode, parentClassList):
+    #subClassMode ="inherits" or "implements"
     #objRef = objSpecs[className]
-    if not fieldName in objRef:
-        objRef[fieldName] = []
-    commaSeparatedString = commaSeparatedString.replace(" ", "")
-    tmpList = commaSeparatedString.split(",")
-    for item in tmpList:
-        if (not item in objRef[fieldName]):
-            objRef[fieldName].append(item)
+    if not subClassMode in objRef:
+        objRef[subClassMode] = []
+    parentClassList = parentClassList.replace(" ", "")
+    tmpList = parentClassList.split(",")
+    for parentClass in tmpList:
+        if subClassMode=='inherits': processParentClass(className, parentClass)
+        if (not parentClass in objRef[subClassMode]):
+            objRef[subClassMode].append(parentClass)
 
 def addObjTags(objSpecs, className, stateType, objTags):
     startTags = {}
@@ -153,9 +149,10 @@ def addObjTags(objSpecs, className, stateType, objTags):
         objRef['tags']=objTags
         #print "    ADDED Tags to "+className+".\t", str(objTags)
     if ('inherits' in objRef['tags']):
-        appendToTagList(objRef, 'inherits', objRef['tags']['inherits'])
+        parentClassList = objRef['tags']['inherits']
+        appendToAncestorList(objRef, className, 'inherits', parentClassList)
     if ('implements' in objRef['tags']):
-        appendToTagList(objRef, 'implements', objRef['tags']['implements'])
+        appendToAncestorList(objRef, className, 'implements', objRef['tags']['implements'])
 
 def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems
@@ -341,10 +338,10 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
 def populateCallableStructFields(fList, classes, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
     structSpec=findSpecOf(classes[0], structName, 'struct')
-    if structSpec==None: return 
-    if structSpec['vFields']!=None: 
+    if structSpec==None: return
+    if structSpec['vFields']!=None:
         fList.extend(structSpec['vFields'])
-        return 
+        return
     classInherits = searchATagStore(structSpec['tags'], 'inherits')
     if classInherits!=None:
         for classParent in classInherits:
