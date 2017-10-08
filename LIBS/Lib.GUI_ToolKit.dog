@@ -92,13 +92,13 @@ struct decor{
     void: draw(me GUI_ctxt: cr) <- {}
 }
 
-struct arrow: inherits="decor"{
+struct arrow: inherits='decor'{
     me double: startX
     me double: startY
     me double: endX
     me double: endY
-    
-    void: draw(me GUI_ctxt: cr) <- {
+
+    me void: draw(me GUI_ctxt: cr) <- {
         me double: tipLength <- 10
         me double: tipAngle <- 0.35
 
@@ -174,5 +174,5 @@ struct widget{
 }
 
 struct GLOBAL{
-    their dashboard: masterWidget   /-  The widget that will handle most events.
+    their widget: masterWidget   /-  The widget that will handle most events.
 }

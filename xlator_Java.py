@@ -489,17 +489,17 @@ def codeStructText(classAttrs, parentClass, classInherits, classImplements, stru
     if (structName == 'widget'): classAttrs = "abstract "
     if (parentClass != ""):
         parentClass = parentClass.replace('::', '_')
-        parentClass=' extends ' +parentClass 
-    elif classInherits!=None: 
+        parentClass=' extends ' +parentClass
+    elif classInherits!=None:
         parentClass=' extends ' + classInherits[0][0]
         print "parentClass::: " , parentClass
-    if classImplements!=None: 
+    if classImplements!=None:
         parentClass=' implements '
         count =0
         for item in classImplements[0]:
             if count>0:
                 parentClass+= ', '
-            parentClass+= item 
+            parentClass+= item
             count += 1
         print "parentClass:: " , parentClass
     S= "\n"+classAttrs +"class "+structName+''+parentClass+" {\n" + structCode + '};\n'
@@ -710,6 +710,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         structCode += indent + "public " + typeDefName +' ' + fieldName +"("+argListText+")"
     if inheritMode=='pure-virtual':
         structCode += ";\n"
+    elif inheritMode=='override': pass
     return [structCode, funcDefCode, globalFuncs]
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):

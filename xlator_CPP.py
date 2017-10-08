@@ -796,6 +796,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         elif inheritMode=='pure-virtual':
             print "PARMS: ", "'"+str(fieldName)+"'",  "'"+str(typeDefName)+"'", "'"+str(argListText)+"'"
             structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
+        elif inheritMode=='override': pass
         else: cdErr("Invalid inherit mode found: "+inheritMode)
         if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
     return [structCode, funcDefCode, globalFuncs]

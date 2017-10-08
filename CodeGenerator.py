@@ -764,7 +764,7 @@ def codeActionSeq(curlyBrackets, actSeq, indent, objsRefed, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText=''
-    if curlyBrackets: actSeqText += '{'
+    if curlyBrackets: actSeqText += '{\n'
     for action in actSeq:
         actionText = codeAction(action, indent + '    ', objsRefed, xlator)
         actSeqText += actionText
