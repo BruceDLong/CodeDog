@@ -927,13 +927,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 classRelationData = progSpec.classHeirarchyInfo[currentObjName]
                 print "FUNCTYPE:", currentObjName, fieldName, classRelationData
                 # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
-                if classRelationData['parentClass']==None:
-                    if len(classRelationData['childClasses'])>0:
-                        inheritMode = 'virtual'
-                else: # There is a parent class; is this function in it?
-                    print "PARENTCLASS:", fieldName, classRelationData['parentClass']
-                    if fieldAlreadyDeclaredInStruct(classes, classRelationData['parentClass'], fieldName):
-                        inheritMode = 'override'
+                if (not 'parentClass' in classRelationData or ('parentClass' in classRelationData and classRelationData['parentClass']==None)) and 'childClasses' in classRelationData and len(classRelationData['childClasses'])>0:
+                    inheritMode = 'virtual'
+                        if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
 
             abstractFunction = not('value' in field) or field['value']==None
             if abstractFunction: inheritMode = 'pure-virtual'

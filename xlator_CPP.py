@@ -511,18 +511,18 @@ def codeStructText(classAttrs, parentClass, classInherits, classImplements, stru
         parentClass = parentClass.replace('::', '_')
         parentClass=': public '+parentClass+' '
         print "Warning: old style inheritance used: " , parentClass
-    if classImplements!=None: 
+    if classImplements!=None:
         print "Error: Implements found for: " , parentClass
         exit(1)
-    if classInherits!=None: 
+    if classInherits!=None:
         parentClass=': public '
         count =0
         for item in classInherits[0]:
             if count>0:
                 parentClass+= ', '
-            parentClass+= item 
+            parentClass+= item
             count += 1
-        print "parentClass" , parentClass
+        #print "parentClass" , parentClass
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
     return([S,forwardDecls])
