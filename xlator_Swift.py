@@ -685,7 +685,8 @@ def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldVal
     return [defn, decl]
 
 def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
-    return "    init (" + constructorArgs+"){"+constructorInit+"\n    }\n    init ("+"){"+"\n    }\n"
+    #TODO: Swift should only have constructors if they are called somewhere.
+    return "" #    init (" + constructorArgs+"){"+constructorInit+"\n    }\n"
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):
@@ -707,13 +708,13 @@ def codeCopyConstructor(fieldName, convertedType, xlator):
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
-    if(className=='GLOBAL'):
-        if fieldName=='main':
-            structCode += '// M A I N ' + '\n'
-            localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
-            localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
+    if(className=='AppDelegate'):
+        if fieldName=='application':
+            structCode += '    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool '
+            localArgsAllocated.append(['application', {'owner':'me', 'fieldType':'UIApplication', 'arraySpec':None,'argList':None}])
+            localArgsAllocated.append(['launchOptions', {'owner':'their', 'fieldType':'int', 'arraySpec':None,'argList':None}])  # TODO: Wrong. launchOptions should be an array.
         else:
-            structCode +="public func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode +="func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
         funcAttrs=''
         if inheritMode=='override': funcAttrs='override '
@@ -759,11 +760,10 @@ def generateMainFunctionality(classes, tags):
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     mainFuncCode="""
-    me void: main() <- {
+    me void: runCode() <- {
         /-initialize()
         """ + runCode + """
         /-deinitialize()
-        /-endFunc()
     }
 
 """
