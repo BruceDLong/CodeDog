@@ -65,7 +65,7 @@ struct colorScheme{}
 struct fontSpec{}
 struct fontScheme{}
 
-struct App{
+struct APP{
  /-   me colorScheme: colors
  /-   me fontScheme: fonts
     me void: createAppMenu(me GUI_frame: frame) <- {}
@@ -93,10 +93,11 @@ struct decor{
 }
 
 struct arrow: inherits="decor"{
-    me int: startX
-    me int: startY
-    me int: endX
-    me int: endY
+    me double: startX
+    me double: startY
+    me double: endX
+    me double: endY
+    
     void: draw(me GUI_ctxt: cr) <- {
         me double: tipLength <- 10
         me double: tipAngle <- 0.35

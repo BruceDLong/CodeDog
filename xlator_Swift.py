@@ -54,7 +54,7 @@ def applyOwner(owner, langType, varMode):
         return ''
 
 def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
-    # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
+    fieldAttrs=''
     langType = adjustBaseTypes(fieldType)
     if varMode != 'alloc':
         fieldAttrs = applyOwner(owner, langType, varMode)
@@ -112,7 +112,7 @@ def recodeStringFunctions(name, typeSpec):
 def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
-    
+
 def chooseVirtualRValOwner(LVAL, RVAL):
     return ['','']
 
@@ -120,7 +120,7 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     return ['','',  '','']
 
 
-    
+
 def getTheDerefPtrMods(itemTypeSpec):
     return ['', '']
 
@@ -129,9 +129,9 @@ def derefPtr(varRef, itemTypeSpec):
 
 
 def getCodeAllocStr(varTypeStr, owner):
-    if(owner=='our'): S="make_shared<"+varTypeStr+">"
-    elif(owner=='my'): S="make_unique<"+varTypeStr+">"
-    elif(owner=='their'): S="new "+varTypeStr
+    if(owner=='our'): S=varTypeStr
+    elif(owner=='my'): S=varTypeStr
+    elif(owner=='their'): S=varTypeStr
     elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
     elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
     else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
@@ -387,7 +387,7 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
                 [S2, argType]=xlator['codeExpr'](P[0], objsRefed, xlator)
               #  print"codeSpecialFunc: ", S2
                # S2=derefPtr(S2, argType)
-                
+
                 if(argType=="string"):
                         S += S2
                 else:
@@ -459,19 +459,21 @@ def codeArgText(argFieldName, argType, xlator):
     return "_ " + argFieldName + ": " + argType
 
 def codeStructText(classAttrs, parentClass, classInherits, classImplements, structName, structCode):
+    tagAttrs=''
+    if classAttrs and classAttrs[0]=='@': tagAttrs=classAttrs+' '
     if parentClass != "":
-        parentClass=':'+parentClass+' '
-    if classImplements!=None: 
-        parentClass=' implements '
+        parentClass=': '+parentClass+' '
+    if classImplements!=None:
+        parentClass=': '
         count =0
         for item in classImplements[0]:
             if count>0:
                 parentClass+= ', '
-            parentClass+= item 
+            parentClass+= item
             count += 1
-    if classInherits!=None: 
-        parentClass=' extends ' + classInherits[0][0]
-    S= "\nclass "+structName+parentClass+"{\n" + structCode + '};\n'
+    if classInherits!=None:
+        parentClass=': ' + classInherits[0][0]
+    S= "\n"+tagAttrs+"class "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls=""
     return([S,forwardDecls])
 
@@ -523,6 +525,20 @@ struct GLOBAL{
     """ % (specialCode)
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
+def variableDefaultValueString(fieldType):
+    if (fieldType == "String"):
+        fieldValueText='""'
+    elif (fieldType.startswith("[")):
+        fieldValueText=convertedType + "()"
+    elif (fieldType == "Bool"):
+        fieldValueText='false'
+    elif (isNumericType(fieldType)):
+        fieldValueText='0'
+    elif (fieldType == "Character"):
+        fieldValueText='"\\0"'
+    else:
+        fieldValueText = fieldType +'()'
+    return fieldValueText
 
 def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, fieldAttrs, indent, objsRefed, xlator):
     varDeclareStr=''
@@ -546,7 +562,11 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, fieldAttrs, indent, o
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
-
+        else:
+            if progSpec.typeIsPointer(typeSpec):
+                assignValue = '?'
+            else:
+                assignValue = ' = '+variableDefaultValueString(fieldType)
     if (assignValue == ""):
         varDeclareStr= "var " + varName + ":"+ fieldType + " = " + fieldType + '()'
     else:
@@ -640,29 +660,19 @@ def isNumericType(convertedType):
 
 def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRefed, xlator):
     fieldValueText=""
-    if (fieldOwner=='me'):
-        if paramList!=None:
-            print "convertedType, paramList:", convertedType, paramList
-            [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
-            fieldValueText=" = new " + convertedType + CPL
+    if paramList!=None:
+        [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
+        fieldValueText=" = " + convertedType + CPL
+    else:
+        if fieldOwner=='me' or fieldOwner=='we':
+            fieldValueText = ' = '+variableDefaultValueString(convertedType)
         else:
-            if (convertedType == "String"):
-                fieldValueText=' = ""'
-            elif (convertedType.startswith("[")):
-                fieldValueText=" = " + convertedType + "()"
-            elif (convertedType == "Bool"):
-                fieldValueText=' = false'
-            elif (isNumericType(convertedType)):
-                fieldValueText=' = 0'
-            elif (convertedType == "Character"):
-                fieldValueText=' = "\0"'
-            else:
-                convertedType =' = ' + convertedType +'()'
+            fieldValueText = '?'  # Make it optional
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
     return indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
-    
+
 def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldValueText, className, tags, indent):
     #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
@@ -689,7 +699,7 @@ def codeConstructorInit(fieldName, count, defaultVal, xlator):
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
     if defaultVal == "NULL":
         defaultVal = "0"
-    return "arg_" + argFieldName  + ': ' +argType 
+    return "arg_" + argFieldName  + ': ' +argType
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
@@ -705,10 +715,12 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         else:
             structCode +="public func " + fieldName +"("+argListText+") -> " + typeDefName
     else:
+        funcAttrs=''
+        if inheritMode=='override': funcAttrs='override '
         if fieldName=="init":
-            structCode += indent + fieldName +"("+argListText+")"
+            structCode += indent + funcAttrs + fieldName +"("+argListText+")"
         else:
-            structCode += indent + "func " + fieldName +"("+argListText+") -> " + typeDefName
+            structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") -> " + typeDefName
     return [structCode, funcDefCode, globalFuncs]
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
@@ -733,7 +745,7 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
 
 def codeSwitchBreak(caseAction, indent, xlator):
     return indent+"    break;\n"
-    
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -767,7 +779,7 @@ def fetchXlators():
     xlators['fileExtension']         = ".swift"
     xlators['typeForCounterInt']     = "var"
     xlators['GlobalVarPrefix']       = ""
-    xlators['PtrConnector']          = "->"                      # Name segment connector for pointers.
+    xlators['PtrConnector']          = "."                      # Name segment connector for pointers.
     xlators['ObjConnector']          = "."                       # Name segment connector for classes.
     xlators['NameSegConnector']      = "."
     xlators['NameSegFuncConnector']  = "()."
