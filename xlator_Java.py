@@ -492,7 +492,7 @@ def codeStructText(classAttrs, parentClass, classInherits, classImplements, stru
         parentClass=' extends ' +parentClass 
     elif classInherits!=None: 
         parentClass=' extends ' + classInherits[0][0]
-        print "parentClass::: " , parentClass
+        #print "parentClass::: " , parentClass
     if classImplements!=None: 
         parentClass=' implements '
         count =0
@@ -501,7 +501,7 @@ def codeStructText(classAttrs, parentClass, classInherits, classImplements, stru
                 parentClass+= ', '
             parentClass+= item 
             count += 1
-        print "parentClass:: " , parentClass
+        #print "parentClass:: " , parentClass
     S= "\n"+classAttrs +"class "+structName+''+parentClass+" {\n" + structCode + '};\n'
     return([S,""])
 
@@ -672,7 +672,7 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     # TODO: make next line so it is not hard coded
-    if(className == 'GLOBAL' and Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager")):
+    if(Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI_ctxt" or convertedType == "GUI" or convertedType == "ourSubMenu" or convertedType == "HorizontalScrollView")):
         #print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
@@ -683,6 +683,8 @@ def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConst
     withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
     noArgConstructor = "    public "  + ClassName + "(){"+"};\n"
+    if (ClassName =="ourSubMenu" or ClassName =="GUI"):
+        return ""
     return withArgConstructor + copyConstructor + noArgConstructor
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
