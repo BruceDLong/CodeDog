@@ -65,14 +65,7 @@ struct colorScheme{}
 struct fontSpec{}
 struct fontScheme{}
 
-struct APP{
- /-   me colorScheme: colors
- /-   me fontScheme: fonts
-    me void: createAppMenu(me GUI_frame: frame) <- {}
-    me void: createToolBar(me GUI_frame: frame) <- {}
-    me void: createAppArea(me GUI_frame: frame) <- {}
-    me void: createStatusBar(me GUI_frame: frame) <- {}
-}
+
 
 /------------------------ Widgets and events
 
@@ -117,6 +110,13 @@ struct arrow: inherits='decor'{
         cr.closePath()
         cr.fillKeep()
         cr.strokeNow()
+    }
+
+    none: arrow(me int: StartX, me int: StartY, me int: EndX, me int: EndY) <- {
+        startX <- StartX
+        startY <- StartY
+        endX   <- EndX
+        endY   <- EndY
     }
 }
 
