@@ -197,10 +197,10 @@ def RunCodeDogPrg(testString):
     path = "xlatorTests"
     fileName = "testXlator.dog"
     writeFile(path, fileName, testString)
-    #programmatically run "codeDog " + name of saved file then run file capture output search for 3 strings
     runString ="codeDog " + fileName 
     workingDirectory = os.getcwd() + "/" + path
-    #print"workingDirectory *** runString: ", workingDirectory, " *** " ,runString
+    #print"    workingDirectory: ", workingDirectory
+    #print"    runString: " ,runString
     out, err = runCmd(workingDirectory, runString)
     return out, err
 
@@ -308,7 +308,7 @@ elif(xlatorName == "swing" or xlatorName == "java"):
     runSpec = "java GLOBAL"
     runDirectory = workingDirectory + "/SwingBuild"
 elif(xlatorName == "swift"):
-    buildSpec = "SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed';"
+    buildSpec = "iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';"
     runSpec = ".build/debug/testXlator"
     runDirectory = workingDirectory + "/SwiftBuild/testXlator"
 else:

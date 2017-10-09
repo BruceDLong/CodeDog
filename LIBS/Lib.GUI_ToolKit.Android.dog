@@ -26,7 +26,6 @@ LibDescription ={
 
 /-///////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me Rect: GUI_rect}
-struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me Object: GUI_item}
 struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
 struct GUI_menu{me ourSubMenu: GUI_menu}
@@ -150,8 +149,6 @@ struct GUI : inherits="LinearLayout"{
 struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
-    me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
     me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
@@ -360,6 +357,10 @@ struct APP: inherits="LinearLayout" {
         gui.layoutArea.addView(GLOBAL.static_Global.drawing_area);
         GLOBAL.static_Global.drawing_area.setLayoutParams(new LayoutParams(5000, 5000)); 
         frame.addView(scroller);
+    }%>
+    
+    me void: setWidgetSize(me CanvasView: myCanvas, me int: width, me int: height) <- <%{
+        myCanvas.setLayoutParams(new LayoutParams(width, height)); 
     }%>
     
     me void: createAppMenu(me LinearLayout: frame) <- <%{
