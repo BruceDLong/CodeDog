@@ -732,7 +732,7 @@ def codeAction(action, indent, objsRefed, xlator):
         cdlog(5, "Switch statement: switch({})".format(str(action['switchKey'])))
         [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], objsRefed, xlator)
         actionText += indent+"switch("+ switchKeyExpr + "){\n"
-        curlyBrackets = xlator['hasSwitchCurlyBrackets']
+        curlyBrackets = (xlator['hasSwitchCurlyBrackets']=='True')
         for sCases in action['switchCases']:
             for sCase in sCases[0]:
                 [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], objsRefed, xlator)
@@ -763,19 +763,12 @@ def codeAction(action, indent, objsRefed, xlator):
 def codeActionSeq(curlyBrackets, actSeq, indent, objsRefed, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
-    actSeqText = ""
-    if (curlyBrackets == "True"):
-        openCurly = "{\n"
-        closeCurly = indent + "}"
-    else:
-        openCurly = ""
-        closeCurly = ""
-
-    actSeqText = openCurly
+    actSeqText=''
+    if curlyBrackets: actSeqText += '{\n'
     for action in actSeq:
         actionText = codeAction(action, indent + '    ', objsRefed, xlator)
         actSeqText += actionText
-    actSeqText += closeCurly
+    if curlyBrackets: actSeqText += '}'
 
     actSeqText += "\n"
     localVarRecord=['','']
@@ -924,11 +917,15 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             #### FUNC HEADER: for both decl and defn.
             inheritMode='normal'
             if currentObjName in progSpec.classHeirarchyInfo:
-               # print "FUNCTYPE:", currentObjName
                 classRelationData = progSpec.classHeirarchyInfo[currentObjName]
                 # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
                 if (not 'parentClass' in classRelationData or ('parentClass' in classRelationData and classRelationData['parentClass']==None)) and 'childClasses' in classRelationData and len(classRelationData['childClasses'])>0:
                     inheritMode = 'virtual'
+                if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
+                    parentClassName = classRelationData['parentClass']
+                    #print "OVERRIDE:", fieldName, parentClassName
+                    if progSpec.fieldAlreadyDeclaredInStruct(classes[0], parentClassName, fieldName):
+                        inheritMode = 'override'
 
             abstractFunction = not('value' in field) or field['value']==None
             if abstractFunction: inheritMode = 'pure-virtual'
@@ -950,12 +947,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                         if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
-                    if(fieldName == "main" and xlator['hasMainCurlyBrackets']=="False"):
-                        curlyBrackets = xlator['hasMainCurlyBrackets']
-                    else:
-                        curlyBrackets = "True"
                     objsRefed2={}
-                    funcText =  codeActionSeq(curlyBrackets, field['value'][0], funcBodyIndent, objsRefed2, xlator)
+                    funcText =  codeActionSeq(True, field['value'][0], funcBodyIndent, objsRefed2, xlator)
                  #   print "Called by function " + fieldName +':'
                  #   for rec in sorted(objsRefed2):
                  #       print "     ", rec

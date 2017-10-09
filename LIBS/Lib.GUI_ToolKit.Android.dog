@@ -233,7 +233,7 @@ struct timeStringer{
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
     me APP: thisApp
-    void: setMasterWidget(their dashboard: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
+    void: setMasterWidget(their widget: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
     me SubMenu: parentMenu
     me AssetManager: assetManager
     me int: widgetHeight() <- <%!%G%1.getHeight()%>

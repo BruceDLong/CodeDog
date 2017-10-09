@@ -785,7 +785,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         else:
             globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
     else:
-        if inheritMode=='normal':
+        if inheritMode=='normal' or inheritMode=='override':
             structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
             objPrefix = progSpec.flattenObjectName(className) +'::'
             funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"

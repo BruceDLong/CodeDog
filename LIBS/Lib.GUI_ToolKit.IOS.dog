@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides=[GUI_ToolKit_implementation]
 /-    libFiles=[`pkg-config --cflags --libs gtk+-3.0`]
-    headers=[Foundation, UIKit]
+    headers=[UIKit]
 }
 
 LibDescription ={
@@ -18,12 +18,118 @@ LibDescription ={
     CPUs        =[i386, amd64, arm7]
 }
 
+/---------- Struct Converters
+/-///////////////////////////////  HANDLE GUI
+struct GUI{
+    me uint32: GUI_Init() <- {
+        return(0)
+    }
+    me uint32: GUI_Run() <- {
+        me uint32: status <- 0
+        return(status)
+    }
+    me void: GUI_Deinit() <- {
+    }
+}
+struct GUI_rect{me CGRect:GUI_rect}
+
+struct GUI{
+    me void: showWidget(me GUI_item: widget) <- <%!%1.isHidden=false%>
+    me GUI_item: newCanvas() <- <%!%GUIView()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
+    me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
+    me GUI_item: newScrollingWindow() <- <%!%Gscroller()%>
+    me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!%Ggtk_viewport_new(%1, %2)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
+    me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
+    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
+    me void: create_MenuItem()<- <%!%Gcreate_MenuItem(%1, %2)%>
+    me void: create_TopSubMenu()<- <%!%Gcreate_TopSubMenu(%1, %2)%>
+    me void: create_SubMenu()<- <%!%Gcreate_SubMenu(%1, %2)%>
+    me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
+    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
+}
+
+struct GUI_ctxt {
+    their CGContext:GUI_ctxt
+    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
+    me void: reset() <- <%!%G %>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
+    me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
+    me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
+    me void: setScale() <- <%!scaleBy(x:%1, y:%2)%>
+    me void: moveTo(me double: x, me double: y) <- <%!move(to:CGPoint(x:%1, y:%2))%>
+    me void: lineTo(me double: x, me double: y) <- <%!addLine(to:CGPoint(x:%1, y:%2))%>
+    me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(%0, %1, %2)%>
+    me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(%0, %1, %2)%>
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
+    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
+    me void: closePath() <- <%!closePath()%>
+    me void: rectangle() <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
+    me void: paintNow() <- <%!cairo_paint(%0)%>
+    me void: strokeNow() <- <%!strokePath()%>
+    me void: fillNow() <- <%!fillPath()%>
+    me void: strokeKeep() <- <%!strokePath()%>
+    me void: fillKeep() <- <%!fillPath()%>
+}
+
+struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIApplicationMain'{
+    their UIWindow: window
+
+    me bool: application(me UIApplication: application, their Any[list UIApplicationLaunchOptionsKey]:launchOptions) <- <%{
+        window = UIWindow.init(frame: UIScreen.main.bounds)
+        window?.backgroundColor = UIColor.blue
+
+        let mainViewController = UINavigationController()
+
+        let view = UIView(frame: CGRect(x:0, y:0, width:320, height:568))
+
+        let firstViewController = UIViewController()
+        firstViewController.view = view
+        firstViewController.title = "Home View!"
+        mainViewController.setToolbarHidden(false, animated: true)
+
+        let label = UILabel(frame: CGRect(x:0, y:0, width:200, height:21))
+        label.center = CGPoint(x:160, y:284)
+        label.textAlignment = NSTextAlignment.center
+        label.text = "I'am a test label"
+        firstViewController.view.addSubview(label)
+
+        mainViewController.pushViewController(firstViewController, animated: true)
+        window!.rootViewController = mainViewController
+        window!.makeKeyAndVisible()
+        return true
+    }%>
+
+    void: applicationWillResignActive(UIApplication: application) <- {
+        /- Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
+        /- Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+    }
+
+    void: applicationDidEnterBackground(UIApplication: application) <- {
+        /- Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
+        /- If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+    }
+
+    void: applicationWillEnterForeground(UIApplication: application) <- {
+        /- Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
+    }
+
+    void: applicationDidBecomeActive(UIApplication: application) <- {
+        /- Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+    }
+
+    void: applicationWillTerminate(UIApplication: application) <- {
+        /- Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+    }
+
+}
+
 struct APP {
-	me bool: application(me UIApplication: application, their any[map UIApplicationLaunchOptionsKey]: launchOptions) <- {
-		return(false)
-	}
+
 }
 struct GLOBAL{
-	me GUI: gui_tk
-	me APP: thisApp
+    me GUI: gui_tk
+    me APP: thisApp
 }
