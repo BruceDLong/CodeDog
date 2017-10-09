@@ -25,7 +25,7 @@ LibDescription ={
 }
 
 /-///////////////////////////////  STRUCT CONVERTERS
-struct GUI_rect{me Rect: GUI_rect}
+/-struct GUI_rect{me Rect: GUI_rect}
 struct GUI_item{me Object: GUI_item}
 struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
 struct GUI_menu{me ourSubMenu: GUI_menu}
@@ -173,13 +173,13 @@ struct GUI_ctxt: inherits="Canvas" {
     me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
 /-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 /-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    me void: closePath() <- <%!gr.path.close()%>
-    me void: rectangle() <- <%!%0.gr.Rect(%1, %2, %3, %4)%>
-/-    me void: paintNow() <- <%!gr.fill(cr.GPath)%>
+    me void: closePath() <- <%!GPath.close()%>
+    me void: rectangle() <- <%!%0.GUI_rect(Rect(%1, %2, %3, %4))%>
+/-    me void: paintNow() <- <%!fill(cr.GPath)%>
     me void: strokeNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: fillNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
-/-    me void: strokeKeep() <- <%!gr.draw(cr.GPath)%>
-    me void: fillKeep() <- <%!gr.fill(cr.GPath)%>
+/-    me void: strokeKeep() <- <%!draw(cr.GPath)%>
+    me void: fillKeep() <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
 /-    me void: renderFrame() <- <%!repaint()%>
 }
 
