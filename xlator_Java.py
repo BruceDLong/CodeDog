@@ -789,8 +789,7 @@ def fetchXlators():
     xlators['funcBodyIndent']        = "    "
     xlators['funcsDefInClass']       = "True"
     xlators['MakeConstructors']      = "True"
-    xlators['hasMainCurlyBrackets']  = "True"
-    xlators['hasSwitchCurlyBrackets']= "True"
+    xlators['blockPrefix']           = ""
     xlators['usePrefixOnStatics']    = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional

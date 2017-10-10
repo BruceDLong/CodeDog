@@ -32,6 +32,7 @@ struct GUI{
     }
 }
 struct GUI_rect{me CGRect:GUI_rect}
+struct GUI_frame{their UIView:GUI_frame}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!%1.isHidden=false%>
@@ -83,18 +84,14 @@ struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIAp
 
         let mainViewController = UINavigationController()
 
-        let view = UIView(frame: CGRect(x:0, y:0, width:320, height:568))
+        let mainView = UIView(frame: CGRect(x:0, y:0, width:320, height:568))
 
         let firstViewController = UIViewController()
-        firstViewController.view = view
+        firstViewController.view = mainView
         firstViewController.title = "Home View!"
         mainViewController.setToolbarHidden(false, animated: true)
 
-        let label = UILabel(frame: CGRect(x:0, y:0, width:200, height:21))
-        label.center = CGPoint(x:160, y:284)
-        label.textAlignment = NSTextAlignment.center
-        label.text = "I'am a test label"
-        firstViewController.view.addSubview(label)
+        thisApp.createAppArea(mainView)
 
         mainViewController.pushViewController(firstViewController, animated: true)
         window!.rootViewController = mainViewController

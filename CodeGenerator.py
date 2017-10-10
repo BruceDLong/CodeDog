@@ -327,6 +327,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         [CPL, paramTypeList] = codeParameterList(name, paramList, modelParams, objsRefed, xlator)
         S+= CPL
     if(typeSpecOut==None): cdlog(logLvl(), "Type for {} was not found.".format(name))
+
     if ("<MODENAME>" in S):
         S=S.replace("<MODENAME>", ".get(")
         S=S.replace("<MODENAMEend>", ")")
@@ -429,6 +430,11 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             S=segStr.replace("%0", S)
             S=S[len(connector):]
         else: S+=segStr
+
+
+
+        print "SEGMENT TYPE:", segType
+        if segType!= 0 and progSpec.typeIsPointer(segType): S+='!'  # optionals
 
         objsRefed[canonicalName]=0
         previousSegName = segName
@@ -548,7 +554,7 @@ def encodeConditionalStatement(action, indent, objsRefed, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq("True", elseAction, indent, objsRefed, xlator)
+            elseText = codeActionSeq(elseAction, indent, objsRefed, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -647,7 +653,7 @@ def codeAction(action, indent, objsRefed, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq("True", elseAction, indent, objsRefed, xlator)
+                elseText = codeActionSeq(elseAction, indent, objsRefed, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -732,18 +738,19 @@ def codeAction(action, indent, objsRefed, xlator):
         cdlog(5, "Switch statement: switch({})".format(str(action['switchKey'])))
         [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], objsRefed, xlator)
         actionText += indent+"switch("+ switchKeyExpr + "){\n"
-        curlyBrackets = (xlator['hasSwitchCurlyBrackets']=='True')
+        blockPrefix = xlator['blockPrefix']
         for sCases in action['switchCases']:
             for sCase in sCases[0]:
                 [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], objsRefed, xlator)
                 actionText += indent+"    case "+caseKeyValue+": "
                 caseAction = sCases[1]
-                actionText += codeActionSeq(curlyBrackets, caseAction, indent+'    ', objsRefed, xlator)
+                actionText += blockPrefix + codeActionSeq(caseAction, indent+'    ', objsRefed, xlator)
                 actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
             actionText+=indent+"default: "
-            actionText += codeActionSeq(curlyBrackets, defaultCase, indent, objsRefed, xlator)
+            actionText += codeActionSeq(defaultCase, indent, objsRefed, xlator)
+        else: actionText+=indent+"default: break;\n"
         actionText += indent + "}\n"
     elif (typeOfAction =='actionSeq'):
         cdlog(5, "Action Sequence")
@@ -753,24 +760,23 @@ def codeAction(action, indent, objsRefed, xlator):
             actionListOut = codeAction(action, indent + "    ", objsRefed, xlator)
             actionListText += actionListOut
         #print "actionSeq: ", actionListText
-        actionText += indent + "{\n" + actionListText + indent + '}\n'
+        blockPrefix = xlator['blockPrefix']
+        actionText += indent + blockPrefix + "{\n" + actionListText + indent + '}\n'
     else:
         print "error in codeAction: ", action
         exit(2)
  #   print "actionText", actionText
     return actionText
 
-def codeActionSeq(curlyBrackets, actSeq, indent, objsRefed, xlator):
+def codeActionSeq(actSeq, indent, objsRefed, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText=''
-    if curlyBrackets: actSeqText += '{\n'
+    actSeqText += '{\n'
     for action in actSeq:
         actionText = codeAction(action, indent + '    ', objsRefed, xlator)
         actSeqText += actionText
-    if curlyBrackets: actSeqText += '}'
-
-    actSeqText += "\n"
+    actSeqText += '}\n'
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
@@ -903,6 +909,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     count+=1
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
+                    if progSpec.typeIsPointer(argTypeSpec): arg
                     [argType, innerType] = xlator['convertType'](classes, argTypeSpec, 'arg', xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
@@ -948,7 +955,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
                     objsRefed2={}
-                    funcText =  codeActionSeq(True, field['value'][0], funcBodyIndent, objsRefed2, xlator)
+                    funcText =  codeActionSeq(field['value'][0], funcBodyIndent, objsRefed2, xlator)
                  #   print "Called by function " + fieldName +':'
                  #   for rec in sorted(objsRefed2):
                  #       print "     ", rec
