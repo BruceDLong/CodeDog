@@ -252,12 +252,12 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.flagDef):
         cdlog(3,"FLAG: {}".format(fieldResult))
         if(arraySpec): cdErr("Lists of flags are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(False, owner, 'flag', arraySpec, fieldName, None, paramList, givenValue)
+        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.modeDef):
         cdlog(3,"MODE: {}".format(fieldResult))
         modeList=fieldResult.modeList
         if(arraySpec): cdErr("Lists of modes are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(False, owner, 'mode', arraySpec, fieldName, None, paramList, givenValue)
+        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, fieldName, None, paramList, givenValue)
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
@@ -266,18 +266,18 @@ def packFieldDef(fieldResult, className, indent):
             if(len(fieldResult)>3 and fieldResult[3]!=''):
                 fieldName=fieldResult[3]
         givenValue=fieldResult.constStr[1:-1]
-        fieldDef=progSpec.packField(True, 'const', 'string', arraySpec, fieldName, None, paramList, givenValue)
+        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.constNum):
         cdlog(3,"CONST Num: {}".format(fieldResult))
         if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
-        fieldDef=progSpec.packField(True, 'const', 'int', arraySpec, fieldName, None, paramList, givenValue)
+        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, fieldName, None, paramList, givenValue)
     elif(fieldResult.nameVal):
         cdlog(3,"NameAndVal: {}".format(fieldResult))
-        fieldDef=progSpec.packField(None, None, None, arraySpec, fieldName, argList, paramList, givenValue)
+        fieldDef=progSpec.packField(className, None, None, None, arraySpec, fieldName, argList, paramList, givenValue)
     elif(fieldResult.fullFieldDef):
         fieldTypeStr=str(fieldType)[:50]
         cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, fieldName])))
-        fieldDef=progSpec.packField(isNext, owner, fieldType, arraySpec, fieldName, argList, paramList, givenValue)
+        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, fieldName, argList, paramList, givenValue)
     else:
         cdErr("Error in packing FieldDefs: {}".format(fieldResult))
         exit(1)

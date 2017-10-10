@@ -1163,7 +1163,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 # First, create a new flag field
                 if fieldName==None: fieldName="TEMP"
                 newFieldsName=fieldName   #'has_'+fieldName
-                fieldDef=progSpec.packField(False, 'me', 'flag', None, newFieldsName, None, None, None)
+                fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, newFieldsName, None, None, None)
                 progSpec.addField(classes[0], memVersionName, 'struct', fieldDef)
 
                 # Second, generate the code to set the flag
