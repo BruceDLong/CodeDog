@@ -285,6 +285,7 @@ def codeFactor(item, objsRefed, xlator):
             S+='(' + S2 +')'
         elif item0=='!':
             [S2, retType] = codeExpr(item[1], objsRefed, xlator)
+            if progSpec.fieldsTypeCategory(retType)!='bool': S2='('+S2+' != nil)'
             S+='!' + S2
         elif item0=='-':
             [S2, retType] = codeExpr(item[1], objsRefed, xlator)
@@ -419,6 +420,15 @@ def codeExpr(item, objsRefed, xlator):
     return [S, retType]
 
 def adjustConditional(S2, conditionType):
+    if conditionType!=None and not isinstance(conditionType, basestring):
+        #print "ADJUST IF:", S2, conditionType
+        if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):
+            if S2[-1]=='!': S2=S2[:-1]
+            S2+=" != null"
+        elif conditionType['owner']=='me' and (conditionType['fieldType']=='flag' or progSpec.typeIsInteger(conditionType['fieldType'])):
+            if S2[-1]=='!': S2=S2[:-1]
+            S2+=" != 0"
+        conditionType='bool'
     return [S2, conditionType]
 
 def codeSpecialFunc(segSpec, objsRefed, xlator):
@@ -615,7 +625,7 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
     if(traversalMode=='Forward' or traversalMode==None):
         S = indent + "for "+ repName+' in '+ S_low + "...Int(" + S_hi + ") {\n"
     elif(traversalMode=='Backward'):
-        S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+        S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; "+ repName + "-=1){\n"
     return (S)
 
 def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
@@ -651,23 +661,23 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     containedType=containerType['fieldType']
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if datastructID=='multimap' or datastructID=='map':
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.key')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+        ctrlVarsTypeSpec['codeConverter'] = (repName+'.value')
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for " + repName+' in '+ repContainer + " {\n")
 
     elif datastructID=='list' or (datastructID=='list' and not willBeModifiedDuringTraversal):
         loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        keyVarSpec = {'owner':'me', 'fieldType':'Int'}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for " + repName+' in '+ repContainer + " {\n")
     elif datastructID=='list' and willBeModifiedDuringTraversal:
         loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        keyVarSpec = {'owner':'me', 'fieldType':'Int'}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
@@ -702,8 +712,6 @@ def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRe
     else:
         if fieldOwner=='me' or fieldOwner=='we':
             fieldValueText = ' = '+variableDefaultValueString(convertedType)
-       # else:
-       #     fieldValueText = '?RUBY'  # Make it optionals
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
@@ -713,7 +721,7 @@ def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldVal
     #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
-        defn = indent + fieldAttrs + " var "+ fieldName + ": " +  intermediateType  +  fieldValueText + '\n'
+        defn = indent + "public static var "+ fieldName + ": " +  intermediateType  +  fieldValueText + '\n'
         decl = ''
     else:
         fieldTypeMod=''
@@ -763,6 +771,17 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
         else:
             structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + returnType
     return [structCode, funcDefCode, globalFuncs]
+
+def extraCodeForTopOfFuntion(argList):
+    if len(argList)==0:
+        topCode=''
+    else:
+        topCode=""
+        for arg in argList:
+            argTypeSpec =arg['typeSpec']
+            argFieldName=arg['fieldName']
+            topCode+= 'var '+argFieldName+' = '+argFieldName+'\n'
+    return topCode
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if (containerType == "string"):
@@ -864,6 +883,7 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['extraCodeForTopOfFuntion']     = extraCodeForTopOfFuntion
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality

@@ -1309,7 +1309,7 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     }
     me int: makeInt(our stateRec: SRec) <- {
         me string: S <- makeStr(SRec)
-        me int: N <- toString(S)
+        me int: N <- stoi(S)
         return(N)
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(NULL) }

@@ -804,6 +804,9 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
     return [structCode, funcDefCode, globalFuncs]
 
+def extraCodeForTopOfFuntion(argList):
+    return ''
+
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     S= '[' + idx +']'
     return S
@@ -893,6 +896,7 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['extraCodeForTopOfFuntion']     = extraCodeForTopOfFuntion
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality

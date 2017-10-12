@@ -528,7 +528,8 @@ def innerTypeCategory(fieldType):
 
 def fieldsTypeCategory(typeSpec):
     if 'argList' in typeSpec and typeSpec['argList']!=None: return 'func'
-    fieldType=typeSpec['fieldType']
+    if isinstance(typeSpec, basestring): fieldType=typeSpec
+    else: fieldType=typeSpec['fieldType']
     return innerTypeCategory(fieldType)
 
 def flattenObjectName(objName):

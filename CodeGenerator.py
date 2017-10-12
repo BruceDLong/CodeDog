@@ -452,7 +452,8 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             prefix = staticVarNamePrefix(segName+"Mask", xlator)
             bitfieldMask  =xlator['applyTypecast']('uint64', prefix+segName+"Mask")
             bitfieldOffset=xlator['applyTypecast']('uint64', prefix+segName+"Offset")
-            S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+")"
+            S="(" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset
+            S=xlator['applyTypecast']('int', S)
 
     return [S, segType, LHSParentType, AltFormat]
 
@@ -941,6 +942,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if abstractFunction: # i.e., if no function body is given.
                 cdlog(5, "Function "+className+":::"+fieldName+" has no implementation defined.")
             else:
+                extraCodeForTopOfFuntion = xlator['extraCodeForTopOfFuntion'](argList)
                 verbatimText=field['value'][1]
                 if (verbatimText!=''):                                      # This function body is 'verbatim'.
                     if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
@@ -955,6 +957,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 elif field['value'][0]!='':
                     objsRefed2={}
                     funcText =  codeActionSeq(field['value'][0], funcBodyIndent, objsRefed2, xlator)
+                    if extraCodeForTopOfFuntion!='':
+                        funcText = '{\n' + extraCodeForTopOfFuntion + funcText[1:]
                  #   print "Called by function " + fieldName +':'
                  #   for rec in sorted(objsRefed2):
                  #       print "     ", rec

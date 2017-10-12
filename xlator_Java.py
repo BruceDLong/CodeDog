@@ -717,6 +717,9 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     elif inheritMode=='override': pass
     return [structCode, funcDefCode, globalFuncs]
 
+def extraCodeForTopOfFuntion(argList):
+    return ''
+
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
         item = LHS_Left+"flags"
@@ -829,6 +832,7 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['extraCodeForTopOfFuntion']     = extraCodeForTopOfFuntion
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality
