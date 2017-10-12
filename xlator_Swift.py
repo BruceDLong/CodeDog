@@ -53,7 +53,7 @@ def applyOwner(owner, langType, varMode):
         langType = ''
     return langType
 
-def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
+def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
     fieldAttrs=''
     langType = adjustBaseTypes(fieldType)
     if varMode != 'alloc':
@@ -78,7 +78,9 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
             if varMode != 'alloc':
                 fieldAttrs=applyOwner(containerOwner, langType, varMode)
 
-    if progSpec.typeIsPointer(TypeSpec): langType+='?'    # Make pointer func args optionals
+    if varMode != 'alloc' and progSpec.typeIsPointer(TypeSpec):
+        langType+='?'    # Make pointer func args optionals
+
     return [langType, fieldAttrs]   # E.g.: langType='uint', file
 
 def convertType(classes, TypeSpec, varMode, xlator):
@@ -112,6 +114,10 @@ def recodeStringFunctions(name, typeSpec):
 
 def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
+    return S
+
+def LanguageSpecificDecorations(S, segType, owner):
+    if segType!= 0 and progSpec.typeIsPointer(segType) and owner!='itr' and S!='NULL': S+='!'  # optionals
     return S
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -162,6 +168,7 @@ def getTheDerefPtrMods(itemTypeSpec):
     return ['', '']
 
 def derefPtr(varRef, itemTypeSpec):
+    if varRef=='NULL': return varRef
     [leftMod, rightMod] = getTheDerefPtrMods(itemTypeSpec)
     return leftMod + varRef + rightMod
 
@@ -196,6 +203,7 @@ def getEnumStr(fieldName, enumList):
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
     convertedIdxType = ""
+    typeSpecOut={'owner':'me', 'fieldType': 'Void'}
     if containerType=='list':
         if name=='size'       : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'Void'}
@@ -373,6 +381,7 @@ def codeIsEQ(item, objsRefed, xlator):
             rightOwner=progSpec.getTypeSpecOwner(retType)
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
                 if (S2!='nil' ): S=S_derefd
+                elif S[-1]=='!': S=S[:-1]   # Todo: Better detect this
                 S2=derefPtr(S2, retType)
             S+= op+S2
             retType='bool'
@@ -429,7 +438,8 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
         elif(funcName=='AllocateOrClear'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
             if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
-            S+='if('+varName+'){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
+            if(varName[-1]=='!'): varNameUnRefed=varName[:-1]  # Remove a reference. I would be better to do this in codeExpr but may take some work.
+            S+='if('+varNameUnRefed+' != nil){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
 
@@ -569,11 +579,10 @@ def variableDefaultValueString(fieldType):
         fieldValueText = fieldType +'()'
     return fieldValueText
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, fieldAttrs, indent, objsRefed, xlator):
-    varDeclareStr=''
+def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
     assignValue=''
-    fieldTypeMod=''
- #   if progSpec.typeIsPointer(typeSpec): fieldTypeMod += '?BERRY'  # Make pointer vars optionals
+    [fieldType, fieldAttrs]           = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
+    [allocFieldType, allocFieldAttrs] = xlator['convertType'](globalClassStore, typeSpec, 'alloc', xlator)
     if(fieldDef['value']):
         [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, xlator)
         [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
@@ -594,11 +603,11 @@ def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, fieldAttrs, indent, o
                 if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
         else:
-            assignValue = ' = '+variableDefaultValueString(fieldType)
+            assignValue = ' = '+variableDefaultValueString(allocFieldType)
     if (assignValue == ""):
-        varDeclareStr= "var " + varName + ":"+ fieldType + fieldTypeMod + " = " + fieldType + '()'
+        varDeclareStr= "var " + varName + ": "+ fieldType + " = " + allocFieldType + '()'
     else:
-        varDeclareStr= "var " + varName + ":"+ fieldType + fieldTypeMod + assignValue
+        varDeclareStr= "var " + varName + ": "+ fieldType + assignValue
 
     return(varDeclareStr)
 
@@ -693,8 +702,8 @@ def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRe
     else:
         if fieldOwner=='me' or fieldOwner=='we':
             fieldValueText = ' = '+variableDefaultValueString(convertedType)
-        else:
-            fieldValueText = '?'  # Make it optionals
+       # else:
+       #     fieldValueText = '?RUBY'  # Make it optionals
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
@@ -778,6 +787,10 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
 def codeSwitchBreak(caseAction, indent, xlator):
     return indent+"    break;\n"
 
+def applyTypecast(typeInCodeDog, itemToAlterType):
+    platformType = adjustBaseTypes(typeInCodeDog)
+    return platformType+'('+itemToAlterType+')';
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -828,11 +841,13 @@ def fetchXlators():
     xlators['produceTypeDefs']              = produceTypeDefs
     xlators['addSpecialCode']               = addSpecialCode
     xlators['convertType']                  = convertType
+    xlators['applyTypecast']                = applyTypecast
     xlators['codeIteratorOperation']        = codeIteratorOperation
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
     xlators['recodeStringFunctions']        = recodeStringFunctions
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
+    xlators['LanguageSpecificDecorations']  = LanguageSpecificDecorations
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
     xlators['codeSpecialFunc']              = codeSpecialFunc

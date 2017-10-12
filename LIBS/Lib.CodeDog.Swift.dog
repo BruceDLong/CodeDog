@@ -33,7 +33,7 @@ struct GLOBAL{
 
     me void: endFunc(me int: val) <- <%!return(0)%>
     me int: randInt(me int: val) <- <%!(rand() % %1)%>
-    me string: toString(me int: val) <- <%!Int(%1)%>
+    me string: toString(me int: val) <- <%!String(%1)%>
     /-///////////////////////////////////////////////////
 
 

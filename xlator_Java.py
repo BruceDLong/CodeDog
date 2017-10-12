@@ -149,6 +149,9 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
+def LanguageSpecificDecorations(S, connector, segStr, segType, owner):
+    return [S, connector]
+
 
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
@@ -525,7 +528,8 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, objsRefed, xlator):
+def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
+    [fieldType, fieldAttrs] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
     if isinstance(typeSpec['fieldType'], basestring) and typeSpec['arraySpec'] == None:
         if(fieldDef['value']):
             [S2, rhsType]=codeExpr(fieldDef['value'][0], objsRefed, xlator)
@@ -733,6 +737,10 @@ def codeSwitchBreak(caseAction, indent, xlator):
         return ''
 
 
+def applyTypecast(typeInCodeDog, itemToAlterType):
+    platformType = adjustBaseTypes(typeInCodeDog)
+    return '('+platformType+')'+itemToAlterType;
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -798,11 +806,13 @@ def fetchXlators():
     xlators['produceTypeDefs']              = produceTypeDefs
     xlators['addSpecialCode']               = addSpecialCode
     xlators['convertType']                  = convertType
+    xlators['applyTypecast']                = applyTypecast
     xlators['codeIteratorOperation']        = codeIteratorOperation
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
     xlators['recodeStringFunctions']        = recodeStringFunctions
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
+    xlators['LanguageSpecificDecorations']  = LanguageSpecificDecorations
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
     xlators['codeSpecialFunc']              = codeSpecialFunc

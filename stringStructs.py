@@ -1259,10 +1259,10 @@ def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
 def writeParserWrapperFunction(classes, className):
     S='''
 struct GLOBAL{
-    our <CLASSNAME>: Parse_<CLASSNAME>(me string: in) <- {
+    our <CLASSNAME>: Parse_<CLASSNAME>(me string: textIn) <- {
         me EParser: parser
         parser.populateGrammar()
-        parser.initPosStateSets(parser.<CLASSNAME>_str, in)
+        parser.initPosStateSets(parser.<CLASSNAME>_str, textIn)
         parser.doParse()
         if (parser.doesParseHaveError()) {
             print("Parse Error:" + parser.errorMesg + "\\n")
@@ -1309,7 +1309,7 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     }
     me int: makeInt(our stateRec: SRec) <- {
         me string: S <- makeStr(SRec)
-        me int: N <- stoi(S)
+        me int: N <- toString(S)
         return(N)
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(NULL) }

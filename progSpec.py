@@ -413,6 +413,10 @@ def typeIsPointer(typeSpec):
     else: isPointer=False
     return isPointer
 
+def fieldIsFunction(typeSpec):
+    if 'argList' in typeSpec and typeSpec['argList']!=None: return True
+    return False
+
 def isWrappedType(objMap, structname):
     if not structname in objMap[0]:
         #print "Struct "+structname+" not found"

@@ -424,17 +424,15 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             connector=''
 
         # Should this be called C style?
-        thisArgIDX=segStr.find("%0")
-        if(thisArgIDX >= 0):
+        if(segStr.find("%0") >= 0):
             if connector=='->' and owner!='itr': S="*("+S+")"
             S=segStr.replace("%0", S)
             S=S[len(connector):]
         else: S+=segStr
 
 
-
-        print "SEGMENT TYPE:", segType
-        if segType!= 0 and progSpec.typeIsPointer(segType): S+='!'  # optionals
+        # Language specific dereferencing of ->[...], etc.
+        S = xlator['LanguageSpecificDecorations'](S, segType, owner)
 
         objsRefed[canonicalName]=0
         previousSegName = segName
@@ -447,11 +445,14 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
         if fieldType=='flag':
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName, xlator)
-            S='(' + S[0:prevLen] + connector + 'flags & ' + prefix+segName + ')' # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
+            bitfieldMask=xlator['applyTypecast']('uint64', prefix+segName)
+            S='(' + S[0:prevLen] + connector + 'flags & ' + bitfieldMask + ')' # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
         elif fieldType=='mode':
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName+"Mask", xlator)
-            S="((" + S[0:prevLen] + connector +  "flags&"+prefix+segName+"Mask)"+">>"+prefix+segName+"Offset)"
+            bitfieldMask  =xlator['applyTypecast']('uint64', prefix+segName+"Mask")
+            bitfieldOffset=xlator['applyTypecast']('uint64', prefix+segName+"Offset")
+            S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+")"
 
     return [S, segType, LHSParentType, AltFormat]
 
@@ -570,10 +571,8 @@ def codeAction(action, indent, objsRefed, xlator):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
-        cdlog(5, "New Var: {}: ".format(varName))
-        [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
         cdlog(5, "Action newVar: {}".format(varName))
-        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, indent, objsRefed, xlator)
+        varDeclareStr = xlator['codeNewVarStr'](globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator)
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
@@ -749,7 +748,7 @@ def codeAction(action, indent, objsRefed, xlator):
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
             actionText+=indent+"default: "
-            actionText += codeActionSeq(defaultCase, indent, objsRefed, xlator)
+            actionText += blockPrefix + codeActionSeq(defaultCase, indent, objsRefed, xlator)
         else: actionText+=indent+"default: break;\n"
         actionText += indent + "}\n"
     elif (typeOfAction =='actionSeq'):

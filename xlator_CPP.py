@@ -115,6 +115,10 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
+def LanguageSpecificDecorations(S, segType, owner):
+        return S
+
+
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
     RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
@@ -625,7 +629,7 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, objsRefed, xlator):
+def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
     #TODO: make test case
     varDeclareStr=''
     assignValue=''
@@ -812,6 +816,11 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
 
 def codeSwitchBreak(caseAction, indent, xlator):
     return indent+"    break;\n"
+
+def applyTypecast(typeInCodeDog, itemToAlterType):
+    platformType = adjustBaseTypes(typeInCodeDog)
+    return '('+platformType+')'+itemToAlterType;
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -861,11 +870,13 @@ def fetchXlators():
     xlators['produceTypeDefs']              = produceTypeDefs
     xlators['addSpecialCode']               = addSpecialCode
     xlators['convertType']                  = convertType
+    xlators['applyTypecast']                = applyTypecast
     xlators['codeIteratorOperation']        = codeIteratorOperation
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
     xlators['recodeStringFunctions']        = recodeStringFunctions
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
+    xlators['LanguageSpecificDecorations']  = LanguageSpecificDecorations
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
     xlators['codeSpecialFunc']              = codeSpecialFunc
