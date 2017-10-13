@@ -27,8 +27,16 @@ struct stream{
 }
 
 struct GLOBAL{
+    me bool: isalpha(me char: ch)<- <%{
+        switch ch {
+            case "a"..."z": return true
+            case "A"..."Z": return true
+            default: return false
+        }
+    }%>
+
     me bool: isspace(me char: ch)<- <%{
-    return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
+        return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
     }%>
 
     me void: endFunc(me int: val) <- <%!return(0)%>

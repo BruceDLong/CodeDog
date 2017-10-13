@@ -104,7 +104,7 @@ def staticVarNamePrefix(staticVarName, xlator):
     if staticVarName in StaticMemberVars:
         crntBaseName = progSpec.baseStructName(currentObjName)
         refedClass=progSpec.baseStructName(StaticMemberVars[staticVarName])
-        if(crntBaseName != refedClass):
+        if(crntBaseName != refedClass or xlator['LanguageName']=='Swift'):   #TODO Make this part of xlators
             return refedClass + xlator['ObjConnector']
     return ''
 
@@ -128,6 +128,9 @@ def fetchItemsTypeSpec(itemName, xlator):
             if (REF):
                 RefType="OBJVAR"
                 if(currentObjName=='GLOBAL'): RefType="GLOBAL"
+                if xlator['LanguageName']=='Swift':  #TODO Make this part of xlators
+                    RefOwner = progSpec.getTypeSpecOwner(REF['typeSpec'])
+                    if RefOwner=='we': RefType = "STATIC:" + currentObjName + xlator['ObjConnector']
             else:
                 REF=CheckObjectVars("GLOBAL", itemName)
                 if (REF):
@@ -288,7 +291,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             return [S, '', None, '']
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name, xlator)
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
-        if(SRC[:6]=='STATIC'): namePrefix = SRC[7:]
+        if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
         fType=progSpec.fieldTypeKeyword(typeSpecIn['fieldType'])
         if(name=='allocate'):
@@ -733,7 +736,10 @@ def codeAction(action, indent, objsRefed, xlator):
             print "\nERROR: It is not allowed to name a function", calledFunc[0][0]
             exit(2)
         cdlog(5, "Function Call: {}()".format(str(calledFunc[0][0])))
-        actionText = indent + codeFuncCall(calledFunc, objsRefed, xlator) + ';\n'
+        funcCallText = codeFuncCall(calledFunc, objsRefed, xlator)
+        funcCallTextStriped = funcCallText.strip()
+        if (funcCallTextStriped!=''):
+            actionText = indent + funcCallText + ';\n'
     elif (typeOfAction == 'switchStmt'):
         cdlog(5, "Switch statement: switch({})".format(str(action['switchKey'])))
         [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], objsRefed, xlator)

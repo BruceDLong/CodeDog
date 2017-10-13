@@ -129,7 +129,7 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner!='itr' and RightOwner=='itr': return ["", ".value"]
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ['', '!']
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ['!', '']
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ['', '']
     #if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
 
@@ -203,10 +203,10 @@ def getEnumStr(fieldName, enumList):
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
     convertedIdxType = ""
-    typeSpecOut={'owner':'me', 'fieldType': 'Void'}
+    typeSpecOut={'owner':'me', 'fieldType': 'void'}
     if containerType=='list':
-        if name=='size'       : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
-        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'Void'}
+        if name=='size'       : name='count'; typeSpecOut={'owner':'me', 'fieldType': 'Int'}; paramList=None;
+        elif name=='clear'    : name='removeAll'
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
@@ -227,9 +227,9 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         else: convertedIdxType=idxType
         [convertedItmType, fieldAttrs]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='containsKey': name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
-        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        elif name=='size'     : name='count'; typeSpecOut={'owner':'me', 'fieldType': 'Int'}; paramList=None;
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
-        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'Void'}
+        elif name=='clear'    : name='removeAll'
         elif name=='find'     : name='find';     typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
@@ -245,9 +245,9 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
         [convertedItmType, fieldAttrs]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
-        if name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
+        if name=='size'       : name='count'; typeSpecOut={'owner':'me', 'fieldType': 'Int'}; paramList=None;
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
-        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='clear'    : name='removeAll'
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
@@ -258,12 +258,12 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='popLast'  : name='pop_back'
         else: print "xlator_Swift.getContainerTypeInfo Unknown multimap command:", name; exit(2);
     elif containerType=='tree': # TODO: Make trees work
-        if name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
+        if name=='size' : name='count'; typeSpecOut={'owner':'me', 'fieldType': 'Int'}; paramList=None;
+        elif name=='clear': name='removeAll'
         else: print "xlator_Swift.getContainerTypeInfo Unknown tree command:", name; exit(2)
     elif containerType=='graph': # TODO: Make graphs work
-        if name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'Uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'Void'}
+        if name=='size' : name='count'; typeSpecOut={'owner':'me', 'fieldType': 'Int'}; paramList=None;
+        elif name=='clear': name='removeAll'
         else: print "xlator_Swift.getContainerTypeInfo Unknown graph command:", name; exit(2);
     elif containerType=='stream': # TODO: Make stream work
         pass
@@ -283,10 +283,10 @@ def codeFactor(item, objsRefed, xlator):
         if item0=='(':
             [S2, retType] = codeExpr(item[1], objsRefed, xlator)
             S+='(' + S2 +')'
-        elif item0=='!':
+        elif item0=='!':  # 'not' operator?
             [S2, retType] = codeExpr(item[1], objsRefed, xlator)
             if progSpec.fieldsTypeCategory(retType)!='bool': S2='('+S2+' != nil)'
-            S+='!' + S2
+            S+='!' + S2  # add 'not' operator
         elif item0=='-':
             [S2, retType] = codeExpr(item[1], objsRefed, xlator)
             S+='-' + S2
@@ -423,10 +423,10 @@ def adjustConditional(S2, conditionType):
     if conditionType!=None and not isinstance(conditionType, basestring):
         #print "ADJUST IF:", S2, conditionType
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):
-            if S2[-1]=='!': S2=S2[:-1]
-            S2+=" != null"
+            if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
+            S2+=" != nil"
         elif conditionType['owner']=='me' and (conditionType['fieldType']=='flag' or progSpec.typeIsInteger(conditionType['fieldType'])):
-            if S2[-1]=='!': S2=S2[:-1]
+            if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
             S2+=" != 0"
         conditionType='bool'
     return [S2, conditionType]
@@ -449,6 +449,7 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
             if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
             if(varName[-1]=='!'): varNameUnRefed=varName[:-1]  # Remove a reference. I would be better to do this in codeExpr but may take some work.
+            else: varNameUnRefed=varName
             S+='if('+varNameUnRefed+' != nil){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
@@ -693,10 +694,10 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     return [actionText, loopCounterName]
 
 def codeIncrement(varName):
-    return varName + "+=1"
+    return varName + " += 1"
 
 def codeDecrement(varName):
-    return varName + "-=1"
+    return varName + " -= 1"
 
 def isNumericType(convertedType):
     if(convertedType == "UInt32" or convertedType == "UInt64" or convertedType == "Float" or convertedType == "Int" or convertedType == "Int32" or convertedType == "Int64" or convertedType == "Double"):
@@ -795,7 +796,7 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
         item = LHS_Left+"flags"
         mask = prefix+bitMask
         if (RHS != 'true' and RHS !='false'):
-            RHS += '!=0'
+            RHS += ' != 0'
         val = '('+ RHS +') ? '+mask+':0'
     elif (LHS_FieldType =='mode' ):
         item = LHS_Left+"flags"
