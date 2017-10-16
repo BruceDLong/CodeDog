@@ -207,9 +207,7 @@ struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me GUI_item: newCanvas() <- <%!%Gnew JavaGUI_ctxt()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setPreferredSize(new Dimension(%2, %3))%>
-    me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
     me GUI_item: newScrollingWindow() <- <%!%Gnew JScrollPane()%>
-    me GUI_item: newViewport(me GUI_offset: H_Offset, me GUI_offset: V_Offset) <- <%!gtk_viewport_new(%1, %2)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.add(%2)%>
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.setViewportView(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%1.setJMenuBar(%2)%>

@@ -96,9 +96,11 @@ def processParentClass(name, parentClass):
 
 # returns an identifier for functions that accounts for class and argument types
 def fieldIdentifierString(className, packedField):
-    fieldID=className+'::'+packedField['fieldName']
+    fieldName = packedField['fieldName']
+    if fieldName == None: fieldName =""
+    fieldID=className+'::'+fieldName
     if 'typeSpec' in packedField: typeSpec=packedField['typeSpec']
-    if 'argList' in typeSpec:
+    if 'argList' in typeSpec and typeSpec['argList'] :
         argList = typeSpec['argList']
         fieldID+='('
         count=0
@@ -167,13 +169,15 @@ def appendToFuncsCalled(funcName,funcParams):
     funcsCalled[funcName].append([funcParams, MarkItems])
 
 
-def packField(thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, paramList, thisValue):
+def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, paramList, thisValue):
     codeConverter=None
     packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec,'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList,  'value':thisValue}
     if( thisValue!=None and (not isinstance(thisValue, basestring)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
         # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
         codeConverter = thisValue[1][1:]
         packedField['typeSpec']['codeConverter']=codeConverter
+    fieldID = fieldIdentifierString(className, packedField)
+    packedField['fieldID']=fieldID
     return packedField
 
 def addDependancyToStruct(structName, nameOfDependancy):
@@ -196,18 +200,50 @@ def getClassesDependancies(className):
     if className in DependanciesMarked:   retList.extend(DependanciesMarked[className])
     return retList
 
+def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
+    structSpec=findSpecOf(classes, structName, 'struct')
+    if structSpec==None: 
+        return False;
+    if structSpec['vFields']!=None: 
+        for field in structSpec['vFields']:
+            if fieldID == field['fieldID']:
+                return True
+
+    classInherits = searchATagStore(structSpec['tags'], 'inherits')
+    if classInherits!=None:
+        for classParent in classInherits:
+            if fieldIDAlreadyDeclaredInStruct(classes, classParent, fieldID):
+                return True
+    
+    classImplements = searchATagStore(structSpec['tags'], 'implements')
+    if classImplements!=None:
+        for classParent in classImplements:
+            if fieldIDAlreadyDeclaredInStruct(classes, classParent, fieldID):
+                return True
+
+    modelSpec=findSpecOf(classes, structName, 'model')
+    if(modelSpec!=None):
+        if fieldDefIsInList(modelSpec["fields"], fieldID): 
+            return True
+
+    if(structSpec!=None):
+        if fieldDefIsInList(structSpec["fields"], fieldID):
+            return True
+    return False
+  
 def addField(objSpecs, className, stateType, packedField):
     global MarkItems
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
     thisName=packedField['fieldName']
+    fieldID = packedField['fieldID']
     if stateType=='model': taggedObjectName='%'+className
     elif stateType=='string': taggedObjectName='$'+className
     else: taggedObjectName = className
     #print "ADDING FIELD:", taggedObjectName, stateType, thisName
-    if thisName in objSpecs[taggedObjectName]["fields"]:
-        cdlog(2, "Note: The field '" + taggedObjectName + '::' + thisName + "' already exists. Not re-adding")
+    if fieldIDAlreadyDeclaredInStruct(objSpecs, className, fieldID):
+        cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
         return
 
     # Don't override flags and modes in derived classes
@@ -315,7 +351,7 @@ def removeFieldFromObject (classes, className, fieldtoRemove):
 def insertOrReplaceField(fieldListToUpdate, field):
     idx=0
     for F in fieldListToUpdate:
-        if field['fieldName']==F['fieldName']:
+        if field['fieldID']==F['fieldID']:
             fieldListToUpdate[idx]=field
             return
         idx+=1

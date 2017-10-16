@@ -12,7 +12,7 @@ interface={
         android.os.Bundle,
         android.util.Log,
         android.content.res.AssetManager, android.content.Context,
-        android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory]
+        android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.graphics.Rect ]
 }
 
 LibDescription ={
@@ -25,8 +25,7 @@ LibDescription ={
 }
 
 /-///////////////////////////////  STRUCT CONVERTERS
-struct GUI_rect{me Rect: GUI_rect}
-struct GUI_offset{their GtkAdjustment:GUI_offset}
+/-struct GUI_rect{me Rect: GUI_rect}
 struct GUI_item{me Object: GUI_item}
 struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
 struct GUI_menu{me ourSubMenu: GUI_menu}
@@ -47,7 +46,7 @@ struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct CanvasView: inherits="View" {
     me GUI_ctxt: cr
 
-    me none: CanvasView() <- {super(GLOBAL.static_Global)}
+    me none: CanvasView() <- <%{super(GLOBAL.static_Global);}%>
     me void: onDraw(me Canvas: canvas) <- <%{
         super.onDraw(canvas);
         cr = new GUI_ctxt(canvas);
@@ -95,13 +94,15 @@ struct CanvasView: inherits="View" {
 
 
 /-///////////////////////////////  HANDLE GUI
-struct GUI {
+struct GUI : inherits="LinearLayout"{
     me LinearLayout:: frame(GLOBAL.static_Global)
     me LinearLayout:: layoutArea(GLOBAL.static_Global)
     me ScrollView: vScroller
     me HorizontalScrollView: hScroller
+    
+    me none: GUI() <- <%{super(GLOBAL.static_Global);}%>
 
-    me ScrollView: newScrollingWindow(me Long: A, me Long:B) <- <%{
+    me ScrollView: newScrollingWindow() <- <%{
         ScrollView vScroller = new ScrollView(GLOBAL.static_Global);
         HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
         vScroller.addView(hScroller);
@@ -111,7 +112,13 @@ struct GUI {
         return(vScroller);
     }%>
 
-    me none: GUI() <- {super(GLOBAL.static_Global)}
+    me void: GUI_PopulateAndExec() <- <% {
+        LinearLayout frame = new LinearLayout(GLOBAL.static_Global);
+        frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
+/-        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
+/-        GLOBAL.static_Global.setContentView(frame);
+        GLOBAL.static_Global.thisApp.createAppArea(frame);
+    } %>
 
     me uint32: GUI_Init() <- <%{return(0);}%>
 
@@ -121,13 +128,6 @@ struct GUI {
         return(status);
     } %>
 
-    me void: GUI_PopulateAndExec() <- <% {
-        LinearLayout frame = new LinearLayout(GLOBAL.static_Global);
-        frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
-/-        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
-        GLOBAL.static_Global.setContentView(frame);
-        GLOBAL.static_Global.thisApp.createAppArea(frame);
-    } %>
 
     me void: GUI_Deinit() <- {
 
@@ -149,8 +149,6 @@ struct GUI {
 struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
-    me GUI_offset: newGUI_offset(me double: value, me double: upper, me double: lower, me double: step_increment, me double: page_increment, me double: page_size) <- <%!gtk_adjustment_new(%1, %2, %3, %4, %5, %6)%>
     me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
     me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
@@ -175,13 +173,13 @@ struct GUI_ctxt: inherits="Canvas" {
     me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
 /-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 /-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    me void: closePath() <- <%!path.close()%>
-    me void: rectangle() <- <%!%0.gr.Rect(%1, %2, %3, %4)%>
-/-    me void: paintNow() <- <%!gr.fill(cr.GPath)%>
+    me void: closePath() <- <%!GPath.close()%>
+    me void: rectangle() <- <%!%0.GUI_rect(Rect(%1, %2, %3, %4))%>
+/-    me void: paintNow() <- <%!fill(cr.GPath)%>
     me void: strokeNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: fillNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
-/-    me void: strokeKeep() <- <%!gr.draw(cr.GPath)%>
-    me void: fillKeep() <- <%!gr.fill(cr.GPath)%>
+/-    me void: strokeKeep() <- <%!draw(cr.GPath)%>
+    me void: fillKeep() <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
 /-    me void: renderFrame() <- <%!repaint()%>
 }
 
@@ -346,12 +344,32 @@ struct GLOBAL{
     }
 }
 
-struct APP {
+struct APP: inherits="LinearLayout" {
     me LinearLayout: thisFrame
     me GUI: gui
-    me Menu: androidMenu
-    me none: APP() <- {super(GLOBAL.static_Global)}
     me ourSubMenu:: menubar("menubar")
+    
+    me none: APP() <- <%{super(GLOBAL.static_Global);}%>
+    
+    me void: createAppArea(me LinearLayout: frame) <- <%{
+	GLOBAL.static_Global.drawing_area = new CanvasView();
+        ScrollView scroller = gui.newScrollingWindow();
+        gui.layoutArea.addView(GLOBAL.static_Global.drawing_area);
+        GLOBAL.static_Global.drawing_area.setLayoutParams(new LayoutParams(5000, 5000)); 
+        frame.addView(scroller);
+    }%>
+    
+    me void: setWidgetSize(me CanvasView: myCanvas, me int: width, me int: height) <- <%{
+        myCanvas.setLayoutParams(new LayoutParams(width, height)); 
+    }%>
+    
+    me void: createAppMenu(me LinearLayout: frame) <- <%{
+        ourSubMenu menubar = new ourSubMenu();
+        ourSubMenu MenuLvl1 = new ourSubMenu();
+        MenuLvl1 = gui.create_TopSubMenu(menubar, "Foo");
+        gui.create_MenuItem(MenuLvl1, "Bar");
+    } %>
+
 }
 
 struct ourSubMenu{
