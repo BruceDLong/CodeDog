@@ -56,7 +56,7 @@ struct production{
     mode[parseSEQ, parseALT, parseREP, parseOPT, parseAUTO]: prodType
     me string: constStr
     me int[list]: items
-    void: print(me int: SeqPos, me int: originPos, me string[their list]: rnames) <- {
+    void: printProd(me int: SeqPos, me int: originPos, me string[their list]: rnames) <- {
         me int: ProdType <- prodType
         me string: ProdStr <- ""
         print("[")
@@ -100,10 +100,10 @@ struct stateRec{
     me pedigree[list]: pedigrees
     our stateRec: next
     our stateRec: child
-    /-void: print(their production: prod) <- {prod.print(SeqPosition, originPos)}
-    void: print(their EParser: EP) <- {
+    /-void: print(their production: prod) <- {prod.printProd(SeqPosition, originPos)}
+    void: printSREC(their EParser: EP) <- {
         their production: prod <- EP.grammar[productionID]
-        prod.print(SeqPosition, originPos, EP.rnames)}
+        prod.printProd(SeqPosition, originPos, EP.rnames)}
 }
 struct stateRecPtr{our stateRec: stateRecPtr}
 
@@ -525,7 +525,7 @@ struct EParser{
                 me bool  : isTerminal <- (prod.isTerm != 0)
                 me int: seqPos <- SRec.SeqPosition
      /-           print('    PROCESSING-RECORD #%i`SRec_key`:')
-    /-            SRec.print(this)
+    /-            SRec.printSREC(this)
                 if(ruleIsDone(isTerminal, seqPos, ProdType, prod.items.size())){             /- COMPLETER
                     complete(SRec, crntPos)  /- Notate that SEQ is finished, actually add parent's follower.
                 }else{
@@ -596,7 +596,7 @@ struct EParser{
         me int: ProdType <- 0
         me int: isTerminal<- 0
         me int: seqPos<- 0
-      /-  lastSRec.print(this) print("\n----\n")
+      /-  lastSRec.printSREC(this) print("\n----\n")
 
         withEach SRec in lastSSet.stateRecs:{
             lastSRec <- SRec
@@ -608,10 +608,10 @@ struct EParser{
  /-               print("Passed\n")  /- !!!!!!!!!!!!!!!!!!! This tells when the parse passes.
                 return(false)
             }
-            /-SRec.print(this)
+            /-SRec.printSREC(this)
         }
 
-        /-lastSRec.print(this) print("\n----\n", seqPos)
+        /-lastSRec.printSREC(this) print("\n----\n", seqPos)
         if(isTerminal!=0){
             if(seqPos==0){
                 errorMesg <- "Expected '" + prod.constStr + "'"
@@ -636,7 +636,7 @@ struct EParser{
         me int: seqPos <- crntRec.SeqPosition
         me int: prodID <- crntRec.productionID
         their production: Prod <- grammar[prodID]
- /-       print(indent+'grammar[%i`prodID`] = ')  crntRec.print(this)  print("\n", indent, "\n")
+ /-       print(indent+'grammar[%i`prodID`] = ')  crntRec.printSREC(this)  print("\n", indent, "\n")
         if(Prod.isTerm){
         } else if(seqPos>0){
             withEach subItem in Backward RANGE(0 .. seqPos):{
@@ -656,7 +656,7 @@ struct EParser{
     void: docPos(me int: indent, our stateRec: SRec, me string: tag) <- {
         withEach i in RANGE(0 .. indent):{ print("|    ")}
         if(SRec){
-            SRec.print(this)
+            SRec.printSREC(this)
         } else {print(" NULL ")}
         print("  \t", tag, "\n")
     }
@@ -670,7 +670,7 @@ struct EParser{
             }
             print("'\n")
         } else {
-           /- print(indent) SRec.print(this) print("\n")
+           /- print(indent) SRec.printSREC(this) print("\n")
             if(SRec.child){
                 displayParse(SRec.child, indent+"   | ")
             }

@@ -298,7 +298,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif(name[0]=='[' and fType=='string'):
-            typeSpecOut={'owner':owner, 'fieldType': fType}
+            typeSpecOut={'owner':owner, 'fieldType': 'char'}
             [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, xlator)
             S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, previousSegName)
             return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
@@ -449,7 +449,8 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName, xlator)
             bitfieldMask=xlator['applyTypecast']('uint64', prefix+segName)
-            S='(' + S[0:prevLen] + connector + 'flags & ' + bitfieldMask + ')' # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
+            flagReadCode = S[0:prevLen] + connector + 'flags & ' + bitfieldMask
+            S=xlator['applyTypecast']('int', flagReadCode) # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
         elif fieldType=='mode':
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName+"Mask", xlator)
@@ -626,6 +627,7 @@ def codeAction(action, indent, objsRefed, xlator):
                     if actionText != '': actionText = indent+actionText
                 if actionText=="":
                     # Handle the normal assignment case
+                    if RHS=='nil' and LHS[-1]=='!': LHS=LHS[:-1]  # Move to swift xlator
                     actionText = indent + LHS + " = " + RHS + ";\n"
         else:
             if(assignTag=='deep'):
@@ -936,7 +938,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     inheritMode = 'virtual'
                 if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
                     parentClassName = classRelationData['parentClass']
-                    #print "OVERRIDE:", fieldName, parentClassName
                     if progSpec.fieldAlreadyDeclaredInStruct(classes[0], parentClassName, fieldName):
                         inheritMode = 'override'
 

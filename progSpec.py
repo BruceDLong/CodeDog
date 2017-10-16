@@ -369,13 +369,25 @@ def generateListOfFieldsToImplement(classes, structName):
 def fieldDefIsInList(fList, fieldName):
     for field in fList:
         if 'fieldName' in field and field['fieldName']==fieldName:
-            return True
+            if 'typeSpec' in field and field['typeSpec']!=None: typeSpec=field['typeSpec']
+            else: typeSpec=None
+
+            fieldIsAFunction = fieldIsFunction(typeSpec)
+            if not fieldIsAFunction: return True
+            if fieldIsAFunction and 'value' in field and field['value']!=None:       # AND, the function is defined
+                return True
+
     return False
 
 def fieldAlreadyDeclaredInStruct(classes, structName, fieldName):  # e.g. 'type::subType::subType2'
     structSpec=findSpecOf(classes, structName, 'struct')
     if structSpec==None: return False;
-    if structSpec['vFields']!=None: return (fieldName in structSpec['vFields'])
+    if structSpec['vFields']!=None:
+        for record in structSpec['vFields']:
+            #if 'fieldName' in record: print "     FOUND:", structName+'::'+fieldName, '\t\t   recFound:', record['fieldName']
+            if 'fieldName' in record and record['fieldName']==fieldName:
+                return True
+        return False
 
     classInherits = searchATagStore(structSpec['tags'], 'inherits')
     if classInherits!=None:
@@ -414,6 +426,7 @@ def typeIsPointer(typeSpec):
     return isPointer
 
 def fieldIsFunction(typeSpec):
+    if typeSpec==None: return False
     if 'argList' in typeSpec and typeSpec['argList']!=None: return True
     return False
 
@@ -526,11 +539,14 @@ def innerTypeCategory(fieldType):
     if isStruct(fieldType): return 'struct'
     return 'ERROR'
 
-def fieldsTypeCategory(typeSpec):
-    if 'argList' in typeSpec and typeSpec['argList']!=None: return 'func'
+def varsTypeCategory(typeSpec):
     if isinstance(typeSpec, basestring): fieldType=typeSpec
     else: fieldType=typeSpec['fieldType']
     return innerTypeCategory(fieldType)
+
+def fieldsTypeCategory(typeSpec):
+    if 'argList' in typeSpec and typeSpec['argList']!=None: return 'func'
+    return varsTypeCategory(typeSpec)
 
 def flattenObjectName(objName):
     return objName.replace('::', '_')

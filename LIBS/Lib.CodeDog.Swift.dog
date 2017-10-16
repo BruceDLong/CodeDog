@@ -39,6 +39,19 @@ struct GLOBAL{
         return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
     }%>
 
+    me bool: isdigit(me char: ch)<- <%{
+        return ch >= "0" && ch <= "9"
+    }%>
+
+    me bool: isalnum(me char: ch)<- <%{
+        switch ch {
+            case "a"..."z": return true
+            case "A"..."Z": return true
+            case "0"..."9": return true
+            default: return false
+        }
+    }%>
+
     me void: endFunc(me int: val) <- <%!return(0)%>
     me int: randInt(me int: val) <- <%!(rand() % %1)%>
     me string: toString(me int: val) <- <%!String(%1)%>

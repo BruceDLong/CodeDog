@@ -100,7 +100,7 @@ def convertType(classes, TypeSpec, varMode, xlator):
 def codeIteratorOperation(itrCommand):
     result = ''
     if itrCommand=='goNext':  result='%0.next()'
-    elif itrCommand=='goPrev':result='$0.Swift ERROR!'
+    elif itrCommand=='goPrev':result='%0.Swift ERROR!'
     elif itrCommand=='key':   result='%0.getKey()'
     elif itrCommand=='val':   result='%0.getValue()'
     return result
@@ -108,7 +108,9 @@ def codeIteratorOperation(itrCommand):
 
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "characters.count"
-    elif name == "subStr": name = "substr"
+    elif name == "subStr":
+        typeSpec['codeConverter']='substring(from:%1, to:%2)'
+    #elif name == "append": name='append'
 
     return [name, typeSpec]
 
@@ -117,7 +119,8 @@ def langStringFormatterCommand(fmtStr, argStr):
     return S
 
 def LanguageSpecificDecorations(S, segType, owner):
-    if segType!= 0 and progSpec.typeIsPointer(segType) and owner!='itr' and S!='NULL': S+='!'  # optionals
+    if segType!= 0 and progSpec.typeIsPointer(segType) and owner!='itr' and S!='NULL' and S[-1]!=']':
+        S+='!'  # optionals
     return S
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -128,7 +131,7 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner!='itr' and RightOwner=='itr': return ["", ".value"]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ['', '!']
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ['', '']
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ['', '']
     #if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
@@ -141,15 +144,15 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):
-        if assignTag=='deep' :return ['','!',  '','!']
+        if assignTag=='deep' :return ['','',  '','']
         else: return ['','',  '', '']
     if LeftOwner == RightOwner: return ['','',  '','']
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
         [leftMod, rightMod] = getTheDerefPtrMods(RVAL)
         return ['','',  leftMod, rightMod]  # ['', '', "(*", ")"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
-        if assignTag=='deep' :return ['','!',  '', '']
-        else: return ['','',  "&", '']
+        if assignTag=='deep' :return ['','',  '', '']
+        else: return ['','',  "", '']
 
     #if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
 
@@ -285,7 +288,10 @@ def codeFactor(item, objsRefed, xlator):
             S+='(' + S2 +')'
         elif item0=='!':  # 'not' operator?
             [S2, retType] = codeExpr(item[1], objsRefed, xlator)
-            if progSpec.fieldsTypeCategory(retType)!='bool': S2='('+S2+' != nil)'
+            if progSpec.varsTypeCategory(retType) != 'bool':
+                if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
+                S2='('+S2+' != nil)'
+                retType='bool'
             S+='!' + S2  # add 'not' operator
         elif item0=='-':
             [S2, retType] = codeExpr(item[1], objsRefed, xlator)
@@ -342,6 +348,8 @@ def codePlus(item, objsRefed, xlator):
             else: print "ERROR: '+' or '-' expected in code generator."; exit(2)
             [S2, retType2] = codeTerm(i[1], objsRefed, xlator)
             S2=derefPtr(S2, retType2)
+            if i[0]=='+' and 'fieldType' in retType2 and retType2['fieldType']=='char': S2='String('+S2+')'
+            #print "SUMMANDS:", S, S2, "\n     ", retType, "\n\n     ", retType2, "\n"
             S+=S2
     return [S, retType]
 
@@ -537,18 +545,34 @@ def produceTypeDefs(typeDefMap, xlator):
     return typeDefCode
 
 def addSpecialCode(filename):
-    S='\n\n//////////// Swing specific code:\n'
-    #S += "\n\nusing namespace std;\n\n"
-    #S += 'const string filename = "' + filename + '";\n'
-    #S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
+    S='\n\n//////////// SWIFT specific code:\n'
+    S+="""
+extension String {
+    func index(from: Int) -> Index {
+        return self.index(startIndex, offsetBy: from)
+    }
 
-    #S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
-    #S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
+    func substring(from: Int) -> String {
+        return String(self[index(from: from)...])
+    }
 
-    #string getFilesDirAsString(){}
-    #bool doesFileExist(string filePath){}
-    #void copyAssetToWritableFolder(string fromPath, string toPath){}
+    func substring(to: Int) -> String {
+        return String(self[..<index(from: to)])
+    }
 
+    func substring(from: Int, to:Int) -> String {
+        return String(self[index(from: from)..<index(from: to)])
+    }
+
+    func substring(from: Int, length:Int) -> String {
+        return String(self[index(from: from)..<index(from: length+from)])
+    }
+
+    func getChar(at: Int) -> Character {
+        return Character(self.substring(from: at, length:1))
+    }
+}
+    """
 
     decl ="string readFileAsString(string filename)"
     defn="""{
@@ -660,23 +684,28 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     actionText = ""
     loopCounterName = ""
     containedType=containerType['fieldType']
-    ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+
     if datastructID=='multimap' or datastructID=='map':
+        ctrlVarsTypeSpec = {'owner':'me', 'fieldType':containedType}
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.key')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.value')
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for " + repName+' in '+ repContainer + " {\n")
+        #print "MAKING MAP LOOP:", repContainer, repName, containerType
 
     elif datastructID=='list' or (datastructID=='list' and not willBeModifiedDuringTraversal):
+        ctrlVarsTypeSpec = {'owner':'me', 'fieldType':containedType}
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':'me', 'fieldType':'Int'}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for " + repName+' in '+ repContainer + " {\n")
+        #print "MAKING LIST LOOP:", repContainer, repName, containerType
     elif datastructID=='list' and willBeModifiedDuringTraversal:
+        ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':'me', 'fieldType':'Int'}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
@@ -684,7 +713,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         lvName=repName+"Itr"
        # [containerType, containedType] = convertType(classes, ctrlVarsTypeSpec, 'var', xlator)
-        print "MAKING LOOP:", lvName, repContainer, repName, containerType, repContainer
+        #print "MAKING LOOP:", lvName, repContainer, repName, containerType, repContainer
         actionText += ( indent + "for " + lvName + " in 0..<" +  repContainer+".count {\n"
                     + indent+"    var "+repName + ':' + containerType + " = "+repContainer+"["+lvName+"];\n")
     else:
@@ -786,7 +815,7 @@ def extraCodeForTopOfFuntion(argList):
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if (containerType == "string"):
-        S= '[' + previousSegName+ ".index(" + previousSegName + ".startIndex, offsetBy: " + idx +')]'
+        S= '.getChar(at:'+idx+')'
     else:
         S= '[' + idx +']'
     return S
