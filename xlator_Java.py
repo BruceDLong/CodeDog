@@ -149,8 +149,8 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(S, connector, segStr, segType, owner):
-    return [S, connector]
+def LanguageSpecificDecorations(S, segType, owner):
+        return S
 
 
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
@@ -496,7 +496,7 @@ def codeStructText(classAttrs, parentClass, classInherits, classImplements, stru
     elif classInherits!=None:
         parentClass=' extends ' + classInherits[0][0]
         #print "parentClass::: " , parentClass
-    if classImplements!=None: 
+    if classImplements!=None:
         parentClass=' implements '
         count =0
         for item in classImplements[0]:
@@ -743,8 +743,7 @@ def codeSwitchBreak(caseAction, indent, xlator):
 
 
 def applyTypecast(typeInCodeDog, itemToAlterType):
-    platformType = adjustBaseTypes(typeInCodeDog)
-    return '('+platformType+')'+itemToAlterType;
+    return '('+itemToAlterType+')'
 
 #######################################################
 

@@ -631,6 +631,7 @@ struct GLOBAL{
 
 def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
     #TODO: make test case
+    [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):

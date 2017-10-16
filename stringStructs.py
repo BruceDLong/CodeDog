@@ -153,7 +153,7 @@ struct EParser{
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
                 print("    ")
-                SRec.print(this)
+                SRec.printSREC(this)
                 print("\n")
             }
         }
