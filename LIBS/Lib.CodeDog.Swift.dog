@@ -52,6 +52,10 @@ struct GLOBAL{
         }
     }%>
 
+    me bool: isprint(me char: ch)<- <%{
+        return ch > "\u{1f}" && ch != "\u{7f}"
+    }%>
+
     me void: endFunc(me int: val) <- <%!return(0)%>
     me int: randInt(me int: val) <- <%!(rand() % %1)%>
     me string: toString(me int: val) <- <%!String(%1)%>

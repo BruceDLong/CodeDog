@@ -50,7 +50,7 @@ struct dashboard: inherits = 'widget'{
         PDF.finishPDF()*/
     }
 
-    me bool: secondaryClick(their GUI_PointerEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
+    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
 
     void: update() <- {
     }

@@ -202,9 +202,9 @@ def getClassesDependancies(className):
 
 def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
     structSpec=findSpecOf(classes, structName, 'struct')
-    if structSpec==None: 
+    if structSpec==None:
         return False;
-    if structSpec['vFields']!=None: 
+    if structSpec['vFields']!=None:
         for field in structSpec['vFields']:
             if fieldID == field['fieldID']:
                 return True
@@ -214,7 +214,7 @@ def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
         for classParent in classInherits:
             if fieldIDAlreadyDeclaredInStruct(classes, classParent, fieldID):
                 return True
-    
+
     classImplements = searchATagStore(structSpec['tags'], 'implements')
     if classImplements!=None:
         for classParent in classImplements:
@@ -223,14 +223,14 @@ def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
 
     modelSpec=findSpecOf(classes, structName, 'model')
     if(modelSpec!=None):
-        if fieldDefIsInList(modelSpec["fields"], fieldID): 
+        if fieldDefIsInList(modelSpec["fields"], fieldID):
             return True
 
     if(structSpec!=None):
         if fieldDefIsInList(structSpec["fields"], fieldID):
             return True
     return False
-  
+
 def addField(objSpecs, className, stateType, packedField):
     global MarkItems
     global MarkedObjects
@@ -241,7 +241,7 @@ def addField(objSpecs, className, stateType, packedField):
     if stateType=='model': taggedObjectName='%'+className
     elif stateType=='string': taggedObjectName='$'+className
     else: taggedObjectName = className
-    #print "ADDING FIELD:", taggedObjectName, stateType, thisName
+    #print "ADDING FIELD:", taggedObjectName, stateType, fieldID
     if fieldIDAlreadyDeclaredInStruct(objSpecs, className, fieldID):
         cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
         return
@@ -250,7 +250,7 @@ def addField(objSpecs, className, stateType, packedField):
     typeSpec = packedField['typeSpec']
     fieldType = typeSpec['fieldType']
     if fieldType=='flag' or fieldType=='mode':
-        if fieldAlreadyDeclaredInStruct(objSpecs, className, thisName):
+        if fieldIDAlreadyDeclaredInStruct(objSpecs, className, fieldID):
             return
 
     objSpecs[taggedObjectName]["fields"].append(packedField)
@@ -265,14 +265,14 @@ def addField(objSpecs, className, stateType, packedField):
 
     if MarkItems:
         if not (taggedObjectName in MarkedObjects):
-            MarkedFields.append([taggedObjectName, thisName])
+            MarkedFields.append([taggedObjectName, fieldID])
 
     if 'optionalTags' in packedField:
         for tag in packedField['optionalTags']:
             if tag[:7]=='COMMAND':
                 newCommand = packedField['optionalTags'][tag]
                 commandArg = tag[8:]
-                addModifierCommand(objSpecs, taggedObjectName, thisName, commandArg, newCommand)
+                addModifierCommand(objSpecs, taggedObjectName, fieldID, commandArg, newCommand)
 
 def markStructAuto(objSpecs, className):
     objSpecs[className]["autoGen"]='yes'
@@ -415,35 +415,6 @@ def fieldDefIsInList(fList, fieldName):
 
     return False
 
-def fieldAlreadyDeclaredInStruct(classes, structName, fieldName):  # e.g. 'type::subType::subType2'
-    structSpec=findSpecOf(classes, structName, 'struct')
-    if structSpec==None: return False;
-    if structSpec['vFields']!=None:
-        for record in structSpec['vFields']:
-            #if 'fieldName' in record: print "     FOUND:", structName+'::'+fieldName, '\t\t   recFound:', record['fieldName']
-            if 'fieldName' in record and record['fieldName']==fieldName:
-                return True
-        return False
-
-    classInherits = searchATagStore(structSpec['tags'], 'inherits')
-    if classInherits!=None:
-        for classParent in classInherits:
-            if fieldAlreadyDeclaredInStruct(classes, classParent, fieldName):
-                return True
-    classInherits = searchATagStore(structSpec['tags'], 'implements')
-    if classInherits!=None:
-        for classParent in classInherits:
-            if fieldAlreadyDeclaredInStruct(classes, classParent, fieldName):
-                return True
-
-    modelSpec=findSpecOf(classes, structName, 'model')
-    if(modelSpec!=None):
-        if fieldDefIsInList(modelSpec["fields"], fieldName): return True
-    modelSpec=findSpecOf(classes, structName, 'struct')
-    if(modelSpec!=None):
-        if fieldDefIsInList(modelSpec["fields"], fieldName): return True
-
-    return False
 
 ###############  Various type-handling functions
 

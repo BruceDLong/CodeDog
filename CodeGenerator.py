@@ -627,7 +627,7 @@ def codeAction(action, indent, objsRefed, xlator):
                     if actionText != '': actionText = indent+actionText
                 if actionText=="":
                     # Handle the normal assignment case
-                    if RHS=='nil' and LHS[-1]=='!': LHS=LHS[:-1]  # Move to swift xlator
+                    if RHS=='nil' and LHS[-1]=='!': LHS=LHS[:-1]  #TODO: Move this code to swift xlator
                     actionText = indent + LHS + " = " + RHS + ";\n"
         else:
             if(assignTag=='deep'):
@@ -938,7 +938,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     inheritMode = 'virtual'
                 if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
                     parentClassName = classRelationData['parentClass']
-                    if progSpec.fieldAlreadyDeclaredInStruct(classes[0], parentClassName, fieldName):
+                    if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldName):
                         inheritMode = 'override'
 
             abstractFunction = not('value' in field) or field['value']==None
