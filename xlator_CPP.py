@@ -115,6 +115,10 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
+def LanguageSpecificDecorations(S, segType, owner):
+        return S
+
+
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
     RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
@@ -625,8 +629,9 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (typeSpec, varName, fieldDef, fieldType, innerType, indent, objsRefed, xlator):
+def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
     #TODO: make test case
+    [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):
@@ -800,6 +805,9 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
     return [structCode, funcDefCode, globalFuncs]
 
+def extraCodeForTopOfFuntion(argList):
+    return ''
+
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     S= '[' + idx +']'
     return S
@@ -812,6 +820,11 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
 
 def codeSwitchBreak(caseAction, indent, xlator):
     return indent+"    break;\n"
+
+def applyTypecast(typeInCodeDog, itemToAlterType):
+    platformType = adjustBaseTypes(typeInCodeDog)
+    return '('+platformType+')'+itemToAlterType;
+
 #######################################################
 
 def includeDirective(libHdr):
@@ -852,8 +865,7 @@ def fetchXlators():
     xlators['funcBodyIndent']        = ""
     xlators['funcsDefInClass']       = "False"
     xlators['MakeConstructors']      = "True"
-    xlators['hasMainCurlyBrackets']  = "True"
-    xlators['hasSwitchCurlyBrackets']= "True"
+    xlators['blockPrefix']           = ""
     xlators['usePrefixOnStatics']    = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional
@@ -862,11 +874,13 @@ def fetchXlators():
     xlators['produceTypeDefs']              = produceTypeDefs
     xlators['addSpecialCode']               = addSpecialCode
     xlators['convertType']                  = convertType
+    xlators['applyTypecast']                = applyTypecast
     xlators['codeIteratorOperation']        = codeIteratorOperation
     xlators['xlateLangType']                = xlateLangType
     xlators['getContainerType']             = getContainerType
     xlators['recodeStringFunctions']        = recodeStringFunctions
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
+    xlators['LanguageSpecificDecorations']  = LanguageSpecificDecorations
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
     xlators['codeSpecialFunc']              = codeSpecialFunc
@@ -883,6 +897,7 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['extraCodeForTopOfFuntion']     = extraCodeForTopOfFuntion
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality

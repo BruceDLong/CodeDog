@@ -33,7 +33,7 @@ def apply(classes, tags):
         me string: getOption(me string: groupID, me string: optionID) <- {
             me stringScanner: scanner
             me string: argToReturn <- ""
-            scanner.init(cmdLineText)
+            scanner.initialize(cmdLineText)
             /- Find optionRecord
             me int: recIdx <- -1
             withEach optRec in options:{

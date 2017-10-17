@@ -121,14 +121,11 @@ struct arrow: inherits='decor'{
 struct widget{
     me int: posX
     me int: posY
-    me int: extY
     me int: width
     me int: height
     me int: scale
 /-    me color: defaultColor
     bool: isHidden
-
-    void: setPos(me int:x, me int:y, me int: ExtY) <- {extY <- ExtY; posX<-x; posY<-y}
 
     void: draw(me GUI_ctxt: cr) <- {}
     me bool: handleAllClicks(their GUI_ButtonEvent: event) <- {return(false)}

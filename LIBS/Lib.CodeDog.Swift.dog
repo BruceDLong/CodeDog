@@ -27,15 +27,41 @@ struct stream{
 }
 
 struct GLOBAL{
-    me bool: isspace(me char: ch)<- <%{
-	return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
+    me bool: isalpha(me char: ch)<- <%{
+        switch ch {
+            case "a"..."z": return true
+            case "A"..."Z": return true
+            default: return false
+        }
     }%>
-    
+
+    me bool: isspace(me char: ch)<- <%{
+        return ch == " " || ch == "\t" || ch == "\n" || ch == "\r"
+    }%>
+
+    me bool: isdigit(me char: ch)<- <%{
+        return ch >= "0" && ch <= "9"
+    }%>
+
+    me bool: isalnum(me char: ch)<- <%{
+        switch ch {
+            case "a"..."z": return true
+            case "A"..."Z": return true
+            case "0"..."9": return true
+            default: return false
+        }
+    }%>
+
+    me bool: isprint(me char: ch)<- <%{
+        return ch > "\u{1f}" && ch != "\u{7f}"
+    }%>
+
     me void: endFunc(me int: val) <- <%!return(0)%>
     me int: randInt(me int: val) <- <%!(rand() % %1)%>
-    me string: toString(me int: val) <- <%!std::to_string(%1)%>
+    me string: toString(me int: val) <- <%!String(%1)%>
+    me int: stoi(me string: S) <- <%!Int(%1)!%>
     /-///////////////////////////////////////////////////
-    
+
 
 }
 struct timeValue{me int64: timeValue}

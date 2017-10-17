@@ -6,9 +6,9 @@ requirements = [
 
 
 struct stringScanner{
-    me string: S 
+    me string: S
     me int: pos
-    void: init(me string: str) <- {S<-str  reset()}
+    void: initialize(me string: str) <- {S<-str  reset()}
     void: reset() <- {pos<-0}
 
     me int: skipWS() <- {       /- Skip past 0 or more whitespace characters.  Return the new pos

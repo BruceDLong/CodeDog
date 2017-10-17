@@ -104,7 +104,7 @@ def staticVarNamePrefix(staticVarName, xlator):
     if staticVarName in StaticMemberVars:
         crntBaseName = progSpec.baseStructName(currentObjName)
         refedClass=progSpec.baseStructName(StaticMemberVars[staticVarName])
-        if(crntBaseName != refedClass):
+        if(crntBaseName != refedClass or xlator['LanguageName']=='Swift'):   #TODO Make this part of xlators
             return refedClass + xlator['ObjConnector']
     return ''
 
@@ -128,6 +128,9 @@ def fetchItemsTypeSpec(itemName, xlator):
             if (REF):
                 RefType="OBJVAR"
                 if(currentObjName=='GLOBAL'): RefType="GLOBAL"
+                if xlator['LanguageName']=='Swift':  #TODO Make this part of xlators
+                    RefOwner = progSpec.getTypeSpecOwner(REF['typeSpec'])
+                    if RefOwner=='we': RefType = "STATIC:" + currentObjName + xlator['ObjConnector']
             else:
                 REF=CheckObjectVars("GLOBAL", itemName)
                 if (REF):
@@ -288,14 +291,14 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             return [S, '', None, '']
         [typeSpecOut, SRC]=fetchItemsTypeSpec(name, xlator)
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
-        if(SRC[:6]=='STATIC'): namePrefix = SRC[7:]
+        if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
         fType=progSpec.fieldTypeKeyword(typeSpecIn['fieldType'])
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif(name[0]=='[' and fType=='string'):
-            typeSpecOut={'owner':owner, 'fieldType': fType}
+            typeSpecOut={'owner':owner, 'fieldType': 'char'}
             [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, xlator)
             S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, previousSegName)
             return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
@@ -327,6 +330,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         [CPL, paramTypeList] = codeParameterList(name, paramList, modelParams, objsRefed, xlator)
         S+= CPL
     if(typeSpecOut==None): cdlog(logLvl(), "Type for {} was not found.".format(name))
+
     if ("<MODENAME>" in S):
         S=S.replace("<MODENAME>", ".get(")
         S=S.replace("<MODENAMEend>", ")")
@@ -423,12 +427,15 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             connector=''
 
         # Should this be called C style?
-        thisArgIDX=segStr.find("%0")
-        if(thisArgIDX >= 0):
+        if(segStr.find("%0") >= 0):
             if connector=='->' and owner!='itr': S="*("+S+")"
             S=segStr.replace("%0", S)
             S=S[len(connector):]
         else: S+=segStr
+
+
+        # Language specific dereferencing of ->[...], etc.
+        S = xlator['LanguageSpecificDecorations'](S, segType, owner)
 
         objsRefed[canonicalName]=0
         previousSegName = segName
@@ -441,11 +448,16 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
         if fieldType=='flag':
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName, xlator)
-            S='(' + S[0:prevLen] + connector + 'flags & ' + prefix+segName + ')' # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
+            bitfieldMask=xlator['applyTypecast']('uint64', prefix+segName)
+            flagReadCode = S[0:prevLen] + connector + 'flags & ' + bitfieldMask
+            S=xlator['applyTypecast']('int', flagReadCode) # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
         elif fieldType=='mode':
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName+"Mask", xlator)
-            S="((" + S[0:prevLen] + connector +  "flags&"+prefix+segName+"Mask)"+">>"+prefix+segName+"Offset)"
+            bitfieldMask  =xlator['applyTypecast']('uint64', prefix+segName+"Mask")
+            bitfieldOffset=xlator['applyTypecast']('uint64', prefix+segName+"Offset")
+            S="(" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset
+            S=xlator['applyTypecast']('int', S)
 
     return [S, segType, LHSParentType, AltFormat]
 
@@ -548,7 +560,7 @@ def encodeConditionalStatement(action, indent, objsRefed, xlator):
             actionText += indent + "else " + elseText.lstrip()
         elif (elseBody[0]=='action'):
             elseAction = elseBody[1]['actionList']
-            elseText = codeActionSeq("True", elseAction, indent, objsRefed, xlator)
+            elseText = codeActionSeq(elseAction, indent, objsRefed, xlator)
             actionText += indent + "else " + elseText.lstrip()
         else:  print"Unrecognized item after else"; exit(2);
     return actionText
@@ -564,10 +576,8 @@ def codeAction(action, indent, objsRefed, xlator):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         varName = fieldDef['fieldName']
-        cdlog(5, "New Var: {}: ".format(varName))
-        [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
         cdlog(5, "Action newVar: {}".format(varName))
-        varDeclareStr = xlator['codeNewVarStr'](typeSpec, varName, fieldDef, fieldType, innerType, indent, objsRefed, xlator)
+        varDeclareStr = xlator['codeNewVarStr'](globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator)
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
@@ -617,6 +627,7 @@ def codeAction(action, indent, objsRefed, xlator):
                     if actionText != '': actionText = indent+actionText
                 if actionText=="":
                     # Handle the normal assignment case
+                    if RHS=='nil' and LHS[-1]=='!': LHS=LHS[:-1]  #TODO: Move this code to swift xlator
                     actionText = indent + LHS + " = " + RHS + ";\n"
         else:
             if(assignTag=='deep'):
@@ -647,7 +658,7 @@ def codeAction(action, indent, objsRefed, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             elif (elseBody[0]=='action'):
                 elseAction = elseBody[1]['actionList']
-                elseText = codeActionSeq("True", elseAction, indent, objsRefed, xlator)
+                elseText = codeActionSeq(elseAction, indent, objsRefed, xlator)
                 actionText += indent + "else " + elseText.lstrip()
             else:  print"Unrecognized item after else"; exit(2);
     elif (typeOfAction =='repetition'):
@@ -727,23 +738,27 @@ def codeAction(action, indent, objsRefed, xlator):
             print "\nERROR: It is not allowed to name a function", calledFunc[0][0]
             exit(2)
         cdlog(5, "Function Call: {}()".format(str(calledFunc[0][0])))
-        actionText = indent + codeFuncCall(calledFunc, objsRefed, xlator) + ';\n'
+        funcCallText = codeFuncCall(calledFunc, objsRefed, xlator)
+        funcCallTextStriped = funcCallText.strip()
+        if (funcCallTextStriped!=''):
+            actionText = indent + funcCallText + ';\n'
     elif (typeOfAction == 'switchStmt'):
         cdlog(5, "Switch statement: switch({})".format(str(action['switchKey'])))
         [switchKeyExpr, switchKeyType] = xlator['codeExpr'](action['switchKey'][0], objsRefed, xlator)
         actionText += indent+"switch("+ switchKeyExpr + "){\n"
-        curlyBrackets = (xlator['hasSwitchCurlyBrackets']=='True')
+        blockPrefix = xlator['blockPrefix']
         for sCases in action['switchCases']:
             for sCase in sCases[0]:
                 [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], objsRefed, xlator)
                 actionText += indent+"    case "+caseKeyValue+": "
                 caseAction = sCases[1]
-                actionText += codeActionSeq(curlyBrackets, caseAction, indent+'    ', objsRefed, xlator)
+                actionText += blockPrefix + codeActionSeq(caseAction, indent+'    ', objsRefed, xlator)
                 actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
             actionText+=indent+"default: "
-            actionText += codeActionSeq(curlyBrackets, defaultCase, indent, objsRefed, xlator)
+            actionText += blockPrefix + codeActionSeq(defaultCase, indent, objsRefed, xlator)
+        else: actionText+=indent+"default: break;\n"
         actionText += indent + "}\n"
     elif (typeOfAction =='actionSeq'):
         cdlog(5, "Action Sequence")
@@ -753,24 +768,23 @@ def codeAction(action, indent, objsRefed, xlator):
             actionListOut = codeAction(action, indent + "    ", objsRefed, xlator)
             actionListText += actionListOut
         #print "actionSeq: ", actionListText
-        actionText += indent + "{\n" + actionListText + indent + '}\n'
+        blockPrefix = xlator['blockPrefix']
+        actionText += indent + blockPrefix + "{\n" + actionListText + indent + '}\n'
     else:
         print "error in codeAction: ", action
         exit(2)
  #   print "actionText", actionText
     return actionText
 
-def codeActionSeq(curlyBrackets, actSeq, indent, objsRefed, xlator):
+def codeActionSeq(actSeq, indent, objsRefed, xlator):
     global localVarsAllocated
     localVarsAllocated.append(["STOP",''])
     actSeqText=''
-    if curlyBrackets: actSeqText += '{\n'
+    actSeqText += '{\n'
     for action in actSeq:
         actionText = codeAction(action, indent + '    ', objsRefed, xlator)
         actSeqText += actionText
-    if curlyBrackets: actSeqText += '}'
-
-    actSeqText += "\n"
+    actSeqText += '}\n'
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
@@ -903,6 +917,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     count+=1
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
+                    if progSpec.typeIsPointer(argTypeSpec): arg
                     [argType, innerType] = xlator['convertType'](classes, argTypeSpec, 'arg', xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
@@ -923,8 +938,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     inheritMode = 'virtual'
                 if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
                     parentClassName = classRelationData['parentClass']
-                    #print "OVERRIDE:", fieldName, parentClassName
-                    if progSpec.fieldAlreadyDeclaredInStruct(classes[0], parentClassName, fieldName):
+                    if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldName):
                         inheritMode = 'override'
 
             abstractFunction = not('value' in field) or field['value']==None
@@ -935,6 +949,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if abstractFunction: # i.e., if no function body is given.
                 cdlog(5, "Function "+className+":::"+fieldName+" has no implementation defined.")
             else:
+                extraCodeForTopOfFuntion = xlator['extraCodeForTopOfFuntion'](argList)
                 verbatimText=field['value'][1]
                 if (verbatimText!=''):                                      # This function body is 'verbatim'.
                     if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
@@ -948,7 +963,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                    # print "                         Verbatim Func Body"
                 elif field['value'][0]!='':
                     objsRefed2={}
-                    funcText =  codeActionSeq(True, field['value'][0], funcBodyIndent, objsRefed2, xlator)
+                    funcText =  codeActionSeq(field['value'][0], funcBodyIndent, objsRefed2, xlator)
+                    if extraCodeForTopOfFuntion!='':
+                        funcText = '{\n' + extraCodeForTopOfFuntion + funcText[1:]
                  #   print "Called by function " + fieldName +':'
                  #   for rec in sorted(objsRefed2):
                  #       print "     ", rec

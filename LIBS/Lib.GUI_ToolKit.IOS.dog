@@ -32,6 +32,7 @@ struct GUI{
     }
 }
 struct GUI_rect{me CGRect:GUI_rect}
+struct GUI_frame{their UIView:GUI_frame}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!%1.isHidden=false%>
@@ -52,8 +53,8 @@ struct GUI_ctxt {
     their CGContext:GUI_ctxt
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
     me void: reset() <- <%!%G %>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, Double(%1 / 256), Double(%2 / 256), Double(%3 / 256), Double(%4 / 256))%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, Double(%1 / 256), Double(%2 / 256), Double(%3 / 256))%>
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
     me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
     me void: setScale() <- <%!scaleBy(x:%1, y:%2)%>
@@ -81,18 +82,14 @@ struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIAp
 
         let mainViewController = UINavigationController()
 
-        let view = UIView(frame: CGRect(x:0, y:0, width:320, height:568))
+        let mainView = UIView(frame: CGRect(x:0, y:0, width:320, height:568))
 
         let firstViewController = UIViewController()
-        firstViewController.view = view
+        firstViewController.view = mainView
         firstViewController.title = "Home View!"
         mainViewController.setToolbarHidden(false, animated: true)
 
-        let label = UILabel(frame: CGRect(x:0, y:0, width:200, height:21))
-        label.center = CGPoint(x:160, y:284)
-        label.textAlignment = NSTextAlignment.center
-        label.text = "I'am a test label"
-        firstViewController.view.addSubview(label)
+        thisApp.createAppArea(mainView)
 
         mainViewController.pushViewController(firstViewController, animated: true)
         window!.rootViewController = mainViewController
