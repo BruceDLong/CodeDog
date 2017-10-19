@@ -106,7 +106,7 @@ def fieldIdentifierString(className, packedField):
         count=0
         for arg in argList:
             if count>0: fieldID+=','
-            fieldID+=arg['fieldName']
+            fieldID += fieldTypeKeyword(arg['typeSpec']['fieldType'])
             count+=1
         fieldID+=')'
     return fieldID
@@ -402,19 +402,72 @@ def generateListOfFieldsToImplement(classes, structName):
     if(modelSpec!=None): updateCpy(fList, modelSpec["fields"])
     return fList
 
-def fieldDefIsInList(fList, fieldName):
+def fieldDefIsInList(fList, fieldID):
     for field in fList:
-        if 'fieldName' in field and field['fieldName']==fieldName:
+        print "        COMPARE:", field['fieldID'], fieldID
+        if 'fieldID' in field and field['fieldID']==fieldID:
             if 'typeSpec' in field and field['typeSpec']!=None: typeSpec=field['typeSpec']
             else: typeSpec=None
 
             fieldIsAFunction = fieldIsFunction(typeSpec)
             if not fieldIsAFunction: return True
             if fieldIsAFunction and 'value' in field and field['value']!=None:       # AND, the function is defined
+                print"TRUE!! ",
                 return True
-
     return False
 
+
+#### These functions help evaluate parent-class / child-class relations
+
+def doesClassDirectlyImlementThisField(classes, structName, fieldID):
+    modelSpec=findSpecOf(classes[0], structName, 'model')
+    if(modelSpec!=None):
+        if fieldDefIsInList(modelSpec["fields"], fieldID):
+            return True
+    structSpec=findSpecOf(classes[0], structName, 'struct')
+    if(structSpec!=None):
+        print "<"+fieldID+'> ',
+        if fieldDefIsInList(structSpec["fields"], fieldID):
+            return True
+    print "D",
+    return False
+
+def doesClassFromListDirectlyImplementThisField(classes, structNameList, fieldID):
+    if structNameList==None or len(structNameList)==0: return False
+    for structName in structNameList:
+        print '['+structName+'],',
+        if doesClassDirectlyImlementThisField(classes, structName, fieldID):
+            print "*",
+            return True
+    return False
+
+def getParentClassList(classes, thisStructName):  # Checks 'inherits' but does not check 'implements'
+    structSpec=findSpecOf(classes[0], thisStructName, 'struct')
+    classInherits = searchATagStore(structSpec['tags'], 'inherits')
+    if classInherits==None: classInherits=[]
+    #print "ParentsOf", thisStructName+':', classInherits
+    return classInherits
+
+def getChildClassList(classes, thisStructName):  # Checks 'inherits' but does not check 'implements'
+    if thisStructName in classHeirarchyInfo:
+        classRelationData = classHeirarchyInfo[thisStructName]
+        if 'childClasses' in classRelationData and len(classRelationData['childClasses'])>0:
+            return classRelationData['childClasses']
+    return []
+
+def doesParentClassImplementFunc(classes, structName, fieldID):
+    print '     Parents:',
+    parentClasses=getParentClassList(classes, structName)
+    result = doesClassFromListDirectlyImplementThisField(classes, parentClasses, fieldID)
+  #  if len(parentClasses)>0: print '     Parents:', parentClasses, result,
+    return result
+
+def doesChildClassImplementFunc(classes, structName, fieldID):
+    print '     Childs:',
+    childClasses=getChildClassList(classes, structName)
+    result = doesClassFromListDirectlyImplementThisField(classes, childClasses, fieldID)
+   # if len(childClasses)>0: print '     Childs:', childClasses, result,
+    return result
 
 ###############  Various type-handling functions
 

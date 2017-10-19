@@ -105,7 +105,7 @@ struct dash: inherits = 'widget'{
     me int: extX        /- Dashes right-most extent
     me int: extY        /- Dashes lowest extent
     me int: extC        /- The current position where the next external item should be drawn
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {}
+    void: setPos(me int:x, me int:y, me int: extCursor) <- {print("SETPOS BASE!!\n")}
     me bool: isNullLike
     void: activatePropertyEditor()<- {}
 }
