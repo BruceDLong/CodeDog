@@ -676,7 +676,7 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     # TODO: make next line so it is not hard coded
-    if(Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI_ctxt" or convertedType == "GUI" or convertedType == "ourSubMenu" or convertedType == "HorizontalScrollView")):
+    if(Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI_ctxt" or convertedType == "GUI" or convertedType == "ourSubMenu" or convertedType == "HorizontalScrollView"or convertedType == "widget")):
         #print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
@@ -687,7 +687,7 @@ def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConst
     withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
     noArgConstructor = "    public "  + ClassName + "(){"+"};\n"
-    if (ClassName =="ourSubMenu" or ClassName =="GUI"):
+    if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
 

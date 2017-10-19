@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
-    headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent,
+    headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
         android.widget.LinearLayout, android.widget.ScrollView, android.widget.HorizontalScrollView, android.widget.TextView,
         android.app.Activity,
         android.os.Bundle,
@@ -25,7 +25,7 @@ LibDescription ={
 }
 
 /-///////////////////////////////  STRUCT CONVERTERS
-/-struct GUI_rect{me Rect: GUI_rect}
+struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_item{me Object: GUI_item}
 struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
 struct GUI_menu{me ourSubMenu: GUI_menu}
@@ -39,28 +39,13 @@ struct GUI_callback{me GCallback: GUI_callback}
 
 /-///////////////////////////////  HANDLE EVENTS
 
-struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
 
-
-struct CanvasView: inherits="View" {
-    me GUI_ctxt: cr
-
-    me none: CanvasView() <- <%{super(GLOBAL.static_Global);}%>
-    me void: onDraw(me Canvas: canvas) <- <%{
-        super.onDraw(canvas);
-        cr = new GUI_ctxt(canvas);
-        cr.cur_x=0; cr.cur_y=0;
-        cr.GPath.reset();
-        GLOBAL.static_Global.drawAppArea_cb(this, cr);
-        invalidate();
-    }%>
-
-    me bool: onTouchEvent(me MotionEvent: event) <- <%{
-        float eventX = event.getX();
-        float eventY = event.getY();
-        float scrollX = getScrollX();
-        float scrollY = getScrollY();
+/-///////////////////////////////  HANDLE EVENTS
+struct Android_eventDispatcher: implements ="View.OnTouchListener"{
+    their widget: topWidget
+    
+    me bool: onTouch(me View: v, me MotionEvent: event) <- <%{
         boolean returnVal = true;
 
         switch (event.getAction()) {
@@ -90,6 +75,24 @@ struct CanvasView: inherits="View" {
         if (returnVal == true){invalidate();}
         return returnVal;
     }%>
+
+}
+
+/-///////////////////////////////  HANDLE GUI
+struct CanvasView: inherits="View" {
+    me GUI_ctxt: cr
+    me Android_eventDispatcher: EventDispatcher
+
+    me none: CanvasView() <- <%{super(GLOBAL.static_Global);}%>
+    me void: onDraw(me Canvas: canvas) <- <%{
+        super.onDraw(canvas);
+        cr = new GUI_ctxt(canvas);
+        cr.cur_x=0; cr.cur_y=0;
+        cr.GPath.reset();
+        GLOBAL.static_Global.drawAppArea_cb(this, cr);
+        invalidate();
+    }%>
+
 }
 
 
@@ -155,7 +158,7 @@ struct GUI {
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggui.layoutArea.addView(%2)%>      /- dog file: gui.addToViewport(scroller, drawing_area)
     me void: addMenuBar(me LinearLayout: frame, our GUI_menuBar: menubar) <- {}
     me void: setCallback() <- <%!%G %>
-/-    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
+    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
 /-    me GUI_ctxt: newPDF_ctxt()
 
@@ -174,7 +177,7 @@ struct GUI_ctxt: inherits="Canvas" {
 /-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
 /-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: closePath() <- <%!GPath.close()%>
-    me void: rectangle() <- <%!%0.GUI_rect(Rect(%1, %2, %3, %4))%>
+    me void: rectangle() <- <%!%0.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
 /-    me void: paintNow() <- <%!fill(cr.GPath)%>
     me void: strokeNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: fillNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
@@ -230,13 +233,18 @@ struct timeStringer{
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
     me APP: thisApp
-    void: setMasterWidget(their widget: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
     me SubMenu: parentMenu
     me AssetManager: assetManager
     me int: widgetHeight() <- <%!%G%1.getHeight()%>
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
     me INK_Image[map string]: InkImgCache
     me long: ticksPerSec() <- <%!%G1000%>
+    me widget: masterWidget
+    
+    me void: setMasterWidget(their widget: masterWid) <- {
+	GLOBAL.static_Global.masterWidget<-masterWid; 
+	GLOBAL.static_Global.drawing_area.EventDispatcher.topWidget <- GLOBAL.static_Global.masterWidget
+    }
 
     me void: close_window() <- {
          /- gtk_main_quit()
@@ -352,10 +360,12 @@ struct APP: inherits="LinearLayout" {
     me none: APP() <- <%{super(GLOBAL.static_Global);}%>
     
     me void: createAppArea(me LinearLayout: frame) <- <%{
-	GLOBAL.static_Global.drawing_area = new CanvasView();
+        GLOBAL.static_Global.drawing_area = new CanvasView();
         ScrollView scroller = gui.newScrollingWindow();
         gui.layoutArea.addView(GLOBAL.static_Global.drawing_area);
-        GLOBAL.static_Global.drawing_area.setLayoutParams(new LayoutParams(5000, 5000)); 
+        GLOBAL.static_Global.drawing_area.setOnTouchListener(new Android_eventDispatcher());
+        GLOBAL.static_Global.setMasterWidget(GLOBAL.static_Global.dashBoard);
+        GLOBAL.static_Global.drawing_area.setLayoutParams(new LayoutParams(GLOBAL.static_Global.masterWidget.width, GLOBAL.static_Global.masterWidget.height)); 
         frame.addView(scroller);
     }%>
     
