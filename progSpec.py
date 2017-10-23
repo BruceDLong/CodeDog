@@ -200,37 +200,6 @@ def getClassesDependancies(className):
     if className in DependanciesMarked:   retList.extend(DependanciesMarked[className])
     return retList
 
-def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
-    structSpec=findSpecOf(classes, structName, 'struct')
-    if structSpec==None:
-        return False;
-    if structSpec['vFields']!=None:
-        for field in structSpec['vFields']:
-            if fieldID == field['fieldID']:
-                return True
-
-    classInherits = searchATagStore(structSpec['tags'], 'inherits')
-    if classInherits!=None:
-        for classParent in classInherits:
-            if fieldIDAlreadyDeclaredInStruct(classes, classParent, fieldID):
-                return True
-
-    classImplements = searchATagStore(structSpec['tags'], 'implements')
-    if classImplements!=None:
-        for classParent in classImplements:
-            if fieldIDAlreadyDeclaredInStruct(classes, classParent, fieldID):
-                return True
-
-    modelSpec=findSpecOf(classes, structName, 'model')
-    if(modelSpec!=None):
-        if fieldDefIsInList(modelSpec["fields"], fieldID):
-            return True
-
-    if(structSpec!=None):
-        if fieldDefIsInList(structSpec["fields"], fieldID):
-            return True
-    return False
-
 def addField(objSpecs, className, stateType, packedField):
     global MarkItems
     global MarkedObjects
@@ -242,7 +211,7 @@ def addField(objSpecs, className, stateType, packedField):
     elif stateType=='string': taggedObjectName='$'+className
     else: taggedObjectName = className
     #print "ADDING FIELD:", taggedObjectName, stateType, fieldID
-    if fieldIDAlreadyDeclaredInStruct(objSpecs, className, fieldID):
+    if doesClassDirectlyImlementThisField(objSpecs, className, fieldID):
         cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
         return
 
@@ -251,6 +220,7 @@ def addField(objSpecs, className, stateType, packedField):
     fieldType = typeSpec['fieldType']
     if fieldType=='flag' or fieldType=='mode':
         if fieldIDAlreadyDeclaredInStruct(objSpecs, className, fieldID):
+            cdlog(2, "Note: The field '" + fieldID + "' already exists. Not overriding")
             return
 
     objSpecs[taggedObjectName]["fields"].append(packedField)
@@ -371,45 +341,44 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
     for field in fieldsToCopy:
         insertOrReplaceField(fieldListToUpdate, field)
 
-def populateCallableStructFields(fList, classes, structName):  # e.g. 'type::subType::subType2'
+def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
     structSpec=findSpecOf(classes[0], structName, 'struct')
     if structSpec==None: return
     if structSpec['vFields']!=None:
-        fList.extend(structSpec['vFields'])
+        fieldList.extend(structSpec['vFields'])
         return
     classInherits = searchATagStore(structSpec['tags'], 'inherits')
     if classInherits!=None:
         for classParent in classInherits:
-            populateCallableStructFields(fList, classes, classParent)
+            populateCallableStructFields(fieldList, classes, classParent)
     classInherits = searchATagStore(structSpec['tags'], 'implements')
     if classInherits!=None:
         for classParent in classInherits:
-            populateCallableStructFields(fList, classes, classParent)
+            populateCallableStructFields(fieldList, classes, classParent)
 
     modelSpec=findSpecOf(classes[0], structName, 'model')
-    if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
+    if(modelSpec!=None): updateCvt(classes, fieldList, modelSpec["fields"])
     modelSpec=findSpecOf(classes[0], structName, 'struct')
-    updateCpy(fList, modelSpec["fields"])
+    updateCpy(fieldList, modelSpec["fields"])
 
-    structSpec['vFields'] = fList
+    structSpec['vFields'] = fieldList
 
 def generateListOfFieldsToImplement(classes, structName):
-    fList=[]
+    fieldList=[]
     modelSpec=findSpecOf(classes[0], structName, 'model')
-    if(modelSpec!=None): updateCvt(classes, fList, modelSpec["fields"])
+    if(modelSpec!=None): updateCvt(classes, fieldList, modelSpec["fields"])
     modelSpec=findSpecOf(classes[0], structName, 'struct')
-    if(modelSpec!=None): updateCpy(fList, modelSpec["fields"])
-    return fList
+    if(modelSpec!=None): updateCpy(fieldList, modelSpec["fields"])
+    return fieldList
 
 def fieldOnlyID(fieldID):
     breakPos = fieldID.find('::')
     if breakPos<0: return fieldID
     return fieldID[breakPos+2:]
 
-def fieldDefIsInList(fList, fieldID):
-    for field in fList:
-        #print "           >", fieldOnlyID(field['fieldID'])
+def fieldDefIsInList(fieldList, fieldID):
+    for field in fieldList:
         if 'fieldID' in field and fieldOnlyID(field['fieldID']) == fieldOnlyID(fieldID):
             if 'typeSpec' in field and field['typeSpec']!=None: typeSpec=field['typeSpec']
             else: typeSpec=None
@@ -417,20 +386,49 @@ def fieldDefIsInList(fList, fieldID):
             fieldIsAFunction = fieldIsFunction(typeSpec)
             if not fieldIsAFunction: return True
             if fieldIsAFunction and 'value' in field and field['value']!=None:       # AND, the function is defined
- #               print"TRUE!! ",
                 return True
     return False
 
+def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
+    structSpec=findSpecOf(classes, structName, 'struct')
+    if structSpec==None:
+        return False;
+    if structSpec['vFields']!=None:
+        for field in structSpec['vFields']:
+            if fieldID == field['fieldID']:
+                return True
 
-#### These functions help evaluate parent-class / child-class relations
+    classInherits = searchATagStore(structSpec['tags'], 'inherits')
+    if classInherits!=None:
+        for classParent in classInherits:
+            if fieldIDAlreadyDeclaredInStruct(classes, classParent, fieldID):
+                return True
 
-def doesClassDirectlyImlementThisField(classes, structName, fieldID):
-#    print '        ['+structName+']: ', fieldID
-    modelSpec=findSpecOf(classes[0], structName, 'model')
+    classImplements = searchATagStore(structSpec['tags'], 'implements')
+    if classImplements!=None:
+        for classParent in classImplements:
+            if fieldIDAlreadyDeclaredInStruct(classes, classParent, fieldID):
+                return True
+
+    modelSpec=findSpecOf(classes, structName, 'model')
     if(modelSpec!=None):
         if fieldDefIsInList(modelSpec["fields"], fieldID):
             return True
-    structSpec=findSpecOf(classes[0], structName, 'struct')
+
+    if(structSpec!=None):
+        if fieldDefIsInList(structSpec["fields"], fieldID):
+            return True
+    return False
+
+#### These functions help evaluate parent-class / child-class relations
+
+def doesClassDirectlyImlementThisField(objSpecs, structName, fieldID):
+    #print '        ['+structName+']: ', fieldID
+    modelSpec=findSpecOf(objSpecs, structName, 'model')
+    if(modelSpec!=None):
+        if fieldDefIsInList(modelSpec["fields"], fieldID):
+            return True
+    structSpec=findSpecOf(objSpecs, structName, 'struct')
     if(structSpec!=None):
         if fieldDefIsInList(structSpec["fields"], fieldID):
             return True
@@ -439,8 +437,7 @@ def doesClassDirectlyImlementThisField(classes, structName, fieldID):
 def doesClassFromListDirectlyImplementThisField(classes, structNameList, fieldID):
     if structNameList==None or len(structNameList)==0: return False
     for structName in structNameList:
-        if doesClassDirectlyImlementThisField(classes, structName, fieldID):
-            print "*",
+        if doesClassDirectlyImlementThisField(classes[0], structName, fieldID):
             return True
     return False
 
@@ -459,17 +456,17 @@ def getChildClassList(classes, thisStructName):  # Checks 'inherits' but does no
     return []
 
 def doesParentClassImplementFunc(classes, structName, fieldID):
-#    print '     Parents:\n',
+    #print '     Parents:\n',
     parentClasses=getParentClassList(classes, structName)
     result = doesClassFromListDirectlyImplementThisField(classes, parentClasses, fieldID)
-#    if len(parentClasses)>0: print '       P-Results:', parentClasses, result,
+    #if len(parentClasses)>0: print '       P-Results:', result
     return result
 
 def doesChildClassImplementFunc(classes, structName, fieldID):
-#    print '\n     Childs:\n',
+    #print '\n     Childs:\n',
     childClasses=getChildClassList(classes, structName)
     result = doesClassFromListDirectlyImplementThisField(classes, childClasses, fieldID)
-   # if len(childClasses)>0: print '     Childs:', childClasses, result,
+    #if len(childClasses)>0: print '     Childs Result:', result
     return result
 
 ###############  Various type-handling functions

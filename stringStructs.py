@@ -109,7 +109,7 @@ struct stateRecPtr{our stateRec: stateRecPtr}
 
 struct stateSets{
     me stateRecPtr[list]: stateRecs
-    me int: flags
+    me uint: flags
     /-stateSets():flags(0){}
 }
 

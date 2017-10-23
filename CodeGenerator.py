@@ -933,16 +933,15 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             #### FUNC HEADER: for both decl and defn.
             inheritMode='normal'
             # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
- #           print "CHECKING CLASS:", fieldID+'...   \n',
+            #print "CHECKING CLASS:", fieldID+'...   \n',
             if not progSpec.doesParentClassImplementFunc(classes, className, fieldID) and progSpec.doesChildClassImplementFunc(classes, className, fieldID):
                 inheritMode = 'virtual'
                 print "        VIRTUAL:", fieldID
- #           print '.'
             if currentObjName in progSpec.classHeirarchyInfo:
                 classRelationData = progSpec.classHeirarchyInfo[currentObjName]
                 if (not 'parentClass' in classRelationData or ('parentClass' in classRelationData and classRelationData['parentClass']==None)) and 'childClasses' in classRelationData and len(classRelationData['childClasses'])>0:
                     if inheritMode == 'virtual': print "MATCH:", className, fieldID
-             #       else: print "            MISS-MATCH:", className, fieldID
+                    else: print "            MISS-MATCH:", className, fieldID
                 if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
                     parentClassName = classRelationData['parentClass']
                     if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldID):
