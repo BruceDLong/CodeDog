@@ -206,7 +206,7 @@ def constructANDListFromNeeds(tags, needs, files, indent):
         #print indent + "**need*: ", need
         if need[0] == 'feature':
             if need[1] in featuresHandled: continue
-            cdlog(1, "Feature: "+need[1])
+            cdlog(1, "FEATURE: "+need[1])
             featuresHandled.append(need[1])
             filesToTry = [findLibrary(need[1])]
             if filesToTry[0]=='': cdErr('Could not find a dog file for feature '+need[1])

@@ -34,18 +34,18 @@ def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     result='No Language Generator Found for '+buildTags['Lang']
     langGenTag = buildTags['Lang']
     if(langGenTag == 'CPP'):
-        cdlog(0, "\n##############  G E N E R A T I N G   C + +   P R O G R A M . . .")
+        langName='C + +'
         xlator = xlator_CPP.fetchXlators()
     elif(langGenTag == 'Java'):
-        cdlog(0, "\n##############  G E N E R A T I N G   J A V A   P R O G R A M . . .")
+        langName='J A V A'
         xlator = xlator_Java.fetchXlators()
     elif(langGenTag == 'Swift'):
-        cdlog(0,"\n##############  G E N E R A T I N G   S W I F T   P R O G R A M . . .")
+        langName='S W I F T'
         xlator = xlator_Swift.fetchXlators()
     else:
         cdErr( "ERROR: No language generator found for ".format( langGenTag))
         exit(1)
-    result=CodeGenerator.generate(classes, tagsList, libsToUse, xlator)
+    result=CodeGenerator.generate(classes, tagsList, libsToUse, langName, xlator)
     return result
 
 def GenerateSystem(classes, buildSpecs, tags, macroDefs):
@@ -58,7 +58,9 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         testMode=progSpec.fetchTagValue([tags, buildTags], 'testMode')
         progSpec.MarkItems=True
         if testMode=='makeTests' or testMode=='runTests':
+            cdlog(1, "GENERATING: Test Program")
             testTagStore=TestDog.generateTestCode(classes, buildTags, tags, macroDefs)
+            cdlog(1, "Test Program Finished")
             tagsList=[tags, buildTags, testTagStore]
         else:
             tagsList=[tags, buildTags]
@@ -88,6 +90,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
 
 #############################################    L o a d / P a r s e   P r o g r a m   S p e c
 
+cdlog(0, "\n######################   P R O C E S S I N G   M A I N   P R O G R A M   ######################")
 if(len(sys.argv) < 2): cdErr( "No Filename given.\n")
 
 libraryMngr.findLibraryFiles()

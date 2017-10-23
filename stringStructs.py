@@ -1275,11 +1275,9 @@ struct GLOBAL{
     }
 }
 '''.replace('<CLASSNAME>', className)
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], S)
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], S, 'Parse_'+className+'()')
 
 def CreateStructsForStringModels(classes, newClasses, tags):
-    cdlog(1, "Creating parser and extracter from string models...")
-
     # Define fieldResult struct
     #~ structsName = 'fetchResult'
     #~ StructFieldStr = "mode [fetchOK, fetchNotReady, fetchSyntaxError, FetchIO_Error] : FetchResult"
@@ -1323,6 +1321,7 @@ def CreateStructsForStringModels(classes, newClasses, tags):
         ObjectDef = classes[0][className]
         if(ObjectDef['stateType'] == 'string'):
             className=className[1:]
+            cdlog(1, "  Writing parse system for "+className)
             numStringStructs+=1
             fields    = ObjectDef["fields"]
             configType= ObjectDef['configType']
@@ -1353,14 +1352,14 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     structsName = 'streamSpan'
     StructFieldStr = "    me int: offset \n    me int: len"
     progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ')
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr), 'class '+structsName)
 
 
 
     ############  Add struct parser
     parserCode=genParserCode()
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], parserCode)
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], parserCode, 'Parser for '+className)
 
     structsName='EParser'
     progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ')
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, ExtracterCode))
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, ExtracterCode), 'class '+structsName)

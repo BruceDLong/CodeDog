@@ -846,7 +846,7 @@ def generateMainFunctionality(classes, tags):
 
 """
     progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ))
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ), "C++ main()")
 
 
 def fetchXlators():

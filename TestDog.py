@@ -115,7 +115,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
 
 def generateTestCode(classes, buildTags, tags, macroDefs):
     [testMacros, testResultUtilities]=setResultCode()
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], testResultUtilities )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], testResultUtilities , 'Test utility functions')
 
     TestSpecFile= progSpec.fetchTagValue([tags, buildTags], 'TestSpec')
     TestSpecStr = progSpec.stringFromFile(TestSpecFile) + testMacros
@@ -142,6 +142,6 @@ def generateTestCode(classes, buildTags, tags, macroDefs):
     testBedUtilities = setUtilityCode(TestArrayText, SwitchCaseText)
 
    # print "TEST TEXT:", testBedUtilities
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], testBedUtilities )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], testBedUtilities, 'Test code' )
 
     return testTagStore

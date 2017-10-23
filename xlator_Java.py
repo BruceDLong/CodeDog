@@ -526,7 +526,7 @@ struct GLOBAL{
 }
     """ % (specialCode)
 
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code' )
 
 def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
     [fieldType, fieldAttrs] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
@@ -770,7 +770,7 @@ def generateMainFunctionality(classes, tags):
         }
     }
 """
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Android onCreate()')
     else:
         mainFuncCode="""
         me void: main( ) <- {
@@ -782,7 +782,7 @@ def generateMainFunctionality(classes, tags):
 
     """
         progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ))
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ), 'Java start-up code')
 
 
 def fetchXlators():

@@ -157,7 +157,7 @@ def EncodeDumpFunction(classes, className, dispMode):
     if(dispMode=='text' or dispMode=='both'):
         Code="me void: dump(me string:indent) <- {\n"+textFuncBody+"    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.toString()')
 
     if(dispMode=='draw' or dispMode=='both'):
         setPosFuncTextAcc += '\n        y <- y+5'+'\n        height <- y-posY'+'\n        me int:depX <- posX+width+40\n'
@@ -264,7 +264,7 @@ struct display_'''+className+": inherits = 'dash' "+'''{
         }
     }
 }\n'''
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code)
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, 'display_'+className)
 
 def apply(classes, tags, className, dispMode):
     if dispMode[:4]=='TAG_':
@@ -308,7 +308,7 @@ struct GLOBAL{
     """
         CODE+='}\n'
 
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE)
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global functions to draw classes')
 
     classesToProcess.append(className)
     for classToEncode in classesToProcess:

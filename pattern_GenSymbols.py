@@ -41,4 +41,4 @@ def apply(classes, tags, classesToTrack):
         S += C + "\n"
 
 
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], S )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], S, 'Pattern: generate symbols' )

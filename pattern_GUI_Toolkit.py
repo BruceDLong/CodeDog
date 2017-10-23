@@ -22,4 +22,4 @@ def apply(classes, globalTags):
 
     """ % title
 
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], GUI_TK_code )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GUI_TK_code, 'Pattern: make GUI' )

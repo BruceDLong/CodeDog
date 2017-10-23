@@ -2,23 +2,23 @@
 
 import re
 import progSpec
-from progSpec import cdlog, cdErr
+from progSpec import cdlog, cdErr, logLvl
 from pyparsing import *
 ParserElement.enablePackrat()
 
 
 def logBSL(s, loc, toks):
-    cdlog(2,"Parsing Tags...")
+    cdlog(3,"Parsing Tags...")
 
 def logTags(s, loc, toks):
-    #cdlog(2,"PARSED Tag: {}".format(str(toks[0][0][0])))
+    #cdlog(3,"PARSED Tag: {}".format(str(toks[0][0][0])))
     pass
 
 def logObj(s, loc, toks):
-    cdlog(2,"PARSED: {}".format(str(toks[0][0])+' '+toks[0][1][0]))
+    cdlog(3,"PARSED: {}".format(str(toks[0][0])+' '+toks[0][1][0]))
 
 def logFieldDef(s, loc, toks):
-    cdlog(3,"Field: {}".format(str(toks)))
+    cdlog(4,"Field: {}".format(str(toks)))
 
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
@@ -149,7 +149,6 @@ libTagParser = (tagDefList.setParseAction(logTags))("libTagParser")
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
-    cdlog(1, "PARSING...")
     cdlog(2, "Parsing build-specs...")
     progSpec.saveTextToErrFile(inputStr)
     try:
@@ -426,7 +425,7 @@ def extractFuncBody(ObjectName,funcName, funcBodyIn):
 
 
 def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
-    cdlog(2, "EXTRACTING {}".format(className))
+    cdlog(logLvl(), "EXTRACTING {}".format(className))
     for fieldResult in fieldResults:
         fieldDef=packFieldDef(fieldResult, className, '')
         progSpec.addField(ProgSpec, className, stateType, fieldDef)
@@ -605,31 +604,35 @@ def parseCodeDogLibTags(inputString):
 
     except ParseException , pe:
         cdErr( "Error parsing lib tags: {}".format( pe))
-        exit(1)
 
     tagStore = extractTagDefs(localResults.tagDefList)
     return tagStore
 
-def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs):
+def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
     tmpMacroDefs={}
     inputString = comment_remover(inputString)
     extractMacroDefs(tmpMacroDefs, inputString)
     inputString = doMacroSubstitutions(tmpMacroDefs, inputString)
+    LogLvl=logLvl()
+    cdlog(LogLvl, "PARSING: "+description+"...")
     results = parseInput(inputString)
-    cdlog(1, "PROCESSING CLASSES...")
+    cdlog(LogLvl, "EXTRACTING: "+description+"...")
     tagStore = extractTagDefs(results.tagDefList)
     buildSpecs = extractBuildSpecs(results.buildSpecList)
     newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.objectList)
     classes = [ProgSpec, clsNames]
     return[tagStore, buildSpecs, classes, newClasses]
 
-def AddToObjectFromText(ProgSpec, clsNames, inputStr):
+def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
     macroDefs = {} # This var is not used here. If needed, make it an argument.
     inputStr = comment_remover(inputStr)
     #print '####################\n',inputStr, "\n######################^\n\n\n"
-
+    errLevl=logLvl(); cdlog(errLevl, 'Parsing: '+description)
     progSpec.saveTextToErrFile(inputStr)
     # (map of classes, array of objectNames, string to parse)
-    results = objectList.parseString(inputStr, parseAll = True)
-    #print '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n',results,'%%%%%%%%%%%%%%%%%%%%%%'
+    try:
+        results = objectList.parseString(inputStr, parseAll = True)
+    except ParseException , pe:
+        cdErr( "Error parsing generated class {}: {}".format(description, pe))
+    cdlog(errLevl, 'Completed parsing: '+description)
     extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0])

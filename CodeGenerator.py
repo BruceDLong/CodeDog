@@ -933,11 +933,11 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             #### FUNC HEADER: for both decl and defn.
             inheritMode='normal'
             # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
-            print "CHECKING CLASS:", fieldID+'...   ',
+ #           print "CHECKING CLASS:", fieldID+'...   \n',
             if not progSpec.doesParentClassImplementFunc(classes, className, fieldID) and progSpec.doesChildClassImplementFunc(classes, className, fieldID):
                 inheritMode = 'virtual'
                 print "        VIRTUAL:", fieldID
-            print '.'
+ #           print '.'
             if currentObjName in progSpec.classHeirarchyInfo:
                 classRelationData = progSpec.classHeirarchyInfo[currentObjName]
                 if (not 'parentClass' in classRelationData or ('parentClass' in classRelationData and classRelationData['parentClass']==None)) and 'childClasses' in classRelationData and len(classRelationData['childClasses'])>0:
@@ -945,7 +945,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
              #       else: print "            MISS-MATCH:", className, fieldID
                 if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
                     parentClassName = classRelationData['parentClass']
-                    if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldName):
+                    if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldID):
                         inheritMode = 'override'
 
             abstractFunction = not('value' in field) or field['value']==None
@@ -954,7 +954,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
             #### FUNC BODY
             if abstractFunction: # i.e., if no function body is given.
-                cdlog(5, "Function "+className+":::"+fieldName+" has no implementation defined.")
+                cdlog(5, "Function "+fieldID+" has no implementation defined.")
             else:
                 extraCodeForTopOfFuntion = xlator['extraCodeForTopOfFuntion'](argList)
                 verbatimText=field['value'][1]
@@ -1060,12 +1060,13 @@ def fetchListOfStructsToImplement(classes, tags):
 def codeOneStruct(classes, tags, constFieldCode, className, xlator):
     global currentObjName
     global structsNeedingModification
-    cdlog(2, "COMPILING: " + className)
     classRecord=None
     constsEnums=""  # this isn't used. Remove it?
     dependancies=[]
     currentObjName=className
     if((xlator['doesLangHaveGlobals']=='False') or className != 'GLOBAL'): # and ('enumList' not in classes[0][className]['typeSpec'])):
+
+        cdlog(1, "   Class: " + className)
         classDef = progSpec.findSpecOf(classes[0], className, 'struct')
         classAttrs=progSpec.searchATagStore(classDef['tags'], 'attrs')
         if(classAttrs): classAttrs=classAttrs[0]+' '
@@ -1116,7 +1117,7 @@ def codeAllNonGlobalStructs(classes, tags, xlator):
         if(needsFlagsVar):
             CodeDogAddendumsAcc += 'me uint64: flags\n'
         if CodeDogAddendumsAcc!='':
-            codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(className,  CodeDogAddendumsAcc ))
+            codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(className,  CodeDogAddendumsAcc ), 'Flags and Modes for class '+className)
         currentObjName=''
 
     # Write the class
@@ -1192,7 +1193,7 @@ def integrateLibraries(tags, tagsFromLibFiles, libID, xlator):
     global libDeinitCodeAcc
     global buildStr_libs
     headerStr = ''
-    cdlog(2, 'Integrating {}'.format(libID))
+    #cdlog(2, 'Integrating {}'.format(libID))
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
 
     if 'initCode'   in tagsFromLibFiles[libID]: libInitCodeAcc  += tagsFromLibFiles[libID]['initCode']
@@ -1210,10 +1211,10 @@ def integrateLibraries(tags, tagsFromLibFiles, libID, xlator):
     return headerStr
 
 def connectLibraries(classes, tags, libsToUse, xlator):
-    cdlog(1, "Attaching chosen libraries...")
     headerStr = ''
     tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
     for libFilename in libsToUse:
+        cdlog(1, 'ATTACHING LIBRARY: '+libFilename)
         headerStr += integrateLibraries(tags, tagsFromLibFiles, libFilename, xlator)
         macroDefs= {}
         [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], tags[0], macroDefs)
@@ -1223,7 +1224,6 @@ def connectLibraries(classes, tags, libsToUse, xlator):
 def addGLOBALSpecialCode(classes, tags, xlator):
     global libInitCodeAcc
     global libDeinitCodeAcc
-    cdlog(1, "Attaching Language Specific Code...")
     xlator['addGLOBALSpecialCode'](classes, tags, xlator)
 
     initCode=''; deinitCode=''
@@ -1243,7 +1243,7 @@ struct GLOBAL{
         %s
     }
 }""" % (initCode, deinitCode)
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'GLobal special code (initialize(), deinitialize())' )
 
 def generateBuildSpecificMainFunctionality(classes, tags, xlator):
     xlator['generateMainFunctionality'](classes, tags)
@@ -1308,7 +1308,7 @@ def clearBuild():
     globalFuncDefnAcc=''
     ForwardDeclsForGlobalFuncs='\n\n// Forward Declarations of global functions\n'
 
-def generate(classes, tags, libsToUse, xlator):
+def generate(classes, tags, libsToUse, langName, xlator):
     clearBuild()
     global globalClassStore
     global globalTagStore
@@ -1320,15 +1320,16 @@ def generate(classes, tags, libsToUse, xlator):
     globalTagStore=tags[0]
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(classes, tags, libsToUse, xlator)
-    addGLOBALSpecialCode(classes, tags, xlator)
 
-    cdlog(1, "Generating Top-level (e.g., main())...")
+    cdlog(0, "\n##############  G E N E R A T I N G   "+langName+"   C O D E . . .")
+    cdlog(1, "GENERATING: Top-level (e.g., main())...")
+    addGLOBALSpecialCode(classes, tags, xlator)
     testMode = progSpec.fetchTagValue(tags, 'testMode')
     if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program"  or testMode == "makeTests"  or testMode == "runTests":
         generateBuildSpecificMainFunctionality(classes, tags, xlator)
 
     codeStructureCommands(classes, tags, xlator)
-    cdlog(1, "Generating Classes...")
+    cdlog(1, "GENERATING: Classes...")
     fileSpecs=codeAllNonGlobalStructs(classes, tags, xlator)
     topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
@@ -1367,14 +1368,14 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
         if topTags!={}: TopLevelTags=topTags
         else: TopLevelTags=newTags
     else: TopLevelTags=globalTagStore
-    cdlog(1, "Applying Patterns...")
+    #if len(classes[1])>0: cdlog(1, "Applying Patterns...")
     itemsToDelete=[]; count=0;
     for item in classes[1]:
         if item[0]=='!':
             itemsToDelete.append(count)
             pattName=item[1:]
             patternArgs=classes[0][pattName]['parameters']
-            cdlog(2, "PATTERN: {}: {}".format( pattName, patternArgs))
+            cdlog(1, "APPLYING PATTERN: {}: {}".format( pattName, patternArgs))
 
             if   pattName=='makeGUI':            pattern_GUI_Toolkit.apply(classes, TopLevelTags)
             elif pattName=='ManageCmdLine':      pattern_ManageCmdLine.apply(classes, newTags)
@@ -1390,8 +1391,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
 def loadProgSpecFromDogFile(filename, ProgSpec, objNames, topLvlTags, macroDefs):
     codeDogStr = progSpec.stringFromFile(filename)
     codeDogStr = libraryMngr.processIncludedFiles(codeDogStr)
-  #  cdlog(0, "######################   P A R S I N G   F I L E  ({})".format(filename))
-    [tagStore, buildSpecs, FileClasses, newClasses] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs)
+    [tagStore, buildSpecs, FileClasses, newClasses] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs, filename)
     GroomTags(tagStore)
     ScanAndApplyPatterns(FileClasses, topLvlTags, tagStore)
     stringStructs.CreateStructsForStringModels(FileClasses, newClasses, tagStore)

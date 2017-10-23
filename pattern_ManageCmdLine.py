@@ -83,4 +83,4 @@ def apply(classes, tags):
 
     """
 
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], code )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], code , 'Pattern: Manage Command-Line')
