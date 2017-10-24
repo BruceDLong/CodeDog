@@ -516,9 +516,12 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return "_ " + argFieldName + ": " + argType
 
-def codeStructText(classAttrs, parentClass, classInherits, classImplements, structName, structCode):
-    tagAttrs=''
-    if classAttrs and classAttrs[0]=='@': tagAttrs=classAttrs+' '
+def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode):
+    classAttrs=''
+    if len(attrList)>0:
+        for attr in attrList:
+            if attr[0]=='@': classAttrs += attr+' '
+
     if parentClass != "":
         parentClass=': '+parentClass+' '
     if classImplements!=None:
@@ -531,7 +534,7 @@ def codeStructText(classAttrs, parentClass, classInherits, classImplements, stru
             count += 1
     if classInherits!=None:
         parentClass=': ' + classInherits[0][0]
-    S= "\n"+tagAttrs+"class "+structName+parentClass+"{\n" + structCode + '};\n'
+    S= "\n"+classAttrs+"class "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls=""
     return([S,forwardDecls])
 
