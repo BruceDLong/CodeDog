@@ -936,12 +936,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             #print "CHECKING CLASS:", fieldID+'...   \n',
             if not progSpec.doesParentClassImplementFunc(classes, className, fieldID) and progSpec.doesChildClassImplementFunc(classes, className, fieldID):
                 inheritMode = 'virtual'
-                print "        VIRTUAL:", fieldID
             if currentObjName in progSpec.classHeirarchyInfo:
                 classRelationData = progSpec.classHeirarchyInfo[currentObjName]
-                if (not 'parentClass' in classRelationData or ('parentClass' in classRelationData and classRelationData['parentClass']==None)) and 'childClasses' in classRelationData and len(classRelationData['childClasses'])>0:
-                    if inheritMode == 'virtual': print "MATCH:", className, fieldID
-                    else: print "            MISS-MATCH:", className, fieldID
                 if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
                     parentClassName = classRelationData['parentClass']
                     if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldID):

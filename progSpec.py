@@ -207,24 +207,24 @@ def addField(objSpecs, className, stateType, packedField):
     global ModifierCommands
     thisName=packedField['fieldName']
     fieldID = packedField['fieldID']
-    if stateType=='model': taggedObjectName='%'+className
-    elif stateType=='string': taggedObjectName='$'+className
-    else: taggedObjectName = className
-    #print "ADDING FIELD:", taggedObjectName, stateType, fieldID
-    if doesClassDirectlyImlementThisField(objSpecs, className, fieldID):
-        cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
-        return
-
-    # Don't override flags and modes in derived classes
     typeSpec = packedField['typeSpec']
     fieldType = typeSpec['fieldType']
-    if fieldType=='flag' or fieldType=='mode':
-        if fieldIDAlreadyDeclaredInStruct(objSpecs, className, fieldID):
-            cdlog(2, "Note: The field '" + fieldID + "' already exists. Not overriding")
+    if stateType=='model': taggedClassName='%'+className
+    elif stateType=='string': taggedClassName='$'+className
+    else: taggedClassName = className
+    if stateType!='string':
+        if doesClassDirectlyImlementThisField(objSpecs, className, fieldID):
+            cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
             return
 
-    objSpecs[taggedObjectName]["fields"].append(packedField)
-    objSpecs[taggedObjectName]["vFields"]=None
+        # Don't override flags and modes in derived classes
+        if fieldType=='flag' or fieldType=='mode':
+            if fieldIDAlreadyDeclaredInStruct(objSpecs, className, fieldID):
+                cdlog(2, "Note: The field '" + fieldID + "' already exists. Not overriding")
+                return
+
+    objSpecs[taggedClassName]["fields"].append(packedField)
+    objSpecs[taggedClassName]["vFields"]=None
 
 
     # if me or we and type is struct add unique dependancy
@@ -234,15 +234,15 @@ def addField(objSpecs, className, stateType, packedField):
 
 
     if MarkItems:
-        if not (taggedObjectName in MarkedObjects):
-            MarkedFields.append([taggedObjectName, fieldID])
+        if not (taggedClassName in MarkedObjects):
+            MarkedFields.append([taggedClassName, fieldID])
 
     if 'optionalTags' in packedField:
         for tag in packedField['optionalTags']:
             if tag[:7]=='COMMAND':
                 newCommand = packedField['optionalTags'][tag]
                 commandArg = tag[8:]
-                addModifierCommand(objSpecs, taggedObjectName, fieldID, commandArg, newCommand)
+                addModifierCommand(objSpecs, taggedClassName, fieldID, commandArg, newCommand)
 
 def markStructAuto(objSpecs, className):
     objSpecs[className]["autoGen"]='yes'

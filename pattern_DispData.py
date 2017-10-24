@@ -21,7 +21,7 @@ def displayTextFieldAction(label, fieldName, field, fldCat):
     elif(fldCat=='string' or fldCat=='char'):
         valStr= "'"+fieldName+"'"
     elif(fldCat=='flag' or fldCat=='bool'):
-        valStr='dispBool('+fieldName+'!=0)'
+        valStr='dispBool(('+fieldName+')!=0)'
     elif(fldCat=='mode'):
         valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
     elif(fldCat=='struct'):
@@ -104,7 +104,7 @@ def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skip
         elif(fldCat=='string' or fldCat=='char'):
             valStr= '"\'"+'+'data.'+fieldName+'+"\'"'
         elif(fldCat=='flag' or fldCat=='bool'):
-            valStr='dispBool(data.'+fieldName+'!=0)'
+            valStr='dispBool((data.'+fieldName+')!=0)'
         elif(fldCat=='mode'):
             valStr= fieldRef+'Strings[data.'+fieldName+'] '
 
