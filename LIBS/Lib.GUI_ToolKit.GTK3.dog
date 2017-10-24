@@ -141,7 +141,7 @@ struct GUI{
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
-    me void: create_TopSubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_TopSubMenu(%1, %2)%>
+    me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
@@ -319,17 +319,6 @@ me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
   return SubMenu;
 } %>
 
-me GUI_menu: create_TopSubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
-    GtkWidget *SubMenu = gtk_menu_new ();
-    GtkWidget *menuitem;
-
-    menuitem = gtk_menu_item_new_with_label (label.data());
-    gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
-    gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
-    gtk_widget_show (menuitem);
-
-  return SubMenu;
-} %>
 
 me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
 me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>

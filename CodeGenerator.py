@@ -936,6 +936,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             #print "CHECKING CLASS:", fieldID+'...   \n',
             if not progSpec.doesParentClassImplementFunc(classes, className, fieldID) and progSpec.doesChildClassImplementFunc(classes, className, fieldID):
                 inheritMode = 'virtual'
+                print "        VIRTUAL:", fieldID
             if currentObjName in progSpec.classHeirarchyInfo:
                 classRelationData = progSpec.classHeirarchyInfo[currentObjName]
                 if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
@@ -943,8 +944,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldID):
                         inheritMode = 'override'
 
-            abstractFunction = not('value' in field) or field['value']==None
+            abstractFunction = (not('value' in field) or field['value']==None)
             if abstractFunction: inheritMode = 'pure-virtual'
+            if inheritMode!='normal': print "INHERIT-MODE:", inheritMode, fieldID
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
 
             #### FUNC BODY
