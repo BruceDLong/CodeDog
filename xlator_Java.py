@@ -494,9 +494,12 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeStructText(classAttrs, parentClass, classInherits, classImplements, structName, structCode):
-    # TODO: make next line so it is not hard coded
-    if (structName == 'widget'): classAttrs = "abstract "
+def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode):
+    classAttrs=''
+    if len(attrList)>0:
+        for attr in attrList:
+            if attr=='abstract': classAttrs += 'abstract '
+
     if (parentClass != ""):
         parentClass = parentClass.replace('::', '_')
         parentClass=' extends ' +parentClass
@@ -513,6 +516,7 @@ def codeStructText(classAttrs, parentClass, classInherits, classImplements, stru
             count += 1
         #print "parentClass:: " , parentClass
     S= "\n"+classAttrs +"class "+structName+''+parentClass+" {\n" + structCode + '};\n'
+    #if classAttrs!='': print "ATTRIBUTE:", classAttrs +"class "+structName+''+parentClass
     return([S,""])
 
 

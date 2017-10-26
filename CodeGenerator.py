@@ -948,8 +948,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldID):
                         inheritMode = 'override'
 
-            abstractFunction = not('value' in field) or field['value']==None
-            if abstractFunction: inheritMode = 'pure-virtual'
+            abstractFunction = (not('value' in field) or field['value']==None)
+            if abstractFunction:
+                inheritMode = 'pure-virtual'
+                classes[0][className]['attrList'].append('abstract')
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
 
             #### FUNC BODY
@@ -1087,8 +1089,11 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         objsRefed={}
         [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
         structCode+= constFieldCode
+
+        attrList = classDef['attrList']
+        attrList.append(classAttrs)  # TODO: should append all items from classAttrs
         LangFormOfObjName = progSpec.flattenObjectName(className)
-        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classAttrs, parentClass, classInherits, classImplements, LangFormOfObjName, structCode)
+        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode)
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
     currentObjName=''
     return classRecord
