@@ -1091,7 +1091,7 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         structCode+= constFieldCode
 
         attrList = classDef['attrList']
-        attrList.append(classAttrs)  # TODO: should append all items from classAttrs
+        if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
         LangFormOfObjName = progSpec.flattenObjectName(className)
         [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode)
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
