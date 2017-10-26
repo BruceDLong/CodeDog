@@ -153,7 +153,7 @@ struct EParser{
             withEach SRec in SSet.stateRecs:{
                 their production: prod <- grammar[SRec.productionID]
                 print("    ")
-                SRec.printSREC(this)
+                SRec.printSREC(self)
                 print("\n")
             }
         }
@@ -215,7 +215,7 @@ struct EParser{
                 if(thisIsTopLevelItem) {lastTopLevelItem <- newStateRecPtr}
                 SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
   /-              print("############ ADDING To SLOT ", crntPos, ":")
-  /-              newStateRecPtr.print(this)
+  /-              newStateRecPtr.print(self)
                 applyPartialCompletion(newStateRecPtr)
   /-              print("\n")
             } /-else {print("  Unknown ProductionType:", ProdType, "\n")}
@@ -433,7 +433,7 @@ struct EParser{
 
     void: applyPartialCompletion(our stateRec: backSRec) <- {
         their production: backProd <- grammar[backSRec.productionID]
-      /-  print('                Checking New Item :') backSRec.print(this)
+      /-  print('                Checking New Item :') backSRec.print(self)
         me int: prodTypeFlag <- backProd.prodType
         me int: backSRecSeqPos <- backSRec.SeqPosition
         withEach SRec in SRecsToComplete:{
@@ -525,7 +525,7 @@ struct EParser{
                 me bool  : isTerminal <- (prod.isTerm != 0)
                 me int: seqPos <- SRec.SeqPosition
      /-           print('    PROCESSING-RECORD #%i`SRec_key`:')
-    /-            SRec.printSREC(this)
+    /-            SRec.printSREC(self)
                 if(ruleIsDone(isTerminal, seqPos, ProdType, prod.items.size())){             /- COMPLETER
                     complete(SRec, crntPos)  /- Notate that SEQ is finished, actually add parent's follower.
                 }else{
@@ -596,7 +596,7 @@ struct EParser{
         me int: ProdType <- 0
         me int: isTerminal<- 0
         me int: seqPos<- 0
-      /-  lastSRec.printSREC(this) print("\n----\n")
+      /-  lastSRec.printSREC(self) print("\n----\n")
 
         withEach SRec in lastSSet.stateRecs:{
             lastSRec <- SRec
@@ -608,10 +608,10 @@ struct EParser{
  /-               print("Passed\n")  /- !!!!!!!!!!!!!!!!!!! This tells when the parse passes.
                 return(false)
             }
-            /-SRec.printSREC(this)
+            /-SRec.printSREC(self)
         }
 
-        /-lastSRec.printSREC(this) print("\n----\n", seqPos)
+        /-lastSRec.printSREC(self) print("\n----\n", seqPos)
         if(isTerminal!=0){
             if(seqPos==0){
                 errorMesg <- "Expected '" + prod.constStr + "'"
@@ -636,7 +636,7 @@ struct EParser{
         me int: seqPos <- crntRec.SeqPosition
         me int: prodID <- crntRec.productionID
         their production: Prod <- grammar[prodID]
- /-       print(indent+'grammar[%i`prodID`] = ')  crntRec.printSREC(this)  print("\n", indent, "\n")
+ /-       print(indent+'grammar[%i`prodID`] = ')  crntRec.printSREC(self)  print("\n", indent, "\n")
         if(Prod.isTerm){
         } else if(seqPos>0){
             withEach subItem in Backward RANGE(0 .. seqPos):{
@@ -646,7 +646,7 @@ struct EParser{
                 crntRec.child <- resolve(ped.cause, indent+"|    ")
                 ped.pred.next <- crntRec
                 crntRec <- ped.pred
- /-               print(indent, "############# ") crntRec.print(this) print("\n")
+ /-               print(indent, "############# ") crntRec.print(self) print("\n")
             }
         }
  /-       if(indent==""){  print("\nRESOLVED\n\n") }
@@ -656,7 +656,7 @@ struct EParser{
     void: docPos(me int: indent, our stateRec: SRec, me string: tag) <- {
         withEach i in RANGE(0 .. indent):{ print("|    ")}
         if(SRec){
-            SRec.printSREC(this)
+            SRec.printSREC(self)
         } else {print(" NULL ")}
         print("  \t", tag, "\n")
     }
@@ -670,7 +670,7 @@ struct EParser{
             }
             print("'\n")
         } else {
-           /- print(indent) SRec.printSREC(this) print("\n")
+           /- print(indent) SRec.printSREC(self) print("\n")
             if(SRec.child){
                 displayParse(SRec.child, indent+"   | ")
             }

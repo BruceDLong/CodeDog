@@ -410,8 +410,10 @@ def adjustConditional(S2, conditionType):
         conditionType='bool'
     return [S2, conditionType]
 
-def codeSpecialFunc(segSpec, objsRefed, xlator):
+def codeSpecialReference(segSpec, objsRefed, xlator):
     S=''
+    retType='void'   # default to void
+    retOwner='me'    # default to 'me'
     funcName=segSpec[0]
     if(len(segSpec)>2):
         paramList=segSpec[2]
@@ -444,14 +446,19 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
             if len(paramList)==0: S='break'
         elif(funcName=='return'):
             if len(paramList)==0: S+='return'
+        elif(funcName=='self'):
+            if len(paramList)==0: S+='this'
         elif(funcName=='toStr'):
             if len(paramList)==1:
                 [S2, argType]=xlator['codeExpr'](P[0][0], objsRefed, xlator)
                 S2=derefPtr(S2, argType)
                 S+='String.valueOf('+S2+')'
-        #elif(funcName==''):
+                retType='string'
+    else: # Not parameters, i.e., not a function
+        if(funcName=='self'):
+            S+='this'
 
-    return S
+    return [S, retOwner, retType]
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if LorR_Val=='RVAL':
@@ -819,7 +826,7 @@ def fetchXlators():
     xlators['LanguageSpecificDecorations']  = LanguageSpecificDecorations
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
-    xlators['codeSpecialFunc']              = codeSpecialFunc
+    xlators['codeSpecialReference']         = codeSpecialReference
     xlators['checkIfSpecialAssignmentFormIsNeeded'] = checkIfSpecialAssignmentFormIsNeeded
     xlators['getConstIntFieldStr']          = getConstIntFieldStr
     xlators['codeStructText']               = codeStructText
@@ -848,5 +855,6 @@ def fetchXlators():
     xlators['codeCopyConstructor']          = codeCopyConstructor
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
+    xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
 
     return(xlators)

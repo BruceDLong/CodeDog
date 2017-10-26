@@ -107,7 +107,9 @@ def codeIteratorOperation(itrCommand):
 
 
 def recodeStringFunctions(name, typeSpec):
-    if name == "size": name = "characters.count"
+    if name == "size":
+        name = "characters.count"
+        typeSpec['fieldType']='int'
     elif name == "subStr":
         typeSpec['codeConverter']='substring(from:%1, to:%2)'
     #elif name == "append": name='append'
@@ -122,6 +124,20 @@ def LanguageSpecificDecorations(S, segType, owner):
     if segType!= 0 and progSpec.typeIsPointer(segType) and owner!='itr' and S!='NULL' and S[-1]!=']':
         S+='!'  # optionals
     return S
+
+def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
+    LHS_KeyType = progSpec.varTypeKeyWord(lhsTypeSpec)
+    RHS_KeyType = progSpec.varTypeKeyWord(rhsTypeSpec)
+    if LHS_KeyType == 'uint64' and RHS_KeyType=='int':
+        RHScodeStr = 'UInt64('+RHScodeStr+')'
+    elif LHS_KeyType == 'double' and RHS_KeyType=='int':
+        RHScodeStr = 'Double('+RHScodeStr+')'
+    elif LHS_KeyType == 'int' and RHS_KeyType=='char':
+        RHScodeStr = RHScodeStr+'.asciiValue'
+    #elif LHS_KeyType != RHS_KeyType and LHS_KeyType != "mode" and LHS_KeyType != "flag" and RHS_KeyType != "ERROR" and LHS_KeyType != "struct" and LHS_KeyType != "bool":
+    #    print"checkForTypeCastNeed: ", LHS_KeyType, RHS_KeyType, '        ',  RHScodeStr
+
+    return RHScodeStr
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     # Returns left and right text decorations for RHS of function arguments, return values, etc.
@@ -439,8 +455,10 @@ def adjustConditional(S2, conditionType):
         conditionType='bool'
     return [S2, conditionType]
 
-def codeSpecialFunc(segSpec, objsRefed, xlator):
+def codeSpecialReference(segSpec, objsRefed, xlator):
     S=''
+    retType='void'   # default to void
+    retOwner='me'    # default to 'me'
     funcName=segSpec[0]
     if(len(segSpec)>2):  # If there are arguments...
         paramList=segSpec[2]
@@ -456,7 +474,7 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
         elif(funcName=='AllocateOrClear'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
             if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
-            if(varName[-1]=='!'): varNameUnRefed=varName[:-1]  # Remove a reference. I would be better to do this in codeExpr but may take some work.
+            if(varName[-1]=='!'): varNameUnRefed=varName[:-1]  # Remove a reference. It would be better to do this in codeExpr but may take some work.
             else: varNameUnRefed=varName
             S+='if('+varNameUnRefed+' != nil){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
@@ -491,10 +509,13 @@ def codeSpecialFunc(segSpec, objsRefed, xlator):
                 [S2, argType]=xlator['codeExpr'](P[0][0], objsRefed, xlator)
                 S2=derefPtr(S2, argType)
                 S+='to_string('+S2+')'
-        #elif(funcName==''):
+                returnType='string'
+    else: # Not parameters, i.e., not a function
+        if(funcName=='self'):
+            S+='self'
 
 
-    return S
+    return [S, retOwner, retType]
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     return ""
@@ -572,6 +593,15 @@ extension String {
         return Character(self.substring(from: at, length:1))
     }
 }
+
+extension Character {
+    var asciiValue: Int {
+        get {
+            let s = String(self).unicodeScalars
+            return Int(s[s.startIndex].value)
+        }
+    }
+}
     """
 
     decl ="string readFileAsString(string filename)"
@@ -614,14 +644,16 @@ def variableDefaultValueString(fieldType):
         fieldValueText = fieldType +'()'
     return fieldValueText
 
-def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
+def codeNewVarStr (globalClassStore, lhsTypeSpec, varName, fieldDef, indent, objsRefed, xlator):
     assignValue=''
-    [fieldType, fieldAttrs]           = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
-    [allocFieldType, allocFieldAttrs] = xlator['convertType'](globalClassStore, typeSpec, 'alloc', xlator)
+    [fieldType, fieldAttrs]           = xlator['convertType'](globalClassStore, lhsTypeSpec, 'var', xlator)
+    [allocFieldType, allocFieldAttrs] = xlator['convertType'](globalClassStore, lhsTypeSpec, 'alloc', xlator)
     if(fieldDef['value']):
-        [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, xlator)
-        [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
-        assignValue = " = " + leftMod+S2+rightMod
+        [RHS, rhsTypeSpec]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, xlator)
+        [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)
+        RHS = leftMod+RHS+rightMod
+        RHS = xlator['checkForTypeCastNeed'](lhsTypeSpec, rhsTypeSpec, RHS)
+        assignValue = " = " + RHS
 
     else: # If no value was given:
         if fieldDef['paramList'] != None:
@@ -642,6 +674,7 @@ def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRe
     if (assignValue == ""):
         varDeclareStr= "var " + varName + ": "+ fieldType + " = " + allocFieldType + '()'
     else:
+
         varDeclareStr= "var " + varName + ": "+ fieldType + assignValue
 
     return(varDeclareStr)
@@ -899,7 +932,7 @@ def fetchXlators():
     xlators['LanguageSpecificDecorations']  = LanguageSpecificDecorations
     xlators['getCodeAllocStr']              = getCodeAllocStr
     xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
-    xlators['codeSpecialFunc']              = codeSpecialFunc
+    xlators['codeSpecialReference']         = codeSpecialReference
     xlators['checkIfSpecialAssignmentFormIsNeeded'] = checkIfSpecialAssignmentFormIsNeeded
     xlators['getConstIntFieldStr']          = getConstIntFieldStr
     xlators['codeStructText']               = codeStructText
@@ -928,4 +961,5 @@ def fetchXlators():
     xlators['codeCopyConstructor']          = codeCopyConstructor
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
+    xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     return(xlators)
