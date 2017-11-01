@@ -45,10 +45,21 @@ localVarsAllocated = []   # Format: [varName, typeSpec]
 localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
 
-def CheckBuiltinItems(itemName):
-    if(itemName=='print'):  return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
-    if(itemName=='return'): return [{'owner':'const', 'fieldType':'void', 'arraySpec':None,'argList':None}, 'BUILTIN']
-    if(itemName=='sqrt'):   return [{'owner':'const', 'fieldType':'number', 'arraySpec':None,'argList':None}, 'BUILTIN']
+def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
+    # Handle print, return, break, etc.
+    itemName=segSpec[0]
+    [code, retOwner, retType]=xlator['codeSpecialReference'](segSpec, objsRefed, xlator)
+    if code == '': return None
+    if itemName=='self':
+        classDef =  progSpec.findSpecOf(globalClassStore[0], currentObjName, "struct")
+        if 'typeSpec' in classDef:
+            typeSpecOut = classDef['typeSpec']
+            typeSpecOut['owner']='their' # Does this work correctly on containers?
+            print "SHOULDNT MATCH:", typeSpecOut['owner'],classDef['typeSpec']['owner']
+        else: typeSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None,'argList':None}
+    else: typeSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None,'argList':None}
+    typeSpecOut['codeConverter']=code
+    return [typeSpecOut, 'BUILTIN']
 
 
 def CheckFunctionsLocalVarArgList(itemName):
@@ -64,19 +75,20 @@ def CheckFunctionsLocalVarArgList(itemName):
             return [item[1], 'FUNCARG']
     return 0
 
-def CheckObjectVars(objName, itemName):
+def CheckObjectVars(objName, itemName, xlator):
     #print "Searching",objName,"for", itemName
     ObjectDef =  progSpec.findSpecOf(globalClassStore[0], objName, "struct")
     if ObjectDef==None:
         #print "WARNING: Model def not found."
         return 0
     retVal=None
+
     wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, objName)
     if(wrappedTypeSpec != None):
         actualFieldType=wrappedTypeSpec['fieldType']
         if not isinstance(actualFieldType, basestring):
             #print "'actualFieldType", wrappedTypeSpec, actualFieldType, objName
-            retVal = CheckObjectVars(actualFieldType[0], itemName)
+            retVal = CheckObjectVars(actualFieldType[0], itemName, xlator)
             if retVal!=0:
                 retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
                 return retVal
@@ -84,7 +96,8 @@ def CheckObjectVars(objName, itemName):
             if 'fieldName' in wrappedTypeSpec and wrappedTypeSpec['fieldName']==itemName:
                 #print "WRAPPED FIELDNAME:", itemName
                 return wrappedTypeSpec
-            else: return 0
+            else:
+                return 0
 
     callableStructFields=[]
     progSpec.populateCallableStructFields(callableStructFields, globalClassStore, objName)
@@ -108,23 +121,22 @@ def staticVarNamePrefix(staticVarName, xlator):
             return refedClass + xlator['ObjConnector']
     return ''
 
-def fetchItemsTypeSpec(itemName, xlator):
+def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     global currentObjName
     global StaticMemberVars
-    #print "FETCHING:", itemName, currentObjName
+    #print "FETCHING TYPESPEC OF:", currentObjName+'::'+itemName
     RefType=""
-    REF=CheckBuiltinItems(itemName)
-    if (REF):
-        RefType="BUILTIN"
+    itemName=segSpec[0]
+    REF=CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator)
+    if (REF): # RefType="BUILTIN"
         return REF
     else:
         REF=CheckFunctionsLocalVarArgList(itemName)
-        if (REF):
-            RefType="LOCAL" # could also return FUNCARG
+        if (REF): # RefType="LOCAL" or "FUNCARG"
             return REF
         else:
-            REF=CheckObjectVars(currentObjName, itemName)
+            REF=CheckObjectVars(currentObjName, itemName, xlator)
             if (REF):
                 RefType="OBJVAR"
                 if(currentObjName=='GLOBAL'): RefType="GLOBAL"
@@ -132,7 +144,7 @@ def fetchItemsTypeSpec(itemName, xlator):
                     RefOwner = progSpec.getTypeSpecOwner(REF['typeSpec'])
                     if RefOwner=='we': RefType = "STATIC:" + currentObjName + xlator['ObjConnector']
             else:
-                REF=CheckObjectVars("GLOBAL", itemName)
+                REF=CheckObjectVars("GLOBAL", itemName, xlator)
                 if (REF):
                     RefType="GLOBAL"
                 else:
@@ -245,8 +257,8 @@ def convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator):
 ################################  C o d e   E x p r e s s i o n s
 
 def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, xlator):
-    # if TypeSpecIn has 'dummyType', this is a non-member and the first segment of the reference.
-    #print "CODENAMESEG:", segSpec, "TSI:",typeSpecIn
+    # if TypeSpecIn has 'dummyType', this is a non-member (or self) and the first segment of the reference.
+    # return example: ['getData()', <typeSpec>, <alternate form>, 'OBJVAR']
     S=''
     S_alt=''
     SRC=''
@@ -285,11 +297,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxType, typeSpecOut, paramList, xlator)
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
-        tmp=xlator['codeSpecialFunc'](segSpec, objsRefed, xlator)   # Check if it's a special function like 'print'
-        if(tmp!=''):
-            S=tmp
-            return [S, '', None, '']
-        [typeSpecOut, SRC]=fetchItemsTypeSpec(name, xlator)
+        [typeSpecOut, SRC]=fetchItemsTypeSpec(segSpec, objsRefed, xlator) # Possibly adds a codeConversion to typeSpecOut
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
@@ -304,14 +312,12 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         else:
             if fType!='string':
-                typeSpecOut=CheckObjectVars(fType, name)
+                typeSpecOut=CheckObjectVars(fType, name, xlator)
                 if typeSpecOut!=0:
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
-                   #print "TESTTYPES:", fType, progSpec.fieldTypeKeyword(typeSpecOut['fieldType'])
                 else:
                     print "WARNING: TYPESPEC IS ", typeSpecOut, "for ", fType + '::' + name
-                    #print "typeSpecIn: ", typeSpecIn
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
@@ -363,6 +369,8 @@ def codeUnknownNameSeg(segSpec, objsRefed, xlator):
     return S;
 
 def codeItemRef(name, LorR_Val, objsRefed, xlator):
+    # Returns information related to a variable, function, etc.
+    # NOTE: objsRefed is used to accumulate a list of which vars are read and/or written by a function.
     global currentObjName
     previousSegName = ""
     previousTypeSpec = ""
@@ -520,10 +528,6 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
 
 def codeFuncCall(funcCallSpec, objsRefed, xlator):
     S=''
-   # if(len(funcCallSpec)==1):
-       # tmpStr=xlator['codeSpecialFunc'](funcCallSpec)
-       # if(tmpStr != ''):
-       #     return tmpStr
     [codeStr, typeSpec, LHSParentType, AltIDXFormat]=codeItemRef(funcCallSpec, 'RVAL', objsRefed, xlator)
     S+=codeStr
     return S
@@ -584,21 +588,22 @@ def codeAction(action, indent, objsRefed, xlator):
         cdlog(5, "PREASSIGN:" + str(action['LHS']))
         # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
         cdlog(5, "Pre-assignment... ")
-        [codeStr, typeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', objsRefed, xlator)
+        [codeStr, lhsTypeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', objsRefed, xlator)
         assignTag = action['assignTag']
         LHS = codeStr
         cdlog(5, "Assignment: {}".format(LHS))
-        [S2, rhsType]=xlator['codeExpr'](action['RHS'][0], objsRefed, xlator)
-        #print "LHS / RHS:", LHS, ' / ', S2, typeSpec, rhsType
-        [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](typeSpec, rhsType, assignTag)
+        [S2, rhsTypeSpec]=xlator['codeExpr'](action['RHS'][0], objsRefed, xlator)
+        #print "LHS / RHS:", LHS, ' / ', S2, lhsTypeSpec, rhsTypeSpec
+        [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](lhsTypeSpec, rhsTypeSpec, assignTag)
         LHS = LHS_leftMod+LHS+LHS_rightMod
         RHS = RHS_leftMod+S2+RHS_rightMod
-        cdlog(5, "Assignment: {} = {}".format(LHS, RHS))
-        if not isinstance (typeSpec, dict):
+        cdlog(5, "Assignment: {} = {}".format(lhsTypeSpec, rhsTypeSpec))
+        RHS = xlator['checkForTypeCastNeed'](lhsTypeSpec, rhsTypeSpec, RHS)
+        if not isinstance (lhsTypeSpec, dict):
             #TODO: make test case
-            print 'Problem: typeSpec is', typeSpec, '\n';
+            print 'Problem: lhsTypeSpec is', lhsTypeSpec, '\n';
             LHS_FieldType='string'
-        else: LHS_FieldType=typeSpec['fieldType']
+        else: LHS_FieldType=lhsTypeSpec['fieldType']
 
         if assignTag == '':
             if LHS_FieldType=='flag':
@@ -606,7 +611,7 @@ def codeAction(action, indent, objsRefed, xlator):
                 LHS_Left=LHS[0:divPoint+1] # The '+1' makes this get the connector too. e.g. '.' or '->'
                 bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask, xlator)
-                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
+                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsTypeSpec)
                 actionText=indent + setBits
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
             elif LHS_FieldType=='mode':
@@ -618,12 +623,12 @@ def codeAction(action, indent, objsRefed, xlator):
                     LHS_Left=LHS[0:divPoint+1]
                     bitMask =LHS[divPoint+1:]
                 prefix = staticVarNamePrefix(bitMask+"Mask", xlator)
-                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType)
+                setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsTypeSpec)
                 actionText=indent + setBits
             else:
                 if AltIDXFormat!=None:
                     # Handle special forms of assignment such as LVal(idx, RVal)
-                    actionText = xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsType)
+                    actionText = xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsTypeSpec)
                     if actionText != '': actionText = indent+actionText
                 if actionText=="":
                     # Handle the normal assignment case
@@ -1086,7 +1091,7 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         structCode+= constFieldCode
 
         attrList = classDef['attrList']
-        attrList.append(classAttrs)  # TODO: should append all items from classAttrs
+        if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
         LangFormOfObjName = progSpec.flattenObjectName(className)
         [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode)
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]

@@ -609,12 +609,25 @@ def innerTypeCategory(fieldType):
 
 def varsTypeCategory(typeSpec):
     if isinstance(typeSpec, basestring): fieldType=typeSpec
-    else: fieldType=typeSpec['fieldType']
+    else:
+        fieldType=typeSpec['fieldType']
     return innerTypeCategory(fieldType)
 
 def fieldsTypeCategory(typeSpec):
     if 'argList' in typeSpec and typeSpec['argList']!=None: return 'func'
     return varsTypeCategory(typeSpec)
+
+def varTypeKeyWord(typeSpec):
+    if isinstance(typeSpec, basestring): varType=typeSpec
+    elif typeSpec==None or typeSpec==0: varType='ERROR'
+    elif typeSpec['owner']=='PTR': varType='PTR'
+    else:
+        #print"varTypeKeyWord: ", typeSpec
+        varType = varsTypeCategory(typeSpec)
+        if varType =='int':
+            varType = fieldTypeKeyword(typeSpec)
+    return varType
+
 
 def flattenObjectName(objName):
     return objName.replace('::', '_')
