@@ -1,4 +1,4 @@
-#/////////////////  Use this pattern to write dump() or drawData() to display each member of the model for a struct.
+#/////////////////  Use this pattern to write to_string() or drawData() to display each member of the model for a struct.
 
 import progSpec
 import codeDogParser
@@ -11,10 +11,61 @@ classesEncoded={}
 
 class structProcessor:
 
-#---------------------------------------------------------------  TEXT GEN
-class toString:
+    def addGlobalCode(self, classes):
+        pass
 
-    def displayTextFieldAction(label, fieldName, field, fldCat):
+    def resetVars(self):
+        pass
+
+    def processField(self, fieldName, field, fldCat):
+        pass
+
+    def addTheNewClasses(self, classes, className, modelRef):
+        pass
+
+    def processStruct(self, classes, className, dispMode):
+        global classesEncoded
+        cdlog(2, "ENCODING "+dispMode+": "+ className)
+        classesEncoded[className]=1
+        self.resetVars()
+        modelRef = progSpec.findSpecOf(classes[0], className, 'model')
+        if modelRef==None:
+            cdErr('To write a processing function for class "'+className+'" a model is needed but is not found.')
+        ### Write code for each field
+        for field in modelRef['fields']:
+            fldCat=progSpec.fieldsTypeCategory(field['typeSpec'])
+            fieldName=field['fieldName']
+            self.processField(fieldName, field, fldCat)
+        self.addTheNewClasses(classes, className, modelRef)
+
+#---------------------------------------------------------------  WRITE: .asProteus()
+class structAsProteusWriter(structProcessor):
+
+    asProteusGlobalsWritten=False
+
+    def addGlobalCode(self, classes):
+        if structAsProteusWriter.asProteusGlobalsWritten: return
+        else: structAsProteusWriter.asProteusGlobalsWritten=True
+        CODE='''
+struct GLOBAL{
+    me string: dispFieldAsText(me string: label, me int:labelLen) <- {
+        me string: S <- ""
+        me int: labelSize<-label.size()
+        withEach count in RANGE(0..labelLen):{
+            if (count<labelSize){S <- S+label[count]}
+            else if(count==labelSize){ S <- S+":"}
+            else {S <- S+" "}
+        }
+        return(S)
+    }
+}
+    '''
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global function used by asProteus()')
+
+    def resetVars(self):
+        self.textFuncBody=''
+
+    def toProteusTextFieldAction(self, label, fieldName, field, fldCat):
         global classesToProcess
         global classesEncoded
         valStr=''
@@ -27,7 +78,7 @@ class toString:
         elif(fldCat=='mode'):
             valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
         elif(fldCat=='struct'):
-            valStr=fieldName+'.dump(indent+"|   ")\n'
+            valStr=fieldName+'.to_string(indent+"|   ")\n'
 
             structTypeName=field['typeSpec']['fieldType'][0]
             if not(structTypeName in classesEncoded):
@@ -40,7 +91,7 @@ class toString:
             S="    "+'print(indent, dispFieldAsText("'+label+'", 15), '+valStr+', "\\n")\n'
         return S
 
-    def encodeFieldText(fieldName, field, fldCat):
+    def processField(self, fieldName, field, fldCat):
         S=""
         if fldCat=='func': return ''
         typeSpec=field['typeSpec']
@@ -50,17 +101,239 @@ class toString:
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             calcdName=fieldName+'["+toString(_item_key)+"]'
             S+="    withEach _item in "+fieldName+":{\n"
-            S+="        "+displayTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
-        else: S+=displayTextFieldAction(fieldName, fieldName, field, fldCat)
+            S+="        "+self.toProteusTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
+        else: S+=self.toProteusTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
             T ="    if("+fieldName+' == NULL){print('+'indent, dispFieldAsText("'+fieldName+'", 15)+"NULL\\n")}\n'
             T+="    else{\n    "+S+"    }\n"
             S=T
         return S
 
-#---------------------------------------------------------------  DRAW GEN
-class drawStruct:
-    def getDashDeclAndUpdateCode(owner, fieldLabel, fieldRef, fieldName, field, skipFlags, indent):
+    def addTheNewClasses(self, classes, className, modelRef):
+        self.textFuncBody = '    me string: S <- S + "{\\n"\n' + self.textFuncBody + '    S <- S + "\\n"\n'
+        Code="me void: asProteus(me string:indent) <- {\n"+self.textFuncBody+"    }\n"
+        Code=progSpec.wrapFieldListInObjectDef(className, Code)
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.asProteus()')
+
+#---------------------------------------------------------------  WRITE: .toString()
+
+class structToStringWriter(structProcessor):
+
+    toStringGlobalsWritten=False
+
+    def addGlobalCode(self, classes):
+        if structToStringWriter.toStringGlobalsWritten: return
+        else: structToStringWriter.toStringGlobalsWritten=True
+        CODE='''
+struct GLOBAL{
+    me string: dispFieldAsText(me string: label, me int:labelLen) <- {
+        me string: S <- ""
+        me int: labelSize<-label.size()
+        withEach count in RANGE(0..labelLen):{
+            if (count<labelSize){S <- S+label[count]}
+            else if(count==labelSize){ S <- S+":"}
+            else {S <- S+" "}
+        }
+        return(S)
+    }
+}
+    '''
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global function used by toString()')
+
+    def resetVars(self):
+        self.textFuncBody=''
+
+    def displayTextFieldAction(self, label, fieldName, field, fldCat):
+        global classesToProcess
+        global classesEncoded
+        valStr=''
+        if(fldCat=='int' or fldCat=='double'):
+            valStr='toString('+fieldName+')'
+        elif(fldCat=='string' or fldCat=='char'):
+            valStr= "'"+fieldName+"'"
+        elif(fldCat=='flag' or fldCat=='bool'):
+            valStr='dispBool(('+fieldName+')!=0)'
+        elif(fldCat=='mode'):
+            valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
+        elif(fldCat=='struct'):
+            valStr=fieldName+'.to_string(indent+"|   ")\n'
+
+            structTypeName=field['typeSpec']['fieldType'][0]
+            if not(structTypeName in classesEncoded):
+                #print "TO ENDODE:", structTypeName
+                classesEncoded[structTypeName]=1
+                classesToProcess.append(structTypeName)
+        if(fldCat=='struct'):
+            S="    "+'print(indent, dispFieldAsText("'+label+'", 15), "\\n")\n    '+valStr+'\n    print("\\n")\n'
+        else:
+            S="    "+'print(indent, dispFieldAsText("'+label+'", 15), '+valStr+', "\\n")\n'
+        return S
+
+    def processField(self, fieldName, field, fldCat):
+        S=""
+        if fldCat=='func': return ''
+        typeSpec=field['typeSpec']
+        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+            innerFieldType=typeSpec['fieldType']
+            #print "ARRAYSPEC:",innerFieldType, field
+            fldCatInner=progSpec.innerTypeCategory(innerFieldType)
+            calcdName=fieldName+'["+toString(_item_key)+"]'
+            S+="    withEach _item in "+fieldName+":{\n"
+            S+="        "+self.displayTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
+        else: S+=self.displayTextFieldAction(fieldName, fieldName, field, fldCat)
+        if progSpec.typeIsPointer(typeSpec):
+            T ="    if("+fieldName+' == NULL){print('+'indent, dispFieldAsText("'+fieldName+'", 15)+"NULL\\n")}\n'
+            T+="    else{\n    "+S+"    }\n"
+            S=T
+        return S
+
+    def addTheNewClasses(self, classes, className, modelRef):
+        Code="me void: to_string(me string:indent) <- {\n"+self.textFuncBody+"    }\n"
+        Code=progSpec.wrapFieldListInObjectDef(className, Code)
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.toString()')
+
+#---------------------------------------------------------------  WRITE CODE TO DRAW STRUCTS
+
+class structDrawingWriter(structProcessor):
+
+    structDrawGlobalsWritten=False
+
+    def addGlobalCode(self, classes):
+        if structDrawingWriter.structDrawGlobalsWritten: return
+        else: structDrawingWriter.structDrawGlobalsWritten=True
+        CODE='''
+struct GLOBAL{
+    const int: fontSize <- 10
+
+    me bool: isNull(me string: value) <- {
+        if(value=="0" or value=="''" or value=="Size:0" or value=="NULL" or value=="false"){return(true)}
+        else{return(false)}
+    }
+}
+    '''
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global functions to draw structs')
+
+    def resetVars(self):
+        [self.structTextAcc, self.updateFuncTextAcc, self.drawFuncTextAcc, self.setPosFuncTextAcc, self.handleClicksFuncTextAcc, self.handleClicksFuncTxtAcc2] = ['', '', '', '', '', '']
+        self.updateFuncTextPart2Acc=''; self.drawFuncTextPart2Acc=''
+
+    def processField(self, fieldName, field, fldCat):
+        [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText] = self.getDashDeclAndUpdateCode(
+            'me', '"'+fieldName+'"', fieldName, fieldName, field, 'skipNone', '    ')
+        self.structTextAcc     += structText
+        self.updateFuncTextAcc += updateFuncText
+        self.drawFuncTextAcc   += drawFuncText
+        self.setPosFuncTextAcc += setPosFuncText
+        self.handleClicksFuncTextAcc += handleClicksFuncText
+
+    def addTheNewClasses(self, classes, className, modelRef):
+        self.setPosFuncTextAcc += '\n        y <- y+5'+'\n        height <- y-posY'+'\n        me int:depX <- posX+width+40\n'
+        countOfRefs=0
+        for field in modelRef['fields']:
+            typeSpec=field['typeSpec']
+            fldCat=progSpec.fieldsTypeCategory(typeSpec)
+            if fldCat=='func': continue
+            if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
+                fieldName=field['fieldName']
+                declSymbolStr='    '
+                if(countOfRefs==0):declSymbolStr+='me string: '
+                countOfRefs+=1
+                [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText] = self.getDashDeclAndUpdateCode(
+                    'our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
+                self.structTextAcc += structText
+                tempFuncText = updateFuncText
+                updateFuncText = declSymbolStr+'mySymbol <- data.'+fieldName+'.mySymbol(data.'+fieldName+')\n'
+                updateFuncText += (  '    if(data.'+fieldName+' != NULL){\n'+
+                                    '        if(!dashBoard.dependentIsRegistered(mySymbol)){'
+                                    '\n            Allocate('+fieldName+')\n'+
+                                    tempFuncText+
+                                    '\n            dashBoard.addDependent(mySymbol, '+fieldName+')'+
+                                    '\n        }\n    } else {'+fieldName+' <- NULL}\n')
+                self.updateFuncTextPart2Acc += updateFuncText
+                self.setPosFuncTextAcc      += '''
+    if(<fieldName> != NULL and !<fieldName>Ptr.refHidden){
+        <fieldName>.setPos(depX, extC, extC)
+        extC <- <fieldName>.extY + 40
+        extX <- max(extX, <fieldName>.extX)
+        extY <- max(extY, <fieldName>.extY)
+        me int: fromX<fieldName> <- <fieldName>Ptr.posX+135
+        me int: fromY<fieldName> <- <fieldName>Ptr.posY+12
+        me int: smallToX<fieldName> <- <fieldName>.posX
+        me int: largeToX<fieldName> <- <fieldName>.posX + <fieldName>.width
+        me int: smallToY<fieldName> <- <fieldName>.posY
+        me int: largeToY<fieldName> <- <fieldName>.posY + <fieldName>.height
+        our arrow:: Arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
+        dashBoard.decorations.pushLast(Arrow)
+    }
+'''.replace('<fieldName>', fieldName)
+                self.handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
+
+        Code='''
+struct display_'''+className+": inherits = 'dash' "+'''{
+    me dataField: header
+    me mode[headerOnly, fullDisplay, noZeros]: displayMode
+    their '''+className+''': data
+'''+self.structTextAcc+'''
+
+    void: update(me string: _label, me string: textValue, their '''+className+''': _Data) <- {
+        data <- _Data
+        header.update(90, 150, _label, textValue, false)
+        displayMode<-headerOnly
+'''+self.updateFuncTextAcc+'''
+
+'''+self.updateFuncTextPart2Acc+'''
+    }
+
+    void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        posX <- x;
+        posY <- y;
+        extC <- extCursor
+        isHidden<-false
+        header.setPos(x,y,extC)
+        y <- y+header.height
+        width <- header.width
+        height <- y-posY
+        extX <- header.extX
+        extY <- max(y, extC)
+        if(displayMode!=headerOnly){
+            x <- x+10    /- Indent fields in a struct
+'''+self.setPosFuncTextAcc+'''
+            width <- width+10
+        }
+    }
+
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        if(isHidden){return(false)}
+        me int: eventX <- event.x
+        me int: eventY <- event.y
+        if( header.isTouchingMe(eventX, eventY)){
+            if(displayMode==headerOnly){displayMode <- noZeros}
+            else if(displayMode==noZeros){displayMode <- fullDisplay}
+            else if(displayMode==fullDisplay){displayMode <- headerOnly}
+        } else {
+'''+self.handleClicksFuncTextAcc+'''
+        }
+
+'''+self.handleClicksFuncTxtAcc2+'''
+
+        return(true)
+    }
+
+    void: draw(me GUI_ctxt: cr) <- {
+        header.isHidden <- false
+        header.draw(cr)
+        if(displayMode!=headerOnly){
+'''+self.drawFuncTextAcc+'''
+            cr.rectangle(posX, posY, width, height)
+            cr.strokeNow()
+'''+self.drawFuncTextPart2Acc+'''
+        }
+    }
+}\n'''
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, 'display_'+className)
+
+    def getDashDeclAndUpdateCode(self, owner, fieldLabel, fieldRef, fieldName, field, skipFlags, indent):
         global classesToProcess
         global classesEncoded
         [structText, updateFuncText, setPosFuncText, drawFuncText, handleClicksFuncText]=['', '', '', '', '']
@@ -83,7 +356,7 @@ class drawStruct:
             newFieldRef=fieldName+'[_item_key]'
             newFieldLabel='"'+fieldName+'["+toString(_item_key)+"]"'
             updateFuncText+="\n        withEach _item in data."+fieldName+":{\n"
-            [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText]=getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '    ')
+            [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '    ')
             updateFuncText+=innerStructText+'\n        Allocate(newItem)\n'+innerUpdateFuncText
             updateFuncText+="\n        "+fieldName+'.updatePush(newItem)'
             updateFuncText+='\n        }\n'
@@ -128,233 +401,25 @@ class drawStruct:
         handleClicksFuncText = '            '+fieldName+'.primaryClick(event)'
         return [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]
 
-#---------------------------------------------------------------  DUMP MAKING CODE
-
-def EncodeDumpFunction(classes, className, dispMode):
-    global classesEncoded
-    cdlog(2, "ENCODING: "+ className)
-    classesEncoded[className]=1
-    [textFuncBody, structTextAcc, updateFuncTextAcc, drawFuncTextAcc, setPosFuncTextAcc, handleClicksFuncTextAcc, handleClicksFuncTxtAcc2] = ['', '', '', '', '', '', '']
-    updateFuncTextPart2Acc=''; drawFuncTextPart2Acc=''
-    modelRef = progSpec.findSpecOf(classes[0], className, 'model')
-    if modelRef==None:
-        cdErr('To write a dump function for class '+className+' a model is needed but is not found.')
-    ### Write code for each field
-    for field in modelRef['fields']:
-        fldCat=progSpec.fieldsTypeCategory(field['typeSpec'])
-        fieldName=field['fieldName']
-
-        if(dispMode=='text' or dispMode=='both'):
-            textFuncBody+=encodeFieldText(fieldName, field, fldCat)
-        if(dispMode=='draw' or dispMode=='both'):
-            [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode(
-                'me', '"'+fieldName+'"', fieldName, fieldName, field, 'skipNone', '    ')
-            structTextAcc     += structText
-            updateFuncTextAcc += updateFuncText
-            drawFuncTextAcc   += drawFuncText
-            setPosFuncTextAcc += setPosFuncText
-            handleClicksFuncTextAcc += handleClicksFuncText
-
-
-    if(dispMode=='text' or dispMode=='both'):
-        Code="me void: dump(me string:indent) <- {\n"+textFuncBody+"    }\n"
-        Code=progSpec.wrapFieldListInObjectDef(className, Code)
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.toString()')
-
-    if(dispMode=='draw' or dispMode=='both'):
-        setPosFuncTextAcc += '\n        y <- y+5'+'\n        height <- y-posY'+'\n        me int:depX <- posX+width+40\n'
-        countOfRefs=0
-        for field in modelRef['fields']:
-            typeSpec=field['typeSpec']
-            fldCat=progSpec.fieldsTypeCategory(typeSpec)
-            if fldCat=='func': continue
-            if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
-                fieldName=field['fieldName']
-                declSymbolStr='    '
-                if(countOfRefs==0):declSymbolStr+='me string: '
-                countOfRefs+=1
-                [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText]=getDashDeclAndUpdateCode(
-                    'our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
-                structTextAcc += structText
-                tempFuncText = updateFuncText
-                updateFuncText = declSymbolStr+'mySymbol <- data.'+fieldName+'.mySymbol(data.'+fieldName+')\n'
-                updateFuncText += (  '    if(data.'+fieldName+' != NULL){\n'+
-                                    '        if(!dashBoard.dependentIsRegistered(mySymbol)){'
-                                    '\n            Allocate('+fieldName+')\n'+
-                                    tempFuncText+
-                                    '\n            dashBoard.addDependent(mySymbol, '+fieldName+')'+
-                                    '\n        }\n    } else {'+fieldName+' <- NULL}\n')
-                updateFuncTextPart2Acc += updateFuncText
-                setPosFuncTextAcc      += '''
-    if(<fieldName> != NULL and !<fieldName>Ptr.refHidden){
-        <fieldName>.setPos(depX, extC, extC)
-        extC <- <fieldName>.extY + 40
-        extX <- max(extX, <fieldName>.extX)
-        extY <- max(extY, <fieldName>.extY)
-        me int: fromX<fieldName> <- <fieldName>Ptr.posX+135
-        me int: fromY<fieldName> <- <fieldName>Ptr.posY+12
-        me int: smallToX<fieldName> <- <fieldName>.posX
-        me int: largeToX<fieldName> <- <fieldName>.posX + <fieldName>.width
-        me int: smallToY<fieldName> <- <fieldName>.posY
-        me int: largeToY<fieldName> <- <fieldName>.posY + <fieldName>.height
-        our arrow:: Arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
-        dashBoard.decorations.pushLast(Arrow)
-    }
-'''.replace('<fieldName>', fieldName)
-                handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
-
-        Code='''
-struct display_'''+className+": inherits = 'dash' "+'''{
-    me dataField: header
-    me mode[headerOnly, fullDisplay, noZeros]: displayMode
-    their '''+className+''': data
-'''+structTextAcc+'''
-
-    void: update(me string: _label, me string: textValue, their '''+className+''': _Data) <- {
-        data <- _Data
-        header.update(90, 150, _label, textValue, false)
-        displayMode<-headerOnly
-'''+updateFuncTextAcc+'''
-
-'''+updateFuncTextPart2Acc+'''
-    }
-
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {
-        posX <- x;
-        posY <- y;
-        extC <- extCursor
-        isHidden<-false
-        header.setPos(x,y,extC)
-        y <- y+header.height
-        width <- header.width
-        height <- y-posY
-        extX <- header.extX
-        extY <- max(y, extC)
-        if(displayMode!=headerOnly){
-            x <- x+10    /- Indent fields in a struct
-'''+setPosFuncTextAcc+'''
-            width <- width+10
-        }
-    }
-
-
-    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        if(isHidden){return(false)}
-        me int: eventX <- event.x
-        me int: eventY <- event.y
-        if( header.isTouchingMe(eventX, eventY)){
-            if(displayMode==headerOnly){displayMode <- noZeros}
-            else if(displayMode==noZeros){displayMode <- fullDisplay}
-            else if(displayMode==fullDisplay){displayMode <- headerOnly}
-        } else {
-'''+handleClicksFuncTextAcc+'''
-        }
-
-'''+handleClicksFuncTxtAcc2+'''
-
-        return(true)
-    }
-
-    void: draw(me GUI_ctxt: cr) <- {
-        header.isHidden <- false
-        header.draw(cr)
-        if(displayMode!=headerOnly){
-'''+drawFuncTextAcc+'''
-            cr.rectangle(posX, posY, width, height)
-            cr.strokeNow()
-'''+drawFuncTextPart2Acc+'''
-        }
-    }
-}\n'''
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, 'display_'+className)
-
-class structProcessor:
-    addGlobalCode():
-        pass
-
-    processField(fieldName, field, fldCat):
-        pass
-
-    addTheNewClasses():
-        pass
-
-    processStruct(classes, className, dispMode):
-        global classesEncoded
-        cdlog(2, "ENCODING "+dispMide+": "+ className)
-        classesEncoded[className]=1
-        [textFuncBody, structTextAcc, updateFuncTextAcc, drawFuncTextAcc, setPosFuncTextAcc, handleClicksFuncTextAcc, handleClicksFuncTxtAcc2] = ['', '', '', '', '', '', '']
-        updateFuncTextPart2Acc=''; drawFuncTextPart2Acc=''
-        modelRef = progSpec.findSpecOf(classes[0], className, 'model')
-        if modelRef==None:
-            cdErr('To write a dump function for class '+className+' a model is needed but is not found.')
-        ### Write code for each field
-        for field in modelRef['fields']:
-            fldCat=progSpec.fieldsTypeCategory(field['typeSpec'])
-            fieldName=field['fieldName']
-            processField(fieldName, field, fldCat)
-        addTheNewClasses()
-
-class structToStringWriter(structProcessor):
-    addGlobalCode():
-        CODE+="""
-    me string: dispFieldAsText(me string: label, me int:labelLen) <- {
-        me string: S <- ""
-        me int: labelSize<-label.size()
-        withEach count in RANGE(0..labelLen):{
-            if (count<labelSize){S <- S+label[count]}
-            else if(count==labelSize){ S <- S+":"}
-            else {S <- S+" "}
-        }
-        return(S)
-    }
-    """
-
+#---------------------------------------------------------------------  MAIN APPLY CODE
 
 def apply(classes, tags, className, dispMode):
     if dispMode[:4]=='TAG_':
         dispModeTagName=dispMode[4:]
         dispMode=progSpec.fetchTagValue(tags, dispModeTagName)
-    if(dispMode!='none' and dispMode!='text' and dispMode!='draw' and dispMode!='both'):
+    if(dispMode!='none' and dispMode!='text' and dispMode!='draw' and dispMode!='Proteus'):
         cdErr('Invalid parameter for display mode in Code Data Display pattern: '+str(dispMode))
     if dispMode=='none': return
 
-    global classesToProcess=[]
-    CODE="""
-struct GLOBAL{
-    me string: dispBool(me bool: tf) <- {
-        if(tf){return("true")} else {return("false")}
-    }
-    """
-        if(dispMode=='text' or dispMode=='both'):
-            CODE+="""
-    me string: dispFieldAsText(me string: label, me int:labelLen) <- {
-        me string: S <- ""
-        me int: labelSize<-label.size()
-        withEach count in RANGE(0..labelLen):{
-            if (count<labelSize){S <- S+label[count]}
-            else if(count==labelSize){ S <- S+":"}
-            else {S <- S+" "}
-        }
-        return(S)
-    }
-    """
-        if(dispMode=='draw' or dispMode=='both'):
-            CODE+="""
-    const int: fontSize <- 10
+    global classesToProcess
+    classesToProcess=[className]
 
-    me bool: isNull(me string: value) <- {
-        if(value=="0" or value=="''" or value=="Size:0" or value=="NULL" or value=="false"){return(true)}
-        else{return(false)}
-    }
-    """
-        CODE+='}\n'
+    if(dispMode=='Proteus'):   processor = structAsProteusWriter()
+    if(dispMode=='text'):   processor = structToStringWriter()
+    elif(dispMode=='draw'): processor = structDrawingWriter()
+    processor.addGlobalCode(classes)
 
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global functions to draw classes')
-
-    classesToProcess.append(className)
     for classToEncode in classesToProcess:
-        if(dispMode=='text'):   processor = structToStringWriter()
-        elif(dispMode=='draw'): processor = writeCodeToDrawStructs()
         pattern_GenSymbols.apply(classes, {}, [classToEncode])      # Invoke the GenSymbols pattern
         processor.processStruct(classes, classToEncode, dispMode)
     return
