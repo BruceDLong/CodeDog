@@ -213,9 +213,15 @@ def addField(objSpecs, className, stateType, packedField):
     elif stateType=='string': taggedClassName='$'+className
     else: taggedClassName = className
     if stateType!='string':
-        if doesClassDirectlyImlementThisField(objSpecs, className, fieldID):
+        fieldIfExists = doesClassDirectlyImlementThisField(objSpecs, className, fieldID)
+        field=fieldIfExists
+        if fieldIfExists:
             cdlog(2, "Note: The field '" + fieldID + "' already exists. Not re-adding")
-            return
+            if not isinstance(fieldIfExists, dict): return
+            if not ('value' in field) or field['value']==None: return
+            if not ('value' in packedField)   or packedField['value']  ==None: return
+            if field['value']==packedField['value']: return
+            cdErr(fieldID+" is being contradictorily redefined.")
 
         # Don't override flags and modes in derived classes
         if fieldType=='flag' or fieldType=='mode':
@@ -386,7 +392,7 @@ def fieldDefIsInList(fieldList, fieldID):
             fieldIsAFunction = fieldIsFunction(typeSpec)
             if not fieldIsAFunction: return True
             if fieldIsAFunction and 'value' in field and field['value']!=None:       # AND, the function is defined
-                return True
+                return field
     return False
 
 def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
@@ -426,12 +432,14 @@ def doesClassDirectlyImlementThisField(objSpecs, structName, fieldID):
     #print '        ['+structName+']: ', fieldID
     modelSpec=findSpecOf(objSpecs, structName, 'model')
     if(modelSpec!=None):
-        if fieldDefIsInList(modelSpec["fields"], fieldID):
-            return True
+        fieldExists = fieldDefIsInList(modelSpec["fields"], fieldID)
+        if fieldExists:
+            return fieldExists
     structSpec=findSpecOf(objSpecs, structName, 'struct')
     if(structSpec!=None):
-        if fieldDefIsInList(structSpec["fields"], fieldID):
-            return True
+        fieldExists = fieldDefIsInList(structSpec["fields"], fieldID)
+        if fieldExists:
+            return fieldExists
     return False
 
 def doesClassFromListDirectlyImplementThisField(classes, structNameList, fieldID):

@@ -120,8 +120,10 @@ def LanguageSpecificDecorations(S, segType, owner):
 
 
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
-    #LHS_KeyType = progSpec.varTypeKeyWord(lhsTypeSpec)
-    #RHS_KeyType = progSpec.varTypeKeyWord(rhsTypeSpec)
+    #LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
+    #RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
+    #if LHS_KeyType == 'bool' and typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
+    #if LHS_KeyType == 'bool' and RHS_KeyType=='int'): return '(' + codeStr + ' != 0)'
     return codeStr
 
 def getTheDerefPtrMods(itemTypeSpec):

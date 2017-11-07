@@ -789,7 +789,7 @@ def codeActionSeq(actSeq, indent, objsRefed, xlator):
     for action in actSeq:
         actionText = codeAction(action, indent + '    ', objsRefed, xlator)
         actSeqText += actionText
-    actSeqText += '}\n'
+    actSeqText += indent + '}\n'
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
@@ -949,7 +949,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                         inheritMode = 'override'
 
             abstractFunction = (not('value' in field) or field['value']==None)
-            if abstractFunction:
+            if abstractFunction and not 'abstract' in classes[0][className]['attrList']:
                 inheritMode = 'pure-virtual'
                 classes[0][className]['attrList'].append('abstract')
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
@@ -1385,7 +1385,10 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
             if   pattName=='makeGUI':            pattern_GUI_Toolkit.apply(classes, TopLevelTags)
             elif pattName=='ManageCmdLine':      pattern_ManageCmdLine.apply(classes, newTags)
             elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, newTags, patternArgs[0])
-            elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
+            elif pattName=='codeModelDashes':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
+            elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'draw')
+            elif pattName=='codeModelToString':  pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'text')
+            elif pattName=='codeModelToProteus': pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'Proteus')
             elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, [newTags, topTags], patternArgs)
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1

@@ -687,7 +687,7 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     # TODO: make next line so it is not hard coded
-    if(Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI_ctxt" or convertedType == "GUI" or convertedType == "ourSubMenu" or convertedType == "HorizontalScrollView"or convertedType == "widget")):
+    if(Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI" or convertedType == "HorizontalScrollView"or convertedType == "widget"or convertedType == "GLOBAL")):
         #print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
@@ -770,19 +770,7 @@ def generateMainFunctionality(classes, tags):
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     Platform = progSpec.fetchTagValue(tags, 'Platform')
-    if Platform == 'Android':
-        GLOBAL_CODE="""
-    struct GLOBAL: attrs="public" inherits="Activity" {
-        me void: onCreate(me Bundle: savedInstanceState) <- {
-            super.onCreate(savedInstanceState)
-            GLOBAL.static_Global <- this
-            Allocate(thisApp)
-            initialize("")
-        }
-    }
-"""
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Android onCreate()')
-    else:
+    if Platform != 'Android':
         mainFuncCode="""
         me void: main( ) <- {
             initialize(String.join(" ", args))

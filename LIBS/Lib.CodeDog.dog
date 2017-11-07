@@ -4,6 +4,11 @@ requirements = [
     [require, CodeDog_implementation]
 ]
 
+struct GLOBAL{
+    me string: dispBool(me bool: tf) <- {
+        if(tf){return("true")} else {return("false")}
+    }
+}
 
 struct stringScanner{
     me string: S
