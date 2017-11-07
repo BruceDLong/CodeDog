@@ -789,7 +789,7 @@ def codeActionSeq(actSeq, indent, objsRefed, xlator):
     for action in actSeq:
         actionText = codeAction(action, indent + '    ', objsRefed, xlator)
         actSeqText += actionText
-    actSeqText += '}\n'
+    actSeqText += indent + '}\n'
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
@@ -949,7 +949,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                         inheritMode = 'override'
 
             abstractFunction = (not('value' in field) or field['value']==None)
-            if abstractFunction:
+            if abstractFunction and not 'abstract' in classes[0][className]['attrList']:
                 inheritMode = 'pure-virtual'
                 classes[0][className]['attrList'].append('abstract')
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)

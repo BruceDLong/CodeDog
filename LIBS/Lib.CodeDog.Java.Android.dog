@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides = [CodeDog_implementation]
     libFiles = []
-    headers  = [java.lang.String, java.io.*, java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.Calendar, java.util.Date, java.util.Map, java.util.TreeMap, java.util.ArrayList, java.util.Arrays, java.util.concurrent.*]
+    headers  = []
 }
 
 
@@ -16,15 +16,9 @@ LibDescription ={
     description = 'Built in routines for Java'
 }
 
-
-struct random{me Random: random}
 struct GLOBAL{
-    me x: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
-
     me string: getFilesDirAsString()<- <%{
         File file = GLOBAL.static_Global.getFilesDir();
         return file.getAbsolutePath();
     }%>
 }
-
-

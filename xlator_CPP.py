@@ -120,8 +120,10 @@ def LanguageSpecificDecorations(S, segType, owner):
 
 
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
-    #LHS_KeyType = progSpec.varTypeKeyWord(lhsTypeSpec)
-    #RHS_KeyType = progSpec.varTypeKeyWord(rhsTypeSpec)
+    #LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
+    #RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
+    #if LHS_KeyType == 'bool' and typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
+    #if LHS_KeyType == 'bool' and RHS_KeyType=='int'): return '(' + codeStr + ' != 0)'
     return codeStr
 
 def getTheDerefPtrMods(itemTypeSpec):
@@ -802,7 +804,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             objPrefix = progSpec.flattenObjectName(className) +'::'
             funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
         elif inheritMode=='pure-virtual':
-            print "PARMS: ", "'"+str(fieldName)+"'",  "'"+str(typeDefName)+"'", "'"+str(argListText)+"'"
+            #print "PARMS: ", "'"+str(fieldName)+"'",  "'"+str(typeDefName)+"'", "'"+str(argListText)+"'"
             structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
         else: cdErr("Invalid inherit mode found: "+inheritMode)
         if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]

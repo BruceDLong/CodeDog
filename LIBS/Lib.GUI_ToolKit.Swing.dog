@@ -6,16 +6,21 @@ requirements = [
 interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
-    headers =[java.awt.*, java.awt.event.*, java.awt.geom.*, javax.swing.*, java.awt.Font, java.awt.image.BufferedImage, java.awt.Graphics, java.awt.Graphics2D, javax.imageio.ImageIO, java.nio.file.Paths, java.awt.event.MouseAdapter, javax.swing.event.MouseInputAdapter, java.awt.event.MouseListener, java.awt.event.MouseEvent]
+    headers =[javax.swing.*, javax.imageio.ImageIO, java.nio.file.Paths,
+        java.awt.Graphics, java.awt.Graphics2D, java.awt.image.BufferedImage,
+        java.awt.*, java.awt.event.*, java.awt.geom.*, java.awt.Font,
+        java.awt.event.MouseAdapter, javax.swing.event.MouseInputAdapter, 
+        java.awt.event.MouseListener, java.awt.event.MouseEvent
+	]
 }
 
 LibDescription ={
-    useStatus='dynamic'
+    useStatus  ='dynamic'
     description='Swing is a GUI widget toolkit for Java '
-    features =[]
-    platforms=[]
-    bindings =[]
-    CPUs     =[]
+    features   =[]
+    platforms  =[]
+    bindings   =[]
+    CPUs       =[]
 }
 
 /-///////////////////////////////  STRUCT CONVERTERS
@@ -32,47 +37,41 @@ struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
 struct INK_Image{me BufferedImage: INK_Image}
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_ctxt{their JavaGUI_ctxt:GUI_ctxt}
+struct GUI_scalar{me int: GUI_scalar}
 
 /-///////////////////////////////  HANDLE EVENTS
 
 struct GUI_MouseEvent{
     their MouseEvent: GUI_MouseEvent
-  me uint: type
- /- GdkWindow *window;
- /- gint8 send_event;
- /- guint32 time;
-  me int: x() <- <%!getX()%>
-  me int: y <- <%!getY()%>
-  me uint: state
-  me uint: button
+    me uint: type
+    me int: x <- <%!getX()%>
+    me int: y <- <%!getY()%>
+    me uint: state
+    me uint: button
 }
 
-struct GUI_MotionEvent{their MouseEvent: GUI_MotionEvent}
+struct GUI_MotionEvent{
+    their MouseEvent: GUI_MotionEvent
+}
 
-struct GUI_ButtonEvent{their MouseEvent: GUI_ButtonEvent}
 struct GUI_ButtonEvent{
-  me uint: type
- /- GdkWindow *window;
- /- gint8 send_event;
- /- guint32 time;
-  me int: x <- <%!getX()%>
-  me int: y <- <%!getY()%>
-  me uint: state
-  me uint: button
+    their MouseEvent: GUI_ButtonEvent
+    me uint: type
+    me int: x <- <%!getX()%>
+    me int: y <- <%!getY()%>
+    me uint: state
+    me uint: button
 }
 
-struct GUI_PointerEvent{their MouseEvent: GUI_PointerEvent}
 struct GUI_PointerEvent{
-  me uint: type
- /- GdkWindow *window;
- /- gint8 send_event;
- /- guint32 time;
-  me int: x <- <%!getX()%>
-  me int: y <- <%!getY()%>
-
-  me uint: state
-  me uint: button
+    their MouseEvent: GUI_PointerEvent
+    me uint: type
+    me int: x <- <%!getX()%>
+    me int: y <- <%!getY()%>
+    me uint: state
+    me uint: button
 }
+
 /-///////////////////////////////  HANDLE LISTENERS
 struct MasterMouseListener: implements="MouseListener" {
     me void: mouseClicked(me GUI_MouseEvent: e)<-     {
@@ -192,13 +191,13 @@ struct GUI {
 
     me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%  {
         JMenu SubMenu = new JMenu(label);
-    ParentMenu.add(SubMenu);
+        ParentMenu.add(SubMenu);
         return(SubMenu);
     } %>
 
     me GUI_menu: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label) <- <%  {
         JMenu SubMenu = new JMenu(label);
-    ParentMenu.add(SubMenu);
+        ParentMenu.add(SubMenu);
         return(SubMenu);
     } %>
 }

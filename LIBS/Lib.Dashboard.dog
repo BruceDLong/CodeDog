@@ -240,8 +240,8 @@ struct listOfItems: inherits = 'dash' {
     }
 
    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        me int: eventX <- event.x
-        me int: eventY <- event.y
+        me GUI_scalar: eventX <- event.x
+        me GUI_scalar: eventY <- event.y
      /-   if(!isTouchingMe(eventX, eventY)){return(false)}
         if( header.isTouchingMe(eventX, eventY)){
             if(displayMode==headerOnly){displayMode <- fullDisplay; orientation <- vertical}
