@@ -494,8 +494,9 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode):
+def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
     classAttrs=''
+    Platform = progSpec.fetchTagValue(tags, 'Platform')
     if len(attrList)>0:
         for attr in attrList:
             if attr=='abstract': classAttrs += 'abstract '
@@ -507,7 +508,7 @@ def codeStructText(attrList, parentClass, classInherits, classImplements, struct
         parentClass=' extends ' + classInherits[0][0]
         #print "parentClass::: " , parentClass
     if classImplements!=None:
-        parentClass=' implements '
+        parentClass+=' implements '
         count =0
         for item in classImplements[0]:
             if count>0:
@@ -515,6 +516,8 @@ def codeStructText(attrList, parentClass, classInherits, classImplements, struct
             parentClass+= item
             count += 1
         #print "parentClass:: " , parentClass
+    if structName =="GLOBAL" and Platform == 'Android':
+        classAttrs = "public " + classAttrs
     S= "\n"+classAttrs +"class "+structName+''+parentClass+" {\n" + structCode + '};\n'
     #if classAttrs!='': print "ATTRIBUTE:", classAttrs +"class "+structName+''+parentClass
     return([S,""])

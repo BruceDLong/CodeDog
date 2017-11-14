@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
-    headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, 
+    headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
         android.widget.LinearLayout, android.widget.ScrollView, android.widget.HorizontalScrollView, 
         android.app.Activity, android.os.Bundle,
         android.util.Log, android.content.res.AssetManager, android.content.Context,
@@ -66,51 +66,61 @@ struct GUI_PointerEvent{
 }
 
 /-///////////////////////////////  HANDLE LISTENERS
-struct Android_eventDispatcher: implements ="View.OnTouchListener"{
+struct Android_eventDispatcher{
     their widget: topWidget
 
-    me bool: onTouch(me View: v, me MotionEvent: event) <- <%{
-        boolean returnVal = true;
-
+    me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
+	boolean returnVal = false;
+        
         switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
-            /-returnVal = GLOBAL.static_Global.thisApp.gui.pointerDown(cr, scrollX + eventX, scrollY + eventY);
-            return true;
+            GLOBAL.static_Global.setTitle("ACTION_DOWN!");
+            returnVal= true;
+            break;
         case MotionEvent.ACTION_MOVE:
-            /-returnVal = GLOBAL.static_Global.thisApp.gui.pointerMoved(cr, scrollX + eventX, scrollY + eventY);
+            returnVal= true;
             break;
         case MotionEvent.ACTION_UP:
-            /-returnVal = GLOBAL.static_Global.thisApp.gui.pointerUp();
+            GLOBAL.static_Global.setTitle("ACTION_UP!");
+            returnVal= true;
             break;
         case MotionEvent.ACTION_CANCEL:
-            /-
+            GLOBAL.static_Global.setTitle("ACTION_CANCEL!");
+            returnVal= true;
             break;
         case MotionEvent.ACTION_POINTER_DOWN:
-            /-
+            GLOBAL.static_Global.setTitle("ACTION_POINTER_DOWN!");
+            returnVal= true;
             break;
         case MotionEvent.ACTION_POINTER_UP:
-            /-
+            GLOBAL.static_Global.setTitle("ACTION_POINTER_UP!");
+            returnVal= true;
             break;
         default:
                 return false;
         }
 
-        /- Schedules a repaint.
-        if (returnVal == true){v.invalidate();}
         return returnVal;
     }%>
 
     me void: registerWidgetForEventDispatcher(me CanvasView: appWidget) <- <%{
-        appWidget.setOnTouchListener(appWidget.EventDispatcher);
+        /-appWidget.addOnTouchListener(onTouchListener);
+	/-appWidget.setOnTouchListener(GLOBAL.static_Global.EventDispatcher);
     } %>
 }
 
 /-///////////////////////////////  HANDLE GUI
-struct CanvasView: inherits="View" {
+struct CanvasView: inherits="View" implements="OnTouchListener"{
     me GUI_ctxt: cr
-    me Android_eventDispatcher: EventDispatcher
 
-    me none: CanvasView() <- <%{super(GLOBAL.static_Global);}%>
+    me none: CanvasView() <- <%{
+	super(GLOBAL.static_Global);
+	setOnTouchListener(this);
+    }%>
+    me bool: onTouch(me View: v, me MotionEvent: event) <- <%{
+	boolean retVal = GLOBAL.static_Global.EventDispatcher.dispatchPointerClickEvent(event);
+	return retVal;
+    }%>
     me void: onDraw(me Canvas: canvas) <- <%{
         super.onDraw(canvas);
         cr = new GUI_ctxt(canvas);
@@ -132,7 +142,7 @@ struct GUI : inherits="LinearLayout"{
 
     me none: GUI() <- <%{super(GLOBAL.static_Global);}%>
 
-    me ScrollView: newScrollingWindow() <- <%{
+    me ScrollView: newScrollingView() <- <%{
         ScrollView vScroller = new ScrollView(GLOBAL.static_Global);
         HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
         vScroller.addView(hScroller);
@@ -176,7 +186,7 @@ struct GUI : inherits="LinearLayout"{
         menu.items.pushLast(thisMenuItem)
     }
 
-    me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%  {
+    me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: text) <- <%  {
         ourSubMenu subMenu = new ourSubMenu(text);
         GLOBAL.static_Global.thisApp.menubar.items.add(subMenu);
         return(subMenu);
@@ -187,8 +197,8 @@ struct GUI : inherits="LinearLayout"{
 struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!setWidgetSize(%1, %2, %3)%>
-/-    me GUI_item: newScrollingWindow() <- <%!%Gnew JScrollPane()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%GGLOBAL.static_Global.thisApp.setWidgetSize(%1, %2, %3)%>
+    me GUI_item: newScrollingWindow() <- <%!%Ggui.newScrollingView()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggui.layoutArea.addView(%2)%>      /- dog file: gui.addToViewport(scroller, drawing_area)
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%1.setJMenuBar(%2)%>
@@ -277,10 +287,11 @@ struct GLOBAL: inherits="Activity"{
     me INK_Image[map string]: InkImgCache
     me long: ticksPerSec() <- <%!%G1000%>
     me widget: masterWidget
+    me Android_eventDispatcher: EventDispatcher
 
     me void: setMasterWidget(their widget: masterWid) <- {
 	GLOBAL.static_Global.masterWidget<-masterWid;
-	GLOBAL.static_Global.drawing_area.EventDispatcher.topWidget <- GLOBAL.static_Global.masterWidget
+	GLOBAL.static_Global.EventDispatcher.topWidget <- GLOBAL.static_Global.masterWidget
     }
 
     me void: close_window() <- {

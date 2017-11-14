@@ -515,7 +515,7 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode):
+def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
         parentClass=': public '+parentClass+' '

@@ -40,7 +40,7 @@ struct GUI{
 }
 
 struct GUI_ctxt {
-    me void: fetchAreaToBeDrawn(me GUI_rect: area)
+    /-me void: fetchAreaToBeDrawn(me GUI_rect: area)
     me void: reset()
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
     me void: setRGB (me double: red, me double: green, me double: blue)
