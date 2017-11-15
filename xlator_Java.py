@@ -577,6 +577,8 @@ def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRe
                 theParam=paramTypeList[0]['fieldType']
                 if not isinstance(theParam, basestring) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
+                elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
+                    assignValue = " = " + CPL
                 else: assignValue = " = new " + fieldType + CPL
             else: assignValue = " = new " + fieldType + CPL
         elif varTypeIsValueType(fieldType):
