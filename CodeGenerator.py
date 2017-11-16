@@ -76,7 +76,7 @@ def CheckFunctionsLocalVarArgList(itemName):
     return 0
 
 def CheckObjectVars(objName, itemName, xlator):
-    if itemName=='addPane': print "Searching",objName,"for", itemName
+    #print "Searching",objName,"for", itemName
     ObjectDef =  progSpec.findSpecOf(globalClassStore[0], objName, "struct")
     if ObjectDef==None:
         #print "WARNING: Model def not found."
@@ -96,15 +96,14 @@ def CheckObjectVars(objName, itemName, xlator):
             if 'fieldName' in wrappedTypeSpec and wrappedTypeSpec['fieldName']==itemName:
                 #print "WRAPPED FIELDNAME:", itemName
                 return wrappedTypeSpec
-#            else:
-#                return 0
+            else:
+                return 0
 
     callableStructFields=[]
     progSpec.populateCallableStructFields(callableStructFields, globalClassStore, objName)
     for field in callableStructFields:
         fieldName=field['fieldName']
         if fieldName==itemName:
-            if itemName=='addPane': print "     Searching",objName,"for", itemName, "  looking at:", fieldName, '::', field
             #print "Found", itemName
             return field
 
@@ -790,7 +789,7 @@ def codeActionSeq(actSeq, indent, objsRefed, xlator):
     for action in actSeq:
         actionText = codeAction(action, indent + '    ', objsRefed, xlator)
         actSeqText += actionText
-    actSeqText += '}\n'
+    actSeqText += indent + '}\n'
     localVarRecord=['','']
     while(localVarRecord[0] != 'STOP'):
         localVarRecord=localVarsAllocated.pop()
@@ -950,7 +949,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                         inheritMode = 'override'
 
             abstractFunction = (not('value' in field) or field['value']==None)
-            if abstractFunction:
+            if abstractFunction and not 'abstract' in classes[0][className]['attrList']:
                 inheritMode = 'pure-virtual'
                 classes[0][className]['attrList'].append('abstract')
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
@@ -1094,7 +1093,7 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         attrList = classDef['attrList']
         if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
         LangFormOfObjName = progSpec.flattenObjectName(className)
-        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classes, attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode)
+        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode)
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
     currentObjName=''
     return classRecord

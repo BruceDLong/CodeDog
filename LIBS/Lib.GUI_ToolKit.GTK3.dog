@@ -31,6 +31,7 @@ struct GUI_frame{their GtkWidget:GUI_frame}
 struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
+struct GUI_scalar{me int: GUI_scalar}
 
 struct GUI_storyBoard{
     their GtkWidget: GUI_storyBoard

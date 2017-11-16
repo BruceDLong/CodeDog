@@ -496,6 +496,7 @@ def codeArgText(argFieldName, argType, xlator):
 
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode):
     classAttrs=''
+    Platform = progSpec.fetchTagValue(tags, 'Platform')
     if len(attrList)>0:
         for attr in attrList:
             if attr=='abstract': classAttrs += 'abstract '
@@ -508,7 +509,7 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
         parentClass=' extends ' + classInherits[0][0]
         #print "parentClass::: " , parentClass
     if classImplements!=None:
-        parentClass=' implements '
+        parentClass+=' implements '
         count =0
         for item in classImplements[0]:
             if count>0:
@@ -516,6 +517,8 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
             parentClass+= item
             count += 1
         #print "parentClass:: " , parentClass
+    if structName =="GLOBAL" and Platform == 'Android':
+        classAttrs = "public " + classAttrs
     S= "\n"+classAttrs +"class "+structName+''+parentClass+" {\n" + structCode + '};\n'
     #if classAttrs!='': print "ATTRIBUTE:", classAttrs +"class "+structName+''+parentClass
     return([S,""])
@@ -575,6 +578,8 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
                 theParam=paramTypeList[0]['fieldType']
                 if not isinstance(theParam, basestring) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
+                elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
+                    assignValue = " = " + CPL
                 else: assignValue = " = new " + fieldType + CPL
             else: assignValue = " = new " + fieldType + CPL
         elif varTypeIsValueType(fieldType):
@@ -688,7 +693,7 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     # TODO: make next line so it is not hard coded
-    if(Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "SubMenu" or convertedType == "thisApp" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI_ctxt" or convertedType == "GUI" or convertedType == "ourSubMenu" or convertedType == "HorizontalScrollView"or convertedType == "widget")):
+    if(Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI" or convertedType == "HorizontalScrollView"or convertedType == "widget"or convertedType == "GLOBAL")):
         #print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
