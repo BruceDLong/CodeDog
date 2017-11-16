@@ -125,6 +125,5 @@ struct APP {
 
 }
 struct GLOBAL{
-    me GUI: gui_tk
     me APP: thisApp
 }

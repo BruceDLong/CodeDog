@@ -32,6 +32,11 @@ struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 
+struct GUI_storyBoard{
+    their GtkWidget: GUI_storyBoard
+    me void: addPane(their GUI_frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
+}
+
 /-///////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
@@ -115,7 +120,6 @@ struct GLOBAL{
 /-///////////////////////////////  HANDLE GUI
 struct GUI{
     their GtkApplication: app
-    their GtkWidget: window
 
     me uint32: GUI_Init() <- {
         app <- gtk_application_new (0, G_APPLICATION_FLAGS_NONE)
@@ -208,7 +212,6 @@ struct timeStringer{
 
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
-        me GUI: gui_tk
         me APP: thisApp
 
     /- TIME ROUTINES:
@@ -334,10 +337,9 @@ me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
 /--------------- Application areas
 their GtkWidget: window
-void: setMasterWidget(their widget: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
+void: setMasterWidget(their widget: masterWidget) <- {EventDispatcher.topWidget<-masterWidget}
 
 me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
-  /-  GtkWidget *window;
     GtkWidget *topBox;
 
     window = gtk_application_window_new (app);
@@ -370,8 +372,7 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     GtkWidget *frame;
     GtkWidget *appArea;
 
-    frame = gtk_frame_new (NULL);
-    gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
+    frame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
 
     /-EventDispatcher.registerWidgetForEventDispatcher();

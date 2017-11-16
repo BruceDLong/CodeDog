@@ -167,7 +167,3 @@ struct widget{
         scale <- Scale
     }
 }
-
-struct GLOBAL{
-    their widget: masterWidget   /-  The widget that will handle most events.
-}

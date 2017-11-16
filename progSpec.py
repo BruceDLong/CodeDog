@@ -499,6 +499,7 @@ def fieldIsFunction(typeSpec):
     return False
 
 def isWrappedType(objMap, structname):
+    # If type is not wrapped, return None, else return the wrapped typeSpec
     if not structname in objMap[0]:
         #print "Struct "+structname+" not found"
         return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
@@ -511,6 +512,18 @@ def isWrappedType(objMap, structname):
                 #print "isWrappedType: ", field['typeSpec']['argList'], structname
                 return field['typeSpec']
     return None
+
+def wrappedTypeIsPointer(classes, typeSpec, structName):
+    # like typeIsPointer() but also checks wrapped type
+    result = typeIsPointer(typeSpec)
+    if result==True: return True
+
+    baseType = isWrappedType(classes, structName)
+    if structName == 'GUI_storyBoard': print "UNWRAPPING:", structName
+    if(baseType==None): return result
+
+    exit(2)
+    return typeIsPointer(baseType)
 
 def createTypedefName(ItmType):
     if(isinstance(ItmType, basestring)):
@@ -531,6 +544,14 @@ def findSpecOf(objMap, structName, stateTypeWanted):
     elif stateTypeWanted=='string': structName='$'+structName
     if not structName in objMap: return None
     return objMap[structName]
+
+def unwrapClass(classes, structName):
+    baseType = isWrappedType(classes, structName)
+    if(baseType!=None):
+        baseType = baseType['fieldType']
+        if isinstance(baseType, basestring): return baseType
+        return baseType[0]
+    else: return structName
 
 def baseStructName(structName):
     colonIndex=structName.find('::')

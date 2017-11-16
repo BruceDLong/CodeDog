@@ -239,11 +239,9 @@ struct GLOBAL{
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
     me INK_Image[map string]: InkImgCache
     me long: ticksPerSec() <- <%!%G1000%>
-    me widget: masterWidget
 
-    me void: setMasterWidget(their widget: masterWid) <- {
-    GLOBAL.static_Global.masterWidget<-masterWid;
-    GLOBAL.static_Global.drawing_area.EventDispatcher.topWidget <- GLOBAL.static_Global.masterWidget
+    me void: setMasterWidget(their widget: masterWidget) <- {
+        GLOBAL.static_Global.drawing_area.EventDispatcher.topWidget <- masterWidget
     }
 
     me void: close_window() <- {
@@ -365,7 +363,7 @@ struct APP: inherits="LinearLayout" {
         gui.layoutArea.addView(GLOBAL.static_Global.drawing_area);
         GLOBAL.static_Global.drawing_area.setOnTouchListener(new Android_eventDispatcher());
         GLOBAL.static_Global.setMasterWidget(GLOBAL.static_Global.dashBoard);
-        GLOBAL.static_Global.drawing_area.setLayoutParams(new LayoutParams(GLOBAL.static_Global.masterWidget.width, GLOBAL.static_Global.masterWidget.height));
+        GLOBAL.static_Global.drawing_area.setLayoutParams(new LayoutParams(GLOBAL.static_Global.dashBoard.width, GLOBAL.static_Global.dashBoard.height));
         frame.addView(scroller);
     }%>
 

@@ -494,7 +494,7 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode):
+def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode):
     classAttrs=''
     if len(attrList)>0:
         for attr in attrList:
@@ -502,6 +502,7 @@ def codeStructText(attrList, parentClass, classInherits, classImplements, struct
 
     if (parentClass != ""):
         parentClass = parentClass.replace('::', '_')
+        parentClass = progSpec.unwrapClass(classes, structName)
         parentClass=' extends ' +parentClass
     elif classInherits!=None:
         parentClass=' extends ' + classInherits[0][0]
@@ -539,8 +540,8 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code' )
 
-def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
-    [fieldType, fieldAttrs] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
+def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
+    [fieldType, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', xlator)
     if isinstance(typeSpec['fieldType'], basestring) and typeSpec['arraySpec'] == None:
         if(fieldDef['value']):
             [S2, rhsType]=codeExpr(fieldDef['value'][0], objsRefed, xlator)
@@ -770,19 +771,7 @@ def generateMainFunctionality(classes, tags):
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     Platform = progSpec.fetchTagValue(tags, 'Platform')
-    if Platform == 'Android':
-        GLOBAL_CODE="""
-    struct GLOBAL: attrs="public" inherits="Activity" {
-        me void: onCreate(me Bundle: savedInstanceState) <- {
-            super.onCreate(savedInstanceState)
-            GLOBAL.static_Global <- this
-            Allocate(thisApp)
-            initialize("")
-        }
-    }
-"""
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Android onCreate()')
-    else:
+    if Platform != 'Android':
         mainFuncCode="""
         me void: main( ) <- {
             initialize(String.join(" ", args))

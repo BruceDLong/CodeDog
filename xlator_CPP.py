@@ -513,9 +513,10 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode):
+def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode):
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
+        parentClass = progSpec.unwrapClass(classes, structName)
         parentClass=': public '+parentClass+' '
         print "Warning: old style inheritance used: " , parentClass
     if classImplements!=None:
@@ -527,7 +528,7 @@ def codeStructText(attrList, parentClass, classInherits, classImplements, struct
         for item in classInherits[0]:
             if count>0:
                 parentClass+= ', '
-            parentClass+= item
+            parentClass+= progSpec.unwrapClass(classes, item)
             count += 1
         #print "parentClass" , parentClass
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
@@ -632,9 +633,9 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
+def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
     #TODO: make test case
-    [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
+    [fieldType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):

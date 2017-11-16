@@ -14,21 +14,22 @@ class structProcessor:
     def addGlobalCode(self, classes):
         pass
 
-    def resetVars(self):
+    def resetVars(self, modelRef):
         pass
 
     def processField(self, fieldName, field, fldCat):
         pass
 
-    def addTheNewClasses(self, classes, className, modelRef):
+    def addOrAmendClasses(self, classes, className, modelRef):
         pass
 
-    def processStruct(self, classes, className, dispMode):
+    def processStruct(self, classes, className):
         global classesEncoded
-        cdlog(2, "ENCODING "+dispMode+": "+ className)
         classesEncoded[className]=1
-        self.resetVars()
+        self.currentClassName = className
         modelRef = progSpec.findSpecOf(classes[0], className, 'model')
+        self.resetVars(modelRef)
+        self.currentModelSpec = modelRef
         if modelRef==None:
             cdErr('To write a processing function for class "'+className+'" a model is needed but is not found.')
         ### Write code for each field
@@ -36,7 +37,109 @@ class structProcessor:
             fldCat=progSpec.fieldsTypeCategory(field['typeSpec'])
             fieldName=field['fieldName']
             self.processField(fieldName, field, fldCat)
-        self.addTheNewClasses(classes, className, modelRef)
+        self.addOrAmendClasses(classes, className, modelRef)
+
+#---------------------------------------------------------------  WRITE: .asGUI()
+
+class GUI_FromStructWriter(structProcessor):
+
+    asProteusGlobalsWritten=False
+
+    def addGlobalCode(self, classes):
+        if structAsProteusWriter.asProteusGlobalsWritten: return
+        else: structAsProteusWriter.asProteusGlobalsWritten=True
+        CODE='''
+struct GLOBAL{
+
+}
+    '''
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global items for asGUI()')
+
+    def resetVars(self, modelRef):
+        print 'CLASS: ' + self.currentClassName
+        global classesToProcess
+        self.topLevelStruct = (classesToProcess[0]==self.currentClassName)
+        self.hasDraw = False
+        self.appAreaCode = ''
+        if(self.topLevelStruct and progSpec.isStruct(modelRef)):
+            self.storyBoardApp=True
+            self.appAreaCode += '    their GUI_storyBoard: appStoryBoard <- gtk_stack_new()\n'
+
+    def makeCodeToInitField(self, fieldName, field, fldCat, structTypeName):
+        S=''
+        if self.topLevelStruct: # Make a frame with sub-views or tabbed views, menu / navigation / settings, etc
+            if self.storyBoardApp:
+                # if isList: Make a loop to wrap the below item:
+                if fldCat=='struct':
+                    structWidgetsName = structTypeName+'Widget'
+                    S += fieldName+'.initFromString(s)'+'\n'
+                    #S += '    '+fieldName+'.initFromString(s)'+'\n'
+                    S += '    appStoryBoard.addPane('+fieldName+', "'+fieldName+'")\n'
+                else: return
+            else: return
+        else:
+            if   fldCat=='int':    S='getIntWidget()'
+            elif fldCat=='float':  S='getDecimalWidget()'
+            elif fldCat=='range':  S='getDecimalWidget(start, end)'
+            elif fldCat=='mode':   S='getEnumWidget(ListOfItems)'
+            elif fldCat=='string': S='getStringWidget()'
+            elif fldCat=='date':   S='getDateWidget()'
+            elif fldCat=='time':   S='getTimeWidget()'
+            elif fldCat=='bool':   S='getBoolWidget()'
+            elif fldCat=='struct': S += fieldName+'.initFromString(s)'+'\n'
+            else: print "ERROR: category is" + str(fldCat); return
+
+        GUI_Code='        '+fieldName+' <- '+S+'\n'
+
+        self.appAreaCode += GUI_Code
+
+
+    def processField(self, fieldName, field, fldCat):
+        global classesEncoded
+        print "    :"+fieldName
+        if fieldName=='settings':
+            # add settings
+            return
+        structTypeName=''
+        if fldCat=='struct': # Add a new class to be processed
+            structTypeName=field['typeSpec']['fieldType'][0]
+            if not(structTypeName in classesEncoded):
+                print "TO ENCODE:", structTypeName
+                classesEncoded[structTypeName]=1
+                classesToProcess.append(structTypeName)
+
+        S=""
+        if fldCat=='func': return ''
+        typeSpec=field['typeSpec']
+        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+            innerFieldType=typeSpec['fieldType']
+            #print "ARRAYSPEC:",innerFieldType, field
+            fldCatInner=progSpec.innerTypeCategory(innerFieldType)
+            calcdName=fieldName #+'["+toString(_item_key)+"]'
+       #     self.appAreaCode +="    withEach _item in "+fieldName+":{\n"
+       #     self.makeCodeToInitField(calcdName, '_item', field, fldCatInner)
+       #     self.appAreaCode +="    }\n"
+        else: self.makeCodeToInitField(fieldName, field, fldCat, structTypeName)
+        if progSpec.typeIsPointer(typeSpec):
+            T ="    if("+fieldName+' == NULL){print('+'indent, dispFieldAsText("'+fieldName+'", 15)+"NULL\\n")}\n'
+            T+="    else{\n    "+S+"    }\n"
+            S=T
+        return S
+
+
+    def addOrAmendClasses(self, classes, className, modelRef):
+        if self.topLevelStruct:  # Top Level class
+            declPrimaryVariable = '  me '+self.currentClassName+': primary\n'
+            self.appAreaCode = declPrimaryVariable+'  me void: createAppArea(me GUI_frame: frame) <- {\n    me string:s\n' + self.appAreaCode + '\n    gui.addToContainer (frame, appStoryBoard)\n  }\n'
+            CODE = progSpec.wrapFieldListInObjectDef('APP', self.appAreaCode)
+            codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'function appAreaCode()')
+            self.appAreaCode=''
+        else: # Not top level classes
+            print "MAKE CLASS:" + className
+            self.appAreaCode = self.appAreaCode = '  me GUI_item: initFromString(me string: S) <- {\n    me string:s\n' + self.appAreaCode + '\n  }\n'
+            CODE = 'struct '+className+": inherits='GUI_frame' {\n" + self.appAreaCode + '\n}\n'
+            codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, className)
+        print '==========================================================\n'+CODE
 
 #---------------------------------------------------------------  WRITE: .asProteus()
 class structAsProteusWriter(structProcessor):
@@ -62,7 +165,7 @@ struct GLOBAL{
     '''
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global function used by asProteus()')
 
-    def resetVars(self):
+    def resetVars(self, modelRef):
         self.textFuncBody=''
 
     def toProteusTextFieldAction(self, label, fieldName, field, fldCat):
@@ -109,7 +212,7 @@ struct GLOBAL{
             S=T
         return S
 
-    def addTheNewClasses(self, classes, className, modelRef):
+    def addOrAmendClasses(self, classes, className, modelRef):
         self.textFuncBody = '    me string: S <- S + "{\\n"\n' + self.textFuncBody + '    S <- S + "\\n"\n'
         Code="me void: asProteus(me string:indent) <- {\n"+self.textFuncBody+"    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
@@ -140,7 +243,7 @@ struct GLOBAL{
     '''
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global function used by toString()')
 
-    def resetVars(self):
+    def resetVars(self, modelRef):
         self.textFuncBody=''
 
     def displayTextFieldAction(self, label, fieldName, field, fldCat):
@@ -187,7 +290,7 @@ struct GLOBAL{
             S=T
         return S
 
-    def addTheNewClasses(self, classes, className, modelRef):
+    def addOrAmendClasses(self, classes, className, modelRef):
         Code="me void: to_string(me string:indent) <- {\n"+self.textFuncBody+"    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.toString()')
@@ -213,7 +316,7 @@ struct GLOBAL{
     '''
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global functions to draw structs')
 
-    def resetVars(self):
+    def resetVars(self, modelRef):
         [self.structTextAcc, self.updateFuncTextAcc, self.drawFuncTextAcc, self.setPosFuncTextAcc, self.handleClicksFuncTextAcc, self.handleClicksFuncTxtAcc2] = ['', '', '', '', '', '']
         self.updateFuncTextPart2Acc=''; self.drawFuncTextPart2Acc=''
 
@@ -226,7 +329,7 @@ struct GLOBAL{
         self.setPosFuncTextAcc += setPosFuncText
         self.handleClicksFuncTextAcc += handleClicksFuncText
 
-    def addTheNewClasses(self, classes, className, modelRef):
+    def addOrAmendClasses(self, classes, className, modelRef):
         self.setPosFuncTextAcc += '\n        y <- y+5'+'\n        height <- y-posY'+'\n        me int:depX <- posX+width+40\n'
         countOfRefs=0
         for field in modelRef['fields']:
@@ -407,19 +510,23 @@ def apply(classes, tags, className, dispMode):
     if dispMode[:4]=='TAG_':
         dispModeTagName=dispMode[4:]
         dispMode=progSpec.fetchTagValue(tags, dispModeTagName)
-    if(dispMode!='none' and dispMode!='text' and dispMode!='draw' and dispMode!='Proteus'):
+    if(dispMode!='none' and dispMode!='text' and dispMode!='draw' and dispMode!='Proteus' and dispMode!='toGUI'):
         cdErr('Invalid parameter for display mode in Code Data Display pattern: '+str(dispMode))
     if dispMode=='none': return
 
     global classesToProcess
     classesToProcess=[className]
+    global classesEncoded
+    classesEncoded={}
 
     if(dispMode=='Proteus'):   processor = structAsProteusWriter()
-    if(dispMode=='text'):   processor = structToStringWriter()
-    elif(dispMode=='draw'): processor = structDrawingWriter()
+    elif(dispMode=='text'):    processor = structToStringWriter()
+    elif(dispMode=='draw'):    processor = structDrawingWriter()
+    elif(dispMode=='toGUI'):   processor = GUI_FromStructWriter()
     processor.addGlobalCode(classes)
 
     for classToEncode in classesToProcess:
+        cdlog(2, "ENCODING "+dispMode+": "+ classToEncode)
         pattern_GenSymbols.apply(classes, {}, [classToEncode])      # Invoke the GenSymbols pattern
-        processor.processStruct(classes, classToEncode, dispMode)
+        processor.processStruct(classes, classToEncode)
     return
