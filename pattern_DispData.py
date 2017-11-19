@@ -64,6 +64,9 @@ struct GLOBAL{
         if(self.topLevelStruct and progSpec.isStruct(modelRef)):
             self.storyBoardApp=True
             self.appAreaCode += '    their GUI_storyBoard: appStoryBoard <- gtk_stack_new()\n'
+        elif progSpec.isStruct(modelRef):
+            self.widgetFromVarsCode = '    void: updateWidgetFromVars() <- {\n'
+            self.varsFromWidgetCode = '    void: updateVarsFromWidget() <- {\n'
 
     def makeCodeToInitField(self, fieldName, field, fldCat, structTypeName):
         S=''
@@ -78,7 +81,7 @@ struct GLOBAL{
                 else: return
             else: return
         else:
-            if   fldCat=='int':    S='getIntWidget()'
+            if   fldCat=='int':    S= 'gtk_spin_button_new(NULL, 1, 0)' #'getIntWidget()'
             elif fldCat=='float':  S='getDecimalWidget()'
             elif fldCat=='range':  S='getDecimalWidget(start, end)'
             elif fldCat=='mode':   S='getEnumWidget(ListOfItems)'
@@ -137,7 +140,10 @@ struct GLOBAL{
         else: # Not top level classes
             print "MAKE CLASS:" + className
             self.appAreaCode = self.appAreaCode = '  me GUI_item: initFromString(me string: S) <- {\n    me string:s\n' + self.appAreaCode + '\n  }\n'
-            CODE = 'struct '+className+": inherits='GUI_frame' {\n" + self.appAreaCode + '\n}\n'
+            self.widgetFromVarsCode += '\n    }\n'
+            self.varsFromWidgetCode += '\n    }\n'
+            functionsCode = self.appAreaCode + self.widgetFromVarsCode + self.varsFromWidgetCode
+            CODE = 'struct '+className+": inherits='GUI_frame' {\n" + functionsCode + '\n}\n'
             codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, className)
         print '==========================================================\n'+CODE
 

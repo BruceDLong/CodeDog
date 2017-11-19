@@ -25,6 +25,9 @@ struct GUI_MotionEvent{}
 struct GUI_ButtonEvent{}
 struct INK_Image{}
 
+/- GUI Widgets
+struct IntWidget{}
+
 struct GUI{
     me void: showWidget(me GUI_item: widget)
     me GUI_item: newCanvas()
@@ -37,6 +40,9 @@ struct GUI{
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)
     me void: setCallback()
+
+    /- GUI Widgets
+    me IntWidget: getIntWidget()
 }
 
 struct GUI_ctxt {

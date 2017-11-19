@@ -537,7 +537,7 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return "_ " + argFieldName + ": " + argType
 
-def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
+def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
     classAttrs=''
     if len(attrList)>0:
         for attr in attrList:
