@@ -40,7 +40,11 @@ class structProcessor:
         self.addOrAmendClasses(classes, className, modelRef)
 
 #---------------------------------------------------------------  WRITE: .asGUI()
-
+# This makes 4 types of changes:
+   # It adds a widget variable for items in the model
+   # It adds a set Widget from Vars function
+   # It adds a set Vars from Widget function
+   # It add an initialize Widgets function.
 class GUI_FromStructWriter(structProcessor):
 
     asProteusGlobalsWritten=False
@@ -67,6 +71,7 @@ struct GLOBAL{
         elif progSpec.isStruct(modelRef):
             self.widgetFromVarsCode = '    void: updateWidgetFromVars() <- {\n'
             self.varsFromWidgetCode = '    void: updateVarsFromWidget() <- {\n'
+        self.newWidgetFields = ''
 
     def makeCodeToInitField(self, fieldName, field, fldCat, structTypeName):
         S=''
@@ -74,27 +79,32 @@ struct GLOBAL{
             if self.storyBoardApp:
                 # if isList: Make a loop to wrap the below item:
                 if fldCat=='struct':
-                    structWidgetsName = structTypeName+'Widget'
-                    S += fieldName+'.initFromString(s)'+'\n'
-                    #S += '    '+fieldName+'.initFromString(s)'+'\n'
-                    S += '    appStoryBoard.addPane('+fieldName+', "'+fieldName+'")\n'
+                    S += 'primary.'+fieldName+'.initFromString(s)'+'\n'
+                    S += '    appStoryBoard.addPane(primary.'+fieldName+', "'+fieldName+'")\n'
                 else: return
             else: return
+            widgetName = fieldName
         else:
-            if   fldCat=='int':    S= 'gtk_spin_button_new(NULL, 1, 0)' #'getIntWidget()'
-            elif fldCat=='float':  S='getDecimalWidget()'
-            elif fldCat=='range':  S='getDecimalWidget(start, end)'
-            elif fldCat=='mode':   S='getEnumWidget(ListOfItems)'
-            elif fldCat=='string': S='getStringWidget()'
-            elif fldCat=='date':   S='getDateWidget()'
-            elif fldCat=='time':   S='getTimeWidget()'
-            elif fldCat=='bool':   S='getBoolWidget()'
-            elif fldCat=='struct': S += fieldName+'.initFromString(s)'+'\n'
+            widgetName = fieldName+'Widget'
+            if   fldCat=='int':    S= 'gtk_spin_button_new(NULL, 1, 0)' #'makeIntWidget()'
+            elif fldCat=='float':  S='makeDecimalWidget()'
+            elif fldCat=='range':  S='makeDecimalWidget(start, end)'
+            elif fldCat=='mode':   S='gtk_entry_new()'  #'makeEnumWidget(ListOfItems)'
+            elif fldCat=='string': S='gtk_entry_new()'  #'makeStringWidget()'
+            elif fldCat=='date':   S='makeDateWidget()'
+            elif fldCat=='time':   S='makeTimeWidget()'
+            elif fldCat=='bool':   S='makeBoolWidget()'
+            elif fldCat=='struct':
+                widgetName = fieldName
+                S += widgetName + '.initFromString(s)'+'\n'
             else: print "ERROR: category is" + str(fldCat); return
 
-        GUI_Code='        '+fieldName+' <- '+S+'\n'
+            if fldCat!='struct':
+                if fldCat=='mode': fldCat='enum'
+                self.newWidgetFields += '    their '+fldCat+'Widget: '+widgetName+'\n'
+                S='        '+widgetName+' <- '+S+'\n'
 
-        self.appAreaCode += GUI_Code
+        self.appAreaCode += S
 
 
     def processField(self, fieldName, field, fldCat):
@@ -122,7 +132,9 @@ struct GLOBAL{
        #     self.appAreaCode +="    withEach _item in "+fieldName+":{\n"
        #     self.makeCodeToInitField(calcdName, '_item', field, fldCatInner)
        #     self.appAreaCode +="    }\n"
-        else: self.makeCodeToInitField(fieldName, field, fldCat, structTypeName)
+        else:
+            self.makeCodeToInitField(fieldName, field, fldCat, structTypeName)
+
         if progSpec.typeIsPointer(typeSpec):
             T ="    if("+fieldName+' == NULL){print('+'indent, dispFieldAsText("'+fieldName+'", 15)+"NULL\\n")}\n'
             T+="    else{\n    "+S+"    }\n"
@@ -142,7 +154,7 @@ struct GLOBAL{
             self.appAreaCode = self.appAreaCode = '  me GUI_item: initFromString(me string: S) <- {\n    me string:s\n' + self.appAreaCode + '\n  }\n'
             self.widgetFromVarsCode += '\n    }\n'
             self.varsFromWidgetCode += '\n    }\n'
-            functionsCode = self.appAreaCode + self.widgetFromVarsCode + self.varsFromWidgetCode
+            functionsCode = self.newWidgetFields + self.appAreaCode + self.widgetFromVarsCode + self.varsFromWidgetCode
             CODE = 'struct '+className+": inherits='GUI_frame' {\n" + functionsCode + '\n}\n'
             codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, className)
         print '==========================================================\n'+CODE

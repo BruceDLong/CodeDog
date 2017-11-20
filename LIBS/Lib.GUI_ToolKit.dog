@@ -26,7 +26,9 @@ struct GUI_ButtonEvent{}
 struct INK_Image{}
 
 /- GUI Widgets
-struct IntWidget{}
+struct intWidget{}
+struct stringWidget{}
+struct enumWidget{}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget)
@@ -42,7 +44,9 @@ struct GUI{
     me void: setCallback()
 
     /- GUI Widgets
-    me IntWidget: getIntWidget()
+    me intWidget: makeIntWidget()
+    me stringWidget: makeStringWidget()
+    me enumWidget: makeEnumWidget()
 }
 
 struct GUI_ctxt {

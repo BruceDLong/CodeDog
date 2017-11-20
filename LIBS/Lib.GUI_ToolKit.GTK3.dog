@@ -137,7 +137,9 @@ struct GUI{
     }
 }
 
-struct IntWidget{their GtkWidget: IntWidget}
+struct intWidget{their GtkWidget: intWidget}
+struct stringWidget{their GtkWidget: stringWidget}
+struct enumWidget{their GtkWidget: enumWidget}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
@@ -154,7 +156,9 @@ struct GUI{
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 
     /- Widgets
-    me IntWidget: getIntWidget() <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
+    me GtkWidget: makeIntWidget()     <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
+    me GtkWidget: makeStringWidget()  <- <%!%Ggtk_Entry_new(NULL, 1, 0)%>
+    me GtkWidget: makeEnumWidget()    <- <%!%Ggtk_Entry_new(NULL, 1, 0)%>
 
 }
 
