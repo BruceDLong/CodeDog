@@ -43,10 +43,14 @@ struct GUI{
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)
     me void: setCallback()
 
+}
+
+struct GLOBAL{
     /- GUI Widgets
     me intWidget: makeIntWidget()
     me stringWidget: makeStringWidget()
     me enumWidget: makeEnumWidget()
+
 }
 
 struct GUI_ctxt {

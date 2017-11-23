@@ -155,11 +155,14 @@ struct GUI{
     me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 
-    /- Widgets
-    me GtkWidget: makeIntWidget()     <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
-    me GtkWidget: makeStringWidget()  <- <%!%Ggtk_Entry_new(NULL, 1, 0)%>
-    me GtkWidget: makeEnumWidget()    <- <%!%Ggtk_Entry_new(NULL, 1, 0)%>
 
+}
+
+struct GLOBAL{
+    /- Widgets
+    their GtkWidget: makeIntWidget()     <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
+    their GtkWidget: makeStringWidget()  <- <%!%Ggtk_Entry_new(NULL, 1, 0)%>
+    their GtkWidget: makeEnumWidget()    <- <%!%Ggtk_Entry_new(NULL, 1, 0)%>
 }
 
 struct GUI_ctxt {

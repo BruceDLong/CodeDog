@@ -79,14 +79,14 @@ struct GLOBAL{
             if self.storyBoardApp:
                 # if isList: Make a loop to wrap the below item:
                 if fldCat=='struct':
-                    S += 'primary.'+fieldName+'.initFromString(s)'+'\n'
+                    S += '    primary.'+fieldName+'.initFromString(s)'+'\n'
                     S += '    appStoryBoard.addPane(primary.'+fieldName+', "'+fieldName+'")\n'
                 else: return
             else: return
             widgetName = fieldName
         else:
             widgetName = fieldName+'Widget'
-            if   fldCat=='int':    S= 'gtk_spin_button_new(NULL, 1, 0)' #'makeIntWidget()'
+            if   fldCat=='int':    S='makeIntWidget()'
             elif fldCat=='float':  S='makeDecimalWidget()'
             elif fldCat=='range':  S='makeDecimalWidget(start, end)'
             elif fldCat=='mode':   S='gtk_entry_new()'  #'makeEnumWidget(ListOfItems)'
@@ -126,7 +126,7 @@ struct GLOBAL{
         typeSpec=field['typeSpec']
         if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
             innerFieldType=typeSpec['fieldType']
-            #print "ARRAYSPEC:",innerFieldType, field
+            print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             calcdName=fieldName #+'["+toString(_item_key)+"]'
        #     self.appAreaCode +="    withEach _item in "+fieldName+":{\n"
@@ -155,7 +155,7 @@ struct GLOBAL{
             self.widgetFromVarsCode += '\n    }\n'
             self.varsFromWidgetCode += '\n    }\n'
             functionsCode = self.newWidgetFields + self.appAreaCode + self.widgetFromVarsCode + self.varsFromWidgetCode
-            CODE = 'struct '+className+": inherits='GUI_frame' {\n" + functionsCode + '\n}\n'
+            CODE = 'struct '+className+" {\n" + functionsCode + '\n}\n'
             codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, className)
         print '==========================================================\n'+CODE
 
