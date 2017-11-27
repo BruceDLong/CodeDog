@@ -64,47 +64,34 @@ struct GLOBAL{
         global classesToProcess
         self.topLevelStruct = (classesToProcess[0]==self.currentClassName)
         self.hasDraw = False
-        self.appAreaCode = ''
+        self.currentClassCode = ''
         if(self.topLevelStruct and progSpec.isStruct(modelRef)):
             self.storyBoardApp=True
-            self.appAreaCode += '    their GUI_storyBoard: appStoryBoard <- gtk_stack_new()\n'
-        elif progSpec.isStruct(modelRef):
-            self.widgetFromVarsCode = '    void: updateWidgetFromVars() <- {\n'
-            self.varsFromWidgetCode = '    void: updateVarsFromWidget() <- {\n'
-        self.newWidgetFields = ''
+            #self.currentClassCode += '    their GUI_storyBoard: appStoryBoard <- gtk_stack_new()\n'   # If storyboard, add the stack view
+        if progSpec.isStruct(modelRef):
+            self.widgetFromVarsCode = '    void: updateWidgetFromVars() <- {\n'     # Func header for UpdateWidgetFromVars()
+            self.varsFromWidgetCode = '    void: updateVarsFromWidget() <- {\n'     # Func header for UpdateVarsFromWidget()
+        self.newWidgetFields = ''                                                   # For built-in widgets like intWidget, listWidget, etc.
 
-    def makeCodeToInitField(self, fieldName, field, fldCat, structTypeName):
-        S=''
-        if self.topLevelStruct: # Make a frame with sub-views or tabbed views, menu / navigation / settings, etc
-            if self.storyBoardApp:
-                # if isList: Make a loop to wrap the below item:
-                if fldCat=='struct':
-                    S += '    primary.'+fieldName+'.initFromString(s)'+'\n'
-                    S += '    appStoryBoard.addPane(primary.'+fieldName+', "'+fieldName+'")\n'
-                else: return
-            else: return
-            widgetName = fieldName
+
+    def getFieldSpec(self, fldCat, field):
+        params={}
+        if fldCat=='mode': fldCat='enum'
+        elif fldCat=='double': fldCat='float'
+
+        if fldCat=='enum': parameters={'mon', 'tue', 'wed', 'thur', 'fri', 'sat', 'sun'}
+        elif fldCat=='RANGE': pareameters={1, 10}
+
+        typeSpec=field['typeSpec']
+        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+            innerFieldType=typeSpec['fieldType']
+            datastructID = typeSpec['arraySpec']['datastructID']
+            return [datastructID, innerFieldType]
         else:
-            widgetName = fieldName+'Widget'
-            if   fldCat=='int':    S='makeIntWidget()'
-            elif fldCat=='float':  S='makeDecimalWidget()'
-            elif fldCat=='range':  S='makeDecimalWidget(start, end)'
-            elif fldCat=='mode':   S='gtk_entry_new()'  #'makeEnumWidget(ListOfItems)'
-            elif fldCat=='string': S='gtk_entry_new()'  #'makeStringWidget()'
-            elif fldCat=='date':   S='makeDateWidget()'
-            elif fldCat=='time':   S='makeTimeWidget()'
-            elif fldCat=='bool':   S='makeBoolWidget()'
-            elif fldCat=='struct':
-                widgetName = fieldName
-                S += widgetName + '.initFromString(s)'+'\n'
-            else: print "ERROR: category is" + str(fldCat); return
+            if fldCat=='struct':
+                fldCat='struct' #field['typeSpec']['fieldType'][0]
+            return [fldCat, params]
 
-            if fldCat!='struct':
-                if fldCat=='mode': fldCat='enum'
-                self.newWidgetFields += '    their '+fldCat+'Widget: '+widgetName+'\n'
-                S='        '+widgetName+' <- '+S+'\n'
-
-        self.appAreaCode += S
 
 
     def processField(self, fieldName, field, fldCat):
@@ -117,24 +104,38 @@ struct GLOBAL{
         if fldCat=='struct': # Add a new class to be processed
             structTypeName=field['typeSpec']['fieldType'][0]
             if not(structTypeName in classesEncoded):
-                print "TO ENCODE:", structTypeName
+                #print "TO ENCODE:", structTypeName
                 classesEncoded[structTypeName]=1
                 classesToProcess.append(structTypeName)
 
         S=""
         if fldCat=='func': return ''
+
+        fieldSpec = self.getFieldSpec(fldCat, field)
+        fldSpec = fieldSpec[0]
+        typeName = fldSpec+'Widget'
+        if fldSpec=='struct': makeTypeNameCall = fieldName+'.make'+structTypeName+'Widget(s)'
+        else: makeTypeNameCall = 'make'+typeName[0].upper() + typeName[1:]+'()'
+        widgetFieldName = fieldName[0].upper() + fieldName[1:] + 'Widget'
+
+        if fldSpec=='struct': typeName = 'GUI_Frame'
+
         typeSpec=field['typeSpec']
-        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+        self.newWidgetFields += '    their '+typeName+': '+widgetFieldName+'\n'
+        if progSpec.typeIsPointer(typeSpec): self.currentClassCode += '    Allocate('+fieldName+')\n'
+        self.currentClassCode += '    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
+
+        '''if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
             innerFieldType=typeSpec['fieldType']
             print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             calcdName=fieldName #+'["+toString(_item_key)+"]'
-       #     self.appAreaCode +="    withEach _item in "+fieldName+":{\n"
+       #     self.currentClassCode +="    withEach _item in "+fieldName+":{\n"
        #     self.makeCodeToInitField(calcdName, '_item', field, fldCatInner)
-       #     self.appAreaCode +="    }\n"
+       #     self.currentClassCode +="    }\n"
         else:
             self.makeCodeToInitField(fieldName, field, fldCat, structTypeName)
-
+'''
         if progSpec.typeIsPointer(typeSpec):
             T ="    if("+fieldName+' == NULL){print('+'indent, dispFieldAsText("'+fieldName+'", 15)+"NULL\\n")}\n'
             T+="    else{\n    "+S+"    }\n"
@@ -144,20 +145,28 @@ struct GLOBAL{
 
     def addOrAmendClasses(self, classes, className, modelRef):
         if self.topLevelStruct:  # Top Level class
-            declPrimaryVariable = '  me '+self.currentClassName+': primary\n'
-            self.appAreaCode = declPrimaryVariable+'  me void: createAppArea(me GUI_frame: frame) <- {\n    me string:s\n' + self.appAreaCode + '\n    gui.addToContainer (frame, appStoryBoard)\n  }\n'
-            CODE = progSpec.wrapFieldListInObjectDef('APP', self.appAreaCode)
-            codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'function appAreaCode()')
-            self.appAreaCode=''
-        else: # Not top level classes
-            print "MAKE CLASS:" + className
-            self.appAreaCode = self.appAreaCode = '  me GUI_item: initFromString(me string: S) <- {\n    me string:s\n' + self.appAreaCode + '\n  }\n'
-            self.widgetFromVarsCode += '\n    }\n'
-            self.varsFromWidgetCode += '\n    }\n'
-            functionsCode = self.newWidgetFields + self.appAreaCode + self.widgetFromVarsCode + self.varsFromWidgetCode
-            CODE = 'struct '+className+" {\n" + functionsCode + '\n}\n'
-            codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, className)
-        print '==========================================================\n'+CODE
+            print "TOP-LEVEL:", self.currentClassName
+            declAPP_fields = '  their '+self.currentClassName+': primary\n'
+            declAPP_fields+='''
+                me void: createAppArea(me GUI_frame: frame) <- {
+                    me string:s
+                    Allocate(primary)
+                    their GUI_storyBoard: appStoryBoard <- primary.makeAppModelWidget(s)
+                    gui.addToContainer (frame, appStoryBoard)
+                }
+'''
+            CODE = progSpec.wrapFieldListInObjectDef('APP', declAPP_fields)
+            codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'APP')
+
+        #print "MAKE CLASS:" + className
+        initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
+        self.currentClassCode = '\n  their GUI_item: '+initFuncName+'(me string: S) <- {\n    me string:s\n' + self.currentClassCode + '\n  }\n'
+        self.widgetFromVarsCode += '\n    }\n'
+        self.varsFromWidgetCode += '\n    }\n'
+        functionsCode = self.newWidgetFields + self.currentClassCode + self.widgetFromVarsCode + self.varsFromWidgetCode
+        CODE = 'struct '+className+" {\n" + functionsCode + '\n}\n'         # Add the new fields to the STRUCT being processed
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, className)
+      #  print '==========================================================\n'+CODE
 
 #---------------------------------------------------------------  WRITE: .asProteus()
 class structAsProteusWriter(structProcessor):

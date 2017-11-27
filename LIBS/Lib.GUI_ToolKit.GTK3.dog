@@ -140,6 +140,8 @@ struct GUI{
 struct intWidget{their GtkWidget: intWidget}
 struct stringWidget{their GtkWidget: stringWidget}
 struct enumWidget{their GtkWidget: enumWidget}
+struct listWidget{their GtkWidget: listWidget}
+struct GUI_Frame{their GtkWidget: GUI_Frame}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
@@ -161,8 +163,10 @@ struct GUI{
 struct GLOBAL{
     /- Widgets
     their GtkWidget: makeIntWidget()     <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
-    their GtkWidget: makeStringWidget()  <- <%!%Ggtk_Entry_new(NULL, 1, 0)%>
-    their GtkWidget: makeEnumWidget()    <- <%!%Ggtk_Entry_new(NULL, 1, 0)%>
+    their GtkWidget: makeStringWidget()  <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeEnumWidget()    <- <%!%Ggtk_entry_new()%>
+
+    their GtkWidget: makeListWidget()    <- <%!%Ggtk_entry_new()%>
 }
 
 struct GUI_ctxt {

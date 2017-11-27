@@ -184,7 +184,7 @@ def getCodeAllocStr(varTypeStr, owner):
     if(owner=='our'): S="make_shared<"+varTypeStr+">"
     elif(owner=='my'): S="make_unique<"+varTypeStr+">"
     elif(owner=='their'): S="new "+varTypeStr
-    elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
+    elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable.", '('+varTypeStr+')'; exit(1);
     elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
     else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
     return S
@@ -457,6 +457,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
+            print "VARNAME:", varName
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
