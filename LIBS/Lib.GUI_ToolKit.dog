@@ -18,7 +18,7 @@ struct GUI_menu{}
 struct GUI_menuItem{}
 struct GUI_canvas{}
 struct GUI_container{}
-struct GUI_frame{}
+struct GUI_Frame{}
 struct GUI_ScrollingWindow{}
 struct GUI_callback{}
 struct GUI_MotionEvent{}

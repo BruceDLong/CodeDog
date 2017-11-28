@@ -27,7 +27,6 @@ struct GUI_menu{their GtkWidget: GUI_menu}
 struct GUI_menuItem{their GtkWidget: GUI_menuItem}
 struct GUI_canvas{their GtkWidget: GUI_canvas}
 struct GUI_container{their GtkContainer:GUI_container}
-struct GUI_frame{their GtkWidget:GUI_frame}
 struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
@@ -35,8 +34,14 @@ struct GUI_scalar{me int: GUI_scalar}
 
 struct GUI_storyBoard{
     their GtkWidget: GUI_storyBoard
-    me void: addPane(their GUI_frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
+    me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
 }
+
+struct intWidget{their GtkWidget: intWidget}
+struct stringWidget{their GtkWidget: stringWidget}
+struct enumWidget{their GtkWidget: enumWidget}
+struct listWidget{their GtkWidget: listWidget}
+struct GUI_Frame{their GtkWidget: GUI_Frame}
 
 /-///////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
@@ -137,11 +142,6 @@ struct GUI{
     }
 }
 
-struct intWidget{their GtkWidget: intWidget}
-struct stringWidget{their GtkWidget: stringWidget}
-struct enumWidget{their GtkWidget: enumWidget}
-struct listWidget{their GtkWidget: listWidget}
-struct GUI_Frame{their GtkWidget: GUI_Frame}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
@@ -162,11 +162,13 @@ struct GUI{
 
 struct GLOBAL{
     /- Widgets
-    their GtkWidget: makeIntWidget()     <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
-    their GtkWidget: makeStringWidget()  <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeEnumWidget()    <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeIntWidget()        <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
+    their GtkWidget: makeStringWidget()     <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeEnumWidget()       <- <%!%Ggtk_entry_new()%>
 
-    their GtkWidget: makeListWidget()    <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeListWidget()       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeFrameWidget()      <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
+    their GtkWidget: makeStoryBoardWidget() <- <%!%Ggtk_notebook_new()%>
 }
 
 struct GUI_ctxt {

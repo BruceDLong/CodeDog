@@ -67,7 +67,6 @@ struct GLOBAL{
         self.currentClassCode = ''
         if(self.topLevelStruct and progSpec.isStruct(modelRef)):
             self.storyBoardApp=True
-            #self.currentClassCode += '    their GUI_storyBoard: appStoryBoard <- gtk_stack_new()\n'   # If storyboard, add the stack view
         if progSpec.isStruct(modelRef):
             self.widgetFromVarsCode = '    void: updateWidgetFromVars() <- {\n'     # Func header for UpdateWidgetFromVars()
             self.varsFromWidgetCode = '    void: updateVarsFromWidget() <- {\n'     # Func header for UpdateVarsFromWidget()
@@ -114,7 +113,8 @@ struct GLOBAL{
         fieldSpec = self.getFieldSpec(fldCat, field)
         fldSpec = fieldSpec[0]
         typeName = fldSpec+'Widget'
-        if fldSpec=='struct': makeTypeNameCall = fieldName+'.make'+structTypeName+'Widget(s)'
+        if fldSpec=='struct':
+            makeTypeNameCall = fieldName+'.make'+structTypeName+'Widget(s)'
         else: makeTypeNameCall = 'make'+typeName[0].upper() + typeName[1:]+'()'
         widgetFieldName = fieldName[0].upper() + fieldName[1:] + 'Widget'
 
@@ -123,7 +123,7 @@ struct GLOBAL{
         typeSpec=field['typeSpec']
         self.newWidgetFields += '    their '+typeName+': '+widgetFieldName+'\n'
         if progSpec.typeIsPointer(typeSpec): self.currentClassCode += '    Allocate('+fieldName+')\n'
-        self.currentClassCode += '    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
+        self.currentClassCode += '    '+widgetFieldName+' <- '+makeTypeNameCall+'\n    addToContainer(box, '+widgetFieldName+')\n'
 
         '''if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
             innerFieldType=typeSpec['fieldType']
@@ -148,7 +148,7 @@ struct GLOBAL{
             print "TOP-LEVEL:", self.currentClassName
             declAPP_fields = '  their '+self.currentClassName+': primary\n'
             declAPP_fields+='''
-                me void: createAppArea(me GUI_frame: frame) <- {
+                me void: createAppArea(me GUI_Frame: frame) <- {
                     me string:s
                     Allocate(primary)
                     their GUI_storyBoard: appStoryBoard <- primary.makeAppModelWidget(s)
@@ -160,7 +160,9 @@ struct GLOBAL{
 
         #print "MAKE CLASS:" + className
         initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
-        self.currentClassCode = '\n  their GUI_item: '+initFuncName+'(me string: S) <- {\n    me string:s\n' + self.currentClassCode + '\n  }\n'
+        if self.topLevelStruct and self.storyBoardApp==True: containerWidget='makeStoryBoardWidget()'
+        else: containerWidget='makeFrameWidget()'
+        self.currentClassCode = '\n  their GUI_item: '+initFuncName+'(me string: S) <- {\n    me string:s\n    their GUI_Frame:box <- '+containerWidget+'\n' + self.currentClassCode + '\n    return(box)\n  }\n'
         self.widgetFromVarsCode += '\n    }\n'
         self.varsFromWidgetCode += '\n    }\n'
         functionsCode = self.newWidgetFields + self.currentClassCode + self.widgetFromVarsCode + self.varsFromWidgetCode
