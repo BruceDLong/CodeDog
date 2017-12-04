@@ -7,8 +7,8 @@ interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
-        android.widget.LinearLayout, android.widget.ScrollView, android.widget.HorizontalScrollView, 
-        android.app.Activity, android.os.Bundle,
+        android.widget.LinearLayout, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, 
+        android.os.Bundle, android.support.v7.app.AppCompatActivity,
         android.util.Log, android.content.res.AssetManager, android.content.Context,
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory
@@ -34,7 +34,7 @@ struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me CanvasView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
 struct GUI_frame{me LinearLayout:GUI_frame}
-struct GUI_ScrollingWindow{me ScrollView: GUI_ScrollingWindow}
+struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_scalar{me float: GUI_scalar}
@@ -137,23 +137,27 @@ struct CanvasView: inherits="View" implements="OnTouchListener"{
 struct GUI : inherits="LinearLayout"{
     me LinearLayout:: frame(GLOBAL.static_Global)
     me LinearLayout:: layoutArea(GLOBAL.static_Global)
-    me ScrollView: vScroller
+    me NestedScrollView: vScroller
     me HorizontalScrollView: hScroller
 
     me none: GUI() <- <%{super(GLOBAL.static_Global);}%>
 
-    me ScrollView: newScrollingView() <- <%{
-        ScrollView vScroller = new ScrollView(GLOBAL.static_Global);
-        HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
+    me NestedScrollView: newScrollingView() <- <%{
+	vScroller = new NestedScrollView(GLOBAL.static_Global);
+	vScroller.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        hScroller = new HorizontalScrollView(GLOBAL.static_Global);
+	hScroller.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
         vScroller.addView(hScroller);
         layoutArea = new LinearLayout(GLOBAL.static_Global);
         layoutArea.setOrientation(LinearLayout.VERTICAL);
+	layoutArea.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         hScroller.addView(layoutArea);
         return(vScroller);
     }%>
 
     me void: GUI_PopulateAndExec() <- <% {
         frame = new LinearLayout(GLOBAL.static_Global);
+        frame.setOrientation(LinearLayout.VERTICAL);
         frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
 /-        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
 	GLOBAL.static_Global.setContentView(frame);
@@ -201,7 +205,7 @@ struct GUI {
     me GUI_item: newScrollingWindow() <- <%!%Ggui.newScrollingView()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggui.layoutArea.addView(%2)%>      /- dog file: gui.addToViewport(scroller, drawing_area)
-    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%1.setJMenuBar(%2)%>
+    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%;%>
     me void: setCallback() <- <%!%G %>
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
     me GUI_item: GUI_frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
@@ -278,7 +282,7 @@ struct timeStringer{
 }
 
 /-///////////////////////////////  G L O B A L
-struct GLOBAL: inherits="Activity"{
+struct GLOBAL: inherits="AppCompatActivity"{
     me APP: thisApp
     me SubMenu: parentMenu
     me AssetManager: assetManager
