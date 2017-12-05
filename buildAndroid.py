@@ -70,7 +70,7 @@ def gradleFile(topDomain, domain, appName, workingDir):
                 '    compileSdkVersion 26\n' \
                 '    defaultConfig {\n' \
                 '        targetSdkVersion 26\n' \
-                '        minSdkVersion 16\n' \
+                '        minSdkVersion 20\n' \
                 '  }\n' \
                 '    buildTypes {\n' \
                 '        release {\n' \
@@ -126,7 +126,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     currentDir = os.getcwd()
     workingDir = currentDir + '/' + buildName
     fileName = 'GLOBAL'
-    packageDir = '/src/main/'+topDomain+'/'+domain+'/'+fileName
+    packageDir = '/src/main/java/'+topDomain+'/'+domain+'/'+fileName
     packageName = topDomain+'.'+domain+'.'+fileName
     targetPlatform = ""
     dirsToGen = ['/assets', packageDir]

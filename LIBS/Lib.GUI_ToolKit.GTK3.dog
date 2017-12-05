@@ -27,11 +27,21 @@ struct GUI_menu{their GtkWidget: GUI_menu}
 struct GUI_menuItem{their GtkWidget: GUI_menuItem}
 struct GUI_canvas{their GtkWidget: GUI_canvas}
 struct GUI_container{their GtkContainer:GUI_container}
-struct GUI_frame{their GtkWidget:GUI_frame}
 struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_scalar{me int: GUI_scalar}
+
+struct GUI_storyBoard{
+    their GtkWidget: GUI_storyBoard
+    me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
+}
+
+struct intWidget{their GtkWidget: intWidget}
+struct stringWidget{their GtkWidget: stringWidget}
+struct enumWidget{their GtkWidget: enumWidget}
+struct listWidget{their GtkWidget: listWidget}
+struct GUI_Frame{their GtkWidget: GUI_Frame}
 
 /-///////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
@@ -116,7 +126,6 @@ struct GLOBAL{
 /-///////////////////////////////  HANDLE GUI
 struct GUI{
     their GtkApplication: app
-    their GtkWidget: window
 
     me uint32: GUI_Init() <- {
         app <- gtk_application_new (0, G_APPLICATION_FLAGS_NONE)
@@ -133,6 +142,7 @@ struct GUI{
     }
 }
 
+
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
     me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
@@ -147,6 +157,18 @@ struct GUI{
     me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 
+
+}
+
+struct GLOBAL{
+    /- Widgets
+    their GtkWidget: makeIntWidget()        <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
+    their GtkWidget: makeStringWidget()     <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeEnumWidget()       <- <%!%Ggtk_entry_new()%>
+
+    their GtkWidget: makeListWidget()       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeFrameWidget()      <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
+    their GtkWidget: makeStoryBoardWidget() <- <%!%Ggtk_notebook_new()%>
 }
 
 struct GUI_ctxt {
@@ -209,7 +231,6 @@ struct timeStringer{
 
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
-        me GUI: gui_tk
         me APP: thisApp
 
     /- TIME ROUTINES:
@@ -335,10 +356,9 @@ me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
 /--------------- Application areas
 their GtkWidget: window
-void: setMasterWidget(their widget: masterWid) <- {masterWidget<-masterWid; EventDispatcher.topWidget<-masterWidget}
+void: setMasterWidget(their widget: masterWidget) <- {EventDispatcher.topWidget<-masterWidget}
 
 me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
-  /-  GtkWidget *window;
     GtkWidget *topBox;
 
     window = gtk_application_window_new (app);
@@ -371,8 +391,7 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     GtkWidget *frame;
     GtkWidget *appArea;
 
-    frame = gtk_frame_new (NULL);
-    gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
+    frame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
 
     /-EventDispatcher.registerWidgetForEventDispatcher();

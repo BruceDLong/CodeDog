@@ -537,7 +537,7 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return "_ " + argFieldName + ": " + argType
 
-def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
+def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
     classAttrs=''
     if len(attrList)>0:
         for attr in attrList:
@@ -545,6 +545,7 @@ def codeStructText(attrList, parentClass, classInherits, classImplements, struct
 
     if parentClass != "":
         parentClass=': '+parentClass+' '
+        parentClass = progSpec.unwrapClass(structName)
     if classImplements!=None:
         parentClass=': '
         count =0
@@ -647,10 +648,10 @@ def variableDefaultValueString(fieldType):
         fieldValueText = fieldType +'()'
     return fieldValueText
 
-def codeNewVarStr (globalClassStore, lhsTypeSpec, varName, fieldDef, indent, objsRefed, xlator):
+def codeNewVarStr (classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, xlator):
     assignValue=''
-    [fieldType, fieldAttrs]           = xlator['convertType'](globalClassStore, lhsTypeSpec, 'var', xlator)
-    [allocFieldType, allocFieldAttrs] = xlator['convertType'](globalClassStore, lhsTypeSpec, 'alloc', xlator)
+    [fieldType, fieldAttrs]           = xlator['convertType'](classes, lhsTypeSpec, 'var', xlator)
+    [allocFieldType, allocFieldAttrs] = xlator['convertType'](classes, lhsTypeSpec, 'alloc', xlator)
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, xlator)
         [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)

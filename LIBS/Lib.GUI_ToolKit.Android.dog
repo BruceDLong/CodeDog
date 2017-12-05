@@ -7,8 +7,8 @@ interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
-        android.widget.LinearLayout, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, 
-        android.os.Bundle, android.support.v7.app.AppCompatActivity,
+        android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.TextView,
+        android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar,
         android.util.Log, android.content.res.AssetManager, android.content.Context,
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory
@@ -33,7 +33,7 @@ struct GUI_menu{me ourSubMenu: GUI_menu}
 struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me CanvasView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
-struct GUI_frame{me LinearLayout:GUI_frame}
+struct GUI_Frame{me LinearLayout:GUI_Frame}
 struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
@@ -74,26 +74,26 @@ struct Android_eventDispatcher{
         
         switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
-            GLOBAL.static_Global.setTitle("ACTION_DOWN!");
+	    GLOBAL.static_Global.toolbar.setTitle("ACTION_DOWN!");
             returnVal= true;
             break;
         case MotionEvent.ACTION_MOVE:
             returnVal= true;
             break;
         case MotionEvent.ACTION_UP:
-            GLOBAL.static_Global.setTitle("ACTION_UP!");
+            GLOBAL.static_Global.toolbar.setTitle("ACTION_UP!");
             returnVal= true;
             break;
         case MotionEvent.ACTION_CANCEL:
-            GLOBAL.static_Global.setTitle("ACTION_CANCEL!");
+            GLOBAL.static_Global.toolbar.setTitle("ACTION_CANCEL!");
             returnVal= true;
             break;
         case MotionEvent.ACTION_POINTER_DOWN:
-            GLOBAL.static_Global.setTitle("ACTION_POINTER_DOWN!");
+            GLOBAL.static_Global.toolbar.setTitle("ACTION_POINTER_DOWN!");
             returnVal= true;
             break;
         case MotionEvent.ACTION_POINTER_UP:
-            GLOBAL.static_Global.setTitle("ACTION_POINTER_UP!");
+            GLOBAL.static_Global.toolbar.setTitle("ACTION_POINTER_UP!");
             returnVal= true;
             break;
         default:
@@ -126,7 +126,7 @@ struct CanvasView: inherits="View" implements="OnTouchListener"{
         cr = new GUI_ctxt(canvas);
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
-        GLOBAL.static_Global.drawAppArea_cb(this, cr);
+        GLOBAL.static_Global.drawAppArea_cb(GLOBAL.static_Global, cr);
         invalidate();
     }%>
 
@@ -145,7 +145,7 @@ struct GUI : inherits="LinearLayout"{
     me NestedScrollView: newScrollingView() <- <%{
 	vScroller = new NestedScrollView(GLOBAL.static_Global);
 	vScroller.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        hScroller = new HorizontalScrollView(GLOBAL.static_Global);
+	hScroller = new HorizontalScrollView(GLOBAL.static_Global);
 	hScroller.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
         vScroller.addView(hScroller);
         layoutArea = new LinearLayout(GLOBAL.static_Global);
@@ -157,7 +157,7 @@ struct GUI : inherits="LinearLayout"{
 
     me void: GUI_PopulateAndExec() <- <% {
         frame = new LinearLayout(GLOBAL.static_Global);
-        frame.setOrientation(LinearLayout.VERTICAL);
+	frame.setOrientation(LinearLayout.VERTICAL);
         frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
 /-        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
 	GLOBAL.static_Global.setContentView(frame);
@@ -205,10 +205,10 @@ struct GUI {
     me GUI_item: newScrollingWindow() <- <%!%Ggui.newScrollingView()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggui.layoutArea.addView(%2)%>      /- dog file: gui.addToViewport(scroller, drawing_area)
-    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%;%>
+    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
-    me GUI_item: GUI_frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
+    me GUI_item: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 /-    me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
 /-    me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
@@ -229,7 +229,7 @@ struct GUI_ctxt: inherits="Canvas" {
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: closePath() <- <%!GPath.close()%>
     me void: rectangle() <- <%!%0.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
-    me void: paintNow() <- <%!paint.setStyle(Paint.Style.FILL);cr.GCanvas.drawPaint(cr.paint);%>
+    me void: paintNow() <- <%!paint.setStyle(Paint.Style.FILL);cr.GCanvas.drawPaint(cr.paint)%>
     me void: strokeNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: fillNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: strokeKeep() <- <%!draw(cr.GPath)%>
@@ -292,11 +292,7 @@ struct GLOBAL: inherits="AppCompatActivity"{
     me long: ticksPerSec() <- <%!%G1000%>
     me widget: masterWidget
     me Android_eventDispatcher: EventDispatcher
-
-    me void: setMasterWidget(their widget: masterWid) <- {
-	GLOBAL.static_Global.masterWidget<-masterWid;
-	GLOBAL.static_Global.EventDispatcher.topWidget <- GLOBAL.static_Global.masterWidget
-    }
+    me Toolbar: toolbar
 
     me void: close_window() <- {
          /- gtk_main_quit()
@@ -369,12 +365,18 @@ struct GLOBAL: inherits="AppCompatActivity"{
         }
      }%>
 
-    me void: onCreate(me Bundle: savedInstanceState) <- {
-        super.onCreate(savedInstanceState)
-        GLOBAL.static_Global <- self
-        Allocate(thisApp)
-        initialize("")
-    }
+
+    
+    me void: addToolbar() <- <%{
+        GLOBAL.static_Global.toolbar = new Toolbar(GLOBAL.static_Global);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 80);
+        GLOBAL.static_Global.toolbar.setLayoutParams(layoutParams);
+        GLOBAL.static_Global.toolbar.setBackgroundColor(Color.MAGENTA);
+        GLOBAL.static_Global.toolbar.setTitle("TOOLBAR");
+        GLOBAL.static_Global.toolbar.setVisibility(View.VISIBLE);
+        setSupportActionBar(GLOBAL.static_Global.toolbar);
+        GLOBAL.static_Global.thisApp.gui.frame.addView(GLOBAL.static_Global.toolbar, 0);
+    }%>
 
     me void: onStart() <- {
         super.onStart()

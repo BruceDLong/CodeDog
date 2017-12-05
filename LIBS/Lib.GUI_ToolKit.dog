@@ -18,12 +18,17 @@ struct GUI_menu{}
 struct GUI_menuItem{}
 struct GUI_canvas{}
 struct GUI_container{}
-struct GUI_frame{}
+struct GUI_Frame{}
 struct GUI_ScrollingWindow{}
 struct GUI_callback{}
 struct GUI_MotionEvent{}
 struct GUI_ButtonEvent{}
 struct INK_Image{}
+
+/- GUI Widgets
+struct intWidget{}
+struct stringWidget{}
+struct enumWidget{}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget)
@@ -37,6 +42,15 @@ struct GUI{
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)
     me void: setCallback()
+
+}
+
+struct GLOBAL{
+    /- GUI Widgets
+    me intWidget: makeIntWidget()
+    me stringWidget: makeStringWidget()
+    me enumWidget: makeEnumWidget()
+
 }
 
 struct GUI_ctxt {
@@ -166,8 +180,4 @@ struct widget{
         height <- Height
         scale <- Scale
     }
-}
-
-struct GLOBAL{
-    their widget: masterWidget   /-  The widget that will handle most events.
 }

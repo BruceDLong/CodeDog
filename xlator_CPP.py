@@ -120,10 +120,8 @@ def LanguageSpecificDecorations(S, segType, owner):
 
 
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
-    #LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
-    #RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
-    #if LHS_KeyType == 'bool' and typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
-    #if LHS_KeyType == 'bool' and RHS_KeyType=='int'): return '(' + codeStr + ' != 0)'
+    #LHS_KeyType = progSpec.varTypeKeyWord(lhsTypeSpec)
+    #RHS_KeyType = progSpec.varTypeKeyWord(rhsTypeSpec)
     return codeStr
 
 def getTheDerefPtrMods(itemTypeSpec):
@@ -186,7 +184,7 @@ def getCodeAllocStr(varTypeStr, owner):
     if(owner=='our'): S="make_shared<"+varTypeStr+">"
     elif(owner=='my'): S="make_unique<"+varTypeStr+">"
     elif(owner=='their'): S="new "+varTypeStr
-    elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
+    elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable.", '('+varTypeStr+')'; exit(1);
     elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
     else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
     return S
@@ -459,6 +457,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
+            print "VARNAME:", varName
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
@@ -515,9 +514,10 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeStructText(attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
+def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
+        parentClass = progSpec.unwrapClass(classes, structName)
         parentClass=': public '+parentClass+' '
         print "Warning: old style inheritance used: " , parentClass
     if classImplements!=None:
@@ -529,7 +529,7 @@ def codeStructText(attrList, parentClass, classInherits, classImplements, struct
         for item in classInherits[0]:
             if count>0:
                 parentClass+= ', '
-            parentClass+= item
+            parentClass+= progSpec.unwrapClass(classes, item)
             count += 1
         #print "parentClass" , parentClass
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
@@ -634,9 +634,9 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
+def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
     #TODO: make test case
-    [fieldType, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'var', xlator)
+    [fieldType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)
     varDeclareStr=''
     assignValue=''
     if(fieldDef['value']):

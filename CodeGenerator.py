@@ -395,9 +395,9 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
             # Detect connector to use '.' '->', '', (*...).
             connector='.'
             if(segType): # This is where to detect type of vars not found to determine whether to use '.' or '->'
-                if progSpec.typeIsPointer(segType):
-                    #print "PTRTYPE:", segName, ':  ', segType
+                if progSpec.wrappedTypeIsPointer(globalClassStore, segType, segName):
                     connector = xlator['PtrConnector']
+                    #print "PTRTYPE:", segName, connector, segType
 
         AltFormat=None
         if segType!=None:
@@ -436,7 +436,7 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
 
         # Should this be called C style?
         if(segStr.find("%0") >= 0):
-            if connector=='->' and owner!='itr': S="*("+S+")"
+    #        if connector=='->' and owner!='itr': S="*("+S+")"
             S=segStr.replace("%0", S)
             S=S[len(connector):]
         else: S+=segStr
@@ -710,7 +710,7 @@ def codeAction(action, indent, objsRefed, xlator):
 
         else: # interate over a container
             [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], objsRefed, xlator)
-            if containerType['arraySpec']==None: cdErr("'"+repContainer+"' is not a container so cannot be iterated over.")
+            if containerType==None or  containerType['arraySpec']==None: cdErr("'"+repContainer+"' is not a container so cannot be iterated over.")
             [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerType)
 
             #print "ITERATE OVER", action['repList'][0], datastructID, containerType
@@ -1093,7 +1093,7 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         attrList = classDef['attrList']
         if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
         LangFormOfObjName = progSpec.flattenObjectName(className)
-        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode, tags)
+        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classes, attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode, tags)
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
     currentObjName=''
     return classRecord
@@ -1389,6 +1389,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
             elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'draw')
             elif pattName=='codeModelToString':  pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'text')
             elif pattName=='codeModelToProteus': pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'Proteus')
+            elif pattName=='codeModelToGUI':     pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'toGUI')
             elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, [newTags, topTags], patternArgs)
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1
