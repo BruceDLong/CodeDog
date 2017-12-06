@@ -204,7 +204,7 @@ struct GUI {
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%GGLOBAL.static_Global.thisApp.setWidgetSize(%1, %2, %3)%>
     me GUI_item: newScrollingWindow() <- <%!%Ggui.newScrollingView()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
-    me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggui.layoutArea.addView(%2)%>      /- dog file: gui.addToViewport(scroller, drawing_area)
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%Ggui.layoutArea.addView(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
