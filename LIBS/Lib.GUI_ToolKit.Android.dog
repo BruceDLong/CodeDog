@@ -12,7 +12,7 @@ interface={
         android.util.Log, android.content.res.AssetManager, android.content.Context,
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory
-	]
+    ]
 }
 
 LibDescription ={
@@ -33,7 +33,7 @@ struct GUI_menu{me ourSubMenu: GUI_menu}
 struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me CanvasView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
-struct GUI_frame{me LinearLayout:GUI_frame}
+struct GUI_Frame{me LinearLayout:GUI_Frame}
 struct GUI_ScrollingWindow{me ScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
@@ -70,8 +70,8 @@ struct Android_eventDispatcher{
     their widget: topWidget
 
     me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
-	boolean returnVal = false;
-        
+    boolean returnVal = false;
+
         switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
             GLOBAL.static_Global.setTitle("ACTION_DOWN!");
@@ -105,7 +105,7 @@ struct Android_eventDispatcher{
 
     me void: registerWidgetForEventDispatcher(me CanvasView: appWidget) <- <%{
         /-appWidget.addOnTouchListener(onTouchListener);
-	/-appWidget.setOnTouchListener(GLOBAL.static_Global.EventDispatcher);
+    /-appWidget.setOnTouchListener(GLOBAL.static_Global.EventDispatcher);
     } %>
 }
 
@@ -114,12 +114,12 @@ struct CanvasView: inherits="View" implements="OnTouchListener"{
     me GUI_ctxt: cr
 
     me none: CanvasView() <- <%{
-	super(GLOBAL.static_Global);
-	setOnTouchListener(this);
+    super(GLOBAL.static_Global);
+    setOnTouchListener(this);
     }%>
     me bool: onTouch(me View: v, me MotionEvent: event) <- <%{
-	boolean retVal = GLOBAL.static_Global.EventDispatcher.dispatchPointerClickEvent(event);
-	return retVal;
+    boolean retVal = GLOBAL.static_Global.EventDispatcher.dispatchPointerClickEvent(event);
+    return retVal;
     }%>
     me void: onDraw(me Canvas: canvas) <- <%{
         super.onDraw(canvas);
@@ -156,13 +156,13 @@ struct GUI : inherits="LinearLayout"{
         frame = new LinearLayout(GLOBAL.static_Global);
         frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
 /-        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
-	GLOBAL.static_Global.setContentView(frame);
+    GLOBAL.static_Global.setContentView(frame);
         GLOBAL.static_Global.thisApp.createAppArea(frame);
     } %>
 
     me uint32: GUI_Init() <- <%{
-	GUI_Run();
-	return(0);
+    GUI_Run();
+    return(0);
     }%>
 
     me uint32: GUI_Run() <- <% {
@@ -204,7 +204,7 @@ struct GUI {
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%1.setJMenuBar(%2)%>
     me void: setCallback() <- <%!%G %>
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
-    me GUI_item: GUI_frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
+    me GUI_item: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 /-    me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
 /-    me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>

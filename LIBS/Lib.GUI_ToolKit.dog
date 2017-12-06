@@ -26,9 +26,14 @@ struct GUI_ButtonEvent{}
 struct INK_Image{}
 
 /- GUI Widgets
+struct boolWidget{}
+struct floatWidget{}
+struct rangeWidget{}
 struct intWidget{}
 struct stringWidget{}
 struct enumWidget{}
+struct timeWidget{}
+struct dateWidget{}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget)
@@ -47,10 +52,15 @@ struct GUI{
 
 struct GLOBAL{
     /- GUI Widgets
-    me intWidget: makeIntWidget()
-    me stringWidget: makeStringWidget()
-    me enumWidget: makeEnumWidget()
-
+    me boolWidget:      makeBoolWidget()
+    me floatWidget:     makeFloatWidget()
+    me numRangeWidget:  makeNumRangeWidget()
+    me rangeWidget:     makeRangeWidget()
+    me intWidget:       makeIntWidget(me string: label)
+    me stringWidget:    makeStringWidget(me string: label)
+    me enumWidget:      makeEnumWidget()
+    me timeWidget:      makeTimeWidget()
+    me dateWidget:      makeDateWidget()
 }
 
 struct GUI_ctxt {

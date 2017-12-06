@@ -32,7 +32,7 @@ struct GUI{
     }
 }
 struct GUI_rect{me CGRect:GUI_rect}
-struct GUI_frame{their UIView:GUI_frame}
+struct GUI_Frame{their UIView:GUI_Frame}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!%1.isHidden=false%>

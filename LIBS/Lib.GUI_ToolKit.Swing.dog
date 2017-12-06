@@ -9,9 +9,9 @@ interface={
     headers =[javax.swing.*, javax.imageio.ImageIO, java.nio.file.Paths,
         java.awt.Graphics, java.awt.Graphics2D, java.awt.image.BufferedImage,
         java.awt.*, java.awt.event.*, java.awt.geom.*, java.awt.Font,
-        java.awt.event.MouseAdapter, javax.swing.event.MouseInputAdapter, 
+        java.awt.event.MouseAdapter, javax.swing.event.MouseInputAdapter,
         java.awt.event.MouseListener, java.awt.event.MouseEvent
-	]
+    ]
 }
 
 LibDescription ={
@@ -32,7 +32,7 @@ struct GUI_menu{me JMenu: GUI_menu}
 struct GUI_menuItem{me JMenuItem: GUI_menuItem}
 struct GUI_canvas{me JavaGUI_ctxt: GUI_canvas}
 struct GUI_container{me JFrame:GUI_container}
-struct GUI_frame{me JFrame:GUI_frame}
+struct GUI_Frame{me JFrame:GUI_frame}
 struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
 struct INK_Image{me BufferedImage: INK_Image}
 struct GUI_callback{me GCallback: GUI_callback}
@@ -212,7 +212,7 @@ struct GUI {
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%1.setJMenuBar(%2)%>
     me void: setCallback() <- <%!%G %>
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
-    me GUI_item: GUI_frame(me string: label) <- <%!%Gnew JFrame(%1)%>
+    me GUI_item: GUI_Frame(me string: label) <- <%!%Gnew JFrame(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 }
 
