@@ -41,7 +41,7 @@ struct GUI{
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height)
     me GUI_item: newScrollingWindow()
     me void: addToContainer(me GUI_container: container, me GUI_item: widget)
-    me void: addToViewport(me GUI_container: container, me GUI_item: widget)
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget)
     me void: addMenuBar(me GUI_menuBar: menubar)
     me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)

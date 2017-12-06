@@ -514,7 +514,7 @@ def codeMain(classes, tags, objsRefed, xlator):
 def codeArgText(argFieldName, argType, xlator):
     return argType + " " +argFieldName
 
-def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode):
+def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
         parentClass = progSpec.unwrapClass(classes, structName)

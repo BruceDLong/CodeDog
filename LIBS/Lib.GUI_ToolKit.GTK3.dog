@@ -148,8 +148,8 @@ struct GUI{
     me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
     me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
-    me void: addToViewport(me GUI_container: container, me GUI_item: widget) <- <%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
@@ -433,12 +433,12 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     GtkWidget *menubar;
 
 
-    boxForMenubar = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 0);
+    boxForMenubar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add (GTK_CONTAINER (topBox), boxForMenubar);
     gtk_widget_show (boxForMenubar);
 
     menubar = gtk_menu_bar_new ();
-    gtk_box_pack_start (GTK_BOX (boxForMenubar), menubar, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(boxForMenubar), menubar, TRUE, TRUE, 0);
     gtk_widget_show (menubar);
 
     thisApp.createAppMenu(menubar);
@@ -449,7 +449,7 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     GtkWidget *appArea;
 
     frame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_box_pack_start (GTK_BOX (topBox), frame, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(topBox), frame, TRUE, TRUE, 0);
 
     /-EventDispatcher.registerWidgetForEventDispatcher();
     thisApp.createAppArea(frame);
