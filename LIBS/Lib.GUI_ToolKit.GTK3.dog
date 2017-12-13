@@ -172,7 +172,7 @@ struct GLOBAL{
     their GtkWidget: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
 
-    their GtkWidget: makeListWidget()        <- <%!%GmakeListEditorWidget()%>
+    their GtkWidget: makeListWidget()        <- <%!%Ggtk_list_box_new()%>
     their GtkWidget: makeFrameWidget()       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
     their GtkWidget: makeStoryBoardWidget()  <- <%!%Ggtk_notebook_new()%>
 
@@ -201,24 +201,15 @@ struct GLOBAL{
         return _box;
     }
 %>
-    their GtkWidget: makeListEditorWidget() <- <%{
+    their GtkWidget: makeListEditorWidget(their GtkWidget: listWidget) <- <%{
         GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-        GtkWidget* list = gtk_list_box_new();
-
-    int64_t _item_key=0;
-    for( uint64_t _itemIdx = 0; _itemIdx < 15; ++_itemIdx ){
-        GtkWidget* LAB = gtk_label_new("Hello World!");
-        gtk_container_add(GTK_CONTAINER (list), LAB);
-        ++_item_key;
-    }
-
-        //gtk_container_add(GTK_CONTAINER(_box), list);
-        gtk_box_pack_start(GTK_BOX(_box), list, true, true, 0);
+        gtk_box_pack_start(GTK_BOX(_box), listWidget, true, true, 0);
 
         GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         GtkWidget* addBtn = gtk_button_new_with_label("Add");
         GtkWidget* delBtn = gtk_button_new_with_label("Remove");
         GtkWidget* editBtn = gtk_button_new_with_label("Edit");
+
         gtk_box_pack_start(GTK_BOX(btnBox), addBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(btnBox), delBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(btnBox), editBtn, true, true, 10);
