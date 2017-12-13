@@ -139,11 +139,10 @@ struct Swing_eventDispatcher{
   /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     /- Also: timer, data and user events
 
-    me void: registerWidgetForEventDispatcher(me JavaGUI_ctxt: appWidget) <- <%{
+    me void: registerWidgetForEventDispatcher(me JavaGUI_ctxt: appWidget, their widget: masterWidget) <- <%{
         appWidget.addMouseListener(mouseListener);
         appWidget.addMouseMotionListener(mouseMotionListener);
-
-
+        topWidget = masterWidget;
     } %>
 }
 
@@ -207,8 +206,8 @@ struct GUI {
     me GUI_item: newCanvas() <- <%!%Gnew JavaGUI_ctxt()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setPreferredSize(new Dimension(%2, %3))%>
     me GUI_item: newScrollingWindow() <- <%!%Gnew JScrollPane()%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.add(%2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.setViewportView(%2)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.setViewportView(%2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.add(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%1.setJMenuBar(%2)%>
     me void: setCallback() <- <%!%G %>
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
@@ -282,7 +281,6 @@ struct timeStringer{
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
     me APP: thisApp
-    void: setMasterWidget(their widget: masterWid) <- {EventDispatcher.topWidget<-masterWidget}
     /- DRAWING ROUTINES:
 
     me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{

@@ -89,13 +89,14 @@ struct GTK_eventDispatcher{
   /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     /- Also: timer, data and user events
 
-    me void: registerWidgetForEventDispatcher(me GUI_item: widget) <- <%{
-     /-   g_signal_connect (widget, "expose_event",      G_CALLBACK(expose_event), NULL);
-     /-   g_signal_connect (widget, "configure_event",   G_CALLBACK(configure_event), NULL);
-        g_signal_connect (widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
-        g_signal_connect (widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
+    me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
+	topWidget = masterWidget;
+     /-   g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), NULL);
+     /-   g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), NULL);
+        g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
+        g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
 
-        gtk_widget_set_events (widget, GDK_EXPOSURE_MASK
+        gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
              | GDK_LEAVE_NOTIFY_MASK
              | GDK_BUTTON_PRESS_MASK
              | GDK_POINTER_MOTION_MASK
