@@ -22,6 +22,7 @@ structsNeedingModification={}
 DependanciesUnmarked={}
 DependanciesMarked={}
 classHeirarchyInfo = {}
+currentCheckObjectVars = ""
 
 def rollBack(classes):
     global MarkedObjects
@@ -478,8 +479,15 @@ def doesChildClassImplementFunc(classes, structName, fieldID):
     return result
 
 ###############  Various type-handling functions
-
+def setCurrentCheckObjectVars(message):
+    global currentCheckObjectVars
+    currentCheckObjectVars = message
+    
 def getTypeSpecOwner(typeSpec):
+    global currentCheckObjectVars
+    if (typeSpec == 0):
+        cdErr(currentCheckObjectVars)
+        exit(1)
     if typeSpec==None or isinstance(typeSpec, basestring): return 'me'
     if "arraySpec" in typeSpec and typeSpec['arraySpec']!=None:
         if "owner" in typeSpec['arraySpec']:
