@@ -79,7 +79,8 @@ def CheckObjectVars(objName, itemName, xlator):
     #print "Searching",objName,"for", itemName
     ObjectDef =  progSpec.findSpecOf(globalClassStore[0], objName, "struct")
     if ObjectDef==None:
-        #print "WARNING: Model def not found."
+        message = "ERROR: Model def not found for: "+ str(objName) + " : " + str(itemName)
+        progSpec.setCurrentCheckObjectVars(message)
         return 0
     retVal=None
 
@@ -97,6 +98,8 @@ def CheckObjectVars(objName, itemName, xlator):
                 #print "WRAPPED FIELDNAME:", itemName
                 return wrappedTypeSpec
             else:
+                message = "ERROR: MODEL def not found for: "+ str(objName) + " : " + str(itemName)
+                progSpec.setCurrentCheckObjectVars(message)
                 return 0
 
     callableStructFields=[]
@@ -316,8 +319,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 if typeSpecOut!=0:
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
-                else:
-                    print "WARNING: TYPESPEC IS ", typeSpecOut, "for ", fType + '::' + name
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
