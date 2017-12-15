@@ -12,7 +12,7 @@ interface={
         android.util.Log, android.content.res.AssetManager, android.content.Context,
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory
-	]
+    ]
 }
 
 LibDescription ={
@@ -34,7 +34,7 @@ struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me CanvasView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
 struct GUI_Frame{me LinearLayout:GUI_Frame}
-struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
+struct GUI_ScrollingWindow{me ScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_scalar{me float: GUI_scalar}

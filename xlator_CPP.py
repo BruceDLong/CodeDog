@@ -451,6 +451,11 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 S2=derefPtr(S2, argType)
                 S+=' << '+S2
             S+=" << flush"
+        elif(funcName=='input'):
+            P=paramList[0]
+            [S2, argType]=xlator['codeExpr'](P[0], objsRefed, xlator)
+            S2=derefPtr(S2, argType)
+            S+='getline(cin, '+S2+')'
         elif(funcName=='AllocateOrClear'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, xlator)
             if(varTypeSpec==0): cdErr("Name is undefined: " + varName)

@@ -163,13 +163,61 @@ struct GUI{
 
 struct GLOBAL{
     /- Widgets
-    their GtkWidget: makeIntWidget()        <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
-    their GtkWidget: makeStringWidget()     <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeEnumWidget()       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeBoolWidget()        <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeFloatWidget()       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeNumRangeWidget()    <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeRangeWidget()       <- <%!%Ggtk_entry_new()%>
+  /-  their GtkWidget: makeIntWidget()         <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
+  /-  their GtkWidget: makeStringWidget()      <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeEnumWidget()        <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
 
-    their GtkWidget: makeListWidget()       <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeFrameWidget()      <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
-    their GtkWidget: makeStoryBoardWidget() <- <%!%Ggtk_notebook_new()%>
+    their GtkWidget: makeListWidget()        <- <%!%Ggtk_list_box_new()%>
+    their GtkWidget: makeFrameWidget()       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
+    their GtkWidget: makeStoryBoardWidget()  <- <%!%Ggtk_notebook_new()%>
+
+
+
+    their GtkWidget: makeIntWidget(me string: label)      <- <%{
+        GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        GtkWidget* _label = gtk_label_new(label.data());
+        gtk_label_set_width_chars((GtkLabel*)_label, 15);
+        gtk_label_set_xalign((GtkLabel*)_label, 0.9);
+        gtk_container_add(GTK_CONTAINER (_box), _label);
+        GtkWidget* _entry = gtk_spin_button_new(NULL, 1, 0);
+        gtk_container_add(GTK_CONTAINER (_box), _entry);
+        return _box;
+    }
+%>
+
+    their GtkWidget: makeStringWidget(me string: label)      <- <%{
+        GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        GtkWidget* _label = gtk_label_new(label.data());
+        gtk_label_set_width_chars((GtkLabel*)_label, 15);
+        gtk_label_set_xalign((GtkLabel*)_label, 0.9);
+        gtk_container_add(GTK_CONTAINER (_box), _label);
+        GtkWidget* _entry = gtk_entry_new();
+        gtk_container_add(GTK_CONTAINER (_box), _entry);
+        return _box;
+    }
+%>
+    their GtkWidget: makeListEditorWidget(their GtkWidget: listWidget) <- <%{
+        GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+        gtk_box_pack_start(GTK_BOX(_box), listWidget, true, true, 0);
+
+        GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        GtkWidget* addBtn = gtk_button_new_with_label("Add");
+        GtkWidget* delBtn = gtk_button_new_with_label("Remove");
+        GtkWidget* editBtn = gtk_button_new_with_label("Edit");
+
+        gtk_box_pack_start(GTK_BOX(btnBox), addBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(btnBox), delBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(btnBox), editBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(_box), btnBox, false, true, 0);
+        return _box;
+    }
+%>
 }
 
 struct GUI_ctxt {

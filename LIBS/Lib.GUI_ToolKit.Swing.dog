@@ -9,9 +9,9 @@ interface={
     headers =[javax.swing.*, javax.imageio.ImageIO, java.nio.file.Paths,
         java.awt.Graphics, java.awt.Graphics2D, java.awt.image.BufferedImage,
         java.awt.*, java.awt.event.*, java.awt.geom.*, java.awt.Font,
-        java.awt.event.MouseAdapter, javax.swing.event.MouseInputAdapter, 
+        java.awt.event.MouseAdapter, javax.swing.event.MouseInputAdapter,
         java.awt.event.MouseListener, java.awt.event.MouseEvent
-	]
+    ]
 }
 
 LibDescription ={
