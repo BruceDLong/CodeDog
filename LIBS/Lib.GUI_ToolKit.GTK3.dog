@@ -90,7 +90,9 @@ struct GTK_eventDispatcher{
     /- Also: timer, data and user events
 
     me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
-	topWidget = masterWidget;
+    topWidget = masterWidget;
+
+        g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), NULL);
      /-   g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), NULL);
      /-   g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), NULL);
         g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
