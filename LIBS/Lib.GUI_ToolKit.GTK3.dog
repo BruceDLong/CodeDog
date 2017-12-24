@@ -126,6 +126,77 @@ struct GLOBAL{
     } %>
 }
 
+
+struct GLOBAL{
+    void: ListEditorHandleAdd(their GtkWidget: wid, their ListEditorWidget: listEditBox) <- {
+        listEditBox.handleAdd()
+    }
+    void: ListEditorHandleDelete(their GtkWidget: wid, their ListEditorWidget: listEditBox) <- {
+        listEditBox.handleDelete()
+    }
+    void: ListEditorHandleEdit(their GtkWidget: wid, their ListEditorWidget: listEditBox) <- {
+        listEditBox.handleEdit()
+    }
+}
+/-///////////////////////////////  HIGHER LEVEL WIDGETS
+
+struct ListEditorWidget{
+    their ListWidgetManager: parent
+    their GtkWidget: editorFrame
+    their GtkWidget: addBtn
+    their GtkWidget: deleteBtn
+    their GtkWidget: editBtn
+
+    void: handleAdd() <- <% {
+        cout << "Add Btn Clicked\n";
+        parent->allocateNewCurrentItem();
+        GtkWidget* itemWidget = parent->makeEditableWidget();
+        GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+        GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Add", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+        GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+        gtk_container_add (GTK_CONTAINER (contentArea), itemWidget);
+
+        gtk_widget_show_all(AddItemDialog);
+        int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+        if(result==1){
+            cout<<"ACCEPTED "<<result<<"\n";
+            parent->updateCrntFromEdited(itemWidget)
+        } else {
+            cout<<"CANCELED "<<result<<"\n";
+        }
+        gtk_widget_destroy(AddItemDialog);
+
+    } %>
+    void: handleDelete() <- {
+        print("Delete Btn Clicked\n")
+    }
+    void: handleEdit() <- {
+        print("Edit Btn Clicked\n")
+    }
+    their GtkWidget: init_dialog(their ListWidgetManager: Parent) <- <% {
+        parent = Parent;
+        GtkWidget* listWidget    = gtk_list_box_new();  // This should be given from parent
+        editorFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+        gtk_box_pack_start(GTK_BOX(editorFrame), listWidget, true, true, 0);
+
+        GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        addBtn = gtk_button_new_with_label("Add");
+        deleteBtn = gtk_button_new_with_label("Remove");
+        editBtn = gtk_button_new_with_label("Edit");
+
+        gtk_box_pack_start(GTK_BOX(btnBox), addBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(btnBox), deleteBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(btnBox), editBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(editorFrame), btnBox, false, true, 0);
+
+        g_signal_connect(G_OBJECT(addBtn), "clicked", G_CALLBACK(ListEditorHandleAdd), this);
+        g_signal_connect(G_OBJECT(deleteBtn), "clicked", G_CALLBACK(ListEditorHandleDelete), this);
+        g_signal_connect(G_OBJECT(editBtn), "clicked", G_CALLBACK(ListEditorHandleEdit), this);
+
+        return editorFrame;
+    } %>
+}
+
 /-///////////////////////////////  HANDLE GUI
 struct GUI{
     their GtkApplication: app

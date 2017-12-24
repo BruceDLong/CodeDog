@@ -12,7 +12,7 @@ currentModelSpec=None
 
 # Code accmulator strings:
 newWidgetFields=''
-currentClassCode=''
+currentFuncCode=''
 widgetFromVarsCode=''
 varsFromWidgetCode=''
 
@@ -48,9 +48,29 @@ def deProgify(identifier):
         chPos+=1
     return outStr
 
+def codeListWidgetManagerClassOverride(listManagerStructName, structTypeName):
+    # if class listManagerStructName already exists,: return
+    CODE = 'struct '+listManagerStructName+':'+ ListWidgetManager + """
+    /-me ListEditorWidget: LEW
+
+    /- Override all these for each new list editing widget
+    their GUI_item: makeViewableWidget() <- {return(NULL)}
+    void: updateViewableWidget(their GUI_item: Wid) <- {}
+    their GUI_item: makeEditableWidget() <- {return(NULL)}
+    void: updateEditableWidget(their GUI_item: Wid) <- {}
+    void: updateCrntFromEdited(their GUI_item: Wid) <- {}
+    void: allocateNewCurrentItem() <- {}
+    void: pushCrntToList() <- {}
+    void: deleteNthItem() <- {}
+    void: copyCrntBackToList() <- {}
+
+    their GUI_item: initWidget(me gpointer: theList) <- {return(LEW.init_dialog(self)}
+    """
+
+
 def getWidgetHandlingCode(fldCat, fieldName, field, structTypeName, indent):
     global newWidgetFields
-    global currentClassCode
+    global currentFuncCode
     global widgetFromVarsCode
     global varsFromWidgetCode
 
@@ -62,12 +82,13 @@ def getWidgetHandlingCode(fldCat, fieldName, field, structTypeName, indent):
         makeTypeNameCall = fieldName+'.make'+structTypeName+'Widget("'+label+'")'
     else: makeTypeNameCall = 'make'+typeName[0].upper() + typeName[1:]+'("'+label+'")'
 
-    widgetFieldName = fieldName[0].upper() + fieldName[1:] + 'Widget'
+    CasedFieldName = fieldName[0].upper() + fieldName[1:]
+    widgetFieldName = CasedFieldName + 'Widget'
 
     typeSpec=field['typeSpec']
     newWidgetFields += '\n'+indent+'    their '+typeName+': '+widgetFieldName
-    if progSpec.typeIsPointer(typeSpec): currentClassCode += indent+'    Allocate('+fieldName+')\n'
-    currentClassCode += indent+'    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
+    if progSpec.typeIsPointer(typeSpec): currentFuncCode += indent+'    Allocate('+fieldName+')\n'
+    currentFuncCode += indent+'    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
 
     # If this is a list, populate it
     print "WIDGET:", typeName, typeSpec
@@ -75,13 +96,21 @@ def getWidgetHandlingCode(fldCat, fieldName, field, structTypeName, indent):
         innerFieldType=typeSpec['fieldType']
         print "ARRAYSPEC:",innerFieldType, field
         fldCatInner=progSpec.innerTypeCategory(innerFieldType)
+
+        # If it hasn't already been added, make a struct <ItemType>_ListWidgetManager:ListWidgetManager{}
+        listManagerStructName = structTypeName+'_ListEditorWidget'
+        codeListWidgetManagerClassOverride(listManagerStructName, structTypeName)
+
+        listWidMgrName = widgetFieldName+'_LEWM'
+        newWidgetFields += '\n'+indent+'    me '+listManagerStructName+': '+listWidMgrName+'\n'
+
         widgetListEditorName = widgetFieldName+'Editor'
-        currentClassCode += indent+'    their GUI_item: '+widgetListEditorName+' <- makeListEditorWidget('+widgetFieldName+')\n'
-        currentClassCode += indent+'    addToContainer(box, '+widgetListEditorName+')\n'
-        currentClassCode += indent+"    withEach _item in "+fieldName+':{\n        addToContainer('+widgetFieldName+', _item.make'+structTypeName+'Widget(s))\n    }\n'
+        currentFuncCode += indent+'    their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget(self)\n'
+        currentFuncCode += indent+'    addToContainer(box, '+widgetListEditorName+')\n'
+        currentFuncCode += indent+"    withEach _item in "+fieldName+':{\n        addToContainer('+widgetFieldName+', _item.make'+structTypeName+'Widget(s))\n    }\n'
 
     else: # Not an ArraySpec:
-        currentClassCode += indent+'    addToContainer(box, '+widgetFieldName+')\n'
+        currentFuncCode += indent+'    addToContainer(box, '+widgetFieldName+')\n'
 
 def BuildGuiClass(classes, className, dialogStyle):
     print "in BuildGuiClass\n"
@@ -89,7 +118,7 @@ def BuildGuiClass(classes, className, dialogStyle):
     #   It adds a widget variable for items in model // newWidgetFields: '    their '+typeName+': '+widgetFieldName
     #   It adds a set Widget from Vars function      // widgetFromVarsCode: Func UpdateWidgetFromVars()
     #   It adds a set Vars from Widget function      // varsFromWidgetCode: Func UpdateVarsFromWidget()
-    #   It add an initialize Widgets function.       // currentClassCode: widgetFieldName+' <- '+makeTypeNameCall+'\n    addToContainer(box, '+widgetFieldName+')\n'
+    #   It add an initialize Widgets function.       // currentFuncCode: widgetFieldName+' <- '+makeTypeNameCall+'\n    addToContainer(box, '+widgetFieldName+')\n'
     global classesEncoded
     global currentClassName
     global currentModelSpec
@@ -98,12 +127,12 @@ def BuildGuiClass(classes, className, dialogStyle):
 
     # reset the string vars that accumulate the code
     global newWidgetFields
-    global currentClassCode
+    global currentFuncCode
     global widgetFromVarsCode
     global varsFromWidgetCode
 
     newWidgetFields=''
-    currentClassCode=''
+    currentFuncCode=''
     widgetFromVarsCode=''
     varsFromWidgetCode=''
 
@@ -150,10 +179,10 @@ def BuildGuiClass(classes, className, dialogStyle):
     if dialogStyle == 'Z_stack': containerWidget='makeStoryBoardWidget()'
     else: containerWidget='makeFrameWidget()'
 
-    currentClassCode = '\n  their GUI_item: '+initFuncName+'(me string: S) <- {\n    me string:s\n    their GUI_Frame:box <- '+containerWidget+'\n' + currentClassCode + '\n    return(box)\n  }\n'
+    currentFuncCode = '\n  their GUI_item: '+initFuncName+'(me string: S) <- {\n    me string:s\n    their GUI_Frame:box <- '+containerWidget+'\n' + currentFuncCode + '\n    return(box)\n  }\n'
     widgetFromVarsCode += '    void: updateWidgetFromVars() <- {\n' + widgetFromVarsCode + '\n    }\n'
     varsFromWidgetCode += '    void: updateVarsFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
-    functionsCode = newWidgetFields + currentClassCode + widgetFromVarsCode + varsFromWidgetCode
+    functionsCode = newWidgetFields + currentFuncCode + widgetFromVarsCode + varsFromWidgetCode
     CODE = 'struct '+className+" {\n" + functionsCode + '\n}\n'         # Add the new fields to the STRUCT being processed
     print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, className)
