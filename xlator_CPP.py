@@ -47,6 +47,10 @@ def applyOwner(owner, langType, varMode):
         langType = "static const "+langType
     elif owner=='we':
         langType = 'static '+langType
+    elif owner=='id_our':
+        langType="shared_ptr<"+langType + ' >*'
+    elif owner=='id_their':
+        langType += '**'
     else:
         cdErr("ERROR: Owner of type not valid '" + owner + "'")
     return langType

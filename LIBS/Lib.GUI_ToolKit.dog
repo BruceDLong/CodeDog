@@ -211,4 +211,3 @@ struct ListWidgetManager{
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }
-}

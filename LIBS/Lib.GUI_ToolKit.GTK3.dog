@@ -160,7 +160,7 @@ struct ListEditorWidget{
         int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
         if(result==1){
             cout<<"ACCEPTED "<<result<<"\n";
-            parent->updateCrntFromEdited(itemWidget)
+            parent->updateCrntFromEdited(itemWidget);
         } else {
             cout<<"CANCELED "<<result<<"\n";
         }
