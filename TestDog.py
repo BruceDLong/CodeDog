@@ -120,7 +120,7 @@ def generateTestCode(classes, buildTags, tags, macroDefs):
     TestSpecFile= progSpec.fetchTagValue([tags, buildTags], 'TestSpec')
     TestSpecStr = progSpec.stringFromFile(TestSpecFile) + testMacros
     #print "#################################\n", TestSpecStr
-    [testTagStore, testBuildSpecs, testClasses, newTestClasses] = codeDogParser.parseCodeDogString(TestSpecStr, classes[0], classes[1], macroDefs)
+    [testTagStore, testBuildSpecs, testClasses, newTestClasses] = codeDogParser.parseCodeDogString(TestSpecStr, classes[0], classes[1], macroDefs, "TestDog Specification")
 
     # Replace runcode if it isn't there
     # Here: generate EXEC_TESTS() and RUN_TEST()

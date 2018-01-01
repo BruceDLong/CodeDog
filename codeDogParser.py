@@ -132,7 +132,7 @@ coFactualEl  = Group(Literal("(") + Group(fieldDef + "<=>" + Group(OneOrMore(Set
 sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
 alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
 anonModel = (sequenceEl | alternateEl) ("anonModel")
-owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr"))
+owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their"))
 fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | Group(anonModel))('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")+Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))

@@ -482,7 +482,7 @@ def doesChildClassImplementFunc(classes, structName, fieldID):
 def setCurrentCheckObjectVars(message):
     global currentCheckObjectVars
     currentCheckObjectVars = message
-    
+
 def getTypeSpecOwner(typeSpec):
     global currentCheckObjectVars
     if (typeSpec == 0):
@@ -497,7 +497,7 @@ def getTypeSpecOwner(typeSpec):
 
 def typeIsPointer(typeSpec):
     owner=getTypeSpecOwner(typeSpec)
-    if owner == 'their' or owner == 'our' or owner == 'my' or owner == 'itr': isPointer=True
+    if owner == 'their' or owner == 'our' or owner == 'my' or owner == 'itr' or owner == 'id_their' or owner == 'id_our': isPointer=True
     else: isPointer=False
     return isPointer
 
