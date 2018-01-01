@@ -37,8 +37,14 @@ struct GUI_storyBoard{
     me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
 }
 
-struct intWidget{their GtkWidget: intWidget}
-struct stringWidget{their GtkWidget: stringWidget}
+struct intWidget{
+    their GtkWidget: intWidget
+    me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0)%>
+}
+struct stringWidget{
+    their GtkWidget: stringWidget
+    me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0)%>
+}
 struct enumWidget{their GtkWidget: enumWidget}
 struct listWidget{their GtkWidget: listWidget}
 struct GUI_Frame{their GtkWidget: GUI_Frame}

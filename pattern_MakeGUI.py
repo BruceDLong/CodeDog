@@ -49,19 +49,9 @@ def deProgify(identifier):
     return outStr
 
 def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTypeName):
-    funcTextToMakeViewWidget=''
     funcTextToUpdateViewWidget=''
-    funcTextToMakeEditWidget=''
     funcTextToUpdateEditWidget=''
-
     funcTextToUpdateCrntFromWidget=''
-    funcTextToCopyCrntToList=''
-
-    funcTextToAllocateNewCrnt=''
-    funcTextToPushCrntToList=''
-    funcTextToDeleteNthItem=''
-    funcTextToInitializeWidget=''
-
 
     # Find the model
     modelRef = progSpec.findSpecOf(classes[0], structTypeName, 'model')
@@ -73,28 +63,44 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     fieldIdx=0
     for field in modelRef['fields']:
         fieldIdx+=1
-        fldCat=progSpec.fieldsTypeCategory(field['typeSpec'])
+        typeSpec=field['typeSpec']
+        fldCat=progSpec.fieldsTypeCategory(typeSpec)
         fieldName=field['fieldName']
         label = deProgify(fieldName)
+        CasedFieldName = fieldName[0].upper() + fieldName[1:]
+        widgetFieldName = CasedFieldName + 'Widget'
+
+        if not ('arraySpec' in typeSpec and typeSpec['arraySpec']!=None):
+            funcTextToUpdateViewWidget     += ''
+            funcTextToUpdateEditWidget     += ''
+            funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
 
 ###############
-    CODE = 'struct '+listManagerStructName+": inherits = 'ListWidgetManager' {" + """
+    CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
     /-me ListEditorWidget: LEW
-
+    their <STRUCTNAME>: crntRecord
+    me <STRUCTNAME>_Dialog_GUI: dialog
     /- Override all these for each new list editing widget
-    their GUI_item: makeViewableWidget() <- {return(NULL)}
-    void: updateViewableWidget(their GUI_item: Wid) <- {}
-    their GUI_item: makeEditableWidget() <- {return(NULL)}
-    void: updateEditableWidget(their GUI_item: Wid) <- {}
-    void: updateCrntFromEdited(their GUI_item: Wid) <- {}
-    void: allocateNewCurrentItem() <- {}
+    their GUI_item: makeViewableWidget() <- {return(gtk_label_new("VIEWABLE WIDGET"))}
+    void: updateViewableWidget(their GUI_item: Wid) <- {<funcTextToUpdateViewWidget>}
+    their GUI_item: makeEditableWidget() <- {
+        their GtkWidget: ret <- dialog.make<STRUCTNAME>Widget(crntRecord)
+        return(ret)
+    }
+    void: updateEditableWidget(their GUI_item: Wid) <- {<funcTextToUpdateEditWidget>}
+    void: updateCrntFromEdited(their GUI_item: Wid) <- {<funcTextToUpdateCrntFromWidget>}
+    void: allocateNewCurrentItem() <- {Allocate(crntRecord)}
     void: pushCrntToList() <- {}
     void: deleteNthItem() <- {}
     void: copyCrntBackToList() <- {}
 
     their GUI_item: initWidget() <- {return(LEW.init_dialog(self))}
 }
-"""
+'''
+    CODE = CODE.replace('<STRUCTNAME>', structTypeName)
+    CODE = CODE.replace('<funcTextToUpdateViewWidget>', funcTextToUpdateViewWidget)
+    CODE = CODE.replace('<funcTextToUpdateEditWidget>', funcTextToUpdateEditWidget)
+    CODE = CODE.replace('<funcTextToUpdateCrntFromWidget>', funcTextToUpdateCrntFromWidget)
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, listManagerStructName)
 
 def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, indent):
@@ -120,7 +126,6 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
     widgetInitFuncCode += indent+'    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
 
     # If this is a list, populate it
-    print "WIDGET:", typeName, typeSpec
     if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
         innerFieldType=typeSpec['fieldType']
         print "ARRAYSPEC:",innerFieldType, field
