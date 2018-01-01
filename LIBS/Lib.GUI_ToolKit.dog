@@ -58,7 +58,7 @@ struct GLOBAL{
     me rangeWidget:     makeRangeWidget()
     me intWidget:       makeIntWidget(me string: label)
     me stringWidget:    makeStringWidget(me string: label)
-    me enumWidget:      makeEnumWidget()
+    me enumWidget:      makeEnumWidget(me string: label, me string[list]: options)
     me timeWidget:      makeTimeWidget()
     me dateWidget:      makeDateWidget()
 }

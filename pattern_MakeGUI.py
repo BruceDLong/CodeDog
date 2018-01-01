@@ -17,12 +17,14 @@ widgetFromVarsCode=''
 varsFromWidgetCode=''
 
 def getFieldSpec(fldCat, field):
-    params={}
+    parameters={}
     if fldCat=='mode': fldCat='enum'
     elif fldCat=='double': fldCat='float'
 
-    if fldCat=='enum': parameters={'mon', 'tue', 'wed', 'thur', 'fri', 'sat', 'sun'}
-    elif fldCat=='RANGE': pareameters={1, 10}
+    if fldCat=='enum':
+        parameters=field['typeSpec']['enumList']
+    elif fldCat=='RANGE':
+        parameters={1, 10}
 
     typeSpec=field['typeSpec']
     if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
@@ -32,7 +34,7 @@ def getFieldSpec(fldCat, field):
     else:
         if fldCat=='struct':
             fldCat='struct' #field['typeSpec']['fieldType'][0]
-        return [fldCat, params]
+        return [fldCat, parameters]
 
 def deProgify(identifier):
     outStr=''
@@ -71,9 +73,22 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         widgetFieldName = CasedFieldName + 'Widget'
 
         if not ('arraySpec' in typeSpec and typeSpec['arraySpec']!=None):
-            funcTextToUpdateViewWidget     += ''
-            funcTextToUpdateEditWidget     += ''
-            funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
+            if fldCat=='struct':
+                funcTextToUpdateViewWidget     += ''
+                funcTextToUpdateEditWidget     += ''
+                funcTextToUpdateCrntFromWidget += ' '
+            elif fldCat=='enum' or fldCat=='mode':
+                funcTextToUpdateViewWidget     += ''
+                funcTextToUpdateEditWidget     += ''
+                funcTextToUpdateCrntFromWidget += ''
+            elif fldCat=='bool':
+                funcTextToUpdateViewWidget     += ''
+                funcTextToUpdateEditWidget     += ''
+                funcTextToUpdateCrntFromWidget += ''
+            else:
+                funcTextToUpdateViewWidget     += ''
+                funcTextToUpdateEditWidget     += 'print("'+fldCat+'")\n'
+                funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
 
 ###############
     CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
@@ -115,6 +130,12 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
     if fieldSpec=='struct':
         typeName = 'GUI_Frame'
         makeTypeNameCall = 'parent.'+fieldName+'.GUI_Manager.make'+structTypeName+'Widget(parent.'+fieldName+')'
+    elif fieldSpec=='enum':
+        typeName = 'enumWidget'
+        EnumItems=[]
+        for enumItem in params: EnumItems.append('"'+deProgify(enumItem)+'"')
+        optionString = '[' + ', '.join(EnumItems) + ']'
+        makeTypeNameCall = 'makeEnumWidget("'+label+'", '+optionString+')'
     else: makeTypeNameCall = 'make'+typeName[0].upper() + typeName[1:]+'("'+label+'")'
 
     CasedFieldName = fieldName[0].upper() + fieldName[1:]
@@ -192,7 +213,6 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         fldCat=progSpec.fieldsTypeCategory(typeSpec)
         fieldName=field['fieldName']
         label = deProgify(fieldName)
-        print "    >"+fieldName+'   '+label+'\n'
         if fieldName=='settings':
             # add settings
             continue
@@ -227,7 +247,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     if dialogStyle == 'Z_stack': containerWidget='makeStoryBoardWidget()'
     else: containerWidget='makeFrameWidget()'
 
-    newWidgetFields += '    their '+className+': parent\n'
+    newWidgetFields += '\n\n    their '+className+': parent\n'
 
     widgetInitFuncCode = '\n  their GUI_item: '+initFuncName+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their GUI_Frame:box <- '+containerWidget+'\n' + widgetInitFuncCode + '\n    return(box)\n  }\n'
     widgetFromVarsCode += '    void: updateWidgetFromVars() <- {\n' + widgetFromVarsCode + '\n    }\n'
