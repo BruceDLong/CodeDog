@@ -96,10 +96,10 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     their <STRUCTNAME>: crntRecord
     me <STRUCTNAME>_Dialog_GUI: dialog
     /- Override all these for each new list editing widget
-    their GUI_item: makeViewableWidget() <- {return(gtk_label_new("VIEWABLE WIDGET"))}
+    their GUI_item: makeViewableWidget() <- {return(makeLabelWidget("VIEWABLE WIDGET"))}
     void: updateViewableWidget(their GUI_item: Wid) <- {<funcTextToUpdateViewWidget>}
     their GUI_item: makeEditableWidget() <- {
-        their GtkWidget: ret <- dialog.make<STRUCTNAME>Widget(crntRecord)
+        their GUI_item: ret <- dialog.make<STRUCTNAME>Widget(crntRecord)
         return(ret)
     }
     void: updateEditableWidget(their GUI_item: Wid) <- {<funcTextToUpdateEditWidget>}
@@ -249,7 +249,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
 
     newWidgetFields += '\n\n    their '+className+': parent\n'
 
-    widgetInitFuncCode = '\n  their GUI_item: '+initFuncName+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their GUI_Frame:box <- '+containerWidget+'\n' + widgetInitFuncCode + '\n    return(box)\n  }\n'
+    widgetInitFuncCode = '\n  their GUI_Frame: '+initFuncName+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their GUI_Frame:box <- '+containerWidget+'\n' + widgetInitFuncCode + '\n    return(box)\n  }\n'
     widgetFromVarsCode += '    void: updateWidgetFromVars() <- {\n' + widgetFromVarsCode + '\n    }\n'
     varsFromWidgetCode += '    void: updateVarsFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
     parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
