@@ -574,6 +574,7 @@ def encodeConditionalStatement(action, indent, objsRefed, xlator):
 def codeAction(action, indent, objsRefed, xlator):
     #make a string and return it
     global localVarsAllocated
+    global globalClassStore
     actionText = ""
     action['sideEffects']=[]
     typeOfAction = action['typeOfAction']
@@ -642,10 +643,22 @@ def codeAction(action, indent, objsRefed, xlator):
             else:
                 actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='swap'):
-        LHS =  ".".join(action['LHS'])
-        RHS =  ".".join(action['LHS'])
-        print "                                     swap: ", LHS, RHS
-        actionText = indent + "swap (" + LHS + ", " + RHS + ");\n"
+        LHS = action['LHS']
+        RHS =  action['RHS']
+        typeSpec   = fetchItemsTypeSpec(LHS, objsRefed, xlator)
+        print"swap LHS RHS: ", LHS, RHS,typeSpec
+        [typeLHS, innerTypeLHS] = xlator['convertType'](globalClassStore, typeSpec[0], 'var', xlator)
+        print "typeLHS: ", typeLHS, " --- ", innerTypeLHS
+        typeSpec   = fetchItemsTypeSpec(RHS, objsRefed, xlator)
+        [typeRHS, innerTypeRHS] = xlator['convertType'](globalClassStore, typeSpec[0], 'var', xlator)
+        #print "typeLHS: ", typeLHS
+        #print "typeRHS: ", typeRHS
+        LHS = LHS[0]
+        RHS = RHS[0]
+        actionText = indent + typeLHS + " tmp = " + LHS + ";\n"
+        actionText += indent + LHS + " = " + RHS + ";\n"
+        actionText += indent + RHS + " = " + "tmp;\n"
+        print "actionText: ", actionText
     elif (typeOfAction =='conditional'):
         cdlog(5, "If-statement...")
         [S2, conditionType] =  xlator['codeExpr'](action['ifCondition'][0], objsRefed, xlator)

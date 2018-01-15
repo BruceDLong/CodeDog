@@ -52,15 +52,15 @@ struct GUI{
 
 struct GLOBAL{
     /- GUI Widgets
-    me boolWidget:      makeBoolWidget()
-    me floatWidget:     makeFloatWidget()
-    me numRangeWidget:  makeNumRangeWidget()
-    me rangeWidget:     makeRangeWidget()
+    me boolWidget:      makeBoolWidget(me string: label)
+    me floatWidget:     makeFloatWidget(me string: label)
+    me numRangeWidget:  makeNumRangeWidget(me string: label)
+    me rangeWidget:     makeRangeWidget(me string: label)
     me intWidget:       makeIntWidget(me string: label)
     me stringWidget:    makeStringWidget(me string: label)
     me enumWidget:      makeEnumWidget(me string: label, me string[list]: options)
-    me timeWidget:      makeTimeWidget()
-    me dateWidget:      makeDateWidget()
+    me timeWidget:      makeTimeWidget(me string: label)
+    me dateWidget:      makeDateWidget(me string: label)
 }
 
 struct GUI_ctxt {

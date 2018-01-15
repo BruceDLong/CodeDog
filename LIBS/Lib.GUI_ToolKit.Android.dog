@@ -8,10 +8,12 @@ interface={
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
         android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.TextView,
-        android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar,
+        android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.support.v4.app.Fragment,
         android.util.Log, android.content.res.AssetManager, android.content.Context,
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path,
-        android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory
+        android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory,
+	android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox, android.widget.ListView,
+	android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup
     ]
 }
 
@@ -27,17 +29,138 @@ LibDescription ={
 /-///////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
-struct GUI_item{me Object: GUI_item}
+struct GUI_item{me View: GUI_item}
 struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
 struct GUI_menu{me ourSubMenu: GUI_menu}
 struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me CanvasView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
 struct GUI_Frame{me LinearLayout:GUI_Frame}
-struct GUI_ScrollingWindow{me ScrollView: GUI_ScrollingWindow}
+struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_scalar{me float: GUI_scalar}
+struct GUI_label{their textView: GUI_label}
+
+/-///////////////////////////////  WIDGETS
+struct GUI_storyBoard: inherits="FragmentActivity" {
+    their LinearLayout: GUI_storyBoard
+    me void: addPane(their GUI_Frame: frame) <- <%!%1.addView(%2)%>
+}
+
+struct intWidget{
+    their EditText: intWidget
+    me string: getValue() <- <%!Integer.parseInt(%0.getText().toString())%>
+}
+
+struct stringWidget{
+    their EditText: stringWidget
+    me string: getValue() <- <%!getText().toString()%>
+}
+
+struct boolWidget{
+    their CheckBox: checkBox
+}
+
+struct enumWidget{their Spinner: enumWidget}
+struct listWidget{their LinearLayout: listWidget}
+struct GUI_Frame{their LinearLayout: GUI_Frame}
+
+
+
+/-///////////////////////////////  LIST EDITOR WIDGET
+struct ListEditorWidget{
+    their ListWidgetManager: parent
+    their LinearLayout: editorFrame
+    their Button: addBtn
+    their Button: deleteBtn
+    their Button: editBtn
+
+    void: handleAdd() <- {
+        print("Add Btn Clicked\n")
+    } 
+    void: handleDelete() <- {
+        print("Delete Btn Clicked\n")
+    }
+    void: handleEdit() <- {
+        print("Edit Btn Clicked\n")
+    }
+    their LinearLayout: init_dialog(their ListWidgetManager: Parent) <- <% {
+	editorFrame = new LinearLayout(GLOBAL.static_Global);
+	TextView tv = new TextView(GLOBAL.static_Global);
+        tv.setText("ListEditorWidget");
+        editorFrame.addView(tv);
+        return editorFrame;
+    } %>
+
+/-//// Code Converters
+    me void: gtk_label_new() <- <%!addView(%1)%>
+}
+
+/-///////////////////////////////  HIGHER LEVEL WIDGETS
+struct GLOBAL{
+    /- Widgets
+    their numRangeWidget: makeNumRangeWidget(me string: label)    <- <%!%Gnew NumberPicker(GLOBAL.static_Global)%>
+    their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
+    their timeWidget: makeTimeWidget(me string: label)        <- <%!%Gnew TimePicker(GLOBAL.static_Global)%>
+    their dateWidget: makeDateWidget(me string: label)        <- <%!%Gnew DatePicker (GLOBAL.static_Global)%>
+    their GUI_item: makeFrameWidget(me string: label)       <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
+    
+    their CheckBox: makeBoolWidget(me string: label)      <- <%{
+        CheckBox checkBox = new CheckBox(GLOBAL.static_Global);
+        return checkBox;
+    }%>
+
+    their LinearLayout: makeListWidget(me string: label)      <- <%{
+        LinearLayout listContainer = new LinearLayout(GLOBAL.static_Global);
+
+        return listContainer;
+    }%>
+
+    their LinearLayout: makeStoryBoardWidget()      <- <%{
+        LinearLayout storyBoard = new LinearLayout(GLOBAL.static_Global);
+
+        return storyBoard;
+    }%>
+    
+    their TextView: makeLabelWidget(me string: label)      <- <%{
+        TextView textBox = new TextView(GLOBAL.static_Global);
+	
+	textBox.setText(label);
+        return textBox;
+    }%>
+
+    their EditText: makeFloatWidget(me string: label)      <- <%{
+        EditText editBox = new EditText(GLOBAL.static_Global);
+	
+	editBox.setHint(label);
+        return editBox;
+    }%>
+
+    their EditText: makeIntWidget(me string: label)      <- <%{
+        EditText editBox = new EditText(GLOBAL.static_Global);
+	editBox.setInputType(InputType.TYPE_CLASS_NUMBER);
+	editBox.setHint(label);
+        return editBox;
+    }%>
+    
+    their EditText: makeStringWidget(me string: label)      <- <%{
+	EditText editBox = new EditText(GLOBAL.static_Global);
+	
+	editBox.setHint(label);
+	return editBox;
+    }%>
+
+
+    their EditText: makeEnumWidget(me string: label, me string[list]: options)      <- <%{
+        EditText editBox = new EditText(GLOBAL.static_Global);
+	editBox.setHint(label);
+        return editBox;
+    }%>
+
+
+}
 
 /-///////////////////////////////  HANDLE EVENTS
 
@@ -65,7 +188,7 @@ struct GUI_PointerEvent{
     me int: y <- <%!getY()%>
 }
 
-/-///////////////////////////////  HANDLE LISTENERS
+/-///////////////////////////////  EVENT DISPATCHER
 struct Android_eventDispatcher{
     their widget: topWidget
 
@@ -128,7 +251,7 @@ struct CanvasView: inherits="View" implements="OnTouchListener"{
         cr = new GUI_ctxt(canvas);
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
-        GLOBAL.static_Global.drawAppArea_cb(GLOBAL.static_Global, cr);
+        GLOBAL.static_Global.drawAppArea_cb(this, cr);
         invalidate();
     }%>
 
@@ -294,6 +417,15 @@ struct GLOBAL: inherits="AppCompatActivity"{
     me long: ticksPerSec() <- <%!%G1000%>
     me Android_eventDispatcher: EventDispatcher
     me Toolbar: toolbar
+
+    me void: onCreate(me Bundle: savedInstanceState) <- <%{
+	super.onCreate(savedInstanceState);
+	GLOBAL.static_Global = this;
+	GLOBAL.static_Global.thisApp = new APP();
+	GLOBAL.static_Global.initialize("");
+	GLOBAL.static_Global.runDogCode();
+	GLOBAL.static_Global.addToolbar();
+    }%>
 
     me void: close_window() <- {
          /- gtk_main_quit()

@@ -103,7 +103,7 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action = Group((assign("assign") | funcCall("funcCall") | fieldDef('fieldDef')) + Optional(comment)) + Optional(";").suppress()
+action = Group((assign("assign") | swap('swap') | funcCall("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
 actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (switchStmt | conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 rValueVerbatim = Group( "<%" + SkipTo("%>", include=True))("rValueVerbatim")
 funcBody = (actionSeq | rValueVerbatim)("funcBody")
@@ -371,9 +371,10 @@ def extractActItem(funcName, actionItem):
         #print RHS, LHS
         thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS, 'assignTag':assignTag}
     # Swap
-    elif (actionItem.swapID):
-        RHS = actionItem.RightLValue
-        LHS = actionItem.lValue
+    elif (actionItem.swap):
+        print"swap: ", actionItem[0][0][0]
+        RHS = actionItem[0][2][0]
+        LHS = actionItem[0][0][0]
         thisActionItem = {'typeOfAction':"swap", 'LHS':LHS, 'RHS':RHS}
     # Function Call
     elif actionItem.funcCall:

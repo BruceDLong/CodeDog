@@ -31,7 +31,9 @@ struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_scalar{me int: GUI_scalar}
+/-struct GUI_label{their textView: GUI_label}
 
+/-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
     their GtkWidget: GUI_storyBoard
     me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
@@ -52,103 +54,18 @@ struct enumWidget{
 struct listWidget{their GtkWidget: listWidget}
 struct GUI_Frame{their GtkWidget: GUI_Frame}
 
-/-///////////////////////////////  HANDLE EVENTS
-struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
+struct boolWidget{
 
-struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
-struct GUI_ButtonEvent{
-  me uint: type
- /- GdkWindow *window;
- /- gint8 send_event;
- /- guint32 time;
-  me double: x
-  me double: y
-  me uint: state
-  me uint: button
-}
-
-struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
-struct GUI_PointerEvent{
-  me uint: type
- /- GdkWindow *window;
- /- gint8 send_event;
- /- guint32 time;
-  me double: x
-  me double: y
-
-  me uint: state
-  me uint: button
-}
-
-/-///////////////////////////////  HANDLE LISTENERS
-struct GTK_eventDispatcher{
-    their widget: topWidget
-    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
-    me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
-        if(event->type==GDK_BUTTON_PRESS){
-            if(event->button==1){
-                topWidget->primaryClick(event);
-            } else if(event->button==3){
-                topWidget->secondaryClick(event);
-            }
-        }
-        return false;
-    } %>
-    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
-  /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
-    /- Also: timer, data and user events
-
-    me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
-    topWidget = masterWidget;
-
-        g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), NULL);
-     /-   g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), NULL);
-     /-   g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), NULL);
-        g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
-        g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
-
-        gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
-             | GDK_LEAVE_NOTIFY_MASK
-             | GDK_BUTTON_PRESS_MASK
-             | GDK_POINTER_MOTION_MASK
-             | GDK_POINTER_MOTION_HINT_MASK);
-    } %>
-}
-
-/-///////////////////////////////   Event callbacks for GTK3
-struct GLOBAL{
-    me GTK_eventDispatcher: EventDispatcher
-    me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event) <- <%{
-        EventDispatcher.dispatchPointerClickEvent(event);
-    } %>
-    me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event) <- <%{
-        EventDispatcher.dispatchPointerMotionEvent(event);
-    } %>
-    me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event) <- <%{
-      /-  EventDispatcher.dispatchWindowEvent(event);
-    } %>
-    me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event) <- <%{
-        EventDispatcher.dispatchKeyboardEvent(event);
-    } %>
-    me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event) <- <%{
-      /-  EventDispatcher.dispatchWindowEvent(event);
-    } %>
 }
 
 
-struct GLOBAL{
-    void: ListEditorHandleAdd(their GtkWidget: wid, their ListEditorWidget: listEditBox) <- {
-        listEditBox.handleAdd()
-    }
-    void: ListEditorHandleDelete(their GtkWidget: wid, their ListEditorWidget: listEditBox) <- {
-        listEditBox.handleDelete()
-    }
-    void: ListEditorHandleEdit(their GtkWidget: wid, their ListEditorWidget: listEditBox) <- {
-        listEditBox.handleEdit()
-    }
-}
-/-///////////////////////////////  HIGHER LEVEL WIDGETS
+struct enumWidget{their GtkWidget: enumWidget}
+struct listWidget{their GtkWidget: listWidget}
+struct GUI_Frame{their GtkWidget: GUI_Frame}
 
+
+
+/-///////////////////////////////  LIST EDITOR WIDGET
 struct ListEditorWidget{
     their ListWidgetManager: parent
     their GtkWidget: editorFrame
@@ -206,58 +123,23 @@ struct ListEditorWidget{
     } %>
 }
 
-/-///////////////////////////////  HANDLE GUI
-struct GUI{
-    their GtkApplication: app
-
-    me uint32: GUI_Init() <- {
-        app <- gtk_application_new (0, G_APPLICATION_FLAGS_NONE)
-        g_signal_connect (app, "activate", G_CALLBACK(activate), NULL)
-        return(0)
-    }
-    me uint32: GUI_Run() <- <% {
-        uint32_t status;
-        status = g_application_run( G_APPLICATION(app), 0, 0);
-        return(status);
-    } %>
-    me void: GUI_Deinit() <- {
-        g_object_unref(app)
-    }
-}
-
-
-struct GUI{
-    me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
-    me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
-    me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
-    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
-    me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
-    me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
-    me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
-    me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
-    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
-
-
-}
-
+/-///////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     /- Widgets
-    their GtkWidget: makeBoolWidget()        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeFloatWidget()       <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeNumRangeWidget()    <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeRangeWidget()       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeBoolWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeFloatWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeNumRangeWidget(me string: label)    <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
   /-  their GtkWidget: makeIntWidget()         <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
   /-  their GtkWidget: makeStringWidget()      <- <%!%Ggtk_entry_new()%>
-  /-  their GtkWidget: makeEnumWidget()        <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeEnumWidget()        <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
 
-    their GtkWidget: makeListWidget()        <- <%!%Ggtk_list_box_new()%>
-    their GtkWidget: makeFrameWidget()       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
-    their GtkWidget: makeStoryBoardWidget()  <- <%!%Ggtk_notebook_new()%>
+    their GtkWidget: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
+    their GtkWidget: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
+    their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
+    their GtkWidget: makeLabelWidget(me string: label) <- <%!%Ggtk_label_new(%1)%>
 
 
 
@@ -316,8 +198,136 @@ struct GLOBAL{
         gtk_box_pack_start(GTK_BOX(btnBox), editBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(_box), btnBox, false, true, 0);
         return _box;
+    }%>
+}
+struct GLOBAL{
+    void: ListEditorHandleAdd(their GtkWidget: wid, their ListEditorWidget: listEditBox) <- {
+        listEditBox.handleAdd()
     }
-%>
+    void: ListEditorHandleDelete(their GtkWidget: wid, their ListEditorWidget: listEditBox) <- {
+        listEditBox.handleDelete()
+    }
+    void: ListEditorHandleEdit(their GtkWidget: wid, their ListEditorWidget: listEditBox) <- {
+        listEditBox.handleEdit()
+    }
+}
+/-///////////////////////////////  HANDLE EVENTS
+struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
+
+struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
+struct GUI_ButtonEvent{
+  me uint: type
+ /- GdkWindow *window;
+ /- gint8 send_event;
+ /- guint32 time;
+  me double: x
+  me double: y
+  me uint: state
+  me uint: button
+}
+
+struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
+struct GUI_PointerEvent{
+  me uint: type
+ /- GdkWindow *window;
+ /- gint8 send_event;
+ /- guint32 time;
+  me double: x
+  me double: y
+
+  me uint: state
+  me uint: button
+}
+
+/-///////////////////////////////  EVENT DISPATCHER
+struct GTK_eventDispatcher{
+    their widget: topWidget
+    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
+    me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
+        if(event->type==GDK_BUTTON_PRESS){
+            if(event->button==1){
+                topWidget->primaryClick(event);
+            } else if(event->button==3){
+                topWidget->secondaryClick(event);
+            }
+        }
+        return false;
+    } %>
+    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
+  /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+    /- Also: timer, data and user events
+
+    me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
+    topWidget = masterWidget;
+
+        g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), NULL);
+     /-   g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), NULL);
+     /-   g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), NULL);
+        g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
+        g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
+
+        gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
+             | GDK_LEAVE_NOTIFY_MASK
+             | GDK_BUTTON_PRESS_MASK
+             | GDK_POINTER_MOTION_MASK
+             | GDK_POINTER_MOTION_HINT_MASK);
+    } %>
+}
+
+/-///////////////////////////////   Event callbacks for GTK3
+struct GLOBAL{
+    me GTK_eventDispatcher: EventDispatcher
+    me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event) <- <%{
+        EventDispatcher.dispatchPointerClickEvent(event);
+    } %>
+    me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event) <- <%{
+        EventDispatcher.dispatchPointerMotionEvent(event);
+    } %>
+    me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event) <- <%{
+      /-  EventDispatcher.dispatchWindowEvent(event);
+    } %>
+    me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event) <- <%{
+        EventDispatcher.dispatchKeyboardEvent(event);
+    } %>
+    me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event) <- <%{
+      /-  EventDispatcher.dispatchWindowEvent(event);
+    } %>
+}
+
+
+/-///////////////////////////////  HANDLE GUI
+struct GUI{
+    their GtkApplication: app
+
+    me uint32: GUI_Init() <- {
+        app <- gtk_application_new (0, G_APPLICATION_FLAGS_NONE)
+        g_signal_connect (app, "activate", G_CALLBACK(activate), NULL)
+        return(0)
+    }
+    me uint32: GUI_Run() <- <% {
+        uint32_t status;
+        status = g_application_run( G_APPLICATION(app), 0, 0);
+        return(status);
+    } %>
+    me void: GUI_Deinit() <- {
+        g_object_unref(app)
+    }
+}
+
+
+struct GUI{
+    me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
+    me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
+    me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
+    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
+    me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
+    me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+    me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+    me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
+    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
 struct GUI_ctxt {

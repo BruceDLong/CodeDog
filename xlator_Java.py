@@ -693,7 +693,7 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     # TODO: make next line so it is not hard coded
-    if(Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "Toolbar" or convertedType == "NestedScrollView" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI" or convertedType == "HorizontalScrollView"or convertedType == "widget"or convertedType == "GLOBAL")):
+    if(Platform == 'Android' and (convertedType == "CanvasView" or convertedType == "FragmentTransaction" or convertedType == "FragmentManager" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "Toolbar" or convertedType == "NestedScrollView" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI" or convertedType == "HorizontalScrollView"or convertedType == "widget"or convertedType == "GLOBAL")):
         #print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
@@ -704,7 +704,7 @@ def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConst
     withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
     noArgConstructor = "    public "  + ClassName + "(){"+"};\n"
-    if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"):
+    if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
 
@@ -788,15 +788,9 @@ def generateMainFunctionality(classes, tags):
     """
     if Platform == 'Android':
         mainFuncCode="""
-        me void: onCreate(me Bundle: savedInstanceState) <- {
-            super.onCreate(savedInstanceState)
-            GLOBAL.static_Global <- self
-            Allocate(thisApp)
-            initialize("")
+        me void: runDogCode() <- {
             """ + runCode + """
-            addToolbar()
         }
-
     """
     progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ), 'Java start-up code')
