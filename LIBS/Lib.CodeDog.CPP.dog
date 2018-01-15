@@ -32,5 +32,20 @@ struct GLOBAL{
     me string: toString(me int: val) <- <%!std::to_string(%1)%>
     me int: uniqueObjectID(their any:obj)  <- <%!%G(intptr_t)%1%>
 
+    me string: execCmd(me string: command) <- <%{
+      FILE* pipe;
+      std::array<char, 128> buffer;
+      string result = "";
+      pipe = popen(command.data(), "r");
+      if (pipe == NULL) {
+        cout<<"Cannot execute command:'" << command<<"'\n";
+        return "";
+      }
+      while(fgets(buffer.data(), 128, pipe) != NULL) {
+        result = result+buffer.data();
+      }
+      pclose(pipe);
+      return result;
+    }%>
 }
 struct timeValue{me int64: timeValue}
