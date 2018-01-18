@@ -47,6 +47,12 @@ struct stringWidget{
     their GtkWidget: stringWidget
     me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0)%>
 }
+struct enumWidget{
+    their GtkWidget: enumWidget
+    me string: getValue() <- <%!atoi(gtk_combo_box_text_get_active_text((GtkComboBoxText*)%0))%>
+}
+struct listWidget{their GtkWidget: listWidget}
+struct GUI_Frame{their GtkWidget: GUI_Frame}
 
 struct boolWidget{
 
@@ -126,9 +132,9 @@ struct GLOBAL{
     their GtkWidget: makeRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
   /-  their GtkWidget: makeIntWidget()         <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
   /-  their GtkWidget: makeStringWidget()      <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeEnumWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeTimeWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeDateWidget(me string: label)        <- <%!%Ggtk_entry_new(me string: label)%>
+    their GtkWidget: makeEnumWidget()        <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
 
     their GtkWidget: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
     their GtkWidget: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
@@ -146,7 +152,8 @@ struct GLOBAL{
         GtkWidget* _entry = gtk_spin_button_new(NULL, 1, 0);
         gtk_container_add(GTK_CONTAINER (_box), _entry);
         return _box;
-    }%>
+    }
+%>
 
     their GtkWidget: makeStringWidget(me string: label)      <- <%{
         GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -157,7 +164,8 @@ struct GLOBAL{
         GtkWidget* _entry = gtk_entry_new();
         gtk_container_add(GTK_CONTAINER (_box), _entry);
         return _box;
-    }%>
+    }
+%>
 
     their GtkWidget: makeEnumWidget(me string: label, me string[list]: options)      <- <%{
         GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -166,12 +174,15 @@ struct GLOBAL{
         gtk_label_set_xalign((GtkLabel*)_label, 0.9);
         gtk_container_add(GTK_CONTAINER (_box), _label);
         GtkWidget* _comboBox = gtk_combo_box_text_new();
+        int idx=0;
         for (string option : options){
-            gtk_combo_box_text_append((GtkComboBoxText*)_comboBox, NULL, option.data());
+            gtk_combo_box_text_append((GtkComboBoxText*)_comboBox, to_string(idx).data(), option.data());
+            idx+=1;
         }
         gtk_container_add(GTK_CONTAINER (_box), _comboBox);
         return _box;
-    }%>
+    }
+%>
 
     their GtkWidget: makeListEditorWidget(their GtkWidget: listWidget) <- <%{
         GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);

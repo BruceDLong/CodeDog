@@ -80,14 +80,14 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
             elif fldCat=='enum' or fldCat=='mode':
                 funcTextToUpdateViewWidget     += ''
                 funcTextToUpdateEditWidget     += ''
-                funcTextToUpdateCrntFromWidget += ''
+                funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
             elif fldCat=='bool':
                 funcTextToUpdateViewWidget     += ''
                 funcTextToUpdateEditWidget     += ''
                 funcTextToUpdateCrntFromWidget += ''
             else:
                 funcTextToUpdateViewWidget     += ''
-                funcTextToUpdateEditWidget     += 'print("'+fldCat+'")\n'
+                funcTextToUpdateEditWidget     += ''
                 funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
 
 ###############
@@ -169,10 +169,53 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
         widgetInitFuncCode += indent+'    addToContainer(box, '+widgetFieldName+')\n'
 
 def BuildGuiForList(classes, className, dialogStyle, newStructName):
-    pass
+    # This makes 4 types of changes to the class:
+    #   It adds a widget variable for items in model // newWidgetFields: '    their '+typeName+': '+widgetFieldName
+    #   It adds a set Widget from Vars function      // widgetFromVarsCode: Func UpdateWidgetFromVars()
+    #   It adds a set Vars from Widget function      // varsFromWidgetCode: Func UpdateVarsFromWidget()
+    #   It add an initialize Widgets function.       // widgetInitFuncCode: widgetFieldName+' <- '+makeTypeNameCall+'\n    addToContainer(box, '+widgetFieldName+')\n'
+
+    # dialogStyles: 'Z_stack', 'X_stack', 'Y_stack', 'TabbedStack', 'FlowStack', 'WizardStack', 'Dialog', 'SectionedDialogStack'
+    # also, handle non-modal dialogs
+
+    global classesEncoded
+    global currentClassName
+    global currentModelSpec
+    classesEncoded[className]=1
+    currentClassName = className
+
+    # reset the string vars that accumulate the code
+    global newWidgetFields
+    global widgetInitFuncCode
+    global widgetFromVarsCode
+    global varsFromWidgetCode
+
+    newWidgetFields=''
+    widgetInitFuncCode=''
+    widgetFromVarsCode=''
+    varsFromWidgetCode=''
+
+    # Find the model
+    modelRef = progSpec.findSpecOf(classes[0], className, 'model')
+    currentModelSpec = modelRef
+    if modelRef==None:
+        cdErr('To build a GUI for a list of "'+className+'" a model is needed but is not found.')
+
+    newWidgetFields += '\n\n    their '+className+': parent\n'
+
+    widgetInitFuncCode = '\n  their GUI_item: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- makeListWidget()\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
+    widgetFromVarsCode += '    void: updateWidgetFromCrnt() <- {\n' + widgetFromVarsCode + '\n    }\n'
+    varsFromWidgetCode += '    void: updateCrntFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
+    parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
+    parentStructFields += widgetFromVarsCode + varsFromWidgetCode
+    GUI_StructFields   = newWidgetFields + widgetInitFuncCode
+    CODE =  'struct '+newStructName+" {\n" + GUI_StructFields + '\n}\n'         # Add the new fields to the GUI manager struct
+    CODE += 'struct '+className + " {\n" + parentStructFields + '\n}\n'         # Add the new fields to the parent struct
+    print '==========================================================\n'+CODE
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
+
 
 def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
-    print "in BuildGuiForStruct\n"
     # This makes 4 types of changes to the class:
     #   It adds a widget variable for items in model // newWidgetFields: '    their '+typeName+': '+widgetFieldName
     #   It adds a set Widget from Vars function      // widgetFromVarsCode: Func UpdateWidgetFromVars()
