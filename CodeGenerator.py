@@ -15,6 +15,7 @@ import pattern_DispData
 import pattern_GenSymbols
 import pattern_MakeMenu
 import pattern_MakeGUI
+import pattern_RBMap
 
 import stringStructs
 
@@ -1407,6 +1408,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
             elif pattName=='codeModelToProteus': pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'Proteus')
            # elif pattName=='codeModelToGUI':     pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'toGUI')
             elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, [newTags, topTags], patternArgs)
+            elif pattName=='makeRBMap':          pattern_RBMap.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1
     for toDel in reversed(itemsToDelete):

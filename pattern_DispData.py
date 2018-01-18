@@ -111,7 +111,8 @@ struct GLOBAL{
         return S
 
     def addOrAmendClasses(self, classes, className, modelRef):
-        self.textFuncBody = '    me string: S <- S + "{\\n"\n' + self.textFuncBody + '    S <- S + "\\n"\n'
+        self.textFuncBody = '    me string: S <-""'
+	self.textFuncBody = '    S <- S + "{\\n"\n' + self.textFuncBody + '    S <- S + "\\n"\n'
         Code="me void: asProteus(me string:indent) <- {\n"+self.textFuncBody+"    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.asProteus()')

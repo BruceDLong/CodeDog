@@ -244,7 +244,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     # Parse everything
     print "MAKE CLASS:" + className
     initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
-    if dialogStyle == 'Z_stack': containerWidget='makeStoryBoardWidget()'
+    if dialogStyle == 'Z_stack': containerWidget='makeStoryBoardWidget("makeStoryBoardWidget")'
     else: containerWidget='makeFrameWidget()'
 
     newWidgetFields += '\n\n    their '+className+': parent\n'
