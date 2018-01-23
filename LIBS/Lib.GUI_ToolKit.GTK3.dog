@@ -130,6 +130,9 @@ struct GLOBAL{
     their GtkWidget: makeFloatWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeNumRangeWidget(me string: label)    <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeDateWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+
   /-  their GtkWidget: makeIntWidget()         <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
   /-  their GtkWidget: makeStringWidget()      <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeEnumWidget()        <- <%!%Ggtk_entry_new()%>
