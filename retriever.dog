@@ -1,0 +1,80 @@
+
+
+struct aItem{
+    our infon: LHS
+    our infon: RHS
+    me mode[getAllPlusSize, startPos, endPos, query, size, length, first, last, Nth, tagged, typed]:opTypes
+    me int: priority
+
+    me bool: tryAndFetch()<-{
+	
+    }
+}
+
+struct priorityQ{
+    our aItem[list]: theHeap
+
+    me void: push(our aItem: newItem) <- {
+	theHeap.pushLast(newItem)
+	me int: i <- theHeap.size()-1
+	withEach count in WHILE(i !=0 and theHeap[i/2].priority>theHeap[i].priority):{
+	    our aItem: tmp <- theHeap[i/2]
+	    theHeap[i/2] <-theHeap[i]
+	    theHeap[i] <- tmp
+	    i <- i/2 /- i is now the parent
+	}
+    }
+    
+    our aItem: pop() <- {
+	if(theHeap.size()==0){return(NULL)}
+	if(theHeap.size()==1){
+	    our aItem: tmp <- theHeap[0]
+	    theHeap.clear()
+	    return(tmp)
+	}
+	our aItem: root <- theHeap[0]
+	theHeap[0] <- theHeap[theHeap.size()-1]
+	theHeap.popLast()
+	minHeapify(0)
+	return(root)
+    }
+    
+    me void: minHeapify(me int: i) <- {
+	me int: left <- 2*i+1
+	me int: right <- 2*i+2
+	me int: smallest <- i
+	if (left < theHeap.size() and theHeap[left].priority < theHeap[i].priority){
+	    smallest <- left
+	}
+	if (right < theHeap.size() and theHeap[right].priority < theHeap[smallest].priority){
+	    smallest <- right
+	}
+	if (smallest != i){
+	    our aItem: tmp <- theHeap[i]
+	    theHeap[i] <-theHeap[smallest]
+	    theHeap[smallest] <- tmp
+	    minHeapify(smallest)
+	}
+    }
+    
+    me bool: isEmpty() <- {
+	return(theHeap.size() == 0)
+    }
+}
+
+struct retriever{
+    me priorityQ: agenda
+    me int: errorCode
+    me string: errorMsg
+    void: addItem(our aItem: item)<-{
+	
+    }
+    void: processAgenda()<-{
+	
+    }
+    our aItem: processItem(our aItem: item)<-{
+	
+    }
+
+}
+
