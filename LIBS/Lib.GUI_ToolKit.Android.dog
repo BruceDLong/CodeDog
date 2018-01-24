@@ -8,12 +8,16 @@ interface={
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
         android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.TextView,
-        android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.support.v4.app.Fragment,
+        android.widget.RelativeLayout, android.widget.FrameLayout,
+        android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface, android.support.v4.content.ContextCompat,
+        android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar,
+        android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment, android.support.v4.app.DialogFragment,
         android.util.Log, android.content.res.AssetManager, android.content.Context,
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory,
-	android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox, android.widget.ListView,
-	android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup
+        android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
+        android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup,
+        android.support.design.widget.FloatingActionButton, android.R.drawable, android.graphics.drawable.Drawable, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList
     ]
 }
 
@@ -71,25 +75,98 @@ struct GUI_Frame{their LinearLayout: GUI_Frame}
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListEditorWidget{
     their ListWidgetManager: parent
-    their LinearLayout: editorFrame
-    their Button: addBtn
-    their Button: deleteBtn
-    their Button: editBtn
+    their RelativeLayout: editorFrame
+    their FloatingActionButton: addBtn
+    their FloatingActionButton: deleteBtn
+    their FloatingActionButton: editBtn
+    their ListView: listWidget
 
-    void: handleAdd() <- {
-        print("Add Btn Clicked\n")
-    } 
-    void: handleDelete() <- {
-        print("Delete Btn Clicked\n")
-    }
-    void: handleEdit() <- {
-        print("Edit Btn Clicked\n")
-    }
-    their LinearLayout: init_dialog(their ListWidgetManager: Parent) <- <% {
-	editorFrame = new LinearLayout(GLOBAL.static_Global);
-	TextView tv = new TextView(GLOBAL.static_Global);
-        tv.setText("ListEditorWidget");
-        editorFrame.addView(tv);
+    void: handleAdd() <- <%{
+	ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+        toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
+    }%>
+
+    void: handleDelete() <- <%{
+	ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+        toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
+    }%>
+
+    void: handleEdit() <- <%{
+	ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+        toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
+    }%>
+
+    their RelativeLayout: init_dialog(their ListWidgetManager: Parent) <- <% {
+        parent = Parent;
+        // EDITOR FRAME
+        editorFrame = new RelativeLayout(GLOBAL.static_Global);
+        RelativeLayout.LayoutParams editorFrameParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
+        editorFrame.setLayoutParams(editorFrameParams);
+	// ADAPTER
+        employeesAdapter = new EmployeesAdapter(GLOBAL.static_Global, GLOBAL.static_Global.thisApp.primary.employees);
+        // LIST WIDGET
+        listWidget = new ListView(GLOBAL.static_Global);
+        listWidget.setAdapter(employeesAdapter);
+        listWidget.setFocusableInTouchMode(true);
+        listWidget.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+        listWidget.setOnItemClickListener(new OnItemClickListener() {
+            public void onItemClick(AdapterView<?> adapterView, View view,int position, long arg3) {
+                handleListItemClick(position);
+            }
+        });
+        FrameLayout.LayoutParams listWidgetParams = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,FrameLayout.LayoutParams.MATCH_PARENT);
+        listWidget.setLayoutParams(listWidgetParams);
+        editorFrame.addView(listWidget);
+        // ADD BUTTON
+        addBtn = new FloatingActionButton(GLOBAL.static_Global);
+        addBtn.setOnClickListener(new View.OnClickListener() { 
+            public void onClick(View v) { 
+                handleAdd();
+            } 
+        });
+        addBtn.setImageResource(android.R.drawable.ic_menu_add );
+        addBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
+        addBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
+        RelativeLayout.LayoutParams addBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        addBtnParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        addBtnParams.topMargin = 550;
+        addBtnParams.rightMargin = 40;
+        addBtn.setLayoutParams(addBtnParams);
+        editorFrame.addView(addBtn);
+        // DELETE BUTTON
+        deleteBtn = new FloatingActionButton(GLOBAL.static_Global);
+        deleteBtn.setOnClickListener(new View.OnClickListener() { 
+            public void onClick(View v) { 
+                handleDelete();
+            } 
+        });
+        //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_delete);
+        deleteBtn.setImageResource(android.R.drawable.ic_menu_delete);
+        deleteBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
+        deleteBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
+        RelativeLayout.LayoutParams deleteBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        deleteBtnParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+        deleteBtnParams.topMargin = 550;
+        deleteBtnParams.leftMargin = 40;
+        deleteBtn.setLayoutParams(deleteBtnParams);
+        editorFrame.addView(deleteBtn);
+        // EDIT BUTTON
+        editBtn = new FloatingActionButton(GLOBAL.static_Global);
+        editBtn.setOnClickListener(new View.OnClickListener() { 
+            public void onClick(View v) { 
+                handleEdit();
+            } 
+        });
+        //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_edit);
+        editBtn.setImageResource(android.R.drawable.ic_menu_edit);
+        editBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
+        editBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
+        RelativeLayout.LayoutParams editBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        editBtnParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
+        editBtnParams.topMargin = 550;
+        //editBtnParams.leftMargin = 40;
+        editBtn.setLayoutParams(editBtnParams);
+        editorFrame.addView(editBtn);
         return editorFrame;
     } %>
 
@@ -100,12 +177,24 @@ struct ListEditorWidget{
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     /- Widgets
-    their numRangeWidget: makeNumRangeWidget(me string: label)    <- <%!%Gnew NumberPicker(GLOBAL.static_Global)%>
     their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their timeWidget: makeTimeWidget(me string: label)        <- <%!%Gnew TimePicker(GLOBAL.static_Global)%>
-    their dateWidget: makeDateWidget(me string: label)        <- <%!%Gnew DatePicker (GLOBAL.static_Global)%>
     their GUI_item: makeFrameWidget(me string: label)       <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
+
+    their  NumberPicker : makeNumRangeWidget(me string: label)      <- <%{
+         NumberPicker numberPicker  = new NumberPicker(GLOBAL.static_Global);
+        return numberPicker;
+    }%>
+
+    their  DatePicker : makeDateWidget(me string: label)      <- <%{
+         DatePicker datePicker  = new DatePicker(GLOBAL.static_Global);
+        return datePicker;
+    }%>
+
+    their TimePicker: makeTimeWidget(me string: label)      <- <%{
+        TimePicker timePicker = new TimePicker(GLOBAL.static_Global);
+        return timePicker;
+    }%>
     
     their CheckBox: makeBoolWidget(me string: label)      <- <%{
         CheckBox checkBox = new CheckBox(GLOBAL.static_Global);
@@ -114,26 +203,33 @@ struct GLOBAL{
 
     their LinearLayout: makeListWidget(me string: label)      <- <%{
         LinearLayout listContainer = new LinearLayout(GLOBAL.static_Global);
-
+        TextView tv = new TextView(GLOBAL.static_Global);
+        tv.setText(label);
+        listContainer.addView(tv);
         return listContainer;
     }%>
 
-    their LinearLayout: makeStoryBoardWidget()      <- <%{
-        LinearLayout storyBoard = new LinearLayout(GLOBAL.static_Global);
+    their FragmentManager: fragmentManager
 
+    their LinearLayout: makeStoryBoardWidget(me string: label)      <- <%{
+        LinearLayout storyBoard = new LinearLayout(GLOBAL.static_Global);
+        storyBoard.setOrientation(LinearLayout.VERTICAL);
+        FragmentTransaction fragmentTransaction = GLOBAL.static_Global.fragmentManager.beginTransaction();
+        Fragment testFrag = new StoryBoard();
+        fragmentTransaction.add(testFrag, label);
+        fragmentTransaction.commit();
         return storyBoard;
     }%>
     
     their TextView: makeLabelWidget(me string: label)      <- <%{
         TextView textBox = new TextView(GLOBAL.static_Global);
-	
 	textBox.setText(label);
         return textBox;
     }%>
 
     their EditText: makeFloatWidget(me string: label)      <- <%{
         EditText editBox = new EditText(GLOBAL.static_Global);
-	
+	editBox.setInputType(InputType.TYPE_CLASS_NUMBER);
 	editBox.setHint(label);
         return editBox;
     }%>
@@ -147,19 +243,33 @@ struct GLOBAL{
     
     their EditText: makeStringWidget(me string: label)      <- <%{
 	EditText editBox = new EditText(GLOBAL.static_Global);
-	
+	editBox.setInputType(InputType.TYPE_CLASS_TEXT);
 	editBox.setHint(label);
 	return editBox;
     }%>
 
-
-    their EditText: makeEnumWidget(me string: label, me string[list]: options)      <- <%{
-        EditText editBox = new EditText(GLOBAL.static_Global);
-	editBox.setHint(label);
-        return editBox;
+    their  Spinner: makeEnumWidget(me string: label, me string[list]: options)      <- <%{
+        Spinner spinner = new Spinner(GLOBAL.static_Global);
+	spinner.setPrompt(label);
+	ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, 0);
+	adapter.addAll(options);
+	spinner.setAdapter(adapter);
+        return spinner;
     }%>
 
+}
 
+struct StoryBoard: inherits="Fragment"{
+    their View: frame
+    me String: label <- "StoryBoard"
+
+    me View: onCreateView(me LayoutInflater: inflater, me ViewGroup: container, me Bundle: savedInstanceState) <- <%{
+        LinearLayout frame = new LinearLayout(getActivity());
+        TextView tv = new TextView(GLOBAL.static_Global);
+        tv.setText(label);
+        frame.addView(tv);
+        return frame;
+    }%>
 }
 
 /-///////////////////////////////  HANDLE EVENTS
@@ -422,6 +532,7 @@ struct GLOBAL: inherits="AppCompatActivity"{
 	super.onCreate(savedInstanceState);
 	GLOBAL.static_Global = this;
 	GLOBAL.static_Global.thisApp = new APP();
+	GLOBAL.static_Global.fragmentManager = getFragmentManager();
 	GLOBAL.static_Global.initialize("");
 	GLOBAL.static_Global.runDogCode();
 	GLOBAL.static_Global.addToolbar();
