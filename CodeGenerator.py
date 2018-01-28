@@ -1403,7 +1403,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
             elif pattName=='ManageCmdLine':      pattern_ManageCmdLine.apply(classes, newTags)
             elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, newTags, patternArgs[0])
             elif pattName=='codeModelDashes':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
-            elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'draw')
+            elif pattName=='codeDataDisplay': pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
             elif pattName=='codeModelToString':  pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'text')
             elif pattName=='codeModelToProteus': pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'Proteus')
            # elif pattName=='codeModelToGUI':     pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'toGUI')

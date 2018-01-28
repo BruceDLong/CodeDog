@@ -1,13 +1,21 @@
 
 
 struct aItem{
-    our infon: LHS
-    our infon: RHS
-    me mode[getAllPlusSize, startPos, endPos, query, size, length, first, last, Nth, tagged, typed]:opTypes
     me int: priority
+    our infDeepItr: LHS
+    our infItr: RHS
 
+    
+    me mode[getAllPlusSize, startPos, endPos, query, size, length, first, last, Nth, tagged, typed]:opTypes
+    
     me bool: tryAndFetch()<-{
 	
+    }
+
+    me void: init(me int: Priority, our infDeepItr: lhs, our infItr: rhs)<-{
+	priority <- priority
+	LHS <- lhs
+	RHS <- rhs
     }
 }
 
@@ -66,14 +74,31 @@ struct retriever{
     me priorityQ: agenda
     me int: errorCode
     me string: errorMsg
+    their agent: parentAgent
+    
     void: addItem(our aItem: item)<-{
-	
+/-	prepWorkList(item.LHS.crntCursor)
+/-	prepWorkList(item.RHS)
+/-	doPreMerge(item)
+	/- push onto heap and verify no duplicates
+	agenda.theHeap.pushLast(item)
     }
     void: processAgenda()<-{
-	
+	withEach item in agenda.theHeap:{
+	    /-print ("item.priority: ", item.priority, "\n")
+	    processItem(item)
+	    
+	}
     }
-    our aItem: processItem(our aItem: item)<-{
-	
+    void: processItem(our aItem: item)<-{
+	print ("processItem: ", item.priority,"\n")
+	parentAgent.prepWorkList(item.LHS.crntCursor)
+	our infItr: remainder <- parentAgent.doMERGE(item.LHS.crntCursor, item.RHS)
+	our infDeepItr: follower <- item.LHS.getNextDeDotted()
+	our aItem: nextItem
+	nextItem.priority <- item.priority + 1
+	/-nextItem.LHS <- item.LHS.getNextDeDotted()
+	nextItem.RHS <- remainder
     }
 
 }
