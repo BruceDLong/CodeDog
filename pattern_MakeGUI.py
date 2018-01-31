@@ -71,6 +71,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         label = deProgify(fieldName)
         CasedFieldName = fieldName[0].upper() + fieldName[1:]
         widgetFieldName = CasedFieldName + 'Widget'
+        editFieldName = widgetFieldName + '_edit'
 
         if not ('arraySpec' in typeSpec and typeSpec['arraySpec']!=None):
             if fldCat=='struct':
@@ -88,7 +89,9 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
             else:
                 funcTextToUpdateViewWidget     += ''
                 funcTextToUpdateEditWidget     += ''
-                funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
+                funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + editFieldName + '.getValue()\n'
+                funcTextToUpdateCrntFromWidget += '    pushCrntToList()'
+                
 
 ###############
     CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
@@ -127,6 +130,10 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
     label = deProgify(fieldName)
     [fieldSpec, params] = getFieldSpec(fldCat, field)
     typeName = fieldSpec+'Widget'
+    CasedFieldName = fieldName[0].upper() + fieldName[1:]
+    widgetFieldName = CasedFieldName + 'Widget'
+    editFieldName = widgetFieldName + '_edit'
+
     if fieldSpec=='struct':
         typeName = 'GUI_Frame'
         makeTypeNameCall = 'parent.'+fieldName+'.GUI_Manager.make'+structTypeName+'Widget(parent.'+fieldName+')'
@@ -136,13 +143,12 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
         for enumItem in params: EnumItems.append('"'+deProgify(enumItem)+'"')
         optionString = '[' + ', '.join(EnumItems) + ']'
         makeTypeNameCall = 'makeEnumWidget("'+label+'", '+optionString+')'
-    else: makeTypeNameCall = 'make'+typeName[0].upper() + typeName[1:]+'("'+label+'")'
+    else: makeTypeNameCall = 'make'+typeName[0].upper() + typeName[1:]+'("'+label+'", '+editFieldName+')'
 
-    CasedFieldName = fieldName[0].upper() + fieldName[1:]
-    widgetFieldName = CasedFieldName + 'Widget'
 
     typeSpec=field['typeSpec']
     newWidgetFields += '\n'+indent+'    their '+typeName+': '+widgetFieldName
+    newWidgetFields += '\n'+indent+'    id_their '+typeName+': ' + editFieldName
     if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate(parent.'+fieldName+')\n'  +  indent+'    Allocate(parent.'+fieldName+'.GUI_Manager)\n'
     widgetInitFuncCode += indent+'    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
 
@@ -203,7 +209,7 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
 
     newWidgetFields += '\n\n    their '+className+': parent\n'
 
-    widgetInitFuncCode = '\n  their GUI_item: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- makeListWidget()\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
+    widgetInitFuncCode = '\n  their GUI_item: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- gtk_label_new("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
     widgetFromVarsCode += '    void: updateWidgetFromCrnt() <- {\n' + widgetFromVarsCode + '\n    }\n'
     varsFromWidgetCode += '    void: updateCrntFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
     parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
@@ -211,7 +217,7 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
     GUI_StructFields   = newWidgetFields + widgetInitFuncCode
     CODE =  'struct '+newStructName+" {\n" + GUI_StructFields + '\n}\n'         # Add the new fields to the GUI manager struct
     CODE += 'struct '+className + " {\n" + parentStructFields + '\n}\n'         # Add the new fields to the parent struct
-    print '==========================================================\n'+CODE
+    #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 
@@ -300,7 +306,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     GUI_StructFields   = newWidgetFields + widgetInitFuncCode
     CODE =  'struct '+newStructName+" {\n" + GUI_StructFields + '\n}\n'         # Add the new fields to the GUI manager struct
     CODE += 'struct '+className + " {\n" + parentStructFields + '\n}\n'         # Add the new fields to the parent struct
-    print '==========================================================\n'+CODE
+    #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 

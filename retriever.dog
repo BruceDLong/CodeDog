@@ -1,10 +1,10 @@
-
+/- retriever.dog
 
 struct aItem{
     me int: priority
     our infDeepItr: LHS
     our infItr: RHS
-
+    me int: actionCommand
     
     me mode[getAllPlusSize, startPos, endPos, query, size, length, first, last, Nth, tagged, typed]:opTypes
     
@@ -13,9 +13,18 @@ struct aItem{
     }
 
     me void: init(me int: Priority, our infDeepItr: lhs, our infItr: rhs)<-{
-	priority <- priority
+	priority <- Priority
 	LHS <- lhs
 	RHS <- rhs
+    }
+
+    me string: printAgendaItem()<-{
+	me agent: a
+	me string: itemStr <- "" 
+	itemStr <- itemStr + a.printInfon(LHS.crntCursor.item)
+	itemStr <- itemStr + " |=| "
+	itemStr <- itemStr + a.printInfon(RHS.item)
+	return(itemStr)
     }
 }
 
@@ -83,23 +92,78 @@ struct retriever{
 	/- push onto heap and verify no duplicates
 	agenda.theHeap.pushLast(item)
     }
+    
     void: processAgenda()<-{
 	withEach item in agenda.theHeap:{
 	    /-print ("item.priority: ", item.priority, "\n")
+	    /-TODO: remove break
+	    if (item.priority > 20){
+		print("Item priority exceded 20!!!!!\n")
+		break()
+	    }
 	    processItem(item)
 	    
 	}
     }
-    void: processItem(our aItem: item)<-{
-	print ("processItem: ", item.priority,"\n")
-	parentAgent.prepWorkList(item.LHS.crntCursor)
-	our infItr: remainder <- parentAgent.doMERGE(item.LHS.crntCursor, item.RHS)
-	our infDeepItr: follower <- item.LHS.getNextDeDotted()
-	our aItem: nextItem
-	nextItem.priority <- item.priority + 1
-	/-nextItem.LHS <- item.LHS.getNextDeDotted()
-	nextItem.RHS <- remainder
-    }
+
+    void: processItem(our aItem: actionItem)<-{
+/-	me string: S1 <- actionItem.printAgendaItem()
+	parentAgent.prepWorkList(actionItem.LHS.crntCursor)
+	parentAgent.addWorkItemsToAgenda(actionItem.priority, actionItem.LHS)
+	our infItr: remainder <- parentAgent.doMERGE(actionItem.LHS.crntCursor, actionItem.RHS)
+	our infItr: newItem_RHS
+	our infDeepItr: newItem_LHS <- actionItem.LHS
+	newItem_LHS.getNextDeDotted()
+	if(newItem_LHS.state == sFirstVisit){
+/-	    print ("processItem sFirstVisit: ", actionItem.priority,":", S1,"\n")
+	    if(remainder != NULL){
+		newItem_RHS <- remainder
+	    } else {
+		actionItem.RHS.getNextDeDotted()
+		newItem_RHS <- actionItem.RHS
+	    }
+/-	    me string: S2 <- "    newItem_LHS: " + parentAgent.printInfon(newItem_LHS.crntCursor.item) + "\n    newItem_RHS: " + parentAgent.printInfon(newItem_RHS.item)+ "\n"
+/-	    print (S2)
+	    /- Next list op: process remainder/next | descend
+	    if(newItem_LHS.crntCursor.item != NULL and newItem_RHS.item != NULL){
+	       /- me string: tmpStr<-parentAgent.printInfon( newItem_LHS.crntCursor.item)
+	       /- print("newItem_LHS.crntCursor.item ", "\n")
+		if(newItem_LHS.crntCursor.item.value.fType==LST and newItem_RHS.item.value.fType==LST and newItem_LHS.crntCursor.item.value.items.size()>0  and newItem_RHS.item.value.items.size()>0){ /- Descend into lists
+		    /-newItem_LHS <- makeInfItr(newItem_LHS.crntCursor.item.value.items[0], newItem_LHS, newItem_LHS.idx)
+		    newItem_RHS <- parentAgent.makeInfItr(newItem_RHS.item.value.items[0], newItem_RHS, newItem_RHS.idx)
+		    our aItem: nextItem
+		    Allocate(nextItem)
+		    nextItem.init(actionItem.priority, newItem_LHS, newItem_RHS)
+		    addItem(nextItem)
+/-		    S1 <- nextItem.printAgendaItem()
+/-		    print("    addList: ", S1, "\n")
+		}
+		else if(newItem_LHS != NULL){
+		    our aItem: nextItem
+		    Allocate(nextItem)
+		    nextItem.init(actionItem.priority + 1, newItem_LHS, newItem_RHS)
+		    addItem(nextItem)
+/-		    S1 <- nextItem.printAgendaItem()
+/-		    print("    addItem: ", S1, "\n")
+		}
+	    }
+	}else if(newItem_LHS.state == sSecondVisit){
+/-	    print ("processItem sSecondVisit: ", actionItem.priority,":", S1,"\n")
+	    if(newItem_LHS.crntCursor.item.value.fType==LST){ /- ascend out of lists
+		newItem_LHS.getNextDeDotted()
+		actionItem.RHS.getNextDeDotted()
+		newItem_RHS <- actionItem.RHS
+		our aItem: nextItem
+		Allocate(nextItem)
+		nextItem.init(actionItem.priority+1, newItem_LHS, newItem_RHS)
+		addItem(nextItem)
+	    }
+	} else if(newItem_LHS.state == sEOL){
+	    /-
+	}else {
+	    print("Unexpected iterator state in normalizer: ", newItem_LHS.state, ".\n")
+	}
+    } 
 
 }
 

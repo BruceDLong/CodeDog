@@ -154,6 +154,7 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
+    if(LeftOwner=="id_their" and RightOwner=="id_their"): return ["&", ""]
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner!='itr' and RightOwner=='itr': return ["", "->second"]
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", "   )"]
