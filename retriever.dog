@@ -3,7 +3,7 @@
 struct aItem{
     me int: priority
     our infDeepItr: LHS
-    our infItr: RHS
+    our infDeepItr: RHS
     me int: actionCommand
     
     me mode[getAllPlusSize, startPos, endPos, query, size, length, first, last, Nth, tagged, typed]:opTypes
@@ -12,7 +12,7 @@ struct aItem{
 	
     }
 
-    me void: init(me int: Priority, our infDeepItr: lhs, our infItr: rhs)<-{
+    me void: init(me int: Priority, our infDeepItr: lhs, our infDeepItr: rhs)<-{
 	priority <- Priority
 	LHS <- lhs
 	RHS <- rhs
@@ -20,10 +20,12 @@ struct aItem{
 
     me string: printAgendaItem()<-{
 	me agent: a
-	me string: itemStr <- "" 
-	itemStr <- itemStr + a.printInfon(LHS.crntCursor.item)
+	me string: itemStr <- ""
+	if (LHS.crntCursor.item!=NULL){itemStr <- itemStr + a.printInfon(LHS.crntCursor.item)}
+	else{itemStr <- itemStr +"NULL"}
 	itemStr <- itemStr + " |=| "
-	itemStr <- itemStr + a.printInfon(RHS.item)
+	if (RHS.crntCursor.item!=NULL){itemStr <- itemStr + a.printInfon(RHS.crntCursor.item)}
+	else{itemStr <- itemStr +"NULL"}
 	return(itemStr)
     }
 }
@@ -85,78 +87,84 @@ struct retriever{
     me string: errorMsg
     their agent: parentAgent
     
-    void: addItem(our aItem: item)<-{
-/-	prepWorkList(item.LHS.crntCursor)
-/-	prepWorkList(item.RHS)
-/-	doPreMerge(item)
+    void: addItem(our aItem: agendaItem)<-{
+/-	prepWorkList(agendaItem.LHS.crntCursor)
+/-	prepWorkList(agendaItem.RHS)
+/-	doPreMerge(agendaItem)
 	/- push onto heap and verify no duplicates
-	agenda.theHeap.pushLast(item)
+	me string: S1 <- agendaItem.printAgendaItem()
+	print ("*********retriever.addItem: ",S1 ,"\n")
+	agenda.theHeap.pushLast(agendaItem)
     }
     
     void: processAgenda()<-{
-	withEach item in agenda.theHeap:{
-	    /-print ("item.priority: ", item.priority, "\n")
+	print("PROCESS AGENDA\n")
+	withEach agendaItem in agenda.theHeap:{
 	    /-TODO: remove break
-	    if (item.priority > 20){
+	    if (agendaItem.priority > 20){
 		print("Item priority exceded 20!!!!!\n")
 		break()
 	    }
-	    processItem(item)
+	    processItem(agendaItem)
 	    
 	}
     }
 
-    void: processItem(our aItem: actionItem)<-{
-/-	me string: S1 <- actionItem.printAgendaItem()
-	parentAgent.prepWorkList(actionItem.LHS.crntCursor)
-	parentAgent.addWorkItemsToAgenda(actionItem.priority, actionItem.LHS)
-	our infItr: remainder <- parentAgent.doMERGE(actionItem.LHS.crntCursor, actionItem.RHS)
-	our infItr: newItem_RHS
-	our infDeepItr: newItem_LHS <- actionItem.LHS
-	newItem_LHS.getNextDeDotted()
-	if(newItem_LHS.state == sFirstVisit){
-/-	    print ("processItem sFirstVisit: ", actionItem.priority,":", S1,"\n")
-	    if(remainder != NULL){
-		newItem_RHS <- remainder
-	    } else {
-		actionItem.RHS.getNextDeDotted()
-		newItem_RHS <- actionItem.RHS
+    void: addItemsToAgenda(me int: priority, our itrChain: LHSChain, our itrChain: RHSChain)<-{
+	our itrChain: currentLHS <- LHSChain
+	withEach count in WHILE(currentLHS.theItr != NULL):{
+	    our itrChain: currentRHS <- RHSChain
+	    withEach count in WHILE(currentRHS.theItr != NULL):{
+		    our aItem: nextItem
+		    Allocate(nextItem)
+		    if(currentLHS.theItr.crntCursor.item.value.fType==LST and currentRHS.theItr.crntCursor.item.value.fType==LST and currentLHS.theItr.crntCursor.item.value.items.size()>0  and currentRHS.theItr.crntCursor.item.value.items.size()>0){ /- Descend into lists
+			nextItem.init(priority, currentLHS.theItr, currentRHS.theItr)
+		    }else{
+			nextItem.init(priority+1, currentLHS.theItr, currentRHS.theItr)
+		    }
+		    addItem(nextItem)
+		currentRHS <- currentRHS.next
 	    }
-/-	    me string: S2 <- "    newItem_LHS: " + parentAgent.printInfon(newItem_LHS.crntCursor.item) + "\n    newItem_RHS: " + parentAgent.printInfon(newItem_RHS.item)+ "\n"
-/-	    print (S2)
+	    currentLHS <- currentLHS.next
+	}
+    }
+    
+    void: processItem(our aItem: agendaItem)<-{
+	me string: S1 <- agendaItem.printAgendaItem()
+	print("______________________________________________________________\n")
+	print ("    PROCESS ITEM priority: ", agendaItem.priority, "|||" ,S1 ,"\n")
+	parentAgent.prepWorkList(agendaItem.LHS.crntCursor)
+/-	parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem.LHS)
+	our infDeepItr: remainder <- parentAgent.tryMERGE(agendaItem)
+	our infDeepItr: newItem_LHS <- agendaItem.LHS
+	our itrChain: LHSChain
+	our itrChain: RHSChain
+	/-////////////////////////////////
+	print("    LHS.getNextDeDotted\n")
+	LHSChain <- newItem_LHS.getNextDeDotted()
+	if(newItem_LHS.state == sFirstVisit){
+	    print ("    sFirstVisit: \n")
+	    if(remainder != NULL){
+		Allocate(RHSChain)
+		RHSChain.theItr <-remainder
+		print("    RHS is remainder.\n")
+	    } else {
+		print("    RHS.getNextDeDotted\n")
+		RHSChain <- agendaItem.RHS.getNextDeDotted()
+	    }
 	    /- Next list op: process remainder/next | descend
-	    if(newItem_LHS.crntCursor.item != NULL and newItem_RHS.item != NULL){
-	       /- me string: tmpStr<-parentAgent.printInfon( newItem_LHS.crntCursor.item)
-	       /- print("newItem_LHS.crntCursor.item ", "\n")
-		if(newItem_LHS.crntCursor.item.value.fType==LST and newItem_RHS.item.value.fType==LST and newItem_LHS.crntCursor.item.value.items.size()>0  and newItem_RHS.item.value.items.size()>0){ /- Descend into lists
-		    /-newItem_LHS <- makeInfItr(newItem_LHS.crntCursor.item.value.items[0], newItem_LHS, newItem_LHS.idx)
-		    newItem_RHS <- parentAgent.makeInfItr(newItem_RHS.item.value.items[0], newItem_RHS, newItem_RHS.idx)
-		    our aItem: nextItem
-		    Allocate(nextItem)
-		    nextItem.init(actionItem.priority, newItem_LHS, newItem_RHS)
-		    addItem(nextItem)
-/-		    S1 <- nextItem.printAgendaItem()
-/-		    print("    addList: ", S1, "\n")
-		}
-		else if(newItem_LHS != NULL){
-		    our aItem: nextItem
-		    Allocate(nextItem)
-		    nextItem.init(actionItem.priority + 1, newItem_LHS, newItem_RHS)
-		    addItem(nextItem)
-/-		    S1 <- nextItem.printAgendaItem()
-/-		    print("    addItem: ", S1, "\n")
+	    if(RHSChain != NULL){
+		print("    RHSChain != NULL\n")
+		if(newItem_LHS.crntCursor.item != NULL and RHSChain.theItr.crntCursor.item != NULL){
+		    addItemsToAgenda(agendaItem.priority, LHSChain, RHSChain)
 		}
 	    }
 	}else if(newItem_LHS.state == sSecondVisit){
-/-	    print ("processItem sSecondVisit: ", actionItem.priority,":", S1,"\n")
 	    if(newItem_LHS.crntCursor.item.value.fType==LST){ /- ascend out of lists
-		newItem_LHS.getNextDeDotted()
-		actionItem.RHS.getNextDeDotted()
-		newItem_RHS <- actionItem.RHS
-		our aItem: nextItem
-		Allocate(nextItem)
-		nextItem.init(actionItem.priority+1, newItem_LHS, newItem_RHS)
-		addItem(nextItem)
+		LHSChain <- newItem_LHS.getNextDeDotted()
+		RHSChain <- agendaItem.RHS.getNextDeDotted()
+		RHSChain.theItr <- agendaItem.RHS
+		addItemsToAgenda(agendaItem.priority + 1, LHSChain, RHSChain)
 	    }
 	} else if(newItem_LHS.state == sEOL){
 	    /-
