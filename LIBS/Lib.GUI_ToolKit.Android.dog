@@ -79,7 +79,7 @@ struct ListEditorWidget{
     their FloatingActionButton: addBtn
     their FloatingActionButton: deleteBtn
     their FloatingActionButton: editBtn
-    their ListView: listWidget
+    their GUI_item: listWidget
 
     void: handleAdd() <- <%{
 	ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
@@ -102,21 +102,9 @@ struct ListEditorWidget{
         editorFrame = new RelativeLayout(GLOBAL.static_Global);
         RelativeLayout.LayoutParams editorFrameParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
         editorFrame.setLayoutParams(editorFrameParams);
-	// ADAPTER
-        employeesAdapter = new EmployeesAdapter(GLOBAL.static_Global, GLOBAL.static_Global.thisApp.primary.employees);
         // LIST WIDGET
-        listWidget = new ListView(GLOBAL.static_Global);
-        listWidget.setAdapter(employeesAdapter);
-        listWidget.setFocusableInTouchMode(true);
-        listWidget.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
-        listWidget.setOnItemClickListener(new OnItemClickListener() {
-            public void onItemClick(AdapterView<?> adapterView, View view,int position, long arg3) {
-                handleListItemClick(position);
-            }
-        });
-        FrameLayout.LayoutParams listWidgetParams = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT,FrameLayout.LayoutParams.MATCH_PARENT);
-        listWidget.setLayoutParams(listWidgetParams);
-        editorFrame.addView(listWidget);
+        listWidget = parent.makeEditableWidget();
+	editorFrame.addView(listWidget);
         // ADD BUTTON
         addBtn = new FloatingActionButton(GLOBAL.static_Global);
         addBtn.setOnClickListener(new View.OnClickListener() { 
@@ -178,40 +166,48 @@ struct ListEditorWidget{
 struct GLOBAL{
     /- Widgets
     their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_item: makeFrameWidget(me string: label)       <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
+    their GUI_Frame: makeFrameWidget(me string: label)       <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
 
-    their  NumberPicker : makeNumRangeWidget(me string: label)      <- <%{
-         NumberPicker numberPicker  = new NumberPicker(GLOBAL.static_Global);
-        return numberPicker;
+    their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
+	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        NumberPicker numberPicker  = new NumberPicker(GLOBAL.static_Global);
+        box.addView(numberPicker);
+        return box;
     }%>
 
-    their  DatePicker : makeDateWidget(me string: label)      <- <%{
-         DatePicker datePicker  = new DatePicker(GLOBAL.static_Global);
-        return datePicker;
+    their  GUI_Frame : makeDateWidget(me string: label)      <- <%{
+	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        DatePicker datePicker  = new DatePicker(GLOBAL.static_Global);
+        box.addView(datePicker);
+        return box;
     }%>
 
-    their TimePicker: makeTimeWidget(me string: label)      <- <%{
+    their GUI_Frame: makeTimeWidget(me string: label)      <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         TimePicker timePicker = new TimePicker(GLOBAL.static_Global);
-        return timePicker;
+        box.addView(timePicker);
+        return box;
     }%>
     
-    their CheckBox: makeBoolWidget(me string: label)      <- <%{
+    their GUI_Frame: makeBoolWidget(me string: label)      <- <%{
+	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         CheckBox checkBox = new CheckBox(GLOBAL.static_Global);
-        return checkBox;
+	box.addView(checkBox);
+        return box;
     }%>
 
-    their LinearLayout: makeListWidget(me string: label)      <- <%{
-        LinearLayout listContainer = new LinearLayout(GLOBAL.static_Global);
-        TextView tv = new TextView(GLOBAL.static_Global);
-        tv.setText(label);
-        listContainer.addView(tv);
-        return listContainer;
+    their GUI_Frame: makeListWidget(me string: label)      <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        TextView textView = new TextView(GLOBAL.static_Global);
+        textView.setText(label);
+        box.addView(textView);
+        return box;
     }%>
 
     their FragmentManager: fragmentManager
 
-    their LinearLayout: makeStoryBoardWidget(me string: label)      <- <%{
+    their GUI_Frame: makeStoryBoardWidget(me string: label)      <- <%{
         LinearLayout storyBoard = new LinearLayout(GLOBAL.static_Global);
         storyBoard.setOrientation(LinearLayout.VERTICAL);
         FragmentTransaction fragmentTransaction = GLOBAL.static_Global.fragmentManager.beginTransaction();
@@ -220,50 +216,62 @@ struct GLOBAL{
         fragmentTransaction.commit();
         return storyBoard;
     }%>
-    
-    their TextView: makeLabelWidget(me string: label)      <- <%{
+
+    their GUI_Frame: makeLabelWidget(me string: label)      <- <%{
+	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         TextView textBox = new TextView(GLOBAL.static_Global);
 	textBox.setText(label);
-        return textBox;
+	box.addView(textBox);
+        return box;
     }%>
 
-    their EditText: makeFloatWidget(me string: label)      <- <%{
+    their GUI_Frame: makeFloatWidget(me string: label)      <- <%{
+	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         EditText editBox = new EditText(GLOBAL.static_Global);
 	editBox.setInputType(InputType.TYPE_CLASS_NUMBER);
 	editBox.setHint(label);
-        return editBox;
+	box.addView(editBox);
+        return box;
     }%>
 
-    their EditText: makeIntWidget(me string: label)      <- <%{
-        EditText editBox = new EditText(GLOBAL.static_Global);
-	editBox.setInputType(InputType.TYPE_CLASS_NUMBER);
-	editBox.setHint(label);
-        return editBox;
+    their GUI_Frame: makeIntWidget(me string: label, their GUI_item: editWidget)      <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        EditText editText = new EditText(GLOBAL.static_Global);
+        editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+        editText.setHint(label);
+        editWidget = editText;
+        box.addView(editWidget);
+        return box;
     }%>
     
-    their EditText: makeStringWidget(me string: label)      <- <%{
-	EditText editBox = new EditText(GLOBAL.static_Global);
-	editBox.setInputType(InputType.TYPE_CLASS_TEXT);
-	editBox.setHint(label);
-	return editBox;
+    their GUI_Frame: makeStringWidget(me string: label, their GUI_item: editWidget)      <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        EditText editText = new EditText(GLOBAL.static_Global);
+        editText.setInputType(InputType.TYPE_CLASS_TEXT);
+        editText.setHint(label);
+        editWidget = editText;
+        box.addView(editWidget);
+        return box;
     }%>
 
-    their  Spinner: makeEnumWidget(me string: label, me string[list]: options)      <- <%{
-        Spinner spinner = new Spinner(GLOBAL.static_Global);
+    their  GUI_Frame: makeEnumWidget(me string: label, me string[list]: options)      <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+	Spinner spinner = new Spinner(GLOBAL.static_Global);
 	spinner.setPrompt(label);
 	ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, 0);
 	adapter.addAll(options);
 	spinner.setAdapter(adapter);
-        return spinner;
+        box.addView(spinner);
+        return box;
     }%>
 
 }
 
 struct StoryBoard: inherits="Fragment"{
-    their View: frame
+    their LinearLayout: frame
     me String: label <- "StoryBoard"
 
-    me View: onCreateView(me LayoutInflater: inflater, me ViewGroup: container, me Bundle: savedInstanceState) <- <%{
+    me LinearLayout: onCreateView(me LayoutInflater: inflater, me View: container, me Bundle: savedInstanceState) <- <%{
         LinearLayout frame = new LinearLayout(getActivity());
         TextView tv = new TextView(GLOBAL.static_Global);
         tv.setText(label);
@@ -443,10 +451,10 @@ struct GUI {
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
-    me GUI_item: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
+    me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
-/-    me GUI_item: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
-/-    me GUI_item: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
+/-    me GUI_Frame: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
+/-    me GUI_Frame: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
 
 }
 

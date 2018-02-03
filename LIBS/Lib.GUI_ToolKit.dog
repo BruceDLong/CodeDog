@@ -56,8 +56,8 @@ struct GLOBAL{
     me floatWidget:     makeFloatWidget(me string: label)
     me numRangeWidget:  makeNumRangeWidget(me string: label)
     me rangeWidget:     makeRangeWidget(me string: label)
-    me intWidget:       makeIntWidget(me string: label, id_their GtkWidget: editWidget)
-    me stringWidget:    makeStringWidget(me string: label, id_their GtkWidget: editWidget)
+    me intWidget:       makeIntWidget(me string: label, their GUI_item: editWidget)
+    me stringWidget:    makeStringWidget(me string: label, their GUI_item: editWidget)
     me enumWidget:      makeEnumWidget(me string: label, me string[list]: options)
     me timeWidget:      makeTimeWidget(me string: label)
     me dateWidget:      makeDateWidget(me string: label)
@@ -206,7 +206,7 @@ struct ListWidgetManager{
     void: updateCrntFromEdited(their GUI_item: Wid) <- {}
     void: allocateNewCurrentItem() <- {}
     void: pushCrntToList() <- {}
-    void: deleteNthItem() <- {}
+    void: deleteNthItem(me int: N) <- {}
     void: copyCrntBackToList() <- {}
 
     /- Also, add their GUI_item: initWidget(<listType>)
