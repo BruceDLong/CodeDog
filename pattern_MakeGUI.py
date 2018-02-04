@@ -91,7 +91,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
                 funcTextToUpdateEditWidget     += ''
                 funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + editFieldName + '.getValue()\n'
                 funcTextToUpdateCrntFromWidget += '    pushCrntToList()'
-                
+
 
 ###############
     CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
@@ -109,7 +109,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     void: updateEditableWidget(their GUI_item: Wid) <- {<funcTextToUpdateEditWidget>}
     void: updateCrntFromEdited(their GUI_item: Wid) <- {<funcTextToUpdateCrntFromWidget>}
     void: allocateNewCurrentItem() <- {Allocate(crntRecord)}
-    void: pushCrntToList() <- {grandParent.<listName>.pushLast(crntRecord)}
+    void: pushCrntToList() <- {} /-grandParent.<STRUCTNAME>.pushLast(crntRecord)}
     void: deleteNthItem(me int: N) <- {}
     void: copyCrntBackToList() <- {}
 
@@ -152,7 +152,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
 
     typeSpec=field['typeSpec']
     newWidgetFields += '\n'+indent+'    their '+typeName+': '+widgetFieldName
-    newWidgetFields += '\n'+indent+'    id_their '+typeName+': ' + editFieldName
+    newWidgetFields += '\n'+indent+'    their '+typeName+': ' + editFieldName
     if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate(parent.'+fieldName+')\n'  +  indent+'    Allocate(parent.'+fieldName+'.GUI_Manager)\n'
     widgetInitFuncCode += indent+'    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
 
