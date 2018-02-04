@@ -206,7 +206,7 @@ struct ListWidgetManager{
     void: updateCrntFromEdited(their GUI_item: Wid) <- {}
     void: allocateNewCurrentItem() <- {}
     void: pushCrntToList() <- {}
-    void: deleteNthItem(me int: N) <- {}
+    void: deleteNthItem() <- {}
     void: copyCrntBackToList() <- {}
 
     /- Also, add their GUI_item: initWidget(<listType>)

@@ -147,26 +147,26 @@ struct GLOBAL{
 
 
 
-    their GtkWidget: makeIntWidget(me string: label, id_their GtkWidget: editWidget)      <- <%{
+    their GtkWidget: makeIntWidget(me string: label, their GUI_item: editWidget)      <- <%{
         GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         GtkWidget* _label = gtk_label_new(label.data());
         gtk_label_set_width_chars((GtkLabel*)_label, 15);
         gtk_label_set_xalign((GtkLabel*)_label, 0.9);
         gtk_container_add(GTK_CONTAINER (_box), _label);
-        GtkWidget* _entry = gtk_spin_button_new(NULL, 1, 0);
-        gtk_container_add(GTK_CONTAINER (_box), _entry);
+        editWidget = gtk_spin_button_new(NULL, 1, 0);
+        gtk_container_add(GTK_CONTAINER (_box), editWidget);
         return _box;
     }
 %>
 
-    their GtkWidget: makeStringWidget(me string: label, id_their GtkWidget: editWidget)      <- <%{
+    their GtkWidget: makeStringWidget(me string: label, their GUI_item: editWidget)      <- <%{
         GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         GtkWidget* _label = gtk_label_new(label.data());
         gtk_label_set_width_chars((GtkLabel*)_label, 15);
         gtk_label_set_xalign((GtkLabel*)_label, 0.9);
         gtk_container_add(GTK_CONTAINER (_box), _label);
-        *editWidget = gtk_entry_new();
-        gtk_container_add(GTK_CONTAINER (_box), *editWidget);
+        editWidget = gtk_entry_new();
+        gtk_container_add(GTK_CONTAINER (_box), editWidget);
         return _box;
     }
 %>

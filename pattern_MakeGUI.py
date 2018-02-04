@@ -96,7 +96,6 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
 ###############
     CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
     /-me ListEditorWidget: LEW
-    their appModel: grandParent
     their <STRUCTNAME>: crntRecord
     me <STRUCTNAME>_Dialog_GUI: dialog
     /- Override all these for each new list editing widget
@@ -109,14 +108,11 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     void: updateEditableWidget(their GUI_item: Wid) <- {<funcTextToUpdateEditWidget>}
     void: updateCrntFromEdited(their GUI_item: Wid) <- {<funcTextToUpdateCrntFromWidget>}
     void: allocateNewCurrentItem() <- {Allocate(crntRecord)}
-    void: pushCrntToList() <- {grandParent.<listName>.pushLast(crntRecord)}
-    void: deleteNthItem(me int: N) <- {}
+    void: pushCrntToList() <- {}
+    void: deleteNthItem() <- {}
     void: copyCrntBackToList() <- {}
 
-    their GUI_item: initWidget(their appModel: GrandParent) <- {
-        grandParent <- GrandParent
-        return(LEW.init_dialog(self))
-    }
+    their GUI_item: initWidget() <- {return(LEW.init_dialog(self))}
 }
 '''
     CODE = CODE.replace('<STRUCTNAME>', structTypeName)
@@ -152,7 +148,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
 
     typeSpec=field['typeSpec']
     newWidgetFields += '\n'+indent+'    their '+typeName+': '+widgetFieldName
-    newWidgetFields += '\n'+indent+'    id_their '+typeName+': ' + editFieldName
+    newWidgetFields += '\n'+indent+'    their '+typeName+': ' + editFieldName
     if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate(parent.'+fieldName+')\n'  +  indent+'    Allocate(parent.'+fieldName+'.GUI_Manager)\n'
     widgetInitFuncCode += indent+'    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
 
@@ -171,7 +167,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
 
         widgetListEditorName = widgetFieldName+'Editor'
    #     widgetInitFuncCode += indent+'    their '+structTypeName+': parent\n'
-        widgetInitFuncCode += indent+'    their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget(parent)\n'
+        widgetInitFuncCode += indent+'    their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget()\n'
         widgetInitFuncCode += indent+'    addToContainer(box, '+widgetListEditorName+')\n'
    #     widgetInitFuncCode += indent+"    withEach _item in parent."+fieldName+':{\n        addToContainer('+widgetFieldName+', _item.make'+structTypeName+'Widget(s))\n    }\n'
 
@@ -213,7 +209,7 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
 
     newWidgetFields += '\n\n    their '+className+': parent\n'
 
-    widgetInitFuncCode = '\n  their GUI_Frame: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their GUI_Frame:listWid <- makeLabelWidget("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
+    widgetInitFuncCode = '\n  their GUI_item: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- gtk_label_new("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
     widgetFromVarsCode += '    void: updateWidgetFromCrnt() <- {\n' + widgetFromVarsCode + '\n    }\n'
     varsFromWidgetCode += '    void: updateCrntFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
     parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
