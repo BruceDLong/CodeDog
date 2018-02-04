@@ -87,7 +87,7 @@ struct ListEditorWidget{
         if(result==1){
             cout<<"ACCEPTED "<<result<<"\n";
             parent->updateCrntFromEdited(itemWidget);
-        parent->pushCrntToList();
+	    parent->pushCrntToList();
         } else {
             cout<<"CANCELED "<<result<<"\n";
         }
