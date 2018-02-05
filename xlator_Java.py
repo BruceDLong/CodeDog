@@ -207,8 +207,8 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='nthItr'   : typeSpecOut['codeConverter']='%G%1';  typeSpecOut['owner']='itr';
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='last'     : name='rbegin()->second'; paramList=None;
-        elif name=='popFirst' : name='pop_front'
-        elif name=='popLast'  : name='pop_back'
+        elif name=='popFirst' : name='remove(0)'
+        elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
         elif name=='pushFirst': name='push_front'
         elif name=='pushLast' : name='add'
         else: print "Unknown ArrayList command:", name; exit(2);
@@ -229,7 +229,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
-        elif name=='popLast'  : name='pop_back'
+        elif name=='popLast'  : name='pollLastEntry'
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         convertedIdxType=idxType
@@ -586,6 +586,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
             assignValue=''
         else:assignValue= " = new " + fieldType + "()"
     varDeclareStr= fieldType + " " + varName + assignValue
+    #print"codeNewVarStr: ",varDeclareStr
     return(varDeclareStr)
 
 def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):

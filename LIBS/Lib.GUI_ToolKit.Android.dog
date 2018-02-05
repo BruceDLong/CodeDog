@@ -82,17 +82,17 @@ struct ListEditorWidget{
     their GUI_item: listWidget
 
     void: handleAdd() <- <%{
-	ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+        ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
         toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
     }%>
 
     void: handleDelete() <- <%{
-	ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+        ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
         toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
     }%>
 
     void: handleEdit() <- <%{
-	ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
+        ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
         toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
     }%>
 
@@ -104,7 +104,7 @@ struct ListEditorWidget{
         editorFrame.setLayoutParams(editorFrameParams);
         // LIST WIDGET
         listWidget = parent.makeEditableWidget();
-	editorFrame.addView(listWidget);
+        editorFrame.addView(listWidget);
         // ADD BUTTON
         addBtn = new FloatingActionButton(GLOBAL.static_Global);
         addBtn.setOnClickListener(new View.OnClickListener() { 
@@ -170,14 +170,14 @@ struct GLOBAL{
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
 
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
-	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         NumberPicker numberPicker  = new NumberPicker(GLOBAL.static_Global);
         box.addView(numberPicker);
         return box;
     }%>
 
     their  GUI_Frame : makeDateWidget(me string: label)      <- <%{
-	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         DatePicker datePicker  = new DatePicker(GLOBAL.static_Global);
         box.addView(datePicker);
         return box;
@@ -191,9 +191,9 @@ struct GLOBAL{
     }%>
     
     their GUI_Frame: makeBoolWidget(me string: label)      <- <%{
-	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         CheckBox checkBox = new CheckBox(GLOBAL.static_Global);
-	box.addView(checkBox);
+        box.addView(checkBox);
         return box;
     }%>
 
@@ -218,19 +218,19 @@ struct GLOBAL{
     }%>
 
     their GUI_Frame: makeLabelWidget(me string: label)      <- <%{
-	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         TextView textBox = new TextView(GLOBAL.static_Global);
-	textBox.setText(label);
-	box.addView(textBox);
+        textBox.setText(label);
+        box.addView(textBox);
         return box;
     }%>
 
     their GUI_Frame: makeFloatWidget(me string: label)      <- <%{
-	LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         EditText editBox = new EditText(GLOBAL.static_Global);
-	editBox.setInputType(InputType.TYPE_CLASS_NUMBER);
-	editBox.setHint(label);
-	box.addView(editBox);
+        editBox.setInputType(InputType.TYPE_CLASS_NUMBER);
+        editBox.setHint(label);
+        box.addView(editBox);
         return box;
     }%>
 
@@ -256,11 +256,11 @@ struct GLOBAL{
 
     their  GUI_Frame: makeEnumWidget(me string: label, me string[list]: options)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-	Spinner spinner = new Spinner(GLOBAL.static_Global);
-	spinner.setPrompt(label);
-	ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, 0);
-	adapter.addAll(options);
-	spinner.setAdapter(adapter);
+        Spinner spinner = new Spinner(GLOBAL.static_Global);
+        spinner.setPrompt(label);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, 0);
+        adapter.addAll(options);
+        spinner.setAdapter(adapter);
         box.addView(spinner);
         return box;
     }%>
@@ -311,31 +311,31 @@ struct Android_eventDispatcher{
     their widget: topWidget
 
     me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
-	boolean returnVal = false;
+        boolean returnVal = false;
         
         switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
-	    GLOBAL.static_Global.toolbar.setTitle("ACTION_DOWN!");
-	    topWidget.primaryClick(event);
+            //GLOBAL.static_Global.toolbar.setTitle("ACTION_DOWN!");
+            topWidget.primaryClick(event);
             returnVal= true;
             break;
         case MotionEvent.ACTION_MOVE:
             returnVal= true;
             break;
         case MotionEvent.ACTION_UP:
-            GLOBAL.static_Global.toolbar.setTitle("ACTION_UP!");
+            //GLOBAL.static_Global.toolbar.setTitle("ACTION_UP!");
             returnVal= true;
             break;
         case MotionEvent.ACTION_CANCEL:
-            GLOBAL.static_Global.toolbar.setTitle("ACTION_CANCEL!");
+            //GLOBAL.static_Global.toolbar.setTitle("ACTION_CANCEL!");
             returnVal= true;
             break;
         case MotionEvent.ACTION_POINTER_DOWN:
-            GLOBAL.static_Global.toolbar.setTitle("ACTION_POINTER_DOWN!");
+            //GLOBAL.static_Global.toolbar.setTitle("ACTION_POINTER_DOWN!");
             returnVal= true;
             break;
         case MotionEvent.ACTION_POINTER_UP:
-            GLOBAL.static_Global.toolbar.setTitle("ACTION_POINTER_UP!");
+            //GLOBAL.static_Global.toolbar.setTitle("ACTION_POINTER_UP!");
             returnVal= true;
             break;
         default:
@@ -346,9 +346,9 @@ struct Android_eventDispatcher{
     }%>
 
     me void: registerWidgetForEventDispatcher(me CanvasView: appWidget, their widget: masterWidget) <- {
-	EventDispatcher.topWidget<-masterWidget
+        EventDispatcher.topWidget<-masterWidget
         /-appWidget.addOnTouchListener(onTouchListener);
-	/-appWidget.setOnTouchListener(GLOBAL.static_Global.EventDispatcher);
+        /-appWidget.setOnTouchListener(GLOBAL.static_Global.EventDispatcher);
     }
 }
 
@@ -357,12 +357,12 @@ struct CanvasView: inherits="View" implements="OnTouchListener"{
     me GUI_ctxt: cr
 
     me none: CanvasView() <- <%{
-	super(GLOBAL.static_Global);
-	setOnTouchListener(this);
+        super(GLOBAL.static_Global);
+        setOnTouchListener(this);
     }%>
     me bool: onTouch(me View: v, me MotionEvent: event) <- <%{
-	boolean retVal = GLOBAL.static_Global.EventDispatcher.dispatchPointerClickEvent(event);
-	return retVal;
+        boolean retVal = GLOBAL.static_Global.EventDispatcher.dispatchPointerClickEvent(event);
+        return retVal;
     }%>
     me void: onDraw(me Canvas: canvas) <- <%{
         super.onDraw(canvas);
@@ -386,30 +386,30 @@ struct GUI : inherits="LinearLayout"{
     me none: GUI() <- <%{super(GLOBAL.static_Global);}%>
 
     me NestedScrollView: newScrollingView() <- <%{
-	vScroller = new NestedScrollView(GLOBAL.static_Global);
-	vScroller.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-	hScroller = new HorizontalScrollView(GLOBAL.static_Global);
-	hScroller.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
+        vScroller = new NestedScrollView(GLOBAL.static_Global);
+        vScroller.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        hScroller = new HorizontalScrollView(GLOBAL.static_Global);
+        hScroller.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
         vScroller.addView(hScroller);
         layoutArea = new LinearLayout(GLOBAL.static_Global);
         layoutArea.setOrientation(LinearLayout.VERTICAL);
-	layoutArea.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+        layoutArea.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         hScroller.addView(layoutArea);
         return(vScroller);
     }%>
 
     me void: GUI_PopulateAndExec() <- <% {
         frame = new LinearLayout(GLOBAL.static_Global);
-	frame.setOrientation(LinearLayout.VERTICAL);
+        frame.setOrientation(LinearLayout.VERTICAL);
         frame.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
 /-        frame.setDefaultCloseOperation(LinearLayout.EXIT_ON_CLOSE);
-	GLOBAL.static_Global.setContentView(frame);
+        GLOBAL.static_Global.setContentView(frame);
         GLOBAL.static_Global.thisApp.createAppArea(frame);
     } %>
 
     me uint32: GUI_Init() <- <%{
-	GUI_Run();
-	return(0);
+        GUI_Run();
+        return(0);
     }%>
 
     me uint32: GUI_Run() <- <% {
@@ -537,13 +537,13 @@ struct GLOBAL: inherits="AppCompatActivity"{
     me Toolbar: toolbar
 
     me void: onCreate(me Bundle: savedInstanceState) <- <%{
-	super.onCreate(savedInstanceState);
-	GLOBAL.static_Global = this;
-	GLOBAL.static_Global.thisApp = new APP();
-	GLOBAL.static_Global.fragmentManager = getFragmentManager();
-	GLOBAL.static_Global.initialize("");
-	GLOBAL.static_Global.runDogCode();
-	GLOBAL.static_Global.addToolbar();
+        super.onCreate(savedInstanceState);
+        GLOBAL.static_Global = this;
+        GLOBAL.static_Global.thisApp = new APP();
+        GLOBAL.static_Global.fragmentManager = getFragmentManager();
+        GLOBAL.static_Global.initialize("");
+        GLOBAL.static_Global.runDogCode();
+        GLOBAL.static_Global.addToolbar();
     }%>
 
     me void: close_window() <- {
@@ -552,6 +552,7 @@ struct GLOBAL: inherits="AppCompatActivity"{
 
     /- //DRAWING ROUTINES:
     me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
+        fontSize = fontSize+3;
         cr.paint.setTextSize(fontSize);
         cr.paint.setTypeface(Typeface.create(fontName, Typeface.NORMAL));
         cr.GCanvas.drawText(text, x, y, cr.paint);
@@ -621,8 +622,8 @@ struct GLOBAL: inherits="AppCompatActivity"{
         GLOBAL.static_Global.toolbar = new Toolbar(GLOBAL.static_Global);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 80);
         GLOBAL.static_Global.toolbar.setLayoutParams(layoutParams);
-        GLOBAL.static_Global.toolbar.setBackgroundColor(Color.MAGENTA);
-        GLOBAL.static_Global.toolbar.setTitle("TOOLBAR");
+        GLOBAL.static_Global.toolbar.setBackgroundColor(Color.rgb(255, 43, 237));
+        GLOBAL.static_Global.toolbar.setTitle(filename);
         GLOBAL.static_Global.toolbar.setVisibility(View.VISIBLE);
         setSupportActionBar(GLOBAL.static_Global.toolbar);
         GLOBAL.static_Global.thisApp.gui.frame.addView(GLOBAL.static_Global.toolbar, 0);
@@ -664,7 +665,7 @@ struct APP: inherits="LinearLayout" {
     me none: APP() <- <%{super(GLOBAL.static_Global);}%>
 
     me void: setWidgetSize(me CanvasView: myCanvas, me int: width, me int: height) <- <%{
-        myCanvas.setLayoutParams(new LayoutParams(width, height));
+        myCanvas.setLayoutParams(new LayoutParams(5000, 5000));
     }%>
 
 }

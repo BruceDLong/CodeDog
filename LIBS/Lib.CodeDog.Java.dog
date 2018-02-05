@@ -49,6 +49,7 @@ struct GLOBAL{
     }%>
 
     me int: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
+    me int: min(me int: a, me int: b) <- <%!%GMath.min(%1, %2)%>
     me void: print(me string: s)<- <%!%GSystem.out(%1)%>
     me void: exit(me int: val) <- <%!%GSystem.exit(%1)%>
     me bool: isdigit(me char: ch) <- <%!%GCharacter.isDigit(%1)%>

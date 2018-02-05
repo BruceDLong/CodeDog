@@ -30,56 +30,56 @@ struct priorityQ{
     our queueItem[list]: theHeap
 
     me void: push(our queueItem: newItem) <- {
-	theHeap.pushLast(newItem)
-	me int: i <- theHeap.size()-1
-	withEach count in WHILE(i !=0 and theHeap[i/2].priority>theHeap[i].priority):{
-	    our queueItem: tmp <- theHeap[i/2]
-	    theHeap[i/2] <-theHeap[i]
-	    theHeap[i] <- tmp
-	    i <- i/2 /- i is now the parent
-	}
+    theHeap.pushLast(newItem)
+    me int: i <- theHeap.size()-1
+    withEach count in WHILE(i !=0 and theHeap[i/2].priority>theHeap[i].priority):{
+        our queueItem: tmp <- theHeap[i/2]
+        theHeap[i/2] <-theHeap[i]
+        theHeap[i] <- tmp
+        i <- i/2 /- i is now the parent
+    }
     }
     
     our queueItem: pop() <- {
-	if(theHeap.size()==0){return(NULL)}
-	if(theHeap.size()==1){
-	    our queueItem: tmp <- theHeap[0]
-	    theHeap.clear()
-	    return(tmp)
-	}
-	our queueItem: root <- theHeap[0]
-	theHeap[0] <- theHeap[theHeap.size()-1]
-	theHeap.popLast()
-	minHeapify(0)
-	return(root)
+    if(theHeap.size()==0){return(NULL)}
+    if(theHeap.size()==1){
+        our queueItem: tmp <- theHeap[0]
+        theHeap.clear()
+        return(tmp)
+    }
+    our queueItem: root <- theHeap[0]
+    theHeap[0] <- theHeap[theHeap.size()-1]
+        theHeap.popLast()
+        minHeapify(0)
+        return(root)
     }
     
     me void: minHeapify(me int: i) <- {
-	me int: left <- 2*i+1
-	me int: right <- 2*i+2
-	me int: smallest <- i
-	if (left < theHeap.size() and theHeap[left].priority < theHeap[i].priority){
-	    smallest <- left
-	}
-	if (right < theHeap.size() and theHeap[right].priority < theHeap[smallest].priority){
-	    smallest <- right
-	}
-	if (smallest != i){
-	    our queueItem: tmp <- theHeap[i]
-	    theHeap[i] <-theHeap[smallest]
-	    theHeap[smallest] <- tmp
-	    minHeapify(smallest)
-	}
+        me int: left <- 2*i+1
+        me int: right <- 2*i+2
+        me int: smallest <- i
+        if (left < theHeap.size() and theHeap[left].priority < theHeap[i].priority){
+            smallest <- left
+        }
+        if (right < theHeap.size() and theHeap[right].priority < theHeap[smallest].priority){
+            smallest <- right
+        }
+        if (smallest != i){
+            our queueItem: tmp <- theHeap[i]
+            theHeap[i] <-theHeap[smallest]
+            theHeap[smallest] <- tmp
+            minHeapify(smallest)
+        }
     }
     
     me bool: isEmpty() <- {
-	return(theHeap.size() == 0)
+        return(theHeap.size() == 0)
     }
 }
 
 struct GLOBAL{
     me GUI_canvas: drawing_area
-    me bool: drawAppArea_cb (me GUI_item: Widget, me GUI_ctxt: cr)  <- { /-, me gpointer: data)  <- {
+    me bool: drawAppArea_cb (me View: Widget, me GUI_ctxt: cr)  <- { /-, me gpointer: data)  <- {
         return(false)
     }
 }
@@ -93,28 +93,28 @@ struct APP{
 
 struct GLOBAL{
     me void: testQ() <- {
-	me priorityQ: pq
-	our queueItem: newItem
-	Allocate(newItem,12)
-	pq.push(newItem)
-	Allocate(newItem,5)
-	pq.push(newItem)
-	Allocate(newItem,7)
-	pq.push(newItem)
-	Allocate(newItem,35)
-	pq.push(newItem)
-	Allocate(newItem,8)
-	pq.push(newItem)
-	Allocate(newItem,32)
-	pq.push(newItem)
-	Allocate(newItem,77)
-	pq.push(newItem)
-	Allocate(newItem,4)
-	pq.push(newItem)
-	withEach count in WHILE(! pq.isEmpty()):{
-	    our queueItem: i <- pq.pop()
-	    print (i.priority, ", ")
-	}
-	print ("\n")
+        me priorityQ: pq
+        our queueItem: newItem
+        Allocate(newItem,12)
+        pq.push(newItem)
+        Allocate(newItem,5)
+        pq.push(newItem)
+        Allocate(newItem,7)
+        pq.push(newItem)
+        Allocate(newItem,35)
+        pq.push(newItem)
+        Allocate(newItem,8)
+        pq.push(newItem)
+        Allocate(newItem,32)
+        pq.push(newItem)
+        Allocate(newItem,77)
+        pq.push(newItem)
+        Allocate(newItem,4)
+        pq.push(newItem)
+        withEach count in WHILE(! pq.isEmpty()):{
+            our queueItem: i <- pq.pop()
+            print (i.priority, ", ")
+        }
+        print ("\n")
     }
 }
