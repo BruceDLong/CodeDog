@@ -20,12 +20,14 @@ struct aItem{
 
     me string: printAgendaItem()<-{
         me agent: a
-        me string: itemStr <- ""
+        me string: itemStr <- "["
+        itemStr <- itemStr + toString(priority) + " || "
         if (LHS.crntCursor.item!=NULL){itemStr <- itemStr + a.printInfon(LHS.crntCursor.item)}
         else{itemStr <- itemStr +"NULL"}
         itemStr <- itemStr + " |=| "
         if (RHS.crntCursor.item!=NULL){itemStr <- itemStr + a.printInfon(RHS.crntCursor.item)}
         else{itemStr <- itemStr +"NULL"}
+        itemStr <- itemStr + "]"
         return(itemStr)
     }
 }
@@ -92,9 +94,16 @@ struct retriever{
 /-      prepWorkList(agendaItem.RHS)
 /-      doPreMerge(agendaItem)
         /- push onto heap and verify no duplicates
-        me string: S1 <- agendaItem.printAgendaItem()
-        print ("*********retriever.addItem: ",S1 ,"\n")
+        print ("*********retriever.addItem: ", agendaItem.priority, " || ",agendaItem.printAgendaItem() ,"\n")
         agenda.theHeap.pushLast(agendaItem)
+    }
+
+    void: printAgenda()<-{
+        print("    |PRINT AGENDA____________\n")
+        withEach agendaItem in agenda.theHeap:{
+            print("    |        item: ", agendaItem.printAgendaItem(), "\n")
+        }
+        print("    |______________________\n")
     }
 
     void: processAgenda()<-{
@@ -110,54 +119,74 @@ struct retriever{
         }
     }
 
-    void: addItemsToAgenda(me int: priority, our itrChain: LHSChain, our itrChain: RHSChain)<-{
-        our itrChain: currentLHS <- LHSChain
-        withEach count in WHILE(currentLHS.theItr != NULL):{
-            our itrChain: currentRHS <- RHSChain
-            withEach count in WHILE(currentRHS.theItr != NULL):{
+    void: addItemsToAgenda(me int: priority, our infDeepItr: LHSChain, our infDeepItr: RHSChain)<-{
+        our infDeepItr: currentLHS <- LHSChain
+        withEach count in WHILE(currentLHS != NULL):{
+            our infDeepItr: currentRHS <- RHSChain
+            withEach count in WHILE(currentRHS != NULL):{
                 our aItem: nextItem
                 Allocate(nextItem)
-                nextItem.init(priority, currentLHS.theItr, currentRHS.theItr)
+                nextItem.init(priority, currentLHS, currentRHS)
                 addItem(nextItem)
-
                 currentRHS <- currentRHS.next
             }
             currentLHS <- currentLHS.next
         }
+        printAgenda()
     }
 
     void: processItem(our aItem: agendaItem)<-{
+              print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
+        our agent: a
         me string: S1 <- agendaItem.printAgendaItem()
 /-        parentAgent.prepWorkList(agendaItem.LHS.crntCursor)
 /-      parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem.LHS)
         our infDeepItr: remainder <- parentAgent.tryMERGE(agendaItem)
-        our itrChain: LHSChain <- NULL
-        our itrChain: RHSChain <- NULL
+        our infDeepItr: LHSChain <- NULL
+        our infDeepItr: RHSChain <- NULL
 
         me bool: notEOL <- true
         me bool: remainderSideRHS <- true  /- Later this may be false if the LHS has a remainder
         if(remainder != NULL){
             if(remainderSideRHS){
-                Allocate(RHSChain)
-                RHSChain.theItr <-remainder
+                print("    remainder RHS\n")
+                RHSChain <-remainder
             } else {
-                Allocate(LHSChain)
-                LHSChain.theItr <-remainder
+                print("    remainder LHS\n")
+                LHSChain <-remainder
             }
         }
 
+        me int: LHSfType <- agendaItem.LHS.crntCursor.item.value.fType
+        me int: RHSfType <- agendaItem.RHS.crntCursor.item.value.fType
         if (LHSChain == NULL){
-            LHSChain <- agendaItem.LHS.getNextDeDotted()
+            if (LHSfType != LST and RHSfType == LST){
+                LHSChain <- agendaItem.LHS
+            }else {
+              print("    LHS getNextDeDotted\n")
+                LHSChain <- agendaItem.LHS.getNextDeDotted()
+
+            }
+
             if(agendaItem.LHS.state == sSecondVisit){notEOL<-false}
         }
         if (RHSChain == NULL){
-            RHSChain <- agendaItem.RHS.getNextDeDotted()
+            if (LHSfType == LST and RHSfType != LST){
+                print("    LHS LST & RHS not LST\n")
+                RHSChain <- agendaItem.RHS
+            }else{
+        print("    RHS getNextDeDotted\n")
+                RHSChain <- agendaItem.RHS.getNextDeDotted()
+            }
         }
 
         if (LHSChain != NULL and RHSChain != NULL){
+            print("    LHSChain != NULL and RHSChain != NULL", "\n")
+            print("    LHS: ", a.printInfon(LHSChain.crntCursor.item), " |RHS: ", a.printInfon(RHSChain.crntCursor.item), "\n")
             me int: priority <- agendaItem.priority
             me int: LHS_state <- agendaItem.LHS.state
             if(LHS_state == sFirstVisit){
+                            print("processItem:sFirstVisit\n")
                 if(agendaItem.LHS.crntCursor.item.value.fType!=LST and agendaItem.RHS.crntCursor.item.value.fType!=LST){priority <- priority+1}
                 addItemsToAgenda(priority, LHSChain, RHSChain)
             }else if(LHS_state == sSecondVisit){
@@ -171,4 +200,3 @@ struct retriever{
     }
 
 }
-
