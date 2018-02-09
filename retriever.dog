@@ -184,9 +184,9 @@ struct retriever{
             print("    LHSChain != NULL and RHSChain != NULL", "\n")
             print("    LHS: ", a.printInfon(LHSChain.crntCursor.item), " |RHS: ", a.printInfon(RHSChain.crntCursor.item), "\n")
             me int: priority <- agendaItem.priority
-            me int: LHS_state <- agendaItem.LHS.state
-            if(LHS_state == sFirstVisit){
-                            print("processItem:sFirstVisit\n")
+            me int: LHS_state <- LHSChain.state
+            if(LHS_state == sFirstVisit or LHS_state == sNotASeq){
+                print("processItem:sFirstVisit\n")
                 if(agendaItem.LHS.crntCursor.item.value.fType!=LST and agendaItem.RHS.crntCursor.item.value.fType!=LST){priority <- priority+1}
                 addItemsToAgenda(priority, LHSChain, RHSChain)
             }else if(LHS_state == sSecondVisit){
