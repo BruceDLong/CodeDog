@@ -224,6 +224,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
 
                 bitCursor=bitCursor+numEnumBits;
     if structEnums!="": structEnums="\n\n// *** Code for manipulating "+className+' flags and modes ***\n'+structEnums
+    ObjectDef['flagsVarNeeded'] = flagsVarNeeded
     return [flagsVarNeeded, structEnums, CodeDogAddendums]
 
 typeDefMap={}
@@ -871,6 +872,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     globalFuncsAcc=''
     funcDefCodeAcc=''
     structCodeAcc=""
+    ObjectDef = classes[0][className]
     for field in progSpec.generateListOfFieldsToImplement(classes, className):
         ################################################################
         ### extracting FIELD data
@@ -975,6 +977,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 cdlog(5, "Function "+fieldID+" has no implementation defined.")
             else:
                 extraCodeForTopOfFuntion = xlator['extraCodeForTopOfFuntion'](argList)
+                if typeDefName=='' and 'flagsVarNeeded' in ObjectDef and ObjectDef['flagsVarNeeded']==True:
+                    extraCodeForTopOfFuntion+="    flags=0;"
                 verbatimText=field['value'][1]
                 if (verbatimText!=''):                                      # This function body is 'verbatim'.
                     if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.

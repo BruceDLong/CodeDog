@@ -14,19 +14,32 @@ struct aItem{
 
     me void: init(me int: Priority, our infDeepItr: lhs, our infDeepItr: rhs)<-{
         priority <- Priority
-        LHS <- lhs
-        RHS <- rhs
+        Allocate(LHS)
+        Allocate(RHS)
+        lhs.copyThisTo(LHS)
+        rhs.copyThisTo(RHS)
+        /-LHS <- lhs
+        /-RHS <- rhs
     }
 
     me string: printAgendaItem()<-{
         me agent: a
         me string: itemStr <- "["
+        me string: innrStr
         itemStr <- itemStr + toString(priority) + " || "
-        if (LHS.crntCursor.item!=NULL){itemStr <- itemStr + a.printInfon(LHS.crntCursor.item)}
-        else{itemStr <- itemStr +"NULL"}
+        if (LHS.crntCursor.item!=NULL){
+            innrStr <- a.printInfon(LHS.crntCursor.item)
+            if(LHS.state==sSecondVisit) {innrStr <- "<"+innrStr + ">"}
+            itemStr <- itemStr + innrStr;
+        }
+        else{itemStr <- itemStr +" ITEM NULL"}
         itemStr <- itemStr + " |=| "
-        if (RHS.crntCursor.item!=NULL){itemStr <- itemStr + a.printInfon(RHS.crntCursor.item)}
-        else{itemStr <- itemStr +"NULL"}
+        if (RHS.crntCursor.item!=NULL){
+            innrStr <- a.printInfon(RHS.crntCursor.item)
+            if(RHS.state==sSecondVisit) {innrStr <- "<"+innrStr + ">"}
+            itemStr <- itemStr + innrStr;
+        }
+        else{itemStr <- itemStr +"ITEM NULL"}
         itemStr <- itemStr + "]"
         return(itemStr)
     }
@@ -94,8 +107,8 @@ struct retriever{
 /-      prepWorkList(agendaItem.RHS)
 /-      doPreMerge(agendaItem)
         /- push onto heap and verify no duplicates
-        print ("*********retriever.addItem: ", agendaItem.priority, " || ",agendaItem.printAgendaItem() ,"\n")
-        agenda.theHeap.pushLast(agendaItem)
+        print ("*********retriever.addItem: ", agendaItem.printAgendaItem() ,"\n")
+        agenda.push(agendaItem)
     }
 
     void: printAgenda()<-{
@@ -155,6 +168,8 @@ struct retriever{
                 print("    remainder LHS\n")
                 LHSChain <-remainder
             }
+        } else if (agendaItem.actionCommand==1){
+            return()
         }
 
         me int: LHSfType <- agendaItem.LHS.crntCursor.item.value.fType
