@@ -74,7 +74,7 @@ struct retriever{
 /-      prepWorkList(agendaItem.RHS)
 /-      doPreMerge(agendaItem)
         /- push onto heap and verify no duplicates
-        print ("*********retriever.addItem: ", agendaItem.printAgendaItem() ,"\n")
+        /-print ("*********retriever.addItem: ", agendaItem.printAgendaItem() ,"\n")
         agenda.push(agendaItem)
     }
 
@@ -87,7 +87,6 @@ struct retriever{
     }
 
     our aItem: resolve(our aItem: agendaItem, me string: indent)<-{
-        print(indent, agendaItem.printAgendaItem(), "\n")
         our aItem: retVal
         if(agendaItem.predecessors.size()>0){
             /- Choose pedigree
@@ -134,7 +133,7 @@ struct retriever{
     }
 
     void: processItem(our aItem: agendaItem)<-{
-        print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
+        /-print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
         our agent: a
         me string: S1 <- agendaItem.printAgendaItem()
         me int: agendaLHS_state <- agendaItem.LHS.state
@@ -156,7 +155,6 @@ struct retriever{
             }
             if(agendaItem.RHS.state == sEOL){return()}
         } else if(agendaLHS_state == sEOL){
-            /-print("agendaLHS_state == sEOL\n")
             return()
         } else {
             print("LHS-STATE:", agendaLHS_state)
