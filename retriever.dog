@@ -1,11 +1,15 @@
 /- retriever.dog
 
 struct aItem{
-    me int:          priority
-    our infDeepItr:  LHS
-    our infDeepItr:  RHS
-    our aItem[list]: predecessors
-    me int:          actionCommand
+    me int:           priority
+    our infDeepItr:   LHS
+    our infDeepItr:   RHS
+    our aItem[list]:  predecessors
+    our aItem:        successor
+    me flag:          copyRHSTypeToLHS
+    me flag:          rejected
+    me mode[valueFailed, valueVerified, copyValueLHStoRHS, copyValueRHStoLHS]:        valueAction
+    me mode[sizeFailed, sizeVerified, copySizeLHStoRHS, copySizeRHStoLHS]:        sizeAction
 
     me mode[getAllPlusSize, startPos, endPos, query, size, length, first, last, Nth, tagged, typed]:opTypes
 
@@ -18,26 +22,27 @@ struct aItem{
     }
 
     me string: printAgendaItem()<-{
+        if(self == NULL){return("NULL")}
         me agent: a
         me string: itemStr <- "["
         me string: innrStr
         itemStr <- itemStr + toString(priority) + " || "
-        if (LHS.crntCursor.item!=NULL){
+        if (LHS.crntCursor !=NULL and LHS.crntCursor.item!=NULL){
             innrStr <- a.printInfon(LHS.crntCursor.item)
             if(LHS.state==sSecondVisit) {innrStr <- "<"+innrStr + ">"}
             itemStr <- itemStr + innrStr;
         }
         else{itemStr <- itemStr +" ITEM NULL"}
         itemStr <- itemStr + " |=| "
-        if (RHS.crntCursor.item!=NULL){
+        if (RHS.crntCursor !=NULL and RHS.crntCursor.item!=NULL){
             innrStr <- a.printInfon(RHS.crntCursor.item)
             if(RHS.state==sSecondVisit) {innrStr <- "<"+innrStr + ">"}
             itemStr <- itemStr + innrStr;
-        }
-        else{itemStr <- itemStr +"ITEM NULL"}
+        }else{itemStr <- itemStr +"ITEM NULL"}
         itemStr <- itemStr + "]"
         return(itemStr)
     }
+
 }
 
 struct priorityQ{
@@ -81,8 +86,22 @@ struct retriever{
         print("    |______________________\n")
     }
 
+    our aItem: resolve(our aItem: agendaItem, me string: indent)<-{
+        print(indent, agendaItem.printAgendaItem(), "\n")
+        our aItem: retVal
+        if(agendaItem.predecessors.size()>0){
+            /- Choose pedigree
+            me int: pedigreeChosen <- 0
+            our aItem: pred <- agendaItem.predecessors[pedigreeChosen]
+            pred.successor <- agendaItem
+            retVal <- resolve(pred, indent +"    ")
+            if(retVal==NULL){retVal<-pred}
+        }
+
+        return(retVal)
+    }
+
     void: processAgenda()<-{
-        print("PROCESS AGENDA\n")
         withEach count in WHILE(!agenda.isEmpty()):{
             /-TODO: remove break
             if (count > 200){
@@ -94,7 +113,9 @@ struct retriever{
         }
     }
 
-    void: addItemsToAgenda(me int: priority, our aItem: pred, our infDeepItr: LHSChain, our infDeepItr: RHSChain)<-{
+    void: addItemsToAgenda(our aItem: pred, our infDeepItr: LHSChain, our infDeepItr: RHSChain)<-{
+        me int: priority <- pred.priority
+        if(pred.LHS.crntCursor.item.value.fType!=LST and pred.RHS.crntCursor.item.value.fType!=LST){priority <- priority+1}
         our infDeepItr: currentLHS <- LHSChain
         withEach count in WHILE(currentLHS != NULL):{
             our infDeepItr: currentRHS <- RHSChain
@@ -102,78 +123,82 @@ struct retriever{
                 our aItem: nextItem
                 Allocate(nextItem)
                 nextItem.init(priority, currentLHS, currentRHS)
-                nextItem.predecessors.pushLast(pred)
+                if(pred!=NULL){nextItem.predecessors.pushLast(pred)}
                 addItem(nextItem)
+
                 currentRHS <- currentRHS.next
             }
             currentLHS <- currentLHS.next
         }
-        printAgenda()
+        /-printAgenda()
     }
 
     void: processItem(our aItem: agendaItem)<-{
-              print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
+        print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
         our agent: a
         me string: S1 <- agendaItem.printAgendaItem()
-/-        parentAgent.prepWorkList(agendaItem.LHS.crntCursor)
-/-      parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem, agendaItem.LHS)
-        our infDeepItr: remainder <- parentAgent.tryMERGE(agendaItem)
+        me int: agendaLHS_state <- agendaItem.LHS.state
+        our infDeepItr: remainder
+        if(agendaLHS_state == sNotASeq or agendaLHS_state == sFirstVisit){
+          /-parentAgent.prepWorkList(agendaItem.LHS.crntCursor)
+          /-parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem, agendaItem.LHS)
+            if(agendaItem.RHS.state == sEOL){return()}
+            remainder <- parentAgent.tryMERGE(agendaItem)
+
+            if (agendaItem.rejected){
+                return()
+            }
+
+        } else if(agendaLHS_state == sSecondVisit){
+            if(agendaItem.LHS.nestLvl == 0){
+                our aItem: topItem <- resolve(agendaItem, "    resolve: ")
+                parentAgent.stitch(topItem, "")
+            }
+            if(agendaItem.RHS.state == sEOL){return()}
+        } else if(agendaLHS_state == sEOL){
+            /-print("agendaLHS_state == sEOL\n")
+            return()
+        } else {
+            print("LHS-STATE:", agendaLHS_state)
+            exit(2)
+        }
+
         our infDeepItr: LHSChain <- NULL
         our infDeepItr: RHSChain <- NULL
 
-        me bool: notEOL <- true
         me bool: remainderSideRHS <- true  /- Later this may be false if the LHS has a remainder
         if(remainder != NULL){
             if(remainderSideRHS){
-                print("    remainder RHS\n")
                 RHSChain <-remainder
             } else {
-                print("    remainder LHS\n")
                 LHSChain <-remainder
             }
-        } else if (agendaItem.actionCommand==1){
-            return()
         }
 
         me int: LHSfType <- agendaItem.LHS.crntCursor.item.value.fType
         me int: RHSfType <- agendaItem.RHS.crntCursor.item.value.fType
         if (LHSChain == NULL){
             if (LHSfType != LST and RHSfType == LST){
+                /-print("    LHSChain <- agendaItem.LHS \n")
                 LHSChain <- agendaItem.LHS
             }else {
-              print("    LHS getNextDeDotted\n")
+                /-print("    LHSChain from getNextDeDotted\n")
                 LHSChain <- agendaItem.LHS.getNextDeDotted()
 
             }
-
-            if(agendaItem.LHS.state == sSecondVisit){notEOL<-false}
         }
         if (RHSChain == NULL){
             if (LHSfType == LST and RHSfType != LST){
-                print("    LHS LST & RHS not LST\n")
+                /-print("    RHSChain <- agendaItem.RHS \n")
                 RHSChain <- agendaItem.RHS
             }else{
-        print("    RHS getNextDeDotted\n")
+                /-print("    RHSChain from getNextDeDotted\n")
                 RHSChain <- agendaItem.RHS.getNextDeDotted()
             }
         }
 
         if (LHSChain != NULL and RHSChain != NULL){
-            print("    LHSChain != NULL and RHSChain != NULL", "\n")
-            print("    LHS: ", a.printInfon(LHSChain.crntCursor.item), " |RHS: ", a.printInfon(RHSChain.crntCursor.item), "\n")
-            me int: priority <- agendaItem.priority
-            me int: LHS_state <- LHSChain.state
-            if(LHS_state == sFirstVisit or LHS_state == sNotASeq){
-                print("processItem:sFirstVisit\n")
-                if(agendaItem.LHS.crntCursor.item.value.fType!=LST and agendaItem.RHS.crntCursor.item.value.fType!=LST){priority <- priority+1}
-                addItemsToAgenda(priority, agendaItem, LHSChain, RHSChain)
-            }else if(LHS_state == sSecondVisit){
-                addItemsToAgenda(priority + 1, agendaItem, LHSChain, RHSChain)
-            } else if(LHS_state == sEOL){
-                /-
-            }else {
-                print("Unexpected iterator state in normalizer: ", LHS_state, ".\n")
-            }
+            addItemsToAgenda(agendaItem, LHSChain, RHSChain)
         }
     }
 
