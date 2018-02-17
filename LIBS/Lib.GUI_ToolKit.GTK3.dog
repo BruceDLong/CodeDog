@@ -87,7 +87,7 @@ struct ListEditorWidget{
         if(result==1){
             cout<<"ACCEPTED "<<result<<"\n";
             parent->updateCrntFromEdited(itemWidget);
-	    parent->pushCrntToList();
+        parent->pushCrntToList();
         } else {
             cout<<"CANCELED "<<result<<"\n";
         }
@@ -147,7 +147,7 @@ struct GLOBAL{
 
 
 
-    their intWidget: makeIntWidget(me string: label, id_their GtkWidget: editWidget)      <- <%{
+    their intWidget: makeIntWidget(me string: label, their GtkWidget: editWidget)      <- <%{
         GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         GtkWidget* _label = gtk_label_new(label.data());
         gtk_label_set_width_chars((GtkLabel*)_label, 15);

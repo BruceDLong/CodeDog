@@ -27,18 +27,18 @@ struct aItem{
         me string: itemStr <- "["
         me string: innrStr
         itemStr <- itemStr + toString(priority) + " || "
-        if (LHS.crntCursor !=NULL and LHS.crntCursor.item!=NULL){
+        if (LHS.crntCursor !=NULL){
             innrStr <- a.printInfon(LHS.crntCursor.item)
             if(LHS.state==sSecondVisit) {innrStr <- "<"+innrStr + ">"}
             itemStr <- itemStr + innrStr;
         }
-        else{itemStr <- itemStr +" ITEM NULL"}
+        else{itemStr <- itemStr +" ITEM-NULL"}
         itemStr <- itemStr + " |=| "
-        if (RHS.crntCursor !=NULL and RHS.crntCursor.item!=NULL){
+        if (RHS.crntCursor !=NULL){
             innrStr <- a.printInfon(RHS.crntCursor.item)
             if(RHS.state==sSecondVisit) {innrStr <- "<"+innrStr + ">"}
             itemStr <- itemStr + innrStr;
-        }else{itemStr <- itemStr +"ITEM NULL"}
+        }else{itemStr <- itemStr +"ITEM-NULL"}
         itemStr <- itemStr + "]"
         return(itemStr)
     }
@@ -74,7 +74,7 @@ struct retriever{
 /-      prepWorkList(agendaItem.RHS)
 /-      doPreMerge(agendaItem)
         /- push onto heap and verify no duplicates
-        /-print ("*********retriever.addItem: ", agendaItem.printAgendaItem() ,"\n")
+        print ("*********retriever.addItem: ", agendaItem.printAgendaItem() ,"\n")
         agenda.push(agendaItem)
     }
 
@@ -119,12 +119,13 @@ struct retriever{
         withEach count in WHILE(currentLHS != NULL):{
             our infDeepItr: currentRHS <- RHSChain
             withEach count in WHILE(currentRHS != NULL):{
-                our aItem: nextItem
-                Allocate(nextItem)
-                nextItem.init(priority, currentLHS, currentRHS)
-                if(pred!=NULL){nextItem.predecessors.pushLast(pred)}
-                addItem(nextItem)
-
+                if(currentLHS.crntCursor != NULL){
+                    our aItem: nextItem
+                    Allocate(nextItem)
+                    nextItem.init(priority, currentLHS, currentRHS)
+                    if(pred!=NULL){nextItem.predecessors.pushLast(pred)}
+                    addItem(nextItem)
+                }
                 currentRHS <- currentRHS.next
             }
             currentLHS <- currentLHS.next
@@ -133,9 +134,8 @@ struct retriever{
     }
 
     void: processItem(our aItem: agendaItem)<-{
-        /-print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
+        print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
         our agent: a
-        me string: S1 <- agendaItem.printAgendaItem()
         me int: agendaLHS_state <- agendaItem.LHS.state
         our infDeepItr: remainder
         if(agendaLHS_state == sNotASeq or agendaLHS_state == sFirstVisit){
@@ -143,13 +143,15 @@ struct retriever{
           /-parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem, agendaItem.LHS)
             if(agendaItem.RHS.state == sEOL){return()}
             remainder <- parentAgent.tryMERGE(agendaItem)
-
-            if (agendaItem.rejected){
-                return()
+            if(agendaItem.rejected){return()}
+            if(agendaItem.LHS.nestLvl == 0 and agendaLHS_state == sNotASeq){
+                print("STITCHING-ITEM\n")
+                parentAgent.stitch(agendaItem, "")
             }
 
         } else if(agendaLHS_state == sSecondVisit){
             if(agendaItem.LHS.nestLvl == 0){
+                print("RESOLVING-ITEM\n")
                 our aItem: topItem <- resolve(agendaItem, "    resolve: ")
                 parentAgent.stitch(topItem, "")
             }
@@ -196,6 +198,7 @@ struct retriever{
         }
 
         if (LHSChain != NULL and RHSChain != NULL){
+            LHSChain.next <- NULL
             addItemsToAgenda(agendaItem, LHSChain, RHSChain)
         }
     }
