@@ -88,8 +88,10 @@ def gradleFile(topDomain, domain, appName, workingDir):
                 '    }\n' \
                 '}\n' \
                 'dependencies {\n' \
-                '    compile fileTree(dir: "libs", include: ["*.jar"])\n' \
-                '    compile "com.android.support:appcompat-v7:23.1.1"\n' \
+                '    implementation fileTree(dir: "libs", include: ["*.jar"])\n' \
+                '    implementation "com.android.support:appcompat-v7:24.1.1"\n' \
+                '    implementation "com.android.support:support-v4:24.2.1"\n' \
+                '    implementation "com.android.support:design:24.2.1"\n' \
                 '}\n' \
 
     fo=open(workingDir + os.sep + fileName, 'w')

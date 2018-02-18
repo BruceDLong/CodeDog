@@ -215,14 +215,14 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
     elif containerType=='TreeMap':
         convertedIdxType=idxType
         [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
-        if name=='at' or name=='erase': pass
+        if name=='at': pass
         elif name=='containsKey'   : name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='find'     : typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;  typeSpecOut['codeConverter']='tailMap(%1).entrySet().iterator()';
         elif name=='get'      : name='get';      typeSpecOut['owner']='me';  typeSpecOut['fieldType']=convertedItmType;
-        elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='front'    : name='firstKey()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
@@ -230,6 +230,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pollLastEntry'
+        elif name=='erase'    : name='remove'
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         convertedIdxType=idxType
