@@ -70,11 +70,8 @@ struct retriever{
     their agent: parentAgent
 
     void: addItem(our aItem: agendaItem)<-{
-/-      prepWorkList(agendaItem.LHS.crntCursor)
-/-      prepWorkList(agendaItem.RHS)
-/-      doPreMerge(agendaItem)
         /- push onto heap and verify no duplicates
-        print ("*********retriever.addItem: ", agendaItem.printAgendaItem() ,"\n")
+        /-print ("*********retriever.addItem: ", agendaItem.printAgendaItem() ,"\n")
         agenda.push(agendaItem)
     }
 
@@ -134,7 +131,7 @@ struct retriever{
     }
 
     void: processItem(our aItem: agendaItem)<-{
-        print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
+        /-print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
         our agent: a
         me int: agendaLHS_state <- agendaItem.LHS.state
         our infDeepItr: remainder
@@ -145,13 +142,13 @@ struct retriever{
             remainder <- parentAgent.tryMERGE(agendaItem)
             if(agendaItem.rejected){return()}
             if(agendaItem.LHS.nestLvl == 0 and agendaLHS_state == sNotASeq){
-                print("STITCHING-ITEM\n")
+                /-print("STITCHING-ITEM\n")
                 parentAgent.stitch(agendaItem, "")
             }
 
         } else if(agendaLHS_state == sSecondVisit){
             if(agendaItem.LHS.nestLvl == 0){
-                print("RESOLVING-ITEM\n")
+                /-print("RESOLVING-ITEM\n")
                 our aItem: topItem <- resolve(agendaItem, "    resolve: ")
                 parentAgent.stitch(topItem, "")
             }
@@ -159,7 +156,7 @@ struct retriever{
         } else if(agendaLHS_state == sEOL){
             return()
         } else {
-            print("LHS-STATE:", agendaLHS_state)
+            /-print("LHS-STATE:", agendaLHS_state)
             exit(2)
         }
 

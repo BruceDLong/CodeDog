@@ -117,11 +117,12 @@ def CheckObjectVars(objName, itemName, xlator):
 
 StaticMemberVars={} # Used to find parent-class of const and enums
 
-def staticVarNamePrefix(staticVarName, xlator):
+def staticVarNamePrefix(staticVarName, parentClass, xlator):
     global StaticMemberVars
     if staticVarName in StaticMemberVars:
         crntBaseName = progSpec.baseStructName(currentObjName)
-        refedClass=progSpec.baseStructName(StaticMemberVars[staticVarName])
+        if parentClass!="": refedClass=parentClass
+        else: refedClass=progSpec.baseStructName(StaticMemberVars[staticVarName])
         if(crntBaseName != refedClass or xlator['LanguageName']=='Swift'):   #TODO Make this part of xlators
             return refedClass + xlator['ObjConnector']
     return ''
@@ -154,7 +155,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
                     RefType="GLOBAL"
                 else:
                     if(itemName in StaticMemberVars):
-                        parentClassName = staticVarNamePrefix(itemName, xlator)
+                        parentClassName = staticVarNamePrefix(itemName, '', xlator)
                         if(parentClassName != ''):
                             return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
                         else: return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "CONST"]
@@ -459,13 +460,13 @@ def codeItemRef(name, LorR_Val, objsRefed, xlator):
         fieldType=segType['fieldType']
         if fieldType=='flag':
             segName=segStr[len(connector):]
-            prefix = staticVarNamePrefix(segName, xlator)
+            prefix = staticVarNamePrefix(segName, LHSParentType, xlator)
             bitfieldMask=xlator['applyTypecast']('uint64', prefix+segName)
             flagReadCode = '('+S[0:prevLen] + connector + 'flags & ' + bitfieldMask+')'
-            S=xlator['applyTypecast']('int', flagReadCode) # TODO: prevent 'segStr' namespace collisions by prepending object name to field constant
+            S=xlator['applyTypecast']('int', flagReadCode)
         elif fieldType=='mode':
             segName=segStr[len(connector):]
-            prefix = staticVarNamePrefix(segName+"Mask", xlator)
+            prefix = staticVarNamePrefix(segName+"Mask", LHSParentType, xlator)
             bitfieldMask  =xlator['applyTypecast']('uint64', prefix+segName+"Mask")
             bitfieldOffset=xlator['applyTypecast']('uint64', prefix+segName+"Offset")
             S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+')'
@@ -615,7 +616,7 @@ def codeAction(action, indent, objsRefed, xlator):
                 divPoint=startPointOfNamesLastSegment(LHS)
                 LHS_Left=LHS[0:divPoint+1] # The '+1' makes this get the connector too. e.g. '.' or '->'
                 bitMask =LHS[divPoint+1:]
-                prefix = staticVarNamePrefix(bitMask, xlator)
+                prefix = staticVarNamePrefix(bitMask, LHSParentType, xlator)
                 setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsTypeSpec)
                 actionText=indent + setBits
                 #print "INFO:", LHS, divPoint, "'"+LHS_Left+"'" 'bm:', bitMask,'RHS:', RHS;
@@ -627,7 +628,7 @@ def codeAction(action, indent, objsRefed, xlator):
                 else:
                     LHS_Left=LHS[0:divPoint+1]
                     bitMask =LHS[divPoint+1:]
-                prefix = staticVarNamePrefix(bitMask+"Mask", xlator)
+                prefix = staticVarNamePrefix(bitMask+"Mask", LHSParentType, xlator)
                 setBits = xlator['codeSetBits'](LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsTypeSpec)
                 actionText=indent + setBits
             else:
