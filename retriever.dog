@@ -130,14 +130,25 @@ struct retriever{
         /-printAgenda()
     }
 
+    me bool: readyToResolve(our aItem: agendaItem)<-{
+        our infDeepItr: LHS <- agendaItem.LHS
+        our infDeepItr: RHS <- agendaItem.RHS
+        /-print("    readyToResolve: RHS.crntCursor: ", RHS.toString(), " |RHS.nestLvl: ", RHS.nestLvl, " |RHS.isAList: ", RHS.isAList, " |RHS.state: ", RHS.stateToString(), " |LHS.nestLvl: ", LHS.nestLvl, "\n")
+
+        if(LHS.nestLvl == 0 and RHS.nestLvl == 0 and RHS.state == sSecondVisit){return(true)}
+        if(LHS.nestLvl == 0 and RHS.nestLvl == 0 and RHS.state == sEOL and !RHS.isAList){return(true)}
+
+        return(false)
+    }
+
     void: processItem(our aItem: agendaItem)<-{
         /-print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
         our agent: a
         me int: agendaLHS_state <- agendaItem.LHS.state
         our infDeepItr: remainder
         if(agendaLHS_state == sNotASeq or agendaLHS_state == sFirstVisit){
-          /-parentAgent.prepWorkList(agendaItem.LHS.crntCursor)
-          /-parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem, agendaItem.LHS)
+            parentAgent.prepWorkList(agendaItem.LHS.crntCursor)
+            parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem, agendaItem.LHS)
             if(agendaItem.RHS.state == sEOL){return()}
             remainder <- parentAgent.tryMERGE(agendaItem)
             if(agendaItem.rejected){return()}
@@ -147,7 +158,7 @@ struct retriever{
             }
 
         } else if(agendaLHS_state == sSecondVisit){
-            if(agendaItem.LHS.nestLvl == 0){
+            if(readyToResolve(agendaItem)){
                 /-print("RESOLVING-ITEM\n")
                 our aItem: topItem <- resolve(agendaItem, "    resolve: ")
                 parentAgent.stitch(topItem, "")
@@ -155,10 +166,7 @@ struct retriever{
             if(agendaItem.RHS.state == sEOL){return()}
         } else if(agendaLHS_state == sEOL){
             return()
-        } else {
-            /-print("LHS-STATE:", agendaLHS_state)
-            exit(2)
-        }
+        } else {print("LHS-STATE:", agendaLHS_state); exit(2)}
 
         our infDeepItr: LHSChain <- NULL
         our infDeepItr: RHSChain <- NULL
@@ -195,7 +203,6 @@ struct retriever{
         }
 
         if (LHSChain != NULL and RHSChain != NULL){
-            LHSChain.next <- NULL
             addItemsToAgenda(agendaItem, LHSChain, RHSChain)
         }
     }
