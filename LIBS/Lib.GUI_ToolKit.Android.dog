@@ -53,20 +53,25 @@ struct GUI_storyBoard: inherits="FragmentActivity" {
 }
 
 struct intWidget{
-    their EditText: intWidget
+    their LinearLayout: intWidget
     me string: getValue() <- <%!Integer.parseInt(%0.getText().toString())%>
+    me string: setValue(me int: val) <- {}
 }
 
 struct stringWidget{
-    their EditText: stringWidget
+    their LinearLayout: stringWidget
     me string: getValue() <- <%!getText().toString()%>
+    me string: setValue(me string: val) <- {}
 }
-
+struct enumWidget{
+    their LinearLayout: enumWidget
+    me string: getValue() <- <%!atoi(gtk_combo_box_text_get_active_text((GtkComboBoxText*)%0))%>
+    me string: setValue(me int: val) <- {}
+}
 struct boolWidget{
     their CheckBox: checkBox
 }
 
-struct enumWidget{their Spinner: enumWidget}
 struct listWidget{their LinearLayout: listWidget}
 struct GUI_Frame{their LinearLayout: GUI_Frame}
 

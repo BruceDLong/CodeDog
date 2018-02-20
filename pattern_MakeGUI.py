@@ -75,8 +75,8 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         if not ('arraySpec' in typeSpec and typeSpec['arraySpec']!=None):
             if fldCat=='struct':
                 funcTextToUpdateViewWidget     += ''
-                funcTextToUpdateEditWidget     += ''
-                funcTextToUpdateCrntFromWidget += ' '
+                funcTextToUpdateEditWidget     += '   /- updateWidgetFromVars()\n'
+                funcTextToUpdateCrntFromWidget += '   /- updateVarsFromWidget()\n'
             elif fldCat=='enum' or fldCat=='mode':
                 funcTextToUpdateViewWidget     += ''
                 funcTextToUpdateEditWidget     += ''
@@ -84,10 +84,10 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
             elif fldCat=='bool':
                 funcTextToUpdateViewWidget     += ''
                 funcTextToUpdateEditWidget     += ''
-                funcTextToUpdateCrntFromWidget += ''
+                funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
             else:
                 funcTextToUpdateViewWidget     += ''
-                funcTextToUpdateEditWidget     += ''
+                funcTextToUpdateEditWidget     += '    dialog.' + widgetFieldName + '.setValue(crntRecord.'+fieldName+')\n'
                 funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
                 funcTextToUpdateCrntFromWidget += '    pushCrntToList()\n'
 
@@ -214,8 +214,8 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
         cdErr('To build a GUI for a list of "'+className+'" a model is needed but is not found.')
 
     newWidgetFields += '\n\n    their '+className+': parent\n'
-
-    widgetInitFuncCode = '\n  their GUI_item: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- gtk_label_new("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
+    #TODO: write func body for: widgetFromVarsCode & varsFromWidgetCode
+    widgetInitFuncCode = '\n  their GUI_item: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- makeLabelWidget("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
     widgetFromVarsCode += '    void: updateWidgetFromCrnt() <- {\n' + widgetFromVarsCode + '\n    }\n'
     varsFromWidgetCode += '    void: updateCrntFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
     #parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
@@ -259,7 +259,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     currentModelSpec = modelRef
     if modelRef==None:
         cdErr('To build a GUI for class "'+className+'" a model is needed but is not found.')
-
+    #TODO: write func body for: widgetFromVarsCode(selected item & click edit) & varsFromWidgetCode(ckick OK from editMode)
     ### Write code for each field
     fieldIdx=0
     for field in modelRef['fields']:
@@ -291,7 +291,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
                 classesEncoded[guiStructName]=1
                 classesToProcess.append([structTypeName, 'list', 'Dialog', guiStructName])
 
-
+        #TODO: make actions for each function
         if fldCat=='func': continue
 
         getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, '')
@@ -344,17 +344,20 @@ def apply(classes, tags, topClassName):
 
 
     # Fill createAppArea()
+    primaryGUIName = 'GUI_Manager'
     primaryMakerFuncName = 'make'+topClassName[0].upper() + topClassName[1:]+'Widget'
     declAPP_fields = '  their '+topClassName+': primary\n'
+    declAPP_fields += '  our ' + guiStructName+': ' + primaryGUIName + '\n'
     declAPP_fields+='''
     me void: createAppArea(me GUI_Frame: frame) <- {
         me string:s
         Allocate(primary)
-        Allocate(primary.GUI_Manager)
-        their GUI_storyBoard: appStoryBoard <- primary.GUI_Manager.'''+primaryMakerFuncName+'''(primary)
+        Allocate(primary.<PRIMARY_GUI>)
+        their GUI_storyBoard: appStoryBoard <- primary.<PRIMARY_GUI>.'''+primaryMakerFuncName+'''(primary)
         gui.addToContainerAndExpand (frame, appStoryBoard)
     }
 '''
+    declAPP_fields = declAPP_fields.replace('<PRIMARY_GUI>', primaryGUIName)
     CODE = progSpec.wrapFieldListInObjectDef('APP', declAPP_fields)
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'APP')
 
