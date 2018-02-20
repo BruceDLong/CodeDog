@@ -143,20 +143,31 @@ struct retriever{
 
     void: processItem(our aItem: agendaItem)<-{
         /-print("_______________________________________\nprocessItem: ", agendaItem.printAgendaItem() ,"\n")
-        our agent: a
+        our infDeepItr: LHS <- agendaItem.LHS
+        our infItr: crntCursor <- LHS.crntCursor
         me int: agendaLHS_state <- agendaItem.LHS.state
         our infDeepItr: remainder
         if(agendaLHS_state == sNotASeq or agendaLHS_state == sFirstVisit){
-            parentAgent.prepWorkList(agendaItem.LHS.crntCursor)
-            parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem, agendaItem.LHS)
+            parentAgent.prepWorkList(LHS.crntCursor)
+            parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem, LHS)
             if(agendaItem.RHS.state == sEOL){return()}
             remainder <- parentAgent.tryMERGE(agendaItem)
             if(agendaItem.rejected){return()}
-            if(agendaItem.LHS.nestLvl == 0 and agendaLHS_state == sNotASeq){
+            if(LHS.nestLvl == 0 and agendaLHS_state == sNotASeq){
                 /-print("STITCHING-ITEM\n")
                 parentAgent.stitch(agendaItem, "")
             }
 
+            /- Handle when parent is a CONCAT
+            if(crntCursor.parent!=NULL and crntCursor.parent.item!=NULL and (crntCursor.parent.item.value.format==fConcat)){
+                if(crntCursor.idx==0){ /- Set parent's type
+                } else {
+                    our infon: prev <- crntCursor.getPrevPtr()
+                    if(parentAgent.joinOnRight(prev, crntCursor.item)){
+                        LHS.deleteCrnt()
+                    } else {}  /- Subscribe
+                }
+            }
         } else if(agendaLHS_state == sSecondVisit){
             if(readyToResolve(agendaItem)){
                 /-print("RESOLVING-ITEM\n")
@@ -164,6 +175,11 @@ struct retriever{
                 parentAgent.stitch(topItem, "")
             }
             if(agendaItem.RHS.state == sEOL){return()}
+
+            /- If this was a CONCAT with only one item:
+            if(crntCursor.item.value.format==fConcat and crntCursor.item.value.items.size()==1){
+                crntCursor.parent.item.value.items[crntCursor.idx] <- crntCursor.item.value.items[0]
+            }
         } else if(agendaLHS_state == sEOL){
             return()
         } else {print("LHS-STATE:", agendaLHS_state); exit(2)}
