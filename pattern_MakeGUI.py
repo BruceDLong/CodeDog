@@ -96,7 +96,9 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
     /-me ListEditorWidget: LEW
     their <STRUCTNAME>: crntRecord
+    our <STRUCTNAME>[list]: <STRUCTNAME>_listData
     me <STRUCTNAME>_Dialog_GUI: dialog
+    their <STRUCTNAME>_Dialog_LIST: listView
     /- Override all these for each new list editing widget
     their GUI_item: makeViewableWidget() <- {return(makeLabelWidget("VIEWABLE WIDGET"))}
     void: updateViewableWidget(their GUI_item: Wid) <- {<funcTextToUpdateViewWidget>}
@@ -111,7 +113,10 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     void: deleteNthItem(me int: N) <- {}
     void: copyCrntBackToList() <- {}
 
-    their GUI_item: initWidget() <- {return(LEW.init_dialog(self))}
+    their GUI_item: initWidget(our <STRUCTNAME>[list]: Data) <- {
+		<STRUCTNAME>_listData <- Data
+		return(LEW.init_dialog(self))
+	}
 }
 '''
     CODE = CODE.replace('<STRUCTNAME>', structTypeName)
@@ -135,7 +140,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
 
     if fieldSpec=='struct':
         typeName = 'GUI_Frame'
-        makeTypeNameCall = fieldType+'_GUI_Mgr.make'+structTypeName+'Widget(parent.'+fieldName+')'
+        makeTypeNameCall = fieldType+'_GUI_Mgr.make'+structTypeName+'Widget('+currentClassName+'_data.'+fieldName+')'
         newWidgetFields += '\n' + indent+ 'our ' + structTypeName + '_Dialog_GUI: '+ fieldType + '_GUI_Mgr'
     elif fieldSpec=='enum':
         typeName = 'enumWidget'
@@ -157,7 +162,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
 
     typeSpec=field['typeSpec']
     newWidgetFields += '\n'+indent+'    their '+typeName+': '+widgetFieldName
-    if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate(parent.'+fieldName+')\n'  +  indent+'    Allocate('+fieldType+'_GUI_Mgr)\n'
+    if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate('+currentClassName+'_data.'+fieldName+')\n'  +  indent+'    Allocate('+fieldType+'_GUI_Mgr)\n'
     widgetInitFuncCode += indent+'    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
 
     # If this is a list, populate it
@@ -174,7 +179,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
 
         widgetListEditorName = widgetFieldName+'Editor'
    #     widgetInitFuncCode += indent+'    their '+structTypeName+': parent\n'
-        widgetInitFuncCode += indent+'    their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget()\n'
+        widgetInitFuncCode += indent+'    their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget('+currentClassName+'_data.'+fieldName+')\n'
         widgetInitFuncCode += indent+'    addToContainer(box, '+widgetListEditorName+')\n'
    #     widgetInitFuncCode += indent+"    withEach _item in parent."+fieldName+':{\n        addToContainer('+widgetFieldName+', _item.make'+structTypeName+'Widget(s))\n    }\n'
 
@@ -300,9 +305,9 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     if dialogStyle == 'Z_stack': containerWidget='makeStoryBoardWidget("makeStoryBoardWidget")'
     else: containerWidget='makeFrameWidget()'
 
-    newWidgetFields += '\n\n    their '+className+': parent\n'
+    newWidgetFields += '\n\n    their '+className+': '+className+'_data\n'
 
-    widgetInitFuncCode = '\n  their GUI_Frame: '+initFuncName+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their GUI_Frame:box <- '+containerWidget+'\n' + widgetInitFuncCode + '\n    return(box)\n  }\n'
+    widgetInitFuncCode = '\n  their GUI_Frame: '+initFuncName+'(their '+className+': Data) <- {\n   '+className+'_data<-Data\n    their GUI_Frame:box <- '+containerWidget+'\n' + widgetInitFuncCode + '\n    return(box)\n  }\n'
     widgetFromVarsCode += ''#    void: updateWidgetFromVars() <- {\n' + widgetFromVarsCode + '\n    }\n'
     varsFromWidgetCode += ''#    void: updateVarsFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
     parentStructFields = widgetFromVarsCode + varsFromWidgetCode
