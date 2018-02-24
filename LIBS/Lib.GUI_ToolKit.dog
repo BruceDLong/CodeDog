@@ -208,6 +208,9 @@ struct ListWidgetManager{
     void: pushCrntToList() <- {}
     void: deleteNthItem() <- {}
     void: copyCrntBackToList() <- {}
+    void: handleAdd() <- {}
+    void: handleDelete() <- {}
+    void: handleEdit() <- {}
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }

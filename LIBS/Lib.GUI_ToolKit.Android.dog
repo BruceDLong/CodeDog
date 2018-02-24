@@ -86,20 +86,11 @@ struct ListEditorWidget{
     their FloatingActionButton: editBtn
     their GUI_item: listWidget
 
-    void: handleAdd() <- <%{
-        ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-        toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
-    }%>
+    void: handleAdd() <- <%{parent.handleAdd();}%>
 
-    void: handleDelete() <- <%{
-        ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-        toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
-    }%>
+    void: handleDelete() <- <%{parent.handleDelete();}%>
 
-    void: handleEdit() <- <%{
-        ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-        toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
-    }%>
+    void: handleEdit() <- <%{parent.handleEdit();}%>
 
     their RelativeLayout: init_dialog(their ListWidgetManager: Parent) <- <% {
         parent = Parent;
@@ -112,11 +103,7 @@ struct ListEditorWidget{
         editorFrame.addView(listWidget);
         // ADD BUTTON
         addBtn = new FloatingActionButton(GLOBAL.static_Global);
-        addBtn.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                handleAdd();
-            }
-        });
+        addBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleAdd();}});
         addBtn.setImageResource(android.R.drawable.ic_menu_add );
         addBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
         addBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
@@ -128,11 +115,7 @@ struct ListEditorWidget{
         editorFrame.addView(addBtn);
         // DELETE BUTTON
         deleteBtn = new FloatingActionButton(GLOBAL.static_Global);
-        deleteBtn.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                handleDelete();
-            }
-        });
+        deleteBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleDelete();}});
         //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_delete);
         deleteBtn.setImageResource(android.R.drawable.ic_menu_delete);
         deleteBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
@@ -145,11 +128,7 @@ struct ListEditorWidget{
         editorFrame.addView(deleteBtn);
         // EDIT BUTTON
         editBtn = new FloatingActionButton(GLOBAL.static_Global);
-        editBtn.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                handleEdit();
-            }
-        });
+        editBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleEdit();}});
         //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_edit);
         editBtn.setImageResource(android.R.drawable.ic_menu_edit);
         editBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));

@@ -96,7 +96,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
     /-me ListEditorWidget: LEW
     their <STRUCTNAME>: crntRecord
-    our <STRUCTNAME>[list]: <STRUCTNAME>_listData
+    our <STRUCTNAME>[list]: <STRUCTNAME>_ListData
     me <STRUCTNAME>_Dialog_GUI: dialog
     their <STRUCTNAME>_Dialog_LIST: listView
     /- Override all these for each new list editing widget
@@ -114,7 +114,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     void: copyCrntBackToList() <- {}
 
     their GUI_item: initWidget(our <STRUCTNAME>[list]: Data) <- {
-		<STRUCTNAME>_listData <- Data
+		<STRUCTNAME>_ListData <- Data
 		return(LEW.init_dialog(self))
 	}
 }
@@ -221,7 +221,7 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
 
     newWidgetFields += '\n\n    their '+className+': parent\n'
     #TODO: write func body for: widgetFromVarsCode & varsFromWidgetCode
-    widgetInitFuncCode = '\n  their GUI_item: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- makeLabelWidget("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
+    widgetInitFuncCode = '\n  their GUI_Frame: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- makeLabelWidget("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
     widgetFromVarsCode += '    void: updateWidgetFromCrnt() <- {\n' + widgetFromVarsCode + '\n    }\n'
     varsFromWidgetCode += '    void: updateCrntFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
     #parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
