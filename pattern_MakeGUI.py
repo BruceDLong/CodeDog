@@ -96,11 +96,17 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
     /-me ListEditorWidget: LEW
     their <STRUCTNAME>: crntRecord
-    our <STRUCTNAME>[list]: <STRUCTNAME>_ListData
+    our <STRUCTNAME>[their list]: <STRUCTNAME>_ListData
     me <STRUCTNAME>_Dialog_GUI: dialog
-    their <STRUCTNAME>_Dialog_LIST: listView
+    their <STRUCTNAME>_LIST_View: <STRUCTNAME>_listView
     /- Override all these for each new list editing widget
-    their GUI_item: makeViewableWidget() <- {return(makeLabelWidget("VIEWABLE WIDGET"))}
+    their GUI_item: makeListViewWidget() <- {
+        their GUI_Frame: box <- makeFrameWidget()
+        Allocate(<STRUCTNAME>_listView)
+        their GUI_Frame: listBox <- <STRUCTNAME>_listView.makeListWidget(<STRUCTNAME>_ListData)
+        addToContainer(box, listBox)
+        return(box)
+    }
     void: updateViewableWidget(their GUI_item: Wid) <- {<funcTextToUpdateViewWidget>}
     their GUI_item: makeEditableWidget() <- {
         their GUI_item: ret <- dialog.make<STRUCTNAME>Widget(crntRecord)
@@ -113,7 +119,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     void: deleteNthItem(me int: N) <- {}
     void: copyCrntBackToList() <- {}
 
-    their GUI_item: initWidget(our <STRUCTNAME>[list]: Data) <- {
+    their GUI_item: initWidget(our <STRUCTNAME>[their list]: Data) <- {
 		<STRUCTNAME>_ListData <- Data
 		return(LEW.init_dialog(self))
 	}
@@ -162,7 +168,6 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
 
     typeSpec=field['typeSpec']
     newWidgetFields += '\n'+indent+'    their '+typeName+': '+widgetFieldName
-    if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate('+currentClassName+'_data.'+fieldName+')\n'  +  indent+'    Allocate('+fieldType+'_GUI_Mgr)\n'
     widgetInitFuncCode += indent+'    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
 
     # If this is a list, populate it
@@ -184,6 +189,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
    #     widgetInitFuncCode += indent+"    withEach _item in parent."+fieldName+':{\n        addToContainer('+widgetFieldName+', _item.make'+structTypeName+'Widget(s))\n    }\n'
 
     else: # Not an ArraySpec:
+        if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate('+currentClassName+'_data.'+fieldName+')\n'  +  indent+'    Allocate('+fieldType+'_GUI_Mgr)\n'
         widgetInitFuncCode += indent+'    addToContainer(box, '+widgetFieldName+')\n'
 
 def BuildGuiForList(classes, className, dialogStyle, newStructName):
@@ -219,9 +225,9 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
     if modelRef==None:
         cdErr('To build a GUI for a list of "'+className+'" a model is needed but is not found.')
 
-    newWidgetFields += '\n\n    their '+className+': parent\n'
+    newWidgetFields += '\n\n    our '+className+'[their list]: '+className+'_ListData\n'
     #TODO: write func body for: widgetFromVarsCode & varsFromWidgetCode
-    widgetInitFuncCode = '\n  their GUI_Frame: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- makeLabelWidget("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
+    widgetInitFuncCode = '\n  their GUI_Frame: '+'makeListWidget'+'(our '+className+'[their list]: Data) <- {\n    '+className+'_ListData<-Data\n    their listWidget:listWid <- makeLabelWidget("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
     widgetFromVarsCode += '    void: updateWidgetFromCrnt() <- {\n' + widgetFromVarsCode + '\n    }\n'
     varsFromWidgetCode += '    void: updateCrntFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
     #parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
@@ -289,8 +295,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
 
         if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:# Add a new list to be processed
             structTypeName=typeSpec['fieldType'][0]
-            newGUIStyle = 'Dialog'
-            guiStructName = structTypeName+'_'+newGUIStyle+'_LIST'
+            guiStructName = structTypeName+'_LIST_View'
             if not(guiStructName in classesEncoded):
                 classesEncoded[guiStructName]=1
                 classesToProcess.append([structTypeName, 'list', 'Dialog', guiStructName])

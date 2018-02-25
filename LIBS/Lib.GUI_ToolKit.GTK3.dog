@@ -105,7 +105,7 @@ struct ListEditorWidget{
     }
     their GtkWidget: init_dialog(their ListWidgetManager: Parent) <- <% {
         parent = Parent;
-        GtkWidget* listWidget    = gtk_list_box_new();  // This should be given from parent
+        GtkWidget* listWidget = parent->makeListViewWidget();
         editorFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_box_pack_start(GTK_BOX(editorFrame), listWidget, true, true, 0);
 
