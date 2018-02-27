@@ -111,7 +111,7 @@ struct retriever{
 
     void: addItemsToAgenda(our aItem: pred, our infDeepItr: LHSChain, our infDeepItr: RHSChain)<-{
         me int: priority <- pred.priority
-        if(pred.LHS.crntCursor.item.value.fType!=LST and pred.RHS.crntCursor.item.value.fType!=LST){priority <- priority+1}
+        if(pred.LHS.crntCursor.item.value.fType!=LST and pred.RHS.crntCursor!=NULL and pred.RHS.crntCursor.item.value.fType!=LST){priority <- priority+1}
         our infDeepItr: currentLHS <- LHSChain
         withEach count in WHILE(currentLHS != NULL):{
             our infDeepItr: currentRHS <- RHSChain
@@ -146,20 +146,24 @@ struct retriever{
         our infDeepItr: LHS <- agendaItem.LHS
         our infItr: crntCursor <- LHS.crntCursor
         me int: agendaLHS_state <- agendaItem.LHS.state
-        our infDeepItr: remainder
+        me bool: RHS_Empty <- (agendaItem.RHS.crntCursor==NULL)
+        me int: numItemsAdded <- 0
+        our infDeepItr: remainder <- NULL
         if(agendaLHS_state == sNotASeq or agendaLHS_state == sFirstVisit){
             parentAgent.prepWorkList(LHS.crntCursor)
-            parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem, LHS)
+            numItemsAdded <- parentAgent.addWorkItemsToAgenda(agendaItem.priority, agendaItem, LHS)
             if(agendaItem.RHS.state == sEOL){return()}
-            remainder <- parentAgent.tryMERGE(agendaItem)
-            if(agendaItem.rejected){return()}
+            if(!RHS_Empty){
+                remainder <- parentAgent.tryMERGE(agendaItem)
+                if(agendaItem.rejected){return()}
+            } else {print("RHS IS EMPTY\n")}
             if(LHS.nestLvl == 0 and agendaLHS_state == sNotASeq){
                 /-print("STITCHING-ITEM\n")
                 parentAgent.stitch(agendaItem, "")
             }
 
             /- Handle when parent is a CONCAT
-            if(crntCursor.parent!=NULL and crntCursor.parent.item!=NULL and (crntCursor.parent.item.value.format==fConcat)){
+            if(crntCursor.parent!=NULL and (crntCursor.parent.item.value.format==fConcat)){
                 if(crntCursor.idx==0){ /- Set parent's type
                 } else {
                     our infon: prev <- crntCursor.getPrevPtr()
@@ -174,12 +178,13 @@ struct retriever{
                 our aItem: topItem <- resolve(agendaItem, "    resolve: ")
                 parentAgent.stitch(topItem, "")
             }
-            if(agendaItem.RHS.state == sEOL){return()}
 
             /- If this was a CONCAT with only one item:
             if(crntCursor.item.value.format==fConcat and crntCursor.item.value.items.size()==1){
                 crntCursor.parent.item.value.items[crntCursor.idx] <- crntCursor.item.value.items[0]
             }
+
+            if(agendaItem.RHS.state == sEOL){return()}
         } else if(agendaLHS_state == sEOL){
             return()
         } else {print("LHS-STATE:", agendaLHS_state); exit(2)}
@@ -187,37 +192,43 @@ struct retriever{
         our infDeepItr: LHSChain <- NULL
         our infDeepItr: RHSChain <- NULL
 
-        me bool: remainderSideRHS <- true  /- Later this may be false if the LHS has a remainder
-        if(remainder != NULL){
-            if(remainderSideRHS){
-                RHSChain <-remainder
-            } else {
-                LHSChain <-remainder
+        if(RHS_Empty and numItemsAdded==0){
+            LHSChain <- agendaItem.LHS.getNextDeDotted()
+            Allocate(RHSChain)
+            RHSChain.crntCursor <- NULL
+            print("PASSING NULL RHS\n")
+        } else {
+            me bool: remainderSideRHS <- true  /- Later this may be false if the LHS has a remainder
+            if(remainder != NULL){
+                if(remainderSideRHS){
+                    RHSChain <-remainder
+                } else {
+                    LHSChain <-remainder
+                }
+            }
+
+            me int: LHSfType <- agendaItem.LHS.crntCursor.item.value.fType
+            me int: RHSfType <- agendaItem.RHS.crntCursor.item.value.fType
+            if (LHSChain == NULL){
+                if (LHSfType != LST and RHSfType == LST){
+                    /-print("    LHSChain <- agendaItem.LHS \n")
+                    LHSChain <- agendaItem.LHS
+                }else {
+                    /-print("    LHSChain from getNextDeDotted\n")
+                    LHSChain <- agendaItem.LHS.getNextDeDotted()
+
+                }
+            }
+            if (RHSChain == NULL){
+                if (LHSfType == LST and RHSfType != LST){
+                    /-print("    RHSChain <- agendaItem.RHS \n")
+                    RHSChain <- agendaItem.RHS
+                }else{
+                    /-print("    RHSChain from getNextDeDotted\n")
+                    RHSChain <- agendaItem.RHS.getNextDeDotted()
+                }
             }
         }
-
-        me int: LHSfType <- agendaItem.LHS.crntCursor.item.value.fType
-        me int: RHSfType <- agendaItem.RHS.crntCursor.item.value.fType
-        if (LHSChain == NULL){
-            if (LHSfType != LST and RHSfType == LST){
-                /-print("    LHSChain <- agendaItem.LHS \n")
-                LHSChain <- agendaItem.LHS
-            }else {
-                /-print("    LHSChain from getNextDeDotted\n")
-                LHSChain <- agendaItem.LHS.getNextDeDotted()
-
-            }
-        }
-        if (RHSChain == NULL){
-            if (LHSfType == LST and RHSfType != LST){
-                /-print("    RHSChain <- agendaItem.RHS \n")
-                RHSChain <- agendaItem.RHS
-            }else{
-                /-print("    RHSChain from getNextDeDotted\n")
-                RHSChain <- agendaItem.RHS.getNextDeDotted()
-            }
-        }
-
         if (LHSChain != NULL and RHSChain != NULL){
             addItemsToAgenda(agendaItem, LHSChain, RHSChain)
         }

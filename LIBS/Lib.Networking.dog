@@ -1,0 +1,18 @@
+/- CodeDog HTTP Networking Library
+
+requirements = [
+    [require, Networking_implementation]
+]
+
+
+struct NetConnection{
+    setupGlobalNetworking()
+    openSimpleSession()
+    setURL(me string: URL)
+    void: performFetch()
+    cleanSimpleSession()
+    cleanGlobalNetworking()
+
+    me string: retrieve(me string: URL) <- {
+    }
+}
