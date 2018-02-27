@@ -46,7 +46,7 @@ struct intWidget{
     me string: setValue(me int: val) <- <%!gtk_spin_button_get_value ((GtkSpinButton*)%0)%>
 }
 struct stringWidget{
-    me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0)%>
+    me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0->dataValue)%>
     me string: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0, %1.data())%>
     their GtkWidget: box
     their GtkWidget: dataLabel
@@ -103,6 +103,7 @@ struct ListEditorWidget{
             cout<<"ACCEPTED "<<result<<"\n";
             listWidgetMgr->updateCrntFromEdited(itemWidget);
             listWidgetMgr->pushCrntToList();
+            listWidgetMgr->pushCrntToListView();
         } else {
             cout<<"CANCELED "<<result<<"\n";
         }
