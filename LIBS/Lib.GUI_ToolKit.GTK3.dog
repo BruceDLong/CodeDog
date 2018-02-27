@@ -22,6 +22,7 @@ LibDescription ={
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{their GtkWidget: GUI_item}
+struct GUI_Frame{their GtkWidget: GUI_Frame}
 struct GUI_menuBar{their GtkWidget: GUI_menuBar}
 struct GUI_menu{their GtkWidget: GUI_menu}
 struct GUI_menuItem{their GtkWidget: GUI_menuItem}
@@ -45,9 +46,22 @@ struct intWidget{
     me string: setValue(me int: val) <- <%!gtk_spin_button_get_value ((GtkSpinButton*)%0)%>
 }
 struct stringWidget{
-    their GtkWidget: stringWidget
     me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0)%>
     me string: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0, %1.data())%>
+    their GtkWidget: box
+    their GtkWidget: dataLabel
+    their GtkWidget: dataValue
+    
+    their GtkWidget: makeStringWidget(me string: text) <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(text.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
+        dataValue = gtk_entry_new();
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        return box;
+    } %>
 }
 struct enumWidget{
     their GtkWidget: enumWidget
@@ -55,7 +69,6 @@ struct enumWidget{
     me string: setValue(me int: val) <- {}
 }
 struct listWidget{their GtkWidget: listWidget}
-struct GUI_Frame{their GtkWidget: GUI_Frame}
 
 struct boolWidget{
 
@@ -64,13 +77,12 @@ struct boolWidget{
 
 struct enumWidget{their GtkWidget: enumWidget}
 struct listWidget{their GtkWidget: listWidget}
-struct GUI_Frame{their GtkWidget: GUI_Frame}
 
 
 
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListEditorWidget{
-    their ListWidgetManager: parent
+    their ListWidgetManager: listWidgetMgr
     their GtkWidget: editorFrame
     their GtkWidget: addBtn
     their GtkWidget: deleteBtn
@@ -78,8 +90,8 @@ struct ListEditorWidget{
 
     void: handleAdd() <- <% {
         cout << "Add Btn Clicked\n";
-        parent->allocateNewCurrentItem();
-        GtkWidget* itemWidget = parent->makeEditableWidget();
+        listWidgetMgr->allocateNewCurrentItem();
+        GtkWidget* itemWidget = listWidgetMgr->makeEditableWidget();
         GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
         GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Add", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
         GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
@@ -89,8 +101,8 @@ struct ListEditorWidget{
         int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
         if(result==1){
             cout<<"ACCEPTED "<<result<<"\n";
-            parent->updateCrntFromEdited(itemWidget);
-        parent->pushCrntToList();
+            listWidgetMgr->updateCrntFromEdited(itemWidget);
+            listWidgetMgr->pushCrntToList();
         } else {
             cout<<"CANCELED "<<result<<"\n";
         }
@@ -103,9 +115,9 @@ struct ListEditorWidget{
     void: handleEdit() <- {
         print("Edit Btn Clicked\n")
     }
-    their GtkWidget: init_dialog(their ListWidgetManager: Parent) <- <% {
-        parent = Parent;
-        GtkWidget* listWidget = parent->makeListViewWidget();
+    their GtkWidget: init_dialog(their ListWidgetManager: LEWM) <- <% {
+        listWidgetMgr = LEWM;
+        GtkWidget* listWidget = listWidgetMgr->makeListViewWidget();
         editorFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_box_pack_start(GTK_BOX(editorFrame), listWidget, true, true, 0);
 
@@ -138,7 +150,6 @@ struct GLOBAL{
     their GtkWidget: makeDateWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
 
   /-  their GtkWidget: makeIntWidget()         <- <%!%Ggtk_spin_button_new(NULL, 1, 0)%>
-  /-  their GtkWidget: makeStringWidget()      <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeEnumWidget()        <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
@@ -162,17 +173,6 @@ struct GLOBAL{
     }
 %>
 
-    their GtkWidget: makeStringWidget(me string: label)      <- <%{
-        GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-        GtkWidget* _label = gtk_label_new(label.data());
-        gtk_label_set_width_chars((GtkLabel*)_label, 15);
-        gtk_label_set_xalign((GtkLabel*)_label, 0.9);
-        gtk_container_add(GTK_CONTAINER (_box), _label);
-        GtkWidget* editWidget = gtk_entry_new();
-        gtk_container_add(GTK_CONTAINER (_box), editWidget);
-        return _box;
-    }
-%>
 
     their GtkWidget: makeEnumWidget(me string: label, me string[list]: options)      <- <%{
         GtkWidget* _box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
