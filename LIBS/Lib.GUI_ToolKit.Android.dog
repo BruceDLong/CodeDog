@@ -53,20 +53,25 @@ struct GUI_storyBoard: inherits="FragmentActivity" {
 }
 
 struct intWidget{
-    their EditText: intWidget
+    their LinearLayout: intWidget
     me string: getValue() <- <%!Integer.parseInt(%0.getText().toString())%>
+    me string: setValue(me int: val) <- {}
 }
 
 struct stringWidget{
-    their EditText: stringWidget
+    their LinearLayout: stringWidget
     me string: getValue() <- <%!getText().toString()%>
+    me string: setValue(me string: val) <- {}
 }
-
+struct enumWidget{
+    their LinearLayout: enumWidget
+    me string: getValue() <- <%!atoi(gtk_combo_box_text_get_active_text((GtkComboBoxText*)%0))%>
+    me string: setValue(me int: val) <- {}
+}
 struct boolWidget{
     their CheckBox: checkBox
 }
 
-struct enumWidget{their Spinner: enumWidget}
 struct listWidget{their LinearLayout: listWidget}
 struct GUI_Frame{their LinearLayout: GUI_Frame}
 
@@ -81,20 +86,11 @@ struct ListEditorWidget{
     their FloatingActionButton: editBtn
     their GUI_item: listWidget
 
-    void: handleAdd() <- <%{
-        ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-        toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
-    }%>
+    void: handleAdd() <- <%{parent.handleAdd();}%>
 
-    void: handleDelete() <- <%{
-        ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-        toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
-    }%>
+    void: handleDelete() <- <%{parent.handleDelete();}%>
 
-    void: handleEdit() <- <%{
-        ToneGenerator toneGen1 = new ToneGenerator(AudioManager.STREAM_MUSIC, 100);
-        toneGen1.startTone(ToneGenerator.TONE_CDMA_PIP,150);
-    }%>
+    void: handleEdit() <- <%{parent.handleEdit();}%>
 
     their RelativeLayout: init_dialog(their ListWidgetManager: Parent) <- <% {
         parent = Parent;
@@ -107,11 +103,7 @@ struct ListEditorWidget{
         editorFrame.addView(listWidget);
         // ADD BUTTON
         addBtn = new FloatingActionButton(GLOBAL.static_Global);
-        addBtn.setOnClickListener(new View.OnClickListener() { 
-            public void onClick(View v) { 
-                handleAdd();
-            } 
-        });
+        addBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleAdd();}});
         addBtn.setImageResource(android.R.drawable.ic_menu_add );
         addBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
         addBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
@@ -123,11 +115,7 @@ struct ListEditorWidget{
         editorFrame.addView(addBtn);
         // DELETE BUTTON
         deleteBtn = new FloatingActionButton(GLOBAL.static_Global);
-        deleteBtn.setOnClickListener(new View.OnClickListener() { 
-            public void onClick(View v) { 
-                handleDelete();
-            } 
-        });
+        deleteBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleDelete();}});
         //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_delete);
         deleteBtn.setImageResource(android.R.drawable.ic_menu_delete);
         deleteBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
@@ -140,11 +128,7 @@ struct ListEditorWidget{
         editorFrame.addView(deleteBtn);
         // EDIT BUTTON
         editBtn = new FloatingActionButton(GLOBAL.static_Global);
-        editBtn.setOnClickListener(new View.OnClickListener() { 
-            public void onClick(View v) { 
-                handleEdit();
-            } 
-        });
+        editBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleEdit();}});
         //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_edit);
         editBtn.setImageResource(android.R.drawable.ic_menu_edit);
         editBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
@@ -189,7 +173,7 @@ struct GLOBAL{
         box.addView(timePicker);
         return box;
     }%>
-    
+
     their GUI_Frame: makeBoolWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         CheckBox checkBox = new CheckBox(GLOBAL.static_Global);
@@ -234,23 +218,23 @@ struct GLOBAL{
         return box;
     }%>
 
-    their GUI_Frame: makeIntWidget(me string: label, their GUI_item: editWidget)      <- <%{
+    their GUI_Frame: makeIntWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         EditText editText = new EditText(GLOBAL.static_Global);
         editText.setInputType(InputType.TYPE_CLASS_NUMBER);
         editText.setHint(label);
-        editWidget = editText;
-        box.addView(editWidget);
+        /-editWidget = editText;
+        box.addView(editText);
         return box;
     }%>
-    
-    their GUI_Frame: makeStringWidget(me string: label, their GUI_item: editWidget)      <- <%{
+
+    their GUI_Frame: makeStringWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         EditText editText = new EditText(GLOBAL.static_Global);
         editText.setInputType(InputType.TYPE_CLASS_TEXT);
         editText.setHint(label);
-        editWidget = editText;
-        box.addView(editWidget);
+        /-editWidget = editText;
+        box.addView(editText);
         return box;
     }%>
 
@@ -312,7 +296,7 @@ struct Android_eventDispatcher{
 
     me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
         boolean returnVal = false;
-        
+
         switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
             //GLOBAL.static_Global.toolbar.setTitle("ACTION_DOWN!");

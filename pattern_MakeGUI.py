@@ -80,7 +80,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
             elif fldCat=='enum' or fldCat=='mode':
                 funcTextToUpdateViewWidget     += ''
                 funcTextToUpdateEditWidget     += ''
-                funcTextToUpdateCrntFromWidget += ' ' #   crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
+                funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
             elif fldCat=='bool':
                 funcTextToUpdateViewWidget     += ''
                 funcTextToUpdateEditWidget     += ''
@@ -89,16 +89,24 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
                 funcTextToUpdateViewWidget     += ''
                 funcTextToUpdateEditWidget     += '    dialog.' + widgetFieldName + '.setValue(crntRecord.'+fieldName+')\n'
                 funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetFieldName + '.getValue()\n'
-
-
+#                funcTextToUpdateCrntFromWidget += '    me string: '+widgetFieldName+'_str <-'
+#                funcTextToUpdateCrntFromWidget += ' string(dialog.' + widgetFieldName + '.getValue())\n'
 
 ###############
     CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
     /-me ListEditorWidget: LEW
-    their <STRUCTNAME>: crntRecord
+    our <STRUCTNAME>: crntRecord
+    our <STRUCTNAME>[their list]: <STRUCTNAME>_ListData
     me <STRUCTNAME>_Dialog_GUI: dialog
+    their <STRUCTNAME>_LIST_View: <STRUCTNAME>_listView
     /- Override all these for each new list editing widget
-    their GUI_item: makeViewableWidget() <- {return(makeLabelWidget("VIEWABLE WIDGET"))}
+    their GUI_item: makeListViewWidget() <- {
+        their GUI_Frame: box <- makeFrameWidget()
+        Allocate(<STRUCTNAME>_listView)
+        their GUI_Frame: listBox <- <STRUCTNAME>_listView.makeListWidget(<STRUCTNAME>_ListData)
+        addToContainer(box, listBox)
+        return(box)
+    }
     void: updateViewableWidget(their GUI_item: Wid) <- {<funcTextToUpdateViewWidget>}
     their GUI_item: makeEditableWidget() <- {
         their GUI_item: ret <- dialog.make<STRUCTNAME>Widget(crntRecord)
@@ -107,11 +115,14 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     void: updateEditableWidget(their GUI_item: Wid) <- {<funcTextToUpdateEditWidget>}
     void: updateCrntFromEdited(their GUI_item: Wid) <- {<funcTextToUpdateCrntFromWidget>}
     void: allocateNewCurrentItem() <- {Allocate(crntRecord)}
-    void: pushCrntToList() <- {} /-grandParent.<STRUCTNAME>.pushLast(crntRecord)}
+    void: pushCrntToList() <- {<STRUCTNAME>_ListData.pushLast(crntRecord)}
     void: deleteNthItem(me int: N) <- {}
     void: copyCrntBackToList() <- {}
 
-    their GUI_item: initWidget() <- {return(LEW.init_dialog(self))}
+    their GUI_item: initWidget(our <STRUCTNAME>[their list]: Data) <- {
+        <STRUCTNAME>_ListData <- Data
+        return(LEW.init_dialog(self))
+    }
 }
 '''
     CODE = CODE.replace('<STRUCTNAME>', structTypeName)
@@ -131,19 +142,29 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
     typeName = fieldSpec+'Widget'
     CasedFieldName = fieldName[0].upper() + fieldName[1:]
     widgetFieldName = CasedFieldName + 'Widget'
+    fieldType = field['typeSpec']['fieldType'][0]
+    typeSpec=field['typeSpec']
+    widgetBoxName      =  widgetFieldName
 
     if fieldSpec=='struct':
         typeName = 'GUI_Frame'
-        makeTypeNameCall = 'parent.'+fieldName+'.GUI_Manager.make'+structTypeName+'Widget(parent.'+fieldName+')'
+        if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate('+currentClassName+'_data.'+fieldName+')\n'  +  indent+'    Allocate('+fieldType+'_GUI_Mgr)\n'
+        makeTypeNameCall = widgetFieldName+' <- '+fieldType+'_GUI_Mgr.make'+structTypeName+'Widget('+currentClassName+'_data.'+fieldName+')\n'
+        newWidgetFields += '\n' + indent+ 'our ' + structTypeName + '_Dialog_GUI: '+ fieldType + '_GUI_Mgr'
     elif fieldSpec=='enum':
         typeName = 'enumWidget'
         EnumItems=[]
         for enumItem in params: EnumItems.append('"'+deCamelCase(enumItem)+'"')
         optionString = '[' + ', '.join(EnumItems) + ']'
-        makeTypeNameCall = 'makeEnumWidget("'+label+'", '+optionString+')'
+        makeTypeNameCall = widgetFieldName+' <-  makeEnumWidget("'+label+'", '+optionString+')'
+    elif fieldSpec=='string':
+        widgetInitFuncCode += indent+'Allocate('+widgetFieldName+')\n'
+        widgetBoxName      =  widgetFieldName +'.box'
+        makeTypeNameCall   =  widgetBoxName + ' <- '+ widgetFieldName+'.makeStringWidget("'+label+'")\n'     
     else:
-        makeTypeNameCall = 'make'+typeName[0].upper() + typeName[1:]+'("'+label+'")'
+        makeTypeNameCall   =  widgetFieldName+' <- make'+typeName[0].upper() + typeName[1:]+'("'+label+'")\n'
 
+    '''
     if fldCat=='struct':
         pass
     elif fldCat=='mode':
@@ -151,17 +172,16 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
     else:
         widgetFromVarsCode += indent+'    GUI_Manager.'+widgetFieldName+'.setValue('+fieldName+')\n'
         varsFromWidgetCode += indent+'    '+fieldName+' <- GUI_Manager.'+widgetFieldName+'.getValue()\n'
-
+    '''
 
     typeSpec=field['typeSpec']
     newWidgetFields += '\n'+indent+'    their '+typeName+': '+widgetFieldName
-    if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate(parent.'+fieldName+')\n'  +  indent+'    Allocate(parent.'+fieldName+'.GUI_Manager)\n'
-    widgetInitFuncCode += indent+'    '+widgetFieldName+' <- '+makeTypeNameCall+'\n'
+    if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate('+currentClassName+'_data.'+fieldName+')\n'  +  indent+'    Allocate('+fieldType+'_GUI_Mgr)\n'
+    widgetInitFuncCode += indent+'    '+makeTypeNameCall
 
     # If this is a list, populate it
     if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
         innerFieldType=typeSpec['fieldType']
-        print "ARRAYSPEC:",innerFieldType, field
         fldCatInner=progSpec.innerTypeCategory(innerFieldType)
 
         # If it hasn't already been added, make a struct <ItemType>_ListWidgetManager:ListWidgetManager{}
@@ -172,13 +192,13 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
         newWidgetFields += '\n'+indent+'    me '+listManagerStructName+': '+listWidMgrName+'\n'
 
         widgetListEditorName = widgetFieldName+'Editor'
-   #     widgetInitFuncCode += indent+'    their '+structTypeName+': parent\n'
-        widgetInitFuncCode += indent+'    their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget()\n'
+        if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += indent+'    Allocate('+currentClassName+'_data.'+fieldName+')\n'
+        widgetInitFuncCode += indent+'    their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget('+currentClassName+'_data.'+fieldName+')\n'
         widgetInitFuncCode += indent+'    addToContainer(box, '+widgetListEditorName+')\n'
-   #     widgetInitFuncCode += indent+"    withEach _item in parent."+fieldName+':{\n        addToContainer('+widgetFieldName+', _item.make'+structTypeName+'Widget(s))\n    }\n'
+   #     widgetInitFuncCode += indent+"    withEach _item in crntRecord."+fieldName+':{\n        addToContainer('+widgetFieldName+', _item.make'+structTypeName+'Widget(s))\n    }\n'
 
     else: # Not an ArraySpec:
-        widgetInitFuncCode += indent+'    addToContainer(box, '+widgetFieldName+')\n'
+        widgetInitFuncCode += indent+'    addToContainer(box, '+widgetBoxName+')\n'
 
 def BuildGuiForList(classes, className, dialogStyle, newStructName):
     # This makes 4 types of changes to the class:
@@ -209,20 +229,77 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
 
     # Find the model
     modelRef = progSpec.findSpecOf(classes[0], className, 'model')
+    if modelRef==None: cdErr('To build a GUI for a list of "'+className+'" a model is needed but is not found.')
     currentModelSpec = modelRef
-    if modelRef==None:
-        cdErr('To build a GUI for a list of "'+className+'" a model is needed but is not found.')
+    listFields = modelRef['fields']
+    listFieldsCode =''
+    for field in listFields:
+        fieldName  = field['fieldName']
+        typeSpec   = field['typeSpec']
+        fieldType  = progSpec.fieldTypeKeyword(field['typeSpec']['fieldType'])
+        valueField = 'crntRecord.'+fieldName
+        label      = deCamelCase(fieldName)
+        fldCat     = progSpec.fieldsTypeCategory(typeSpec)
+        if fldCat=='string'  : widgetFuncCallStr = '        their GUI_Frame: '+fieldName+'_value <- makeStringWidget('+valueField+')\n'
+        elif fldCat=='mode'  : widgetFuncCallStr = '        their GUI_Frame: '+fieldName+'_value <- makeEnumWidget('+valueField+')\n'
+        elif fldCat=='int'   : widgetFuncCallStr = '        their GUI_Frame: '+fieldName+'_value <- makeIntWidget("'+'")\n'
+        elif fldCat=='struct': widgetFuncCallStr = '        their GUI_Frame: '+fieldType+'_Dialog_GUI <- make'+fieldType+'Widget('+valueField+')\n'
+        else: 
+            print"Error: Unknown fldCat is ",fldCat
+            exit(2)
+        [fieldSpec, params] = getFieldSpec(fldCat, field)
+        listFieldsCode += '        their GUI_Frame: '+fieldName+'_label <- makeLabelWidget("'+label+'")\n'
+        listFieldsCode += '        addToContainer(row, '+fieldName+'_label)\n'
+        if fieldSpec=='string':
+            fieldName += 'StringWidget'
+            listFieldsCode += '        their stringWidget: '+fieldName +'\n'
+            listFieldsCode += '        Allocate('+fieldName +')\n'
+            listFieldsCode += '        '+fieldName+'.box <- '+fieldName+'.makeStringWidget('+valueField+')\n'
+            listFieldsCode += '        addToContainer(row, '+fieldName+'.box)\n'
+        elif fieldSpec=='struct':
+            # TODO: finish
+            fieldType = fieldType[0].upper() + fieldType[1:]
+            listFieldsCode += '        their GUI_Frame: '+fieldName+'_value <- makeFrameWidget()\n'
+            listFieldsCode += '        '+fieldName+'_value <- makeLabelWidget("TODO: finish makeStructWidget")\n'
+            listFieldsCode += '        addToContainer(row, '+fieldName+'_value)\n'
+        elif fieldSpec=='int':
+            listFieldsCode += '        their GUI_Frame: '+fieldName+'_value <- makeFrameWidget()\n'
+            listFieldsCode += '        '+fieldName+'_value <- makeIntWidget("")\n'
+            listFieldsCode += '        addToContainer(row, '+fieldName+'_value)\n'
+        elif fieldSpec=='list':
+            # TODO: finish
+            listFieldsCode += '        their GUI_Frame: '+fieldName+'_value <- makeFrameWidget()\n'
+            listFieldsCode += '        '+fieldName+'_value <- makeLabelWidget("TODO: finish makeListWidget")\n'
+            listFieldsCode += '        addToContainer(row, '+fieldName+'_value)\n'
+        elif fieldSpec=='enum' or fieldSpec=='mode':
+            # TODO: finish
+            listFieldsCode += '        their GUI_Frame: '+fieldName+'_value <- makeFrameWidget()\n'
+            listFieldsCode += '        '+fieldName+'_value <- makeLabelWidget("TODO: finish makeEnumWidget")\n'
+            listFieldsCode += '        addToContainer(row, '+fieldName+'_value)\n'
+        else:
+            print"ERROR: unknown fieldSpec in BuildGuiForList::::::::", fieldSpec
+            exit(1)
 
-    newWidgetFields += '\n\n    their '+className+': parent\n'
+    newWidgetFields += '\n\n    our '+className+'[their list]: '+className+'_ListData\n'
+    newWidgetFields += '    our '+className+': crntRecord\n'
+    listTitle = className+ ' List View!!!'
     #TODO: write func body for: widgetFromVarsCode & varsFromWidgetCode
-    widgetInitFuncCode = '\n  their GUI_item: '+'makeListWidget'+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their listWidget:listWid <- gtk_label_new("tmpText")\n' + widgetInitFuncCode + '\n    return(listWid)\n  }\n'
+    makeListWidgetCode =  '\n    their GUI_Frame: '+'makeListWidget'+'(our '+className+'[their list]: Data) <- {\n'
+    makeListWidgetCode += '        '+className+'_ListData<-Data\n'
+    makeListWidgetCode += '        their listWidget:listWid <- makeLabelWidget("'+listTitle+'")\n' 
+    makeListWidgetCode += '        withEach item in '+className+'_ListData:{\n crntRecord <- item\nmakeRowView()\n}\n' 
+    makeListWidgetCode += '        return(listWid)\n  }\n'
+    makeRowViewFuncCode = '\n  their GUI_Frame: '+'makeRowView'+'() <- {\n'
+    makeRowViewFuncCode += '    their GUI_Frame:row <- makeLabelWidget("ROW")\n'
+    makeRowViewFuncCode += '\n'+ listFieldsCode
+    makeRowViewFuncCode += '    return(row)\n  }\n'
     widgetFromVarsCode += '    void: updateWidgetFromCrnt() <- {\n' + widgetFromVarsCode + '\n    }\n'
     varsFromWidgetCode += '    void: updateCrntFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
-    parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
-    parentStructFields += widgetFromVarsCode + varsFromWidgetCode
-    GUI_StructFields   = newWidgetFields + widgetInitFuncCode
+    #parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
+    #parentStructFields += widgetFromVarsCode + varsFromWidgetCode
+    GUI_StructFields   = newWidgetFields + makeListWidgetCode + widgetInitFuncCode + makeRowViewFuncCode
     CODE =  'struct '+newStructName+" {\n" + GUI_StructFields + '\n}\n'         # Add the new fields to the GUI manager struct
-    CODE += 'struct '+className + " {\n" + parentStructFields + '\n}\n'         # Add the new fields to the parent struct
+    #CODE += 'struct '+className + " {\n" + parentStructFields + '\n}\n'         # Add the new fields to the parent struct
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
@@ -257,8 +334,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     # Find the model
     modelRef = progSpec.findSpecOf(classes[0], className, 'model')
     currentModelSpec = modelRef
-    if modelRef==None:
-        cdErr('To build a GUI for class "'+className+'" a model is needed but is not found.')
+    if modelRef==None: cdErr('To build a GUI for class "'+className+'" a model is needed but is not found.')
     #TODO: write func body for: widgetFromVarsCode(selected item & click edit) & varsFromWidgetCode(ckick OK from editMode)
     ### Write code for each field
     fieldIdx=0
@@ -278,16 +354,13 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             newGUIStyle = 'Dialog'
             guiStructName = structTypeName+'_'+newGUIStyle+'_GUI'
             if not(guiStructName in classesEncoded):
-                print "TO ENCODE:", guiStructName
                 classesEncoded[guiStructName]=1
                 classesToProcess.append([structTypeName, 'struct', 'Dialog', guiStructName])
 
         if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:# Add a new list to be processed
             structTypeName=typeSpec['fieldType'][0]
-            newGUIStyle = 'Dialog'
-            guiStructName = structTypeName+'_'+newGUIStyle+'_LIST'
+            guiStructName = structTypeName+'_LIST_View'
             if not(guiStructName in classesEncoded):
-                print "TO ENCODE:", guiStructName
                 classesEncoded[guiStructName]=1
                 classesToProcess.append([structTypeName, 'list', 'Dialog', guiStructName])
 
@@ -297,18 +370,16 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, '')
 
     # Parse everything
-    print "MAKE CLASS:" + className
     initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
     if dialogStyle == 'Z_stack': containerWidget='makeStoryBoardWidget("makeStoryBoardWidget")'
     else: containerWidget='makeFrameWidget()'
 
-    newWidgetFields += '\n\n    their '+className+': parent\n'
+    newWidgetFields += '\n\n    their '+className+': '+className+'_data\n'
 
-    widgetInitFuncCode = '\n  their GUI_Frame: '+initFuncName+'(their '+className+': Parent) <- {\n    parent<-Parent\n    their GUI_Frame:box <- '+containerWidget+'\n' + widgetInitFuncCode + '\n    return(box)\n  }\n'
-    widgetFromVarsCode = '    void: updateWidgetFromVars() <- {\n' + widgetFromVarsCode + '\n    }\n'
-    varsFromWidgetCode = '    void: updateVarsFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
-    parentStructFields = '    our ' + newStructName + ': ' + 'GUI_Manager\n'
-    parentStructFields += widgetFromVarsCode + varsFromWidgetCode
+    widgetInitFuncCode = '\n  their GUI_Frame: '+initFuncName+'(their '+className+': Data) <- {\n   '+className+'_data<-Data\n    their GUI_Frame:box <- '+containerWidget+'\n' + widgetInitFuncCode + '\n    return(box)\n  }\n'
+    widgetFromVarsCode += ''#    void: updateWidgetFromVars() <- {\n' + widgetFromVarsCode + '\n    }\n'
+    varsFromWidgetCode += ''#    void: updateVarsFromWidget() <- {\n' + varsFromWidgetCode + '\n    }\n'
+    parentStructFields = widgetFromVarsCode + varsFromWidgetCode
     GUI_StructFields   = newWidgetFields + widgetInitFuncCode
     CODE =  'struct '+newStructName+" {\n" + GUI_StructFields + '\n}\n'         # Add the new fields to the GUI manager struct
     CODE += 'struct '+className + " {\n" + parentStructFields + '\n}\n'         # Add the new fields to the parent struct
@@ -326,16 +397,13 @@ def apply(classes, tags, topClassName):
     appStype='default'
     if (True): # if all data fields are classes
         appStype='Z_stack'
-    guiStructName = topClassName+'_'+appStype+'_GUI'
+    guiStructName = topClassName+'_GUI'
     classesEncoded[guiStructName]=1
     classesToProcess=[[topClassName, 'struct', appStype, guiStructName]]
 
     # Amend items to each GUI data class
     for classToAmend in classesToProcess:
-        className    = classToAmend[0]
-        widgetType   = classToAmend[1]
-        dialogStyle  = classToAmend[2]
-        newStructName= classToAmend[3]
+        [className, widgetType, dialogStyle, newStructName] = classToAmend
         cdlog(2, "BUILDING "+dialogStyle+" GUI for "+widgetType+" " + className + ' ('+newStructName+')')
         if widgetType == 'struct':
             BuildGuiForStruct(classes, className, dialogStyle, newStructName)
@@ -344,17 +412,20 @@ def apply(classes, tags, topClassName):
 
 
     # Fill createAppArea()
+    primaryGUIName = 'primary_GUI_Mgr'
     primaryMakerFuncName = 'make'+topClassName[0].upper() + topClassName[1:]+'Widget'
     declAPP_fields = '  their '+topClassName+': primary\n'
+    declAPP_fields += '  our ' + guiStructName+': ' + primaryGUIName + '\n'
     declAPP_fields+='''
     me void: createAppArea(me GUI_Frame: frame) <- {
         me string:s
         Allocate(primary)
-        Allocate(primary.GUI_Manager)
-        their GUI_storyBoard: appStoryBoard <- primary.GUI_Manager.'''+primaryMakerFuncName+'''(primary)
+        Allocate(<PRIMARY_GUI>)
+        their GUI_storyBoard: appStoryBoard <- <PRIMARY_GUI>.'''+primaryMakerFuncName+'''(primary)
         gui.addToContainerAndExpand (frame, appStoryBoard)
     }
 '''
+    declAPP_fields = declAPP_fields.replace('<PRIMARY_GUI>', primaryGUIName)
     CODE = progSpec.wrapFieldListInObjectDef('APP', declAPP_fields)
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'APP')
 

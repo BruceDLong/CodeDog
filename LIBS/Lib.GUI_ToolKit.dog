@@ -56,8 +56,7 @@ struct GLOBAL{
     me floatWidget:     makeFloatWidget(me string: label)
     me numRangeWidget:  makeNumRangeWidget(me string: label)
     me rangeWidget:     makeRangeWidget(me string: label)
-    me intWidget:       makeIntWidget(me string: label)
-    me stringWidget:    makeStringWidget(me string: label)
+    their GUI_Frame:    makeIntWidget(me string: label)
     me enumWidget:      makeEnumWidget(me string: label, me string[list]: options)
     me timeWidget:      makeTimeWidget(me string: label)
     me dateWidget:      makeDateWidget(me string: label)
@@ -199,7 +198,7 @@ struct ListWidgetManager{
     me ListEditorWidget: LEW
 
     /- Override all these for each new list editing widget
-    their GUI_item: makeViewableWidget() <- {return(NULL)}
+    their GUI_item: makeListViewWidget() <- {return(NULL)}
     void: updateViewableWidget(their GUI_item: Wid) <- {}
     their GUI_item: makeEditableWidget() <- {return(NULL)}
     void: updateEditableWidget(their GUI_item: Wid) <- {}
@@ -208,6 +207,9 @@ struct ListWidgetManager{
     void: pushCrntToList() <- {}
     void: deleteNthItem() <- {}
     void: copyCrntBackToList() <- {}
+    void: handleAdd() <- {}
+    void: handleDelete() <- {}
+    void: handleEdit() <- {}
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }
