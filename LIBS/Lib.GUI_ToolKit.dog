@@ -199,7 +199,7 @@ struct ListWidgetManager{
 
     /- Override all these for each new list editing widget
     their GUI_item: makeListViewWidget() <- {return(NULL)}
-    void: updateViewableWidget(their GUI_item: Wid) <- {}
+    void: updateViewableWidget() <- {}
     their GUI_item: makeEditableWidget() <- {return(NULL)}
     void: updateEditableWidget(their GUI_item: Wid) <- {}
     void: updateCrntFromEdited(their GUI_item: Wid) <- {}
@@ -207,6 +207,7 @@ struct ListWidgetManager{
     void: pushCrntToList() <- {}
     void: deleteNthItem() <- {}
     void: copyCrntBackToList() <- {}
+    void: pushCrntToListView() <- {}
     void: handleAdd() <- {}
     void: handleDelete() <- {}
     void: handleEdit() <- {}
