@@ -42,6 +42,7 @@ def writeFile(path, fileName, fileSpecs, fileExtension):
     fo.close()
 
 def copyTree(src, dst):
+    if not(os.path.isdir(src)): makeDir(src)
     for item in os.listdir(src):
         #print "item: ", item
         s = os.path.join(src, item)
@@ -68,7 +69,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
         if libFile.startswith('pkg-config'):
             libStr += "`"
             libStr += libFile
-            libStr += "`"
+            libStr += "` "
         else:
             libStr += libFile
         #print "libStr: " + libStr

@@ -1,0 +1,81 @@
+/- CodeDog HTTP Networking Library
+requirements = [
+    [tagOneOf, Platform, [Linux, OS-X_Devices, Windows]]
+]
+
+interface={
+    provides=[Networking_implementation]
+    libFiles=[`pkg-config --cflags --libs libcurl`]
+    headers=[curl/curl.h]
+}
+
+LibDescription ={
+    useStatus  ='dynamic'
+    description='Networking for GTK3'
+    features    =[]
+    platforms   =[Linux, OS-X_Devices, Windows]
+    bindings    =[C, CPP, perl, python]
+    CPUs        =[i386, amd64, arm7]
+}
+
+struct CURL{their CURL: CURL}
+
+struct HTTPRetCode{their CURLcode: HTTPRetCode}
+
+struct MemoryStruct {
+  their void: memory
+  me uint: size
+}
+
+struct NetConnection{
+    me bool: isNotFirstVisit
+    their CURL: curl_handle
+    /-void: setupGlobalNetworking() <- <%!%Gcurl_global_init(CURL_GLOBAL_ALL)%>
+    /-void: openSimpleSession() <- <%!%Gcurl_easy_init()%>
+    /-void: setURL(me string: URL) <- <%!%Gcurl_easy_setopt(curl_handle, CURLOPT_URL, %1);%>
+    /-void: performFetch() <- <%!%Gcurl_easy_perform(curl_handle)%>
+    /-void: cleanSimpleSession() <- <%!%Gcurl_easy_cleanup(curl_handle)%>
+    void: cleanGlobalNetworking() <- <%!%Gcurl_global_cleanup()%>
+
+    we uint: WriteMemoryCallback(their void: contents, me uint: size, me uint: nmemb, their void: userPtr) <- <%{
+      size_t realsize = size * nmemb;
+      struct MemoryStruct *mem = (struct MemoryStruct *)userPtr;
+
+      mem->memory = realloc(mem->memory, mem->size + realsize + 1);
+      if(mem->memory == NULL) { cout << "not enough memory (realloc returned NULL)\n"; return 0;}
+
+      memcpy(&(((char*)mem->memory)[mem->size]), contents, realsize);
+      mem->size += realsize;
+      ((char*)mem->memory)[mem->size] = 0;
+
+      return realsize;
+    }%>
+
+    me string: retrieve(me string: URLstr) <- <%{
+        CURLcode res;
+        struct MemoryStruct chunk;
+        string retVal;
+        chunk.memory = malloc(1);  // will be grown as needed by the realloc above
+        chunk.size = 0;
+
+        if (!isNotFirstVisit){ isNotFirstVisit = true; curl_global_init(CURL_GLOBAL_ALL);}
+
+        curl_handle = curl_easy_init();
+        curl_easy_setopt(curl_handle, CURLOPT_URL, URLstr.data());                      // specify URL to get
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);      // send all data to this function
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);               // we pass our 'chunk' struct to the callback function
+        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+        res = curl_easy_perform(curl_handle);                                           // get it!
+
+        if(res != CURLE_OK) { cout << "curl_easy_perform() failed: " << curl_easy_strerror(res) << "\n";}
+        else {
+          // Now, our chunk.memory points to a memory block that is chunk.size bytes big and contains the remote file.
+          retVal = string((char*) chunk.memory, chunk.size);
+        }
+
+        curl_easy_cleanup(curl_handle);
+        free(chunk.memory);
+        // curl_global_cleanup();   // TODO: move this to deInit
+        return retVal;
+    }%>
+}

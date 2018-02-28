@@ -1,0 +1,169 @@
+/-Lib.JSON.dog
+requirements = []
+
+interface={
+    provides=[]
+    libFiles=[``]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus   ='dynamic'
+    description ='JSON parser'
+    features    =[JSON]
+    platforms   =[Linux, OS-X_Devices, Windows]
+    bindings    =[C, CPP, perl, python]
+    CPUs        =[i386, amd64, arm7]
+}
+
+struct JSON {
+    me string: textToParse
+    me string: ErrorMesg
+    me string: chars
+
+    void: init(me string: strToParse) <- {
+        chars <- "-{[tfn]}\",:"
+        textToParse <- strToParse
+        ErrorMesg <- ""
+    }
+
+    me int: scrapeIntSeq(me int: pos) <- {
+        me char: ch <- textToParse[pos]
+        me int: txtSize <- textToParse.size()
+        me int: initialChars <- 0
+        me string: chars <- "+-"
+        if(pos >= txtSize){
+            /- Set I/O Error: Read past EOS
+            ErrorMesg <- "Integer went past end of JSON string."
+            return(-1)
+        }
+        if(ch==chars[0] or ch==chars[1]){ initialChars <- 1}
+        return(scrapeUintSeq(pos)+initialChars)
+    }
+
+    me int: scrapeUintSeq(me int: pos) <- {
+        me char: ch
+        me int: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(isdigit(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
+        }
+        return(txtSize-pos)
+    }
+
+    me int: scrapeQuotedStr2(me int: pos) <- {
+        if(chkStr(pos, "\"")>=0){pos <- pos+1}else{return(-1)}
+        me int: sLen <- escapedScrapeUntil(pos, "\"")
+        if(sLen<0){
+            ErrorMesg <- "Missing end quote."
+            return(-1)
+        }
+        return(sLen+2)
+    }
+
+    me int: escapedScrapeUntil(me int:pos, me string:endChar) <- {
+        me char: ch
+        me string: prevCharStr <- " "
+        me char: prevChar <- prevCharStr[0]
+        me char: ender <- endChar[0]
+        me int: txtSize <- textToParse.size()
+        me string: escCharStr <- "\\ "
+        me char: escChar <- escCharStr[0]
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(prevChar!=escChar and ch==ender){return(p-pos)}
+            if(prevChar==escChar and ch==escChar) {prevChar<-escCharStr[1]}
+            else {prevChar <- ch}
+        }
+        return(-1)
+    }
+
+    me int: chkStr(me int: pos, me string: s) <- {
+        me int: L <- s.size()
+        if(pos+L > textToParse.size()){
+            ErrorMesg <- "Expected '"+s+"' but went past end of JSON string."
+            return(-1)
+        }
+        withEach i in RANGE(0 .. L):{
+            if( s[i] != textToParse[pos+i]) {
+                ErrorMesg <- "Expected '" + s + "'."
+                return(-1)
+            }
+        }
+        return(L)
+    }
+
+    me int: scrapeWS(me int: pos) <- {
+        me char: ch
+        me int: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize):{
+            ch <- textToParse[p]
+            if(isspace(ch)){}else{if(p==pos){return(0)} else{return(p-pos)}}
+        }
+        return(txtSize-pos)
+    }
+
+    me char: peek(me int: pos) <-{
+        me int: newPos <- scrapeWS(pos)
+        return(textToParse[pos+newPos])
+    }
+
+    me int: parse(me int: pos, me string: indent) <-{
+        if(pos >= textToParse.size()){print("POS is out of bounds: ", pos, "\n"); exit(1)}
+        me int: startPos <- pos
+        me int: length <- 0
+        pos <- pos + scrapeWS(pos)
+        /-print("____________________\n",indent,"scrape textToParse[",pos,"]= '",textToParse[pos], "'\n")
+        me char: ch <- textToParse[pos]
+
+        if(isdigit(ch) or ch==chars[0]){
+            length <- scrapeIntSeq(pos)
+        }else if(ch == chars[8]){                               /- '"'
+            length <- scrapeQuotedStr2(pos)
+        }else if(ch==chars[1]){                                 /- ""
+            pos <- pos + 1
+            pos <- pos + scrapeWS(pos)
+            me char: nxtChar <- peek(pos)
+            withEach count in WHILE(nxtChar != chars[7]):{       /- "}"
+                pos <- pos + scrapeWS(pos)
+                pos <- pos + scrapeQuotedStr2(pos);              if(ErrorMesg != ""){return(-1)}
+                pos <- pos + scrapeWS(pos)
+                pos <- pos + chkStr(pos, ":");                   if(ErrorMesg != ""){return(-1)}
+                pos <- pos + parse(pos, indent + "|     ");      if(ErrorMesg != ""){return(-1)}
+                pos <- pos + scrapeWS(pos)
+                nxtChar <- peek(pos)
+                if(nxtChar == chars[9]){pos <- pos + 1}         /- ","
+                else{
+                    if(nxtChar == chars[7]){pos <- pos + 1}     /- "}"
+                    else {ErrorMesg <- "'}' or ',' expected."; return(-1)}
+                }
+            }
+
+        }else if(ch==chars[2]){                                 /- "["
+            pos <- pos + 1
+            pos <- pos + scrapeWS(pos)
+            me char: nxtChar <- peek(pos)
+            withEach count in WHILE(nxtChar != chars[6]):{       /- "]"
+                pos <- pos + parse(pos, indent + "|     ")
+                if(ErrorMesg != ""){return(-1)}
+                pos <- pos + scrapeWS(pos)
+                nxtChar <- peek(pos)
+                if(nxtChar == chars[9]){pos <- pos + 1}         /- ","
+                else{
+                    if(nxtChar == chars[6]){pos <- pos + 1}
+                    else {ErrorMesg <- ("']' or ',' expected."); return(-1)}
+                }
+            }
+        }else if (ch==chars[3]){                                 /- "t"
+            length <- chkStr(pos, "true")
+        }else if (ch==chars[4]){                                /- "f"
+            length <- chkStr(pos, "false")
+        }else if (ch==chars[5]){                                /- "n"
+            length <- chkStr(pos, "null")
+        }else{print(indent +"unknown character in parse ", ch, "\n")}
+
+        pos <- pos + length
+        print(indent, textToParse.subStr(startPos, pos-startPos), "\n")
+        return(pos - startPos)
+    }
+}

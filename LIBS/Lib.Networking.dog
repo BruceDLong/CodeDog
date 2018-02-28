@@ -1,18 +1,25 @@
 /- CodeDog HTTP Networking Library
 
+/-############  Add GUI-Toolkit features using GTK3
 requirements = [
     [require, Networking_implementation]
 ]
 
+LibDescription  ={
+    useStatus   ='dynamic'
+    description ='Library for HTTP transactions'
+    features    =[Networking]
+    platforms   =[Linux, OS-X_Devices, Windows]
+}
+
 
 struct NetConnection{
-    setupGlobalNetworking()
-    openSimpleSession()
-    setURL(me string: URL)
-    void: performFetch()
-    cleanSimpleSession()
-    cleanGlobalNetworking()
+    /-void: setupGlobalNetworking() <- {}
+    /-void: openSimpleSession() <- {}
+    /-void: setURL(me string: URL) <- {}
+    /-void: performFetch() <- {}
+    /-void: cleanSimpleSession() <- {}
+    /-void: cleanGlobalNetworking() <- {}
 
-    me string: retrieve(me string: URL) <- {
-    }
+    /-me string: retrieve(me string: URL) <- {}
 }

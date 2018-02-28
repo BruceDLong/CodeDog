@@ -154,6 +154,7 @@ def addObjTags(objSpecs, className, stateType, objTags):
     if ('inherits' in objRef['tags']):
         parentClassList = objRef['tags']['inherits']
         appendToAncestorList(objRef, className, 'inherits', parentClassList)
+        addDependancyToStruct(className, parentClassList)
     if ('implements' in objRef['tags']):
         appendToAncestorList(objRef, className, 'implements', objRef['tags']['implements'])
 
