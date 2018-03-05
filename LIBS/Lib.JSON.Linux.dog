@@ -1,0 +1,41 @@
+/-############  Add JSON Object Implementation
+requirements = [
+    [tagOneOf, Platform, [Linux, OS-X_Devices, Windows]]
+]
+
+interface={
+    provides=[JSONObject_implementation]
+    libFiles=[`CodeDogHome`]
+    headers=[LIBS/JSONObject.h]
+}
+
+LibDescription ={
+    useStatus   ='dynamic'
+    description ='JSON Object Implementation'
+    features    =[JSON]
+    platforms   =[Linux, OS-X_Devices, Windows]
+    bindings    =[C, CPP, perl, python]
+    CPUs        =[i386, amd64, arm7]
+}
+
+
+struct JSONValue {
+    their MultiValue: JSONValue
+    me int: getType()
+    void: setAsNull()
+    void: setAsInt(me int: val)
+    void: setAsUintValue(me uint: val)
+    void: setAsDouble(me double: val)
+    void: setAsBool(me bool: val)
+    void: setAsString(me string: val)
+    void: setAsArray()
+    void: setAsObject()
+
+    void: pushArrayItem  (me int: key, their JSONValue: JV)
+    void: addObjectMember(me string: key, their JSONValue: JV)
+
+    int: getAsInt()
+    bool: getAsBool()
+    string: getAsString()
+    their MultiValue[their map string]: getAsMap()
+}
