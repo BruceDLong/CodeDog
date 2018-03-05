@@ -70,6 +70,9 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
             libStr += "`"
             libStr += libFile
             libStr += "` "
+        elif libFile.startswith('CodeDogHome'):
+            codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+            libStr += "-I " + codeDogFolder + " "
         else:
             libStr += libFile
         #print "libStr: " + libStr
