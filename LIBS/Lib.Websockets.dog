@@ -1,0 +1,25 @@
+/- CodeDog HTTP Websockets Library
+
+/-############  Add GUI-Toolkit features using GTK3
+requirements = [
+    [tagOneOf, Platform, [Linux]]
+]
+
+LibDescription  ={
+    useStatus   ='dynamic'
+    description ='Library for HTTP transactions'
+    features    =[Websockets]
+    platforms   =[Linux, OS-X_Devices, Windows]
+}
+
+
+struct NetConnection{
+    /-void: setupGlobalNetworking() <- {}
+    /-void: openSimpleSession() <- {}
+    /-void: setURL(me string: URL) <- {}
+    /-void: performFetch() <- {}
+    /-void: cleanSimpleSession() <- {}
+    void: cleanGlobalNetworking() <- {}
+
+    me string: retrieve(me string: URL) <- {}
+}
