@@ -1,25 +1,31 @@
-/- CodeDog HTTP Websockets Library
+/- CodeDog Websockets Library
 
-/-############  Add GUI-Toolkit features using GTK3
+/-############  Add Websockets
 requirements = [
-    [tagOneOf, Platform, [Linux]]
+    [require, webSockets_implementation]
 ]
+
+interface={
+    provides=[Websockets]
+    libFiles=[]
+    headers=[]
+}
 
 LibDescription  ={
     useStatus   ='dynamic'
-    description ='Library for HTTP transactions'
+    description ='Library for Websockets'
     features    =[Websockets]
     platforms   =[Linux, OS-X_Devices, Windows]
 }
 
+struct webSocketConnection{
+    me string: URL
 
-struct NetConnection{
-    /-void: setupGlobalNetworking() <- {}
-    /-void: openSimpleSession() <- {}
-    /-void: setURL(me string: URL) <- {}
-    /-void: performFetch() <- {}
-    /-void: cleanSimpleSession() <- {}
-    void: cleanGlobalNetworking() <- {}
-
-    me string: retrieve(me string: URL) <- {}
+    bool: connect(me string: url)
+    void: disconnect()
+    void: emit(their lws:wsi, me string: mesg)
+    void: onConnect(their lws:wsi) <- {}
+    void: onReceive(their lws:wsi, me string: mesg) <- {}
+    void: onError(their lws:wsi, me string: errorMesg) <- {}
+    void: onClosed(their lws:wsi) <- {}
 }

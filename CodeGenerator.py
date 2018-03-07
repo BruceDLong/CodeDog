@@ -1375,7 +1375,7 @@ def GroomTags(tags):
     # Set tag defaults as needed
     if not ('featuresNeeded' in TopLevelTags):
         TopLevelTags['featuresNeeded'] = []
-    TopLevelTags['featuresNeeded'].append('CodeDog')
+    TopLevelTags['featuresNeeded'].insert(0, 'CodeDog')
     # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
     if not ('Platform' in TopLevelTags):
         platformID=platform.system()

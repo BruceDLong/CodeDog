@@ -54,7 +54,8 @@ def copyTree(src, dst):
 
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
     buildStr = ''
-    libStr = ''
+    codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+    libStr = "-I " + codeDogFolder + " "
     langStr = 'g++ '
     minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
@@ -70,11 +71,8 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
             libStr += "`"
             libStr += libFile
             libStr += "` "
-        elif libFile.startswith('CodeDogHome'):
-            codeDogFolder = os.path.dirname(os.path.realpath(__file__))
-            libStr += "-I " + codeDogFolder + " "
         else:
-            libStr += libFile
+            libStr += "-l"+libFile
         #print "libStr: " + libStr
     currentDirectory = currentWD = os.getcwd()
     #TODO check if above is typo
