@@ -1212,24 +1212,31 @@ def makeFileHeader(tags, filename, xlator):
     header += xlator['addSpecialCode'](filename)
     return header
 
-[libInitCodeAcc, libDeinitCodeAcc] = ['', '']
+[libInitCodeAcc,  libDeinitCodeAcc] = ['', '']
+[libEmbedVeryHigh, libEmbedCodeHigh, libEmbedCodeLow] = ['', '', '']
 
-def integrateLibraries(tags, tagsFromLibFiles, libID, xlator):
+def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
     global libInitCodeAcc
     global libDeinitCodeAcc
     global buildStr_libs
+    global libEmbedCodeHigh
+    global libEmbedCodeLow
+    global libEmbedVeryHigh
     headerStr = ''
     #cdlog(2, 'Integrating {}'.format(libID))
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
 
-    if 'initCode'   in tagsFromLibFiles[libID]: libInitCodeAcc  += tagsFromLibFiles[libID]['initCode']
-    if 'deinitCode' in tagsFromLibFiles[libID]: libDeinitCodeAcc = tagsFromLibFiles[libID]['deinitCode'] + libDeinitCodeAcc
+    if 'initCode'     in tagsFromLibFiles[libID]: libInitCodeAcc  += tagsFromLibFiles[libID]['initCode']
+    if 'deinitCode'   in tagsFromLibFiles[libID]: libDeinitCodeAcc = tagsFromLibFiles[libID]['deinitCode'] + libDeinitCodeAcc
+    if 'embedVeryHigh'in tagsFromLibFiles[libID]: libEmbedVeryHigh+= tagsFromLibFiles[libID]['embedVeryHigh']
+    if 'embedHigh'    in tagsFromLibFiles[libID]: libEmbedCodeHigh+= tagsFromLibFiles[libID]['embedHigh']
+    if 'embedLow'     in tagsFromLibFiles[libID]: libEmbedCodeLow += tagsFromLibFiles[libID]['embedLow']
 
     if 'interface' in tagsFromLibFiles[libID]:
         if 'libFiles' in tagsFromLibFiles[libID]['interface']:
             libFiles = tagsFromLibFiles[libID]['interface']['libFiles']
             for libFile in libFiles:
-                buildStr_libs+=' -l'+libFile
+                buildStr_libs+=libFile
         if 'headers' in tagsFromLibFiles[libID]['interface']:
             libHeaders = tagsFromLibFiles[libID]['interface']['headers']
             for libHdr in libHeaders:
@@ -1241,7 +1248,7 @@ def connectLibraries(classes, tags, libsToUse, xlator):
     tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
     for libFilename in libsToUse:
         cdlog(1, 'ATTACHING LIBRARY: '+libFilename)
-        headerStr += integrateLibraries(tags, tagsFromLibFiles, libFilename, xlator)
+        headerStr += integrateLibrary(tags, tagsFromLibFiles, libFilename, xlator)
         macroDefs= {}
         [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], tags[0], macroDefs)
 
@@ -1276,6 +1283,9 @@ def generateBuildSpecificMainFunctionality(classes, tags, xlator):
 
 def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, fileSpecs, headerInfo, MainTopBottom, xlator):
     global ForwardDeclsForGlobalFuncs
+    global libEmbedVeryHigh
+    global libEmbedCodeHigh
+    global libEmbedCodeLow
     fileSpecsOut=[]
     fileExtension=xlator['fileExtension']
     constsEnums=''
@@ -1297,7 +1307,7 @@ def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, fileSpecs, headerInfo,
         forwardDecls += globalFuncDeclAcc
         funcCodeAcc  += globalFuncDefnAcc
 
-        outputStr = header + constsEnums + forwardDecls + structCodeAcc + ForwardDeclsForGlobalFuncs + MainTopBottom[0] + funcCodeAcc + MainTopBottom[1]
+        outputStr = header + constsEnums + forwardDecls + libEmbedVeryHigh + structCodeAcc + ForwardDeclsForGlobalFuncs + libEmbedCodeHigh + MainTopBottom[0] + funcCodeAcc + libEmbedCodeLow + MainTopBottom[1]
         filename = progSpec.fetchTagValue(tags, "FileName")
         fileSpecsOut.append([filename, outputStr])
 

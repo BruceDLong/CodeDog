@@ -5,7 +5,7 @@ requirements = [
 
 interface={
     provides=[JSON]
-    libFiles=[``]
+    libFiles=[]
     headers=[]
 }
 

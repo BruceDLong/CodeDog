@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides=[webSockets_implementation]
     libFiles=[websockets]
-    headers=[libwebsockets.h, LIBS/codeDogWebsockets.h]
+    headers=[libwebsockets.h]
 }
 
 
@@ -20,6 +20,134 @@ LibDescription ={
     bindings    =[C, CPP, perl, python]
     CPUs        =[i386, amd64, arm7]
 }
+
+
+embedHigh = `
+
+static struct lws *wsi_generic;
+static volatile int force_exit;
+
+void sighandler(int sig){
+        force_exit = 1;
+}
+
+
+enum APP_protocols {PROTOCOL_GENERIC, APP_PROTOCOL_COUNT};
+
+static int webSockets_generic_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *inMesg, size_t mesgLen);
+
+struct lws_context *context;
+
+
+static const struct lws_protocols protocols[] = {
+        {       "generic-protocol", webSockets_generic_callback,        0, 4096},  // protocol-name, callback, memToAllocate, rx_buffer_size
+        {       NULL, NULL,     0, 0 }
+};
+
+static const struct lws_extension exts[] = {
+        {       "permessage-deflate",           lws_extension_callback_pm_deflate,              "permessage-deflate;            client_no_context_takeover"},
+        {       "deflate-frame",                        lws_extension_callback_pm_deflate,              "deflate_frame"},
+        {       NULL,                                           NULL,                                                                    NULL /* terminator */ }
+};
+
+bool initializeWebsocketSystem(){
+    cout<<"Initializing...\n";
+        unsigned int pp_secs = 0;
+        struct lws_context_creation_info contextInfo;
+
+        memset(&contextInfo, 0, sizeof contextInfo);
+        signal(SIGINT, sighandler);
+        // CREATE WEBSOCKETS CONTEXT.
+        contextInfo.port = CONTEXT_PORT_NO_LISTEN;
+        contextInfo.protocols = protocols;
+        contextInfo.gid = -1;
+        contextInfo.uid = -1;
+        contextInfo.ws_ping_pong_interval = pp_secs;
+        contextInfo.extensions = exts;
+#if defined(LWS_OPENSSL_SUPPORT)
+        contextInfo.options |= LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+#endif
+    context = lws_create_context(&contextInfo);
+    if (context == NULL) {return false;}
+
+        return true;
+}
+`
+
+
+embedLow = `
+// codeDog wegsockets for linux
+
+static int webSockets_generic_callback(struct lws *wsi, enum lws_callback_reasons reason, void *user, void *inMesg, size_t mesgLen){
+        const char *which = "http";
+        char  buf[50 + LWS_PRE];
+    int n;
+    std::string mesg;
+
+        switch (reason) {
+        case LWS_CALLBACK_CLIENT_ESTABLISHED:
+        ((webSocketConnection*)user)->onConnect(wsi);
+        break;
+        case LWS_CALLBACK_CLOSED:
+        ((webSocketConnection*)user)->onClosed(wsi);
+                wsi_generic = NULL;
+                break;
+        case LWS_CALLBACK_CLIENT_RECEIVE:
+        cout<<"LWS_CALLBACK_CLIENT_RECEIVE\n";
+        ((char *)inMesg)[mesgLen] = '\0';
+        mesg = (char*)inMesg;
+        ((webSocketConnection*)user)->onReceive(wsi, mesg);
+        break;
+        case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+        ((char *)inMesg)[mesgLen] = '\0';
+        mesg = (char*)inMesg;
+        ((webSocketConnection*)user)->onError(wsi, mesg);
+                if (wsi == wsi_generic)         {which = "generic";     wsi_generic   = NULL;}
+                lwsl_err("CLIENT_CONNECTION_ERROR: %s: %s\n", which, inMesg ? (char *)inMesg : "(null)");
+                break;
+        case LWS_CALLBACK_CLIENT_CONFIRM_EXTENSION_SUPPORTED:
+        cout<<"LWS_CALLBACK_CLIENT_CONFIRM_EXTENSION_SUPPORTED\n";
+                break;
+        case LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP:
+        cout<<"LWS_CALLBACK_ESTABLISHED_CLIENT_HTTP\n";
+                break;
+        case LWS_CALLBACK_RECEIVE_CLIENT_HTTP_READ:     // chunked content;
+        cout<<"LWS_CALLBACK_RECEIVE_CLIENT_HTTP_READ\n";
+                break;
+        case LWS_CALLBACK_RECEIVE_CLIENT_HTTP:{
+        cout<<"LWS_CALLBACK_RECEIVE_CLIENT_HTTP\n";
+                char buffer[1024 + LWS_PRE];
+                char *px = buffer + LWS_PRE;
+                int lenx = sizeof(buffer) - LWS_PRE;
+                if (lws_http_client_read(wsi, &px, &lenx) < 0)          return -1;}
+                break;
+        case LWS_CALLBACK_CLIENT_WRITEABLE:
+        cout<<"LWS_CALLBACK_CLIENT_WRITEABLE\n";
+                break;
+        case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
+        cout<<"LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER\n";
+                break;
+        case LWS_CALLBACK_CLIENT_HTTP_WRITEABLE:
+        cout<<"LWS_CALLBACK_CLIENT_HTTP_WRITEABLE\n";
+                strcpy(buf + LWS_PRE, "text=hello&send=Send+the+form");
+                n = lws_write(wsi, (unsigned char *)&buf[LWS_PRE], strlen(&buf[LWS_PRE]), LWS_WRITE_HTTP);
+                if (n < 0) return -1;
+                // we only had one thing to send, so inform lws we are done if we had more to send, call lws_callback_on_writable(wsi); and just return 0 from callback.  On having sent the lastpart, call the below api instead.
+                lws_client_http_body_pending(wsi, 0);
+                break;
+        case LWS_CALLBACK_COMPLETED_CLIENT_HTTP:
+        cout<<"LWS_CALLBACK_COMPLETED_CLIENT_HTTP\n";
+                wsi_generic = NULL;
+                force_exit = 1;
+                break;
+        default:
+                break;
+        }
+        return 0;
+}
+
+`
+
 
 struct GLOBAL{
     me bool: webSocketLibIsGoing <- false
@@ -53,16 +181,16 @@ struct webSocketConnection{
         path[sizeof(path) - 1] = '\0';
         clientInfo.path = path;
 
-    	if (protocol == "http" || protocol == "ws") use_ssl = 0;
-    	else if (protocol == "https" || protocol == "wss") use_ssl =  LCCSCF_USE_SSL |  LCCSCF_ALLOW_SELFSIGNED | LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK; // 1;
+        if (protocol == "http" || protocol == "ws") use_ssl = 0;
+        else if (protocol == "https" || protocol == "wss") use_ssl =  LCCSCF_USE_SSL;   // |  LCCSCF_ALLOW_SELFSIGNED | LCCSCF_SKIP_SERVER_CERT_HOSTNAME_CHECK; // 1;
 
         clientInfo.context = context;
-    	clientInfo.ssl_connection = use_ssl;
-    	clientInfo.host = clientInfo.address;
-    	clientInfo.origin = clientInfo.address;
-    	clientInfo.ietf_version_or_minus_one = ietf_version;
-		clientInfo.protocol = protocols[PROTOCOL_GENERIC].name;
-		clientInfo.pwsi = &wsi_generic;
+        clientInfo.ssl_connection = use_ssl;
+        clientInfo.host = clientInfo.address;
+        clientInfo.origin = clientInfo.address;
+        clientInfo.ietf_version_or_minus_one = ietf_version;
+        clientInfo.protocol = protocols[PROTOCOL_GENERIC].name;
+        clientInfo.pwsi = &wsi_generic;
         clientInfo.userdata = this;
 
         cout<<"protocol:"<<protocol<<"\n";
@@ -71,7 +199,7 @@ struct webSocketConnection{
         cout<<"ADDR:"<<clientInfo.address<<"\n";
         cout<<"SSL:"<<clientInfo.ssl_connection<<"\n";
 
-		lws_client_connect_via_info(&clientInfo);
+        lws_client_connect_via_info(&clientInfo);
         while (!force_exit) {lws_service(context, 500);}
 
         return(true);

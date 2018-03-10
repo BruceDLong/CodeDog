@@ -1,0 +1,27 @@
+/- CodeDog Thread Library
+
+requirements = [
+    [require, threads_implementation]
+]
+
+interface={
+    provides=[threads]
+    libFiles=[]
+    headers=[threads]
+}
+
+LibDescription  ={
+    useStatus   ='dynamic'
+    description ='Library for Webmulti-thread programming'
+    features    =[Threads]
+    platforms   =[Linux, OS-X_Devices, Windows]
+}
+
+struct Thread{
+    me uint: ID()
+    bool: isActive()
+    void: start()
+    void: waitForExit(me int: millisecs)
+    void: requestClose()
+
+}

@@ -1,6 +1,5 @@
 /- CodeDog Websockets Library
 
-/-############  Add Websockets
 requirements = [
     [require, webSockets_implementation]
 ]

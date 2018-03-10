@@ -5,8 +5,8 @@ requirements = [
 
 interface={
     provides=[JSONObject_implementation]
-    libFiles=[`CodeDogHome`]
-    headers=[LIBS/JSONObject.h]
+    libFiles=[]
+    headers=[]
 }
 
 LibDescription ={
@@ -18,6 +18,82 @@ LibDescription ={
     CPUs        =[i386, amd64, arm7]
 }
 
+embedVeryHigh = `
+struct MultiValue; // Forward Decl
+
+typedef map<string, MultiValue*> MultiValue_Map;
+
+struct MultiValue{
+
+    enum ValueType {
+      nullValue = 0, ///< 'null' value
+      intValue,      ///< signed integer value
+      uintValue,     ///< unsigned integer value
+      realValue,     ///< double value
+      stringValue,   ///< UTF-8 string value
+      booleanValue,  ///< bool value
+      arrayValue,    ///< array value (ordered list)
+      objectValue    ///< object value (collection of name/value pairs).
+    };
+
+  ValueType type;
+
+  union ValueHolder {
+    int64_t int_;
+    uint64_t uint_;
+    double real_;
+    bool bool_;
+    string* string_;  // actually ptr to unsigned, followed by str, unless !allocated_
+    MultiValue_Map* map_;
+  } value;
+
+  MultiValue() {
+      type = intValue;
+      value.uint_ = 0;
+  }
+
+  ~MultiValue() {
+      releasePayload();
+      value.uint_ = 0;
+  }
+
+  int  getType()                {return(type);}
+  void setAsNull()              {type = nullValue;   value.uint_ = 0;}
+  void setAsInt(int val)        {type = intValue;    value.int_ = val;}
+  void setAsUintValue(uint val) {type = uintValue;   value.uint_ = val;}
+  void setAsDouble(double val)  {type = realValue;   value.real_ = val;}
+  void setAsBool(bool val)      {type = booleanValue;value.bool_ = val;}
+  void setAsString(string val)  {type = stringValue; value.string_ = new string(val);}
+  void setAsArray()             {type = arrayValue;  value.map_ = new MultiValue_Map;}
+  void setAsObject()            {type = objectValue; value.map_ = new MultiValue_Map;}
+
+  void pushArrayItem  (int key, MultiValue* val){(*value.map_)[to_string(key)]=val;}
+  void addObjectMember(string key, MultiValue* val){(*value.map_)[key]=val;}
+
+  int getAsInt() {return(value.int_);}
+  int getAsBool() {return(value.bool_);}
+  string getAsString() {return(*value.string_);}
+  MultiValue_Map* getAsMap() {return(value.map_);}
+
+  void releasePayload() {
+    switch (type) {
+      case nullValue:
+      case intValue:
+      case uintValue:
+      case realValue:
+      case booleanValue:
+        break;
+      case stringValue:
+        delete value.string_;
+        break;
+      case arrayValue:
+      case objectValue:
+        delete value.map_;
+        break;
+      }
+    }
+};
+`
 
 struct JSONValue {
     their MultiValue: JSONValue
