@@ -1,12 +1,12 @@
 /- CodeDog Threads Library
 
 requirements = [
-   [tagOneOf, Language, [CPP_11_plus]]
+   [tagOneOf, Lang, [CPP]]
 ]
 
 interface={
     provides=[threads_implementation]
-    libFiles=[]
+    libFiles=[pthread]
     headers=[thread]
 }
 
@@ -14,16 +14,16 @@ LibDescription  ={
     useStatus   ='dynamic'
     description ='Library for Webmulti-thread programming'
     features    =[Threads]
-    Language    =[CPP]
+    Lang    =[CPP]
 }
 
 struct Thread{
-    me uint: ID                             <- <%%>
-    bool: isActive()                        <- <%%>
-    void: start()                           <- <%%>
-    void: waitForExit(me int: millisecs)    <- <%%>
-    void: requestClose()                    <- <%%>
+    me bool: notDone <- true
+    me uint: ID()           <- {return(5);}
+    bool: isActive()        <- {return(true);}
+    void: start()           <- <%{ T = std::thread(&Thread::run, this); }%>
+    void: waitForExit()     <- {T.join()}
 
-    std::thread T
+    me thread: T
 
 }

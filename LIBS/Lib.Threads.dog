@@ -5,9 +5,9 @@ requirements = [
 ]
 
 interface={
-    provides=[threads]
+    provides=[Threads]
     libFiles=[]
-    headers=[threads]
+    headers=[] /-threads
 }
 
 LibDescription  ={
@@ -18,10 +18,12 @@ LibDescription  ={
 }
 
 struct Thread{
+    me bool: notDone <- true
+    void: run()
     me uint: ID()
     bool: isActive()
     void: start()
-    void: waitForExit(me int: millisecs)
-    void: requestClose()
+    void: waitForExit(me int: millisecs) <- {}
+    void: requestClose() <- {notDone <- false}
 
 }
