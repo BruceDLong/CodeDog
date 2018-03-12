@@ -103,7 +103,6 @@ struct enumWidget{
         return box;
     }%>
 }
-struct listWidget{their GtkWidget: listWidget}
 
 struct boolWidget{
 
