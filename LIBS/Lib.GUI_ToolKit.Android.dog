@@ -78,7 +78,7 @@ struct GUI_Frame{their LinearLayout: GUI_Frame}
 
 
 /-///////////////////////////////  LIST EDITOR WIDGET
-struct ListEditorWidget{
+struct ListManagerBox{
     their ListWidgetManager: parent
     their RelativeLayout: editorFrame
     their FloatingActionButton: addBtn

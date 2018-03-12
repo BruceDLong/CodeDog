@@ -56,8 +56,6 @@ struct GLOBAL{
     me floatWidget:     makeFloatWidget(me string: label)
     me numRangeWidget:  makeNumRangeWidget(me string: label)
     me rangeWidget:     makeRangeWidget(me string: label)
-    their GUI_Frame:    makeIntWidget(me string: label)
-    me enumWidget:      makeEnumWidget(me string: label, me string[list]: options)
     me timeWidget:      makeTimeWidget(me string: label)
     me dateWidget:      makeDateWidget(me string: label)
 }
@@ -195,7 +193,7 @@ struct widget{
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 
 struct ListWidgetManager{
-    me ListEditorWidget: LEW
+    me ListManagerBox: ListEdBox
 
     /- Override all these for each new list editing widget
     their GUI_item: makeListViewWidget() <- {return(NULL)}
