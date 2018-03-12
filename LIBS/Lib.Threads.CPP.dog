@@ -19,7 +19,7 @@ LibDescription  ={
 
 struct Thread{
     me bool: notDone <- true
-    me uint: ID()           <- {return(5);}
+    me uint: ID()           <- {return(5);}     /- TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
     bool: isActive()        <- {return(true);}
     void: start()           <- <%{ T = std::thread(&Thread::run, this); }%>
     void: waitForExit()     <- {T.join()}

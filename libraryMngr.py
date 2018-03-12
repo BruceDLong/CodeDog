@@ -182,7 +182,7 @@ def constructORListFromFiles(tags, need, files, indent):
                 tagToCheck = Req[1]
                 validValues = progSpec.extractListFromTagList(Req[2])
                 parentTag = progSpec.fetchTagValue(tags, tagToCheck)  # E.g.: "platform"
-                if parentTag==None: LibCanWork=False; print "WARNING: The tag", tagToCheck, "was not found in", libFile, ".\n"
+                if parentTag==None: LibCanWork=False;  cdErr("ERROR: The tag '"+ tagToCheck + "' was not found in" + libFile + ".\n");
                 if not parentTag in validValues: LibCanWork=False
                 else: cdlog(1, "  Validated: "+tagToCheck+" = "+parentTag)
 
