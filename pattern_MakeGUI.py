@@ -294,30 +294,44 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
             print"ERROR: unknown fieldSpec in BuildGuiForList::::::::", fieldSpec
             exit(1)
 
-    newWidgetFields     += '\n\n    our '+className+'[their list]: '+className+'_ListData\n'
-    newWidgetFields     += '    our '+className+': crntRecord\n'
-    listTitle = className+ ' List View!!!'
-    makeListWidgetCode   =  '\n    their GUI_Frame: '+'makeListViewWidget'+'(our '+className+'[their list]: Data) <- {\n'
-    makeListWidgetCode  += '        '+className+'_ListData<-Data\n'
-    makeListWidgetCode  += '        their GUI_Frame: box <- makeFrameWidget()\n'
-    makeListWidgetCode  += '        their listWidget:listWid <- makeListWidget("")\n'
-    makeListWidgetCode  += '        addToContainer(box, listWid)\n'
-    makeListWidgetCode  += '        withEach item in '+className+'_ListData:{\n'
-    makeListWidgetCode  += '            crntRecord <- item\n'
-    makeListWidgetCode  += '            their GUI_Frame: row <- makeRowWidget("")\n'
-    makeListWidgetCode  += '            their GUI_Frame: hbox <- makeRowView()\n'
-    makeListWidgetCode  += '            addToContainer(box, row)\n'
-    makeListWidgetCode  += '            addToContainer(row, hbox)\n'
-    makeListWidgetCode  += '        }\n'
-    makeListWidgetCode  += '        return(box)\n  }\n'
-    makeRowViewFuncCode  = '\n    their GUI_Frame: makeRowView() <- {\n'
-    makeRowViewFuncCode += '    their GUI_Frame: rbox <- makeFrameWidget()\n'
-    makeRowViewFuncCode += '\n'+ listFieldsCode
-    makeRowViewFuncCode += '    return(rbox)\n  }\n'
-    widgetFromVarsCode   = '    void: setValue(their '+className+': var) <- {\n' + widgetFromVarsCode + '    }\n'
-    varsFromWidgetCode   = '    void: getValue() <- {\n' + varsFromWidgetCode + '    }\n'
-    GUI_StructFields     = newWidgetFields + makeListWidgetCode + widgetInitFuncCode + makeRowViewFuncCode + widgetFromVarsCode # + varsFromWidgetCode
-    CODE =  'struct '+newStructName+" {\n" + GUI_StructFields + '\n}\n'         # Add the new fields to the GUI manager struct
+    CODE =  'struct '+newStructName+'''{
+    our <CLASSNAME>[their list]: <CLASSNAME>_ListData
+    our <CLASSNAME>: crntRecord
+    their GUI_Frame: makeListViewWidget(our <CLASSNAME>[their list]: Data) <- {
+        <CLASSNAME>_ListData<-Data
+        their GUI_Frame: box <- makeFrameWidget()
+        their listWidget:listWid <- makeListWidget("")
+        addToContainer(box, listWid)
+        withEach item in <CLASSNAME>_ListData:{
+            crntRecord <- item
+            their GUI_Frame: row <- makeRowWidget("")
+            their GUI_Frame: hbox <- makeRowView()
+            addToContainer(box, row)
+            addToContainer(row, hbox)
+        }
+        return(box)
+    }
+    <WIDGETINITFUNCCODE>
+    their GUI_Frame: makeRowView() <- {
+        their GUI_Frame: rbox <- makeFrameWidget()
+        <LISTFIELDSCODE>
+        return(rbox)
+    }
+    void: setValue(their <CLASSNAME>: var) <- {
+		<WIDGETFROMVARSCODE>
+    }
+    void: getValue() <- {
+        <VARSFROMWIDGETCODE>    
+    }
+}
+'''
+
+    CODE = CODE.replace('<STRUCTNAME>', newStructName)
+    CODE = CODE.replace('<CLASSNAME>', className)
+    CODE = CODE.replace('<WIDGETINITFUNCCODE>', widgetInitFuncCode)
+    CODE = CODE.replace('<LISTFIELDSCODE>', listFieldsCode)
+    CODE = CODE.replace('<WIDGETFROMVARSCODE>', widgetFromVarsCode)
+    CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
