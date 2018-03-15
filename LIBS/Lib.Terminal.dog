@@ -1,0 +1,29 @@
+/- CodeDog Terminal Manager Library
+
+requirements = []
+
+interface={
+    libFiles=[ncursesw]
+    headers=[ncursesw/ncurses.h]
+}
+
+LibDescription  ={
+    useStatus   ='dynamic'
+    description ='Library for terminal management'
+    features    =[Terminal]
+    platforms   =[Linux, OS-X_Devices, Windows]
+}
+
+struct GLOBAL{
+    void: moveCursor(me int: x, me int: y) <- <%!move(%1, %2)%>
+    void: getScreenMaxXY(their int: x, their int: y) <- <%!getmaxyx(stdscr, %2, %1)%>
+    void: attrOn(me int: attr) <- <%!attron(%1)%>
+    void: attrOff(me int: attr) <- <%!attroff(%1)%>
+    void: clearToEOL() <- <%!clrtoeol()%>
+    void: clearToBottom() <- <%!clrtobot()%>
+    void: refreshScn() <- <%!refresh()%>
+    void: putChar(me char: ch) <- <%!addch(%1)%>
+    void: putStr(me string: s) <- <%!addstr(%1)%>
+    void: movePutChar(me int: X, me int: Y, me char: ch) <- <%!mvaddch(%2, %1, %3)%>
+    void: movePutStr(me int: X, me int: Y, me string: s) <- <%!mvaddstr(%2, %1, %3)%>
+}

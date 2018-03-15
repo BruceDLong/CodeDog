@@ -317,6 +317,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, xlator)
             S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, previousSegName)
             return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
+        elif(name[0]=='[' and (fType=='uint' or fType=='int')):
+            print"Error: integers can't be indexed: ", previousSegName,  ":", name
+            exit(2)
         else:
             if fType!='string':
                 typeSpecOut=CheckObjectVars(fType, name, xlator)

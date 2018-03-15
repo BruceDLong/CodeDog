@@ -103,7 +103,6 @@ struct enumWidget{
         return box;
     }%>
 }
-struct listWidget{their GtkWidget: listWidget}
 
 struct boolWidget{
 
@@ -178,15 +177,16 @@ struct GLOBAL{
     their GtkWidget: makeFloatWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeNumRangeWidget(me string: label)    <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeTimeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeDateWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeDateWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
 
     their GtkWidget: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
+    their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
     their GtkWidget: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
     their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
-    their GtkWidget: makeLabelWidget(me string: label) <- <%!%Ggtk_label_new(%1)%>
+    their GtkWidget: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
 
     their GtkWidget: makeListEditorWidget(their GtkWidget: listWidget) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
