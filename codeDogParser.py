@@ -84,8 +84,8 @@ fieldDef = Forward()
 argList =  (verbatim | Group(Optional(delimitedList(Group( fieldDef)))))("argList")
 actionSeq = Forward()
 defaultCase = Group(Keyword("default")+Literal(":").suppress() + actionSeq("caseAction"))("defaultCase")
-switchCase= Group(Keyword("case") + OneOrMore(rValue+Literal(":").suppress())("caseValues") + actionSeq("caseAction"))
-switchStmt= Group(Keyword("switch")("switchStmt") + "(" + rValue("switchKey") + ")" +"{" + OneOrMore(switchCase)("switchCases") + Optional(defaultCase)("optionalDefaultCase") +"}")
+switchCase= Group(Keyword("case") + OneOrMore(rValue+Literal(":").suppress())("caseValues") - actionSeq("caseAction"))
+switchStmt= Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - ")" -"{" - OneOrMore(switchCase)("switchCases") - Optional(defaultCase)("optionalDefaultCase") +"}")
 conditionalAction = Forward()
 conditionalAction <<= Group(
             Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
@@ -97,7 +97,7 @@ whileSpec = Group(Keyword('WHILE') + '(' + expr + ')')
 fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
 keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID")  + CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + ":"
+            Keyword("withEach")("repeatedActionID")  - CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + ":"
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
@@ -110,9 +110,9 @@ funcBody = (actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
-          (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" + funcBody )         # Function Definition
-        | (Literal(":") + CID("fieldName")  + "<-" + (rValue("givenValue") | rValueVerbatim))
-        | (Literal(":") + "<-" + (rValue("givenValue") | funcBody))
+          (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
+        | (Literal(":") + CID("fieldName")  + "<-" - (rValue("givenValue") | rValueVerbatim))
+        | (Literal(":") + "<-" - (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName")  + Optional("(" + argList + Literal(")")('argListTag')))
         | (Literal("::") + CID("fieldName")  + Group(parameters)("parameters"))
     )("nameAndVal")
@@ -120,8 +120,8 @@ nameAndVal = Group(
 datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph"))('datastructID')
 arraySpec = Group (Literal('[')  + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + Literal(']'))("arraySpec")
 meOrMy = (Keyword("me") | Keyword("my"))
-modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") + Literal("[") + CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
-flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") + nameAndVal )("flagDef")
+modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - Literal("[") - CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
+flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal )("flagDef")
 baseType = (cppType | numRange)("baseType")
 
 #########################################   O B J E C T   D E S C R I P T I O N S

@@ -3,8 +3,8 @@
 requirements = []
 
 interface={
-    libFiles=[ncursesw]
-    headers=[ncursesw/ncurses.h]
+    libFiles=[curses]
+    headers=[cursesw.h]
 }
 
 LibDescription  ={
@@ -26,4 +26,5 @@ struct GLOBAL{
     void: putStr(me string: s) <- <%!addstr(%1)%>
     void: movePutChar(me int: X, me int: Y, me char: ch) <- <%!mvaddch(%2, %1, %3)%>
     void: movePutStr(me int: X, me int: Y, me string: s) <- <%!mvaddstr(%2, %1, %3)%>
+    me int: getChar() <- <%!getch()%>
 }

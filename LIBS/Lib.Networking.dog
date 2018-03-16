@@ -1,6 +1,5 @@
 /- CodeDog HTTP Networking Library
 
-/-############  Add GUI-Toolkit features using GTK3
 requirements = [
     [require, Networking_implementation]
 ]

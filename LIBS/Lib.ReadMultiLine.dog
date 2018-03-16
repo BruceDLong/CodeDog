@@ -1,6 +1,6 @@
 /- CodeDog Read MultiLine Library
 
-ProgramOrLibrary = "program"
+ProgramOrLibrary = "library"
 featuresNeeded = [Terminal]
 
 requirements = []
@@ -11,7 +11,12 @@ LibDescription  ={
     features    =[ReadMultiLine]
 }
 
-struct GLOBAL{me bool: guiMode}
+struct GLOBAL{
+    me bool: EditInGuiMode
+    me bool: getUTF8c(me string: cStr, me uint: p, me int: ch) <- {return (false)}
+}
+
+
 
 struct charX {
     me int: ch
@@ -25,7 +30,6 @@ struct lineX{
     me uint: startAttrs       /- Attributes inherited from the previous line.
     me uint: width            /- Width of this line in some unit.
 
-    their charX: charAfterWidth(me uint: w) <- {}
     void: fillPrintable(me bool: showColors) <- {}
 }
 
@@ -38,8 +42,12 @@ struct lineIterator {
     me uint: LSets            /- Index in a "their EntryX[list]"
     me uint: Lset             /- Index into an EntryX.lines, which is a "their lineX[list]"
 }
-/- define linesChars(l) <%(lines[l.LSets[l.Lset]].lines.chars)%>
-#define crntLine() <%(lines[currentLine.LSets].lines[currentLine.Lset].chars)%>
+
+#define linesChars(l) <%(lines[l.LSets].lines[l.Lset].lines.chars)%>
+#define crntLine() <%lines[currentLine.LSets].lines[currentLine.Lset].chars%>
+/- define chk-Ed(code) if(editOK((((*mgr.currentLine.LSets)->attrs)&0xf0)>>4)){code; chg=onChangeCallback(cmd);}
+#define chkEd(code) <%if(true){code;}%>
+
 
 struct linesMngr {
     their EntryX[their list]: lines
@@ -57,31 +65,37 @@ struct linesMngr {
     me bool: insertMode      /- True <- insert, false <- overwrite
     me bool: allDirty
 
+    me uint: crntCharWidth() <- {
+        if(charsToCur==crntLine().size()){ return(1) }
+        else{return(crntLine()[charsToCur].chWidth)}
+    }
+
+    their EntryX: lastEntry() <- {return(lines[lines.size()-1])}
+
+    me uint: numLinesInSet(their lineIterator: l) <- { return (lines[l.LSets].lines.size()) }
+    me bool: isFirstSet   (their lineIterator: l) <- { return (l.LSets==0) }
+    me bool: isLastSet    (their lineIterator: l) <- { return (l.LSets==lines.size()-1) }
+    me bool: isFirstInSet (their lineIterator: l) <- { return (l.Lset==0) }
+    me bool: isLastInSet  (their lineIterator: l) <- { return (l.Lset==numLinesInSet(l)-1) }
+    me bool: isFirstLine  (their lineIterator: l) <- { return (isFirstSet(l) and isFirstInSet(l)) }
+    me bool: isLastLine   (their lineIterator: l) <- { return (isLastSet (l) and isLastInSet(l)) }
+
     me bool: nextLine(their lineIterator: l) <- {
-        l.Lset <- l.Lset +1
-        if(l.Lset >= lines[l.LSets].lines.size()){
+        if(isLastInSet(l)){
+            if(isLastSet(l)) {return(false)}
             l.LSets <- l.LSets +1
-            if(l.LSets >= lines.size()) {return (0)}
-            l.Lset <- 0
-        }
-        return (1)
+            l.Lset <- 1
+        } else {l.Lset <- l.Lset +1}
+        return(true)
     }
 
     me bool: prevLine(their lineIterator: l) <- {
-        if(l.Lset==0){
-            if(l.LSets == 0) {return(0)}
-            l.LSets <- l.LSets -1    /- l.LSets--
-            l.Lset <- lines[l.LSets].lines.size()-1
-        } else{l.Lset <- l.Lset -1}       /- l.Lset--
-        return (1)
-    }
-
-    me bool: isFirstLine(their lineIterator: l) <- {
-        return (l.LSets==0 and l.Lset==0)
-    }
-
-    me bool: isLastLine(their lineIterator: l) <- {
-        return (l.LSets==(lines.size()-1) and l.Lset==lines[l.LSets].lines.size()-1)
+        if(isFirstInSet(l)){
+            if(isFirstSet(l)) {return(false)}
+            l.LSets <- l.LSets -1
+            l.Lset <- numLinesInSet(l)-1
+        } else {l.Lset <- l.Lset -1}
+        return(true)
     }
 
     their lineX: lineFromNum(me uint: n) <- {
@@ -95,24 +109,32 @@ struct linesMngr {
         return(0)
     }
 
+    me int: calcWidthToCursor(me charX[their list]: line, me int: charsToCur) <- {
+        me int: wtc <- 0
+        withEach p in RANGE(0..charsToCur):{
+            wtc <- wtc + line[p].chWidth
+        }
+        return(wtc)
+    }
+
     me void: setCursorByWidth(me charX[their list]: chrs, me uint: maxWidthToCur) <- {
         me int: wtc <- 0
         me uint: p<-0
-        /*if(chrs.size()==0){charsToCur<-0; widthToCur<-0; return();}
+        if(chrs.size()==0){charsToCur<-0; widthToCur<-0; return();}
         withEach count in RANGE(0..chrs.size()):{
             if(wtc+chrs[p].chWidth > maxWidthToCur){break()}
             wtc <- wtc +chrs[p].chWidth
             p <- p+1
         }
         charsToCur<-p
-        widthToCur<-wtc*/
+        widthToCur<-wtc
     }
 
     me bool: moveUp() <- {
         if(!isFirstLine(currentLine)){
             prevLine(currentLine)
             setCursorByWidth(crntLine(), curMax)
-            if(crntRowInWnd>0) {crntRowInWnd<- crntRowInWnd-1}  /-crntRowInWnd--
+            if(crntRowInWnd>0) {crntRowInWnd <- crntRowInWnd-1}
             return(true)
         }
         return(false)
@@ -122,7 +144,7 @@ struct linesMngr {
         if(!isLastLine(currentLine)){
             nextLine(currentLine)
             setCursorByWidth(crntLine(), curMax)
-            if(crntRowInWnd<(wndHeight)) {crntRowInWnd <- crntRowInWnd +1}  /- crntRowInWnd++
+            if(crntRowInWnd < wndHeight) {crntRowInWnd <- crntRowInWnd +1}
             return(true)
         }
         return(false)
@@ -139,25 +161,25 @@ struct linesMngr {
     }
 
     void: moveLeft() <- {
-        /*if(charsToCur>0){
-            charsToCur <- charsToCur-1 /- charsToCur--
+        if(charsToCur>0){
+            charsToCur <- charsToCur-1
             widthToCur <- widthToCur-crntCharWidth()
             curMax <- widthToCur
         } else if(!isFirstInSet(currentLine)){
             moveUp();
             moveEnd();
-        }*/
+        }
     }
 
     void: moveRight() <- {
-        /*if(charsToCur<crntLine().size()){
+        if(charsToCur < crntLine().size()){
             widthToCur <- widthToCur+crntLine()[charsToCur].chWidth
             charsToCur <- charsToCur +1
             curMax<-widthToCur
         } else if(!isLastInSet(currentLine)){
             moveDown()
             moveHome()
-        }*/
+        }
     }
 
     void: moveHome() <- {
@@ -166,9 +188,9 @@ struct linesMngr {
         curMax<-widthToCur
     }
     void: moveEnd() <- {
-        /*charsToCur<-crntLine().size()     // BDL
-        widthToCur<-calcWidthToCursor(currentLine.Lset, charsToCur)
-        curMax<-widthToCur*/
+        charsToCur<-crntLine().size()
+        widthToCur<-calcWidthToCursor(crntLine(), charsToCur)
+        curMax<-widthToCur
     }
     void: pageUp() <- {
         me int: i <- wndHeight-1
@@ -182,57 +204,46 @@ struct linesMngr {
             withEach count in WHILE(i>0 and moveDown()):{i <- i-1}
         }
     }
+    void: doInsertKey() <- {}  /- {insertMode <- !insertMode; change cursor: line <-> block}
+    void: backspc()     <- {} /-if(charsToCur>0 or !isFirstInSet(currentLine)){moveLeft(); doDelete();}
+    void: backTab()     <- {}
+    void: doTab()       <- {}
+    void: clearAll()    <- {}
+    void: clearToEOL()  <- {} /-crntLine().erase(crntLine().front()+charsToCur, crntLine().end())}
+    void: occludeHist() <- {} /- Toggle
+    void: prevHist()    <- {}
+    void: nextHist()    <- {}
+    void: copyAll()     <- {}
+    void: pasteString(me string: s) <- {}
+    void: cycleSaveModes() <- {}
+
     void: insertChar(their lineX: line, their charX: ch) <- {
         if (insertMode){
-            /-line.chars.insert(line.chars.front()+charsToCur, ch)  /- BDL
+         /-   line.chars.insert(line.chars.front()+charsToCur, ch)
             charsToCur <- charsToCur+1
             widthToCur <- widthToCur+ch.chWidth
-        } /-else { /- TODO: Overwrite mode}
+        } else {} /- TODO: Overwrite mode
         curMax<-widthToCur
         line.dirty<-true
     }
 
     void: doEnter() <- {
-        /*lineXPtr newLine(new lineX);
-        std::vector<charX> &CrntLine=crntLine();
-        newLine->chars.insert(newLine->chars.end(), CrntLine.begin()+charsToCur, CrntLine.end());
-        me lineIterator: nxtLine<-currentLine
-        nxtLine.Lset <- +1
-        auto newItemItr=(*currentLine.LSets)->insert(nxtLine.Lset, newLine);
-        CrntLine.resize(charsToCur);
-        currentLine.Lset=newItemItr;
-        if(crntRowInWnd==wndHeight-1){
-            allDirty=true;
-        } else crntRowInWnd++;
-        charsToCur=widthToCur=0;
-        curMax=widthToCur*/
     }
 
-    void: doInsertKey() <- {}
     void: doDelete() <- {
-        if(charsToCur==crntLine.size()){ /- Combine this line with next one.
+      /*  if(charsToCur==crntLine().size()){ /- Combine this line with next one.
             if(isLastInSet(currentLine)){return()}
-            lineIterator nxtLine=currentLine; nextLine(nxtLine);
-            crntLine.insert(crntLine.end(), linesChars(nxtLine).begin(), linesChars(nxtLine).end());
-            (*nxtLine.LSets)->erase(nxtLine.Lset);
-            linesDeleted++;
-        } else crntLine.erase(crntLine.begin()+charsToCur);
-        widthToCur=calcWidthToCursor((*currentLine.Lset), charsToCur);
-        setMaxCur();
+            me lineIterator: nxtLine <- currentLine
+            nextLine(nxtLine)
+   /-         crntLine().insert(crntLine().end(), linesChars(nxtLine).front(), linesChars(nxtLine).end());
+            nxtLine.LSets.erase(nxtLine.Lset)
+            linesDeleted <- linesDeleted + 1
+        }  else{ crntLine().erase(crntLine().front()+charsToCur);}
+        widthToCur <- calcWidthToCursor(crntLine(), charsToCur);
+        setMaxCur(); */
     }
-    void: backspc() <- {}
-    void: backTab() <- {}
-    void: doTab() <- {}
-    void: copyAll() <- {}
-    void: pasteString(me string: s) <- {}
-    void: clearAll() <- {}
-    void: clearToEOL() <- {}
-    void: occludeHist() <- {} /- Toggle
-    void: prevHist() <- {}
-    void: nextHist() <- {}
-    void: cycleSaveModes() <- {}
 
-    /-their string: fetchBuffer(their string: result, char EOL='\n') <- {}
+    void: fetchBuffer(their string: result) <- {}
 }
 
 struct posRec{ /- Use this to store the position of infons in a parsed string.
@@ -259,8 +270,72 @@ struct readMultiLine {
     me string:      message
 
 
+    /-their int (*onChangeCallback)(me uint: cmd) <- {}
+
+    their string: submitText() <- {return(NULL)}
+
+    me bool: editOK(me uint: EntryAttrs) <- {return(false)}
+
+    void: clearEntry(their EntryX: entry) <- {
+        if(!entry){return()}
+        mgr.crntRowInWnd <- mgr.crntRowInWnd-entry.lines.size()
+        entry.lines.clear()
+        mgr.linesDeleted <- true
+        their lineX: lx
+        Allocate(lx)
+        entry.lines.pushLast(lx)
+        mgr.crntRowInWnd <- mgr.crntRowInWnd +1
+        /-if(mgr.currentLine.LSets==entry) {mgr.currentLine.Lset<-mgr.currentLine.LSets.begin()}    /- BDL: mgr.currentLine.LSets==entry.lines.Lset
+    }
+
+    void: appendTextToEntry(their EntryX: entry, their posRecStore: text) <- {
+    /*    their lineXP: lx
+        Allocate(lx)
+        /-stack<uint,vector<uint> > colorStack  /- BDL!
+        /-their posRec: pr
+        me int: ch
+        me uint: q <- 0
+        me uint: p <- 0
+        me uint: nextColor <- 0x1000
+        me uint: colorCode <- 0         /-Color 0=default for this entry.
+        if(text.s[0]!=0){
+            withEach count in WHILE(getUTF8c(text.s.c_str(),p,ch)):{    /-BDL
+                if(ch=='\n'){
+                    entry.lines.pushLast(lx)
+                    Allocate(lx)
+                    mgr.crntRowInWnd <- mgr.crntRowInWnd +1
+                } else {
+                     if(text.colorCodes){
+                        me auto: posRecsItr <- text.ps.find(q)
+                        if(posRecsItr!=text.ps.end()){ /- We need to change colors.
+                            pr<-posRecsItr.second
+                            me auto: colorCodeItr <- text.colorCodes.find(pr.infParsed.get())
+                            me bool: colorCodeExists <- (colorCodeItr!=text.colorCodes.end())
+                            if(colorCodeExists){
+                                if(pr.isStart) {
+                                    colorStack.push(colorCode);
+                                    colorCode=colorCodeItr.second;
+                                }
+                                if(pr.isEnd && !colorStack.empty()) {
+                                    nextColor=colorStack.top(); colorStack.pop();
+                                }
+                            }
+                        }
+                    }
+                    lx.chars.pushLast(charX(ch,colorCode))
+                    if(nextColor<0x1000) {colorCode<-nextColor; nextColor<-0x1000;}
+
+                }
+                q=p;
+            }
+        }
+        entry.lines.pushLast(lx)
+        mgr.crntRowInWnd <- mgr.crntRowInWnd+1  */
+    }
+
+    void: appendNewEntry(their EntryX: entry, their posRecStore: text) <- {}
     void: refreshDisplay(me uint: Mode) <- {
-        /*if(!guiMode) {return()}
+        /*if(!EditInGuiMode) {return()}
         me uint: colorCode <- 0
         me uint: EntryAttrs <- 0
         me uint: winHeight <- mgr.wndEndY-mgr.wndStartY
@@ -328,8 +403,8 @@ struct readMultiLine {
         mgr.curMax <- 0
         me uint: chg <- 0               /- Change status - return from onChangeCallBack()
         refreshDisplay(chg)
-        me bool: isDone <- false
-        withEach count in WHILE(! isDone):{
+        me bool: done <- false
+        withEach count in WHILE(!done):{
             me charX: ch
             me int: h
             me int: w
@@ -338,10 +413,10 @@ struct readMultiLine {
             mgr.wndHeight <- mgr.wndEndY-mgr.wndStartY
             mgr.wndWidth <- w
             mgr.linesDeleted <- 0
-            /-me int: chResult <- get_wch(ch.ch)
-            cmd <- ch.ch
+         /-   me int: chResult <- getChar()
+            cmd <- getChar()
             message <- ""
-            /*if(chResult==KEY_CODE_YES){
+            if(cmd < 32 or cmd == 127){
                 switch(cmd){
                     case KEY_DOWN:      {mgr.moveDown()}
                     case KEY_UP:        {mgr.moveUp()}
@@ -365,10 +440,7 @@ struct readMultiLine {
                     case KEY_MOUSE:     {}
                     case KEY_RESIZE:    {}
                     /-case KEY_ENTER:     {if((chg==1) and (mgr.charsToCur==linesChars(mgr.currentLine).size()) and isLastInSet(mgr.currentLine)) {return (submitText())}chkEd(mgr.doEnter())}
-                }
-            }
-            else if(cmd<32 or cmd==127){                   /- control codes
-                switch(cmd){
+
                     case 1: {}                                /- CTRL-A - Select all
                     case 2: {mgr.moveLeft()}                  /- CTRL-B - Move back/left
                     case 3: {}                                /- CTRL-C - Copy
@@ -385,7 +457,7 @@ struct readMultiLine {
                     case 15: {mgr.occludeHist()}              /- CTRL-O - Occlude this from history (toggle)
                     case 16: {mgr.prevHist()}                 /- CTRL-P - Previous in history
                     case 17: {}                               /- CTRL-Q - Ctrl Q doesn't work on all systems outside raw Mode.
-                    case 18: {onChangeCallback(cmd)}          /- CTRL-R - Recompile and Refresh screen
+                 /- case 18: {onChangeCallback(cmd)}          /- CTRL-R - Recompile and Refresh screen
                     case 19: {}                               /- CTRL-S - Ctrl S doesn't work on all systems outside raw Mode.
                     case 20: {mgr.moveHome(); return (submitText())}  /- CTRL-T - Normalize in step-Mode
                     case 21: {mgr.clearAll()}                 /- CTRL-U - Clear entire line / unclear
@@ -402,8 +474,8 @@ struct readMultiLine {
                             me string: entryText
                             mgr.fetchBuffer(entryText)
                             their posRecStore: textStore(entryText)
-                            their EntryX: LastEntry <- (lastEntry())
-                            LastEntry.clear()
+                            their EntryX: LastEntry <- mgr.lastEntry()
+                            LastEntry.lines.clear()
                             mgr.crntRowInWnd <- mgr.crntRowInWnd -1
                             mgr.linesDeleted <- true
                             appendTextToEntry(LastEntry, textStore)
@@ -412,85 +484,18 @@ struct readMultiLine {
                         } /-else if(1 or (chg==1) and (mgr.charsToCur==linesChars(mgr.currentLine).size()) and isLastInSet(mgr.currentLine)) {
                             /-if(attrs>5){message <- "Item cannot be edited."}
                             /-else {return (submitText())}
-                        }/- BDL
-                        chkEd(mgr.doEnter())
+                            /-  }/- BDL
+                            chkEd(mgr.doEnter())
                     }
                 }
-            }
-            else{
+            }else{
                 ch.chWidth <- wcwidth(ch.ch)
-                chkEd(mgr.insertChar(mgr.currentLine.Lset, ch))
+       /-         mgr.insertChar(mgr.currentLine.Lset, ch)   /- NOTE: THis should be wrapped in "ChkEd" macro.
             }
-            */
+
             refreshDisplay(chg)
         }
         return(NULL)
     }
 
-    void: clearEntry(their EntryX: entry) <- {
-        if(!entry){return()}
-        mgr.crntRowInWnd <- mgr.crntRowInWnd-entry.lines.size()
-        entry.lines.clear()
-        mgr.linesDeleted <- true
-        their lineX: lx
-        Allocate(lx)
-        entry.lines.pushLast(lx)
-        mgr.crntRowInWnd <- mgr.crntRowInWnd +1
-        /-if(mgr.currentLine.LSets==entry) {mgr.currentLine.Lset<-mgr.currentLine.LSets.begin()}    /- BDL: mgr.currentLine.LSets==entry.lines.Lset
-    }
-
-    bool: getUTF8c(me string: cStr, me uint: p, me int: ch) <- {return (false)}
-
-    /*void: appendTextToEntry(their EntryX: entry, their posRecStore: text) <- {
-        their lineXP: lx
-        Allocate(lx)
-        /-stack<uint,vector<uint> > colorStack  /- BDL!
-        /-their posRec: pr
-        me int: ch
-        me uint: q <- 0
-        me uint: p <- 0
-        me uint: nextColor <- 0x1000
-        me uint: colorCode <- 0         /-Color 0=default for this entry.
-        if(text.s[0]!=0){
-            withEach count in WHILE(getUTF8c(text.s.c_str(),p,ch)):{    /-BDL
-                if(ch=='\n'){
-                    entry.lines.pushLast(lx)
-                    Allocate(lx)
-                    mgr.crntRowInWnd <- mgr.crntRowInWnd +1
-                } else {
-                     if(text.colorCodes){
-                        me auto: posRecsItr <- text.ps.find(q)
-                        if(posRecsItr!=text.ps.end()){ /- We need to change colors.
-                            pr<-posRecsItr.second
-                            me auto: colorCodeItr <- text.colorCodes.find(pr.infParsed.get())
-                            me bool: colorCodeExists <- (colorCodeItr!=text.colorCodes.end())
-                            if(colorCodeExists){
-                                if(pr.isStart) {
-                                    colorStack.push(colorCode);
-                                    colorCode=colorCodeItr.second;
-                                }
-                                if(pr.isEnd && !colorStack.empty()) {
-                                    nextColor=colorStack.top(); colorStack.pop();
-                                }
-                            }
-                        }
-                    }
-                    lx.chars.pushLast(charX(ch,colorCode))
-                    if(nextColor<0x1000) {colorCode<-nextColor; nextColor<-0x1000;}
-
-                }
-                q=p;
-            }
-        }
-        entry.lines.pushLast(lx)
-        mgr.crntRowInWnd <- mgr.crntRowInWnd+1
-    }*/
-
-    void: appendNewEntry(their EntryX: entry, their posRecStore: text) <- {}
-
-    /-their int (*onChangeCallback)(me uint: cmd) <- {}
-
-    their string: submitText() <- {return(NULL)}
-
-    me bool: editOK(me uint: EntryAttrs) <- {return(false)}
 }
