@@ -43,7 +43,7 @@ struct lineIterator {
     me uint: Lset             /- Index into an EntryX.lines, which is a "their lineX[list]"
 }
 
-#define linesChars(l) <%(lines[l.LSets].lines[l.Lset].lines.chars)%>
+#define linesChars(LINE) <%lines[LINE.LSets].lines[LINE.Lset].chars%>
 #define crntLine() <%lines[currentLine.LSets].lines[currentLine.Lset].chars%>
 /- define chk-Ed(code) if(editOK((((*mgr.currentLine.LSets)->attrs)&0xf0)>>4)){code; chg=onChangeCallback(cmd);}
 #define chkEd(code) <%if(true){code;}%>
@@ -210,7 +210,7 @@ struct linesMngr {
     void: backTab()     <- {}
     void: doTab()       <- {}
     void: clearAll()    <- {}
-    void: clearToEOL()  <- {} /-crntLine().erase(crntLine().front()+charsToCur, crntLine().end())}
+    void: clearToEOL()  <- {crntLine().erase(crntLine().front()+charsToCur, crntLine().end())}
     void: occludeHist() <- {} /- Toggle
     void: prevHist()    <- {}
     void: nextHist()    <- {}
@@ -229,6 +229,20 @@ struct linesMngr {
     }
 
     void: doEnter() <- {
+        their lineX: newLine; Allocate(newLine)
+        me charX[their list]: CrntLine <- crntLine()
+        newLine.chars.insert(newLine.chars.end(), CrntLine.first()+charsToCur, CrntLine.end())
+        me lineIterator: nxtLine <- currentLine
+        nxtLine.Lset <- nxtLine.Lset + 1
+/-      auto newItemItr=(*currentLine.LSets)->insert(nxtLine.Lset, newLine)
+/-      CrntLine.resize(charsToCur)
+/-      currentLine.Lset <- newItemItr
+        if(crntRowInWnd==wndHeight-1){
+            allDirty <- true
+        } else {crntRowInWnd <- crntRowInWnd + 1}
+        charsToCur <- 0
+        widthToCur <- 0
+        curMax <- widthToCur
     }
 
     void: doDelete() <- {
@@ -236,10 +250,12 @@ struct linesMngr {
             if(isLastInSet(currentLine)){return()}
             me lineIterator: nxtLine <- currentLine
             nextLine(nxtLine)
-   /-         crntLine().insert(crntLine().end(), linesChars(nxtLine).front(), linesChars(nxtLine).end());
-   /-         nxtLine.LSets.erase(nxtLine.Lset)
+            withEach ch in linesChars(nxtLine):{
+                crntLine().pushLast(ch)
+            }
+            lines[nxtLine.LSets].lines.erase(lines[nxtLine.LSets].lines.front() + nxtLine.Lset)
             linesDeleted <- linesDeleted + 1
-        } /-  else{ crntLine().erase(crntLine().front()+charsToCur);}
+        } else{ crntLine().erase(crntLine().front()+charsToCur);}
         widthToCur <- calcWidthToCursor(crntLine(), charsToCur);
         curMax <- widthToCur
     }
@@ -499,7 +515,7 @@ struct readMultiLine {
                 }
             }else{
                 ch.chWidth <- wcwidth(ch.ch)
-       /-         mgr.insertChar(mgr.currentLine.Lset, ch)   /- NOTE: THis should be wrapped in "ChkEd" macro.
+                mgr.insertChar(mgr.lines[mgr.currentLine.LSets].lines[mgr.currentLine.Lset], ch)   /- NOTE: THis should be wrapped in "ChkEd" macro.
             }
 
             refreshDisplay(chg)
