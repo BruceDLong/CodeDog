@@ -12,8 +12,8 @@ LibDescription  ={
 }
 
 struct GLOBAL{
-    me bool: EditInGuiMode
     me bool: getUTF8c(me string: cStr, me uint: p, me int: ch) <- {return (false)}
+    me bool: readMultiLineGUIMode
 }
 
 
@@ -110,7 +110,7 @@ struct linesMngr {
         return(0)
     }
 
-    me int: calcWidthToCursor(me charX[their list]: line, me int: charsToCur) <- {
+    me int: calcWidthToCursor(me charX[their list]: line, me uint: charsToCur) <- {
         me int: wtc <- 0
         withEach p in RANGE(0..charsToCur):{
             wtc <- wtc + line[p].chWidth
@@ -231,12 +231,13 @@ struct linesMngr {
     void: doEnter() <- {
         their lineX: newLine; Allocate(newLine)
         me charX[their list]: CrntLine <- crntLine()
-        newLine.chars.insert(newLine.chars.end(), CrntLine.first()+charsToCur, CrntLine.end())
+        me int: crntLineSize <- CrntLine.size()
+        withEach pos in RANGE(charsToCur .. crntLineSize):{newLine.chars.pushLast(CrntLine[pos])}
         me lineIterator: nxtLine <- currentLine
         nxtLine.Lset <- nxtLine.Lset + 1
-/-      auto newItemItr=(*currentLine.LSets)->insert(nxtLine.Lset, newLine)
-/-      CrntLine.resize(charsToCur)
-/-      currentLine.Lset <- newItemItr
+        lines[currentLine.LSets].lines.insert(lines[currentLine.LSets].lines.front() + nxtLine.Lset, newLine)
+        CrntLine.resize(charsToCur)
+        currentLine <- nxtLine
         if(crntRowInWnd==wndHeight-1){
             allDirty <- true
         } else {crntRowInWnd <- crntRowInWnd + 1}
@@ -279,12 +280,12 @@ struct posRecStore{
 }
 
 struct readMultiLine {
-    their EntryX[list]:    bufs
-    me linesMngr:   mgr
-    me string:      result
-    me uint:        cmd
-    /-const char* promptChars
-    me string:      message
+    their EntryX[list]: bufs
+    me linesMngr:       mgr
+    me string:          result
+    me uint:            cmd
+    me string:          promptChars
+    me string:          message
 
     me string: charConsts <- " \n"
 
@@ -317,7 +318,7 @@ struct readMultiLine {
         me uint: nextColor <- 4096 /- 0x1000
         me uint: colorCode <- 0         /-Color 0=default for this entry.
         if(text.s[0]!=0){
-   /*         withEach count in WHILE(getUTF8c(text.s.c_str(),p,ch)):{    /-BDL
+            /*  withEach count in WHILE(getUTF8c(text.s.c_str(),p,ch)):{    /-BDL
                 if(ch=='\n'){
                     entry.lines.pushLast(lx)
                     Allocate(lx)
@@ -342,7 +343,6 @@ struct readMultiLine {
                     }
                     lx.chars.pushLast(charX(ch,colorCode))
                     if(nextColor<0x1000) {colorCode<-nextColor; nextColor<-0x1000;}
-
                 }
                 q=p;
             }  */
@@ -352,20 +352,20 @@ struct readMultiLine {
     }
 
     void: appendNewEntry(their EntryX: entry, their posRecStore: text) <- {
-        appendTextToEntry(entry, text);
-        bufs.pushLast(entry);
-/-      mgr.currentLine.LSets=lastEntry();
-/-      mgr.currentLine.Lset=(*mgr.currentLine.LSets)->end()-1;
+        appendTextToEntry(entry, text)
+        bufs.pushLast(entry)
+        mgr.currentLine.LSets <- mgr.lines.size()-1
+        mgr.currentLine.Lset  <- mgr.lines[mgr.currentLine.LSets].lines.size()-1
     }
 
-    const uint: promptWidth <- 1
+    const uint: promptWidth <- 0
 
     void: refreshDisplay(me uint: Mode) <- {
-        if(!EditInGuiMode) {return()}
+        if(!readMultiLineGUIMode) {return()}
         me uint: colorCode <- 0
         me uint: EntryAttrs <- 0
         me uint: winHeight <- mgr.wndEndY-mgr.wndStartY
-        their lineIterator: rowItr <- mgr.currentLine
+        me lineIterator: rowItr <- mgr.currentLine
         if(mgr.crntRowInWnd >= winHeight) {mgr.crntRowInWnd <- winHeight-1}
         if(mgr.crntRowInWnd < 0) {mgr.crntRowInWnd <- 0}
         me uint: rowInt <- mgr.crntRowInWnd
@@ -376,28 +376,32 @@ struct readMultiLine {
             EntryAttrs <- 1 /- rowItr.LSets.attrs   !! Make this work for colors, etc.
             if(rowItr.LSets===mgr.currentLine.LSets) {attrOn(A_BOLD)}
             else {attrOff(A_BOLD)}                                       /- Highlight the current EntryX
-          /*  if(1 or mgr.allDirty or rowItr.Lset.dirty){
-                attrOn(COLOR_PAIR(6) + A_REVERSE)
-                if(prevEntrySetID != rowItr.LSets){
+            if(1 or mgr.allDirty or mgr.lines[rowItr.LSets].lines[rowItr.Lset].dirty){
+                attrOn(getColorPair(6) + A_REVERSE)
+                /* /- this sets the margin
+                if(prevEntrySetID != mgr.lines[rowItr.LSets]){
                     /-movePutChar(0, rowInt+mgr.wndStartY, promptChars[0]  /-[(EntryAttrs&0xf0)>>4]) /- BDL
-                    prevEntrySetID <- rowItr.LSets
-                } else {movePutChar(0, rowInt+mgr.wndStartY, ' ')}
+                    prevEntrySetID <- mgr.lines[rowItr.LSets]
+                } else {movePutChar(0, rowInt+mgr.wndStartY, promptChars[0])}
+                */
+                if(promptWidth>0){movePutChar(0, rowInt+mgr.wndStartY, promptChars[0])}
+                else if (promptWidth==0){movePutStr(0, rowInt+mgr.wndStartY,"")}
                 attrOff(A_REVERSE)
-                if(Mode==1) {attrOn(COLOR_PAIR(8))}
-                /-else if(EntryAttrs>0) {attrOn(COLOR_PAIR(EntryAttrs&7))} /- BDL
-                else {attrOn(COLOR_PAIR(1))}
+                if(Mode==1) {attrOn(getColorPair(8))}
+                /-else if(EntryAttrs>0) {attrOn(getColorPair(EntryAttrs&7))} /- BDL
+                else {attrOn(getColorPair(1))}
                 /- Print each character
-                their lineX: lx <- rowItr.Lset
+                their lineX: lx <- mgr.lines[rowItr.LSets].lines[rowItr.Lset]
                 withEach ch in lx.chars:{
-                    colorCode <- ch.flags
-                    if(colorCode>0) {attrOn(COLOR_PAIR(colorCode))}
-                    else if(EntryAttrs>0) {attrOn(COLOR_PAIR(EntryAttrs==7))}
-                    else {attrOn(COLOR_PAIR(1))}
+                    /- colorCode <- ch.flags
+                    if(colorCode>0) {attrOn(getColorPair(colorCode))}
+                    else if(EntryAttrs>0) {attrOn(getColorPair(EntryAttrs==7))}
+                    else {attrOn(getColorPair(1))}
                     putChar(ch.ch)
                 }
                 clearToEOL()
-            }*/
-            attrOn(COLOR_PAIR(1))
+            }
+            attrOn(getColorPair(1))
             rowInt <- rowInt +1
             if(!mgr.nextLine(rowItr)) {break()}
         }
@@ -415,7 +419,7 @@ struct readMultiLine {
         me int: w
         getScreenMaxXY(h, w)
         if(msg.size()>=w){msg.resize(w)}
-        addstr(msg.data())
+        putStr(msg.data())
         withEach p in RANGE(msg.size() .. w):{putChar(charConsts[0]);}
         attrOff(A_REVERSE)
 
@@ -423,7 +427,7 @@ struct readMultiLine {
         refreshScn()
     }
 
-    their string: ReadLines() <- {
+    their string: readLines() <- {
         mgr.charsToCur <- 0
         mgr.widthToCur <- 0
         mgr.curMax <- 0
@@ -441,7 +445,7 @@ struct readMultiLine {
             mgr.linesDeleted <- 0
             cmd <- getChar()
             message <- ""
-            if(cmd < 32 or cmd == 127){
+            if(cmd < 32 or cmd == 127 or cmd > 255){
                 switch(cmd){
                     case KEY_DOWN:      {mgr.moveDown()}
                     case KEY_UP:        {mgr.moveUp()}
@@ -514,13 +518,55 @@ struct readMultiLine {
                     }
                 }
             }else{
-                ch.chWidth <- wcwidth(ch.ch)
+                ch.chWidth <- 1 /- wcwidth(ch.ch)
+                ch.ch <- cmd
                 mgr.insertChar(mgr.lines[mgr.currentLine.LSets].lines[mgr.currentLine.Lset], ch)   /- NOTE: THis should be wrapped in "ChkEd" macro.
             }
-
             refreshDisplay(chg)
         }
         return(NULL)
     }
 
+    void: initNCurses() <- {
+        /-std::setlocale(LC_CTYPE, "en_US.UTF-8");
+        initTerminalControls()
+        setColorPair(0, -1, -1)                    /- Fgnd/Bgnd for un-parsed entries, etc.  (~$Ss>)
+        setColorPair(1, COLOR_BLUE,   -1)          /- FGnd/BGnd for parsed entries
+        setColorPair(2, COLOR_GREEN,  -1)          /- Colors for result - good     (=)
+        setColorPair(3, COLOR_MAGENTA,-1)          /- Colors for result - error    (?)
+        setColorPair(4, COLOR_CYAN,   -1)          /- Colors for messages for user (#)
+        setColorPair(5, COLOR_BLUE,   -1)          /- Colors for context prompt    (:)
+        setColorPair(6, COLOR_BLUE,   -1)          /- Colors for prompt bar
+        setColorPair(7, COLOR_GREEN,  -1)          /- Colors for enter = submit
+        setColorPair(8, COLOR_YELLOW, -1)
+        setColorPair(9, COLOR_RED,    -1)
+        setColorPair(10, -1,  COLOR_BLUE)          /- Colors for list items
+        attrOn(getColorPair(1))
+
+        setScrollingOK(true)
+        disableKeypressBuffering()
+        dontCnvtNewLine()
+        enableFNKeyDetection(true)
+        disableKeypressEchoing()
+        ESCDELAY <- 0
+    }
+
+    none: readMultiLine(me uint: wndStartY, me string: prmptChrs) <- {
+        promptChars          <- prmptChrs
+        mgr.lines            <- bufs
+        their EntryX: ex
+        Allocate(ex)
+	    their lineX: lx
+        Allocate(lx)
+	    ex.lines.pushLast(lx)
+        mgr.lines.pushLast(ex)
+        mgr.currentLine.LSets <- mgr.lines.size()-1
+        mgr.currentLine.Lset  <- mgr.lines[mgr.currentLine.LSets].lines.size()-1
+        mgr.insertMode       <- true
+        mgr.allDirty         <- true
+        mgr.crntRowInWnd     <- 0
+        mgr.wndStartY        <- wndStartY
+        readMultiLineGUIMode <- true
+        message              <- "Hello World"
+    }
 }

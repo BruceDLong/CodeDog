@@ -15,10 +15,18 @@ LibDescription  ={
 }
 
 struct GLOBAL{
+    void: initTerminalControls() <- <%!initscr(); start_color(); use_default_colors();%>
     void: moveCursor(me int: x, me int: y) <- <%!move(%1, %2)%>
     void: getScreenMaxXY(me int: x, me int: y) <- <%!getmaxyx(stdscr, %2, %1)%>
+    void: setColorPair(me int: pairIdx, me int: foregroundColor, me int: backgroundColor) <- <%!init_pair(%1, %2, %3)%>
+    void: getColorPair(me int:idx) <- <%!COLOR_PAIR(%1)%>
     void: attrOn(me int: attr) <- <%!attron(%1)%>
     void: attrOff(me int: attr) <- <%!attroff(%1)%>
+    void: setScrollingOK(me bool: value) <- <%!scrollok(stdscr, %1)%>
+    void: enableFNKeyDetection(me bool: value) <- <%!keypad(stdscr, %1)%>
+    void: dontCnvtNewLine() <- <%!nonl()%>
+    void: disableKeypressBuffering() <- <%!cbreak()%>
+    void: disableKeypressEchoing() <- <%!noecho()%>
     void: clearToEOL() <- <%!clrtoeol()%>
     void: clearToBottom() <- <%!clrtobot()%>
     void: refreshScn() <- <%!refresh()%>

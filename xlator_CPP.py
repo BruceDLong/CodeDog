@@ -221,7 +221,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     typeSpecOut = typeSpecIn
     #print containerType, name
     if containerType=='deque':
-        if name=='at': pass
+        if name=='at' or name=='resize': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':{'owner':'itr'}}, {'typeSpec':typeSpecIn}]}
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
