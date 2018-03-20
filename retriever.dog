@@ -156,14 +156,14 @@ struct retriever{
             if(!RHS_Empty){
                 remainder <- parentAgent.tryMERGE(agendaItem)
                 if(agendaItem.rejected){return()}
-            } else {print("RHS IS EMPTY\n")}
+            } /-else {print("RHS IS EMPTY\n")}
             if(LHS.nestLvl == 0 and agendaLHS_state == sNotASeq){
                 /-print("STITCHING-ITEM\n")
                 parentAgent.stitch(agendaItem, "")
             }
 
             /- Handle when parent is a CONCAT
-            if(crntCursor.parent!=NULL and (crntCursor.parent.item.value.format==fConcat)){
+            if(crntCursor.parent!=NULL and crntCursor.parent.item!=NULL and (crntCursor.parent.item.value.format==fConcat)){
                 if(crntCursor.idx==0){ /- Set parent's type
                 } else {
                     our infon: prev <- crntCursor.getPrevPtr()
@@ -192,11 +192,13 @@ struct retriever{
         our infDeepItr: LHSChain <- NULL
         our infDeepItr: RHSChain <- NULL
 
-        if(RHS_Empty and numItemsAdded==0){
-            LHSChain <- agendaItem.LHS.getNextDeDotted()
-            Allocate(RHSChain)
-            RHSChain.crntCursor <- NULL
-            print("PASSING NULL RHS\n")
+        if(RHS_Empty){
+            if(numItemsAdded==0){
+                LHSChain <- agendaItem.LHS.getNextDeDotted()
+                Allocate(RHSChain)
+                RHSChain.crntCursor <- NULL
+               /- print("PASSING NULL RHS\n")
+           } else {return()}
         } else {
             me bool: remainderSideRHS <- true  /- Later this may be false if the LHS has a remainder
             if(remainder != NULL){
@@ -208,8 +210,8 @@ struct retriever{
             }
 
             me int: LHSfType <- agendaItem.LHS.crntCursor.item.value.fType
-            me int: RHSfType <- agendaItem.RHS.crntCursor.item.value.fType
             if (LHSChain == NULL){
+                me int: RHSfType <- agendaItem.RHS.crntCursor.item.value.fType
                 if (LHSfType != LST and RHSfType == LST){
                     /-print("    LHSChain <- agendaItem.LHS \n")
                     LHSChain <- agendaItem.LHS
@@ -220,6 +222,7 @@ struct retriever{
                 }
             }
             if (RHSChain == NULL){
+                me int: RHSfType <- agendaItem.RHS.crntCursor.item.value.fType
                 if (LHSfType == LST and RHSfType != LST){
                     /-print("    RHSChain <- agendaItem.RHS \n")
                     RHSChain <- agendaItem.RHS
