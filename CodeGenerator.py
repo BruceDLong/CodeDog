@@ -25,6 +25,7 @@ globalFuncDeclAcc=''
 globalFuncDefnAcc=''
 ForwardDeclsForGlobalFuncs=''
 
+listOfFuncsWithUnknownArgTypes = {}
 
 def appendGlobalFuncAcc(decl, defn):
     global globalFuncDefnAcc
@@ -497,6 +498,7 @@ def codeUserMesg(item, xlator):
 
 
 def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
+    global listOfFuncsWithUnknownArgTypes
     S=''
     #if(modelParams):  print "CODE-PARAMS:", len(paramList),"=",len(modelParams)
     count = 0
@@ -533,7 +535,8 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
                 [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](modelParams[count]['typeSpec'], argType)
                 S += leftMod+S2+rightMod
             else:
-                print "WARNING: Could not determine expected type of argument", count+1, "for", name+"()"
+                listOfFuncsWithUnknownArgTypes[(name+'()')]=1
+                #print "WARNING: Could not determine expected type of argument", count+1, "for", name+"()"
                 S += S2
             count+=1
         S='(' + S + ')'
@@ -1342,6 +1345,7 @@ def clearBuild():
     global globalFuncDeclAcc
     global globalFuncDefnAcc
     global ForwardDeclsForGlobalFuncs
+    global listOfFuncsWithUnknownArgTypes
 
     localVarsAllocated = []
     localArgsAllocated = []
@@ -1353,6 +1357,7 @@ def clearBuild():
     globalFuncDeclAcc=''
     globalFuncDefnAcc=''
     ForwardDeclsForGlobalFuncs='\n\n// Forward Declarations of global functions\n'
+    listOfFuncsWithUnknownArgTypes = {}
 
 def generate(classes, tags, libsToUse, langName, xlator):
     clearBuild()
@@ -1360,6 +1365,7 @@ def generate(classes, tags, libsToUse, langName, xlator):
     global globalTagStore
     global buildStr_libs
     global libInterfacesText
+    global listOfFuncsWithUnknownArgTypes
 
     buildStr_libs = xlator['BuildStrPrefix']
     globalClassStore=classes
@@ -1382,6 +1388,9 @@ def generate(classes, tags, libsToUse, langName, xlator):
 
     fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, fileSpecs, [], topBottomStrings, xlator)
    # print "\n\n##########################################################\n"
+    print "\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:"
+    for funcName in listOfFuncsWithUnknownArgTypes: print funcName,
+    print "\n";
     return fileSpecStrings
 
 
