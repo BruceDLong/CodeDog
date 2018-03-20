@@ -1237,7 +1237,7 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
 
     if 'initCode'     in tagsFromLibFiles[libID]: libInitCodeAcc  += tagsFromLibFiles[libID]['initCode']
-    if 'deinitCode'   in tagsFromLibFiles[libID]: libDeinitCodeAcc = tagsFromLibFiles[libID]['deinitCode'] + libDeinitCodeAcc
+    if 'deinitCode'   in tagsFromLibFiles[libID]: libDeinitCodeAcc = tagsFromLibFiles[libID]['deinitCode'] + libDeinitCodeAcc + "\n"
     if 'embedVeryHigh'in tagsFromLibFiles[libID]: libEmbedVeryHigh+= tagsFromLibFiles[libID]['embedVeryHigh']
     if 'embedHigh'    in tagsFromLibFiles[libID]: libEmbedCodeHigh+= tagsFromLibFiles[libID]['embedHigh']
     if 'embedLow'     in tagsFromLibFiles[libID]: libEmbedCodeLow += tagsFromLibFiles[libID]['embedLow']
@@ -1286,7 +1286,7 @@ struct GLOBAL{
         %s
     }
 }""" % (initCode, deinitCode)
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'GLobal special code (initialize(), deinitialize())' )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Global special code (initialize(), deinitialize())' )
 
 def generateBuildSpecificMainFunctionality(classes, tags, xlator):
     xlator['generateMainFunctionality'](classes, tags)

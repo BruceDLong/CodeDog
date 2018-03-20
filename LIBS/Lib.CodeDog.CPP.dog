@@ -16,7 +16,7 @@ LibDescription ={
 }
 
 initCode = "signal(SIGSEGV, reportFault)"
-deinitCode = "signal(SIGSEGV, reportFault)"
+deinitCode = ""
 
 
 struct stream{
@@ -58,6 +58,17 @@ struct GLOBAL{
       }
       pclose(pipe);
       return result;
+    }%>
+
+    me string: wideCharToMultibyte(me int:ch) <- <%{
+        char buf[32];
+        int len=wctomb(buf, ch);
+        string retVal="";
+        if(len>0) {
+            buf[len]=0;
+            retVal = buf;
+        }
+        return retVal;
     }%>
 }
 struct timeValue{me int64: timeValue}

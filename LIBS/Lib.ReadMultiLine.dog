@@ -11,6 +11,8 @@ LibDescription  ={
     features    =[ReadMultiLine]
 }
 
+deinitCode = "endwin()"
+
 struct GLOBAL{
     me bool: getUTF8c(me string: cStr, me uint: p, me int: ch) <- {return (false)}
     me bool: readMultiLineGUIMode
@@ -30,7 +32,12 @@ struct lineX{
     me uint: startAttrs       /- Attributes inherited from the previous line.
     me uint: width            /- Width of this line in some unit.
 
-    void: fillPrintable(me bool: showColors) <- {}
+    void: fillPrintable(me bool: showColors) <- {
+        printable <- ""
+        withEach ch in chars:{
+            printable <- printable + wideCharToMultibyte(ch.ch)
+        }
+    }
 }
 
 struct EntryX {
@@ -261,7 +268,16 @@ struct linesMngr {
         curMax <- widthToCur
     }
 
-    void: fetchBuffer(their string: result) <- {}
+    me string: fetchBuffer(me string: result) <- {
+        result<-""
+        me string: EOL <- "\n"
+        withEach ln in lines[currentLine.LSets].lines:{
+            if(result != ""){result <- result+EOL[0]}
+            ln.fillPrintable(false)
+            result <- result + ln.printable
+        }
+        return (result)
+    }
 }
 
 struct posRec{ /- Use this to store the position of infons in a parsed string.
@@ -291,7 +307,7 @@ struct readMultiLine {
 
     /-their int (*onChangeCallback)(me uint: cmd) <- {}
 
-    their string: submitText() <- {return(NULL)}
+    me string: submitText() <- {return (mgr.fetchBuffer(result))}
 
     me bool: editOK(me uint: EntryAttrs) <- {return(false)}
 
@@ -417,7 +433,7 @@ struct readMultiLine {
         me string: msg <- message
         me int: h
         me int: w
-        getScreenMaxXY(h, w)
+        getScreenMaxXY(w, h)
         if(msg.size()>=w){msg.resize(w)}
         putStr(msg.data())
         withEach p in RANGE(msg.size() .. w):{putChar(charConsts[0]);}
@@ -427,7 +443,7 @@ struct readMultiLine {
         refreshScn()
     }
 
-    their string: readLines() <- {
+    me string: readLines() <- {
         mgr.charsToCur <- 0
         mgr.widthToCur <- 0
         mgr.curMax <- 0
@@ -438,7 +454,7 @@ struct readMultiLine {
             me charX: ch
             me int: h
             me int: w
-            getScreenMaxXY(h, w)
+            getScreenMaxXY(w, h)
             mgr.wndEndY <- h
             mgr.wndHeight <- mgr.wndEndY-mgr.wndStartY
             mgr.wndWidth <- w
@@ -473,7 +489,7 @@ struct readMultiLine {
                     case 1: {}                                /- CTRL-A - Select all
                     case 2: {mgr.moveLeft()}                  /- CTRL-B - Move back/left
                     case 3: {}                                /- CTRL-C - Copy
-                    case 4: {done <- true}                    /- CTRL-D - Done/quit (EOF)
+                    case 4: {done <- true; return(submitText())}                    /- CTRL-D - Done/quit (EOF)
                     case 5: {mgr.moveEnd()}                   /- CTRL-E - Go to end of line
                     case 6: {mgr.moveRight()}                 /- CTRL-F - Move forward/right
                     case 7: {return (submitText())}           /- CTRL-G - GO. Submit this text for processing.
@@ -524,7 +540,7 @@ struct readMultiLine {
             }
             refreshDisplay(chg)
         }
-        return(NULL)
+        return(submitText())
     }
 
     void: initNCurses() <- {
@@ -567,6 +583,6 @@ struct readMultiLine {
         mgr.crntRowInWnd     <- 0
         mgr.wndStartY        <- wndStartY
         readMultiLineGUIMode <- true
-        message              <- "Hello World"
+        message              <- ""
     }
 }
