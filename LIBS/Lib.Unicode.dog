@@ -1,0 +1,17 @@
+/- CodeDog Unicode Library
+
+requirements = [
+    [require, Unicode_implementation]
+]
+
+LibDescription  ={
+    useStatus   ='dynamic'
+    description ='Library for Unicode'
+    features    =[Unicode]
+    platforms   =[Linux, OS-X_Devices, Windows]
+}
+
+
+struct unicodeMgr{
+
+}

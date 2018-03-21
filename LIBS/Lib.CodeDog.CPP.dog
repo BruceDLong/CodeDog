@@ -27,6 +27,10 @@ struct stream{
 }
 
 struct GLOBAL{
+    me uint: shiftLeft (me uint: bits, me uint: shft) <- <% !%1 << %2 %>
+    me uint: shiftRight(me uint: bits, me uint: shft) <- <% !%1 >> %2 %>
+    me uint: AndBits(me uint: bits, me uint: shft) <- <% !%1 & %2 %>
+    me uint: OrBits (me uint: bits, me uint: shft) <- <% !%1 | %2 %>
     me void: endFunc(me int: val) <- <%!return(0)%>
     me int: randInt(me int: val) <- <%!(rand() % %1)%>
     me string: toString(me int: val) <- <%!std::to_string(%1)%>

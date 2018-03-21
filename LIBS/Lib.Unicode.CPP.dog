@@ -1,0 +1,56 @@
+/- CodeDog Unicode Library
+requirements = [
+    [tagOneOf, Platform, [Linux, OS-X_Devices, Windows]]
+]
+
+interface={
+    provides=[Unicode_implementation]
+    libFiles=[]
+    headers=[]
+}
+
+LibDescription  ={
+    useStatus   ='dynamic'
+    description ='Unicode for CPP'
+    features    =[]
+    platforms   =[Linux, OS-X_Devices, Windows]
+    bindings    =[C, CPP, perl, python]
+    CPUs        =[i386, amd64, arm7]
+}
+
+embedHigh = `
+static const char trailingBytesForUTF8[256] = {
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,4,4,4,4,5,5,5,5
+};
+
+#define isutf(c) (((c)&0xC0)!=0x80)
+#define remainingOctets(chr) (trailingBytesForUTF8[(unsigned int)(unsigned char)chr])
+
+`
+struct GLOBAL{
+    me int: getUTF8c(me string: str, their uint: pos, their uint: out) <- <%{
+        unsigned char c;
+        (*out) = 0;
+        c=str[(*pos)++]; if(c==0) return 0;
+        (*out)+=c;
+        int remaining=remainingOctets(c);
+        if(remaining>3) return 0; // Too many bytes.
+        for (int n=1; n<=remaining; ++n){
+            c=str[(*pos)++]; if(c==0) return 0;
+            if(isutf(c)) return 0;  // Invalid utf8 octet
+            (*out) <<= 8; (*out)+=c;
+        }
+        return 1;
+    }%>
+}
+
+struct unicodeMgr{
+
+}

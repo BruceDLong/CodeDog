@@ -35,4 +35,13 @@ struct GLOBAL{
     void: movePutChar(me int: X, me int: Y, me char: ch) <- <%!mvaddch(%2, %1, %3)%>
     void: movePutStr(me int: X, me int: Y, me string: s) <- <%!mvaddstr(%2, %1, %3)%>
     me int: getChar() <- <%!getch()%>
+
+    void: waitForSpacePressed(me bool: guiMode) <- <%{
+        wint_t key=0;
+        while(key!=' '){
+            if(!guiMode && key==KEY_RESIZE && isendwin()) endwin();
+            key = getch();
+        }
+    }%>
+
 }
