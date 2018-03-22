@@ -72,8 +72,8 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
             libStr += libFile
             libStr += "` "
         else:
-            if libFile =='pthread': libStr += '-pthread';
-            else: libStr += "-l"+libFile
+            if libFile =='pthread': libStr += '-pthread ';
+            else: libStr += "-l"+libFile+ " "
         #print "libStr: " + libStr
     currentDirectory = currentWD = os.getcwd()
     #TODO check if above is typo
