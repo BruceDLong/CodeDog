@@ -21,6 +21,7 @@ struct GLOBAL{
 
 struct charX {
     me uint: ch
+    me uint: colorCode
     me uint: chWidth
 }
 
@@ -417,14 +418,13 @@ struct readMultiLine {
             else {attrOff(A_BOLD)}                                       /- Highlight the current EntryX
             if(1 or mgr.allDirty or mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx].dirty){
                 attrOn(getColorPair(6) + A_REVERSE)
-                /* /- this sets the margin
-                if(prevEntrySetID != mgr.entries[rowItr.entriesIdx]){
-                    movePutChar(0, rowInt+mgr.wndStartY, promptChars[shiftRight(AndBits(EntryAttrs, 240), 4)])
-                    prevEntrySetID <- mgr.entries[rowItr.entriesIdx]
-                } else {movePutChar(0, rowInt+mgr.wndStartY, promptChars[0])}
-                */
-                if(promptWidth>0){movePutChar(0, rowInt+mgr.wndStartY, promptChars[0])}
-                else if (promptWidth==0){movePutStr(0, rowInt+mgr.wndStartY,"")}
+                if(promptWidth>0){
+                    /- this sets the margin
+                    if(!(prevEntrySetID === mgr.entries[rowItr.entriesIdx])){
+                        movePutChar(0, rowInt+mgr.wndStartY, promptChars[shiftRight(AndBits(EntryAttrs, 240), 4)])
+                        prevEntrySetID <- mgr.entries[rowItr.entriesIdx]
+                    } else {movePutChar(0, rowInt+mgr.wndStartY, promptChars[0])}
+                } else {movePutStr(0, rowInt+mgr.wndStartY,"")}
                 attrOff(A_REVERSE)
                 if(Mode==1) {attrOn(getColorPair(8))}
                 else if(EntryAttrs>0) {attrOn(getColorPair(AndBits(EntryAttrs, 7)))}
@@ -432,9 +432,9 @@ struct readMultiLine {
                 /- Print each character
                 their lineX: lx <- mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx]
                 withEach ch in lx.chars:{
-                 /-   colorCode <- ch.flags
+                    colorCode <- ch.colorCode
                     if(colorCode>0) {attrOn(getColorPair(colorCode))}
-                    else if(EntryAttrs>0) {attrOn(getColorPair(EntryAttrs==7))}
+                    else if(EntryAttrs>0) {attrOn(getColorPair(AndBits(EntryAttrs, 7)))}
                     else {attrOn(getColorPair(1))}
                     putChar(ch.ch)
                 }
