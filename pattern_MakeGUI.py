@@ -294,7 +294,7 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
             print"ERROR: unknown fieldSpec in BuildGuiForList::::::::", fieldSpec
             exit(1)
 
-    CODE =  'struct '+newStructName+'''{
+    CODE =  '''struct <NEWSTRUCTNAME>{
     our <CLASSNAME>[their list]: <CLASSNAME>_ListData
     our <CLASSNAME>: crntRecord
     their GUI_Frame: makeListViewWidget(our <CLASSNAME>[their list]: Data) <- {
@@ -326,7 +326,7 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
 }
 '''
 
-    CODE = CODE.replace('<STRUCTNAME>', newStructName)
+    CODE = CODE.replace('<NEWSTRUCTNAME>', newStructName)
     CODE = CODE.replace('<CLASSNAME>', className)
     CODE = CODE.replace('<WIDGETINITFUNCCODE>', widgetInitFuncCode)
     CODE = CODE.replace('<LISTFIELDSCODE>', listFieldsCode)
@@ -334,7 +334,6 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
     CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
-
 
 def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     # This makes 4 types of changes to the class:
@@ -406,19 +405,35 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     if dialogStyle == 'Z_stack': containerWidget='makeStoryBoardWidget("makeStoryBoardWidget")\n'
     else: containerWidget='makeFrameWidget()\n'
 
-    newWidgetFields += '\n\n    their '+className+': '+className+'_data\n'
-    widgetInitFuncHeader   = '\ntheir GUI_Frame: '+initFuncName+'(their '+className+': Data) <- {\n'
-    widgetInitFuncDataInit = '        '+className+'_data<-Data\n'
-    widgetInitFuncCode     = widgetInitFuncHeader + widgetInitFuncDataInit +'        their GUI_Frame:box <- '+containerWidget + widgetInitFuncCode + '        return(box)\n  }\n'
-    widgetFromVarsCode     = '    void: setValue(their '+className+': var) <- {\n' + widgetFromVarsCode + '    }\n'
-    varsFromWidgetCode     = '    void: getValue() <- {\n' + varsFromWidgetCode + '    }\n'
-    parentStructFields     = ''
-    GUI_StructFields       = newWidgetFields + widgetInitFuncCode + widgetFromVarsCode #+ varsFromWidgetCode
-    CODE =  'struct '+newStructName+" {\n" + GUI_StructFields + '\n}\n'         # Add the new fields to the GUI manager struct
-    CODE += 'struct '+className + " {\n" + parentStructFields + '\n}\n'         # Add the new fields to the parent struct
+    CODE =  '''
+struct <CLASSNAME> {}
+struct <NEWSTRUCTNAME> {
+    <NEWWIDGETFIELDS>
+    their <CLASSNAME>: <CLASSNAME>_data
+    their GUI_Frame: <INITFUNCNAME>(their <CLASSNAME>: Data) <- {
+        <CLASSNAME>_data<-Data
+        their GUI_Frame:box <- <CONTAINERWIDGET>
+        <WIDGETINITFUNCCODE>
+        return(box)
+    }  
+    void: setValue(their <CLASSNAME>: var) <- {
+        <WIDGETFROMVARSCODE>    
+    }
+    void: getValue() <- { 
+        /-  <VARSFROMWIDGETCODE>
+    }
+}\n'''	# TODO: add <VARSFROMWIDGETCODE>
+    
+    CODE = CODE.replace('<NEWSTRUCTNAME>', newStructName)
+    CODE = CODE.replace('<NEWWIDGETFIELDS>', newWidgetFields)
+    CODE = CODE.replace('<CLASSNAME>', className)
+    CODE = CODE.replace('<WIDGETINITFUNCCODE>', widgetInitFuncCode)
+    CODE = CODE.replace('<INITFUNCNAME>', initFuncName)
+    CODE = CODE.replace('<WIDGETFROMVARSCODE>', widgetFromVarsCode)
+    CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
+    CODE = CODE.replace('<CONTAINERWIDGET>', containerWidget)
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
-
 
 def apply(classes, tags, topClassName):
     print "APPLY: in Apply\n"
