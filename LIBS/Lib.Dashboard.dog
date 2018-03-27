@@ -81,7 +81,7 @@ struct dashboard: inherits = 'widget'{
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
         /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
-        cr.setRGB(0, 0, 0)
+        cr.setRGB(100, 100, 200)
         cr.paintNow()
 
      /-   cr.moveTo(0,0); cr.lineTo(width, height); cr.setRGBA(255, 50, 50, 255); cr.strokeNow();

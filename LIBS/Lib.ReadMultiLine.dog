@@ -13,11 +13,6 @@ LibDescription  ={
 
 deinitCode = "endwin()"
 
-struct GLOBAL{
-    me bool: readMultiLineGUIMode
-}
-
-
 
 struct charX {
     me uint: ch
@@ -217,7 +212,7 @@ struct linesMngr {
     void: backTab()     <- {}
     void: doTab()       <- {}
     void: clearAll()    <- {}
-    void: clearToEOL()  <- {crntLine().erase(crntLine().front()+charsToCur, crntLine().end())}
+    void: clearToEOL()  <- {crntLine().erase(crntLine().front()+charsToCur, crntLine().end()); entries[currentLine.entriesIdx].lines[currentLine.linesIdx].dirty <- true}
     void: occludeHist() <- {} /- Toggle
     void: prevHist()    <- {}
     void: nextHist()    <- {}
@@ -252,6 +247,7 @@ struct linesMngr {
         charsToCur <- 0
         widthToCur <- 0
         curMax <- widthToCur
+        allDirty <- true
     }
 
     void: doDelete() <- {
@@ -268,6 +264,7 @@ struct linesMngr {
         } else{ crntLine().erase(crntLine().front()+charsToCur);}
         widthToCur <- calcWidthToCursor(crntLine(), charsToCur);
         curMax <- widthToCur
+        allDirty <- true
     }
 
     me string: fetchBuffer(me string: result) <- {
@@ -303,6 +300,7 @@ struct readMultiLine {
     me uint:            cmd
     me string:          promptChars
     me string:          message
+    me bool:            readMultiLineGUIMode
 
     me string: charConsts <- " \n"
 
@@ -416,7 +414,8 @@ struct readMultiLine {
             EntryAttrs <- mgr.entries[rowItr.entriesIdx].attrs
             if(rowItr.entriesIdx==mgr.currentLine.entriesIdx) {attrOn(A_BOLD)}
             else {attrOff(A_BOLD)}                                       /- Highlight the current EntryX
-            if(1 or mgr.allDirty or mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx].dirty){
+            if(mgr.allDirty or mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx].dirty){
+                mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx].dirty <- false
                 attrOn(getColorPair(6) + A_REVERSE)
                 if(promptWidth>0){
                     /- this sets the margin
@@ -444,6 +443,7 @@ struct readMultiLine {
             rowInt <- rowInt +1
             if(!mgr.nextLine(rowItr)) {break()}
         }
+        mgr.allDirty <- false
         if(mgr.linesDeleted and rowInt<mgr.wndHeight){
             moveCursor(rowInt+mgr.wndStartY,0)
             clearToBottom()
@@ -470,7 +470,7 @@ struct readMultiLine {
         if(true){
             their EntryX: ex
             Allocate(ex)
-            ex.attrs <- 1 + shiftLeft(1, 4)
+            ex.attrs <- 0 + shiftLeft(1, 4)
             me string: initMesg <- ""
             their posRecStore: text
             Allocate(text, initMesg)

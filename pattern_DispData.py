@@ -278,6 +278,10 @@ struct display_'''+className+": inherits = 'dash' "+'''{
 
     void: update(me string: _label, me string: textValue, their '''+className+''': _Data) <- {
         data <- _Data
+        if(data==NULL){
+            header.update(90, 150, _label, "NULL", false)
+            return()
+        }
         header.update(90, 150, _label, textValue, false)
         displayMode<-headerOnly
 '''+self.updateFuncTextAcc+'''
