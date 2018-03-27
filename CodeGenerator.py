@@ -727,7 +727,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
             print "File iteration not implemeted yet.\n"
             exit(2)
         elif(keyRange):
-            [repContainer, containerType] = xlator['codeExpr'](keyRange[0][0], objsRefed, xlator)
+            [repContainer, containerType] = xlator['codeExpr'](keyRange[0][0], objsRefed, None, xlator)
             [StartKey, StartType] = xlator['codeExpr'](keyRange[2][0], objsRefed, None, xlator)
             [EndKey,   EndType] = xlator['codeExpr'](keyRange[4][0], objsRefed, None, xlator)
 
@@ -1437,7 +1437,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
             elif pattName=='ManageCmdLine':      pattern_ManageCmdLine.apply(classes, newTags)
             elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, newTags, patternArgs[0])
             elif pattName=='codeModelDashes':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
-            elif pattName=='codeDataDisplay': pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
+            elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
             elif pattName=='codeModelToString':  pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'text')
             elif pattName=='codeModelToProteus': pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'Proteus')
            # elif pattName=='codeModelToGUI':     pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'toGUI')
