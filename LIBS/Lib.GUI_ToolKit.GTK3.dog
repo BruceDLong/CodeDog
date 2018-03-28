@@ -185,6 +185,7 @@ struct GLOBAL{
     their GtkWidget: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
     their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
     their GtkWidget: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
+    their GtkWidget: makeMakeXStackWidget(me string: label)  <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
     their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
     their GtkWidget: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
 
