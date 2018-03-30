@@ -122,8 +122,8 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     void: allocateNewCurrentItem() <- {Allocate(crntRecord)}
     void: pushCrntToList() <- {<STRUCTNAME>_ListData.pushLast(crntRecord)}
     void: pushCrntToListView() <- {
-	<STRUCTNAME>_listView.<STRUCTNAME>_ListData.pushLast(crntRecord)
-	<STRUCTNAME>_listView.insertNewRow(crntRecord)	
+		<STRUCTNAME>_listView.<STRUCTNAME>_ListData.pushLast(crntRecord)
+		<STRUCTNAME>_listView.insertNewRow(crntRecord)	
     }
     void: deleteNthItem(me int: N) <- {}
     void: copyCrntBackToList() <- {}
@@ -271,13 +271,16 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
                 classesToProcess.append([structTypeName, 'list', 'Dialog', guiStructName])
         elif(fldCat!='struct'):
             rowHeaderCode   += '        their GUI_Frame: '+fieldName + '_header <- makeLabelWidget("'+fieldName+'")\n'
+            rowHeaderCode   += '        setLabelWidth('+fieldName+'_header, 15)\n'
             rowHeaderCode   += '        addToContainer(headerBox, '+fieldName+'_header)\n'
             if fieldSpec=='string':
                 rowViewCode += '        their GUI_Frame: '+fieldName + '_value <- makeLabelWidget(crntRecord.'+fieldName+'.data())\n'
+                rowViewCode += '        setLabelWidth('+fieldName+'_value, 15)\n'
                 rowViewCode += '        addToContainer(rowBox, '+fieldName+'_value)\n'
                 rowViewCode += '        showWidget('+fieldName+'_value)\n'
             elif fieldSpec=='int' or fieldSpec=='enum' or fieldSpec=='mode':
                 rowViewCode += '        their GUI_Frame: '+fieldName + '_value <- makeLabelWidget(toString(crntRecord.'+fieldName+').data())\n'
+                rowViewCode += '        setLabelWidth('+fieldName+'_value, 15)\n'
                 rowViewCode += '        addToContainer(rowBox, '+fieldName+'_value)\n'
                 rowViewCode += '        showWidget('+fieldName+'_value)\n'
             else:
@@ -290,9 +293,6 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
     their GUI_Frame: 	box 
     our listWidget:    	listWid
     
-    void: refreshListView()  <- {
-		
-    }
     void: insertNewCrntRecord(our <CLASSNAME>: item)  <- {
 		crntRecord <- item
 		<CLASSNAME>_ListData.pushLast(crntRecord)
@@ -315,6 +315,7 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
         <CLASSNAME>_ListData<-Data
         box <- makeFrameWidget()
         listWid <- makeListWidget("")
+        setListWidgetSelectionMode (listWid, SINGLE)
         addToContainer(box, listWid)
         their GUI_Frame: headerRow <- makeRowWidget("")
         their GUI_Frame: headerBox <- makeMakeXStackWidget("")

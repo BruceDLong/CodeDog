@@ -33,6 +33,7 @@ struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_scalar{me int: GUI_scalar}
 /-struct GUI_label{their textView: GUI_label}
+struct listWidget{their GtkWidget: listWidget}
 
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
@@ -107,8 +108,6 @@ struct enumWidget{
 struct boolWidget{
 
 }
-
-struct listWidget{their GtkWidget: listWidget}
 
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
@@ -188,6 +187,10 @@ struct GLOBAL{
     their GtkWidget: makeMakeXStackWidget(me string: label)  <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
     their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
     their GtkWidget: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
+    me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
+    me void: setListWidgetSelectionMode(their listWidget: listWid, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
+    me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
+    their GtkWidget: getListRowSelected(their listWidget: listWid) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
 
     their GtkWidget: makeListEditorWidget(their GtkWidget: listWidget) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
