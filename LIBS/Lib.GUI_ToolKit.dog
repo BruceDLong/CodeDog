@@ -79,7 +79,13 @@ struct GUI_ctxt {
 }
 
 
-struct color{}
+struct color{
+    me uint: red
+    me uint: green
+    me uint: blue
+    me uint: alpha
+}
+
 struct colorScheme{}
 struct fontSpec{}
 struct fontScheme{}

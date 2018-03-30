@@ -271,19 +271,21 @@ struct GLOBAL{
 
         Code='''
 struct display_'''+className+": inherits = 'dash' "+'''{
+    me bool: isChanged
     me dataField: header
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     their '''+className+''': data
 '''+self.structTextAcc+'''
 
     void: update(me string: _label, me string: textValue, their '''+className+''': _Data) <- {
+        isChanged <- !(data === _Data)
         data <- _Data
         if(data==NULL){
             header.update(90, 150, _label, "NULL", false)
             return()
         }
         header.update(90, 150, _label, textValue, false)
-        displayMode<-headerOnly
+        if(isChanged){displayMode<-headerOnly}
 '''+self.updateFuncTextAcc+'''
 
 '''+self.updateFuncTextPart2Acc+'''
@@ -330,8 +332,11 @@ struct display_'''+className+": inherits = 'dash' "+'''{
         header.draw(cr)
         if(displayMode!=headerOnly){
 '''+self.drawFuncTextAcc+'''
+            if(isChanged){cr.setRGBA(255, 255, 0, 255)}
+            else{cr.setRGBA(0, 0, 0, 255)}
             cr.rectangle(posX, posY, width, height)
             cr.strokeNow()
+            cr.setRGBA(0, 0, 0, 255)
 '''+self.drawFuncTextPart2Acc+'''
         }
     }
@@ -353,7 +358,8 @@ struct display_'''+className+": inherits = 'dash' "+'''{
 
         elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
             innerUpdateFuncStr = '"Size:"+toString(data.'+fieldName+'.size())'
-            updateFuncText="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'))\n'
+            updateFuncText+="        "+ "me bool: doClear <- (data."+fieldName+".size() != "+fieldName+".elements.size())\n"
+            updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'), doClear)\n'
              ## Now push each item
             innerFieldType=typeSpec['fieldType']
             #print "ARRAYSPEC:",innerFieldType, field
@@ -361,9 +367,13 @@ struct display_'''+className+": inherits = 'dash' "+'''{
             newFieldRef=fieldName+'[_item_key]'
             newFieldLabel='"'+fieldName+'["+toString(_item_key)+"]"'
             updateFuncText+="\n        withEach _item in data."+fieldName+":{\n"
-            [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '    ')
-            updateFuncText+=innerStructText+'\n        Allocate(newItem)\n'+innerUpdateFuncText
-            updateFuncText+="\n        "+fieldName+'.updatePush(newItem)'
+            [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '        ')
+            updateFuncText+="\n        "+"if(doClear){\n        "
+            updateFuncText+=innerStructText+'            Allocate(newItem)\n    '+innerUpdateFuncText
+            updateFuncText+="            "+fieldName+'.updatePush(newItem)'
+            updateFuncText+="\n        } else {\n"
+            updateFuncText+="            " # + static_pointer_cast<display_infon>(items.elements[_itemIdx])->update("items[" + std::to_string(_item_key) + "]", ">", data->items[_item_key].get());
+            updateFuncText+='\n        }'
             updateFuncText+='\n        }\n'
             structText += "    "+owner+" listOfItems: "+fieldName+"\n"
         elif(fldCat=='struct'):  # Header for a STRUCT
