@@ -150,13 +150,18 @@ struct retriever{
         me int: numItemsAdded <- 0
         our infDeepItr: remainder <- NULL
         if(agendaLHS_state == sNotASeq or agendaLHS_state == sFirstVisit){
-            if(!RHS_Empty){ /- and agendaItem.RHS.state != sSecondVisit){
-                remainder <- parentAgent.tryMERGE(agendaItem)
-                if(agendaItem.rejected){return();}
+            if(!RHS_Empty){
+                if(agendaItem.RHS.state != sSecondVisit){
+                    remainder <- parentAgent.tryMERGE(agendaItem)
+                    if(agendaItem.rejected){return();}
+                } else {
+                    if(agendaItem.RHS.crntCursor.item.itmMode!=mSubItems){ /- TODO: Or if parent is in concat
+                        return()
+                    }
+                }
             }
 
             if(LHS.nestLvl == 0 and agendaLHS_state == sNotASeq){   /- Stitching
-                print(">>>")
                 parentAgent.stitch(agendaItem, "")
             }
 
@@ -170,7 +175,7 @@ struct retriever{
                     } else {}  /- Subscribe
                 }
             }
-           /- if(agendaItem.RHS.state == sEOL){return()}
+
         } else if(agendaLHS_state == sSecondVisit){
             if(readyToResolve(agendaItem)){
                 our aItem: topItem <- resolve(agendaItem, "    resolve: ")
