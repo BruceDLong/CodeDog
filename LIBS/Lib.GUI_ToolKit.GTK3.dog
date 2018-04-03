@@ -112,11 +112,18 @@ struct boolWidget{
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
-    their GtkWidget: editorFrame
-    their GtkWidget: addBtn
-    their GtkWidget: deleteBtn
-    their GtkWidget: editBtn
-
+    their GtkWidget: 	     editorFrame
+    their listWidget: 	     listWidget
+    their GtkWidget: 	     addBtn
+    their GtkWidget: 	     deleteBtn
+    their GtkWidget: 	     editBtn
+    me int: 		     crntIndex <- 0
+    
+    void: handleOnListClick(me int: idx) <- <% {
+	cout << "List Clicked at index: "<< to_string(idx)<<"\n";
+	crntIndex = idx;
+	listWidgetMgr->setCurrentItem(crntIndex);
+    } %>
     void: handleAdd() <- <% {
         cout << "Add Btn Clicked\n";
         listWidgetMgr->allocateNewCurrentItem();
@@ -139,15 +146,15 @@ struct ListManagerBox{
         gtk_widget_destroy(AddItemDialog);
 
     } %>
-    void: handleDelete() <- {
-        print("Delete Btn Clicked\n")
-    }
-    void: handleEdit() <- {
-        print("Edit Btn Clicked\n")
-    }
+    void: handleDelete() <- <% {
+	cout << "Delete Btn Clicked\n";
+    } %>
+    void: handleEdit() <- <%{
+	cout << "Edit Btn Clicked\n";
+    }%>
     their GtkWidget: init_dialog(their ListWidgetManager: LEWM) <- <% {
         listWidgetMgr = LEWM;
-        GtkWidget* listWidget = listWidgetMgr->makeListViewWidget();
+        listWidget = listWidgetMgr->makeListViewWidget();
         editorFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_box_pack_start(GTK_BOX(editorFrame), listWidget, true, true, 0);
 
@@ -161,7 +168,8 @@ struct ListManagerBox{
         gtk_box_pack_start(GTK_BOX(btnBox), editBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(editorFrame), btnBox, false, true, 0);
 
-        g_signal_connect(G_OBJECT(addBtn), "clicked", G_CALLBACK(ListEditorHandleAdd), this);
+        g_signal_connect(G_OBJECT(listWidget), "row-selected", G_CALLBACK(ListEditorHandleListClick), this);
+	g_signal_connect(G_OBJECT(addBtn), "clicked", G_CALLBACK(ListEditorHandleAdd), this);
         g_signal_connect(G_OBJECT(deleteBtn), "clicked", G_CALLBACK(ListEditorHandleDelete), this);
         g_signal_connect(G_OBJECT(editBtn), "clicked", G_CALLBACK(ListEditorHandleEdit), this);
 
@@ -209,6 +217,11 @@ struct GLOBAL{
     }%>
 }
 struct GLOBAL{
+    void: ListEditorHandleListClick(their GtkListBox: box, their GtkListBoxRow: row, their void: user_data) <- <% {
+	ListManagerBox *listMgrBox =(ListManagerBox *)user_data;
+	int idx = gtk_list_box_row_get_index(gtk_list_box_get_selected_row(box));
+	listMgrBox->handleOnListClick(idx);
+    } %>
     void: ListEditorHandleAdd(their GtkWidget: wid, their ListManagerBox: listMgrBox) <- {
         listMgrBox.handleAdd()
     }

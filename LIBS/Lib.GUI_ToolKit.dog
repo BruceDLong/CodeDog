@@ -209,6 +209,7 @@ struct ListWidgetManager{
     void: handleAdd() <- {}
     void: handleDelete() <- {}
     void: handleEdit() <- {}
+    void: setCurrentItem(me int: idx) <- {}
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }
