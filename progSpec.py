@@ -496,11 +496,14 @@ def getTypeSpecOwner(typeSpec):
         else: return 'me'
     return typeSpec['owner']
 
-def typeIsPointer(typeSpec):
-    owner=getTypeSpecOwner(typeSpec)
+def ownerIsPointer(owner):
     if owner == 'their' or owner == 'our' or owner == 'my' or owner == 'itr' or owner == 'id_their' or owner == 'id_our': isPointer=True
     else: isPointer=False
     return isPointer
+
+def typeIsPointer(typeSpec):
+    owner=getTypeSpecOwner(typeSpec)
+    return ownerIsPointer(owner)
 
 def fieldIsFunction(typeSpec):
     if typeSpec==None: return False

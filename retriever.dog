@@ -58,6 +58,17 @@ struct priorityQ{
         return(min)
     }
 
+    me bool: isDuplicate(our aItem: agendaItem) <- {
+        me bool: retVal<-false
+        withEach item in PQ from agendaItem.priority to agendaItem.priority:{
+            retVal<-true
+            if(!(agendaItem.LHS.crntCursor===item.LHS.crntCursor)){return(false)}
+            if(!(agendaItem.RHS.crntCursor===item.RHS.crntCursor)){return(false)}
+        }
+        if(retVal){print("DUPLICATE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")}
+        return(retVal)
+    }
+
     me bool: isEmpty() <- {
         return(PQ.size() == 0)
     }
@@ -70,10 +81,9 @@ struct retriever{
     their agent: parentAgent
 
     void: addItem(our aItem: agendaItem)<-{
-        /-if(agendaItem.RHS.state == sEOL){print ("@@@ ")}
-        /- push onto heap and verify no duplicates
-        /-print ("*********retriever.addItem: ", agendaItem.printAgendaItem() ,"\n")
-        agenda.push(agendaItem)
+        if(!agenda.isDuplicate(agendaItem)){
+            agenda.push(agendaItem)
+        }
     }
 
     void: printAgenda()<-{
