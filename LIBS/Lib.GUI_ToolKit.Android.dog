@@ -34,12 +34,12 @@ LibDescription ={
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me View: GUI_item}
+struct GUI_Frame{me LinearLayout:GUI_Frame}
 struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
 struct GUI_menu{me ourSubMenu: GUI_menu}
 struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me CanvasView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
-struct GUI_Frame{me LinearLayout:GUI_Frame}
 struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
@@ -53,53 +53,87 @@ struct GUI_storyBoard: inherits="FragmentActivity" {
 }
 
 struct intWidget{
-    their LinearLayout: intWidget
-    me string: getValue() <- <%!Integer.parseInt(%0.getText().toString())%>
-    me string: setValue(me int: val) <- {}
-}
+    their LinearLayout: box
+    their TextView: dataLabel
+    their TextView: dataValue
 
+    me void: getValue() <- {}
+    me void: setValue() <- {}
+
+    their LinearLayout: makeIntWidget(me string: name)  <- <%{
+        box = new LinearLayout(GLOBAL.static_Global);
+        dataLabel = new TextView(GLOBAL.static_Global);
+	dataLabel.setText(name);
+        box.addView(dataLabel);
+        dataValue = new TextView(GLOBAL.static_Global);
+	dataValue.setText(name);
+        box.addView(dataValue);
+        return box;
+    }%>
+}
 struct stringWidget{
-    their LinearLayout: stringWidget
-    me string: getValue() <- <%!getText().toString()%>
-    me string: setValue(me string: val) <- {}
+    their LinearLayout: box
+    their TextView: dataLabel
+    their TextView: dataValue
+
+    me void: getValue() <- {}
+    me void: setValue() <- {}
+
+    their LinearLayout: makeStringWidget(me string: name) <- <%{
+        box = new LinearLayout(GLOBAL.static_Global);
+        dataLabel = new TextView(GLOBAL.static_Global);
+	dataLabel.setText(name);
+        box.addView(dataLabel);
+        dataValue = new TextView(GLOBAL.static_Global);
+	dataValue.setText(name);
+        box.addView(dataValue);
+        return box;
+    } %>
 }
 struct enumWidget{
-    their LinearLayout: enumWidget
-    me string: getValue() <- <%!atoi(gtk_combo_box_text_get_active_text((GtkComboBoxText*)%0))%>
-    me string: setValue(me int: val) <- {}
+    their LinearLayout: box
+    their TextView: dataLabel
+    their TextView: dataValue
+    me string[list]: options
+
+    me void: getValue() <- {}
+    me void: setValue() <- {}
+
+    their LinearLayout: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
+        options = Options;
+        box = new LinearLayout(GLOBAL.static_Global);
+        return box;
+    }%>
 }
 struct boolWidget{
     their CheckBox: checkBox
 }
 
 struct listWidget{their LinearLayout: listWidget}
-struct GUI_Frame{their LinearLayout: GUI_Frame}
-
-
 
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
-    their ListWidgetManager: parent
+    their ListWidgetManager: listWidgetMgr
     their RelativeLayout: editorFrame
+    their View: listWidget
     their FloatingActionButton: addBtn
     their FloatingActionButton: deleteBtn
     their FloatingActionButton: editBtn
-    their GUI_item: listWidget
 
-    void: handleAdd() <- <%{parent.handleAdd();}%>
+    void: handleAdd() <- <%{listWidgetMgr.handleAdd();}%>
 
-    void: handleDelete() <- <%{parent.handleDelete();}%>
+    void: handleDelete() <- <%{listWidgetMgr.handleDelete();}%>
 
-    void: handleEdit() <- <%{parent.handleEdit();}%>
+    void: handleEdit() <- <%{listWidgetMgr.handleEdit();}%>
 
     their RelativeLayout: init_dialog(their ListWidgetManager: Parent) <- <% {
-        parent = Parent;
+        listWidgetMgr = Parent;
         // EDITOR FRAME
         editorFrame = new RelativeLayout(GLOBAL.static_Global);
         RelativeLayout.LayoutParams editorFrameParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
         editorFrame.setLayoutParams(editorFrameParams);
         // LIST WIDGET
-        listWidget = parent.makeEditableWidget();
+        listWidget = listWidgetMgr.makeListViewWidget();
         editorFrame.addView(listWidget);
         // ADD BUTTON
         addBtn = new FloatingActionButton(GLOBAL.static_Global);
@@ -143,7 +177,7 @@ struct ListManagerBox{
     } %>
 
 /-//// Code Converters
-    me void: gtk_label_new() <- <%!addView(%1)%>
+    /-me void: gtk_label_new() <- <%!addView(%1)%>
 }
 
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
