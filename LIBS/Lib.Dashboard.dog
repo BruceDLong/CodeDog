@@ -84,8 +84,6 @@ struct dashboard: inherits = 'widget'{
         cr.setRGB(100, 100, 200)
         cr.paintNow()
 
-     /-   cr.moveTo(0,0); cr.lineTo(width, height); cr.setRGBA(255, 50, 50, 255); cr.strokeNow();
-
         cr.setRGBA(0, 0, 0, 255)
         cr.setLineWidth(2)
         withEach Dash in children:{
@@ -188,11 +186,13 @@ struct listOfItems: inherits = 'dash' {
     me dataField: header
     our dash[list]: elements
 
-    void: update(me string: Label, me string: textValue, me bool: hideThis) <- {
+    void: update(me string: Label, me string: textValue, me bool: hideThis, me bool: clear <- true) <- {
         isNullLike<-hideThis
         header.update(90, 150, Label, textValue, false)
-        elements.clear()
-        displayMode<-headerOnly
+        if(clear){
+            elements.clear()
+            displayMode<-headerOnly
+        }
     }
 
     void: updatePush(our dash: element) <- {

@@ -684,11 +684,13 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,containerType,ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText = ""
     loopCounterName = ""
     containedType=containerType['fieldType']
+    if progSpec.ownerIsPointer(ContainerOwner): connector="->"
+    else: connector = "."
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
 
     if datastructID=='multimap' or datastructID=='map':
@@ -697,7 +699,7 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'->lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + repContainer+'->upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+connector+'lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + repContainer+connector+'upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
 
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):

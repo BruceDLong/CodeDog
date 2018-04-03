@@ -735,7 +735,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
             wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerType['fieldType'][0])
             if(wrappedTypeSpec != None):containerType=wrappedTypeSpec
 
-            [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator)
+            [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerType,ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator)
             actionText += actionTextOut
 
         else: # interate over a container
