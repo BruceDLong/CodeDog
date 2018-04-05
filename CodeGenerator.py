@@ -839,7 +839,7 @@ def codeActionSeq(actSeq, indent, objsRefed, returnType, xlator):
         localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
-def codeConstructor(classes, ClassName, tags, xlator):
+def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
     baseType = progSpec.isWrappedType(classes, ClassName)
     if(baseType!=None): return ''
     if not ClassName in classes[0]: return ''
@@ -863,23 +863,22 @@ def codeConstructor(classes, ClassName, tags, xlator):
 
         cdlog(4, "                        Constructing: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
         if not isinstance(fieldType, basestring): fieldType=fieldType[0]
+        defaultVal=''
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
                 defaultVal = "NULL"
-                constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
-                constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
-                count += 1
         elif (isinstance(fieldType, basestring)):
             if(fieldType[0:3]=="int" or fieldType[0:4]=="uint"):
                 defaultVal = "0"
-                constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
-                constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
-                count += 1
             elif(fieldType=="string"):
                 defaultVal = '""'
-                constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
-                constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
-                count += 1
+            else: # handle structs if needed
+                if 'value' in field and field['value']!=None:
+                    [defaultVal, defaultValueType] = xlator['codeExpr'](field['value'][0], objsRefed, None, xlator)
+        if defaultVal != '':
+            constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
+            constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
+            count += 1
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
@@ -1050,7 +1049,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
     # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
     if MakeConstructors=='True' and (className!='GLOBAL')  and (className!='widget'):
-        constructCode=codeConstructor(classes, className, tags, xlator)
+        constructCode=codeConstructor(classes, className, tags, objsRefed, xlator)
         structCodeAcc+= "\n"+constructCode
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
