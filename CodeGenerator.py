@@ -1,5 +1,6 @@
 # CodeGenerator.py
 import re
+import copy
 import datetime
 import platform
 import codeDogParser
@@ -78,21 +79,21 @@ def CheckFunctionsLocalVarArgList(itemName):
             return [item[1], 'FUNCARG']
     return 0
 
-def CheckObjectVars(objName, itemName, xlator):
-    #print "Searching",objName,"for", itemName
-    ObjectDef =  progSpec.findSpecOf(globalClassStore[0], objName, "struct")
-    if ObjectDef==None:
-        message = "ERROR: Model def not found for: "+ str(objName) + " : " + str(itemName)
+def CheckObjectVars(className, itemName):
+    #print "Searching",className,"for", itemName
+    ClassDef =  progSpec.findSpecOf(globalClassStore[0], className, "struct")
+    if ClassDef==None:
+        message = "ERROR: definition not found for: "+ str(className) + " : " + str(itemName)
         progSpec.setCurrentCheckObjectVars(message)
         return 0
     retVal=None
 
-    wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, objName)
+    wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, className)
     if(wrappedTypeSpec != None):
         actualFieldType=wrappedTypeSpec['fieldType']
         if not isinstance(actualFieldType, basestring):
-            #print "'actualFieldType", wrappedTypeSpec, actualFieldType, objName
-            retVal = CheckObjectVars(actualFieldType[0], itemName, xlator)
+            #print "'actualFieldType", wrappedTypeSpec, actualFieldType, className
+            retVal = CheckObjectVars(actualFieldType[0], itemName)
             if retVal!=0:
                 retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
                 return retVal
@@ -101,20 +102,27 @@ def CheckObjectVars(objName, itemName, xlator):
                 #print "WRAPPED FIELDNAME:", itemName
                 return wrappedTypeSpec
             else:
-                message = "ERROR: MODEL def not found for: "+ str(objName) + " : " + str(itemName)
+                message = "ERROR: MODEL def not found for: "+ str(className) + " : " + str(itemName)
                 progSpec.setCurrentCheckObjectVars(message)
                 return 0
 
     callableStructFields=[]
-    progSpec.populateCallableStructFields(callableStructFields, globalClassStore, objName)
+    progSpec.populateCallableStructFields(callableStructFields, globalClassStore, className)
     for field in callableStructFields:
         fieldName=field['fieldName']
         if fieldName==itemName:
             #print "Found", itemName
             return field
 
-    #print "WARNING: Could not find field",itemName ,"in", objName
+    #print "WARNING: Could not find field",itemName ,"in", className
     return 0 # Field not found in model
+
+def CheckClassStaticVars(className, itemName):
+    ClassDef =  progSpec.findSpecOf(globalClassStore[0], itemName, "struct")
+    if ClassDef==None:
+        return None
+    return [{'owner':'me', 'fieldType':[itemName], 'StaticMode':'yes'}, "CLASS:"+itemName]
+
 
 StaticMemberVars={} # Used to find parent-class of const and enums
 
@@ -143,7 +151,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
         if (REF): # RefType="LOCAL" or "FUNCARG"
             return REF
         else:
-            REF=CheckObjectVars(currentObjName, itemName, xlator)
+            REF=CheckObjectVars(currentObjName, itemName)
             if (REF):
                 RefType="OBJVAR"
                 if(currentObjName=='GLOBAL'): RefType="GLOBAL"
@@ -151,11 +159,15 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
                     RefOwner = progSpec.getTypeSpecOwner(REF['typeSpec'])
                     if RefOwner=='we': RefType = "STATIC:" + currentObjName + xlator['ObjConnector']
             else:
-                REF=CheckObjectVars("GLOBAL", itemName, xlator)
+                REF=CheckObjectVars("GLOBAL", itemName)
                 if (REF):
                     RefType="GLOBAL"
                 else:
-                    if(itemName in StaticMemberVars):
+                    REF=CheckClassStaticVars(currentObjName, itemName)
+                    if(REF):
+                        return REF
+
+                    elif(itemName in StaticMemberVars):
                         parentClassName = staticVarNamePrefix(itemName, '', xlator)
                         if(parentClassName != ''):
                             return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
@@ -182,7 +194,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
     bitCursor=0
     structEnums=""
     CodeDogAddendums = ""
-    ObjectDef = classes[0][className]
+    ClassDef = classes[0][className]
     for field in progSpec.generateListOfFieldsToImplement(classes, className):
         fieldType=field['typeSpec']['fieldType'];
         fieldName=field['fieldName'];
@@ -226,7 +238,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
 
                 bitCursor=bitCursor+numEnumBits;
     if structEnums!="": structEnums="\n\n// *** Code for manipulating "+className+' flags and modes ***\n'+structEnums
-    ObjectDef['flagsVarNeeded'] = flagsVarNeeded
+    ClassDef['flagsVarNeeded'] = flagsVarNeeded
     return [flagsVarNeeded, structEnums, CodeDogAddendums]
 
 typeDefMap={}
@@ -327,7 +339,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             exit(2)
         else:
             if fType!='string':
-                typeSpecOut=CheckObjectVars(fType, name, xlator)
+                typeSpecOut=CheckObjectVars(fType, name)
                 if typeSpecOut!=0:
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
@@ -408,7 +420,9 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
             # Detect connector to use '.' '->', '', (*...).
             connector='.'
             if(segType): # This is where to detect type of vars not found to determine whether to use '.' or '->'
-                if progSpec.wrappedTypeIsPointer(globalClassStore, segType, segName):
+                if 'StaticMode' in segType and segType['StaticMode']=='yes':
+                    connector = xlator['ObjConnector']
+                elif progSpec.wrappedTypeIsPointer(globalClassStore, segType, segName):
                     connector = xlator['PtrConnector']
                     #print "PTRTYPE:", segName, connector, segType
 
@@ -933,7 +947,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
         ############ CODE MEMBER VARIABLE ##########################################################
         if(fieldOwner=='const'):
-            structCode += xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, indent, xlator )
+            [structCode, funcDefCode] = xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, className, indent, xlator )
         elif(fieldArglist==None):
             [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent)
 
@@ -1034,7 +1048,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         funcDefCodeAcc += funcDefCode
         globalFuncsAcc += globalFuncs
 
-    # NOTE: Remove this Hard Coded widget. It should apply to any abstract class.
+    # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
     if MakeConstructors=='True' and (className!='GLOBAL')  and (className!='widget'):
         constructCode=codeConstructor(classes, className, tags, xlator)
         structCodeAcc+= "\n"+constructCode
