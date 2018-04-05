@@ -344,6 +344,7 @@ struct readMultiLine {
             withEach count in WHILE(getUTF8c(text.s.c_str(),p,ch)):{
                 if(count>2000){print("Infinite loop!\n"); exit(2);}
                 if(ch==charConsts[1]){      /- '\n'
+                    lx.dirty<-true
                     entry.lines.pushLast(lx)
                     Allocate(lx)
                     mgr.totalLines <- mgr.totalLines + 1
@@ -372,6 +373,7 @@ struct readMultiLine {
                 q<-p
             }
         }
+        lx.dirty<-true
         entry.lines.pushLast(lx)
         mgr.totalLines <- mgr.totalLines + 1
     }
