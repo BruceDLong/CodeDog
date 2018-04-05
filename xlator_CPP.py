@@ -766,8 +766,14 @@ def codeVarFieldRHS_Str(name,  convertedType, fieldOwner, paramList, objsRefed, 
         fieldValueText += CPL
     return fieldValueText
 
-def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
-    return indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
+    if className=='GLOBAL':
+        defn = indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+        decl = ''
+    else:
+        defn = indent + convertedType + ' ' + fieldName +';\n'
+        decl = convertedType[7:] + ' ' + progSpec.flattenObjectName(className) + "::"+ fieldName + fieldValueText +';\n\n'
+    return [defn, decl]
 
 def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     #TODO: make test case
