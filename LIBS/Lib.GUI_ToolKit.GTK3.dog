@@ -112,17 +112,17 @@ struct boolWidget{
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
-    their GtkWidget: 	     editorFrame
-    their listWidget: 	     listWidget
-    their GtkWidget: 	     addBtn
-    their GtkWidget: 	     deleteBtn
-    their GtkWidget: 	     editBtn
-    me int: 		     crntIndex <- 0
-    
+    their GtkWidget:         editorFrame
+    their listWidget:        listWidget
+    their GtkWidget:         addBtn
+    their GtkWidget:         deleteBtn
+    their GtkWidget:         editBtn
+    me int:                  crntIndex <- 0
+
     void: handleOnListClick(me int: idx) <- <% {
-	cout << "List Clicked at index: "<< to_string(idx)<<"\n";
-	crntIndex = idx;
-	listWidgetMgr->setCurrentItem(crntIndex);
+        cout << "List Clicked at index: "<< to_string(idx)<<"\n";
+        crntIndex = idx;
+        listWidgetMgr->setCurrentItem(crntIndex);
     } %>
     void: handleAdd() <- <% {
         cout << "Add Btn Clicked\n";
@@ -147,10 +147,10 @@ struct ListManagerBox{
 
     } %>
     void: handleDelete() <- <% {
-	cout << "Delete Btn Clicked\n";
+        cout << "Delete Btn Clicked\n";
     } %>
     void: handleEdit() <- <%{
-	cout << "Edit Btn Clicked\n";
+        cout << "Edit Btn Clicked\n";
     }%>
     their GtkWidget: init_dialog(their ListWidgetManager: LEWM) <- <% {
         listWidgetMgr = LEWM;
@@ -169,7 +169,7 @@ struct ListManagerBox{
         gtk_box_pack_start(GTK_BOX(editorFrame), btnBox, false, true, 0);
 
         g_signal_connect(G_OBJECT(listWidget), "row-selected", G_CALLBACK(ListEditorHandleListClick), this);
-	g_signal_connect(G_OBJECT(addBtn), "clicked", G_CALLBACK(ListEditorHandleAdd), this);
+        g_signal_connect(G_OBJECT(addBtn), "clicked", G_CALLBACK(ListEditorHandleAdd), this);
         g_signal_connect(G_OBJECT(deleteBtn), "clicked", G_CALLBACK(ListEditorHandleDelete), this);
         g_signal_connect(G_OBJECT(editBtn), "clicked", G_CALLBACK(ListEditorHandleEdit), this);
 
@@ -218,9 +218,9 @@ struct GLOBAL{
 }
 struct GLOBAL{
     void: ListEditorHandleListClick(their GtkListBox: box, their GtkListBoxRow: row, their void: user_data) <- <% {
-	ListManagerBox *listMgrBox =(ListManagerBox *)user_data;
-	int idx = gtk_list_box_row_get_index(gtk_list_box_get_selected_row(box));
-	listMgrBox->handleOnListClick(idx);
+        ListManagerBox *listMgrBox =(ListManagerBox *)user_data;
+        int idx = gtk_list_box_row_get_index(gtk_list_box_get_selected_row(box));
+        listMgrBox->handleOnListClick(idx);
     } %>
     void: ListEditorHandleAdd(their GtkWidget: wid, their ListManagerBox: listMgrBox) <- {
         listMgrBox.handleAdd()
@@ -357,6 +357,7 @@ struct GUI_ctxt {
     me void: reset() <- <%!%G %>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
+    me void: setColor(me Color: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
     me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
     me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>

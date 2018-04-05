@@ -6,6 +6,16 @@ requirements = [
 /- Set up a complete application: fonts, colors, a window/frame with a menu, toolbar, app area and optionally a statusbar.
 /- Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
 
+struct Color{
+    me uint: red
+    me uint: green
+    me uint: blue
+}
+
+struct ColorScheme{}
+struct FontSpec{}
+struct FontScheme{}
+
 struct deltaSize{me int: width    me int: height}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{}
@@ -48,6 +58,12 @@ struct GUI{
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)
     me void: setCallback()
 
+
+    const Color:: red  (255, 0, 0)
+    const Color:: green(0, 255, 0)
+    const Color:: blue (0, 0, 255)
+    const Color:: black(0, 0, 0)
+    const Color:: white(255, 255, 255)
 }
 
 struct GLOBAL{
@@ -59,12 +75,12 @@ struct GLOBAL{
     me timeWidget:      makeTimeWidget(me string: label)
     me dateWidget:      makeDateWidget(me string: label)
 }
-
 struct GUI_ctxt {
     /-me void: fetchAreaToBeDrawn(me GUI_rect: area)
     me void: reset()
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
     me void: setRGB (me double: red, me double: green, me double: blue)
+    me void: setColor(me Color: color)
     me void: setLineWidth(me double: width)
     me void: moveTo(me double: x, me double: y)
     me void: lineTo(me double: x, me double: y)
@@ -77,19 +93,6 @@ struct GUI_ctxt {
     me void: strokeNow()
     me void: fillNow()
 }
-
-
-struct color{
-    me uint: red
-    me uint: green
-    me uint: blue
-    me uint: alpha
-}
-
-struct colorScheme{}
-struct fontSpec{}
-struct fontScheme{}
-
 
 
 /------------------------ Widgets and events

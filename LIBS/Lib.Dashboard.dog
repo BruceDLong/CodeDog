@@ -11,6 +11,11 @@ struct dashboard: inherits = 'widget'{
     our dash[list]: children
     our dash[map string]: dependentItems
     our decor[list]: decorations
+    me Color: background <- GUI.white
+    me Color: defaultDrawColor <- GUI.black
+    me Color: itemFlaggedColor <- GUI.red
+    me Color: Aux1Color <- GUI.green
+    me Color: Aux2Color <- GUI.blue
 
 
     our dash: dependentIsRegistered(me string: key) <- {
@@ -81,10 +86,10 @@ struct dashboard: inherits = 'widget'{
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
         /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
-        cr.setRGB(100, 100, 200)
+        cr.setColor(background)
         cr.paintNow()
 
-        cr.setRGBA(0, 0, 0, 255)
+        cr.setColor(defaultDrawColor)
         cr.setLineWidth(2)
         withEach Dash in children:{
             Dash.draw(cr)

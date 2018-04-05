@@ -332,8 +332,6 @@ struct display_'''+className+": inherits = 'dash' "+'''{
         header.draw(cr)
         if(displayMode!=headerOnly){
 '''+self.drawFuncTextAcc+'''
-            if(isChanged){cr.setRGBA(255, 255, 0, 255)}
-            else{cr.setRGBA(0, 0, 0, 255)}
             cr.rectangle(posX, posY, width, height)
             cr.strokeNow()
             cr.setRGBA(0, 0, 0, 255)
