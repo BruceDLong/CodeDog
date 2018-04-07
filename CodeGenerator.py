@@ -412,8 +412,6 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
     AltIDXFormat=''
     for segSpec in name:
         LHSParentType='#'
-        if(isinstance(segType, int)):
-            cdErr("Segment '{}' in the name '{}' is not valid.".format(segSpec[0], dePythonStr(name)))
         owner=progSpec.getTypeSpecOwner(segType)
         segName=segSpec[0]
         if(segIDX>0):
@@ -440,6 +438,10 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
             segStr= codeUnknownNameSeg(segSpec, objsRefed, xlator)
             #print "segStr: ", segStr
         prevLen=len(S)
+
+
+        if(isinstance(segType, int)):
+            cdErr("Segment '{}' in the name '{}' is not recognized.".format(segSpec[0], dePythonStr(name)))
 
         # Record canonical name for record keeping
         if not isinstance(segName, basestring):
