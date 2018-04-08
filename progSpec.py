@@ -661,6 +661,15 @@ def varTypeKeyWord(typeSpec):
             varType = fieldTypeKeyword(typeSpec)
     return varType
 
+def typeSpecsAreCompatible(typeSpec1, typeSpec2):
+    if getTypeSpecOwner(typeSpec1) != getTypeSpecOwner(typeSpec2): return False
+    if fieldTypeKeyword(typeSpec1['fieldType']) != fieldTypeKeyword(typeSpec2['fieldType']): return False
+    leftContainerNull  = not('arraySpec' in typeSpec1) or (('arraySpec' in typeSpec1) and typeSpec1['arraySpec']==None)
+    rightContainerNull = not('arraySpec' in typeSpec2) or (('arraySpec' in typeSpec2) and typeSpec2['arraySpec']==None)
+    if not leftContainerNull and rightContainerNull: return False
+    if leftContainerNull and not rightContainerNull: return False
+    if not leftContainerNull and not rightContainerNull and typeSpec1['arraySpec'] != typeSpec2['arraySpec']: return False
+    return True
 
 def flattenObjectName(objName):
     return objName.replace('::', '_')

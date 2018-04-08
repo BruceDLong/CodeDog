@@ -253,8 +253,8 @@ def codeAllocater(typeSpec, xlator):
     owner=progSpec.getTypeSpecOwner(typeSpec)
     fType=typeSpec['fieldType']
     arraySpec=typeSpec['arraySpec']
-    if isinstance(fType, basestring): varTypeStr=fType;
-    else: varTypeStr=fType[0]
+    if isinstance(fType, basestring): varTypeStr1=fType;
+    else: varTypeStr1=fType[0]
 
     [varTypeStr, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'alloc', xlator)
     S= xlator['getCodeAllocStr'](varTypeStr, owner);
@@ -980,7 +980,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 #print "RETURN FOUND:", className+'::'+fieldName, FirstReturnType
                 pass #registerType(className, fieldName, convertedType, typeDefName)
             else: typeDefName=convertedType
-            if(typeDefName=='none'): typeDefName=''
+            if(typeDefName=='none'):
+                typeDefName=''
 
             #### FUNC HEADER: for both decl and defn.
             inheritMode='normal'

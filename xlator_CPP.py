@@ -60,13 +60,13 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
 
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
-    if varMode != 'alloc':
-        langType = applyOwner(owner, langType, varMode)
+    if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
 
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
             [containerType, idxType, owner]=getContainerType(TypeSpec)
+
             if 'owner' in TypeSpec['arraySpec']:
                 containerOwner=TypeSpec['arraySpec']['owner']
             else: containerOwner='me'
@@ -74,10 +74,13 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
             if idxType=='timeValue': idxType = 'int64_t'
 
             if containerType=='deque':
+                if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="deque< "+langType+" >"
             elif containerType=='map':
+                if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="map< "+idxType+', '+langType+" >"
             elif containerType=='multimap':
+                if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="multimap< "+idxType+', '+langType+" >"
 
             InnerLangType = langType
@@ -97,7 +100,6 @@ def convertType(classes, TypeSpec, varMode, xlator):
         owner=baseType['owner']
         fieldType=baseType['fieldType']
 
-    langType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
     return xlateLangType(TypeSpec, owner, fieldType, varMode, xlator)
 
@@ -215,6 +217,21 @@ def getEnumStr(fieldName, enumList):
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
+
+def codeIdentityCheck(S1, S2, retType1, retType2):
+    if progSpec.typeSpecsAreCompatible(retType1, retType2): retStr = S1+' == '+S2
+    elif progSpec.typeIsPointer(retType1) and progSpec.typeIsPointer(retType2):
+        LHS = S1
+        RHS = S2
+        LeftOwner  = progSpec.getTypeSpecOwner(retType1)
+        RightOwner = progSpec.getTypeSpecOwner(retType2)
+        if LeftOwner =='our' or LeftOwner =='my': LHS+='.get()'
+        if RightOwner=='our' or RightOwner=='my': RHS+='.get()'
+        retStr =  "(void*)("+LHS+") == (void*)("+RHS+")"
+    else: retStr =  S1+' == '+S2
+    #print "IDENTITY CHECK:"+retStr+"\n    ", retType1, "\n    ", retType2
+    return retStr
+
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
@@ -400,12 +417,14 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             elif (i[0] == '!='): op=' != '
             elif (i[0] == '==='): op=' == '
             else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
-            [S2, retType] = codeComparison(i[1], objsRefed, returnType, xlator)
-            rightOwner=progSpec.getTypeSpecOwner(retType)
+            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
+            rightOwner=progSpec.getTypeSpecOwner(retType2)
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
                 if (S2!='NULL' and S2!='nullptr' ): S=S_derefd
-                S2=derefPtr(S2, retType)
-            S+= op+S2
+                S2=derefPtr(S2, retType2)
+            if i[0] == '===':
+                S=codeIdentityCheck(S, S2, retType, retType2)
+            else:S+= op+S2
             retType='bool'
     return [S, retType]
 
@@ -469,7 +488,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
-            #print "ALLOCATE:", varName
+            #print "ALLOCATE:", varName, varTypeSpec
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
@@ -500,6 +519,21 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 S2=derefPtr(S2, argType)
                 S+='to_string('+S2+')'
                 retType='string'
+        elif(funcName=='asClass'):
+            if len(paramList)==2:
+                [newTypeStr, argType]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
+                newTypeStr=derefPtr(newTypeStr, argType)
+                [toCvtStr, toCvtType]=xlator['codeExpr'](paramList[1][0], objsRefed, None, xlator)
+                toCvtStr=derefPtr(toCvtStr, toCvtType)
+                varOwner=progSpec.getTypeSpecOwner(toCvtType)
+                if(varOwner=='their'): S="static_cast<"+newTypeStr+"*>("+toCvtStr+")"
+                elif(varOwner=='our'): S="static_pointer_cast<"+newTypeStr+">("+toCvtStr+")"
+                elif(varOwner=='my'):  S="static_pointer_cast<"+newTypeStr+">("+toCvtStr+")"
+                elif(varOwner=='me'):  S="static_cast<"+newTypeStr+">("+toCvtStr+")"
+                else: cdErr("Casting that to "+str(newTypeStr)+" is not yet supported.")
+                retType = newTypeStr
+                retOwner= varOwner
+
     else: # Not parameters, i.e., not a function
         if(funcName=='self'):
             S+='this'
