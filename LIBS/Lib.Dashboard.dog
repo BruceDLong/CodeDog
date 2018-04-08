@@ -179,6 +179,7 @@ struct ptrToItem: inherits = 'dash' {
 
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
+        header.isHidden <- false
         header.draw(cr)
 
     }
@@ -189,14 +190,14 @@ struct listOfItems: inherits = 'dash' {
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     me mode[vertical, horizontal]: orientation
     me dataField: header
-    our dash[list]: elements
+    our dash[our list]: elements
 
     void: update(me string: Label, me string: textValue, me bool: hideThis, me bool: clear <- true) <- {
         isNullLike<-hideThis
         header.update(90, 150, Label, textValue, false)
         if(clear){
-            elements.clear()
-            displayMode<-headerOnly
+            /-elements.clear()
+            Allocate(elements)
         }
     }
 
@@ -264,6 +265,7 @@ struct listOfItems: inherits = 'dash' {
 
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
+        header.isHidden <- false
         header.draw(cr)
         if(displayMode!=headerOnly){
             withEach element in elements:{

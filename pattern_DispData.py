@@ -355,23 +355,27 @@ struct display_'''+className+": inherits = 'dash' "+'''{
             structText += "    "+owner+" ptrToItem: "+fieldName+"\n"
 
         elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
+            dispStructTypeName= "display_"+field['typeSpec']['fieldType'][0]
             innerUpdateFuncStr = '"Size:"+toString(data.'+fieldName+'.size())'
-            updateFuncText+="        "+ "me bool: doClear <- (data."+fieldName+".size() != "+fieldName+".elements.size())\n"
-            updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'), doClear)\n'
+            updateFuncText+="        "+ "our dash[our list]: oldElements <- "+fieldName+".elements\n"
+            updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'), true)\n'
              ## Now push each item
             innerFieldType=typeSpec['fieldType']
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             newFieldRef=fieldName+'[_item_key]'
             newFieldLabel='"'+fieldName+'["+toString(_item_key)+"]"'
+            updateFuncText+="\n        "+"me int64: dash_key <- 0"
             updateFuncText+="\n        withEach _item in data."+fieldName+":{\n"
             [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '        ')
-            updateFuncText+="\n        "+"if(doClear){\n        "
-            updateFuncText+=innerStructText+'            Allocate(newItem)\n    '+innerUpdateFuncText
-            updateFuncText+="            "+fieldName+'.updatePush(newItem)'
-            updateFuncText+="\n        } else {\n"
-            updateFuncText+="            " # + static_pointer_cast<display_infon>(items.elements[_itemIdx])->update("items[" + std::to_string(_item_key) + "]", ">", data->items[_item_key].get());
-            updateFuncText+='\n        }'
+            updateFuncText+="            "+"if(oldElements==NULL or (oldElements!=NULL and !(asClass("+dispStructTypeName+", oldElements[dash_key]).data === data."+fieldName+"[_item_key]))){\n    "
+            updateFuncText+=innerStructText+'                Allocate(newItem)\n        '+innerUpdateFuncText
+            updateFuncText+="                "+fieldName+'.updatePush(newItem)'
+            updateFuncText+='\n            } else {'+innerStructText
+            updateFuncText+='\n                '+"asClass("+dispStructTypeName+', oldElements[dash_key]).update("'+fieldName+'["+toString(_item_key)+"]", ">", data.'+fieldName+'[_item_key])'
+            updateFuncText+='\n                '+fieldName+'.updatePush(oldElements[dash_key])'
+            updateFuncText+='\n                '+'dash_key <- dash_key + 1'
+            updateFuncText+='\n            }'
             updateFuncText+='\n        }\n'
             structText += "    "+owner+" listOfItems: "+fieldName+"\n"
         elif(fldCat=='struct'):  # Header for a STRUCT
