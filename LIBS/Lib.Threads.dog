@@ -23,7 +23,7 @@ struct Thread{
     me uint: ID()
     bool: isActive()
     void: start()
-    void: waitForExit(me int: millisecs) <- {}
+    void: waitForExit()
     void: requestClose() <- {notDone <- false}
 
 }
