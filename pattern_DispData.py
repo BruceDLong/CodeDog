@@ -332,9 +332,12 @@ struct display_'''+className+": inherits = 'dash' "+'''{
         header.draw(cr)
         if(displayMode!=headerOnly){
 '''+self.drawFuncTextAcc+'''
+            me Color: rectColor <- dashBoard.styler.getColor(data, styleProvider.forgroundColor)
+            cr.setColor(rectColor)
             cr.rectangle(posX, posY, width, height)
             cr.strokeNow()
-            cr.setRGBA(0, 0, 0, 255)
+            rectColor <- dashBoard.styler.getColor(NULL, styleProvider.forgroundColor)
+            cr.setColor(rectColor)
 '''+self.drawFuncTextPart2Acc+'''
         }
     }

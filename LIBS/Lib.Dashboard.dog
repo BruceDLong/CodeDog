@@ -4,6 +4,26 @@
 
 featuresNeeded = [GUI_ToolKit]
 
+struct styleProvider{
+    const int: backgroundColor <- 1
+    const int: forgroundColor  <- 2
+    const int: highlightColor  <- 3
+
+    me Color: forground  <- GUI.black
+    me Color: background <- GUI.white
+    me Color: highlight  <- GUI.blue
+
+    their Color: getColor(their void: ID, me int: attributeCode)  <- {
+        background <- GUI.green
+        switch(attributeCode){
+            case forgroundColor:  {return(forground)}
+            case backgroundColor: {return(background)}
+            case highlightColor:  {return(highlight)}
+            default: {}
+        }
+        return(NULL)
+    }
+}
 
 struct dashboard: inherits = 'widget'{
     me int: extX        /- right-most extent
@@ -11,11 +31,7 @@ struct dashboard: inherits = 'widget'{
     our dash[list]: children
     our dash[map string]: dependentItems
     our decor[list]: decorations
-    me Color: background <- GUI.white
-    me Color: defaultDrawColor <- GUI.black
-    me Color: itemFlaggedColor <- GUI.red
-    me Color: Aux1Color <- GUI.green
-    me Color: Aux2Color <- GUI.blue
+    our styleProvider: styler
 
 
     our dash: dependentIsRegistered(me string: key) <- {
@@ -85,13 +101,15 @@ struct dashboard: inherits = 'widget'{
 
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
+        me Color: bkCol <- styler.getColor(NULL, styleProvider.backgroundColor)
+        me Color: fgCol <- styler.getColor(NULL, styleProvider.forgroundColor)
         /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
-        cr.setColor(background)
+        cr.setColor(bkCol)
         cr.paintNow()
 
-        cr.setColor(defaultDrawColor)
         cr.setLineWidth(2)
         withEach Dash in children:{
+            cr.setColor(fgCol)
             Dash.draw(cr)
         }
         withEach depDash in dependentItems:{

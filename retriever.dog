@@ -159,6 +159,9 @@ struct retriever{
         me bool: RHS_Empty <- (agendaItem.RHS.crntCursor==NULL)
         me int: numItemsAdded <- 0
         our infDeepItr: remainder <- NULL
+        dataManager.styler.crntLHS <- LHS.crntCursor.item
+        dataManager.styler.crntRHS <- agendaItem.RHS.crntCursor.item
+        theClip.dispAndWait(World, "To Process:"+ agendaItem.printAgendaItem())
         if(agendaLHS_state == sNotASeq or agendaLHS_state == sFirstVisit){
             if(!RHS_Empty){
                 if(agendaItem.RHS.state != sSecondVisit){
