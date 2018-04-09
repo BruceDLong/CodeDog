@@ -173,6 +173,7 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):
         if assignTag=='deep' :return ['(*',')',  '(*',')']
+        elif LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
         else: return ['','',  '', '']
     if LeftOwner == RightOwner: return ['','',  '','']
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
@@ -181,9 +182,6 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
         if assignTag=='deep' :return ['(*',')',  '', '']
         else: return ['','',  "&", '']
-
-    if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
-
     return ['','',  '','']
 
 
