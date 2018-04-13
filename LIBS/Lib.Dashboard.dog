@@ -59,7 +59,7 @@ struct dashboard: inherits = 'widget'{
                 Dash.primaryClick(event)
             }
         }
-        setPos(0, 0, 0)
+        setPos(15, 15, 35)
         markDirtyArea(drawing_area, 0,0, widgetWidth(thisApp.scrollerRef), widgetHeight(thisApp.scrollerRef))
         return(true)
     }
@@ -77,17 +77,20 @@ struct dashboard: inherits = 'widget'{
     }
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        me int: YCursor <- y
         decorations.clear()
         width <- 10
         height <- 10
         withEach Dash in dependentItems:{
             Dash.isHidden<-true
+            Dash.posIsSet<-false
         }
         withEach Dash in children:{
-            extY <- Dash.posY+25
-            Dash.setPos(Dash.posX, Dash.posY, extY)
+            extY <- YCursor+25
+            Dash.setPos(x, YCursor, extY)
             width<-max(width, Dash.extX)
-            height<-max(height, Dash.height+y)
+            height<-max(height, Dash.height+YCursor)
+            YCursor <- Dash.extY + 30
         }
         withEach depDash in dependentItems:{
             if(!depDash.isHidden){
@@ -129,6 +132,7 @@ struct dash: inherits = 'widget'{
     me int: extC        /- The current position where the next external item should be drawn
     void: setPos(me int:x, me int:y, me int: extCursor) <- {print("SETPOS BASE!!\n")}
     me bool: isNullLike
+    me bool: posIsSet
     void: activatePropertyEditor()<- {}
 }
 
@@ -142,12 +146,13 @@ struct dataField: inherits = 'dash' {
     }
 
    void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        posIsSet <- true
         posX <- x;
         posY <- y;
         extC <- extCursor
     /-    me deltaSize: DS <- getTextSize(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize)
         height <- 15
-        width <- 150
+        width <- 180
         extX <- posX+width
         extY <- posY+height
     }
@@ -168,12 +173,12 @@ struct ptrToItem: inherits = 'dash' {
     void: update(me string: Label, me string: textValue, me bool: hideThis) <- {
         isNullLike<-hideThis
         symbol <- textValue
-        refHidden <- true
         dashPtr<-dashBoard.dependentIsRegistered(textValue)
-        header.update(90, 150, Label, textValue, false)
+        header.update(100, 180, Label, textValue, false)
     }
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        posIsSet <- true
         posX <- x;
         posY <- y;
         extC <- extCursor
@@ -212,9 +217,8 @@ struct listOfItems: inherits = 'dash' {
 
     void: update(me string: Label, me string: textValue, me bool: hideThis, me bool: clear <- true) <- {
         isNullLike<-hideThis
-        header.update(90, 150, Label, textValue, false)
+        header.update(100, 180, Label, textValue, false)
         if(clear){
-            /-elements.clear()
             Allocate(elements)
         }
     }
@@ -224,6 +228,7 @@ struct listOfItems: inherits = 'dash' {
     }
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        posIsSet <- true
         posX <- x;
         posY <- y;
         extC <- extCursor
