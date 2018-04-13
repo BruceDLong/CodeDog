@@ -82,10 +82,13 @@ def registerBaseType(usedType, className):
         storeOfBaseTypesUsed[baseType][className]=0
     else: storeOfBaseTypesUsed[baseType][className] += 1
 
+patternNonce = 0
 def addPattern(objSpecs, objectNameList, name, patternList):
-    patternName='!'+name
+    global patternNonce
+    patternName='!'+name+'.'+str(patternNonce)
     objectNameList.append(patternName)
-    objSpecs[name]={'name':patternName, 'parameters':patternList}
+    objSpecs[patternName[1:]]={'name':name, 'parameters':patternList}
+    patternNonce += 1
 
 def processParentClass(name, parentClass):
     global classHeirarchyInfo
