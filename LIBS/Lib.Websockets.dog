@@ -28,3 +28,20 @@ struct webSocketConnection{
     void: onError(their lws:wsi, me string: errorMesg) <- {}
     void: onClosed(their lws:wsi) <- {}
 }
+
+struct webSocketProtocol{
+    void: send(me string: mesg) <- {}
+    void: sendToAll(me string: mesg) <- {}
+    me string: onRead(me string: mesg) <- {}
+    void: onConnection() <- {}
+    void: onDisconnect() <- {}
+}
+
+struct webServer{
+    me string: folderToServe <- "./assets/web"
+    me string: defaultFile <- "index.html"
+    me int: port <- 8080
+    me string: IP_address <- "localhost"
+    me bool: startServing()
+    me void: stopServing()
+}
