@@ -1,6 +1,6 @@
 /- retriever.dog
 
-struct aItem{
+model aItem{
     me int:           priority
     our infDeepItr:   LHS
     our infDeepItr:   RHS
@@ -152,7 +152,7 @@ struct retriever{
 
     void: processAgendaItem(our aItem: agendaItem)<-{
         /-print("processAgendaItem: ", agendaItem.printAgendaItem() ,"\n")
-       /- theClip.dispAndWait(topInfon, "Next: processAgendaItem(): "+agendaItem.printAgendaItem())
+       /- theClip.dispAndWait(CORE.WORLD, "Next: processAgendaItem(): "+agendaItem.printAgendaItem())
         our infDeepItr: LHS <- agendaItem.LHS
         our infItr: crntCursor <- LHS.crntCursor
         me int: agendaLHS_state <- agendaItem.LHS.state
@@ -160,8 +160,8 @@ struct retriever{
         me int: numItemsAdded <- 0
         our infDeepItr: remainder <- NULL
         dataManager.styler.crntLHS <- LHS.crntCursor.item
-        dataManager.styler.crntRHS <- agendaItem.RHS.crntCursor.item
-        theClip.dispAndWait(World, "To Process:"+ agendaItem.printAgendaItem())
+        if(!RHS_Empty){dataManager.styler.crntRHS <- agendaItem.RHS.crntCursor.item}
+        theClip.dispAndWait("To Process:"+ agendaItem.printAgendaItem())
         if(agendaLHS_state == sNotASeq or agendaLHS_state == sFirstVisit){
             if(!RHS_Empty){
                 if(agendaItem.RHS.state != sSecondVisit){
@@ -197,7 +197,7 @@ struct retriever{
 
             /- If this was a CONCAT with only one item:
             if(crntCursor.item.value.format==fConcat and crntCursor.item.value.items.size()==1){
-                crntCursor.parent.item.value.items[crntCursor.idx] <- crntCursor.item.value.items[0]
+                crntCursor.item <deep- crntCursor.item.value.items[0]
             }
 
         } else {print("IMPOSSIBLE LHS-STATE:", agendaLHS_state); exit(2)}
@@ -237,6 +237,10 @@ struct retriever{
             }
         }
         addItemsToAgenda(agendaItem, LHSChain, RHSChain)
+
+  /-      dataManager.styler.crntLHS <- NULL;  dataManager.styler.crntRHS <- NULL; /- Reset colors for dashboard
     }
 
 }
+
+do codeDataDisplay(aItem, draw)

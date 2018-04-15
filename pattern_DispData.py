@@ -236,6 +236,7 @@ struct GLOBAL{
             if fldCat=='func': continue
             if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
                 fieldName=field['fieldName']
+                dispStructTypeName = "display_"+field['typeSpec']['fieldType'][0]
                 declSymbolStr='    '
                 if(countOfRefs==0):declSymbolStr+='me string: '
                 countOfRefs+=1
@@ -244,8 +245,9 @@ struct GLOBAL{
                 self.structTextAcc += structText
                 tempFuncText = updateFuncText
                 updateFuncText = declSymbolStr+'mySymbol <- data.'+fieldName+'.mySymbol(data.'+fieldName+')\n'
-                updateFuncText += (  '    if(data.'+fieldName+' != NULL){\n'+
-                                    '        if(!dashBoard.dependentIsRegistered(mySymbol)){'
+                updateFuncText += ( '    if(data.'+fieldName+' != NULL){\n'+
+                                    '        '+fieldName+' <- asClass('+dispStructTypeName+', dashBoard.dependentIsRegistered(mySymbol))\n'
+                                    '        if(!'+fieldName+'){'
                                     '\n            Allocate('+fieldName+')\n'+
                                     tempFuncText+
                                     '\n            dashBoard.addDependent(mySymbol, '+fieldName+')'+
@@ -253,11 +255,13 @@ struct GLOBAL{
                 self.updateFuncTextPart2Acc += updateFuncText
                 self.setPosFuncTextAcc      += '''
     if(<fieldName> != NULL and !<fieldName>Ptr.refHidden){
-        <fieldName>.setPos(depX, extC, extC)
-        extC <- <fieldName>.extY + 40
-        extX <- max(extX, <fieldName>.extX)
-        extY <- max(extY, <fieldName>.extY)
-        me int: fromX<fieldName> <- <fieldName>Ptr.posX+135
+        if(!<fieldName>.posIsSet){
+            <fieldName>.setPos(depX, extC, extC)
+            extC <- <fieldName>.extY + 40
+            extX <- max(extX, <fieldName>.extX)
+            extY <- max(extY, <fieldName>.extY)
+        }
+        me int: fromX<fieldName> <- <fieldName>Ptr.posX+155
         me int: fromY<fieldName> <- <fieldName>Ptr.posY+12
         me int: smallToX<fieldName> <- <fieldName>.posX
         me int: largeToX<fieldName> <- <fieldName>.posX + <fieldName>.width
@@ -281,10 +285,10 @@ struct display_'''+className+": inherits = 'dash' "+'''{
         isChanged <- !(data === _Data)
         data <- _Data
         if(data==NULL){
-            header.update(90, 150, _label, "NULL", false)
+            header.update(100, 180, _label, "NULL", false)
             return()
         }
-        header.update(90, 150, _label, textValue, false)
+        header.update(100, 180, _label, textValue, false)
         if(isChanged){displayMode<-headerOnly}
 '''+self.updateFuncTextAcc+'''
 
@@ -292,6 +296,7 @@ struct display_'''+className+": inherits = 'dash' "+'''{
     }
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
+        posIsSet <- true
         posX <- x;
         posY <- y;
         extC <- extCursor
@@ -329,7 +334,12 @@ struct display_'''+className+": inherits = 'dash' "+'''{
 
     void: draw(me GUI_ctxt: cr) <- {
         header.isHidden <- false
+        me Color: hedrColor <- dashBoard.styler.getColor(data, styleProvider.forgroundColor)
+        cr.setColor(hedrColor)
         header.draw(cr)
+        cr.strokeNow()
+        hedrColor <- dashBoard.styler.getColor(NULL, styleProvider.forgroundColor)
+        cr.setColor(hedrColor)
         if(displayMode!=headerOnly){
 '''+self.drawFuncTextAcc+'''
             me Color: rectColor <- dashBoard.styler.getColor(data, styleProvider.forgroundColor)
@@ -388,8 +398,7 @@ struct display_'''+className+": inherits = 'dash' "+'''{
 
 
             # Add new classname to a list so it can be encoded.
-            if not(structTypeName in classesEncoded):
-                classesEncoded[structTypeName]=1
+            if not(structTypeName in classesToProcess):
                 classesToProcess.append(structTypeName)
 
         else:   # Display field for a BASIC TYPES
@@ -403,7 +412,7 @@ struct display_'''+className+": inherits = 'dash' "+'''{
             elif(fldCat=='mode'):
                 valStr= fieldRef+'Strings[data.'+fieldName+'] '
 
-            updateFuncText="        "+fieldName+'.update(90, 150, '+fieldLabel+', '+valStr+', isNull('+valStr+'))\n'
+            updateFuncText="        "+fieldName+'.update(100, 180, '+fieldLabel+', '+valStr+', isNull('+valStr+'))\n'
             structText += "    "+owner+" dataField: "+fieldName+"\n"
 
         drawFuncText  ="        "+fieldName+'.draw(cr)\n'
@@ -434,7 +443,7 @@ def apply(classes, tags, className, dispMode):
     global classesToProcess
     classesToProcess=[className]
     global classesEncoded
-    classesEncoded={}
+    #classesEncoded={}
 
     if(dispMode=='Proteus'):   processor = structAsProteusWriter()
     elif(dispMode=='text'):    processor = structToStringWriter()
@@ -442,7 +451,9 @@ def apply(classes, tags, className, dispMode):
     processor.addGlobalCode(classes)
 
     for classToEncode in classesToProcess:
-        cdlog(2, "ENCODING "+dispMode+": "+ classToEncode)
+        if (classToEncode in classesEncoded): continue
+        cdlog(1, "  ENCODING "+dispMode+": "+ classToEncode)
+        classesEncoded[classToEncode]=1
         pattern_GenSymbols.apply(classes, {}, [classToEncode])      # Invoke the GenSymbols pattern
         processor.processStruct(classes, classToEncode)
     return

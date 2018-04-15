@@ -1444,8 +1444,9 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
     for item in classes[1]:
         if item[0]=='!':
             itemsToDelete.append(count)
-            pattName=item[1:]
-            patternArgs=classes[0][pattName]['parameters']
+            pattNameIdx=item[1:]
+            pattName=classes[0][pattNameIdx]['name']
+            patternArgs=classes[0][pattNameIdx]['parameters']
             cdlog(1, "APPLYING PATTERN: {}: {}".format( pattName, patternArgs))
 
             if   pattName=='makeGUI':            pattern_GUI_Toolkit.apply(classes, TopLevelTags)

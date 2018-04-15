@@ -522,7 +522,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 [newTypeStr, argType]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
                 newTypeStr=derefPtr(newTypeStr, argType)
                 [toCvtStr, toCvtType]=xlator['codeExpr'](paramList[1][0], objsRefed, None, xlator)
-                toCvtStr=derefPtr(toCvtStr, toCvtType)
+               # toCvtStr=derefPtr(toCvtStr, toCvtType)
                 varOwner=progSpec.getTypeSpecOwner(toCvtType)
                 if(varOwner=='their'): S="static_cast<"+newTypeStr+"*>("+toCvtStr+")"
                 elif(varOwner=='our'): S="static_pointer_cast<"+newTypeStr+">("+toCvtStr+")"
