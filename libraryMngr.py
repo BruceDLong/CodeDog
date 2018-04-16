@@ -40,17 +40,17 @@ particular platforms. GTK3, XCODE, etc. Both features and components are "needs"
 
 def collectLibFilenamesFromFolder(folderPath):
     for filename in os.listdir(folderPath):
-        if filename.startswith('Lib.'):
-            if filename.endswith(".dog"):
-                libDescriptionFileList.append(os.path.join(folderPath, filename))
-            elif filename.endswith(".dog.proxy"):
-                line = open(os.path.join(folderPath, filename)).readline()
-                line=line.strip()
-                baseName = os.path.basename(line)
-                if (filename.strip('.proxy') == baseName):
-                    libDescriptionFileList.append(os.path.realpath(line))
-                else:
-                    cdErr("File name does not match path name.")
+        if filename.endswith("Lib.dog"):
+            libDescriptionFileList.append(os.path.join(folderPath, filename))
+        elif filename.endswith("Lib.dog.proxy"):
+            line = open(os.path.join(folderPath, filename)).readline()
+            line=line.strip()
+            baseName = os.path.basename(line)
+            print"baseName: ", baseName
+            if (filename.strip('.proxy') == baseName):
+                libDescriptionFileList.append(os.path.realpath(line))
+            else:
+                cdErr("File name "+filename+" does not match path name.")
 
 def collectFromFolderOrLIB(pathName):
     collectLibFilenamesFromFolder(pathName)
@@ -67,7 +67,7 @@ def findLibraryFiles():
 
 def findLibrary(feature):
     for item in libDescriptionFileList:
-        if(os.path.basename(item) == "Lib."+feature+".dog"):
+        if(os.path.basename(item) == feature+".Lib.dog"):
             return item
     return ""
 
@@ -75,8 +75,8 @@ def findLibraryChildren(libID):
     libs=[]
     for item in libDescriptionFileList:
         itemBaseName = os.path.basename(item)
-        if(itemBaseName.endswith('.dog') and itemBaseName.startswith(libID)):
-            innerName = itemBaseName[len(libID)+1:-4]
+        if(itemBaseName.endswith('Lib.dog') and itemBaseName.startswith(libID)):
+            innerName = itemBaseName[len(libID)+1:-8]
             if (innerName != '' and innerName.find('.')==-1):
                 libs.append(item)
     return libs
@@ -157,8 +157,6 @@ def reduceSolutionOptions(options, indent):
 
             i+=1
 
-
-
 def constructORListFromFiles(tags, need, files, indent):
     OR_List = ['OR', []]
     for libFile in files:
@@ -189,7 +187,7 @@ def constructORListFromFiles(tags, need, files, indent):
 
         if(LibCanWork):
             #print indent + " LIB CAN WORK:", libFile
-            childFileList = findLibraryChildren(os.path.basename(libFile)[:-4])
+            childFileList = findLibraryChildren(os.path.basename(libFile)[:-8])
             if len(childFileList)>0:
                 solutionOptions = constructANDListFromNeeds(tags, Requirements, childFileList, indent + "|   ")
                 solutionOptions[1] = [libFile] + solutionOptions[1]
@@ -197,7 +195,6 @@ def constructORListFromFiles(tags, need, files, indent):
             else: OR_List[1].append(libFile)
     if len(OR_List[1])==1 and isinstance(OR_List[1][0], basestring): return OR_List[1][0]  # Optimization
     return OR_List
-
 
 def constructANDListFromNeeds(tags, needs, files, indent):
     global featuresHandled
@@ -216,7 +213,6 @@ def constructANDListFromNeeds(tags, needs, files, indent):
             if len(solutionOptions[1])>0:
                 AND_List[1].append(solutionOptions)
     return AND_List
-
 
 def ChooseLibs(classes, buildTags, tags):
     clearFeaturesHandled()

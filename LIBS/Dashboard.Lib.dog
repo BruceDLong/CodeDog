@@ -14,7 +14,7 @@ struct styleProvider{
     me Color: highlight  <- GUI.Blue
 
     their Color: getColor(their void: ID, me int: attributeCode)  <- {
-        background <- GUI.green
+        background <- GUI.Green
         switch(attributeCode){
             case foregroundColor: {return(foreground)}
             case backgroundColor: {return(background)}
