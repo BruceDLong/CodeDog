@@ -9,12 +9,12 @@ struct styleProvider{
     const int: forgroundColor  <- 2
     const int: highlightColor  <- 3
 
-    me Color: forground  <- GUI.black
-    me Color: background <- GUI.white
-    me Color: highlight  <- GUI.blue
+    me Color: forground  <- GUI.Black
+    me Color: background <- GUI.White
+    me Color: highlight  <- GUI.Blue
 
     their Color: getColor(their void: ID, me int: attributeCode)  <- {
-        background <- GUI.green
+        background <- GUI.Green
         switch(attributeCode){
             case forgroundColor:  {return(forground)}
             case backgroundColor: {return(background)}

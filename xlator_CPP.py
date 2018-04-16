@@ -706,6 +706,17 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
             if(assignValue==''):
                 owner = progSpec.getTypeSpecOwner(typeSpec)
                 assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
+        elif(progSpec.typeIsPointer(typeSpec)):
+            assignValue = '= NULL'
+        elif('arraySpec' in fieldDef):
+            print 'array: ', fieldDef
+            exit(1)
+        else:
+            fieldTypeCat= progSpec.fieldsTypeCategory(typeSpec)
+            if(fieldTypeCat=='int' or fieldTypeCat=='char' or fieldTypeCat=='double' or fieldTypeCat=='float'):
+                assignValue = ''# '= 0'
+            elif(fieldTypeCat=='bool'):
+                assignValue = '= false'
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
