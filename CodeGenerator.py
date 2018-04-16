@@ -799,12 +799,13 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         actionText += indent+"switch("+ switchKeyExpr + "){\n"
         blockPrefix = xlator['blockPrefix']
         for sCases in action['switchCases']:
+            actionText += indent
             for sCase in sCases[0]:
                 [caseKeyValue, caseKeyType] = xlator['codeExpr'](sCase[0], objsRefed, None, xlator)
-                actionText += indent+"    case "+caseKeyValue+": "
-                caseAction = sCases[1]
-                actionText += blockPrefix + codeActionSeq(caseAction, indent+'    ', objsRefed, returnType, xlator)
-                actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)
+                actionText += "    case "+caseKeyValue+": "
+            caseAction = sCases[1]
+            actionText += blockPrefix + codeActionSeq(caseAction, indent+'    ', objsRefed, returnType, xlator)
+            actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)
         defaultCase=action['defaultCase']
         if defaultCase and len(defaultCase)>0:
             actionText+=indent+"default: "
