@@ -110,7 +110,7 @@ struct retriever{
 
     void: processAgenda()<-{
         withEach count in WHILE(!agenda.isEmpty()):{
-            if (count > 200){print("Item priority > 200! \t"); break()}  /-TODO: remove this when safe
+            if (count > 200){break()}  /-TODO: remove this when safe
             processAgendaItem(agenda.pop())
         }
     }
@@ -152,16 +152,15 @@ struct retriever{
 
     void: processAgendaItem(our aItem: agendaItem)<-{
         /-print("processAgendaItem: ", agendaItem.printAgendaItem() ,"\n")
-       /- theClip.dispAndWait(CORE.WORLD, "Next: processAgendaItem(): "+agendaItem.printAgendaItem())
         our infDeepItr: LHS <- agendaItem.LHS
         our infItr: crntCursor <- LHS.crntCursor
         me int: agendaLHS_state <- agendaItem.LHS.state
         me bool: RHS_Empty <- (agendaItem.RHS.crntCursor==NULL)
         me int: numItemsAdded <- 0
         our infDeepItr: remainder <- NULL
-        dataManager.styler.crntLHS <- LHS.crntCursor.item
-        if(!RHS_Empty){dataManager.styler.crntRHS <- agendaItem.RHS.crntCursor.item}
-        theClip.dispAndWait("To Process:"+ agendaItem.printAgendaItem())
+/- VIEWER        dataManager.styler.crntLHS <- LHS.crntCursor.item
+/- VIEWER        if(!RHS_Empty){dataManager.styler.crntRHS <- agendaItem.RHS.crntCursor.item}
+/- VIEWER        theClip.dispAndWait("To Process:"+ agendaItem.printAgendaItem())
         if(agendaLHS_state == sNotASeq or agendaLHS_state == sFirstVisit){
             if(!RHS_Empty){
                 if(agendaItem.RHS.state != sSecondVisit){
@@ -238,9 +237,9 @@ struct retriever{
         }
         addItemsToAgenda(agendaItem, LHSChain, RHSChain)
 
-  /-      dataManager.styler.crntLHS <- NULL;  dataManager.styler.crntRHS <- NULL; /- Reset colors for dashboard
+/- VIEWER      dataManager.styler.crntLHS <- NULL;  dataManager.styler.crntRHS <- NULL; /- Reset colors for dashboard
     }
 
 }
 
-do codeDataDisplay(aItem, draw)
+do codeDataDisplay(aItem, TAG_infonDumpMode)
