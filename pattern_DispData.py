@@ -334,19 +334,19 @@ struct display_'''+className+": inherits = 'dash' "+'''{
 
     void: draw(me GUI_ctxt: cr) <- {
         header.isHidden <- false
-        me Color: hedrColor <- dashBoard.styler.getColor(data, styleProvider.forgroundColor)
+        me Color: hedrColor <- dashBoard.styler.getColor(data, styleProvider.foregroundColor)
         cr.setColor(hedrColor)
         header.draw(cr)
         cr.strokeNow()
-        hedrColor <- dashBoard.styler.getColor(NULL, styleProvider.forgroundColor)
+        hedrColor <- dashBoard.styler.getColor(NULL, styleProvider.foregroundColor)
         cr.setColor(hedrColor)
         if(displayMode!=headerOnly){
 '''+self.drawFuncTextAcc+'''
-            me Color: rectColor <- dashBoard.styler.getColor(data, styleProvider.forgroundColor)
+            me Color: rectColor <- dashBoard.styler.getColor(data, styleProvider.foregroundColor)
             cr.setColor(rectColor)
             cr.rectangle(posX, posY, width, height)
             cr.strokeNow()
-            rectColor <- dashBoard.styler.getColor(NULL, styleProvider.forgroundColor)
+            rectColor <- dashBoard.styler.getColor(NULL, styleProvider.foregroundColor)
             cr.setColor(rectColor)
 '''+self.drawFuncTextPart2Acc+'''
         }

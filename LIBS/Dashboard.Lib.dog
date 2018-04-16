@@ -6,17 +6,17 @@ featuresNeeded = [GUI_ToolKit]
 
 struct styleProvider{
     const int: backgroundColor <- 1
-    const int: forgroundColor  <- 2
+    const int: foregroundColor <- 2
     const int: highlightColor  <- 3
 
-    me Color: forground  <- GUI.Black
+    me Color: foreground <- GUI.Black
     me Color: background <- GUI.White
     me Color: highlight  <- GUI.Blue
 
     their Color: getColor(their void: ID, me int: attributeCode)  <- {
         background <- GUI.Green
         switch(attributeCode){
-            case forgroundColor:  {return(forground)}
+            case foregroundColor: {return(foreground)}
             case backgroundColor: {return(background)}
             case highlightColor:  {return(highlight)}
             default: {}
@@ -105,7 +105,7 @@ struct dashboard: inherits = 'widget'{
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
         me Color: bkCol <- styler.getColor(NULL, styleProvider.backgroundColor)
-        me Color: fgCol <- styler.getColor(NULL, styleProvider.forgroundColor)
+        me Color: fgCol <- styler.getColor(NULL, styleProvider.foregroundColor)
         /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
         cr.setColor(bkCol)
         cr.paintNow()
