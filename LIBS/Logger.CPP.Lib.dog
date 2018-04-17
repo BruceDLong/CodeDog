@@ -1,0 +1,51 @@
+/-///////// Add routines for C++
+requirements = [
+    [tagOneOf, Lang, [CPP]]
+]
+
+interface={
+    provides = [Logger_implementation]
+    libFiles = []
+    headers  = []
+}
+
+LibDescription ={
+    useStatus   = 'dynamic'
+    description = 'Logger for CPP'
+}
+
+struct logger{
+    me void: LogEntry(me string: loggerName, me string: MSG) 	<- <%{
+	logMgr.writeToLog(loggerName+MSG);
+    }%>
+    me void: Show() 				<- <%{isVisible = true;}%>
+    me void: Hide() 				<- <%{isVisible = false;}%>
+    me void: Route(me string: routeSpec) 	<- <%{cout<<routeSpec<<"\n";}%>
+}
+
+struct logManager{
+    me ofstream: logfile
+    me void: writeToLog (me string: txt) <- <%{
+	if (useConsole){cout<<txt<<"\n";}
+	if (useLogFile){
+	    if (logfile.is_open()){
+		logfile << txt <<"\n";
+	    }else cout << "Unable to open file\n";
+	}
+    }%>
+    
+    me void: openLogFile() <- <%{
+	logfile.open ("codeDog.log");
+    }%>
+    
+
+}
+
+struct GLOBAL{
+    me void: log(me string: MSG)  		<- <%!logMgr.Mesg.LogEntry("MESSAGE: ", %1)%>   
+    me void: logInfo(me string: MSG)  		<- <%!logMgr.Info.LogEntry("INFO: ", %1)%>
+    me void: logCritical(me string: MSG)  	<- <%!logMgr.Critical.LogEntry("CRITICAL ERROR: ", %1)%>
+    me void: logFatalError(me string: MSG)  	<- <%!logMgr.FatalError.LogEntry("FATAL ERROR: ", %1); exit(1);%>
+    me void: logWarn(me string: MSG)  		<- <%!logMgr.Warning.LogEntry("WARNING: ", %1)%>
+    me void: logDbg(me string: MSG)  		<- <%!logMgr.Debug.LogEntry("DEBUG: ", %1)%>
+}
