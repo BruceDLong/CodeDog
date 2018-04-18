@@ -14,21 +14,19 @@ Authors = "Bruce Long"
 Description = "DataDog gives you the numbers of your life."
 ProgramOrLibrary = "program"
 
-featuresNeeded = {System = 'system'}
-
+featuresNeeded = [Logger]
 LicenseText = ``
 
 runCode=`
     me string: helloStr
+    logMgr.init(OFile)
     helloStr<-"hello"
-    logMesg(helloStr)
+    log(helloStr)
     logInfo(helloStr)
     logCritical(helloStr)
+    logWarn(helloStr)
+    logDbg(helloStr)
     logFatalError(helloStr)
-    logWarning(helloStr)
-    logDebug(helloStr)
-    
 `
-#include libraryTags.dog
-#include Lib_Logger.dog
+
 /-//////////   A p p l i c a t i o n   a n d   G l o b a l s

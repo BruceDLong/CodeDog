@@ -1,35 +1,42 @@
-model logger{
+/-####### Logger library
+
+requirements = [
+    [require, Logger_implementation]
+]
+
+struct logger{
     me bool: isVisible
-    /-me void: Show()
-    /-me void: Hide()
-    /-me void: Route(me string: routeSpec)
+    me void: Show()
+    me void: Hide()
+    me void: Route(me string: routeSpec)
     me void: LogEntry(me string: group, me string: LogText)
 }
 
-
-model logManager{
+struct logManager{
+    me string: logFileName  <- "codeDog.log"
     me logger: Mesg
-    our logger: Info
-    our logger: Critical
-    our logger: FatalError
-    our logger: Warning
-    our logger: Debug
+    me logger: Info
+    me logger: Critical
+    me logger: FatalError
+    me logger: Warning
+    me logger: Debug
+    me mode [ONone, OConsole, OFile, OBoth]: outputMode
+    me bool: useLogFile
+    me bool: useConsole
     /-me void: assert(me string: condition)
 
     /-ShowLogs(InfoLogs | MesgLogs | ...) // ALL_LOGS = the OR of all of them
     /-HideLogs(InfoLogs | MesgLogs | ...)
     /-RouteLogs(FILE) // Options: stdOut, A file, the platform's system logs, a string
+    
+    me void: init(me int: outMode) <- {
+	outputMode <- outMode
+	if(outputMode == OFile or outputMode == OBoth){useLogFile <- true; openLogFile();}
+	else(useLogFile <- false)
+	if(outputMode == OConsole or outputMode == OBoth){useConsole <- true;}
+	else(useConsole <- false)
+    }
 }
-
-struct logger auto
-struct logManager auto
-
-#define logMesg(MSG) <%logMgr.Mesg.LogEntry("MESSAGE: ", MSG)%>
-#define logInfo(MSG) <%logMgr.Info.LogEntry("INFO: ", MSG)%>
-#define logCritical(MSG) <%logMgr.Critical.LogEntry("CRITICAL ERROR: ", MSG)%>
-#define logFatalError(MSG) <%logMgr.FatalError.LogEntry("FATAL ERROR: ", MSG)%>
-#define logWarning(MSG) <%logMgr.Warning.LogEntry("WARNING: ", MSG)%>
-#define logDebug(MSG) <%logMgr.Debug.LogEntry("DEBUG: ", MSG)%>
 
 struct GLOBAL{
     me logManager: logMgr
