@@ -690,6 +690,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
 
     else: # If no value was given:
         CPL=''
+        itemsTypeCat = progSpec.fieldsTypeCategory(typeSpec)
         if fieldDef['paramList'] != None:
             # Code the constructor's arguments
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
@@ -708,13 +709,12 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
                 assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
         elif(progSpec.typeIsPointer(typeSpec)):
             assignValue = '= NULL'
-        elif('arraySpec' in fieldDef):
-            print 'array: ', fieldDef
-            exit(1)
+        elif('arraySpec' in typeSpec):
+            pass
         else:
             fieldTypeCat= progSpec.fieldsTypeCategory(typeSpec)
             if(fieldTypeCat=='int' or fieldTypeCat=='char' or fieldTypeCat=='double' or fieldTypeCat=='float'):
-                assignValue = ''# '= 0'
+                assignValue = ' = 0'
             elif(fieldTypeCat=='bool'):
                 assignValue = '= false'
     varDeclareStr= fieldType + " " + varName + assignValue
