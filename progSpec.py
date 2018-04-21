@@ -699,11 +699,21 @@ def logLvl():
 def dePythonStr(pyItem):
     S=str(pyItem).replace('[','')
     S=S.replace(']','')
-    S=S.replace('(','')
-    S=S.replace(')','')
     S=S.replace("'",'')
     S=S.replace(' ','')
-    S=S.replace(',','.')
+    parenPos = S.find('(')
+    if(parenPos>=0):
+        itemName = S[:parenPos]
+        itemName = itemName.replace(',','.')
+        paramList = S[parenPos+1:]
+        paramList = paramList.replace(',,,,,,', '!')
+        paramList = paramList.replace(',', '')
+        paramList = paramList[:-1].replace('!', ', ')
+        S = itemName[:-1] + '('+paramList+')'
+    else:
+        S=S.replace(',','.')
+        S=S.replace('(','')
+        S=S.replace(')','')
     return S
 
 def printAtLvl(lvl, mesg, indent):
