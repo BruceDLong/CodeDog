@@ -120,7 +120,7 @@ struct retriever{
         me int: priority <- pred.priority
         if(pred.LHS.crntCursor.item.value.fType!=LST and pred.RHS.crntCursor!=NULL and pred.RHS.crntCursor.item.value.fType!=LST){priority <- priority+1}
         our infDeepItr: currentLHS <- LHSChain
-        withEach count in WHILE(currentLHS != NULL):{
+        while(currentLHS != NULL){
             if(currentLHS.state != sEOL){
                 parentAgent.prepWorkList(currentLHS)
                 parentAgent.addWorkItemsToAgenda(priority, pred, currentLHS)

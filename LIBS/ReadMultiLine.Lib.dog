@@ -154,12 +154,12 @@ struct linesMngr {
     }
 
     void: moveToTop() <- {
-        withEach count in WHILE(moveUp()):{}
+        while(moveUp()){}
         moveHome()
     }
 
     void: moveToBottom() <- {
-        withEach count in WHILE(moveDown()):{}
+        while(moveDown()){}
         moveEnd()
     }
 
@@ -198,13 +198,13 @@ struct linesMngr {
     void: pageUp() <- {
         me int: i <- wndHeight-1
         if(i>2){
-            withEach count in WHILE(i>0 and moveUp()):{i <- i-1}
+            while(i>0 and moveUp()){i <- i-1}
         }
     }
     void: pageDown() <- {
         me int: i <- wndHeight-1
         if(i>2){
-            withEach count in WHILE(i>0 and moveDown()):{i <- i-1}
+            while(i>0 and moveDown()){i <- i-1}
         }
     }
     void: doInsertKey() <- {}  /- {insertMode <- !insertMode; change cursor: line <-> block}
@@ -408,11 +408,11 @@ struct readMultiLine {
         if(mgr.crntRowInWnd >= winHeight) {mgr.crntRowInWnd <- winHeight-1}
         if(mgr.crntRowInWnd < 0) {mgr.crntRowInWnd <- 0}
         me uint: rowInt <- mgr.crntRowInWnd
-        withEach count in WHILE(rowInt>0 and !mgr.isFirstLine(rowItr)):{rowInt <- rowInt-1; mgr.prevLine(rowItr)}
+        while(rowInt>0 and !mgr.isFirstLine(rowItr)){rowInt <- rowInt-1; mgr.prevLine(rowItr)}
         mgr.crntRowInWnd <- mgr.crntRowInWnd-rowInt                       /- Don't let the first line be below the top line.
         rowInt <- 0
         their EntryX: prevEntrySetID <- 0
-        withEach countRow in WHILE(rowInt<winHeight):{
+        while(rowInt<winHeight){
             EntryAttrs <- mgr.entries[rowItr.entriesIdx].attrs
             if(rowItr.entriesIdx==mgr.currentLine.entriesIdx) {attrOn(A_BOLD)}
             else {attrOff(A_BOLD)}                                       /- Highlight the current EntryX
@@ -484,7 +484,7 @@ struct readMultiLine {
         me uint: chg <- 0               /- Change status - return from onChangeCallBack()
         refreshDisplay(chg)
         me bool: done <- false
-        withEach count in WHILE(!done):{
+        while(!done){
             me charX: ch
             me int: h
             me int: w

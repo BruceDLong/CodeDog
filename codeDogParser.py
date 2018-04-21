@@ -94,6 +94,8 @@ conditionalAction <<= Group(
 traversalModes = (Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative"))
 rangeSpec = Group(Keyword("RANGE") + '(' + rValue + ".." + rValue + ')')
 whileSpec = Group(Keyword('WHILE') + '(' + expr + ')')
+newWhileSpec  = Group(Keyword('while') + '(' + expr + ')')
+whileAction = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
 fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
 keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
 repeatedAction = Group(
@@ -104,7 +106,7 @@ repeatedAction = Group(
         )("repeatedAction")
 
 action = Group((assign("assign") | swap('swap') | funcCall("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
-actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (switchStmt | conditionalAction | repeatedAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
+actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
 rValueVerbatim = Group( "<%" + SkipTo("%>", include=True))("rValueVerbatim")
 funcBody = (actionSeq | rValueVerbatim)("funcBody")
 
@@ -330,7 +332,7 @@ def extractActItem(funcName, actionItem):
 
         thisActionItem = {'typeOfAction':"conditional", 'ifCondition':ifCondition, 'ifBody':ifBodyOut, 'elseBody':elseBodyOut}
     # Repeated Action withEach
-    elif actionItem.repeatedActionID:
+    elif actionItem.repeatedActionID or actionItem.newWhileSpec:
         repName = actionItem.repName
         repList = actionItem.repList
         repBodyIn = actionItem.actionSeq
@@ -341,6 +343,8 @@ def extractActItem(funcName, actionItem):
         whileSpec=None
         if actionItem.whileSpec:
             whileSpec = actionItem.whileSpec
+        if actionItem.newWhileSpec:
+            whileSpec = actionItem.newWhileSpec
         rangeSpec=None
         if actionItem.rangeSpec:
             rangeSpec = actionItem.rangeSpec

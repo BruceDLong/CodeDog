@@ -129,7 +129,7 @@ struct JSON {
             pos <- pos + scrapeWS(pos)
             me char: nxtChar <- peek(pos)
             JV.setAsObject()
-            withEach count in WHILE(nxtChar != chars[7]):{       /- ""
+            while(nxtChar != chars[7]){       /- ""
                 pos <- pos + scrapeWS(pos)
                 me int: keyStart <- pos
                 me int: keyLen <- scrapeQuotedStr2(pos);              if(ErrorMesg != ""){return(-1)}

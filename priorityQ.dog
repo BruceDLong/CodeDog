@@ -32,7 +32,7 @@ struct priorityQ{
     me void: push(our queueItem: newItem) <- {
     theHeap.pushLast(newItem)
     me int: i <- theHeap.size()-1
-    withEach count in WHILE(i !=0 and theHeap[i/2].priority>theHeap[i].priority):{
+    while(i !=0 and theHeap[i/2].priority>theHeap[i].priority){
         our queueItem: tmp <- theHeap[i/2]
         theHeap[i/2] <-theHeap[i]
         theHeap[i] <- tmp
@@ -111,7 +111,7 @@ struct GLOBAL{
         pq.push(newItem)
         Allocate(newItem,4)
         pq.push(newItem)
-        withEach count in WHILE(! pq.isEmpty()):{
+        while(! pq.isEmpty()){
             our queueItem: i <- pq.pop()
             print (i.priority, ", ")
         }
