@@ -48,6 +48,16 @@ struct dashboard: inherits = 'widget'{
         }
     }
 
+    me void: addArrow(their dash: from, their dash: to) <- {
+        me int: fromX    <- from.posX+155
+        me int: fromY    <- from.posY+12
+        me int: smallToX <- to.posX
+        me int: largeToX <- to.posX + to.width
+        me int: smallToY <- to.posY
+        me int: largeToY <- to.posY + to.height
+        our arrow:: Arrow(fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
+        decorations.pushLast(Arrow)
+    }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         if(! isTouchingMe(event.x, event.y)){return(false)}
@@ -278,10 +288,6 @@ struct listOfItems: inherits = 'dash' {
             else if(displayMode==fullDisplay and orientation==vertical){
                 orientation<-horizontal
             } else {displayMode <- headerOnly}
-        } else {
-            withEach element in elements:{
-                element.primaryClick(event)
-            }
         }
         return(true)
     }
@@ -298,15 +304,7 @@ struct listOfItems: inherits = 'dash' {
             if(orientation==horizontal){
                 me int:lastElIdx <- elements.size()
                 if(lastElIdx>=1){
-                    me int: fromX <- posX+135
-                    me int: fromY <- posY+12
-                    me int: smallToX <- elements[0].posX
-                    me int: largeToX <- elements[0].posX + elements[0].width
-                    me int: smallToY <- elements[0].posY
-                    me int: largeToY <- elements[0].posY + elements[0].height
-                    our arrow:: Arrow(fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
-                    dashBoard.decorations.pushLast(Arrow)
-
+                    dashBoard.addArrow(this, elements[0])
                     lastElIdx <- lastElIdx-1
                     cr.moveTo(elements[0].posX, elements[0].posY)
                     cr.lineTo(elements[lastElIdx].posX + elements[lastElIdx].width, elements[lastElIdx].posY)

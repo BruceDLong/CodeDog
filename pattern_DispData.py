@@ -261,14 +261,7 @@ struct GLOBAL{
             extX <- max(extX, <fieldName>.extX)
             extY <- max(extY, <fieldName>.extY)
         }
-        me int: fromX<fieldName> <- <fieldName>Ptr.posX+155
-        me int: fromY<fieldName> <- <fieldName>Ptr.posY+12
-        me int: smallToX<fieldName> <- <fieldName>.posX
-        me int: largeToX<fieldName> <- <fieldName>.posX + <fieldName>.width
-        me int: smallToY<fieldName> <- <fieldName>.posY
-        me int: largeToY<fieldName> <- <fieldName>.posY + <fieldName>.height
-        our arrow:: Arrow(fromX<fieldName>, fromY<fieldName>, intersectPoint(fromX<fieldName>, smallToX<fieldName>, largeToX<fieldName>), intersectPoint(fromY<fieldName>, smallToY<fieldName>, largeToY<fieldName>))
-        dashBoard.decorations.pushLast(Arrow)
+        dashBoard.addArrow(<fieldName>Ptr, <fieldName>)
     }
 '''.replace('<fieldName>', fieldName)
                 self.handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
@@ -377,18 +370,18 @@ struct display_'''+className+": inherits = 'dash' "+'''{
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             newFieldRef=fieldName+'[_item_key]'
-            newFieldLabel='"'+fieldName+'["+toString(_item_key)+"]"'
+            newFieldLabel='"["+toString(_item_key)+"]  "+ data.' + fieldName+'[_item_key].mySymbol(data.'+fieldName+'[_item_key]'+')'
             updateFuncText+="\n        "+"me int64: dash_key <- 0"
             updateFuncText+="\n        withEach _item in data."+fieldName+":{\n"
             [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '        ')
-            updateFuncText+="            "+"if(oldElements==NULL or (oldElements!=NULL and !(asClass("+dispStructTypeName+", oldElements[dash_key]).data === data."+fieldName+"[_item_key]))){\n    "
-            updateFuncText+=innerStructText+'                Allocate(newItem)\n        '+innerUpdateFuncText
-            updateFuncText+="                "+fieldName+'.updatePush(newItem)'
-            updateFuncText+='\n            } else {'+innerStructText
-            updateFuncText+='\n                '+"asClass("+dispStructTypeName+', oldElements[dash_key]).update("'+fieldName+'["+toString(_item_key)+"]", ">", data.'+fieldName+'[_item_key])'
-            updateFuncText+='\n                '+fieldName+'.updatePush(oldElements[dash_key])'
-            updateFuncText+='\n                '+'dash_key <- dash_key + 1'
+            updateFuncText+="            "+innerStructText
+            updateFuncText+="            "+"if(oldElements==NULL or (oldElements!=NULL and !(asClass("+dispStructTypeName+", oldElements[dash_key]).data === data."+fieldName+"[_item_key]))){\n"
+            updateFuncText+='                Allocate(newItem)\n'
+            updateFuncText+='               '+'dashBoard.addDependent(data.'+fieldName+'[_item_key].mySymbol(data.'+fieldName+'[_item_key]), newItem)'
+            updateFuncText+='\n            } else {\n               newItem <- asClass('+dispStructTypeName+', oldElements[dash_key])\n            dash_key <- dash_key + 1'
             updateFuncText+='\n            }'
+            updateFuncText+='\n            '+innerUpdateFuncText
+            updateFuncText+='            '+fieldName+'.updatePush(newItem)'
             updateFuncText+='\n        }\n'
             structText += "    "+owner+" listOfItems: "+fieldName+"\n"
         elif(fldCat=='struct'):  # Header for a STRUCT
