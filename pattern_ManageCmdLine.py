@@ -36,7 +36,7 @@ def apply(classes, tags):
             scanner.initialize(cmdLineText)
             /- Find optionRecord
             me int: recIdx <- -1
-            withEach optRec in options:{
+            withEach optRec in options{
                 if(optRec.optionID==optionID){
                     recIdx <- optRec_key
                     break()
@@ -75,7 +75,7 @@ def apply(classes, tags):
     /- TODO: make this handle multiple options of each kind e.g., as with a compiler having multiple link options.
     /-          ALSO: add features from posix's or java's command line style
     /-        me char: ch
-    /-        withEach p in RANGE(0 .. txtSize):{
+    /-        withEach p in RANGE(0 .. txtSize){
     /-            ch <- cmdLineText[p]
     /-        }
         }

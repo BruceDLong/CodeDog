@@ -61,10 +61,10 @@ struct dashboard: inherits = 'widget'{
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         if(! isTouchingMe(event.x, event.y)){return(false)}
-        withEach Dash in children:{
+        withEach Dash in children{
             Dash.primaryClick(event)
         }
-        withEach Dash in dependentItems:{
+        withEach Dash in dependentItems{
             if(! Dash.isHidden){
                 Dash.primaryClick(event)
             }
@@ -91,18 +91,18 @@ struct dashboard: inherits = 'widget'{
         decorations.clear()
         width <- 10
         height <- 10
-        withEach Dash in dependentItems:{
+        withEach Dash in dependentItems{
             Dash.isHidden<-true
             Dash.posIsSet<-false
         }
-        withEach Dash in children:{
+        withEach Dash in children{
             extY <- YCursor+25
             Dash.setPos(x, YCursor, extY)
             width<-max(width, Dash.extX)
             height<-max(height, Dash.height+YCursor)
             YCursor <- Dash.extY + 30
         }
-        withEach depDash in dependentItems:{
+        withEach depDash in dependentItems{
             if(!depDash.isHidden){
                 width<-max(width, depDash.extX)
                 height<-max(height, depDash.extY)
@@ -121,16 +121,16 @@ struct dashboard: inherits = 'widget'{
         cr.paintNow()
 
         cr.setLineWidth(2)
-        withEach Dash in children:{
+        withEach Dash in children{
             cr.setColor(fgCol)
             Dash.draw(cr)
         }
-        withEach depDash in dependentItems:{
+        withEach depDash in dependentItems{
             if(!depDash.isHidden){
                 depDash.draw(cr)
             }
         }
-        withEach decoration in decorations:{
+        withEach decoration in decorations{
             decoration.draw(cr)
         }
     }
@@ -251,7 +251,7 @@ struct listOfItems: inherits = 'dash' {
         if(displayMode!=headerOnly){
             if(orientation==vertical){
                 x <- x+8
-                withEach element in elements:{
+                withEach element in elements{
                     element.setPos(x,y,extC)
                     y <- y+element.height
                     width <- max(width, element.width+8)
@@ -263,7 +263,7 @@ struct listOfItems: inherits = 'dash' {
                 me int: listX <- posX + header.width+30    /- This 30 should really be calculated to compensate for nested items. Actual distance should be 40.
                 me int: listY <- extC
                 me int: listC <- extC+40;
-                withEach element in elements:{
+                withEach element in elements{
                     element.isHidden <- false
                     element.setPos(listX,listY,listC)
                     extC  <- max(extC, element.extY)
@@ -297,7 +297,7 @@ struct listOfItems: inherits = 'dash' {
         header.isHidden <- false
         header.draw(cr)
         if(displayMode!=headerOnly){
-            withEach element in elements:{
+            withEach element in elements{
                 element.isHidden <- false
                 element.draw(cr)
             }

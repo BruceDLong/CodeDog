@@ -99,7 +99,7 @@ whileAction = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
 fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
 keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID")  - CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + ":"
+            Keyword("withEach")("repeatedActionID")  - CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + Optional(":")("optionalColon")
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
@@ -338,6 +338,8 @@ def extractActItem(funcName, actionItem):
         repBodyIn = actionItem.actionSeq
         repBodyOut = extractActSeqToActSeq(funcName, repBodyIn)
         traversalMode=None
+        if actionItem.optionalColon:
+	    print "            optionalColon in repeatedAction is deprecated."
         if actionItem.traversalMode:
             traversalMode = actionItem.traversalMode
         whileSpec=None

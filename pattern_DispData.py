@@ -52,7 +52,7 @@ struct GLOBAL{
     me string: dispFieldAsText(me string: label, me int:labelLen) <- {
         me string: S <- ""
         me int: labelSize<-label.size()
-        withEach count in RANGE(0..labelLen):{
+        withEach count in RANGE(0..labelLen){
             if (count<labelSize){S <- S+label[count]}
             else if(count==labelSize){ S <- S+":"}
             else {S <- S+" "}
@@ -101,7 +101,7 @@ struct GLOBAL{
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             calcdName=fieldName+'["+toString(_item_key)+"]'
-            S+="    withEach _item in "+fieldName+":{\n"
+            S+="    withEach _item in "+fieldName+"{\n"
             S+="        "+self.toProteusTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
         else: S+=self.toProteusTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
@@ -130,7 +130,7 @@ struct GLOBAL{
     me string: dispFieldAsText(me string: label, me int:labelLen) <- {
         me string: S <- ""
         me int: labelSize<-label.size()
-        withEach count in RANGE(0..labelLen):{
+        withEach count in RANGE(0..labelLen){
             if (count<labelSize){S <- S+label[count]}
             else if(count==labelSize){ S <- S+":"}
             else {S <- S+" "}
@@ -179,7 +179,7 @@ struct GLOBAL{
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             calcdName=fieldName+'["+toString(_item_key)+"]'
-            S+="    withEach _item in "+fieldName+":{\n"
+            S+="    withEach _item in "+fieldName+"{\n"
             S+="        "+self.displayTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
         else: S+=self.displayTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
@@ -372,7 +372,7 @@ struct display_'''+className+": inherits = 'dash' "+'''{
             newFieldRef=fieldName+'[_item_key]'
             newFieldLabel='"["+toString(_item_key)+"]  "+ data.' + fieldName+'[_item_key].mySymbol(data.'+fieldName+'[_item_key]'+')'
             updateFuncText+="\n        "+"me int64: dash_key <- 0"
-            updateFuncText+="\n        withEach _item in data."+fieldName+":{\n"
+            updateFuncText+="\n        withEach _item in data."+fieldName+"{\n"
             [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '        ')
             updateFuncText+="            "+innerStructText
             updateFuncText+="            "+"if(oldElements==NULL or (oldElements!=NULL and !(asClass("+dispStructTypeName+", oldElements[dash_key]).data === data."+fieldName+"[_item_key]))){\n"
