@@ -240,7 +240,7 @@ def addField(objSpecs, className, stateType, packedField):
 
     # if me or we and type is struct add unique dependancy
     fieldOwner = typeSpec['owner']
-    if (fieldOwner=='me' or fieldOwner=='we') and fieldsTypeCategory(typeSpec)=='struct':
+    if (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const') and fieldsTypeCategory(typeSpec)=='struct':
         addDependancyToStruct(className, fieldType[0])
 
 

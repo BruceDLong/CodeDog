@@ -165,6 +165,8 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
                 else:
                     REF=CheckClassStaticVars(currentObjName, itemName)
                     if(REF):
+                        print "STATIC USAGE:", currentObjName, itemName
+                        progSpec.addDependancyToStruct(currentObjName, itemName)
                         return REF
 
                     elif(itemName in StaticMemberVars):
@@ -1062,9 +1064,6 @@ def processDependancies(classes, item, searchList, newList):
         searchList[item][1]=1
         className=searchList[item][0]
         depList = progSpec.getClassesDependancies(className)
-        sepPos = className.rfind('::')
-        if sepPos>=0: # This is a derived class and is dependant on it's parent class
-            depList.append(className[:sepPos])
         for dep in depList:
             depIdx=findIDX(searchList, dep)
             processDependancies(classes, depIdx, searchList, newList)
