@@ -118,7 +118,7 @@ struct retriever{
 
     void: addItemsToAgenda(our aItem: pred, our infDeepItr: LHSChain, our infDeepItr: RHSChain)<-{
         me int: priority <- pred.priority
-        if(pred.LHS.crntCursor.item.value.fType!=LST and pred.RHS.crntCursor!=NULL and pred.RHS.crntCursor.item.value.fType!=LST){priority <- priority+1}
+        if(pred.LHS.crntCursor.item.value.fType!=LST and (pred.RHS.crntCursor==NULL or pred.RHS.crntCursor.item.value.fType!=LST)){priority <- priority+1}
         our infDeepItr: currentLHS <- LHSChain
         while(currentLHS != NULL){
             if(currentLHS.state != sEOL){
@@ -175,10 +175,11 @@ struct retriever{
             }
 
             if(LHS.nestLvl == 0 and agendaLHS_state == sNotASeq){   /- Stitching
+   /-             log("STITCH FROM Process NOT-SEQ | FirstVisit")
                 parentAgent.stitch(agendaItem, "")
             }
 
-            /- Handle when parent is a CONCAT
+   /*         /- Handle when parent is a CONCAT
             if(crntCursor.parent!=NULL and crntCursor.parent.item!=NULL and (crntCursor.parent.item.value.format==fConcat)){
                 if(crntCursor.idx==0){ /- Set parent's type
                 } else {
@@ -187,18 +188,19 @@ struct retriever{
                         LHS.deleteCrnt()
                     } else {}  /- Subscribe
                 }
-            }
+            }*/
 
         } else if(agendaLHS_state == sSecondVisit){
             if(readyToResolve(agendaItem)){
                 our aItem: topItem <- resolve(agendaItem, "    resolve: ")
+      /-          log("STITCH FROM Process SecondVisit")
                 parentAgent.stitch(topItem, "")
             }
 
-            /- If this was a CONCAT with only one item:
+   /*         /- If this was a CONCAT with only one item:
             if(crntCursor.item.value.format==fConcat and crntCursor.item.value.items.size()==1){
                 crntCursor.item <deep- crntCursor.item.value.items[0]
-            }
+            }*/
 
         } else {print("IMPOSSIBLE LHS-STATE:", agendaLHS_state); exit(2)}
 

@@ -10,6 +10,7 @@ def getContainerType(typeSpec):
     if 'owner' in containerSpec: owner=containerSpec['owner']
     else: owner='me'
     idxType=''
+    idxOwner=None
     if 'indexType' in containerSpec:
         if 'IDXowner' in containerSpec:
             idxOwner=containerSpec['IDXowner']
@@ -65,7 +66,7 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
-            [containerType, idxType, owner]=getContainerType(TypeSpec)
+            [containerType, idxType, idxOwner]=getContainerType(TypeSpec)
 
             if 'owner' in TypeSpec['arraySpec']:
                 containerOwner=TypeSpec['arraySpec']['owner']
@@ -77,6 +78,7 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
                 if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="deque< "+langType+" >"
             elif containerType=='map':
+                #print "XLATING TYPE:", "Item:", owner, langType, "IDX-Owner:", idxOwner, "Container-owner/type:", containerOwner, containerType
                 if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="map< "+idxType+', '+langType+" >"
             elif containerType=='multimap':

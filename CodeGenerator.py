@@ -165,7 +165,6 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
                 else:
                     REF=CheckClassStaticVars(currentObjName, itemName)
                     if(REF):
-                        print "STATIC USAGE:", currentObjName, itemName
                         progSpec.addDependancyToStruct(currentObjName, itemName)
                         return REF
 
