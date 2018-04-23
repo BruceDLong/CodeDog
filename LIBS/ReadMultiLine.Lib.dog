@@ -29,7 +29,7 @@ struct lineX{
 
     void: fillPrintable(me bool: showColors) <- {
         printable <- ""
-        withEach ch in chars:{
+        withEach ch in chars{
             printable <- printable + wideCharToMultibyte(ch.ch)
         }
     }
@@ -103,7 +103,7 @@ struct linesMngr {
 
     their lineX: lineFromNum(me uint: n) <- {
         me uint: accum <- 0
-        withEach ln in entries:{
+        withEach ln in entries{
             accum <- accum + ln.lines.size()
             if(accum>=n){
                 /- not finished BDL
@@ -114,7 +114,7 @@ struct linesMngr {
 
     me int: calcWidthToCursor(me charX[their list]: line, me uint: charsToCur) <- {
         me int: wtc <- 0
-        withEach p in RANGE(0..charsToCur):{
+        withEach p in RANGE(0..charsToCur){
             wtc <- wtc + line[p].chWidth
         }
         return(wtc)
@@ -124,7 +124,7 @@ struct linesMngr {
         me int: wtc <- 0
         me uint: p<-0
         if(chrs.size()==0){charsToCur<-0; widthToCur<-0; return();}
-        withEach count in RANGE(0..chrs.size()):{
+        withEach count in RANGE(0..chrs.size()){
             if(wtc+chrs[p].chWidth > maxWidthToCur){break()}
             wtc <- wtc +chrs[p].chWidth
             p <- p+1
@@ -235,7 +235,7 @@ struct linesMngr {
         their lineX: newLine; Allocate(newLine)
         me charX[their list]: CrntLine <- crntLine()
         me int: crntLineSize <- CrntLine.size()
-        withEach pos in RANGE(charsToCur .. crntLineSize):{newLine.chars.pushLast(CrntLine[pos])}
+        withEach pos in RANGE(charsToCur .. crntLineSize){newLine.chars.pushLast(CrntLine[pos])}
         me lineIterator: nxtLine <- currentLine
         nxtLine.linesIdx <- nxtLine.linesIdx + 1
         entries[currentLine.entriesIdx].lines.insert(entries[currentLine.entriesIdx].lines.front() + nxtLine.linesIdx, newLine)
@@ -255,7 +255,7 @@ struct linesMngr {
             if(isLastInSet(currentLine)){return()}
             me lineIterator: nxtLine <- currentLine
             nextLine(nxtLine)
-            withEach ch in linesChars(nxtLine):{
+            withEach ch in linesChars(nxtLine){
                 crntLine().pushLast(ch)
             }
             entries[nxtLine.entriesIdx].lines.erase(entries[nxtLine.entriesIdx].lines.front() + nxtLine.linesIdx)
@@ -270,7 +270,7 @@ struct linesMngr {
     me string: fetchBuffer(me string: result) <- {
         result<-""
         me string: EOL <- "\n"
-        withEach ln in entries[currentLine.entriesIdx].lines:{
+        withEach ln in entries[currentLine.entriesIdx].lines{
             if(result != ""){result <- result+EOL[0]}
             ln.fillPrintable(false)
             result <- result + ln.printable
@@ -341,7 +341,7 @@ struct readMultiLine {
         me uint: nextColor <- 4096 /- 0x1000
         me uint: colorCode <- 0         /-Color 0=default for this entry.
         if(text.s[0]!=0){
-            withEach count in WHILE(getUTF8c(text.s.c_str(),p,ch)):{
+            withEach count in WHILE(getUTF8c(text.s.c_str(),p,ch)){
                 if(count>2000){print("Infinite loop!\n"); exit(2);}
                 if(ch==charConsts[1]){      /- '\n'
                     lx.dirty<-true
@@ -432,7 +432,7 @@ struct readMultiLine {
                 else {attrOn(getColorPair(1))}
                 /- Print each character
                 their lineX: lx <- mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx]
-                withEach ch in lx.chars:{
+                withEach ch in lx.chars{
                     colorCode <- ch.colorCode
                     if(colorCode>0) {attrOn(getColorPair(colorCode))}
                     else if(EntryAttrs>0) {attrOn(getColorPair(AndBits(EntryAttrs, 7)))}
@@ -461,7 +461,7 @@ struct readMultiLine {
         getScreenMaxXY(w, h)
         if(msg.size()>=w){msg.resize(w)}
         putStr(msg.data())
-        withEach p in RANGE(msg.size() .. w):{putChar(charConsts[0]);}
+        withEach p in RANGE(msg.size() .. w){putChar(charConsts[0]);}
         attrOff(A_REVERSE)
 
         movePutStr(mgr.widthToCur+promptWidth, mgr.crntRowInWnd+mgr.wndStartY, "")
