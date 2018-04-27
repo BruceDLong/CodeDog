@@ -46,7 +46,7 @@ def collectLibFilenamesFromFolder(folderPath):
             line = open(os.path.join(folderPath, filename)).readline()
             line=line.strip()
             baseName = os.path.basename(line)
-            print"baseName: ", baseName
+            #print"baseName: ", baseName
             if (filename.strip('.proxy') == baseName):
                 libDescriptionFileList.append(os.path.realpath(line))
             else:

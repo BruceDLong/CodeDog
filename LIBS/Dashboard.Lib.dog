@@ -24,7 +24,7 @@ struct styleProvider{
     }
 }
 
-struct dashboard: inherits = 'widget'{
+struct Dashboard: inherits = 'widget'{
     me int: extX        /- right-most extent
     me int: extY        /- lowest extent
     our dash[list]: children
@@ -213,7 +213,6 @@ struct ptrToItem: inherits = 'dash' {
         if (isHidden){return()}
         header.isHidden <- false
         header.draw(cr)
-
     }
 }
 
@@ -313,6 +312,25 @@ struct listOfItems: inherits = 'dash' {
                 }
             }
         }
+    }
+}
+
+struct DashboardWidget {
+    our Dashboard: dashboard
+    our styleProvider: style
+    me GUI_canvas: canvas
+    me GUI_item: managedWidget
+    me GUI_item: init(our styleProvider: Style) <- {
+        Allocate(dashboard)
+        style <- Style
+        canvas  <- thisApp.gui.newCanvas()
+        me GUI_ScrollingWindow:: scrollerFrame(thisApp.gui.newScrollingWindow(NULL, NULL))
+        thisApp.gui.addToContainer(scrollerFrame, canvas)
+        thisApp.gui.setWidgetSize(canvas, 1200, 1200)
+        thisApp.gui.setCallback(canvas, "draw", G_CALLBACK(drawAppArea_cb))
+        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboard)
+        managedWidget <- scrollerFrame
+        return(managedWidget)
     }
 }
 

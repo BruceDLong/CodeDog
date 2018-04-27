@@ -740,7 +740,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         elif(fileSpec):
             [filenameExpr, filenameType] = xlator['codeExpr'](fileSpec[2], objsRefed, None, xlator)
             if filenameType!='string':
-                print "Filename must be a string.\n"; exit(1);
+                cdErr("Filename must be a string.\n")
             print "File iteration not implemeted yet.\n"
             exit(2)
         elif(keyRange):
@@ -1033,8 +1033,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     if globalFuncs!='': ForwardDeclsForGlobalFuncs += globalFuncs+";       \t\t // Forward Decl\n"
                    # print "                         Func Body from Action Sequence"
                 else:
-                    print "ERROR: In codeFields: no funcText or funcTextVerbatim found"
-                    exit(1)
+                    cdErr("ERROR: In codeFields: no funcText or funcTextVerbatim found")
 
             if(funcsDefInClass=='True' ):
                 structCode += funcText

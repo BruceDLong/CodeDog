@@ -182,6 +182,7 @@ def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisNam
         codeConverter = thisValue[1][1:]
         packedField['typeSpec']['codeConverter']=codeConverter
     fieldID = fieldIdentifierString(className, packedField)
+    #print "FIELD-ID", fieldID
     packedField['fieldID']=fieldID
     return packedField
 
@@ -491,11 +492,11 @@ def getTypeSpecOwner(typeSpec):
     global currentCheckObjectVars
     if (typeSpec == 0):
         cdErr(currentCheckObjectVars)
-        exit(1)
     if typeSpec==None or isinstance(typeSpec, basestring): return 'me'
     if "arraySpec" in typeSpec and typeSpec['arraySpec']!=None:
         if "owner" in typeSpec['arraySpec']:
-            return typeSpec['arraySpec']['owner']
+            owner = typeSpec['arraySpec']['owner']
+            return owner
         else: return 'me'
     return typeSpec['owner']
 
@@ -534,9 +535,8 @@ def wrappedTypeIsPointer(classes, typeSpec, structName):
     if result==True: return True
 
     baseType = isWrappedType(classes, structName)
-    if structName == 'GUI_storyBoard': print "UNWRAPPING:", structName
     if(baseType==None): return result
-
+# TODO: FIX
     exit(2)
     return typeIsPointer(baseType)
 

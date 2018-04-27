@@ -67,7 +67,6 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
             [containerType, idxType, idxOwner]=getContainerType(TypeSpec)
-
             if 'owner' in TypeSpec['arraySpec']:
                 containerOwner=TypeSpec['arraySpec']['owner']
             else: containerOwner='me'
@@ -94,16 +93,17 @@ def convertType(classes, TypeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
-    if not isinstance(fieldType, basestring):
-        #if len(fieldType)>1: exit(2)
-        fieldType=fieldType[0]
-    baseType = progSpec.isWrappedType(classes, fieldType)
-    if(baseType!=None):
-        owner=baseType['owner']
-        fieldType=baseType['fieldType']
+    if not isinstance(fieldType, basestring): fieldType=fieldType[0]
+    fieldType2 = progSpec.unwrapClass(classes, fieldType)
 
-    if(fieldType=='<%'): return fieldType[1][0]
-    return xlateLangType(TypeSpec, owner, fieldType, varMode, xlator)
+    baseType = progSpec.isWrappedType(classes, fieldType)
+    if(baseType!=None):owner=baseType['owner']
+
+#    else: owner2 =  progSpec.getTypeSpecOwner(TypeSpec)
+#    if owner!=owner2: print "OWNER MISMATCH:", owner, owner2, varMode
+
+    retVal = xlateLangType(TypeSpec, owner, fieldType2, varMode, xlator)
+    return retVal
 
 def codeIteratorOperation(itrCommand):
     result = ''
@@ -191,9 +191,9 @@ def getCodeAllocStr(varTypeStr, owner):
     if(owner=='our'): S="make_shared<"+varTypeStr+">"
     elif(owner=='my'): S="make_unique<"+varTypeStr+">"
     elif(owner=='their'): S="new "+varTypeStr
-    elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable.", '('+varTypeStr+')'; exit(1);
-    elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
-    else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
+    elif(owner=='me'): cdErr("Cannot allocate a 'me' variable. (" + varTypeStr + ')')
+    elif(owner=='const'): cdErr("Cannot allocate a 'const' variable.")
+    else: cdErr("Cannot allocate variable because owner is " + owner+".")
     return S
 
 def getCodeAllocSetStr(varTypeStr, owner, value):

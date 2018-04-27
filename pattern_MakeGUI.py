@@ -141,7 +141,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         <ROWHEADERCODE>
         addToContainer(headerRow, headerBox)
         addToContainer(listViewWidget, headerRow)
-        withEach item in <STRUCTNAME>_ListData:{
+        withEach item in <STRUCTNAME>_ListData {
             insertNewRow(item)
         }
         return(listViewWidget)
@@ -189,7 +189,10 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
     typeSpec            = field['typeSpec']
     widgetBoxName       =  widgetName
 
-    if fieldSpec=='struct':
+    if fieldSpec=='widget':
+        print "Doing Widget:", structTypeName, fieldName
+        return
+    elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'
         guiMgrName            = fieldType + '_GUI_Mgr'
@@ -361,13 +364,17 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         structTypeName=''
         if fldCat=='struct': # Add a new class to be processed
             structTypeName =typeSpec['fieldType'][0]
-            newGUIStyle    = 'Dialog'
-            guiStructName  = structTypeName+'_'+newGUIStyle+'_GUI'
-            if not(guiStructName in classesEncoded):
-                classesEncoded[guiStructName]=1
-                classesToProcess.append([structTypeName, 'struct', 'Dialog', guiStructName])
+            if (progSpec.doesClassDirectlyImlementThisField(classes, structTypeName, structTypeName+'::managedWidget')
+                    or structTypeName.endswith('Widget')):
+                fldCat = 'widget'
+            else:
+                newGUIStyle    = 'Dialog'
+                guiStructName  = structTypeName+'_'+newGUIStyle+'_GUI'
+                if not(guiStructName in classesEncoded):
+                    classesEncoded[guiStructName]=1
+                    classesToProcess.append([structTypeName, 'struct', 'Dialog', guiStructName])
 
-        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:# Add a new list to be processed
+        if fldCat != 'widget' and 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:# Add a new list to be processed
             structTypeName = typeSpec['fieldType'][0]
             guiStructName  = structTypeName+'_LIST_View'
             if not(guiStructName in classesEncoded):
