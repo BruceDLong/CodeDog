@@ -1,0 +1,43 @@
+/- CodeDog DataManager
+
+/- Widgets for constructing a DataManager
+
+featuresNeeded = [Networking, Websockets]
+
+struct DataManager{
+    /-me string[list]: queryDataCatList() <- {
+        /- Returns list of keyWords labeling each member of TypesOfInfoSources_Views that are supported on this device or a co-device.
+        /-me string[list]: dataCats
+        /-return (dataCats)
+    /-}
+
+    our dataSourceDetails: querySourceDetails(me string: dataSourceTag) <- {
+        /- returns struct for dataCatTag
+        our dataSourceDetails: sourceDetails
+        return (sourceDetails)
+    }
+
+    our infonTypeSpec[list]: TypesOfInfoSources_Views
+    void: addInfoSourceType(me string: idTag, me string: longTitle, me string: shortTitle, me bool: isDefault) <-{
+        our infonTypeSpec: infSpec
+        Allocate(infSpec)
+        infSpec.IdTag <- idTag
+        infSpec.longTitle <- longTitle
+        infSpec.shortTitle <- shortTitle
+        infSpec.isDefault <- isDefault
+        TypesOfInfoSources_Views.pushLast(infSpec)
+    }
+
+    void: initTypesOfInfoSources_Views() <-{
+        addInfoSourceType("dispStockData", "Stock Market Data", "ticker", true)
+        addInfoSourceType("TestRANDOM", "Randon noise", "Random", false)
+        addInfoSourceType("TestWaves", "Various waves", "Wave", false)
+        addInfoSourceType("Time", "Time", "Time", false)
+    }
+
+    void: initialize() <- {
+        initTypesOfInfoSources_Views()     /- Load the supported types of infon tracking from literals
+    }
+
+    me void: deinitialize() <- {    }
+}

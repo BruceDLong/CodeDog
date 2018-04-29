@@ -173,7 +173,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     CODE = CODE.replace('<ROWVIEWCODE>', rowViewCode)
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, listManagerStructName)
 
-def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, indent):
+def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, indent):
     # _Dialog_GUI is editable widget
     global newWidgetFields
     global widgetInitFuncCode
@@ -188,10 +188,16 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
     fieldType           = field['typeSpec']['fieldType'][0]
     typeSpec            = field['typeSpec']
     widgetBoxName       =  widgetName
+    localWidgetVarName  = widgetName
 
     if fieldSpec=='widget':
-        print "Doing Widget:", structTypeName, fieldName
-        return
+        typeName              = CasedFieldName +'Widget'
+        widgetName            = fieldName +'Widget'
+        widgetBoxName         = fieldName
+        localWidgetVarName    = fieldName
+        newWidgetFields      += '    their GUI_item' + ': ' + fieldName + '\n'
+        makeTypeNameCall      = 'print ("thisApp.primary_GUI_Mgr.appModel_data.'+fieldName+'.init\\n")\n'
+        makeTypeNameCall     += fieldName + '<- appModel_data.'+fieldName+".init(style)\n"
     elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'
@@ -238,6 +244,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
         newWidgetFields      += '    me '+listManagerStructName+': '+listWidMgrName+'\n'
 
         widgetListEditorName  = widgetName+'_Editor'
+        localWidgetVarName    = widgetListEditorName
         if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += '        Allocate('+currentClassName+'_data.'+fieldName+')\n'
         widgetInitFuncCode   += '        their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget('+currentClassName+'_data.'+fieldName+')\n'
         widgetInitFuncCode   += '        addToContainer(box, '+widgetListEditorName+')\n'
@@ -245,9 +252,11 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, ind
         varsFromWidgetCode    = "        " + listWidMgrName + ' <- ' + widgetName + '.getValue()\n'
     else: # Not an ArraySpec:
         newWidgetFields      += '    their '+typeName+': '+widgetName+'\n'
-        widgetInitFuncCode   += '        Allocate('+widgetName+')\n'
+        #if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode   += '        Allocate('+widgetName+')\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
         widgetInitFuncCode   += '        addToContainer(box, '+widgetBoxName+')\n'
+    if dialogStyle == 'Z_stack':
+        widgetInitFuncCode+='             '+'gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(box), '+ localWidgetVarName+', "'+label+'")\n'
 
 def BuildGuiForList(classes, className, dialogStyle, newStructName):
     # This makes 4 types of changes to the class:
@@ -384,10 +393,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         #TODO: make actions for each function
         if fldCat=='func': continue
 
-        getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, '')
-        if dialogStyle == 'Z_stack':
-            varName = fieldName[0].upper() + fieldName[1:]+'Widget_Editor'
-            widgetInitFuncCode+='             '+'gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(box), '+ varName+', "'+labelText+'")'
+        getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, '')
 
     # Parse everything
     initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
@@ -460,6 +466,7 @@ struct APP{
         Allocate(primary)
         Allocate(<PRIMARY_GUI>)
         their GUI_storyBoard: appStoryBoard <- <PRIMARY_GUI>.<PRIMARY_MAKERFUNCNAME>(primary)
+        initializeAppGui()
         gui.addToContainerAndExpand (frame, appStoryBoard)
     }
 }'''

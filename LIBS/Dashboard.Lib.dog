@@ -69,7 +69,7 @@ struct Dashboard: inherits = 'widget'{
             }
         }
         setPos(15, 15, 35)
-        markDirtyArea(drawing_area, 0,0, widgetWidth(thisApp.scrollerRef), widgetHeight(thisApp.scrollerRef))
+ /-       markDirtyArea(drawing_area, 0,0, 1200, 1200) /- widgetWidth(thisApp.scrollerRef), widgetHeight(thisApp.scrollerRef))
         return(true)
     }
 
@@ -182,7 +182,7 @@ struct ptrToItem: inherits = 'dash' {
     void: update(me string: Label, me string: textValue, me bool: hideThis) <- {
         isNullLike<-hideThis
         symbol <- textValue
-        dashPtr<-dashBoard.dependentIsRegistered(textValue)
+/-        dashPtr<-dashBoard.dependentIsRegistered(textValue)
         header.update(100, 180, Label, textValue, false)
     }
 
@@ -194,7 +194,7 @@ struct ptrToItem: inherits = 'dash' {
         header.setPos(x, y, extY)
         height <- header.height
         width <- header.width
-        dashPtr <- dashBoard.dependentIsRegistered(symbol)
+ /-       dashPtr <- dashBoard.dependentIsRegistered(symbol)
         if((!refHidden) and dashPtr!=NULL and dashPtr.isHidden){
             dashPtr.isHidden<-false
         }
@@ -302,7 +302,7 @@ struct listOfItems: inherits = 'dash' {
             if(orientation==horizontal){
                 me int:lastElIdx <- elements.size()
                 if(lastElIdx>=1){
-                    dashBoard.addArrow(this, elements[0])
+  /-                  dashBoard.addArrow(this, elements[0])
                     lastElIdx <- lastElIdx-1
                     cr.moveTo(elements[0].posX, elements[0].posY)
                     cr.lineTo(elements[lastElIdx].posX + elements[lastElIdx].width, elements[lastElIdx].posY)
@@ -316,25 +316,30 @@ struct listOfItems: inherits = 'dash' {
 }
 
 struct DashboardWidget {
-    our Dashboard: dashboard
+    our Dashboard: dashboardDBW
     our styleProvider: style
     me GUI_canvas: canvas
-    me GUI_item: managedWidget
-    me GUI_item: init(our styleProvider: Style) <- {
-        Allocate(dashboard)
+    their GUI_item: managedWidget
+    their GUI_item: init(our styleProvider: Style) <- {
+        print("         DashboardWidget: dashboardDBW\n")
+    Allocate(dashboardDBW)
         style <- Style
         canvas  <- thisApp.gui.newCanvas()
-        me GUI_ScrollingWindow:: scrollerFrame(thisApp.gui.newScrollingWindow(NULL, NULL))
+        their GUI_ScrollingWindow:: scrollerFrame(thisApp.gui.newScrollingWindow(NULL, NULL))
         thisApp.gui.addToContainer(scrollerFrame, canvas)
         thisApp.gui.setWidgetSize(canvas, 1200, 1200)
-        thisApp.gui.setCallback(canvas, "draw", G_CALLBACK(drawAppArea_cb))
-        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboard)
+        thisApp.gui.setCallback(canvas, "draw", G_CALLBACK(drawAppArea_cb), self)
+        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
         managedWidget <- scrollerFrame
         return(managedWidget)
+    }
+    void: draw(me GUI_ctxt: cr) <- {
+        dashboardDBW.draw(cr)
     }
 }
 
 struct GLOBAL{
+    our styleProvider: style
 
     me int: intersectPoint(me int:outsidePt, me int:smallPt, me int: largePt) <- {
         me int: ret

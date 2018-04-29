@@ -281,7 +281,7 @@ struct GTK_eventDispatcher{
     me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
     topWidget = masterWidget;
 
-        g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), NULL);
+     /-   g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), NULL);
      /-   g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), NULL);
      /-   g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), NULL);
         g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
@@ -313,6 +313,11 @@ struct GLOBAL{
     me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event) <- <%{
       /-  EventDispatcher.dispatchWindowEvent(event);
     } %>
+    me bool: drawAppArea_cb(their GtkWidget: widget, their GUI_ctxt: cr, their void: data) <- <%{
+        DashboardWidget* DBW = (DashboardWidget*)data;
+        DBW->draw(cr);
+        return(false);
+    }%>
 }
 
 
@@ -347,7 +352,7 @@ struct GUI{
     me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
-    me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
+    me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, %4)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
