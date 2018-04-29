@@ -82,6 +82,11 @@ struct Dashboard: inherits = 'widget'{
 
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
 
+    void: init(our styleProvider: Styler) <- {
+        isHidden <- false
+        styler <- Styler
+    }
+
     void: update() <- {
     }
 
@@ -91,7 +96,7 @@ struct Dashboard: inherits = 'widget'{
         width <- 10
         height <- 10
         withEach Dash in dependentItems{
-            Dash.isHidden<-true
+            Dash.isHidden<-false
             Dash.posIsSet<-false
         }
         withEach Dash in children{
@@ -321,9 +326,9 @@ struct DashboardWidget {
     me GUI_canvas: canvas
     their GUI_item: managedWidget
     their GUI_item: init(our styleProvider: Style) <- {
-        print("         DashboardWidget: dashboardDBW\n")
-    Allocate(dashboardDBW)
         style <- Style
+        Allocate(dashboardDBW)
+        dashboardDBW.init(style)
         canvas  <- thisApp.gui.newCanvas()
         their GUI_ScrollingWindow:: scrollerFrame(thisApp.gui.newScrollingWindow(NULL, NULL))
         thisApp.gui.addToContainer(scrollerFrame, canvas)

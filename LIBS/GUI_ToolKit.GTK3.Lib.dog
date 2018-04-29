@@ -66,7 +66,7 @@ struct stringWidget{
     their GtkWidget: dataValue
 
     me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0->dataValue)%>
-    me string: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0, %1.data())%>
+    me string: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0->dataValue, %1.data())%>
     their GtkWidget: makeStringWidget(me string: name) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
@@ -316,7 +316,7 @@ struct GLOBAL{
     me bool: drawAppArea_cb(their GtkWidget: widget, their GUI_ctxt: cr, their void: data) <- <%{
         DashboardWidget* DBW = (DashboardWidget*)data;
         DBW->draw(cr);
-        return(false);
+        return(true);
     }%>
 }
 

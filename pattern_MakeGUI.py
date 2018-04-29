@@ -196,8 +196,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetBoxName         = fieldName
         localWidgetVarName    = fieldName
         newWidgetFields      += '    their GUI_item' + ': ' + fieldName + '\n'
-        makeTypeNameCall      = 'print ("thisApp.primary_GUI_Mgr.appModel_data.'+fieldName+'.init\\n")\n'
-        makeTypeNameCall     += fieldName + '<- appModel_data.'+fieldName+".init(style)\n"
+        makeTypeNameCall      = fieldName + '<- appModel_data.'+fieldName+".init(style)\n"
     elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'
@@ -219,7 +218,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='string':
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      =  widgetBoxName + ' <- '+ widgetName+'.makeStringWidget("'+label+'")\n'
+        makeTypeNameCall      = "Allocate("+widgetName+"); " + widgetBoxName + ' <- '+ widgetName+'.makeStringWidget("'+label+'")\n'
         widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='int':
@@ -251,8 +250,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetFromVarsCode   += "        " + listWidMgrName + '.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode    = "        " + listWidMgrName + ' <- ' + widgetName + '.getValue()\n'
     else: # Not an ArraySpec:
-        newWidgetFields      += '    their '+typeName+': '+widgetName+'\n'
-        #if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode   += '        Allocate('+widgetName+')\n'
+        newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
         widgetInitFuncCode   += '        addToContainer(box, '+widgetBoxName+')\n'
     if dialogStyle == 'Z_stack':
@@ -464,6 +462,7 @@ struct APP{
     me void: createAppArea(me GUI_Frame: frame) <- {
         me string:s
         Allocate(primary)
+        Allocate(primary.dashboard)
         Allocate(<PRIMARY_GUI>)
         their GUI_storyBoard: appStoryBoard <- <PRIMARY_GUI>.<PRIMARY_MAKERFUNCNAME>(primary)
         initializeAppGui()
