@@ -60,7 +60,7 @@ struct priorityQ{
 
     me bool: isDuplicate(our aItem: agendaItem) <- {
         me bool: retVal<-false
-        withEach item in PQ from agendaItem.priority to agendaItem.priority:{
+        withEach item in PQ from agendaItem.priority to agendaItem.priority {
             retVal<-true
             if(!(agendaItem.LHS.crntCursor===item.LHS.crntCursor)){return(false)}
             if(!(agendaItem.RHS.crntCursor===item.RHS.crntCursor)){return(false)}
@@ -89,7 +89,7 @@ struct retriever{
 
     void: printAgenda()<-{
         print("    |PRINT AGENDA____________\n")
-        withEach agendaItem in agenda.PQ:{
+        withEach agendaItem in agenda.PQ {
             print("    |        item: ", agendaItem.printAgendaItem(), "\n")
         }
         print("    |______________________\n")
@@ -110,7 +110,7 @@ struct retriever{
     }
 
     void: processAgenda()<-{
-        withEach count in WHILE(!agenda.isEmpty()):{
+        withEach count in WHILE(!agenda.isEmpty()) {
             if (count > 200){break()}  /-TODO: remove this when safe
             processAgendaItem(agenda.pop())
         }
@@ -125,7 +125,7 @@ struct retriever{
                 parentAgent.prepWorkList(currentLHS)
                 parentAgent.addWorkItemsToAgenda(priority, pred, currentLHS)
                 our infDeepItr: currentRHS <- RHSChain
-                withEach count in WHILE(currentRHS != NULL):{
+                withEach count in WHILE(currentRHS != NULL) {
                     /-if(currentRHS.state == sEOL){print("rEOL ", count, " ")}
                     our aItem: nextItem
                     Allocate(nextItem)

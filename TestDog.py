@@ -75,7 +75,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
         void: EXEC_TESTS(me string: verboseMode) <- {
             me bool: listOnly <- false
             me bool: CrashProof <- false
-            withEach test in testToRun:{
+            withEach test in testToRun{
                 if(! listOnly){
                     if (!CrashProof){
                         RUN_TEST(test, verboseMode)

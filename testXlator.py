@@ -25,7 +25,7 @@ testDefinitions = {
      'class/charDecl':      ['struct testClass{me char: myChar}', 'PGB:'],
      'class/baseDecls':     ['''
 struct testClass{
-    me int: myInt 
+    me int: myInt
     me string: myString
     me int32: myInt32
     me int64: myInt64
@@ -130,37 +130,37 @@ struct testClass{
     }
 }''', 'PGBR:true 3',['actions/conditional','actions/switch']],
 #####################################################################################################
-     'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in RANGE(2..6):{print(spec," ")}}}', 'PGBR:2 3 4 5 '],
-     'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward RANGE(2..6):{print(RB," ")}}}', 'PGBR:5 4 3 2 '],
-     'actions/listRep':      ['struct testClass{me void: runTest()<-{me int[list]:testList<-[2,13,-22,188]\nwithEach T in testList:{print(T," ")}}}', 'PGBR:2 13 -22 188 '],
-     'actions/backListRep':  ['struct testClass{me void: runTest()<-{me int[list]:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward:{print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
-     'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me int[list]:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList:{print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
-     'actions/mapRep':       ['struct testClass{me void: runTest()<-{me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap:{print(M," ")}}}', 'PGBR:boy does every fine good '],
-     'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey:{print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
-     'actions/deleteMapRep': ['struct testClass{me void: runTest()<-{me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"\nwithEach MD in testMapDel:{if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}}}', 'PGBR:D-does E-every F-fine G-good '],
-     'actions/deleteListRep':['struct testClass{me void: runTest()<-{me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList:{if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
+     'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in RANGE(2..6){print(spec," ")}}}', 'PGBR:2 3 4 5 '],
+     'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward RANGE(2..6){print(RB," ")}}}', 'PGBR:5 4 3 2 '],
+     'actions/listRep':      ['struct testClass{me void: runTest()<-{me int[list]:testList<-[2,13,-22,188]\nwithEach T in testList {print(T," ")}}}', 'PGBR:2 13 -22 188 '],
+     'actions/backListRep':  ['struct testClass{me void: runTest()<-{me int[list]:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
+     'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me int[list]:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList {print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
+     'actions/mapRep':       ['struct testClass{me void: runTest()<-{me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
+     'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
+     'actions/deleteMapRep': ['struct testClass{me void: runTest()<-{me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"\nwithEach MD in testMapDel {if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}}}', 'PGBR:D-does E-every F-fine G-good '],
+     'actions/deleteListRep':['struct testClass{me void: runTest()<-{me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
      'actions/repetitions':  ['''
 struct testClass{
     me void: runTest()<-{
-        withEach spec in RANGE(2..6):{print(spec," ")}
-        withEach RB in Backward RANGE(2..6):{print(RB," ")}
+        withEach spec in RANGE(2..6) {print(spec," ")}
+        withEach RB in Backward RANGE(2..6) {print(RB," ")}
         me int[list]:testList<-[2,13,-22,188]
-        withEach T in testList:{print(T," ")}
+        withEach T in testList {print(T," ")}
         me int[list]:testListBackward<-[2,13,-22,188]
-        withEach TB in Backward testListBackward:{print(TB," ")}
+        withEach TB in Backward testListBackward {print(TB," ")}
         me int[list]:testKeyList<-[2,3,5,8,13,21]
-        withEach TK in testKeyList:{print(TK_key,"-", TK, " ")}
+        withEach TK in testKeyList {print(TK_key,"-", TK, " ")}
         me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
-        withEach M in testMap:{print(M," ")}
+        withEach M in testMap {print(M," ")}
         me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
-        withEach MK in testMapKey:{print(MK_key,"-",MK," ")}
+        withEach MK in testMapKey {print(MK_key,"-",MK," ")}
         me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"
-        withEach MD in testMapDel:{if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}
-        me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList:{if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}
+        withEach MD in testMapDel {if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}
+        me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}
     }
 }''', 'PGBR:BB',['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep']],
 #####################################################################################################
-     
+
 }
 
 tags = """BuildCmd = ""
@@ -197,7 +197,7 @@ def RunCodeDogPrg(testString):
     path = "xlatorTests"
     fileName = "testXlator.dog"
     writeFile(path, fileName, testString)
-    runString ="codeDog " + fileName 
+    runString ="codeDog " + fileName
     workingDirectory = os.getcwd() + "/" + path
     #print"    workingDirectory: ", workingDirectory
     #print"    runString: " ,runString
@@ -231,7 +231,7 @@ def ExecCodeDogTest(testSpec, buildSpec):
     testString += testSpec[0] + "\n"
     out, err = RunCodeDogPrg(testString)
     print "out: ", out
-    if out: 
+    if out:
         if(out.find('Marker: Parse Successful')==-1):
             return "***Parse Fail***"
         if (out.find('Marker: Code Gen Successful')==-1):
@@ -241,7 +241,7 @@ def ExecCodeDogTest(testSpec, buildSpec):
             return "***Build Fail***"
         if(not willRun):
             return "Success"
-        else: 
+        else:
             out, err = runCmd(runDirectory, runSpec)
             #print "out: ", out
             if (reqSpec != ""):
@@ -263,7 +263,7 @@ def runDeps(testKey):
         depsReportText +=  "        " + dep + " : "+testResult+  "\n"
     return depsReportText
 
-    
+
 def runListedTests(testsToRun):
     global buildSpec
     global testDefinitions
@@ -277,7 +277,7 @@ def runListedTests(testsToRun):
             depsReportText = runDeps(testKey)
             reportText+= depsReportText
     return reportText
-    
+
 def gatherListOfTestsToRun(keywordList):
     global testDefinitions
     testList = []
