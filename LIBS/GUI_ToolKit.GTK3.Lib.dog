@@ -379,7 +379,16 @@ struct GUI_ctxt {
     me void: fillNow() <- <%!cairo_fill(%0)%>
     me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
     me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
+    me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
 }
+
+struct guiFillPattern{
+    their cairo_pattern_t: guiFillPattern
+    me void: init() <- <%!%0 = cairo_pattern_create_linear(%1, %2, %3, %4)%>
+    me void: AddColorStopRGBA(me double: offset, their Color: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
+    me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
+}
+
 /-/////////////////////////////// TIME
 struct tm{
     me tm: tm

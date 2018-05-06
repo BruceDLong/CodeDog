@@ -9,9 +9,9 @@ struct styleProvider{
     const int: foregroundColor <- 2
     const int: highlightColor  <- 3
 
-    me Color: foreground <- GUI.Black
-    me Color: background <- GUI.White
-    me Color: highlight  <- GUI.Blue
+    me Color: foreground <- GUI.White
+    me Color: background <- GUI.Black
+    me Color: highlight  <- GUI.DarkSlateBlue
 
     their Color: getColor(their void: ID, me int: attributeCode)  <- {
         switch(attributeCode){
@@ -69,7 +69,7 @@ struct Dashboard: inherits = 'widget'{
             }
         }
         setPos(15, 15, 35)
- /-       markDirtyArea(drawing_area, 0,0, 1200, 1200) /- widgetWidth(thisApp.scrollerRef), widgetHeight(thisApp.scrollerRef))
+        /-markDirtyArea(drawing_area, 0,0, 1200, 1200) /- widgetWidth(thisApp.scrollerRef), widgetHeight(thisApp.scrollerRef))
         return(true)
     }
 
