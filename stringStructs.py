@@ -80,7 +80,7 @@ struct production{
                 else {print(rnames[p], " ")}
             }
             if(ProdType==parseREP){ print('(Len:%i`SeqPos`)')}
-            else {if ((p_key == SeqPos and ProdType == parseSEQ or (ProdType==parseALT and SeqPos>0))) {print(" > ")}}
+            else {if (((p_key == SeqPos and ProdType == parseSEQ) or (ProdType==parseALT and SeqPos>0))) {print(" > ")}}
         }
         print("] ")
     }
@@ -170,7 +170,7 @@ struct EParser{
 
     }
 
-    me void: addProductionToStateSet(me int: crntPos, me int: productionID, me int: SeqPos, me int: origin, our stateRec: pred, our stateRec: cause) <- {
+    me void: addProductionToStateSet(me int: crntPos, me int: productionID, me uint: SeqPos, me int: origin, our stateRec: pred, our stateRec: cause) <- {
         me bool: Duplicate <- false
         their production: prod <- grammar[productionID]
         me int: ProdType <- prod.prodType
