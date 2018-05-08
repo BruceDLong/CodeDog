@@ -196,7 +196,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetBoxName         = fieldName
         localWidgetVarName    = fieldName
         newWidgetFields      += '    their GUI_item' + ': ' + fieldName + '\n'
-        makeTypeNameCall      = fieldName + '<- appModel_data.'+fieldName+".init(style)\n"
+        makeTypeNameCall      = fieldName + '<- appModel_data.'+fieldName+".init()\n"
     elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'
@@ -460,7 +460,6 @@ struct APP{
     their <TOPCLASSNAME>: primary
     our <GUI_STRUCTNAME>: <PRIMARY_GUI>
     me void: createAppArea(me GUI_Frame: frame) <- {
-        me string:s
         Allocate(primary)
         Allocate(primary.dashboard)
         Allocate(<PRIMARY_GUI>)
