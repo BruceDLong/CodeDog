@@ -92,11 +92,14 @@ def addPattern(objSpecs, objectNameList, name, patternList):
 
 def processParentClass(name, parentClass):
     global classHeirarchyInfo
-    if name in classHeirarchyInfo: return
-    if not parentClass in classHeirarchyInfo: classHeirarchyInfo[parentClass]={}
-    if not 'childClasses' in classHeirarchyInfo[parentClass]: classHeirarchyInfo[parentClass]['childClasses']=[]
-    classHeirarchyInfo[parentClass]['childClasses'].append(name)
-    classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': []}
+    if not parentClass in classHeirarchyInfo: classHeirarchyInfo[parentClass]={'parentClass': None, 'childClasses': set([name])}
+    else: classHeirarchyInfo[parentClass]['childClasses'].add(name)
+
+    if not name in classHeirarchyInfo: classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': []}
+    else:
+        prevParentClassName = classHeirarchyInfo[name]['parentClass']
+        if prevParentClassName!= None and parentClass != prevParentClassName:
+            cdErr("The class "+name+" cannot descend from both "+parentClass+" and "+prevParentClassName)
 
 # returns an identifier for functions that accounts for class and argument types
 def fieldIdentifierString(className, packedField):
@@ -174,9 +177,9 @@ def appendToFuncsCalled(funcName,funcParams):
     funcsCalled[funcName].append([funcParams, MarkItems])
 
 
-def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, paramList, thisValue):
+def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, paramList, thisValue, isAllocated):
     codeConverter=None
-    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec,'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList,  'value':thisValue}
+    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec,'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
     if( thisValue!=None and (not isinstance(thisValue, basestring)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
         # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
         codeConverter = thisValue[1][1:]
@@ -463,10 +466,18 @@ def getParentClassList(classes, thisStructName):  # Checks 'inherits' but does n
     return classInherits
 
 def getChildClassList(classes, thisStructName):  # Checks 'inherits' but does not check 'implements'
+    global classHeirarchyInfo
     if thisStructName in classHeirarchyInfo:
         classRelationData = classHeirarchyInfo[thisStructName]
         if 'childClasses' in classRelationData and len(classRelationData['childClasses'])>0:
-            return classRelationData['childClasses']
+            #print "classRelationData['"+thisStructName+"']:", classRelationData['childClasses']
+            listOfChildClasses = classRelationData['childClasses']
+            grandChildren = set([])
+            for className in listOfChildClasses:
+                GchildList = getChildClassList(classes, className)
+                grandChildren.update(GchildList)
+            listOfChildClasses |= grandChildren
+            return listOfChildClasses
     return []
 
 def doesParentClassImplementFunc(classes, structName, fieldID):
@@ -477,7 +488,6 @@ def doesParentClassImplementFunc(classes, structName, fieldID):
     return result
 
 def doesChildClassImplementFunc(classes, structName, fieldID):
-    #print '\n     Childs:\n',
     childClasses=getChildClassList(classes, structName)
     result = doesClassFromListDirectlyImplementThisField(classes, childClasses, fieldID)
     #if len(childClasses)>0: print '     Childs Result:', result

@@ -71,7 +71,7 @@ struct production{
             if(SeqPos>0) {print(" > ")}
         } else {
             if(ProdType==parseALT and SeqPos==0) {print(" > ")}
-            withEach p in items:{
+            withEach p in items {
                 if(ProdType == parseSEQ and p_key == SeqPos){ print(" > ")}
                 if(p_key!=0){
                     if(ProdType==parseALT){print("| ")}
@@ -80,7 +80,7 @@ struct production{
                 else {print(rnames[p], " ")}
             }
             if(ProdType==parseREP){ print('(Len:%i`SeqPos`)')}
-            else {if ((p_key == SeqPos and ProdType == parseSEQ or (ProdType==parseALT and SeqPos>0))) {print(" > ")}}
+            else {if (((p_key == SeqPos and ProdType == parseSEQ) or (ProdType==parseALT and SeqPos>0))) {print(" > ")}}
         }
         print("] ")
     }
@@ -143,14 +143,14 @@ struct EParser{
     }
 
     void: dump() <- {
-         withEach crntPos in RANGE(0 .. SSets.size()):{
+         withEach crntPos in RANGE(0 .. SSets.size()) {
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
             if(crntPos+1 != SSets.size()) {
                 ch <- ""+textToParse[crntPos]
             }
          /-   print("SLOT: ", crntPos, "(", ch, ") - size: ", SSet->stateRecs.size(), "\n")
-            withEach SRec in SSet.stateRecs:{
+            withEach SRec in SSet.stateRecs {
                 their production: prod <- grammar[SRec.productionID]
                 print("    ")
                 SRec.printSREC(self)
@@ -170,11 +170,11 @@ struct EParser{
 
     }
 
-    me void: addProductionToStateSet(me int: crntPos, me int: productionID, me int: SeqPos, me int: origin, our stateRec: pred, our stateRec: cause) <- {
+    me void: addProductionToStateSet(me int: crntPos, me int: productionID, me uint: SeqPos, me int: origin, our stateRec: pred, our stateRec: cause) <- {
         me bool: Duplicate <- false
         their production: prod <- grammar[productionID]
         me int: ProdType <- prod.prodType
-        withEach item in SSets[crntPos].stateRecs:{ /- Don't add duplicates.
+        withEach item in SSets[crntPos].stateRecs { /- Don't add duplicates.
             /- TODO: change this to be faster. Not a linear search.
             if(item.productionID==productionID and item.originPos==origin){
           /-  print ("POSES", item.SeqPosition, ', ', SeqPos, "::")
@@ -223,7 +223,7 @@ struct EParser{
 
         if(ProdType == parseALT and SeqPos==0){
            /- print("  ALT-LIST\n")
-            withEach AltProd in prod.items:{
+            withEach AltProd in prod.items {
    /-             print("                                  ALT: ")
                 addProductionToStateSet(crntPos, AltProd, 0, origin, pred, cause)
             }
@@ -237,7 +237,7 @@ struct EParser{
         startProduction <- startProd
         textToParse <- txt
         SSets.clear()
-        withEach i in RANGE(0 .. txt.size()+1):{
+        withEach i in RANGE(0 .. txt.size()+1){
             me stateSets: newSSet
             SSets.pushLast(newSSet)
         }
@@ -248,7 +248,7 @@ struct EParser{
     me int: chkStr(me int: pos, me string: s) <- {
         me int: L <- s.size()
         if(pos+L > textToParse.size()){return(-1)}
-        withEach i in RANGE(0 .. L):{
+        withEach i in RANGE(0 .. L){
             if( s[i] != textToParse[pos+i]) {
   /-              print("                                 chkStr FAILED\n")
                 return(-1)
@@ -262,7 +262,7 @@ struct EParser{
         me char: ender <- endChar[0]
         me char: ch
         me int: txtSize <- textToParse.size()
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
             if(ch==ender){return(p-pos)}
         }
@@ -277,7 +277,7 @@ struct EParser{
         me int: txtSize <- textToParse.size()
         me string: escCharStr <- "\\ "
         me char: escChar <- escCharStr[0]
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
             if(prevChar!=escChar and ch==ender){return(p-pos)}
             if(prevChar==escChar and ch==escChar) {prevChar<-escCharStr[1]}
@@ -290,7 +290,7 @@ struct EParser{
     me int: scrapeAlphaSeq(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
             if(isalpha(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
         }
@@ -299,7 +299,7 @@ struct EParser{
     me int: scrapeUintSeq(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
             if(isdigit(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
         }
@@ -308,7 +308,7 @@ struct EParser{
     me int: scrapeAlphaNumSeq(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
             if(isalnum(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
         }
@@ -318,7 +318,7 @@ struct EParser{
         me char: ch
         me string: chars <- "_"
         me int: txtSize <- textToParse.size()
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
             if(isalnum(ch) or ch==chars[0]){}else{if(p==pos){return(-1)} else{return(p-pos)}}
         }
@@ -328,7 +328,7 @@ struct EParser{
     me int: scrapePrintableSeq(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
             if(isprint(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
         }
@@ -338,7 +338,7 @@ struct EParser{
     me int: scrapeWS(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
             if(isspace(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
         }
@@ -436,7 +436,7 @@ struct EParser{
       /-  print('                Checking New Item :') backSRec.print(self)
         me int: prodTypeFlag <- backProd.prodType
         me int: backSRecSeqPos <- backSRec.SeqPosition
-        withEach SRec in SRecsToComplete:{
+        withEach SRec in SRecsToComplete{
             if(crntPos==SRec.originPos and !(backSRec.productionID==SRec.productionID and backSRec.SeqPosition==SRec.SeqPosition and backSRec.originPos==SRec.originPos)){
                 if(prodTypeFlag==parseREP){
                     me int: MAX_ITEMS  <- backProd.items[2]
@@ -451,7 +451,7 @@ struct EParser{
                     }/- else {print(" SEQ is NOT ADVANCING  \n")}
                 } else if(prodTypeFlag==parseALT){
                     if(backSRecSeqPos == 0){
-                        withEach backAltProdID in backProd.items:{
+                        withEach backAltProdID in backProd.items {
                             if(backAltProdID==SRec.productionID){
     /-                            print(" ADVANCING ALT: ")
                                 addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
@@ -470,7 +470,7 @@ struct EParser{
     /-    print('        COMPLETING: check items at origin %i`SRec->originPos`... \n')
         registerCompletion(SRec)
         their stateSets: SSet  <- SSets[SRec.originPos]
-        withEach backSRec in SSet.stateRecs:{
+        withEach backSRec in SSet.stateRecs {
             their production: backProd <- grammar[backSRec.productionID]
     /-        print('                Checking Item #%i`backSRec_key`: ')
             me int: prodTypeFlag <- backProd.prodType
@@ -489,7 +489,7 @@ struct EParser{
                     }/- else {print(" SEQ is NOT ADVANCING  \n")}
                 } else if(prodTypeFlag==parseALT){
                     if(backSRecSeqPos == 0){
-                        withEach backAltProdID in backProd.items:{
+                        withEach backAltProdID in backProd.items {
                             if(backAltProdID==SRec.productionID){
      /-                           print(" ADVANCING ALT: ")
                                 addProductionToStateSet(crntPos, backSRec.productionID, backSRecSeqPos+1, backSRec.originPos, backSRec, SRec)
@@ -514,12 +514,12 @@ struct EParser{
 
     void: doParse() <- {
         parseFound <- false
-        withEach crntPos in RANGE(0 .. SSets.size()):{
+        withEach crntPos in RANGE(0 .. SSets.size()) {
             their stateSets: SSet <- SSets[crntPos]
 
     /-        print('\n\n%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: %i`crntPos` "%s`ch.data()`"   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n')
             resetCompletions(crntPos)
-            withEach SRec in SSet.stateRecs:{
+            withEach SRec in SSet.stateRecs {
                 their production: prod <- grammar[SRec.productionID]
                 me int: ProdType <- prod.prodType
                 me bool  : isTerminal <- (prod.isTerm != 0)
@@ -565,7 +565,7 @@ struct EParser{
     void: countLinesToCharPos(me int: charPos) <- {
         errLineNum <- 1
         me int: lastLinePos <- 0
-        withEach C in RANGE(0..charPos):{
+        withEach C in RANGE(0..charPos){
             me int: LHS <- textToParse[C]
             if(LHS == 13){
                 errLineNum <- errLineNum+1
@@ -580,7 +580,7 @@ struct EParser{
         errorMesg <- ""
         me int: lastSSetIDX <- SSets.size()
         me int: lastPosWithItems <- 0
-        withEach ssetIDX in Backward RANGE(0 .. lastSSetIDX):{
+        withEach ssetIDX in Backward RANGE(0 .. lastSSetIDX){
             their stateSets: SSet <- SSets[ssetIDX]
             me int: numItems <- SSet.stateRecs.size()
             if(numItems>0 and lastPosWithItems==0){lastPosWithItems <- ssetIDX}
@@ -598,7 +598,7 @@ struct EParser{
         me int: seqPos<- 0
       /-  lastSRec.printSREC(self) print("\n----\n")
 
-        withEach SRec in lastSSet.stateRecs:{
+        withEach SRec in lastSSet.stateRecs {
             lastSRec <- SRec
             prod <- grammar[SRec.productionID]
             ProdType <- prod.prodType
@@ -639,7 +639,7 @@ struct EParser{
  /-       print(indent+'grammar[%i`prodID`] = ')  crntRec.printSREC(self)  print("\n", indent, "\n")
         if(Prod.isTerm){
         } else if(seqPos>0){
-            withEach subItem in Backward RANGE(0 .. seqPos):{
+            withEach subItem in Backward RANGE(0 .. seqPos) {
 /-                print(indent, "/--item #", subItem, ": \n")
                 me int: pedToFollow <- choosePedigreeToFollow(prodID, crntRec.pedigrees)
                 me pedigree: ped <- crntRec.pedigrees[pedToFollow]
@@ -654,7 +654,7 @@ struct EParser{
     }
 
     void: docPos(me int: indent, our stateRec: SRec, me string: tag) <- {
-        withEach i in RANGE(0 .. indent):{ print("|    ")}
+        withEach i in RANGE(0 .. indent){ print("|    ")}
         if(SRec){
             SRec.printSREC(self)
         } else {print(" NULL ")}
@@ -665,7 +665,7 @@ struct EParser{
         their production: prod <- grammar[SRec.productionID]
         if(prod.isTerm){
             print(indent, "'")
-            withEach i in RANGE(SRec.originPos .. SRec.crntPos):{
+            withEach i in RANGE(SRec.originPos .. SRec.crntPos){
                 print(textToParse[i])
             }
             print("'\n")
@@ -699,7 +699,7 @@ def writePositionalFetch(classes, tags, field):
 
 
 
-    #print 'FIELD::', fname, field['owner'], '"'+fieldType+'"'
+    #print 'FIELD:', fname, field['owner'], '"'+fieldType+'"'
     if(field['owner']=='const' and fieldType=='string'):
         S+='    %s_hasLen <- true \n    %s_span.len <- '% (fname, fname) + str(len(field['value']))
     S+="        if(! %s_hasPos){pos <- pred.pos+pred.len}\n" % (fname)
@@ -1163,7 +1163,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 # First, create a new flag field
                 if fieldName==None: fieldName="TEMP"
                 newFieldsName=fieldName   #'has_'+fieldName
-                fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, newFieldsName, None, None, None)
+                fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, newFieldsName, None, None, None, False)
                 progSpec.addField(classes[0], memVersionName, 'struct', fieldDef)
 
                 # Second, generate the code to set the flag
@@ -1300,7 +1300,7 @@ def CreateStructsForStringModels(classes, newClasses, tags):
             startPos <- startPos+1
             endPos <- endPos-1
         }
-        withEach i in RANGE(startPos .. endPos):{
+        withEach i in RANGE(startPos .. endPos){
             S <- S+textToParse[i]
         }
         return(S)
