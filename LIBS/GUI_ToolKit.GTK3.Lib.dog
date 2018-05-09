@@ -47,7 +47,7 @@ struct intWidget{
     their GtkWidget: dataValue
 
     me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0)%>
-    me string: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0, %1)%>
+    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0, %1)%>
 
     their GtkWidget: makeIntWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -66,7 +66,7 @@ struct stringWidget{
     their GtkWidget: dataValue
 
     me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0->dataValue)%>
-    me string: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0->dataValue, %1.data())%>
+    me void: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0->dataValue, %1.data())%>
     their GtkWidget: makeStringWidget(me string: name) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
@@ -85,7 +85,7 @@ struct enumWidget{
     me string[list]: options
 
     me string: getValue() <- <%!atoi(gtk_combo_box_text_get_active_text((GtkComboBoxText*)%0))%>
-    me string: setValue(me int: val) <- {}
+    me void: setValue(me int: val) <- {}
 
     their GtkWidget: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
         options = Options;
@@ -274,7 +274,7 @@ struct GTK_eventDispatcher{
         }
         return false;
     } %>
-    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
+    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
   /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     /- Also: timer, data and user events
 
@@ -298,19 +298,19 @@ struct GTK_eventDispatcher{
 /-///////////////////////////////   Event callbacks for GTK3
 struct GLOBAL{
     me GTK_eventDispatcher: EventDispatcher
-    me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event) <- <%{
+    me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event, their void: data) <- <%{
         EventDispatcher.dispatchPointerClickEvent(event);
     } %>
-    me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event) <- <%{
+    me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event, their void: data) <- <%{
         EventDispatcher.dispatchPointerMotionEvent(event);
     } %>
-    me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event) <- <%{
+    me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event, their void: data) <- <%{
       /-  EventDispatcher.dispatchWindowEvent(event);
     } %>
-    me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event) <- <%{
+    me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event, their void: data) <- <%{
         EventDispatcher.dispatchKeyboardEvent(event);
     } %>
-    me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event) <- <%{
+    me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event, their void: data) <- <%{
       /-  EventDispatcher.dispatchWindowEvent(event);
     } %>
     me bool: drawAppArea_cb(their GtkWidget: widget, their GUI_ctxt: cr, their void: data) <- <%{

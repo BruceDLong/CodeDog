@@ -47,7 +47,7 @@ struct stringScanner{
     }
 
     me int: chkStr(me string: s) <- {
-        me int: L <- s.size()
+        me uint: L <- s.size()
         if(pos+L > S.size()){return(-1)}
         withEach i in RANGE(0 .. L){
             if( s[i] != S[pos+i]) {

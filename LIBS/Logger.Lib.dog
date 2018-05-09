@@ -28,13 +28,13 @@ struct logManager{
     /-ShowLogs(InfoLogs | MesgLogs | ...) // ALL_LOGS = the OR of all of them
     /-HideLogs(InfoLogs | MesgLogs | ...)
     /-RouteLogs(FILE) // Options: stdOut, A file, the platform's system logs, a string
-    
+
     me void: init(me int: outMode) <- {
-	outputMode <- outMode
-	if(outputMode == OFile or outputMode == OBoth){useLogFile <- true; openLogFile();}
-	else(useLogFile <- false)
-	if(outputMode == OConsole or outputMode == OBoth){useConsole <- true;}
-	else(useConsole <- false)
+        outputMode <- outMode
+        if(outputMode == OFile or outputMode == OBoth){useLogFile <- true; openLogFile();}
+        else{useLogFile <- false}
+        if(outputMode == OConsole or outputMode == OBoth){useConsole <- true;}
+        else{useConsole <- false}
     }
 }
 

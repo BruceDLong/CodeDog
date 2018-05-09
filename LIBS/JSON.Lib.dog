@@ -46,7 +46,7 @@ struct JSON {
     me int: scrapeUintSeq(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize) {
             ch <- textToParse[p]
             if(isdigit(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
         }
@@ -71,7 +71,7 @@ struct JSON {
         me int: txtSize <- textToParse.size()
         me string: escCharStr <- "\\ "
         me char: escChar <- escCharStr[0]
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize) {
             ch <- textToParse[p]
             if(prevChar!=escChar and ch==ender){return(p-pos)}
             if(prevChar==escChar and ch==escChar) {prevChar<-escCharStr[1]}
@@ -86,7 +86,7 @@ struct JSON {
             ErrorMesg <- "Expected '"+s+"' but went past end of JSON string."
             return(-1)
         }
-        withEach i in RANGE(0 .. L):{
+        withEach i in RANGE(0 .. L) {
             if( s[i] != textToParse[pos+i]) {
                 ErrorMesg <- "Expected '" + s + "'."
                 return(-1)
@@ -98,7 +98,7 @@ struct JSON {
     me int: scrapeWS(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
-        withEach p in RANGE(pos .. txtSize):{
+        withEach p in RANGE(pos .. txtSize) {
             ch <- textToParse[p]
             if(isspace(ch)){}else{if(p==pos){return(0)} else{return(p-pos)}}
         }
@@ -153,7 +153,7 @@ struct JSON {
             pos <- pos + scrapeWS(pos)
             me char: nxtChar <- peek(pos)
             JV.setAsArray()
-            withEach count in WHILE(nxtChar != chars[6]):{       /- "]"
+            withEach count in WHILE(nxtChar != chars[6]) {       /- "]"
                 their JSONValue: inner_JV; Allocate(inner_JV)
                 pos <- pos + parse(pos, inner_JV, indent + "|     ")
                 if(ErrorMesg != ""){return(-1)}
@@ -197,7 +197,7 @@ struct JSON {
             their JSONValue[their map string]: JV_Map <- JV.getAsMap()
             retVal <- retVal + "["
             me int: arraySize <- JV_Map.size()
-            withEach count in RANGE(0..arraySize):{
+            withEach count in RANGE(0..arraySize) {
                 if(count>0){retVal <- retVal + ", "}
                 retVal <- retVal + JVtoString(JV_Map.at(toString(count)))
             }
@@ -207,7 +207,7 @@ struct JSON {
             their JSONValue[their map string]: JV_Map <- JV.getAsMap()
             retVal <- retVal + "{"
             me int: count <- 0
-            withEach node in JV_Map:{
+            withEach node in JV_Map {
                 if(count>0){retVal <- retVal + ", "}
                 count <- count +1
                 retVal <- retVal + node_key +": "+ JVtoString(node)

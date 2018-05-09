@@ -153,7 +153,7 @@ struct widget{
 /-    me color: defaultColor
     bool: isHidden
 
-    void: draw(me GUI_ctxt: cr) <- {}
+    void: draw(me GUI_ctxt: cr)
     me bool: handleAllClicks(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: primaryDblClick(their GUI_ButtonEvent: event) <- {return(false)}

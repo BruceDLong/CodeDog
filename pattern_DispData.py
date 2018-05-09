@@ -241,16 +241,17 @@ struct GLOBAL{
                 if(countOfRefs==0):declSymbolStr+='me string: '
                 countOfRefs+=1
                 [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText] = self.getDashDeclAndUpdateCode(
-                    'our', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
+                    'their', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
                 self.structTextAcc += structText
                 tempFuncText = updateFuncText
                 updateFuncText = declSymbolStr+'mySymbol <- data.'+fieldName+'.mySymbol(data.'+fieldName+')\n'
                 updateFuncText += ( '    if(data.'+fieldName+' != NULL){\n'+
-                                    '        '+fieldName+' <- asClass('+dispStructTypeName+', dashBoard.dependentIsRegistered(mySymbol))\n'
+                                    '        '+fieldName+' <- asClass('+dispStructTypeName+', dependentIsRegistered(mySymbol))\n'
                                     '        if(!'+fieldName+'){'
-                                    '\n            Allocate('+fieldName+')\n'+
-                                    tempFuncText+
-                                    '\n            dashBoard.addDependent(mySymbol, '+fieldName+')'+
+                                    '\n            Allocate('+fieldName+')'+
+                                    '\n            '+fieldName+'.dashParent <- self'+
+                                    '\n            addDependent(mySymbol, '+fieldName+')'+
+                                    '\n'+tempFuncText+
                                     '\n        }\n    } else {'+fieldName+' <- NULL}\n')
                 self.updateFuncTextPart2Acc += updateFuncText
                 self.setPosFuncTextAcc      += '''
@@ -261,7 +262,7 @@ struct GLOBAL{
             extX <- max(extX, <fieldName>.extX)
             extY <- max(extY, <fieldName>.extY)
         }
-        dashBoard.addArrow(<fieldName>Ptr, <fieldName>)
+        addRelation("arrow", <fieldName>Ptr, <fieldName>)
     }
 '''.replace('<fieldName>', fieldName)
                 self.handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
@@ -327,19 +328,19 @@ struct display_'''+className+": inherits = 'dash' "+'''{
 
     void: draw(me GUI_ctxt: cr) <- {
         header.isHidden <- false
-        me Color: hedrColor <- dashBoard.styler.getColor(data, styleProvider.foregroundColor)
+        me Color: hedrColor <- styler.getColor(data, styleProvider.foregroundColor)
         cr.setColor(hedrColor)
         header.draw(cr)
         cr.strokeNow()
-        hedrColor <- dashBoard.styler.getColor(NULL, styleProvider.foregroundColor)
+        hedrColor <- styler.getColor(NULL, styleProvider.foregroundColor)
         cr.setColor(hedrColor)
         if(displayMode!=headerOnly){
 '''+self.drawFuncTextAcc+'''
-            me Color: rectColor <- dashBoard.styler.getColor(data, styleProvider.foregroundColor)
+            me Color: rectColor <- styler.getColor(data, styleProvider.foregroundColor)
             cr.setColor(rectColor)
             cr.rectangle(posX, posY, width, height)
             cr.strokeNow()
-            rectColor <- dashBoard.styler.getColor(NULL, styleProvider.foregroundColor)
+            rectColor <- styler.getColor(NULL, styleProvider.foregroundColor)
             cr.setColor(rectColor)
 '''+self.drawFuncTextPart2Acc+'''
         }
@@ -357,12 +358,14 @@ struct display_'''+className+": inherits = 'dash' "+'''{
         if progSpec.typeIsPointer(typeSpec) and skipFlags != 'skipPtr':  # Header for a POINTER
             fieldName+='Ptr'
             innerUpdateFuncStr = 'data.'+fieldRef+'.mySymbol(data.'+fieldRef+')'
+            updateFuncText+="        "+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'))\n'
             structText += "    "+owner+" ptrToItem: "+fieldName+"\n"
 
         elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
             dispStructTypeName= "display_"+field['typeSpec']['fieldType'][0]
             innerUpdateFuncStr = '"Size:"+toString(data.'+fieldName+'.size())'
+            updateFuncText+="        "+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+ "our dash[our list]: oldElements <- "+fieldName+".elements\n"
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'), true)\n'
              ## Now push each item
@@ -377,7 +380,8 @@ struct display_'''+className+": inherits = 'dash' "+'''{
             updateFuncText+="            "+innerStructText
             updateFuncText+="            "+"if(oldElements==NULL or (oldElements!=NULL and !(asClass("+dispStructTypeName+", oldElements[dash_key]).data === data."+fieldName+"[_item_key]))){\n"
             updateFuncText+='                Allocate(newItem)\n'
-            updateFuncText+='               '+'dashBoard.addDependent(data.'+fieldName+'[_item_key].mySymbol(data.'+fieldName+'[_item_key]), newItem)'
+            updateFuncText+='                newItem.dashParent <- self\n'
+            updateFuncText+='               '+'addDependent(data.'+fieldName+'[_item_key].mySymbol(data.'+fieldName+'[_item_key]), newItem)'
             updateFuncText+='\n            } else {\n               newItem <- asClass('+dispStructTypeName+', oldElements[dash_key])\n            dash_key <- dash_key + 1'
             updateFuncText+='\n            }'
             updateFuncText+='\n            '+innerUpdateFuncText
@@ -385,7 +389,8 @@ struct display_'''+className+": inherits = 'dash' "+'''{
             updateFuncText+='\n        }\n'
             structText += "    "+owner+" listOfItems: "+fieldName+"\n"
         elif(fldCat=='struct'):  # Header for a STRUCT
-            updateFuncText="        "+fieldName+'.update('+fieldLabel+', ">", data.'+fieldRef+')\n'
+            updateFuncText+="        "+fieldName+'.dashParent <- self\n'
+            updateFuncText+="        "+fieldName+'.update('+fieldLabel+', ">", data.'+fieldRef+')\n'
             structTypeName=field['typeSpec']['fieldType'][0]
             structText += "    "+owner+" display_"+structTypeName+': '+fieldName+"\n"
 
