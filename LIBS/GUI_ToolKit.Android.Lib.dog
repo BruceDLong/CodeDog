@@ -396,8 +396,8 @@ struct CanvasView: inherits="View" implements="OnTouchListener"{
 
 /-///////////////////////////////  HANDLE GUI
 struct GUI : inherits="LinearLayout"{
-    me LinearLayout:: frame(GLOBAL.static_Global)
-    me LinearLayout:: layoutArea(GLOBAL.static_Global)
+    me LinearLayout: frame <- (GLOBAL.static_Global)
+    me LinearLayout: layoutArea <- (GLOBAL.static_Global)
     me NestedScrollView: vScroller
     me HorizontalScrollView: hScroller
 
@@ -441,13 +441,13 @@ struct GUI : inherits="LinearLayout"{
     }
 
     me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenubar, me string: text) <- {
-        me ourSubMenu:: subMenu(text)
+        me ourSubMenu: subMenu <- (text)
         GLOBAL.static_Global.thisApp.menubar.items.add(subMenu)
         return(subMenu)
     }
 
     me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
-        our ourSubMenu:: thisMenuItem(menuLabel)
+        our ourSubMenu: thisMenuItem <- (menuLabel)
         menu.items.pushLast(thisMenuItem)
     }
 
@@ -678,7 +678,7 @@ struct GLOBAL: inherits="AppCompatActivity"{
 struct APP: inherits="LinearLayout" {
     me LinearLayout: thisFrame
     me GUI: gui
-    me ourSubMenu:: menubar("menubar")
+    me ourSubMenu: menubar <- ("menubar")
 
     me none: APP() <- <%{super(GLOBAL.static_Global);}%>
 

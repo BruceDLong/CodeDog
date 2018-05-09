@@ -342,9 +342,18 @@ def codeFactor(item, objsRefed, returnType, xlator):
             tmp+="}"
             S+=tmp
         else:
+            #print "CHECK FOR CHAR", S, returnType
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)
-            elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
+            elif (item0[0]=='"'): 
+				if returnType != None and returnType["fieldType"]=="char":
+					innerS=item0[1:-1]
+					if len(innerS)==1:
+						S+="'"+item0[1:-1] +"'"
+					else:
+						cdErr("Characters must have exactly 1 character.")
+				else:
+					S+='"'+item0[1:-1] +'"'
             else: S+=item0;
     else:
         if isinstance(item0[0], basestring):
@@ -689,10 +698,15 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
     [fieldType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)
     varDeclareStr=''
     assignValue=''
+    isAllocated = fieldDef['isAllocated']
+    owner = progSpec.getTypeSpecOwner(typeSpec)
     if(fieldDef['value']):
-        [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, None, xlator)
-        [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
-        assignValue = " = " + leftMod+S2+rightMod
+        [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, typeSpec, xlator)
+        if(isAllocated):
+            assignValue = " = " + getCodeAllocSetStr(innerType, owner, S2)
+        else:
+            [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
+            assignValue = " = " + leftMod+S2+rightMod
 
     else: # If no value was given:
         CPL=''
@@ -714,7 +728,10 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
                 owner = progSpec.getTypeSpecOwner(typeSpec)
                 assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
         elif(progSpec.typeIsPointer(typeSpec)):
-            assignValue = '= NULL'
+            if(isAllocated): 
+                assignValue = " = " + getCodeAllocSetStr(innerType, owner, "")
+            else:
+                assignValue = '= NULL'
         elif('arraySpec' in typeSpec):
             pass
         else:
@@ -835,8 +852,8 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
         decl = ''
     return [defn, decl]
 
-def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
-    return "    " + ClassName + "(" + constructorArgs+")"+constructorInit+"{};\n"
+def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, xlator):
+    return "    " + ClassName + "(" + constructorArgs+")"+constructorInit+"{"+funcBody+"};\n"
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):

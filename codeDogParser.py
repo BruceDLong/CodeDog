@@ -45,7 +45,9 @@ CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
 objectName = CID("objectName")
 cppType = (Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
-intNum = Word(nums)("intNum")
+HexNums = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
+BinNums = Combine((Literal("0B") | Literal("0b")) + Word("01"))
+intNum = (HexNums | BinNums | Word(nums))("intNum")
 numRange = Group(intNum + ".." + intNum)("numRange")
 varType = (objectName | cppType | numRange)("varType")
 boolValue = (Keyword("true") | Keyword("false"))("boolValue")
@@ -113,10 +115,14 @@ funcBody = (actionSeq | rValueVerbatim)("funcBody")
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
           (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
+        | (Literal(":") + CID("fieldName") + "<-" + Group(parameters)("parameters"))
         | (Literal(":") + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
         | (Literal(":") + "<-" - (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName") + Optional("(" + argList + Literal(")")('argListTag')) - ~Word("{"))
-        | (Literal("::") + CID("fieldName")  + Group(parameters)("parameters"))
+        | (Literal("::") + CID("fieldName") + "<-" + Group(parameters)("parameters"))
+        | (Literal("::")('allocDoubleColon')+ CID("fieldName") + "<-" - (rValue("givenValue")))
+        | (Literal("::")('deprecateDoubleColon') + CID("fieldName")  + Group(parameters)("parameters"))# deprecated
+        | (Literal("::")('allocDoubleColon') + CID("fieldName"))
     )("nameAndVal")
 
 datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
@@ -200,6 +206,8 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.isNext): isNext=True
     if(fieldResult.owner): owner=fieldResult.owner;
     else: owner='me';
+    isAllocated = False
+    
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType;
         if not isinstance(fieldType, basestring) and (fieldType[0]=='[' or fieldType[0]=='{'):
@@ -221,6 +229,11 @@ def packFieldDef(fieldResult, className, indent):
             fieldName = nameAndVal.fieldName
             #print "FIELD NAME", fieldName
         else: fieldName=None;
+        
+        if(nameAndVal.allocDoubleColon): 
+			if owner == 'me' or owner == 'we': print "Error: unable to allocate variable with owner me or we: ", fieldName; exit(1)
+			else: isAllocated = True
+        
         if(nameAndVal.givenValue):
             givenValue = nameAndVal.givenValue
 
@@ -231,18 +244,20 @@ def packFieldDef(fieldResult, className, indent):
 
         elif(nameAndVal.rValueVerbatim):
             givenValue = ['', nameAndVal.rValueVerbatim[1]]
-        else: givenValue=None;
+        else: givenValue=None; 
         if(nameAndVal.argListTag):
             for argSpec in nameAndVal.argList:
                 argList.append(packFieldDef(argSpec[0], className, indent+"    "))
-        else: argList=None;
+        else: argList=None;      
         if 'parameters' in nameAndVal:
+            if('deprecateDoubleColon'in nameAndVal):
+                print "            ***deprecated doubleColon in nameAndVal at: ", fieldName
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
             else: prmList=nameAndVal.parameters[1]
             for param in prmList:
                 paramList.append(param)
         else: paramList=None
-
+        
         if(nameAndVal.optionalTag): optionalTags=extractTagDefs(nameAndVal.tagDefList)
     else:
         givenValue=None;
@@ -253,12 +268,12 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.flagDef):
         cdlog(3,"FLAG: {}".format(fieldResult))
         if(arraySpec): cdErr("Lists of flags are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, fieldName, None, paramList, givenValue)
+        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, fieldName, None, paramList, givenValue, isAllocated)
     elif(fieldResult.modeDef):
         cdlog(3,"MODE: {}".format(fieldResult))
         modeList=fieldResult.modeList
         if(arraySpec): cdErr("Lists of modes are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, fieldName, None, paramList, givenValue)
+        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, fieldName, None, paramList, givenValue, isAllocated)
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
@@ -267,18 +282,18 @@ def packFieldDef(fieldResult, className, indent):
             if(len(fieldResult)>3 and fieldResult[3]!=''):
                 fieldName=fieldResult[3]
         givenValue=fieldResult.constStr[1:-1]
-        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, fieldName, None, paramList, givenValue)
+        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, fieldName, None, paramList, givenValue, isAllocated)
     elif(fieldResult.constNum):
         cdlog(3,"CONST Num: {}".format(fieldResult))
         if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
-        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, fieldName, None, paramList, givenValue)
+        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, fieldName, None, paramList, givenValue, isAllocated)
     elif(fieldResult.nameVal):
         cdlog(3,"NameAndVal: {}".format(fieldResult))
-        fieldDef=progSpec.packField(className, None, None, None, arraySpec, fieldName, argList, paramList, givenValue)
+        fieldDef=progSpec.packField(className, None, None, None, arraySpec, fieldName, argList, paramList, givenValue, isAllocated)
     elif(fieldResult.fullFieldDef):
         fieldTypeStr=str(fieldType)[:50]
         cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, fieldName])))
-        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, fieldName, argList, paramList, givenValue)
+        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, fieldName, argList, paramList, givenValue, isAllocated)
     else:
         cdErr("Error in packing FieldDefs: {}".format(fieldResult))
         exit(1)

@@ -9,9 +9,9 @@ struct styleProvider{
     const int: foregroundColor <- 2
     const int: highlightColor  <- 3
 
-    me Color: foreground <- GUI.Black
-    me Color: background <- GUI.White
-    me Color: highlight  <- GUI.Blue
+    me Color: foreground <- GUI.White
+    me Color: background <- GUI.Black
+    me Color: highlight  <- GUI.DarkSlateBlue
 
     their Color: getColor(their void: ID, me int: attributeCode)  <- {
         switch(attributeCode){
@@ -52,7 +52,7 @@ struct Dashboard: inherits = 'dash'{
         me int: largeToX <- to.posX + to.width
         me int: smallToY <- to.posY
         me int: largeToY <- to.posY + to.height
-        our arrow:: Arrow(fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
+        our arrow: Arrow <- (fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
         decorations.pushLast(Arrow)
     }
 
@@ -349,7 +349,7 @@ struct DashboardWidget: inherits='dash' {
         Allocate(dashboardDBW)
         dashboardDBW.dashParent <- self
         canvas  <- thisApp.gui.newCanvas()
-        their GUI_ScrollingWindow:: scrollerFrame(thisApp.gui.newScrollingWindow(NULL, NULL))
+        their GUI_ScrollingWindow: scrollerFrame <- (thisApp.gui.newScrollingWindow(NULL, NULL))
         thisApp.gui.addToContainer(scrollerFrame, canvas)
         thisApp.gui.setWidgetSize(canvas, 1200, 1200)
         thisApp.gui.setCallback(canvas, "draw", G_CALLBACK(drawAppArea_cb), self)

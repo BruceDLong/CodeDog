@@ -371,7 +371,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         structTypeName=''
         if fldCat=='struct': # Add a new class to be processed
             structTypeName =typeSpec['fieldType'][0]
-            if (progSpec.doesClassDirectlyImlementThisField(classes, structTypeName, structTypeName+'::managedWidget')
+            if (progSpec.doesClassDirectlyImlementThisField(classes, structTypeName, structTypeName+':managedWidget')
                     or structTypeName.endswith('Widget')):
                 fldCat = 'widget'
             else:
