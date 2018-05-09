@@ -699,7 +699,7 @@ def writePositionalFetch(classes, tags, field):
 
 
 
-    #print 'FIELD::', fname, field['owner'], '"'+fieldType+'"'
+    #print 'FIELD:', fname, field['owner'], '"'+fieldType+'"'
     if(field['owner']=='const' and fieldType=='string'):
         S+='    %s_hasLen <- true \n    %s_span.len <- '% (fname, fname) + str(len(field['value']))
     S+="        if(! %s_hasPos){pos <- pred.pos+pred.len}\n" % (fname)
@@ -1163,7 +1163,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 # First, create a new flag field
                 if fieldName==None: fieldName="TEMP"
                 newFieldsName=fieldName   #'has_'+fieldName
-                fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, newFieldsName, None, None, None)
+                fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, newFieldsName, None, None, None, False)
                 progSpec.addField(classes[0], memVersionName, 'struct', fieldDef)
 
                 # Second, generate the code to set the flag

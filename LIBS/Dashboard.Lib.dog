@@ -54,7 +54,7 @@ struct Dashboard: inherits = 'widget'{
         me int: largeToX <- to.posX + to.width
         me int: smallToY <- to.posY
         me int: largeToY <- to.posY + to.height
-        our arrow:: Arrow(fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
+        our arrow: Arrow <- (fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
         decorations.pushLast(Arrow)
     }
 
@@ -330,7 +330,7 @@ struct DashboardWidget {
         Allocate(dashboardDBW)
         dashboardDBW.init(style)
         canvas  <- thisApp.gui.newCanvas()
-        their GUI_ScrollingWindow:: scrollerFrame(thisApp.gui.newScrollingWindow(NULL, NULL))
+        their GUI_ScrollingWindow: scrollerFrame <- (thisApp.gui.newScrollingWindow(NULL, NULL))
         thisApp.gui.addToContainer(scrollerFrame, canvas)
         thisApp.gui.setWidgetSize(canvas, 1200, 1200)
         thisApp.gui.setCallback(canvas, "draw", G_CALLBACK(drawAppArea_cb), self)

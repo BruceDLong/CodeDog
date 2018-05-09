@@ -886,7 +886,11 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-        constructCode = xlator['codeConstructorHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator)
+        if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, ClassName+'::init')):
+            funcBody = '    init();'
+        else:
+            funcBody = ''
+        constructCode = xlator['codeConstructorHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, xlator)
     else: constructCode=''
     return constructCode
 
