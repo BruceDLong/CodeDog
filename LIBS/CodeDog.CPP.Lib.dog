@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [CodeDog_implementation]
     libFiles = []
-    headers  = [signal.h, string, cstring, memory, cstdint, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm]
+    headers  = [signal.h, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm]
 }
 
 

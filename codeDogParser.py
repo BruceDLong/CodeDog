@@ -119,7 +119,7 @@ nameAndVal = Group(
         | (Literal("::") + CID("fieldName")  + Group(parameters)("parameters"))
     )("nameAndVal")
 
-datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph"))('datastructID')
+datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
 arraySpec = Group (Literal('[')  + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + Literal(']'))("arraySpec")
 meOrMy = (Keyword("me") | Keyword("my"))
 modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - Literal("[") - CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
@@ -339,7 +339,7 @@ def extractActItem(funcName, actionItem):
         repBodyOut = extractActSeqToActSeq(funcName, repBodyIn)
         traversalMode=None
         if actionItem.optionalColon:
-	    print "            optionalColon in repeatedAction is deprecated."
+            print "            optionalColon in repeatedAction is deprecated."
         if actionItem.traversalMode:
             traversalMode = actionItem.traversalMode
         whileSpec=None

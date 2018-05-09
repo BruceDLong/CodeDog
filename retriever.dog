@@ -83,7 +83,7 @@ struct retriever{
     void: addItem(our aItem: agendaItem)<-{
         if(!agenda.isDuplicate(agendaItem)){
             agenda.push(agendaItem)
-            TopAItemDash.updatePush(agendaItem)
+ /- VIEWER           TopAItemDash.updatePush(agendaItem)
         }
     }
 

@@ -20,6 +20,7 @@ def getContainerType(typeSpec):
     datastructID = containerSpec['datastructID']
     if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
+    if(datastructID=='iterableList'): datastructID = "list"
     return [datastructID, idxType, owner]
 
 def adjustBaseTypes(fieldType):
@@ -76,6 +77,9 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
             if containerType=='deque':
                 if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="deque< "+langType+" >"
+            elif containerType=='list':
+                if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
+                langType="list< "+langType+" >"
             elif containerType=='map':
                 #print "XLATING TYPE:", "Item:", owner, langType, "IDX-Owner:", idxOwner, "Container-owner/type:", containerOwner, containerType
                 if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
@@ -237,7 +241,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     #print containerType, name
-    if containerType=='deque':
+    if containerType=='deque' or  containerType=='list':
         if name=='at' or name=='resize': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':{'owner':'itr'}}, {'typeSpec':typeSpecIn}]}
@@ -254,13 +258,13 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front';# typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':typeSpecIn}]}
         elif name=='pushLast' : name='push_back'; # typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':typeSpecIn}]}
-        else: print "Unknown deque command:", name; exit(2);
+        else: print "Unknown deque or list command:", name; exit(2);
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
         [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='at': pass
-        elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='count(%1)>=1';
+        elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0.count(%1)>=1)';
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
