@@ -95,7 +95,7 @@ def processParentClass(name, parentClass):
     if not parentClass in classHeirarchyInfo: classHeirarchyInfo[parentClass]={'parentClass': None, 'childClasses': set([name])}
     else: classHeirarchyInfo[parentClass]['childClasses'].add(name)
 
-    if not name in classHeirarchyInfo: classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': []}
+    if not name in classHeirarchyInfo: classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': set([])}
     else:
         prevParentClassName = classHeirarchyInfo[name]['parentClass']
         if prevParentClassName!= None and parentClass != prevParentClassName:
