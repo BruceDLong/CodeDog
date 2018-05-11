@@ -115,8 +115,8 @@ funcBody = (actionSeq | rValueVerbatim)("funcBody")
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
           (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
-        | (Literal(":") + CID("fieldName") + "<-" + Group(parameters)("parameters"))
         | (Literal(":") + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
+        | (Literal(":") + CID("fieldName") + "<-" + Group(parameters)("parameters"))
         | (Literal(":") + "<-" - (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName") + Optional("(" + argList + Literal(")")('argListTag')) - ~Word("{"))
         | (Literal("::") + CID("fieldName") + "<-" + Group(parameters)("parameters"))
@@ -207,7 +207,7 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.owner): owner=fieldResult.owner;
     else: owner='me';
     isAllocated = False
-    
+
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType;
         if not isinstance(fieldType, basestring) and (fieldType[0]=='[' or fieldType[0]=='{'):
@@ -229,11 +229,11 @@ def packFieldDef(fieldResult, className, indent):
             fieldName = nameAndVal.fieldName
             #print "FIELD NAME", fieldName
         else: fieldName=None;
-        
-        if(nameAndVal.allocDoubleColon): 
-			if owner == 'me' or owner == 'we': print "Error: unable to allocate variable with owner me or we: ", fieldName; exit(1)
-			else: isAllocated = True
-        
+
+        if(nameAndVal.allocDoubleColon):
+            if owner == 'me' or owner == 'we': print "Error: unable to allocate variable with owner me or we: ", fieldName; exit(1)
+            else: isAllocated = True
+
         if(nameAndVal.givenValue):
             givenValue = nameAndVal.givenValue
 
@@ -244,11 +244,11 @@ def packFieldDef(fieldResult, className, indent):
 
         elif(nameAndVal.rValueVerbatim):
             givenValue = ['', nameAndVal.rValueVerbatim[1]]
-        else: givenValue=None; 
+        else: givenValue=None;
         if(nameAndVal.argListTag):
             for argSpec in nameAndVal.argList:
                 argList.append(packFieldDef(argSpec[0], className, indent+"    "))
-        else: argList=None;      
+        else: argList=None;
         if 'parameters' in nameAndVal:
             if('deprecateDoubleColon'in nameAndVal):
                 print "            ***deprecated doubleColon in nameAndVal at: ", fieldName
@@ -257,7 +257,7 @@ def packFieldDef(fieldResult, className, indent):
             for param in prmList:
                 paramList.append(param)
         else: paramList=None
-        
+
         if(nameAndVal.optionalTag): optionalTags=extractTagDefs(nameAndVal.tagDefList)
     else:
         givenValue=None;

@@ -345,15 +345,15 @@ def codeFactor(item, objsRefed, returnType, xlator):
             #print "CHECK FOR CHAR", S, returnType
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)
-            elif (item0[0]=='"'): 
-				if returnType != None and returnType["fieldType"]=="char":
-					innerS=item0[1:-1]
-					if len(innerS)==1:
-						S+="'"+item0[1:-1] +"'"
-					else:
-						cdErr("Characters must have exactly 1 character.")
-				else:
-					S+='"'+item0[1:-1] +'"'
+            elif (item0[0]=='"'):
+                if returnType != None and returnType["fieldType"]=="char":
+                    innerS=item0[1:-1]
+                    if len(innerS)==1:
+                        S+="'"+item0[1:-1] +"'"
+                    else:
+                        cdErr("Characters must have exactly 1 character.")
+                else:
+                    S+='"'+item0[1:-1] +'"'
             else: S+=item0;
     else:
         if isinstance(item0[0], basestring):
@@ -716,7 +716,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
-                    print "\nPROBLEM: The return type of the parameter '", CPL, "' cannot be found and is needed. Try to define it.\n"
+                    print "\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList
                     exit(1)
 
                 theParam=paramTypeList[0]['fieldType']
@@ -728,7 +728,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
                 owner = progSpec.getTypeSpecOwner(typeSpec)
                 assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
         elif(progSpec.typeIsPointer(typeSpec)):
-            if(isAllocated): 
+            if(isAllocated):
                 assignValue = " = " + getCodeAllocSetStr(innerType, owner, "")
             else:
                 assignValue = '= NULL'
