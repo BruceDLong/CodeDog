@@ -432,6 +432,9 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
+            if not isinstance(retType, basestring) and isinstance(retType['fieldType'], basestring) and isinstance(retType2, basestring):
+				if retType['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
+					S2 = "'" + S2[1:-1] + "'"
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
                 if (S2!='NULL' and S2!='nullptr' ): S=S_derefd
                 S2=derefPtr(S2, retType2)
