@@ -82,8 +82,16 @@ def findLibraryChildren(libID):
     return libs
 
 def replaceFileName(fileMatch):
-    dirname, filename = os.path.split(abspath(getsourcefile(lambda:0)))
-    includedStr = progSpec.stringFromFile(dirname +"/"+fileMatch.group(1))
+    fileName = fileMatch.group(1)
+    currentWD = os.getcwd()
+    pathName = abspath(currentWD) +"/"+fileName
+    if not os.path.isfile(pathName):
+        dirname, filename = os.path.split(abspath(getsourcefile(lambda:0)))
+        pathName = dirname +"/"+fileName
+        if not os.path.isfile(pathName):
+            cdErr("Cannot find include file '"+fileName+"'")
+
+    includedStr = progSpec.stringFromFile(pathName)
     includedStr = processIncludedFiles(includedStr)
     return includedStr
 
