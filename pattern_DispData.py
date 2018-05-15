@@ -96,7 +96,7 @@ struct GLOBAL{
         S=""
         if fldCat=='func': return ''
         typeSpec=field['typeSpec']
-        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+        if progSpec.isAContainer(typeSpec):
             innerFieldType=typeSpec['fieldType']
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
@@ -174,7 +174,7 @@ struct GLOBAL{
         S=""
         if fldCat=='func': return ''
         typeSpec=field['typeSpec']
-        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+        if progSpec.isAContainer(typeSpec):
             innerFieldType=typeSpec['fieldType']
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
@@ -362,7 +362,7 @@ struct display_'''+className+": inherits = 'dash' "+'''{
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'))\n'
             structText += "    "+owner+" ptrToItem: "+fieldName+"\n"
 
-        elif 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None and skipFlags != 'skipLists': # Header and items for LIST
+        elif progSpec.isAContainer(typeSpec) and skipFlags != 'skipLists': # Header and items for LIST
             dispStructTypeName= "display_"+field['typeSpec']['fieldType'][0]
             innerUpdateFuncStr = '"Size:"+toString(data.'+fieldName+'.size())'
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'

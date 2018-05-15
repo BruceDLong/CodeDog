@@ -61,6 +61,8 @@ comment = Literal(r'//').suppress() + restOfLine('comment')
 #######################################   E X P R E S S I O N S
 parameters = Forward()
 owners = Forward()
+varSpec = (Optional(owners) + varType)("varSpec")
+varSpecList = Group(delimitedList(varSpec, ','))("varSpecList")
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 firstRefSegment = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
 secondRefSegment = Group((Literal('.').suppress() + CID | arrayRef) + Optional(parameters))
@@ -127,6 +129,7 @@ nameAndVal = Group(
 
 datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
 arraySpec = Group (Literal('[')  + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + Literal(']'))("arraySpec")
+containerSpec = Group (Literal("[")+ varSpecList +Literal("]"))("containerSpec")
 meOrMy = (Keyword("me") | Keyword("my"))
 modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - Literal("[") - CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
 flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal )("flagDef")
@@ -141,7 +144,7 @@ sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
 alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
 anonModel = (sequenceEl | alternateEl) ("anonModel")
 owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their"))
-fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | Group(anonModel))('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
+fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | Group(anonModel) | datastructID)('fieldType') +Optional(arraySpec | containerSpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")+Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
@@ -220,8 +223,14 @@ def packFieldDef(fieldResult, className, indent):
                 innerDefs.append(innerFieldDef)
 
     else: fieldType=None;
-    if(fieldResult.arraySpec): arraySpec=fieldResult.arraySpec;
-    else: arraySpec=None;
+    if(fieldResult.arraySpec): 
+        arraySpec=fieldResult.arraySpec
+        print"         ****Old ArraySpec found: "
+    else: arraySpec=None
+    if(fieldResult.containerSpec): 
+        containerSpec=fieldResult.containerSpec 
+    else: containerSpec=None
+    
     if(fieldResult.nameAndVal):
         nameAndVal = fieldResult.nameAndVal
         #print "nameAndVal = ", nameAndVal
@@ -268,12 +277,12 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.flagDef):
         cdlog(3,"FLAG: {}".format(fieldResult))
         if(arraySpec): cdErr("Lists of flags are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, fieldName, None, paramList, givenValue, isAllocated)
+        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, containerSpec, fieldName, None, paramList, givenValue, isAllocated)
     elif(fieldResult.modeDef):
         cdlog(3,"MODE: {}".format(fieldResult))
         modeList=fieldResult.modeList
         if(arraySpec): cdErr("Lists of modes are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, fieldName, None, paramList, givenValue, isAllocated)
+        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, containerSpec, fieldName, None, paramList, givenValue, isAllocated)
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
@@ -282,18 +291,18 @@ def packFieldDef(fieldResult, className, indent):
             if(len(fieldResult)>3 and fieldResult[3]!=''):
                 fieldName=fieldResult[3]
         givenValue=fieldResult.constStr[1:-1]
-        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, fieldName, None, paramList, givenValue, isAllocated)
+        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, containerSpec, fieldName, None, paramList, givenValue, isAllocated)
     elif(fieldResult.constNum):
         cdlog(3,"CONST Num: {}".format(fieldResult))
         if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
-        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, fieldName, None, paramList, givenValue, isAllocated)
+        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, containerSpec, fieldName, None, paramList, givenValue, isAllocated)
     elif(fieldResult.nameVal):
         cdlog(3,"NameAndVal: {}".format(fieldResult))
-        fieldDef=progSpec.packField(className, None, None, None, arraySpec, fieldName, argList, paramList, givenValue, isAllocated)
+        fieldDef=progSpec.packField(className, None, None, None, arraySpec, containerSpec, fieldName, argList, paramList, givenValue, isAllocated)
     elif(fieldResult.fullFieldDef):
         fieldTypeStr=str(fieldType)[:50]
-        cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, fieldName])))
-        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, fieldName, argList, paramList, givenValue, isAllocated)
+        cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, containerSpec, fieldName])))
+        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, containerSpec, fieldName, argList, paramList, givenValue, isAllocated)
     else:
         cdErr("Error in packing FieldDefs: {}".format(fieldResult))
         exit(1)

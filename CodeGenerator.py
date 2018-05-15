@@ -60,8 +60,8 @@ def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
             typeSpecOut = classDef['typeSpec']
             typeSpecOut['owner']='their' # Does this work correctly on containers?
             print "SHOULDNT MATCH:", typeSpecOut['owner'],classDef['typeSpec']['owner']
-        else: typeSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None,'argList':None}
-    else: typeSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None,'argList':None}
+        else: typeSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
+    else: typeSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
     typeSpecOut['codeConverter']=code
     return [typeSpecOut, 'BUILTIN']
 
@@ -173,7 +173,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
                         if(parentClassName != ''):
                             return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
                         else: return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "CONST"]
-                    if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None}, "CONST"]
+                    if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None, 'containerSpec':None}, "CONST"]
                     cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                     return [None, "LIB"]      # TODO: Return correct type
     return [REF['typeSpec'], RefType]
@@ -251,9 +251,9 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
 
 def codeAllocater(typeSpec, xlator):
     S=''
-    owner=progSpec.getTypeSpecOwner(typeSpec)
-    fType=typeSpec['fieldType']
-    arraySpec=typeSpec['arraySpec']
+    owner			= progSpec.getTypeSpecOwner(typeSpec)
+    fType			= typeSpec['fieldType']
+    containerSpec 	= progSpec.getContainerSpec(typeSpec)
     if isinstance(fType, basestring): varTypeStr1=fType;
     else: varTypeStr1=fType[0]
 
@@ -307,10 +307,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if codeCvrtText!='':
             typeSpecOut['codeConverter'] = codeCvrtText
 
-    elif('arraySpec' in typeSpecIn and typeSpecIn['arraySpec']):
+    elif progSpec.isAContainer(typeSpecIn):
         [containerType, idxType, owner]=xlator['getContainerType'](typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': typeSpecIn['fieldType']}
-        #print "                                                 arraySpec:",typeSpecOut
+        #print "                                                 containerSpec:",typeSpecOut
         if(name[0]=='['):
             [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, None, xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName)
@@ -757,7 +757,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
 
         else: # interate over a container
             [repContainer, containerType] = xlator['codeExpr'](action['repList'][0], objsRefed, None, xlator)
-            if containerType==None or  containerType['arraySpec']==None: cdErr("'"+repContainer+"' is not a container so cannot be iterated over.")
+            if containerType==None or not progSpec.isAContainer(containerType): cdErr("'"+repContainer+"' is not a container so cannot be iterated over.")
             [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerType)
 
             #print "ITERATE OVER", action['repList'][0], datastructID, containerType
@@ -859,7 +859,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
         fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
-        if(typeSpec['arraySpec'] or typeSpec['arraySpec']!=None): continue
+        if progSpec.isAContainer(typeSpec): continue
         fieldOwner=typeSpec['owner']
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
         [convertedType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)

@@ -27,9 +27,9 @@ def getFieldSpec(fldCat, field):
         parameters={1, 10}
 
     typeSpec=field['typeSpec']
-    if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+    if progSpec.isAContainer(typeSpec):	
         innerFieldType=typeSpec['fieldType']
-        datastructID = typeSpec['arraySpec']['datastructID']
+        datastructID = progSpec.getDatastructID(typeSpec)
         return [datastructID, innerFieldType]
     else:
         if fldCat=='struct':
@@ -73,7 +73,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         CasedFieldName          = fieldName[0].upper() + fieldName[1:]
         widgetName         = CasedFieldName + 'Widget'
 
-        if not ('arraySpec' in typeSpec and typeSpec['arraySpec']!=None):
+        if not progSpec.isAContainer(typeSpec):
             if(fldCat!='struct'):
                 rowHeaderCode   += '        their GUI_Frame: '+fieldName + '_header <- makeLabelWidget("'+fieldName+'")\n'
                 rowHeaderCode   += '        setLabelWidth('+fieldName+'_header, 15)\n'
@@ -230,7 +230,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
     else: print"pattern_MakeGUI.getWidgetHandlingCode fieldSpec not specified: ", fieldSpec;  exit(2)
 
     # If this is a list or map, populate it
-    if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+    if progSpec.isAContainer(typeSpec):
         makeTypeNameCall      =  widgetName+' <- make'+typeName[0].upper() + typeName[1:]+'("'+label+'")\n'
         innerFieldType        = typeSpec['fieldType']
         fldCatInner           = progSpec.innerTypeCategory(innerFieldType)
@@ -304,7 +304,7 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
                 classesEncoded[guiStructName]=1
                 classesToProcess.append([structTypeName, 'struct', 'Dialog', guiStructName])
 
-        if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:# Add a new list to be processed
+        if progSpec.isAContainer(typeSpec):# Add a new list to be processed
             structTypeName = typeSpec['fieldType'][0]
             guiStructName  = structTypeName+'_LIST_View'
             if not(guiStructName in classesEncoded):
@@ -381,7 +381,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
                     classesEncoded[guiStructName]=1
                     classesToProcess.append([structTypeName, 'struct', 'Dialog', guiStructName])
 
-        if fldCat != 'widget' and 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:# Add a new list to be processed
+        if fldCat != 'widget' and progSpec.isAContainer(typeSpec):# Add a new list to be processed
             structTypeName = typeSpec['fieldType'][0]
             guiStructName  = structTypeName+'_LIST_View'
             if not(guiStructName in classesEncoded):
