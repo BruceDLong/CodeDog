@@ -828,9 +828,9 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
             print "Unusable type in fetchOrWriteTerminalParseRule():", fieldType; exit(2);
     else: print "Pointer types not yet handled in fetchOrWriteTerminalParseRule():", fieldType; exit(2);
 
-    if('arraySpec' in typeSpec and typeSpec['arraySpec']):
+    if progSpec.isAContainer(typeSpec):
         global rules
-        containerSpec=typeSpec['arraySpec']
+        containerSpec = progSpec.getContainerSpec(typeSpec)
         idxType=''
         if 'indexType' in containerSpec:
             idxType=containerSpec['indexType']
@@ -1021,12 +1021,12 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     fromIsOPT =False
     fromIsList=False
     toIsList  =False
-    if 'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
-        datastructID = typeSpec['arraySpec']['datastructID']
+    if progSpec.isAContainer(typeSpec):
+        datastructID = progSpec.getDatastructID(typeSpec)
         if datastructID=='opt': fromIsOPT=True;
         else: fromIsList=True
 
-    if 'arraySpec' in toTypeSpec and toTypeSpec['arraySpec']!=None:
+    if progSpec.isAContainer(toTypeSpec):
         if datastructID != 'opt': toIsList=True
 
     if debugTmp:
@@ -1163,7 +1163,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 # First, create a new flag field
                 if fieldName==None: fieldName="TEMP"
                 newFieldsName=fieldName   #'has_'+fieldName
-                fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, newFieldsName, None, None, None, False)
+                fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, None, newFieldsName, None, None, None, False)
                 progSpec.addField(classes[0], memVersionName, 'struct', fieldDef)
 
                 # Second, generate the code to set the flag

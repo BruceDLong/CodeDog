@@ -177,9 +177,9 @@ def appendToFuncsCalled(funcName,funcParams):
     funcsCalled[funcName].append([funcParams, MarkItems])
 
 
-def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisName, thisArgList, paramList, thisValue, isAllocated):
+def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, containerSpec, thisName, thisArgList, paramList, thisValue, isAllocated):
     codeConverter=None
-    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec,'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
+    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'containerSpec':containerSpec, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
     if( thisValue!=None and (not isinstance(thisValue, basestring)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
         # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
         codeConverter = thisValue[1][1:]
@@ -494,21 +494,33 @@ def doesChildClassImplementFunc(classes, structName, fieldID):
     return result
 
 ###############  Various type-handling functions
-def setCurrentCheckObjectVars(message):
-    global currentCheckObjectVars
-    currentCheckObjectVars = message
+def isAContainer(typeSpec):
+    return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
+
+def getContainerSpec(typeSpec):
+    return(typeSpec['arraySpec'])
+
+def getTemplateArg(typeSpec, argIdx):
+    return(typeSpec)
+    
+def getDatastructID(typeSpec):
+    return(typeSpec['arraySpec']['datastructID']) 
 
 def getTypeSpecOwner(typeSpec):
     global currentCheckObjectVars
     if (typeSpec == 0):
         cdErr(currentCheckObjectVars)
     if typeSpec==None or isinstance(typeSpec, basestring): return 'me'
-    if "arraySpec" in typeSpec and typeSpec['arraySpec']!=None:
+    if isAContainer(typeSpec):
         if "owner" in typeSpec['arraySpec']:
             owner = typeSpec['arraySpec']['owner']
             return owner
         else: return 'me'
     return typeSpec['owner']
+
+def setCurrentCheckObjectVars(message):
+    global currentCheckObjectVars
+    currentCheckObjectVars = message
 
 def ownerIsPointer(owner):
     if owner == 'their' or owner == 'our' or owner == 'my' or owner == 'itr' or owner == 'id_their' or owner == 'id_our': isPointer=True
@@ -677,11 +689,11 @@ def varTypeKeyWord(typeSpec):
 def typeSpecsAreCompatible(typeSpec1, typeSpec2):
     if getTypeSpecOwner(typeSpec1) != getTypeSpecOwner(typeSpec2): return False
     if fieldTypeKeyword(typeSpec1['fieldType']) != fieldTypeKeyword(typeSpec2['fieldType']): return False
-    leftContainerNull  = not('arraySpec' in typeSpec1) or (('arraySpec' in typeSpec1) and typeSpec1['arraySpec']==None)
-    rightContainerNull = not('arraySpec' in typeSpec2) or (('arraySpec' in typeSpec2) and typeSpec2['arraySpec']==None)
+    leftContainerNull  = not(isAContainer(typeSpec1))
+    rightContainerNull = not(isAContainer(typeSpec2))
     if not leftContainerNull and rightContainerNull: return False
     if leftContainerNull and not rightContainerNull: return False
-    if not leftContainerNull and not rightContainerNull and typeSpec1['arraySpec'] != typeSpec2['arraySpec']: return False
+    if not leftContainerNull and not rightContainerNull and getContainerSpec(typeSpec1) != getContainerSpec(typeSpec2): return False
     return True
 
 def flattenObjectName(objName):

@@ -6,7 +6,7 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAlloc
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
-    containerSpec=typeSpec['arraySpec']
+    containerSpec = progSpec.getContainerSpec(typeSpec)
     if 'owner' in containerSpec: owner=containerSpec['owner']
     else: owner='me'
     idxType=''
@@ -63,13 +63,13 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
-
-    if 'arraySpec' in TypeSpec:
-        arraySpec=TypeSpec['arraySpec']
-        if(arraySpec): # Make list, map, etc
+    
+    if progSpec.isAContainer(TypeSpec):
+        containerSpec = progSpec.getContainerSpec(TypeSpec)
+        if(containerSpec): # Make list, map, etc
             [containerType, idxType, idxOwner]=getContainerType(TypeSpec)
-            if 'owner' in TypeSpec['arraySpec']:
-                containerOwner=TypeSpec['arraySpec']['owner']
+            if 'owner' in progSpec.getContainerSpec(TypeSpec):
+                containerOwner = progSpec.getTypeSpecOwner(TypeSpec)
             else: containerOwner='me'
             idxType=adjustBaseTypes(idxType)
             if idxType=='timeValue': idxType = 'int64_t'
@@ -141,7 +141,7 @@ def getTheDerefPtrMods(itemTypeSpec):
         if progSpec.typeIsPointer(itemTypeSpec) and ('arraySpec' in itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
             if owner=='itr':
-                containerType = itemTypeSpec['arraySpec'][2]
+                containerType = progSpec.getDatastructID(itemTypeSpec)
                 if containerType =='map' or containerType == 'multimap':
                     return ['', '->second']
             return ['(*', ')']
@@ -433,8 +433,8 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             if not isinstance(retType, basestring) and isinstance(retType['fieldType'], basestring) and isinstance(retType2, basestring):
-				if retType['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
-					S2 = "'" + S2[1:-1] + "'"
+                if retType['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
+                    S2 = "'" + S2[1:-1] + "'"
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
                 if (S2!='NULL' and S2!='nullptr' ): S=S_derefd
                 S2=derefPtr(S2, retType2)
@@ -735,7 +735,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
                 assignValue = " = " + getCodeAllocSetStr(innerType, owner, "")
             else:
                 assignValue = '= NULL'
-        elif('arraySpec' in typeSpec):
+        elif(progSpec.isAContainer(typeSpec)):
             pass
         else:
             fieldTypeCat= progSpec.fieldsTypeCategory(typeSpec)
@@ -879,8 +879,8 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     if(className=='GLOBAL'):
         if fieldName=='main':
             funcDefCode += 'int main(int argc, char *argv[])'
-            localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None,'argList':None}])
-            localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
+            localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None, 'containerSpec':None,'argList':None}])
+            localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None, 'containerSpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
             globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
     else:
