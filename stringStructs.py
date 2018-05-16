@@ -522,7 +522,7 @@ struct EParser{
             withEach SRec in SSet.stateRecs {
                 their production: prod <- grammar[SRec.productionID]
                 me int: ProdType <- prod.prodType
-                me bool  : isTerminal <- (prod.isTerm != 0)
+                me bool : isTerminal <- prod.isTerm != 0
                 me int: seqPos <- SRec.SeqPosition
      /-           print('    PROCESSING-RECORD #%i`SRec_key`:')
     /-            SRec.printSREC(self)

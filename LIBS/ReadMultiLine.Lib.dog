@@ -354,7 +354,7 @@ struct readMultiLine {
                         if(posRecsItr!=text.ps.end()){ /- We need to change colors.
                             pr<-posRecsItr.val
                             me int[itr map their void]: colorCodeItr <- text.colorCodes.find(pr.itemParsed)
-                            me bool: colorCodeExists <- (colorCodeItr!=text.colorCodes.end())
+                            me bool: colorCodeExists <- colorCodeItr!=text.colorCodes.end()
                             if(colorCodeExists){
                                 if(pr.isStart) {
                                     colorStack.pushLast(colorCode)
