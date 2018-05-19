@@ -1,0 +1,26 @@
+
+/- CodeDog List model
+
+struct ListNode< ItemType >{
+    our ItemType: item
+    our ListNode<ItemType>: next
+    our ListNode<ItemType>: prev
+}
+
+model List< ItemType > {
+
+    void: clear()
+
+    void: append(our ItemType: i)
+    void: prepend(our ItemType: i)ad <- newNode
+    void: insertBefore(our ListNode<ItemType>: position, our infon: i)
+    void: insertAfter(our ListNode<ItemType>: position, our infon: i)
+    void: erase(our ListNode<ItemType>: toDel)
+    void: popLast()
+    void: popFirst()
+
+    our ListNode<ItemType>: begin()
+    our ListNode<ItemType>: end()
+    our ListNode<ItemType>: rbegin()
+    our ListNode<ItemType>: rend()
+}
