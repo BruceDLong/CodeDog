@@ -864,7 +864,7 @@ def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConst
         constructorInit = parentClass + "()" + constructorInit
     if constructorInit != '':
         constructorInit = ':' + constructorInit
-    return "    " + ClassName + "(" + constructorArgs+")"+constructorInit+"{"+funcBody+"};\n"
+    return "    " + ClassName + "(" + constructorArgs+")"+constructorInit+"{\n"+funcBody+"    };\n"
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):
@@ -877,7 +877,9 @@ def codeConstructorInit(fieldName, count, defaultVal, xlator):
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
     if defaultVal == "NULL":
         defaultVal = "0"
-    return argType + "  _" +argFieldName + "=" + defaultVal
+    if defaultVal != '':
+		defaultVal = "=" + defaultVal
+    return argType + "  _" +argFieldName + defaultVal
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""

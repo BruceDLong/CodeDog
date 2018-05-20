@@ -880,8 +880,11 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
                 if 'value' in field and field['value']!=None:
                     [defaultVal, defaultValueType] = xlator['codeExpr'](field['value'][0], objsRefed, None, xlator)
         if defaultVal != '':
+            #if count == 0:
+               #defaultVal = ''
             constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
             constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
+            
             count += 1
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
     
