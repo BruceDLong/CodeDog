@@ -855,14 +855,22 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
         decl = ''
     return [defn, decl]
 
-def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, xlator):
+def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, parentClasses, xlator):
+    parentClass = ''
+    if parentClasses:
+        parentClass = parentClasses[0]
+        if constructorInit != '':
+			constructorInit = ', ' + constructorInit
+        constructorInit = parentClass + "()" + constructorInit
+    if constructorInit != '':
+        constructorInit = ':' + constructorInit
     return "    " + ClassName + "(" + constructorArgs+")"+constructorInit+"{"+funcBody+"};\n"
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):
         return "," + fieldName+"("+" _"+fieldName+")"
     elif(count == 0):
-        return ":" + fieldName+"("+" _"+fieldName+")"
+        return fieldName+"("+" _"+fieldName+")"
     else:
         cdErr("Error in codeConstructorInit.")
 

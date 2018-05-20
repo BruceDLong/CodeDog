@@ -251,9 +251,9 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
 
 def codeAllocater(typeSpec, xlator):
     S=''
-    owner			= progSpec.getTypeSpecOwner(typeSpec)
-    fType			= typeSpec['fieldType']
-    containerSpec 	= progSpec.getContainerSpec(typeSpec)
+    owner           = progSpec.getTypeSpecOwner(typeSpec)
+    fType           = typeSpec['fieldType']
+    containerSpec   = progSpec.getContainerSpec(typeSpec)
     if isinstance(fType, basestring): varTypeStr1=fType;
     else: varTypeStr1=fType[0]
 
@@ -884,14 +884,18 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
             constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
             count += 1
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
+    
+    funcBody = ''
+    constructCode=''
+    parentClasses = progSpec.getParentClassList(classes, ClassName)
+    fieldID  = ClassName+'::init'
+    if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
+        funcBody += '        init();\n'
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-        if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, ClassName+'::init')):
-            funcBody = '    init();'
-        else:
-            funcBody = ''
-        constructCode = xlator['codeConstructorHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, xlator)
-    else: constructCode=''
+    if count>0 or funcBody != '':  
+        constructCode = xlator['codeConstructorHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, parentClasses, xlator)
+    
     return constructCode
 
 def codeStructFields(classes, className, tags, indent, objsRefed, xlator):

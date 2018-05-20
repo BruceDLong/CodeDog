@@ -702,10 +702,15 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
     return [S, '']
 
-def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
-    withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+constructorInit+"    };\n"
+def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, parentClasses, xlator):
+    if parentClasses:
+        parentClass = parentClasses[0]
+        funcBody = '        super();\n' + funcBody
+    withArgConstructor = ''
+    if constructorArgs != '':
+		withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
-    noArgConstructor = "    public "  + ClassName + "(){"+"};\n"
+    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+"    };\n"
     if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
