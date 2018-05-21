@@ -781,8 +781,10 @@ def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRe
             fieldValueText = ' = '+variableDefaultValueString(convertedType)
     return fieldValueText
 
-def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
-    return indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
+def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
+    defn = ''
+    decl =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
+    return [defn, decl]
 
 def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldValueText, className, tags, indent):
     #TODO: make test case
@@ -798,7 +800,7 @@ def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldVal
         decl = ''
     return [defn, decl]
 
-def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
+def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     #TODO: Swift should only have constructors if they are called somewhere.
     return "" #    init (" + constructorArgs+"){"+constructorInit+"\n    }\n"
 
@@ -956,7 +958,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeConstructorHeader']        = codeConstructorHeader
+    xlators['codeConstructors']             = codeConstructors
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
