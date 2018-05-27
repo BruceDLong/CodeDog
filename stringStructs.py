@@ -10,7 +10,7 @@ def codeDogTypeToString(classes, tags, field):
     #print "FIELD:", field
     S=''
     fieldName=field['fieldName']
-    fieldType=field['fieldType']
+    fieldType=progSpec.getFieldType(field)
     fieldValue =field['value']
     fieldOwner =field['owner']
     if(fieldType == 'flag'):
@@ -688,7 +688,7 @@ struct EParser{
 
 def writePositionalFetch(classes, tags, field):
     fname=field['fieldName']
-    fieldType=str(field['fieldType'])
+    fieldType=str(progSpec.getFieldType(field))
     S="""
     me fetchResult: fetch_%s() <- {
         if(%s_hasVal) {return (fetchOK)}
@@ -783,9 +783,9 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
     fieldName='N/A'
     fieldValue=''
     if 'value' in field: fieldValue =field['value']
-    typeSpec   =field['typeSpec']
-    fieldType  =typeSpec['fieldType']
-    fieldOwner =typeSpec['owner']
+    typeSpec   = field['typeSpec']
+    fieldType  = progSpec.getFieldType(typeSpec)
+    fieldOwner = typeSpec['owner']
     if 'fieldName' in field: fieldName  =field['fieldName']
     cdlog(logLvl, "WRITING PARSE RULE for: {}.{}".format(modelName, fieldName))
     #print "WRITE PARSE RULE:", modelName, fieldName
@@ -857,7 +857,7 @@ def writeNonTermParseRule(classes, tags, modelName, fields, SeqOrAlt, nameSuffix
         else: fname='_'+fname
         typeSpec   =field['typeSpec']
         if(field['isNext']==True):
-            firstItm=field['typeSpec']['fieldType'][0]
+            firstItm=progSpec.getFieldType(field['typeSpec'])[0]
             if firstItm=='[' or firstItm=='{': # Handle an ALT or SEQ sub structure
                 cdlog(logLvl, "NonTERM: {} = {}".format(fname, firstItm))
                 nextParseNameID+=1
@@ -872,9 +872,9 @@ def writeNonTermParseRule(classes, tags, modelName, fields, SeqOrAlt, nameSuffix
                 field['parseRule']=ruleIdxStr
 
 
-                if('arraySpec' in typeSpec and typeSpec['arraySpec']):
+                if progSpec.isAContainer(typeSpec):
                     global rules
-                    containerSpec=typeSpec['arraySpec']
+                    containerSpec = progSpec.getContainerSpec(typeSpec)
                     idxType=''
                     if 'indexType' in containerSpec:
                         idxType=containerSpec['indexType']
@@ -903,6 +903,7 @@ def getFunctionName(fromName, toName):
 
 def fetchMemVersion(classes, objName):
     if objName=='[' or objName=='{': return [None, None]
+    #if objName=='DblLinkedList': objName = 'infon'
     memObj = progSpec.findSpecOf(classes[0], objName, 'struct')
     if memObj==None: return [None, None]
     return [memObj, objName]
@@ -978,11 +979,11 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
     global  globalFieldCount
     S=''
-    fieldName  =field['fieldName']
-    fieldIsNext=field['isNext']
-    fieldValue =field['value']
-    typeSpec   =field['typeSpec']
-    fieldType  =typeSpec['fieldType']
+    fieldName  = field['fieldName']
+    fieldIsNext= field['isNext']
+    fieldValue = field['value']
+    typeSpec   = field['typeSpec']
+    fieldType  = progSpec.getFieldType(typeSpec)
     fieldOwner =typeSpec['owner']
     fromIsEmbeddedAlt = (not isinstance(fieldType, basestring) and fieldType[0]=='[')
     fromIsEmbeddedSeq = (not isinstance(fieldType, basestring) and fieldType[0]=='{')
@@ -1002,8 +1003,11 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     else:
         #print "   TOFIELD:", toField
         toTypeSpec   = toField['typeSpec']
-        toFieldType  = toTypeSpec['fieldType']
+        toFieldType  = progSpec.getFieldType(toTypeSpec)
         toFieldOwner = toTypeSpec['owner']
+
+        if debugTmp:
+            print '        toFieldType:', toFieldType
 
     LHS_IsPointer=progSpec.typeIsPointer(toTypeSpec)
 
@@ -1038,7 +1042,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         print '        fieldType:', fieldType
         print '        ToIsEmbedded:', ToIsEmbedded
         print '        ToStructName:', ToStructName
-        print '        memVersionName:', memVersionName
+        print '        memVersionName:', memVersionName, "\n"
     ###################   W r i t e   L V A L   R e f e r e n c e
     finalCodeStr=''
     CodeLVAR_Alloc=''
@@ -1095,7 +1099,6 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                         #print "    FUNCTION:", getFunctionName(fieldType[0], memVersionName)
                         ToFields=progSpec.findSpecOf(classes[0], objName, 'string')['fields']
                         FromStructName=objName
-                        #print "    WRITING EXTRACTOR:", ToStructName, FromStructName
                         Write_Extracter(classes, ToStructName, FromStructName, logLvl+1)
                     else:
                         fromFieldTypeCID = fieldType[0].replace('::', '_')
@@ -1125,7 +1128,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             gatherFieldCode+=Write_ALT_Extracter(classes, fieldType[0], fields, childRecName, '', 'tmpVar', indent+'    ', level)
 
         elif fromIsStruct and toIsStruct:
-           # print "toFieldType:", toFieldOwner, ">>>", toFieldType
+            print "toFieldType:", toFieldOwner, ">>>", toFieldType
             gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpVar'
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
@@ -1249,12 +1252,15 @@ def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
     elif configType=='ALT': SeqOrAlt='parseALT'
     cdlog(logLvl, "WRITING function {}() to extract struct {} from parse tree: stage 2...".format(nameForFunc, ToStructName))
     if configType=='SEQ':
+        print "   >Write_structExtracter:", ToStructName
         S+=Write_structExtracter(classes, ToStructName, fields, nameForFunc, logLvl)
+        print "   <Write_structExtracter:", ToStructName
     elif configType=='ALT':
         S+=Write_ALT_Extracter(classes, ToStructName, fields, 'SRec', '', 'tmpStr', '    ', -1, logLvl)
 
     seqExtracter =  "\n    void: "+nameForFunc+"(our stateRec: SRec0, their "+ToStructName+": memStruct) <- {\n" + S + "    }\n"
     extracterFunctionAccumulator += seqExtracter
+    #print "########################## extracterFunctionAccumulator\n",extracterFunctionAccumulator,"\n#####################################\n"
 
 def writeParserWrapperFunction(classes, className):
     S='''

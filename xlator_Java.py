@@ -20,9 +20,9 @@ def getContainerType(typeSpec):
     if 'indexType' in containerSpec:
         if 'IDXowner' in containerSpec:
             idxOwner=containerSpec['IDXowner']
-            idxType=containerSpec['idxBaseType']
+            idxType=containerSpec['idxBaseType'][0]
             idxType=applyOwner(idxOwner, idxType, 'IDX ERROR', containerSpec['indexType'], '')
-        else: idxType=containerSpec['idxBaseType']
+        else: idxType=containerSpec['idxBaseType'][0]
         #idxType=containerSpec['indexType']
     if idxType[0:4]=='uint': idxType = 'int'
     elif idxType=='string': idxType = 'String'

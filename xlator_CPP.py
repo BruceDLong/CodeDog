@@ -14,9 +14,9 @@ def getContainerType(typeSpec):
     if 'indexType' in containerSpec:
         if 'IDXowner' in containerSpec:
             idxOwner=containerSpec['IDXowner']
-            idxType=containerSpec['idxBaseType']
+            idxType=containerSpec['idxBaseType'][0]
             idxType=applyOwner(idxOwner, idxType, '')
-        else: idxType=containerSpec['idxBaseType']
+        else: idxType=containerSpec['idxBaseType'][0]
     datastructID = containerSpec['datastructID']
     if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
@@ -57,19 +57,21 @@ def applyOwner(owner, langType, varMode):
         cdErr("ERROR: Owner of type not valid '" + owner + "'")
     return langType
 
-def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
+def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
 
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
-    
-    if progSpec.isAContainer(TypeSpec):
-        containerSpec = progSpec.getContainerSpec(TypeSpec)
+
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return [langType, InnerLangType]
+
+    if progSpec.isAContainer(typeSpec):
+        containerSpec = progSpec.getContainerSpec(typeSpec)
         if(containerSpec): # Make list, map, etc
-            [containerType, idxType, idxOwner]=getContainerType(TypeSpec)
-            if 'owner' in progSpec.getContainerSpec(TypeSpec):
-                containerOwner = progSpec.getTypeSpecOwner(TypeSpec)
+            [containerType, idxType, idxOwner]=getContainerType(typeSpec)
+            if 'owner' in progSpec.getContainerSpec(typeSpec):
+                containerOwner = progSpec.getTypeSpecOwner(typeSpec)
             else: containerOwner='me'
             idxType=adjustBaseTypes(idxType)
             if idxType=='timeValue': idxType = 'int64_t'
@@ -93,20 +95,20 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
                 langType=applyOwner(containerOwner, langType, varMode)
     return [langType, InnerLangType]
 
-def convertType(classes, TypeSpec, varMode, xlator):
+def convertType(classes, typeSpec, varMode, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
-    owner=TypeSpec['owner']
-    fieldType=TypeSpec['fieldType']
+    owner=typeSpec['owner']
+    fieldType=typeSpec['fieldType']
     if not isinstance(fieldType, basestring): fieldType=fieldType[0]
     fieldType2 = progSpec.unwrapClass(classes, fieldType)
 
     baseType = progSpec.isWrappedType(classes, fieldType)
     if(baseType!=None):owner=baseType['owner']
 
-#    else: owner2 =  progSpec.getTypeSpecOwner(TypeSpec)
+#    else: owner2 =  progSpec.getTypeSpecOwner(typeSpec)
 #    if owner!=owner2: print "OWNER MISMATCH:", owner, owner2, varMode
 
-    retVal = xlateLangType(TypeSpec, owner, fieldType2, varMode, xlator)
+    retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, xlator)
     return retVal
 
 def codeIteratorOperation(itrCommand):
@@ -138,7 +140,8 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-        if progSpec.typeIsPointer(itemTypeSpec) and ('arraySpec' in itemTypeSpec):
+        if 'fieldType' in itemTypeSpec and not(isinstance(itemTypeSpec['fieldType'], basestring)) and itemTypeSpec['fieldType'][0]=='DblLinkedList': return ['', '']
+        if progSpec.typeIsPointer(itemTypeSpec) and progSpec.isAContainer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
             if owner=='itr':
                 containerType = progSpec.getDatastructID(itemTypeSpec)
@@ -165,7 +168,7 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     if(LeftOwner=="id_their" and RightOwner=="id_their"): return ["&", ""]
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner!='itr' and RightOwner=='itr': return ["", "->second"]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", "   )"]
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", ")"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ["&", '']
     if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
@@ -241,6 +244,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     #print containerType, name
+    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], basestring)) and typeSpecIn['fieldType'][0]=='DblLinkedList': return(name, typeSpecOut, paramList, convertedIdxType)
     if containerType=='deque' or  containerType=='list':
         if name=='at' or name=='resize': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -253,12 +257,14 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
         elif name=='nthItr'   : typeSpecOut['codeConverter']='(%0.begin()+%1)'; typeSpecOut['owner']='itr';
         elif name=='first'    : name='front()';  paramList=None;
-        elif name=='last'     : name='back()';   paramList=None;
+        elif name=='last'     : name='back()';   paramList=None; print "\n\n@@@@@@@@@@@@@@@@@@@@@@@@@@2 CONVERT DEQUE:", name, typeSpecIn
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front';# typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':typeSpecIn}]}
         elif name=='pushLast' : name='push_back'; # typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':typeSpecIn}]}
-        else: print "Unknown deque or list command:", name; exit(2);
+        elif name=='isEmpty'  : name='empty'
+        elif name=='itmMode'  or name=='tag' or name=='value'  or name=='format' or name=='itmItr' or True: pass # temp fix
+        else: print "Unknown deque or list command:", containerType + '::' +name; exit(2);
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
@@ -722,7 +728,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
                     print "\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList
                     exit(1)
 
-                theParam=paramTypeList[0]['fieldType']
+                theParam=progSpec.getFieldType(paramTypeList[0])
 
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
@@ -757,7 +763,7 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText = ""
     loopCounterName = ""
-    containedType=containerType['fieldType']
+    containedType=progSpec.getFieldType(containerType)
     if progSpec.ownerIsPointer(ContainerOwner): connector="->"
     else: connector = "."
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
@@ -787,7 +793,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     actionText = ""
     loopCounterName = ""
     owner=containerType['owner']
-    containedType=containerType['fieldType']
+    containedType=progSpec.getFieldType(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ContainerOwner)
     if datastructID=='multimap' or datastructID=='map':
