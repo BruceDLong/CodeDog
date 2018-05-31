@@ -628,7 +628,7 @@ def addSpecialCode(filename):
         va_list ap;
         while(1) {
             formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
-            strcpy(&formatted[0], fmt_str.c_str());
+            strcpy_s(&formatted[0], n, fmt_str.c_str());
             va_start(ap, fmt_str);
             final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
             va_end(ap);
@@ -644,7 +644,7 @@ def addSpecialCode(filename):
         //string fileDir = "~/."+filename ";
         string fileDir = "./assets";
 
-        mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        _mkdir(fileDir.data());
         return (fileDir);
     }
 
@@ -922,7 +922,10 @@ def applyTypecast(typeInCodeDog, itemToAlterType):
 #######################################################
 
 def includeDirective(libHdr):
-    S = '#include <'+libHdr+'>\n'
+    if libHdr[0] == '"' or libHdr[0] == "'":
+        S = '#include "'+libHdr[1:-1]+'"\n'
+    else:
+        S = '#include <'+libHdr+'>\n'
     return S
 
 def generateMainFunctionality(classes, tags):
