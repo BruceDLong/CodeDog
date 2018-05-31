@@ -1,0 +1,27 @@
+/- HelloWorld.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "Hello World"
+FileName = "helloworld"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is an example of a very minimal program"
+ProgramOrLibrary = "program"
+
+featuresNeeded = []
+
+LicenseText = `Public Domain`
+
+
+runCode=`runProg()`
+
+struct GLOBAL{
+    void: runProg()<-{
+        print("Hello World!\n")
+    }
+}

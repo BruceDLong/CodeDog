@@ -1,0 +1,55 @@
+
+/- Infon List
+
+struct DblLinkedListNode< ItemType >{
+    our ItemType: item
+    our DblLinkedListNode<ItemType>: next
+    our DblLinkedListNode<ItemType>: prev
+}
+
+struct DblLinkedList< ItemType >: implements = list {
+    our DblLinkedListNode<ItemType>: head
+    our DblLinkedListNode<ItemType>: tail
+
+    void: clear() <- {head <- NULL; tail <- NULL;}
+
+    void: pushLast(our ItemType: i) <- {
+        our DblLinkedListNode<ItemType>:: newNode <- (i, NULL, tail)
+        if(tail!=NULL) {tail.next <- newNode}
+        if(head==NULL) {head <- newNode}
+        tail <- newNode
+    }
+    void: pushFirst(our ItemType: i) <- {
+        our DblLinkedListNode<ItemType>:: newNode <- (i, head, NULL)
+        if(head!=NULL){head.prev <- newNode}
+        if(tail==NULL) {tail <- newNode}
+        head <- newNode
+    }
+    void: erase(our DblLinkedListNode<ItemType>: toDel) <- {
+        if(toDel===head){head<-head.next}
+        if(toDel===tail){tail<-tail.prev}
+        if(toDel.prev){toDel.prev.next <- toDel.next}
+        if(toDel.next){toDel.next.prev <- toDel.prev}
+    }
+
+    void: insertBefore(our DblLinkedListNode<ItemType>: position, our infon: i) <- {
+        our DblLinkedListNode<ItemType>: prevNode <- position.prev
+        our DblLinkedListNode<ItemType>:: newNode <- (i, position, prevNode)
+        if(prevNode!=NULL){prevNode.next <- newNode}
+        position.prev <- newNode
+        if(head === position){head <- newNode}
+    }
+
+    void: insertAfter(our DblLinkedListNode<ItemType>: position, our infon: i) <- {
+        our DblLinkedListNode<ItemType>: nextNode <- position.next
+        our DblLinkedListNode<ItemType>:: newNode <- (i, nextNode, position)
+        if(nextNode!=NULL){nextNode.prev <- newNode}
+        position.next <- newNode
+        if(tail === position){tail <- newNode}
+    }
+
+    our DblLinkedListNode<ItemType>: begin()  <- {return(head)}
+    our DblLinkedListNode<ItemType>: end()    <- {return(NULL)}
+    our DblLinkedListNode<ItemType>: rbegin() <- {return(tail)}
+    our DblLinkedListNode<ItemType>: rend()   <- {return(NULL)}
+}

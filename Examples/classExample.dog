@@ -1,0 +1,54 @@
+/- classExample.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "Infomage - classExample"
+FileName = "classExample"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is an example of a very minimal program"
+ProgramOrLibrary = "program"
+
+featuresNeeded = []
+
+LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
+
+runCode=`runTest()`
+
+struct shape {
+    me int: H
+    me int: W
+    
+    void: draw()<-{print("inside shape draw(): PASS\n")}
+    void: init()<-{print("inside shape init(): PASS\n")}
+}
+
+struct rectangle: inherits='shape'{
+    void: draw()<-{print("inside rectangle draw(): PASS\n")}
+    void: init()<-{print("inside rectangle init() : PASS\n")}
+}
+
+struct square: inherits='rectangle'{
+    void: draw()<-{print("inside square draw(): PASS\n")}
+    void: init()<-{print("inside square init(): PASS\n")}
+}
+
+struct triangle: inherits='shape'{
+    me int: baseHeight
+    me int: baseWidth
+    
+    void: draw()<-{print("inside triangle draw(): PASS\n")}
+    void: init()<-{print("inside triangle init(): PASS\n")}
+}
+
+struct GLOBAL{
+    me square: sqr
+    
+    void: runTest()<-{
+	me triangle: tri
+    }
+}

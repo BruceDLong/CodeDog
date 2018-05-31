@@ -686,8 +686,10 @@ def codeVarFieldRHS_Str(name, convertedType, fieldOwner, paramList, objsRefed, x
             fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
-def codeConstField_Str(convertedType, fieldName, fieldValueText, indent, xlator ):
-    return indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
+    defn = indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+    decl = ''
+    return [defn, decl]
 
 def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
     # TODO: make test case
@@ -702,10 +704,14 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
     return [S, '']
 
-def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, xlator):
-    withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+constructorInit+"    };\n"
+def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
+    if callSuperConstructor:
+        funcBody = '        super();\n' + funcBody
+    withArgConstructor = ''
+    if constructorArgs != '':
+		withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
-    noArgConstructor = "    public "  + ClassName + "(){"+"};\n"
+    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+"    };\n"
     if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
@@ -852,7 +858,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeConstructorHeader']        = codeConstructorHeader
+    xlators['codeConstructors']        		= codeConstructors
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement

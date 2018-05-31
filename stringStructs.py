@@ -522,7 +522,7 @@ struct EParser{
             withEach SRec in SSet.stateRecs {
                 their production: prod <- grammar[SRec.productionID]
                 me int: ProdType <- prod.prodType
-                me bool: isTerminal <- prod.isTerm != 0
+                me bool : isTerminal <- prod.isTerm != 0
                 me int: seqPos <- SRec.SeqPosition
      /-           print('    PROCESSING-RECORD #%i`SRec_key`:')
     /-            SRec.printSREC(self)
@@ -872,9 +872,9 @@ def writeNonTermParseRule(classes, tags, modelName, fields, SeqOrAlt, nameSuffix
                 field['parseRule']=ruleIdxStr
 
 
-                if progSpec.isAContainer(typeSpec):
+                if('arraySpec' in typeSpec and typeSpec['arraySpec']):
                     global rules
-                    containerSpec = progSpec.getContainerSpec(typeSpec)
+                    containerSpec=typeSpec['arraySpec']
                     idxType=''
                     if 'indexType' in containerSpec:
                         idxType=containerSpec['indexType']

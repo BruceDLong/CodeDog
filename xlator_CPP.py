@@ -855,21 +855,37 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
         decl = ''
     return [defn, decl]
 
-def codeConstructorHeader(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, xlator):
-    return "    " + ClassName + "(" + constructorArgs+")"+constructorInit+"{"+funcBody+"};\n"
+def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody):
+    if callSuperConstructor != '':
+        callSuperConstructor = ':' + callSuperConstructor
+        if constructorInit != '':
+            callSuperConstructor = callSuperConstructor + ', '
+    elif constructorInit != '':
+		constructorInit = ':' + constructorInit
+    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
+    return (S)
+    
+def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
+    S = ''
+    if constructorArgs != '':
+        S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
+    S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
+    return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):
         return "," + fieldName+"("+" _"+fieldName+")"
     elif(count == 0):
-        return ":" + fieldName+"("+" _"+fieldName+")"
+        return fieldName+"("+" _"+fieldName+")"
     else:
         cdErr("Error in codeConstructorInit.")
 
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
     if defaultVal == "NULL":
         defaultVal = "0"
-    return argType + "  _" +argFieldName + "=" + defaultVal
+    if defaultVal != '':
+        defaultVal = "=" + defaultVal
+    return argType + "  _" +argFieldName + defaultVal
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
@@ -1000,7 +1016,8 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeConstructorHeader']        = codeConstructorHeader
+    xlators['codeConstructor']              = codeConstructor
+    xlators['codeConstructors']             = codeConstructors
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
