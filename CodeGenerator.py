@@ -887,22 +887,22 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
             
             count += 1
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
-    
+
     funcBody = ''
     constructCode=''
     callSuperConstructor=''
     parentClasses = progSpec.getParentClassList(classes, ClassName)
     if parentClasses:
-        callSuperConstructor = parentClasses[0] + "()"
-        
+        callSuperConstructor = xlator['codeSuperConstructorCall'](parentClasses[0])
+
     fieldID  = ClassName+'::init'
     if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
-        funcBody += '        init();\n'
+        funcBody += xlator['codeConstructorCall']()
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-    if count>0 or funcBody != '':  
+    if count>0 or funcBody != '':
         constructCode += xlator['codeConstructors'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator)
-    
+
     return constructCode
 
 def codeStructFields(classes, className, tags, indent, objsRefed, xlator):

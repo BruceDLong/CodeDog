@@ -709,7 +709,7 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
         funcBody = '        super();\n' + funcBody
     withArgConstructor = ''
     if constructorArgs != '':
-		withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
+        withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
     noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+"    };\n"
     if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"):
@@ -725,6 +725,11 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
 
+def codeConstructorCall():
+    return '        init();\n'
+
+def codeSuperConstructorCall(parentClassName):
+    return '        '+parentClassName+'();\n'
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     if inheritMode=='pure-virtual':
@@ -858,7 +863,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeConstructors']        		= codeConstructors
+    xlators['codeConstructors']             = codeConstructors
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
@@ -868,5 +873,7 @@ def fetchXlators():
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['codeConstructorCall']          = codeConstructorCall
+    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
 
     return(xlators)
