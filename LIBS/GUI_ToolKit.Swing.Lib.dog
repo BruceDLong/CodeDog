@@ -251,6 +251,11 @@ struct JavaGUI_ctxt: inherits="JPanel" {
         GLOBAL.static_Global.drawAppArea_cb(this, this);
     }%>
 }
+
+struct fontSpec{
+    me string: name
+    me int: size
+}
 /-/////////////////////////////// TIME
 struct tm{
     me Calendar: tm
@@ -283,8 +288,8 @@ struct GLOBAL{
     me APP: thisApp
     /- DRAWING ROUTINES:
 
-    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
-        cr.gr.setFont(new Font(fontName, Font.PLAIN, (int)(fontSize*1.4)));
+    me void: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
+        cr.gr.setFont(new Font(font.na/me, Font.PLAIN, (int)(font.size*1.4)));
         cr.gr.drawString(text, x, y);
     } %>
 
