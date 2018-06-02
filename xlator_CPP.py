@@ -63,7 +63,7 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
-    
+
     if progSpec.isAContainer(TypeSpec):
         containerSpec = progSpec.getContainerSpec(TypeSpec)
         if(containerSpec): # Make list, map, etc
@@ -861,10 +861,10 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
         if constructorInit != '':
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
-		constructorInit = ':' + constructorInit
+        constructorInit = ':' + constructorInit
     S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
     return (S)
-    
+
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     S = ''
     if constructorArgs != '':
@@ -889,6 +889,12 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
+
+def codeConstructorCall():
+    return '        init();\n'
+
+def codeSuperConstructorCall(parentClassName):
+    return parentClassName+'()'
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
@@ -1027,5 +1033,7 @@ def fetchXlators():
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['codeConstructorCall']          = codeConstructorCall
+    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
 
     return(xlators)

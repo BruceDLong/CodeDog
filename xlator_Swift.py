@@ -802,27 +802,35 @@ def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldVal
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     #TODO: Swift should only have constructors if they are called somewhere.
-    return "" #    init (" + constructorArgs+"){"+constructorInit+"\n    }\n"
+    S = "    init(" + constructorArgs+"){\n"+callSuperConstructor+constructorInit+funcBody+"    }\n"
+    return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):
-        return "\n        self." + fieldName +" = arg_"+fieldName
+        return "        self." + fieldName +" = arg_"+fieldName+";\n"
     elif(count == 0):
-        return "\n        self." + fieldName +" = arg_"+fieldName
+        return "        self." + fieldName +" = arg_"+fieldName+";\n"
     else:
         print "Error in codeConstructorInit."
         exit(2)
 
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
-    if defaultVal == "NULL":
-        defaultVal = "0"
+    if defaultVal == "NULL": defaultVal = "0"
+    if defaultVal: argType = argType + '=' + defaultVal
     return "arg_" + argFieldName  + ': ' +argType
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
 
+def codeConstructorCall():
+    return '        INIT();\n'
+
+def codeSuperConstructorCall(parentClassName):
+    return '        super.init();\n'
+
 def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, indent):
     #TODO: add \n before func
+    if fieldName == "init": fieldName = "INIT"
     structCode=''; funcDefCode=''; globalFuncs='';
     if returnType!='': returnType = '-> '+returnType
     if(className=='AppDelegate'):
@@ -968,4 +976,6 @@ def fetchXlators():
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['codeConstructorCall']          = codeConstructorCall
+    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
     return(xlators)
