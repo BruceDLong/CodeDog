@@ -389,6 +389,10 @@ struct guiFillPattern{
     me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
 }
 
+struct fontSpec{
+    me string: name
+    me int: size
+}
 /-/////////////////////////////// TIME
 struct tm{
     me tm: tm
@@ -426,19 +430,19 @@ struct timeStringer{
 
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
-        me APP: thisApp
+    me APP: thisApp
 
     /- TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
     /- DRAWING ROUTINES:
 
-    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
+    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
         cairo_move_to(cr,x,y);
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
 
-        string fontDesc=fontName+' '+ std::to_string(fontSize);
+        string fontDesc=font.name+' '+ std::to_string(font.size);
         PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
         pango_layout_set_font_description(layout, desc);
         pango_font_description_free(desc);
@@ -453,13 +457,51 @@ struct GLOBAL{
         cairo_fill(cr);
         return(size);
     } %>
+    
+    me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
+        deltaSize size = getTextSize(cr, text, font);
+	renderText(cr, text, font, x-size.width/2, y);
+        return(size);
+    }%>
+    
+    me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y, me double: degrees, me string: justify) <- <%{
+        double radians    = degrees*(M_PI/180.);
+	deltaSize size    = getTextSize(cr, text, font);
+	double hypotenuse = size.width;
+	deltaSize tmpSize;
+	
+	rotate(cr, x, y, -45);
+	if(justify == "right"){x=x-hypotenuse;}
+	else if(justify == "center"){x=x-hypotenuse/2;}
+	renderText (cr, text, font, x, y);
+	cairo_restore(cr);
+	//TODO: calculate height and width more accurately
+	tmpSize.height       = cos(abs(radians))*hypotenuse;
+	tmpSize.width        = sin(abs(radians))*hypotenuse;
+	hypotenuse           = size.height;
+	radians              = M_PI/2 - abs(radians);
+	tmpSize.height       = tmpSize.height + sin(radians)*hypotenuse;  
+	tmpSize.width        = tmpSize.width + cos(radians)*hypotenuse;        
+	//size.width = size.width*0.9;
+	//size.height = size.width;
+        return(tmpSize);
+    }%>
+    
+    me void: rotate(me GUI_ctxt: cr, me int: x, me int: y, me int: degrees) <- <%{
+	double radians = degrees*(M_PI/180.);
+	cairo_save(cr); 
+	cairo_translate(cr,x,y);
+	cairo_rotate(cr, radians);
+	cairo_translate(cr,-x,-y);
+    }%>
 
+    me void: restore() <- <%!cairo_restore(cr)%>
 
-    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
+    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
 
-        string fontDesc=fontName+' '+ std::to_string(fontSize);
+        string fontDesc=font.name+' '+ std::to_string(font.size);
         PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
         pango_layout_set_font_description(layout, desc);
         pango_font_description_free(desc);
@@ -497,7 +539,7 @@ struct GLOBAL{
         cairo_scale(cr,1/scale,1/scale);
         cairo_set_source_surface(cr,pic,x*scale,y*scale);
         cairo_paint(cr);
-cairo_restore(cr);
+        cairo_restore(cr);
     } %>
 
 /- GUI INTERFACE:

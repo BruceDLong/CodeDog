@@ -516,6 +516,11 @@ struct GUI_ctxt {
         GCanvas <- canvas
     }
 }
+
+struct fontSpec{
+    me string: name
+    me int: size
+}
 /-/////////////////////////////// TIME
 struct tm{
     me Calendar: tm
@@ -569,10 +574,10 @@ struct GLOBAL: inherits="AppCompatActivity"{
     }
 
     /- //DRAWING ROUTINES:
-    me void: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
-        fontSize = fontSize+3;
-        cr.paint.setTextSize(fontSize);
-        cr.paint.setTypeface(Typeface.create(fontName, Typeface.NORMAL));
+    me void: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
+        font.size = font.size+3;
+        cr.paint.setTextSize(font.size);
+        cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
         cr.GCanvas.drawText(text, x, y, cr.paint);
     }%>
 
