@@ -260,9 +260,9 @@ def chooseStructImplementationToUse(typeSpec):
 
 def codeAllocater(typeSpec, xlator):
     S=''
-    owner           = progSpec.getTypeSpecOwner(typeSpec)
-    fType           = progSpec.getFieldType(typeSpec)
-    containerSpec   = progSpec.getContainerSpec(typeSpec)
+    owner	        = progSpec.getTypeSpecOwner(typeSpec)
+    fType               = progSpec.getFieldType(typeSpec)
+    containerSpec 	= progSpec.getContainerSpec(typeSpec)
     if isinstance(fType, basestring): varTypeStr1=fType;
     else: varTypeStr1=fType[0]
 
@@ -354,10 +354,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             if fType!='string':
                 if name=='items' and fType=='pureInfon': typeSpecOut = {'owner': 'our', 'containerSpec': None, 'argList': None, 'arraySpec': None, 'fieldType': ['DblLinkedList']}
                 else:
-                    typeSpecOut=CheckObjectVars(fType, name)
-                    if typeSpecOut!=0:
-                        name=typeSpecOut['fieldName']
-                        typeSpecOut=typeSpecOut['typeSpec']
+                typeSpecOut=CheckObjectVars(fType, name)
+                if typeSpecOut!=0:
+                    name=typeSpecOut['fieldName']
+                    typeSpecOut=typeSpecOut['typeSpec']
                     else: print "typeSpecOut = 0 for", name
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
@@ -442,7 +442,6 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
 
         AltFormat=None
         if segType!=None:
-            #print "SEGTYPE:", segType
             if segType and 'fieldType' in segType:
                 LHSParentType = progSpec.fieldTypeKeyword(progSpec.getFieldType(segType))
             else: LHSParentType = progSpec.fieldTypeKeyword(currentObjName)   # Landed here because this is the first segment
@@ -897,10 +896,24 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
                 if 'value' in field and field['value']!=None:
                     [defaultVal, defaultValueType] = xlator['codeExpr'](field['value'][0], objsRefed, None, xlator)
         if defaultVal != '':
+            if count == 0:
+               defaultVal = ''
             constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
             constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
+            
             count += 1
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
+    
+    funcBody = ''
+    constructCode=''
+    callSuperConstructor=''
+    parentClasses = progSpec.getParentClassList(classes, ClassName)
+    if parentClasses:
+        callSuperConstructor = parentClasses[0] + "()"
+        
+    fieldID  = ClassName+'::init'
+    if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
+        funcBody += '        init();\n'
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
         if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, ClassName+'::init')):
@@ -908,6 +921,8 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
         else:
             funcBody = ''
         constructCode = xlator['codeConstructorHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, xlator)
+    if count>0 or funcBody != '':  
+        constructCode += xlator['codeConstructors'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator)
     else: constructCode=''
     return constructCode
 
@@ -936,7 +951,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         typeSpec =field['typeSpec']
         fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
-        chooseStructImplementationToUse(typeSpec)
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
         fieldID   =field['fieldID']

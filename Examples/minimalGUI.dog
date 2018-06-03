@@ -1,0 +1,56 @@
+/- minimalGUI.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "minimalGUI"
+FileName = "minimalGUI"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is an example of a very minimal GUI"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [GUI_ToolKit]
+
+LicenseText = `Public Domain`
+
+runCode=``
+
+do makeGUI(GUI_Spec)
+
+/-//////////   A p p l i c a t i o n   a n d   G l o b a l s
+
+struct GLOBAL{
+    me GUI_canvas: drawing_area
+    me int: fontSize
+
+    me bool: drawAppArea_cb (me GUI_item: widget, me GUI_ctxt: cr, their void: data)  <- {
+        thisApp.gui.setWidgetSize(drawing_area, 1200, 1200)
+	cr.moveTo(0, 0) 
+	cr.lineTo(1200, 1200)
+	cr.strokeNow()
+        return(false)
+    }
+}
+
+
+struct APP{
+    my GUI: gui
+    me GUI_ScrollingWindow: scrollerRef
+
+    me void: createAppMenu(me GUI_Frame: frame) <- {}
+
+    me void: createAppArea(me GUI_Frame: frame) <- {
+        drawing_area  <- gui.newCanvas()
+        me GUI_ScrollingWindow:: scrollerFrame(gui.newScrollingWindow(NULL, NULL))
+        scrollerRef <- scrollerFrame
+        gui.addToContainer(scrollerFrame, drawing_area)
+        gui.setWidgetSize(drawing_area, 1200, 1200)
+
+        gui.setCallback(drawing_area, "draw", G_CALLBACK(drawAppArea_cb), NULL)
+        gui.addToContainerAndExpand (frame, scrollerFrame)
+    }
+}
