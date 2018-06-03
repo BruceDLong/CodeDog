@@ -802,7 +802,13 @@ def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldVal
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     #TODO: Swift should only have constructors if they are called somewhere.
-    S = "    init(" + constructorArgs+"){\n"+callSuperConstructor+constructorInit+funcBody+"    }\n"
+    if callSuperConstructor != "":
+        S="    override init(){\n"+callSuperConstructor+funcBody+"    }\n"
+    else:
+        S="    init(){\n"+callSuperConstructor+funcBody+"    }\n"
+    if constructorArgs != "":
+        S += "    init(" + constructorArgs+"){\n"+callSuperConstructor+constructorInit+funcBody+"    }\n"
+    print "S: ", S
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -822,15 +828,14 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
 
-def codeConstructorCall():
-    return '        INIT();\n'
+def codeConstructorCall(className):
+    return '        INIT_'+className+'();\n'
 
 def codeSuperConstructorCall(parentClassName):
     return '        super.init();\n'
 
 def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, indent):
     #TODO: add \n before func
-    if fieldName == "init": fieldName = "INIT"
     structCode=''; funcDefCode=''; globalFuncs='';
     if returnType!='': returnType = '-> '+returnType
     if(className=='AppDelegate'):
@@ -841,11 +846,12 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
         else:
             structCode +="func " + fieldName +"("+argListText+") " + returnType
     else:
-        funcAttrs=''
-        if inheritMode=='override': funcAttrs='override '
         if fieldName=="init":
-            structCode += indent + funcAttrs + fieldName +"("+argListText+")"
+            fieldName = "INIT_"+className
+            structCode += indent + "func "  + fieldName +"("+argListText+")"
         else:
+            funcAttrs=''
+            if inheritMode=='override': funcAttrs='override '
             structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + returnType
     return [structCode, funcDefCode, globalFuncs]
 
