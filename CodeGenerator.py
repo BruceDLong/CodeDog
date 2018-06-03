@@ -897,7 +897,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
 
     fieldID  = ClassName+'::init'
     if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
-        funcBody += xlator['codeConstructorCall']()
+        funcBody += xlator['codeConstructorCall'](ClassName)
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
     if count>0 or funcBody != '':

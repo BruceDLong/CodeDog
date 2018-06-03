@@ -717,7 +717,7 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
     if constructorArgs != '':
         withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
-    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+"    };\n"
+    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+'\n    };\n'
     if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
@@ -731,13 +731,15 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
 
-def codeConstructorCall():
-    return '        init();\n'
+def codeConstructorCall(className):
+    return '        init_'+className+'();\n'
 
 def codeSuperConstructorCall(parentClassName):
     return '        '+parentClassName+'();\n'
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
+    if fieldName == 'init':
+		fieldName = fieldName+'_'+className
     if inheritMode=='pure-virtual':
         #print "Inherit Mode: ", className, fieldName
         typeDefName = 'abstract '+typeDefName

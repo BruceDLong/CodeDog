@@ -890,7 +890,7 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
 
-def codeConstructorCall():
+def codeConstructorCall(className):
     return '        init();\n'
 
 def codeSuperConstructorCall(parentClassName):
