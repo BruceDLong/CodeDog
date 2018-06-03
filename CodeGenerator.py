@@ -260,9 +260,9 @@ def chooseStructImplementationToUse(typeSpec):
 
 def codeAllocater(typeSpec, xlator):
     S=''
-    owner	        = progSpec.getTypeSpecOwner(typeSpec)
+    owner           = progSpec.getTypeSpecOwner(typeSpec)
     fType               = progSpec.getFieldType(typeSpec)
-    containerSpec 	= progSpec.getContainerSpec(typeSpec)
+    containerSpec   = progSpec.getContainerSpec(typeSpec)
     if isinstance(fType, basestring): varTypeStr1=fType;
     else: varTypeStr1=fType[0]
 
@@ -309,6 +309,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
 
     #print "                                             CODENAMESEG:", name
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
+
+    isStructLikeContainer = False
+    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], basestring)) and typeSpecIn['fieldType'][0]=='DblLinkedList': isStructLikeContainer = True
+
     if (fieldTypeIn!=None and isinstance(fieldTypeIn, basestring)):
         if fieldTypeIn=="string":
             [name, typeSpecOut] = xlator['recodeStringFunctions'](name, typeSpecOut)
@@ -318,11 +322,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if codeCvrtText!='':
             typeSpecOut['codeConverter'] = codeCvrtText
 
-    elif progSpec.isAContainer(typeSpecIn):
+    elif progSpec.isAContainer(typeSpecIn) and (not isStructLikeContainer or name[0]=='['):
         [containerType, idxType, owner]=xlator['getContainerType'](typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': fieldTypeIn}
-        if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], basestring)) and typeSpecIn['fieldType'][0]=='DblLinkedList': typeSpecOut['fieldType'] = ['DblLinkedList']
-        if name=='items': print "                                                 containerSpec:",typeSpecOut
         if(name[0]=='['):
             [S2, idxType] = xlator['codeExpr'](name[1], objsRefed, None, xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName)
@@ -338,7 +340,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
-        fType=progSpec.fieldTypeKeyword(fieldTypeIn)
+        if isStructLikeContainer == True: fType = typeSpecIn['fieldType'][0]
+        else: fType=progSpec.fieldTypeKeyword(fieldTypeIn)
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -352,13 +355,11 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             exit(2)
         else:
             if fType!='string':
-                if name=='items' and fType=='pureInfon': typeSpecOut = {'owner': 'our', 'containerSpec': None, 'argList': None, 'arraySpec': None, 'fieldType': ['DblLinkedList']}
-                else:
                 typeSpecOut=CheckObjectVars(fType, name)
                 if typeSpecOut!=0:
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
-                    else: print "typeSpecOut = 0 for", name
+                else: print "typeSpecOut = 0 for", name
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
@@ -644,7 +645,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         LHS = codeStr
         cdlog(5, "Assignment: {}".format(LHS))
         [S2, rhsTypeSpec]=xlator['codeExpr'](action['RHS'][0], objsRefed, None, xlator)
-        #print "LHS / RHS:", LHS, ' / ', S2, lhsTypeSpec, rhsTypeSpec
+        #if LHS=='lastItem': print "LHS / RHS:", LHS, ' / ', S2, lhsTypeSpec, rhsTypeSpec
         [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](lhsTypeSpec, rhsTypeSpec, assignTag)
         LHS = LHS_leftMod+LHS+LHS_rightMod
         RHS = RHS_leftMod+S2+RHS_rightMod
@@ -896,34 +897,28 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
                 if 'value' in field and field['value']!=None:
                     [defaultVal, defaultValueType] = xlator['codeExpr'](field['value'][0], objsRefed, None, xlator)
         if defaultVal != '':
-            if count == 0:
-               defaultVal = ''
+        #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
             constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
             constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
-            
+
             count += 1
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
-    
+
     funcBody = ''
     constructCode=''
     callSuperConstructor=''
     parentClasses = progSpec.getParentClassList(classes, ClassName)
     if parentClasses:
         callSuperConstructor = parentClasses[0] + "()"
-        
+
     fieldID  = ClassName+'::init'
     if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
         funcBody += '        init();\n'
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-        if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, ClassName+'::init')):
-            funcBody = '    init();'
-        else:
-            funcBody = ''
-        constructCode = xlator['codeConstructorHeader'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, xlator)
-    if count>0 or funcBody != '':  
+    if count>0 or funcBody != '':
         constructCode += xlator['codeConstructors'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator)
-    else: constructCode=''
+
     return constructCode
 
 def codeStructFields(classes, className, tags, indent, objsRefed, xlator):

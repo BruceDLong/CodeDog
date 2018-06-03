@@ -169,8 +169,6 @@ def fetchFeaturesNeededByLibrary(feature):
 
 def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
     [ReqTags,interfaceTags] = extractLibTags(libFile)
-    print "NEED:", need
-    print "REQUIREMENTs:", ReqTags
     Requirements = []
     LibCanWork=True
     if need[0] == 'require':
@@ -234,7 +232,6 @@ def ChooseLibs(classes, buildTags, tags):
     clearFeaturesHandled()
     cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
-    print "FEATURES-NEEDED:", featuresNeeded
     initialNeeds =[]
     for feature in featuresNeeded:
         featuresNeeded.extend(fetchFeaturesNeededByLibrary(feature))

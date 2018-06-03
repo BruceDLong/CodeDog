@@ -70,8 +70,8 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
         containerSpec = progSpec.getContainerSpec(typeSpec)
         if(containerSpec): # Make list, map, etc
             [containerType, idxType, idxOwner]=getContainerType(typeSpec)
-            if 'owner' in progSpec.getContainerSpec(typeSpec):
-                containerOwner = progSpec.getTypeSpecOwner(typeSpec)
+            if 'owner' in containerSpec:
+                containerOwner = containerSpec['owner']
             else: containerOwner='me'
             idxType=adjustBaseTypes(idxType)
             if idxType=='timeValue': idxType = 'int64_t'
@@ -141,13 +141,18 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
         if 'fieldType' in itemTypeSpec and not(isinstance(itemTypeSpec['fieldType'], basestring)) and itemTypeSpec['fieldType'][0]=='DblLinkedList': return ['', '']
-        if progSpec.typeIsPointer(itemTypeSpec) and progSpec.isAContainer(itemTypeSpec):
+        if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
-            if owner=='itr':
-                containerType = progSpec.getDatastructID(itemTypeSpec)
-                if containerType =='map' or containerType == 'multimap':
-                    return ['', '->second']
-            return ['(*', ')']
+            if progSpec.isAContainer(itemTypeSpec):
+                if owner=='itr':
+                    containerType = progSpec.getDatastructID(itemTypeSpec)
+                    if containerType =='map' or containerType == 'multimap':
+                        return ['', '->second']
+                return ['(*', ')']
+            else:
+                if owner!='itr':
+                   # print "GettingPTRMode:", itemTypeSpec
+                    return ['(*', ')']
     return ['', '']
 
 def derefPtr(varRef, itemTypeSpec):
@@ -510,7 +515,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
-            #print "ALLOCATE:", varName, varTypeSpec
+            #if varTypeSpec==None: print "ALLOCATE:", varName, varTypeSpec, segSpec
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
@@ -796,6 +801,21 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     containedType=progSpec.getFieldType(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ContainerOwner)
+
+
+    if containerType['fieldType'][0]=='DblLinkedList':
+        ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':owner, 'fieldType':containedType}
+        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        repItrName = repName+'Itr'
+        actionText += (indent + "for( auto " + repItrName+' ='+ repContainer+RDeclP+'begin()' + "; " + repItrName + " !=" + repContainer+RDeclP+'end()' +"; "+ repItrName + " = " + repItrName+"->next ){\n"
+                    + indent+"    "+"shared_ptr<infon> "+repName+" = "+repItrName+"->item;\n")
+        return [actionText, loopCounterName]
+
+
+
     if datastructID=='multimap' or datastructID=='map':
         keyVarSpec = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
@@ -867,15 +887,15 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
         if constructorInit != '':
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
-		constructorInit = ':' + constructorInit
+        constructorInit = ':' + constructorInit
     S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
     return (S)
-    
+
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     S = ''
     if constructorArgs != '':
         S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
-    S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
+#    S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)    # Uncomment this line to generatea an empty default constructor
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):

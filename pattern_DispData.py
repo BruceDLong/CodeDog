@@ -81,7 +81,7 @@ struct GLOBAL{
         elif(fldCat=='struct'):
             valStr=fieldName+'.to_string(indent+"|   ")\n'
 
-            structTypeName=field['typeSpec']['fieldType'][0]
+            structTypeName=progSpec.getFieldType(field['typeSpec'])[0]
             if not(structTypeName in classesEncoded):
                 #print "TO ENDODE:", structTypeName
                 classesEncoded[structTypeName]=1
@@ -97,7 +97,7 @@ struct GLOBAL{
         if fldCat=='func': return ''
         typeSpec=field['typeSpec']
         if progSpec.isAContainer(typeSpec):
-            innerFieldType=typeSpec['fieldType']
+            innerFieldType=progSpec.getFieldType(typeSpec)
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             calcdName=fieldName+'["+toString(_item_key)+"]'
@@ -159,7 +159,7 @@ struct GLOBAL{
         elif(fldCat=='struct'):
             valStr=fieldName+'.to_string(indent+"|   ")\n'
 
-            structTypeName=field['typeSpec']['fieldType'][0]
+            structTypeName=progSpec.getFieldType(field['typeSpec'])[0]
             if not(structTypeName in classesEncoded):
                 #print "TO ENDODE:", structTypeName
                 classesEncoded[structTypeName]=1
@@ -175,7 +175,7 @@ struct GLOBAL{
         if fldCat=='func': return ''
         typeSpec=field['typeSpec']
         if progSpec.isAContainer(typeSpec):
-            innerFieldType=typeSpec['fieldType']
+            innerFieldType=progSpec.getFieldType(typeSpec)
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             calcdName=fieldName+'["+toString(_item_key)+"]'
@@ -220,7 +220,7 @@ struct GLOBAL{
 
     def processField(self, fieldName, field, fldCat):
         [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText] = self.getDashDeclAndUpdateCode(
-            'me', '"'+fieldName+'"', fieldName, fieldName, field, 'skipNone', '    ')
+            'me', '"'+fieldName+'"', 'data.'+fieldName, fieldName, field, 'skipNone', '    ')
         self.structTextAcc     += structText
         self.updateFuncTextAcc += updateFuncText
         self.drawFuncTextAcc   += drawFuncText
@@ -232,16 +232,18 @@ struct GLOBAL{
         countOfRefs=0
         for field in modelRef['fields']:
             typeSpec=field['typeSpec']
+            typeName=progSpec.getFieldType(field['typeSpec'])[0]
             fldCat=progSpec.fieldsTypeCategory(typeSpec)
             if fldCat=='func': continue
+            if typeName=='DblLinkedListNode': continue
             if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
                 fieldName=field['fieldName']
-                dispStructTypeName = "display_"+field['typeSpec']['fieldType'][0]
+                dispStructTypeName = "display_"+typeName
                 declSymbolStr='    '
                 if(countOfRefs==0):declSymbolStr+='me string: '
                 countOfRefs+=1
                 [structText, updateFuncText, drawFuncText, setPosFuncText, handleClicksFuncText] = self.getDashDeclAndUpdateCode(
-                    'their', '"'+fieldName+'"', fieldName, fieldName, field, 'skipPtr', '    ')
+                    'their', '"'+fieldName+'"', 'data.'+fieldName, fieldName, field, 'skipPtr', '    ')
                 self.structTextAcc += structText
                 tempFuncText = updateFuncText
                 updateFuncText = declSymbolStr+'mySymbol <- data.'+fieldName+'.mySymbol(data.'+fieldName+')\n'
@@ -346,6 +348,7 @@ struct display_'''+className+": inherits = 'dash' "+'''{
         }
     }
 }\n'''
+        #if className == 'pureInfon': print Code
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, 'display_'+className)
 
     def getDashDeclAndUpdateCode(self, owner, fieldLabel, fieldRef, fieldName, field, skipFlags, indent):
@@ -357,31 +360,33 @@ struct display_'''+className+": inherits = 'dash' "+'''{
         if fldCat=='func': return ['', '', '', '', '']
         if progSpec.typeIsPointer(typeSpec) and skipFlags != 'skipPtr':  # Header for a POINTER
             fieldName+='Ptr'
-            innerUpdateFuncStr = 'data.'+fieldRef+'.mySymbol(data.'+fieldRef+')'
+            if fieldRef=='data.itmItr': innerUpdateFuncStr = '"ItmItr"' # TODO: unhard code this reference to itmItr
+            else: innerUpdateFuncStr = fieldRef+'.mySymbol('+fieldRef+')'
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'))\n'
             structText += "    "+owner+" ptrToItem: "+fieldName+"\n"
 
         elif progSpec.isAContainer(typeSpec) and skipFlags != 'skipLists': # Header and items for LIST
-            dispStructTypeName= "display_"+field['typeSpec']['fieldType'][0]
+            dispStructTypeName= "display_"+progSpec.getFieldType(field['typeSpec'])[0]
             innerUpdateFuncStr = '"Size:"+toString(data.'+fieldName+'.size())'
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+ "our dash[our list]: oldElements <- "+fieldName+".elements\n"
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'), true)\n'
              ## Now push each item
-            innerFieldType=typeSpec['fieldType']
+            innerFieldType = progSpec.getFieldType(typeSpec)
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
-            newFieldRef=fieldName+'[_item_key]'
-            newFieldLabel='"["+toString(_item_key)+"]  "+ data.' + fieldName+'[_item_key].mySymbol(data.'+fieldName+'[_item_key]'+')'
+            if fieldRef=='data.itmItr' or fieldRef=='data.items': newFieldRef='_item' # TODO: unhard code this reference to itmItr
+            else: newFieldRef='data.'+fieldName+'[_item_key]'
+            newFieldLabel='"["+toString(_item_key)+"]  "+ _item.mySymbol(_item)'
             updateFuncText+="\n        "+"me int64: dash_key <- 0"
             updateFuncText+="\n        withEach _item in data."+fieldName+"{\n"
             [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '        ')
             updateFuncText+="            "+innerStructText
-            updateFuncText+="            "+"if(oldElements==NULL or (oldElements!=NULL and !(asClass("+dispStructTypeName+", oldElements[dash_key]).data === data."+fieldName+"[_item_key]))){\n"
+            updateFuncText+="            "+"if(oldElements==NULL or (oldElements!=NULL and !(asClass("+dispStructTypeName+", oldElements[dash_key]).data === _item))){\n"
             updateFuncText+='                Allocate(newItem)\n'
             updateFuncText+='                newItem.dashParent <- self\n'
-            updateFuncText+='               '+'addDependent(data.'+fieldName+'[_item_key].mySymbol(data.'+fieldName+'[_item_key]), newItem)'
+            updateFuncText+='               '+'addDependent(_item.mySymbol(_item), newItem)'
             updateFuncText+='\n            } else {\n               newItem <- asClass('+dispStructTypeName+', oldElements[dash_key])\n            dash_key <- dash_key + 1'
             updateFuncText+='\n            }'
             updateFuncText+='\n            '+innerUpdateFuncText
@@ -390,8 +395,9 @@ struct display_'''+className+": inherits = 'dash' "+'''{
             structText += "    "+owner+" listOfItems: "+fieldName+"\n"
         elif(fldCat=='struct'):  # Header for a STRUCT
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'
-            updateFuncText+="        "+fieldName+'.update('+fieldLabel+', ">", data.'+fieldRef+')\n'
-            structTypeName=field['typeSpec']['fieldType'][0]
+            updateFuncText+="        "+fieldName+'.update('+fieldLabel+', ">", '+fieldRef+')\n'
+            if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList':structTypeName = 'infon'
+            else: structTypeName = progSpec.getFieldType(typeSpec)[0]
             structText += "    "+owner+" display_"+structTypeName+': '+fieldName+"\n"
 
 

@@ -995,16 +995,16 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
 
     toField = progSpec.fetchFieldByName(memObjFields, fieldName)
     if(toField==None):
-        #print "   TOFIELD == None"
+        #print "   TOFIELD == None", fieldName
         # Even tho there is no LVAL, we need to move the cursor. Also, there could be a co-factual.
         toFieldType = progSpec.TypeSpecsMinimumBaseType(classes, typeSpec)
         toTypeSpec=typeSpec
         toFieldOwner="me"
     else:
-        #print "   TOFIELD:", toField
         toTypeSpec   = toField['typeSpec']
         toFieldType  = progSpec.getFieldType(toTypeSpec)
         toFieldOwner = toTypeSpec['owner']
+        if toTypeSpec['fieldType'][0]=='DblLinkedList': toFieldOwner='our'  # Because the list stores 'our infon'
 
         if debugTmp:
             print '        toFieldType:', toFieldType
@@ -1128,7 +1128,6 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             gatherFieldCode+=Write_ALT_Extracter(classes, fieldType[0], fields, childRecName, '', 'tmpVar', indent+'    ', level)
 
         elif fromIsStruct and toIsStruct:
-            print "toFieldType:", toFieldOwner, ">>>", toFieldType
             gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpVar'
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
@@ -1252,9 +1251,7 @@ def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
     elif configType=='ALT': SeqOrAlt='parseALT'
     cdlog(logLvl, "WRITING function {}() to extract struct {} from parse tree: stage 2...".format(nameForFunc, ToStructName))
     if configType=='SEQ':
-        print "   >Write_structExtracter:", ToStructName
         S+=Write_structExtracter(classes, ToStructName, fields, nameForFunc, logLvl)
-        print "   <Write_structExtracter:", ToStructName
     elif configType=='ALT':
         S+=Write_ALT_Extracter(classes, ToStructName, fields, 'SRec', '', 'tmpStr', '    ', -1, logLvl)
 
