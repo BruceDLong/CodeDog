@@ -1,56 +1,201 @@
-/-############  Add GUI-Toolkit features using GTK3
+/-############  Add GUI-Toolkit features using Windows API (previously
+/-                  known as Win32)
 requirements = [
-    [tagOneOf, Platform, [Linux]]
+    [tagOneOf, Platform, [Windows]]
 ]
 
 interface={
     provides=[GUI_ToolKit_implementation]
-    libFiles=[`pkg-config --cflags --libs gtk+-3.0`]
-    headers=[gtk/gtk.h, cairo-pdf.h]
+    libFiles=[]
+    headers=["stdafx.h", windows.h, stdlib.h, string.h, tchar.h, direct.h]
 }
 
 LibDescription ={
     useStatus   ='dynamic'
-    description ='GTK is a GUI Toolkit'
-    features    =[GUI_ToolKit, Mouse, Keyboard, Audio]
-    platforms   =[Linux]
+    description ='Windows API is a GUI Toolkit'
+    features    =[GUI_ToolKit]
+    platforms   =[Windows]
     bindings    =[C, CPP]
     CPUs        =[i386, amd64, arm7]
 }
 
+/- Injecting some GUI minimal test code here
+embedLow = `
+
+/-const char g_szClassName[] = "myWindowClass";
+
+
+/- The main window class name.
+static TCHAR szWindowClass[] = _T("DesktopApp");
+
+/- The string that appears in the application's title bar.
+static TCHAR szTitle[] = _T("CoinDog - Windows Version");
+
+HINSTANCE hInst;
+
+// Forward declarations of functions included in this code module:
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
+int CALLBACK WinMain(
+	_In_ HINSTANCE hInstance,
+	_In_ HINSTANCE hPrevInstance,
+	_In_ LPSTR     lpCmdLine,
+	_In_ int       nCmdShow
+)
+{
+	WNDCLASSEX wcex;
+
+	wcex.cbSize = sizeof(WNDCLASSEX);
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = WndProc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = hInstance;
+	wcex.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
+	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = NULL;
+	wcex.lpszClassName = szWindowClass;
+	wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
+
+	if (!RegisterClassEx(&wcex))
+	{
+		MessageBox(NULL,
+			_T("Call to RegisterClassEx failed!"),
+			_T("Windows Desktop Guided Tour"),
+			NULL);
+
+		return 1;
+	}
+	initialize("");
+	// Store instance handle in our global variable
+	hInst = hInstance;
+
+	// The parameters to CreateWindow explained:
+	// szWindowClass: the name of the application
+	// szTitle: the text that appears in the title bar
+	// WS_OVERLAPPEDWINDOW: the type of window to create
+	// CW_USEDEFAULT, CW_USEDEFAULT: initial position (x, y)
+	// 500, 100: initial size (width, length)
+	// NULL: the parent of this window
+	// NULL: this application does not have a menu bar
+	// hInstance: the first parameter from WinMain
+	// NULL: not used in this application
+	HWND hWnd = CreateWindow(
+		szWindowClass,
+		szTitle,
+		WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+		NULL,
+		NULL,
+		hInstance,
+		NULL
+	);
+
+	if (!hWnd)
+	{
+		MessageBox(NULL, _T("Call to CreateWindow failed!"), _T("Windows Desktop Guided Tour"), NULL);
+		return 1;
+	}
+
+	// The parameters to ShowWindow explained:
+	// hWnd: the value returned from CreateWindow
+	// nCmdShow: the fourth parameter from WinMain
+	ShowWindow(hWnd,
+		nCmdShow);
+	UpdateWindow(hWnd);
+
+	// Main message loop:
+	MSG msg;
+	while (GetMessage(&msg, NULL, 0, 0))
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
+	deinitialize();
+	return (int)msg.wParam;
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	PAINTSTRUCT ps;
+	HDC hdc;
+	TCHAR greeting[] = _T("Hello, CodeDog team! Let's this this platform up and running.");
+	TCHAR greeting2[] = _T("Left button clicked!");
+
+	switch (message)
+	{
+	case WM_PAINT:
+		hdc = BeginPaint(hWnd, &ps);
+
+		// Here your application is laid out.
+		TextOut(hdc, 5, 5, greeting, _tcslen(greeting));
+		
+		// End application-specific layout section.
+
+		EndPaint(hWnd, &ps);
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	case WM_LBUTTONDOWN: {
+		
+		//topWidget->primaryClick(event);
+		
+		int iPosX = LOWORD(lParam);
+		int iPosY = HIWORD(lParam);
+		TCHAR waCoord[20];
+		wsprintf(waCoord, _T("(%i, %i)"), iPosX, iPosY);
+		::MessageBox(hWnd, waCoord, _T("LMB Click"), MB_OK);
+		break;
+	}
+	case WM_CHAR:
+		return 0L;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+		break;
+	}
+
+	return 0;
+}
+
+`
+
 /-///////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
-struct GUI_item{their GtkWidget: GUI_item}
-struct GUI_Frame{their GtkWidget: GUI_Frame}
-struct GUI_menuBar{their GtkWidget: GUI_menuBar}
-struct GUI_menu{their GtkWidget: GUI_menu}
-struct GUI_menuItem{their GtkWidget: GUI_menuItem}
-struct GUI_canvas{their GtkWidget: GUI_canvas}
-struct GUI_container{their GtkContainer:GUI_container}
-struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
+struct GUI_item{their HWND: GUI_item}
+struct GUI_Frame{their HWND: GUI_Frame}
+struct GUI_menuBar{their HWND: GUI_menuBar}
+struct GUI_menu{their HWND: GUI_menu}
+struct GUI_menuItem{their HWND: GUI_menuItem}
+struct GUI_canvas{their HWND: GUI_canvas}
+struct GUI_container{their HWND:GUI_container}
+struct GUI_ScrollingWindow{their HWND: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_scalar{me int: GUI_scalar}
 /-struct GUI_label{their textView: GUI_label}
-struct listWidget{their GtkWidget: listWidget}
+struct listWidget{their HWND: listWidget}
 
+/*
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
-    their GtkWidget: GUI_storyBoard
-    me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
+    their HWND: GUI_storyBoard
+    me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (HWND*)%1, %2)%>
 }
 
 struct intWidget{
-    their GtkWidget: box
-    their GtkWidget: dataLabel
-    their GtkWidget: dataValue
+    their HWND: box
+    their HWND: dataLabel
+    their HWND: dataValue
 
     me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0)%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0, %1)%>
 
-    their GtkWidget: makeIntWidget(me string: name)  <- <%{
-        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    their HWND: makeIntWidget(me string: name)  <- <%{
+        HWND* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
         gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
         gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
@@ -61,14 +206,14 @@ struct intWidget{
     }%>
 }
 struct stringWidget{
-    their GtkWidget: box
-    their GtkWidget: dataLabel
-    their GtkWidget: dataValue
+    their HWND: box
+    their HWND: dataLabel
+    their HWND: dataValue
 
     me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0->dataValue)%>
     me void: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0->dataValue, %1.data())%>
-    their GtkWidget: makeStringWidget(me string: name) <- <%{
-        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    their HWND: makeStringWidget(me string: name) <- <%{
+        HWND* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
         gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
         gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
@@ -79,15 +224,15 @@ struct stringWidget{
     } %>
 }
 struct enumWidget{
-    their GtkWidget: box
-    their GtkWidget: dataLabel
-    their GtkWidget: dataValue
+    their HWND: box
+    their HWND: dataLabel
+    their HWND: dataValue
     me string[list]: options
 
     me string: getValue() <- <%!atoi(gtk_combo_box_text_get_active_text((GtkComboBoxText*)%0))%>
     me void: setValue(me int: val) <- {}
 
-    their GtkWidget: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
+    their HWND: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
         options = Options;
         box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(label.data());
@@ -112,11 +257,11 @@ struct boolWidget{
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
-    their GtkWidget:         editorFrame
+    their HWND:         editorFrame
     their listWidget:        listWidget
-    their GtkWidget:         addBtn
-    their GtkWidget:         deleteBtn
-    their GtkWidget:         editBtn
+    their HWND:         addBtn
+    their HWND:         deleteBtn
+    their HWND:         editBtn
     me int:                  crntIndex <- 0
 
     void: handleOnListClick(me int: idx) <- <% {
@@ -127,10 +272,10 @@ struct ListManagerBox{
     void: handleAdd() <- <% {
         cout << "Add Btn Clicked\n";
         listWidgetMgr->allocateNewCurrentItem();
-        GtkWidget* itemWidget = listWidgetMgr->makeEditableWidget();
+        HWND* itemWidget = listWidgetMgr->makeEditableWidget();
         GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
-        GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Add", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
-        GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+        HWND* AddItemDialog = gtk_dialog_new_with_buttons ("Add", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+        HWND* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
         gtk_container_add (GTK_CONTAINER (contentArea), itemWidget);
 
         gtk_widget_show_all(AddItemDialog);
@@ -152,13 +297,13 @@ struct ListManagerBox{
     void: handleEdit() <- <%{
         cout << "Edit Btn Clicked\n";
     }%>
-    their GtkWidget: init_dialog(their ListWidgetManager: LEWM) <- <% {
+    their HWND: init_dialog(their ListWidgetManager: LEWM) <- <% {
         listWidgetMgr = LEWM;
         listWidget = listWidgetMgr->makeListViewWidget();
         editorFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_box_pack_start(GTK_BOX(editorFrame), listWidget, true, true, 0);
 
-        GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        HWND* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         addBtn = gtk_button_new_with_label("Add");
         deleteBtn = gtk_button_new_with_label("Remove");
         editBtn = gtk_button_new_with_label("Edit");
@@ -180,34 +325,34 @@ struct ListManagerBox{
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     /- Widgets
-    their GtkWidget: makeBoolWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeFloatWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeNumRangeWidget(me string: label)    <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeTimeWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeDateWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
+    their HWND: makeBoolWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
+    their HWND: makeFloatWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    their HWND: makeNumRangeWidget(me string: label)    <- <%!%Ggtk_entry_new()%>
+    their HWND: makeRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    their HWND: makeTimeWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
+    their HWND: makeDateWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
+    their HWND: makeTimeWidget()        <- <%!%Ggtk_entry_new()%>
+    their HWND: makeDateWidget()        <- <%!%Ggtk_entry_new()%>
 
-    their GtkWidget: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
-    their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
-    their GtkWidget: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
-    their GtkWidget: makeMakeXStackWidget(me string: label)  <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
-    their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
-    their GtkWidget: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
-    me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
+    their HWND: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
+    their HWND: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
+    their HWND: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
+    their HWND: makeMakeXStackWidget(me string: label)  <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
+    their HWND: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
+    their HWND: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
+    me void: setLabelWidth(their HWND: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
     me void: setListWidgetSelectionMode(their listWidget: listWid, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
     me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
-    their GtkWidget: getListRowSelected(their listWidget: listWid) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
+    their HWND: getListRowSelected(their listWidget: listWid) <- <%!%G(HWND*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
 
-    their GtkWidget: makeListEditorWidget(their GtkWidget: listWidget) <- <%{
-        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    their HWND: makeListEditorWidget(their HWND: listWidget) <- <%{
+        HWND* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_box_pack_start(GTK_BOX(box), listWidget, true, true, 0);
 
-        GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-        GtkWidget* addBtn = gtk_button_new_with_label("Add");
-        GtkWidget* delBtn = gtk_button_new_with_label("Remove");
-        GtkWidget* editBtn = gtk_button_new_with_label("Edit");
+        HWND* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        HWND* addBtn = gtk_button_new_with_label("Add");
+        HWND* delBtn = gtk_button_new_with_label("Remove");
+        HWND* editBtn = gtk_button_new_with_label("Edit");
 
         gtk_box_pack_start(GTK_BOX(btnBox), addBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(btnBox), delBtn, true, true, 10);
@@ -222,20 +367,21 @@ struct GLOBAL{
         int idx = gtk_list_box_row_get_index(gtk_list_box_get_selected_row(box));
         listMgrBox->handleOnListClick(idx);
     } %>
-    void: ListEditorHandleAdd(their GtkWidget: wid, their ListManagerBox: listMgrBox) <- {
+    void: ListEditorHandleAdd(their HWND: wid, their ListManagerBox: listMgrBox) <- {
         listMgrBox.handleAdd()
     }
-    void: ListEditorHandleDelete(their GtkWidget: wid, their ListManagerBox: listMgrBox) <- {
+    void: ListEditorHandleDelete(their HWND: wid, their ListManagerBox: listMgrBox) <- {
         listMgrBox.handleDelete()
     }
-    void: ListEditorHandleEdit(their GtkWidget: wid, their ListManagerBox: listMgrBox) <- {
+    void: ListEditorHandleEdit(their HWND: wid, their ListManagerBox: listMgrBox) <- {
         listMgrBox.handleEdit()
     }
 }
+
 /-///////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
+struct GUI_ButtonEvent{their HWND: GUI_ButtonEvent}
 struct GUI_ButtonEvent{
   me uint: type
  /- GdkWindow *window;
@@ -247,7 +393,7 @@ struct GUI_ButtonEvent{
   me uint: button
 }
 
-struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
+struct GUI_PointerEvent{their HWND: GUI_PointerEvent}
 struct GUI_PointerEvent{
   me uint: type
  /- GdkWindow *window;
@@ -264,7 +410,7 @@ struct GUI_PointerEvent{
 struct GTK_eventDispatcher{
     their widget: topWidget
     me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
-    me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
+    me bool: dispatchPointerClickEvent(their HWND: event) <- <%{
         if(event->type==GDK_BUTTON_PRESS){
             if(event->button==1){
                 topWidget->primaryClick(event);
@@ -298,49 +444,50 @@ struct GTK_eventDispatcher{
 /-///////////////////////////////   Event callbacks for GTK3
 struct GLOBAL{
     me GTK_eventDispatcher: EventDispatcher
-    me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event, their void: data) <- <%{
+    me void: button_press_event(their HWND: wid, their GdkEventButton: event, their void: data) <- <%{
         EventDispatcher.dispatchPointerClickEvent(event);
     } %>
-    me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event, their void: data) <- <%{
+    me void: motion_notify_event(their HWND: wid, their GdkEventMotion: event, their void: data) <- <%{
         EventDispatcher.dispatchPointerMotionEvent(event);
     } %>
-    me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event, their void: data) <- <%{
+    me void: expose_event(their HWND: wid, their GdkEventExpose: event, their void: data) <- <%{
       /-  EventDispatcher.dispatchWindowEvent(event);
     } %>
-    me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event, their void: data) <- <%{
+    me void: keypress_event(their HWND: wid, their GdkEventKey: event, their void: data) <- <%{
         EventDispatcher.dispatchKeyboardEvent(event);
     } %>
-    me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event, their void: data) <- <%{
+    me void: configure_event(their HWND: wid, their GdkEventConfigure: event, their void: data) <- <%{
       /-  EventDispatcher.dispatchWindowEvent(event);
     } %>
-    me bool: drawAppArea_cb(their GtkWidget: widget, their GUI_ctxt: cr, their void: data) <- <%{
+    me bool: drawAppArea_cb(their HWND: widget, their GUI_ctxt: cr, their void: data) <- <%{
         DashboardWidget* DBW = (DashboardWidget*)data;
         DBW->draw(cr);
         return(true);
     }%>
 }
-
+*/
 
 /-///////////////////////////////  HANDLE GUI
+
 struct GUI{
-    their GtkApplication: app
+    /-their GtkApplication: app
 
     me uint32: GUI_Init() <- {
-        app <- gtk_application_new (0, G_APPLICATION_FLAGS_NONE)
-        g_signal_connect (app, "activate", G_CALLBACK(activate), NULL)
+        /-app <- gtk_application_new (0, G_APPLICATION_FLAGS_NONE)
+        /-g_signal_connect (app, "activate", G_CALLBACK(activate), NULL)
         return(0)
     }
     me uint32: GUI_Run() <- <% {
-        uint32_t status;
-        status = g_application_run( G_APPLICATION(app), 0, 0);
+        uint32_t status=0;
+        /-status = g_application_run( G_APPLICATION(app), 0, 0);
         return(status);
     } %>
     me void: GUI_Deinit() <- {
-        g_object_unref(app)
+        /-g_object_unref(app)
     }
 }
 
-
+/*
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
     me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
@@ -357,7 +504,7 @@ struct GUI{
 }
 
 struct GUI_ctxt {
-    their cairo_t:GUI_ctxt
+    their HDC:GUI_ctxt
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
     me void: reset() <- <%!%G %>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
@@ -366,8 +513,8 @@ struct GUI_ctxt {
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
     me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
     me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
-    me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(%0, %1, %2)%>
-    me void: lineTo(me double: x, me double: y) <- <%!cairo_line_to(%0, %1, %2)%>
+    me void: moveTo(me double: x, me double: y) <- <%!MoveTo(%0, %1, %2)%>
+    me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, %1, %2)%>
     me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(%0, %1, %2)%>
     me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(%0, %1, %2)%>
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
@@ -389,10 +536,6 @@ struct guiFillPattern{
     me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
 }
 
-struct fontSpec{
-    me string: name
-    me int: size
-}
 /-/////////////////////////////// TIME
 struct tm{
     me tm: tm
@@ -427,22 +570,25 @@ struct timeStringer{
         return(SH);
     } %>
 }
+*/
 
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
-    me APP: thisApp
+        me APP: thisApp
+}
 
+/*
     /- TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
     /- DRAWING ROUTINES:
 
-    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
+    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         cairo_move_to(cr,x,y);
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
 
-        string fontDesc=font.name+' '+ std::to_string(font.size);
+        string fontDesc=fontName+' '+ std::to_string(fontSize);
         PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
         pango_layout_set_font_description(layout, desc);
         pango_font_description_free(desc);
@@ -457,51 +603,13 @@ struct GLOBAL{
         cairo_fill(cr);
         return(size);
     } %>
-    
-    me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
-        deltaSize size = getTextSize(cr, text, font);
-	renderText(cr, text, font, x-size.width/2, y);
-        return(size);
-    }%>
-    
-    me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y, me double: degrees, me string: justify) <- <%{
-        double radians    = degrees*(M_PI/180.);
-	deltaSize size    = getTextSize(cr, text, font);
-	double hypotenuse = size.width;
-	deltaSize tmpSize;
-	
-	rotate(cr, x, y, -45);
-	if(justify == "right"){x=x-hypotenuse;}
-	else if(justify == "center"){x=x-hypotenuse/2;}
-	renderText (cr, text, font, x, y);
-	cairo_restore(cr);
-	//TODO: calculate height and width more accurately
-	tmpSize.height       = cos(abs(radians))*hypotenuse;
-	tmpSize.width        = sin(abs(radians))*hypotenuse;
-	hypotenuse           = size.height;
-	radians              = M_PI/2 - abs(radians);
-	tmpSize.height       = tmpSize.height + sin(radians)*hypotenuse;  
-	tmpSize.width        = tmpSize.width + cos(radians)*hypotenuse;        
-	//size.width = size.width*0.9;
-	//size.height = size.width;
-        return(tmpSize);
-    }%>
-    
-    me void: rotate(me GUI_ctxt: cr, me int: x, me int: y, me int: degrees) <- <%{
-	double radians = degrees*(M_PI/180.);
-	cairo_save(cr); 
-	cairo_translate(cr,x,y);
-	cairo_rotate(cr, radians);
-	cairo_translate(cr,-x,-y);
-    }%>
 
-    me void: restore() <- <%!cairo_restore(cr)%>
 
-    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
 
-        string fontDesc=font.name+' '+ std::to_string(font.size);
+        string fontDesc=fontName+' '+ std::to_string(fontSize);
         PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
         pango_layout_set_font_description(layout, desc);
         pango_font_description_free(desc);
@@ -539,12 +647,12 @@ struct GLOBAL{
         cairo_scale(cr,1/scale,1/scale);
         cairo_set_source_surface(cr,pic,x*scale,y*scale);
         cairo_paint(cr);
-        cairo_restore(cr);
+cairo_restore(cr);
     } %>
 
 /- GUI INTERFACE:
 
-/* Surface to store current scribbles */
+/- Surface to store current scribbles
 their cairo_surface_t: surface <- 0
 
 me void: close_window() <- {
@@ -556,7 +664,7 @@ me void: close_window() <- {
 }
 
 me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <%{
-    GtkWidget *menuitem;
+    HWND *menuitem;
 
     menuitem = gtk_menu_item_new_with_label (label.data());
     /-gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
@@ -567,8 +675,8 @@ me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <
 } %>
 
 me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
-    GtkWidget *SubMenu = gtk_menu_new ();
-    GtkWidget *menuitem;
+    HWND *SubMenu = gtk_menu_new ();
+    HWND *menuitem;
 
     menuitem = gtk_menu_item_new_with_label (label.data());
     gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
@@ -592,11 +700,12 @@ me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
 
 /--------------- Application areas
-their GtkWidget: window
+
+their HWND: window
 void: setMasterWidget(their widget: masterWidget) <- {EventDispatcher.topWidget<-masterWidget}
 
 me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
-    GtkWidget *topBox;
+    HWND *topBox;
 
     window = gtk_application_window_new (app);
     gtk_window_set_title (GTK_WINDOW (window), "Window");
@@ -607,11 +716,11 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     topBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add (GTK_CONTAINER (window), topBox);
     gtk_widget_show (topBox);
+    
     /-//////////////////  A d d  A p p l i c a t i o n   M e n u
 
-    GtkWidget *boxForMenubar;
-    GtkWidget *menubar;
-
+    HWND *boxForMenubar;
+    HWND *menubar;
 
     boxForMenubar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add (GTK_CONTAINER (topBox), boxForMenubar);
@@ -625,8 +734,8 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
 
       /-///////////////////  A d d   A p p l i c a t i o n   I t e m s
 
-    GtkWidget *frame;
-    GtkWidget *appArea;
+    HWND *frame;
+    HWND *appArea;
 
     frame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start(GTK_BOX(topBox), frame, TRUE, TRUE, 0);
@@ -634,12 +743,9 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     /-EventDispatcher.registerWidgetForEventDispatcher();
     thisApp.createAppArea(frame);
 
-
     /-///////////////////  A d d  S t a t u s   A r e a
-
-
 
     gtk_widget_show_all (window);
 }%>
 
-}
+}*/

@@ -63,7 +63,7 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
-    
+
     if progSpec.isAContainer(TypeSpec):
         containerSpec = progSpec.getContainerSpec(TypeSpec)
         if(containerSpec): # Make list, map, etc
@@ -628,7 +628,7 @@ def addSpecialCode(filename):
         va_list ap;
         while(1) {
             formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
-            strcpy(&formatted[0], fmt_str.c_str());
+            strcpy_s(&formatted[0], n, fmt_str.c_str());
             va_start(ap, fmt_str);
             final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
             va_end(ap);
@@ -644,7 +644,7 @@ def addSpecialCode(filename):
         //string fileDir = "~/."+filename ";
         string fileDir = "./assets";
 
-        mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        _mkdir(fileDir.data());
         return (fileDir);
     }
 
@@ -861,10 +861,10 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
         if constructorInit != '':
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
-		constructorInit = ':' + constructorInit
+        constructorInit = ':' + constructorInit
     S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
     return (S)
-    
+
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     S = ''
     if constructorArgs != '':
@@ -889,6 +889,12 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
+
+def codeConstructorCall(className):
+    return '        init();\n'
+
+def codeSuperConstructorCall(parentClassName):
+    return parentClassName+'()'
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
@@ -938,7 +944,10 @@ def applyTypecast(typeInCodeDog, itemToAlterType):
 #######################################################
 
 def includeDirective(libHdr):
-    S = '#include <'+libHdr+'>\n'
+    if libHdr[0] == '"' or libHdr[0] == "'":
+        S = '#include "'+libHdr[1:-1]+'"\n'
+    else:
+        S = '#include <'+libHdr+'>\n'
     return S
 
 def generateMainFunctionality(classes, tags):
@@ -1024,5 +1033,7 @@ def fetchXlators():
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['codeConstructorCall']          = codeConstructorCall
+    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
 
     return(xlators)

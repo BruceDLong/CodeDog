@@ -271,7 +271,7 @@ def codeFactor(item, objsRefed, returnType, xlator):
     retType='noType'
     item0 = item[0]
     #print "ITEM0=", item0, ">>>>>", item
-    if (isinstance(item0, basestring)):
+    if (isinstance(item0, basestring)):        
         if item0=='(':
             [S2, retType] = codeExpr(item[1], objsRefed, returnType, xlator)
             S+='(' + S2 +')'
@@ -348,7 +348,7 @@ def codeComparison(item, objsRefed, returnType, xlator):
             elif (i[0] == '>='): S+=' >= '
             else: print "ERROR: One of <, >, <= or >= expected in code generator."; exit(2)
             [S2, retType] = codePlus(i[1], objsRefed, returnType, xlator)
-            S+=S2
+            S+=S2            
             retType='bool'
     return [S, retType]
 
@@ -365,8 +365,14 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             elif (i[0] == '!='): op=' != '
             elif (i[0] == '==='): op=' == '
             else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
-            [S2, retType] = codeComparison(i[1], objsRefed, returnType, xlator)
-            S+= op+S2
+            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
+            rightOwner=progSpec.getTypeSpecOwner(retType2)
+            if not isinstance(retType, basestring) and isinstance(retType['fieldType'], basestring) and isinstance(retType2, basestring):
+                if retType['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
+                    S2 = "'" + S2[1:-1] + "'"
+            if i[0] == '===':
+                S=codeIdentityCheck(S, S2, retType, retType2)
+            else:S+= op+S2
             retType='bool'
     return [S, retType]
 
@@ -709,9 +715,9 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
         funcBody = '        super();\n' + funcBody
     withArgConstructor = ''
     if constructorArgs != '':
-		withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
+        withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
-    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+"    };\n"
+    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+'\n    };\n'
     if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
@@ -725,8 +731,15 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
 
+def codeConstructorCall(className):
+    return '        init_'+className+'();\n'
+
+def codeSuperConstructorCall(parentClassName):
+    return '        '+parentClassName+'();\n'
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
+    if fieldName == 'init':
+		fieldName = fieldName+'_'+className
     if inheritMode=='pure-virtual':
         #print "Inherit Mode: ", className, fieldName
         typeDefName = 'abstract '+typeDefName
@@ -858,7 +871,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeConstructors']        		= codeConstructors
+    xlators['codeConstructors']             = codeConstructors
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
@@ -868,5 +881,7 @@ def fetchXlators():
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['codeConstructorCall']          = codeConstructorCall
+    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
 
     return(xlators)

@@ -225,7 +225,7 @@ def packFieldDef(fieldResult, className, indent):
     else: fieldType=None;
     if(fieldResult.arraySpec): 
         arraySpec=fieldResult.arraySpec
-        print"         ****Old ArraySpec found: "
+        #print"         ****Old ArraySpec found: "
     else: arraySpec=None
     if(fieldResult.containerSpec): 
         containerSpec=fieldResult.containerSpec 

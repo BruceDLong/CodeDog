@@ -824,12 +824,24 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
     S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
     return S    
     #TODO: Swift should only have constructors if they are called somewhere.
+<<<<<<< HEAD
  
+=======
+    if callSuperConstructor != "":
+        S="    override init(){\n"+callSuperConstructor+funcBody+"    }\n"
+    else:
+        S="    init(){\n"+callSuperConstructor+funcBody+"    }\n"
+    if constructorArgs != "":
+        S += "    init(" + constructorArgs+"){\n"+callSuperConstructor+constructorInit+funcBody+"    }\n"
+    print "S: ", S
+    return S
+
+>>>>>>> 4ce37c3fbcc4fce012780d2be05fbdbec53128d2
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):
-        return "\n        self." + fieldName +" = arg_"+fieldName
+        return "        self." + fieldName +" = arg_"+fieldName+";\n"
     elif(count == 0):
-        return "\n        self." + fieldName +" = arg_"+fieldName
+        return "        self." + fieldName +" = arg_"+fieldName+";\n"
     else:
         print "Error in codeConstructorInit."
         exit(2)
@@ -837,12 +849,18 @@ def codeConstructorInit(fieldName, count, defaultVal, xlator):
 
 
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
-    if defaultVal == "NULL":
-        defaultVal = "0"
+    if defaultVal == "NULL": defaultVal = "0"
+    if defaultVal: argType = argType + '=' + defaultVal
     return "arg_" + argFieldName  + ': ' +argType
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
+
+def codeConstructorCall(className):
+    return '        INIT_'+className+'();\n'
+
+def codeSuperConstructorCall(parentClassName):
+    return '        super.init();\n'
 
 def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, indent):
     #TODO: add \n before func
@@ -856,11 +874,12 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
         else:
             structCode +="func " + fieldName +"("+argListText+") " + returnType
     else:
-        funcAttrs=''
-        if inheritMode=='override': funcAttrs='override '
         if fieldName=="init":
-            structCode += indent + funcAttrs + fieldName +"("+argListText+")"
+            fieldName = "INIT_"+className
+            structCode += indent + "func "  + fieldName +"("+argListText+")"
         else:
+            funcAttrs=''
+            if inheritMode=='override': funcAttrs='override '
             structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + returnType
     return [structCode, funcDefCode, globalFuncs]
 
@@ -992,4 +1011,6 @@ def fetchXlators():
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['codeConstructorCall']          = codeConstructorCall
+    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
     return(xlators)

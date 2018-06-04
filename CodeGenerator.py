@@ -887,22 +887,22 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
             
             count += 1
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
-    
+
     funcBody = ''
     constructCode=''
     callSuperConstructor=''
     parentClasses = progSpec.getParentClassList(classes, ClassName)
     if parentClasses:
-        callSuperConstructor = parentClasses[0] + "()"
-        
+        callSuperConstructor = xlator['codeSuperConstructorCall'](parentClasses[0])
+
     fieldID  = ClassName+'::init'
     if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
-        funcBody += '        init();\n'
+        funcBody += xlator['codeConstructorCall'](ClassName)
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-    if count>0 or funcBody != '':  
+    if count>0 or funcBody != '':
         constructCode += xlator['codeConstructors'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator)
-    
+
     return constructCode
 
 def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
@@ -1265,6 +1265,7 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
     global libEmbedCodeLow
     global libEmbedVeryHigh
     headerStr = ''
+    headerTopStr = ''
     #cdlog(2, 'Integrating {}'.format(libID))
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
 
@@ -1282,15 +1283,19 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
         if 'headers' in tagsFromLibFiles[libID]['interface']:
             libHeaders = tagsFromLibFiles[libID]['interface']['headers']
             for libHdr in libHeaders:
-                headerStr += xlator['includeDirective'](libHdr)
-    return headerStr
+                if libHdr == '"stdafx.h"':
+                    headerTopStr = xlator['includeDirective'](libHdr)
+                else:
+                    headerStr += xlator['includeDirective'](libHdr)
+    return [headerStr, headerTopStr]
 
 def connectLibraries(classes, tags, libsToUse, xlator):
     headerStr = ''
     tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
     for libFilename in libsToUse:
         cdlog(1, 'ATTACHING LIBRARY: '+libFilename)
-        headerStr += integrateLibrary(tags, tagsFromLibFiles, libFilename, xlator)
+        [headerStrOut, headerTopStr] = integrateLibrary(tags, tagsFromLibFiles, libFilename, xlator)
+        headerStr = headerTopStr + headerStr + headerStrOut
         macroDefs= {}
         [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], tags[0], macroDefs)
 
