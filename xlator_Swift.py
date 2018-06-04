@@ -53,6 +53,9 @@ def applyOwner(owner, langType, varMode):
         langType = ''
     return langType
 
+
+
+
 def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
     fieldAttrs=''
     langType = adjustBaseTypes(fieldType)
@@ -69,18 +72,16 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
             if idxType=='timeValue': idxType = 'Int64'
 
             if containerType=='list':
-                langType="["+langType+"]"
+                langType="[ "+langType+" ]"
             elif containerType=='map':
-                langType="NSMutableOrderedSet< "+idxType+', '+langType+" >"
+                langType="#2 NSMutableOrderedSet< "+idxType+', '+langType+" >"
             elif containerType=='multimap':
                 langType="multimap< "+idxType+', '+langType+" >"
-
             if varMode != 'alloc':
                 fieldAttrs=applyOwner(containerOwner, langType, varMode)
 
     if varMode != 'alloc' and progSpec.typeIsPointer(TypeSpec):
         langType+='?'    # Make pointer func args optionals
-
     return [langType, fieldAttrs]   # E.g.: langType='uint', file
 
 def convertType(classes, TypeSpec, varMode, xlator):
@@ -786,6 +787,7 @@ def codeConstField_Str(convertedType, fieldName, fieldValueText, className, inde
     decl =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
     return [defn, decl]
 
+
 def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldValueText, className, tags, indent):
     #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
@@ -799,11 +801,30 @@ def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldVal
         defn = indent + "var "+ fieldName + ": " +  intermediateType + fieldTypeMod + fieldValueText + '\n'
         decl = ''
     return [defn, decl]
+    
+def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody):
+    if callSuperConstructor != '':
+        callSuperConstructor = ':' + callSuperConstructor
+        if constructorInit != '':
+            callSuperConstructor = callSuperConstructor + ', '
+    elif constructorInit != '':
+		constructorInit = ': ' + constructorInit
+    S = "    " + "init" + "(" + constructorArgs + ")" + " {\n" + funcBody + "    };\n"
+    print "\n\nStart Here..."
+    print "(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)"
+    print "S:\n", S
+    print "args: (", ClassName, ", ",  constructorArgs,", ", callSuperConstructor,", ", constructorInit,", ", funcBody, ")"
+    print "\nThis is the contructor init: ", constructorInit
+    return (S)
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
+    S = ''
+    if constructorArgs != '':
+        S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
+    S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
+    return S    
     #TODO: Swift should only have constructors if they are called somewhere.
-    return "" #    init (" + constructorArgs+"){"+constructorInit+"\n    }\n"
-
+ 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):
         return "\n        self." + fieldName +" = arg_"+fieldName
@@ -812,6 +833,8 @@ def codeConstructorInit(fieldName, count, defaultVal, xlator):
     else:
         print "Error in codeConstructorInit."
         exit(2)
+
+
 
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
     if defaultVal == "NULL":
@@ -958,6 +981,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
+    xlators['codeConstructor']              = codeConstructor
     xlators['codeConstructors']             = codeConstructors
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
