@@ -824,9 +824,6 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
     S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
     return S    
     #TODO: Swift should only have constructors if they are called somewhere.
-<<<<<<< HEAD
- 
-=======
     if callSuperConstructor != "":
         S="    override init(){\n"+callSuperConstructor+funcBody+"    }\n"
     else:
@@ -836,7 +833,6 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
     print "S: ", S
     return S
 
->>>>>>> 4ce37c3fbcc4fce012780d2be05fbdbec53128d2
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
     if (count > 0):
         return "        self." + fieldName +" = arg_"+fieldName+";\n"
