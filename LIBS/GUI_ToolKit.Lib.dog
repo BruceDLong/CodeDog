@@ -199,22 +199,28 @@ struct widget{
 
 struct ListWidgetManager{
     me ListManagerBox: ListEdBox
+    their GUI_Frame[their list]: rows
 
     /- Override all these for each new list editing widget
-    their GUI_item: makeListViewWidget() <- {return(NULL)}
+    their listWidget: makeListViewWidget()  <- {return(NULL)}
+    their GUI_item: makeListHeader()        <- {return(NULL)}
     void: updateViewableWidget() <- {}
     their GUI_item: makeEditableWidget() <- {return(NULL)}
-    void: updateEditableWidget(their GUI_item: Wid) <- {}
-    void: updateCrntFromEdited(their GUI_item: Wid) <- {}
+    void: updateEditableWidget(me int: N)   <- {}
+    void: updateCrntFromEdited(me int: N)   <- {}
     void: allocateNewCurrentItem() <- {}
-    void: pushCrntToList() <- {}
-    void: deleteNthItem() <- {}
-    void: copyCrntBackToList() <- {}
-    void: pushCrntToListView() <- {}
+    me int: pushCrntToList(me int: N)       <- {}
+    me int: deleteNthItem(me int: N)        <- {}
+    void: deleteNthRow(me int: N)           <- {}
+    void: copyCrntBackToList(me int: N)     <- {}
+    void: copyCrntBackToListView(me int: N) <- {}
+    void: setCurrentItem(me int: idx)       <- {}
+    me int: getListLength()                 <- {}
+    their GUI_Frame: getNthRow(me int: N)   <-{}
     void: handleAdd() <- {}
     void: handleDelete() <- {}
     void: handleEdit() <- {}
-    void: setCurrentItem(me int: idx) <- {}
+    
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }

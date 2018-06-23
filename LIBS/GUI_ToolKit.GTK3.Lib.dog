@@ -113,17 +113,22 @@ struct boolWidget{
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
     their GtkWidget:         editorFrame
-    their listWidget:        listWidget
+    their GtkWidget:         listHeader
+    their GtkWidget:         listWidgetFrame
+    their listWidget:        listWidgetView
     their GtkWidget:         addBtn
     their GtkWidget:         deleteBtn
     their GtkWidget:         editBtn
     me int:                  crntIndex <- 0
+    me int:		     listLength
+    their GtkWidget:         crntRow
 
     void: handleOnListClick(me int: idx) <- <% {
         cout << "List Clicked at index: "<< to_string(idx)<<"\n";
         crntIndex = idx;
         listWidgetMgr->setCurrentItem(crntIndex);
     } %>
+    
     void: handleAdd() <- <% {
         cout << "Add Btn Clicked\n";
         listWidgetMgr->allocateNewCurrentItem();
@@ -137,44 +142,111 @@ struct ListManagerBox{
         int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
         if(result==1){
             cout<<"ACCEPTED "<<result<<"\n";
-            listWidgetMgr->updateCrntFromEdited(itemWidget);
-            listWidgetMgr->pushCrntToList();
-            listWidgetMgr->pushCrntToListView();
+            listWidgetMgr->updateCrntFromEdited(crntIndex);
+            listLength = listWidgetMgr->pushCrntToList(crntIndex);
+	    setButtonsActive(listLength);
         } else {
             cout<<"CANCELED "<<result<<"\n";
         }
         gtk_widget_destroy(AddItemDialog);
 
     } %>
+    
     void: handleDelete() <- <% {
-        cout << "Delete Btn Clicked\n";
+        crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
+	crntRow = listWidgetMgr->getNthRow(crntIndex);
+	cout << "Delete Btn Clicked at idx: "<< crntIndex <<"\n";
+        
+	if (crntIndex >= 0) {
+	    GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+	    GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Delete Item", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+	    GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+	
+	    gtk_widget_show_all(AddItemDialog);
+	    int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+	    if(result==1){
+		cout<<"ACCEPTED "<<result<<"\n";
+		listLength = listWidgetMgr->deleteNthItem(crntIndex);
+		setButtonsActive(listLength);
+		gtk_container_remove((GtkContainer*)listWidgetView, crntRow); 
+		gtk_widget_show_all(listWidgetView);
+		gtk_widget_queue_draw (listWidgetView);
+		gtk_widget_show_all(listWidgetView);
+		
+	    } else {
+		cout<<"CANCELED "<<result<<"\n";
+	    }
+	    gtk_widget_destroy(AddItemDialog);
+	}
     } %>
+    
     void: handleEdit() <- <%{
-        cout << "Edit Btn Clicked\n";
+	crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
+	cout << "Edit Btn Clicked at idx: "<< crntIndex <<"\n";
+	if (crntIndex >= 0) {
+	    listWidgetMgr->allocateNewCurrentItem();
+	    GtkWidget* itemWidget = listWidgetMgr->makeEditableWidget();
+	    listWidgetMgr->updateEditableWidget(crntIndex);
+	    GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+	    GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Edit", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+	    GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+	    gtk_container_add (GTK_CONTAINER (contentArea), itemWidget);
+
+	    gtk_widget_show_all(AddItemDialog);
+	    int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+	    if(result==1){
+		cout<<"ACCEPTED "<<result<<"\n";
+		listWidgetMgr->updateCrntFromEdited(crntIndex);
+		listWidgetMgr->copyCrntBackToList(crntIndex);
+		listWidgetMgr->copyCrntBackToListView(crntIndex);
+	    } else {
+		cout<<"CANCELED "<<result<<"\n";
+	    }
+	    gtk_widget_destroy(AddItemDialog);
+	}
     }%>
+    
+    void: setButtonsActive(me int: L) <- <%{
+	if(L>0){
+	    gtk_widget_set_sensitive (deleteBtn, TRUE);
+	    gtk_widget_set_sensitive (editBtn, TRUE);
+	}else{
+	    gtk_widget_set_sensitive (deleteBtn, FALSE);
+	    gtk_widget_set_sensitive (editBtn, FALSE);
+	}
+    }%>
+    
     their GtkWidget: init_dialog(their ListWidgetManager: LEWM) <- <% {
         listWidgetMgr = LEWM;
-        listWidget = listWidgetMgr->makeListViewWidget();
         editorFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-        gtk_box_pack_start(GTK_BOX(editorFrame), listWidget, true, true, 0);
+	listHeader = listWidgetMgr->makeListHeader();
+	listWidgetFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	listWidgetView = listWidgetMgr->makeListViewWidget();
+        
+	gtk_box_pack_start(GTK_BOX(editorFrame), listHeader, false, true, 0);
+        gtk_box_pack_start(GTK_BOX(editorFrame), listWidgetFrame, true, true, 0);
+	gtk_box_pack_start(GTK_BOX(listWidgetFrame), listWidgetView, true, true, 0);
 
         GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         addBtn = gtk_button_new_with_label("Add");
         deleteBtn = gtk_button_new_with_label("Remove");
         editBtn = gtk_button_new_with_label("Edit");
+	listLength <- listWidgetMgr->getListLength();
+	setButtonsActive(listLength);
 
         gtk_box_pack_start(GTK_BOX(btnBox), addBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(btnBox), deleteBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(btnBox), editBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(editorFrame), btnBox, false, true, 0);
 
-        g_signal_connect(G_OBJECT(listWidget), "row-selected", G_CALLBACK(ListEditorHandleListClick), this);
+        g_signal_connect(G_OBJECT(listWidgetView), "row-selected", G_CALLBACK(ListEditorHandleListClick), this);
         g_signal_connect(G_OBJECT(addBtn), "clicked", G_CALLBACK(ListEditorHandleAdd), this);
         g_signal_connect(G_OBJECT(deleteBtn), "clicked", G_CALLBACK(ListEditorHandleDelete), this);
         g_signal_connect(G_OBJECT(editBtn), "clicked", G_CALLBACK(ListEditorHandleEdit), this);
 
         return editorFrame;
     } %>
+    
 }
 
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
@@ -196,13 +268,13 @@ struct GLOBAL{
     their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
     their GtkWidget: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
     me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
-    me void: setListWidgetSelectionMode(their listWidget: listWid, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
+    me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
     me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
-    their GtkWidget: getListRowSelected(their listWidget: listWid) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
+    their GtkWidget: getListRowSelected(their listWidget: listWidgetView) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
 
-    their GtkWidget: makeListEditorWidget(their GtkWidget: listWidget) <- <%{
+    their GtkWidget: makeListEditorWidget(their GtkWidget: listWidgetView) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-        gtk_box_pack_start(GTK_BOX(box), listWidget, true, true, 0);
+        gtk_box_pack_start(GTK_BOX(box), listWidgetView, true, true, 0);
 
         GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         GtkWidget* addBtn = gtk_button_new_with_label("Add");
