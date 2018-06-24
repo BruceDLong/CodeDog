@@ -9,11 +9,11 @@ struct styleProvider{
     me fontSpec: fontTitle
     me fontSpec: fontSmall   
 
-    me Color: foreground  <- GUI.White
-    me Color: background  <- GUI.Black
-    me Color: textPrimary <- GUI.White
-    me Color: highlight1  <- GUI.Cornflower
-    me Color: highlight2  <- GUI.OrangeRed
+    me cdColor: foreground  <- GUI.White
+    me cdColor: background  <- GUI.Black
+    me cdColor: textPrimary <- GUI.White
+    me cdColor: highlight1  <- GUI.Cornflower
+    me cdColor: highlight2  <- GUI.OrangeRed
     
     void: init()<-{
 	fontDefault.name <- "Ariel"
@@ -262,8 +262,8 @@ struct Dashboard: inherits = 'dash'{
 
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
-        me Color: bkCol <- styler.background
-        me Color: fgCol <- styler.foreground
+        me cdColor: bkCol <- styler.background
+        me cdColor: fgCol <- styler.foreground
         /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
         cr.setColor(bkCol)
         cr.paintNow()

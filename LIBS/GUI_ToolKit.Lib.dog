@@ -6,7 +6,7 @@ requirements = [
 /- Set up a complete application: fonts, colors, a window/frame with a menu, toolbar, app area and optionally a statusbar.
 /- Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
 
-struct Color{
+struct cdColor{
     me uint: red
     me uint: green
     me uint: blue
@@ -76,7 +76,7 @@ struct GUI_ctxt {
     me void: reset()
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
     me void: setRGB (me double: red, me double: green, me double: blue)
-    me void: setColor(me Color: color)
+    me void: setColor(me cdColor: color)
     me void: setLineWidth(me double: width)
     me void: moveTo(me double: x, me double: y)
     me void: lineTo(me double: x, me double: y)

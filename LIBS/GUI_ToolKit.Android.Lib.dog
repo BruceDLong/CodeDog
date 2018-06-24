@@ -509,6 +509,7 @@ struct GUI_ctxt: inherits="Canvas" {
     me void: reset() <- <%!GPath = new Path()%>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!paint.setColor(Color.argb(%4, %1, %2, %3))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!paint.setColor(Color.rgb(%1, %2, %3))%>
+    me void: setColor(me cdColor: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
     me void: setLineWidth(me double: width) <- <%!paint.setStrokeWidth(%1)%>
     me void: finishPDF() <- <%!%GSystem.out.print("PDF Functions not given.")%>
     me void: moveTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo((float)(%1), (float)(%2))%>
@@ -550,8 +551,8 @@ struct GUI_ctxt {
 struct guiFillPattern{
     their GradientDrawable: guiFillPattern
     me void: init() <- <%!%0 = new GradientDrawable(%1, %2, %3, %4)%>
-    me void: AddColorStopRGBA(me double: offset, their Color: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
-    me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
+    me void: AddColorStopRGBA(me double: offset, their cdColor: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
+    me void: AddColorStop(me double: offset, their cdColor: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
 }
 
 struct fontSpec{
