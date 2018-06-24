@@ -504,11 +504,11 @@ struct timeStringer{
 struct GLOBAL{
     me APP: thisApp
 
-    /- TIME ROUTINES:
+    /- //TIME ROUTINES:
+    me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
-    /- DRAWING ROUTINES:
-
+    /- //DRAWING ROUTINES:
     me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
         cairo_move_to(cr,x,y);
         PangoLayout *layout=pango_cairo_create_layout(cr);
@@ -614,10 +614,9 @@ struct GLOBAL{
         cairo_restore(cr);
     } %>
 
-/- GUI INTERFACE:
-
-/* Surface to store current scribbles */
-their cairo_surface_t: surface <- 0
+    /- //GUI INTERFACE:
+    /* Surface to store current scribbles */
+    their cairo_surface_t: surface <- 0
 
 me void: close_window() <- {
   if (surface){
@@ -627,6 +626,7 @@ me void: close_window() <- {
   gtk_main_quit()
 }
 
+    /- //MENU ROUTINES:
 me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <%{
     GtkWidget *menuitem;
 
@@ -659,7 +659,7 @@ me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: 
 me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
 me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
-me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
+
 
 
 

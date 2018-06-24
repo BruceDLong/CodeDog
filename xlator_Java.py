@@ -211,6 +211,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
         elif name=='pushFirst': name='push_front'
         elif name=='pushLast' : name='add'
+        elif name=='deleteNth': name='remove'
         else: print "Unknown ArrayList command:", name; exit(2);
     elif containerType=='TreeMap':
         convertedIdxType=idxType
@@ -603,7 +604,7 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType, ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""

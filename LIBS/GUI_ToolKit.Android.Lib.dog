@@ -17,7 +17,8 @@ interface={
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory,
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
         android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup,
-        android.support.design.widget.FloatingActionButton, android.R.drawable, android.graphics.drawable.Drawable, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList
+        android.support.design.widget.FloatingActionButton, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
+	android.R.drawable, android.graphics.drawable.Drawable,	android.graphics.drawable.GradientDrawable 
     ]
 }
 
@@ -45,6 +46,7 @@ struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_scalar{me float: GUI_scalar}
 struct GUI_label{their textView: GUI_label}
+struct listWidget{their LinearLayout: listWidget}
 
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard: inherits="FragmentActivity" {
@@ -77,7 +79,7 @@ struct stringWidget{
     their TextView: dataValue
 
     me void: getValue() <- {}
-    me void: setValue() <- {}
+    me void: setValue(me string: label) <- {}
 
     their LinearLayout: makeStringWidget(me string: name) <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
@@ -105,11 +107,10 @@ struct enumWidget{
         return box;
     }%>
 }
+
 struct boolWidget{
     their CheckBox: checkBox
 }
-
-struct listWidget{their LinearLayout: listWidget}
 
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
@@ -120,14 +121,28 @@ struct ListManagerBox{
     their FloatingActionButton: deleteBtn
     their FloatingActionButton: editBtn
 
-    void: handleAdd() <- <%{listWidgetMgr.handleAdd();}%>
+    void: handleOnListClick(me int: idx) <- <% {
 
-    void: handleDelete() <- <%{listWidgetMgr.handleDelete();}%>
+    } %>
 
-    void: handleEdit() <- <%{listWidgetMgr.handleEdit();}%>
+    void: handleAdd() <- <%{
+        listWidgetMgr.handleAdd();
+    }%>
 
-    their RelativeLayout: init_dialog(their ListWidgetManager: Parent) <- <% {
-        listWidgetMgr = Parent;
+    void: handleDelete() <- <% {
+        listWidgetMgr.handleDelete();
+    }%>
+
+    void: handleEdit() <- <%{
+        listWidgetMgr.handleEdit();
+    }%>
+
+    void: setButtonsActive(me int: L) <- <%{
+
+    }%>
+
+    their RelativeLayout: init_dialog(their ListWidgetManager: LEWM) <- <% {
+        listWidgetMgr = LEWM;
         // EDITOR FRAME
         editorFrame = new RelativeLayout(GLOBAL.static_Global);
         RelativeLayout.LayoutParams editorFrameParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
@@ -184,7 +199,13 @@ struct ListManagerBox{
 struct GLOBAL{
     /- Widgets
     their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_Frame: makeFrameWidget(me string: label)       <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
+    their GUI_Frame: makeFrameWidget(me string: label)         <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
+    their GUI_Frame: makeMakeXStackWidget(me string: label)    <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        box.setOrientation(LinearLayout.HORIZONTAL);
+        return box;
+    }%>
+
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
 
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
@@ -223,6 +244,7 @@ struct GLOBAL{
         return box;
     }%>
 
+    their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
     their FragmentManager: fragmentManager
 
     their GUI_Frame: makeStoryBoardWidget(me string: label)      <- <%{
@@ -282,7 +304,14 @@ struct GLOBAL{
         box.addView(spinner);
         return box;
     }%>
-
+    me void: setLabelWidth(their GUI_Frame: labelWidget, me int: width) <- <%{
+        LayoutParams params = new LayoutParams(width, LayoutParams.WRAP_CONTENT);
+	params.width = width;
+	labelWidget.setLayoutParams(params);
+    }%>
+    
+    me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!%G %>
+    
 }
 
 struct StoryBoard: inherits="Fragment"{
@@ -387,7 +416,7 @@ struct CanvasView: inherits="View" implements="OnTouchListener"{
         cr = new GUI_ctxt(canvas);
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
-        GLOBAL.static_Global.drawAppArea_cb(this, cr);
+//        GLOBAL.static_Global.drawAppArea_cb(this, cr);
         invalidate();
     }%>
 
@@ -442,7 +471,7 @@ struct GUI : inherits="LinearLayout"{
 
     me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenubar, me string: text) <- {
         me ourSubMenu: subMenu <- (text)
-        GLOBAL.static_Global.thisApp.menubar.items.add(subMenu)
+        GLOBAL.static_Global.thisApp.menubar.items.pushLast(subMenu)
         return(subMenu)
     }
 
@@ -496,6 +525,7 @@ struct GUI_ctxt: inherits="Canvas" {
     me void: strokeKeep() <- <%!draw(cr.GPath)%>
     me void: fillKeep() <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
     me void: renderFrame() <- <%!repaint()%>
+    me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
 }
 
 struct GUI_ctxt {
@@ -515,6 +545,13 @@ struct GUI_ctxt {
         Allocate(GPath)
         GCanvas <- canvas
     }
+}
+
+struct guiFillPattern{
+    their GradientDrawable: guiFillPattern
+    me void: init() <- <%!%0 = new GradientDrawable(%1, %2, %3, %4)%>
+    me void: AddColorStopRGBA(me double: offset, their Color: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
+    me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
 }
 
 struct fontSpec{
@@ -550,38 +587,48 @@ struct timeStringer{
 /-///////////////////////////////  G L O B A L
 struct GLOBAL: inherits="AppCompatActivity"{
     me APP: thisApp
-    me SubMenu: parentMenu
-    me AssetManager: assetManager
     me int: widgetHeight() <- <%!%G%1.getHeight()%>
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
     me INK_Image[map string]: InkImgCache
     me long: ticksPerSec() <- <%!%G1000%>
+    me SubMenu: parentMenu
+    me AssetManager: assetManager
     me Android_eventDispatcher: EventDispatcher
     me Toolbar: toolbar
 
-    me void: onCreate(me Bundle: savedInstanceState) <- <%{
-        super.onCreate(savedInstanceState);
-        GLOBAL.static_Global = this;
-        GLOBAL.static_Global.thisApp = new APP();
-        GLOBAL.static_Global.fragmentManager = getFragmentManager();
-        GLOBAL.static_Global.initialize("");
-        GLOBAL.static_Global.runDogCode();
-        GLOBAL.static_Global.addToolbar();
-    }%>
-
-    me void: close_window() <- {
-         /- gtk_main_quit()
-    }
-
+    /- TIME ROUTINES:
+    
     /- //DRAWING ROUTINES:
-    me void: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
+    me void: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         font.size = font.size+3;
         cr.paint.setTextSize(font.size);
         cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-        cr.GCanvas.drawText(text, x, y, cr.paint);
+        cr.GCanvas.drawText(text, (float)x, y, cr.paint);
     }%>
 
-    me void: displayImage(me GUI_ctxt: cr, me string: filename, me float: x, me float: y, me double: scale) <- <%{
+    me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
+
+    }%>
+
+    me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
+
+    }%>
+
+    me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
+
+    }%>
+
+    me void: restore() <- <%!%G %>
+
+    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+
+    } %>
+
+    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
+
+    } %>
+
+    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         boolean filter = false;
         try {
             assetManager = getAssets();
@@ -595,7 +642,47 @@ struct GLOBAL: inherits="AppCompatActivity"{
         } catch (IOException e) {Log.e("TAG", e.getMessage());}
    }%>
 
-    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
+    me void: onCreate(me Bundle: savedInstanceState) <- <%{
+        super.onCreate(savedInstanceState);
+        GLOBAL.static_Global = this;
+        GLOBAL.static_Global.thisApp = new APP();
+        GLOBAL.static_Global.fragmentManager = getFragmentManager();
+        GLOBAL.static_Global.initialize("");
+        GLOBAL.static_Global.runDogCode();
+        GLOBAL.static_Global.addToolbar();
+    }%>
+
+/- //GUI INTERFACE:
+    me void: close_window() <- {
+         /- gtk_main_quit()
+    }
+
+    me void: onStart() <- {
+        super.onStart()
+        /- The activity is about to become visible. Load state
+        """ + runCode + """
+    }
+
+    me void: onResume() <- {
+        super.onResume()
+        /- The activity has become visible (it is now "resumed"). Restart animations, etc.
+    }
+
+    me void:  onPause() <- {
+        super.onPause()
+        /- Another activity is taking focus (this activity is about to be "paused"). Pause animations, etc.
+    }
+
+    me void:  onStop() <- {
+        super.onStop()
+        /- The activity is no longer visible (it is now "stopped")
+        /- Make sure state is saved as we may quit soon.
+    }
+
+    me void:  onDestroy() <- {
+        super.onDestroy()
+        deinitialize()
+    }
 
     me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
         try {
@@ -652,32 +739,10 @@ struct GLOBAL: inherits="AppCompatActivity"{
         GLOBAL.static_Global.thisApp.gui.frame.addView(GLOBAL.static_Global.toolbar, 0);
     }%>
 
-    me void: onStart() <- {
-        super.onStart()
-        /- The activity is about to become visible. Load state
-        """ + runCode + """
-    }
-
-    me void: onResume() <- {
-        super.onResume()
-        /- The activity has become visible (it is now "resumed"). Restart animations, etc.
-    }
-
-    me void:  onPause() <- {
-        super.onPause()
-        /- Another activity is taking focus (this activity is about to be "paused"). Pause animations, etc.
-    }
-
-    me void:  onStop() <- {
-        super.onStop()
-        /- The activity is no longer visible (it is now "stopped")
-        /- Make sure state is saved as we may quit soon.
-    }
-
-    me void:  onDestroy() <- {
-        super.onDestroy()
-        deinitialize()
-    }
+    me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
+    me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
 }
 
 struct APP: inherits="LinearLayout" {
