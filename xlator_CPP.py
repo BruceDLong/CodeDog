@@ -828,7 +828,7 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(name,  convertedType, fieldOwner, paramList, objsRefed, xlator):
+def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, objsRefed, xlator):
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
