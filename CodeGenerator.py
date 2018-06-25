@@ -927,7 +927,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         structCode=""
         globalFuncs=""
         funcText=""
-        typeSpec =field['typeSpec']
+        typeSpec =field['typeSpec']      
         fieldType=typeSpec['fieldType']
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
@@ -939,7 +939,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         [intermediateType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)
         convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
-
+        
         ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
             fieldName='operator='
@@ -947,7 +947,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
         # CALCULATE RHS
         if(fieldValue == None):
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, fieldOwner, field['paramList'], objsRefed, xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, field['paramList'], objsRefed, xlator)
            # print "                            RHS none: ", fieldValueText
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, basestring):

@@ -538,26 +538,26 @@ struct GLOBAL{
     
     me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y, me double: degrees, me string: justify) <- <%{
         double radians    = degrees*(M_PI/180.);
-	deltaSize size    = getTextSize(cr, text, font);
-	double hypotenuse = size.width;
-	deltaSize tmpSize;
-	
-	rotate(cr, x, y, -45);
-	if(justify == "right"){x=x-hypotenuse;}
-	else if(justify == "center"){x=x-hypotenuse/2;}
-	renderText (cr, text, font, x, y);
-	cairo_restore(cr);
-	//TODO: calculate height and width more accurately
-	tmpSize.height       = cos(abs(radians))*hypotenuse;
-	tmpSize.width        = sin(abs(radians))*hypotenuse;
-	hypotenuse           = size.height;
-	radians              = M_PI/2 - abs(radians);
-	tmpSize.height       = tmpSize.height + sin(radians)*hypotenuse;  
-	tmpSize.width        = tmpSize.width + cos(radians)*hypotenuse;        
-	//size.width = size.width*0.9;
-	//size.height = size.width;
-        return(tmpSize);
-    }%>
+		deltaSize size    = getTextSize(cr, text, font);
+		double hypotenuse = size.width;
+		deltaSize tmpSize;
+		
+		rotate(cr, x, y, -45);
+		if(justify == "right"){x=x-hypotenuse;}
+		else if(justify == "center"){x=x-hypotenuse/2;}
+		renderText (cr, text, font, x, y);
+		cairo_restore(cr);
+		//TODO: calculate height and width more accurately
+		tmpSize.height       = cos(abs(radians))*hypotenuse;
+		tmpSize.width        = sin(abs(radians))*hypotenuse;
+		hypotenuse           = size.height;
+		radians              = M_PI/2 - abs(radians);
+		tmpSize.height       = tmpSize.height + sin(radians)*hypotenuse;  
+		tmpSize.width        = tmpSize.width + cos(radians)*hypotenuse;        
+		//size.width = size.width*0.9;
+		//size.height = size.width;
+		return(tmpSize);
+	}%>
     
     me void: rotate(me GUI_ctxt: cr, me int: x, me int: y, me int: degrees) <- <%{
 	double radians = degrees*(M_PI/180.);

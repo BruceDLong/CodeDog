@@ -109,7 +109,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
     langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', varMode)
     if langType=='TYPE ERROR': print langType, owner, fieldType;
     InnerLangType = langType
-
+    
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
@@ -131,6 +131,8 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
 
             if varMode != 'alloc':
                 langType=applyOwner(containerOwner, langType, InnerLangType, idxType, varMode)
+    if owner =="const":     
+        InnerLangType = fieldType
     return [langType, InnerLangType]
 
 
@@ -680,11 +682,12 @@ def varTypeIsValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(name, convertedType, fieldOwner, paramList, objsRefed, xlator):
+def codeVarFieldRHS_Str(name, convertedType, fieldType, fieldOwner, paramList, objsRefed, xlator):
     fieldValueText=""
     if fieldOwner=='we':
         convertedType = convertedType.replace('static ', '', 1)
-    if (not varTypeIsValueType(convertedType) and (fieldOwner=='me' or fieldOwner=='we')):
+    if (not varTypeIsValueType(convertedType) and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const')):
+        if fieldOwner =="const": convertedType = fieldType
         if paramList!=None:
             #TODO: make test case
             [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
@@ -740,7 +743,7 @@ def codeSuperConstructorCall(parentClassName):
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     if fieldName == 'init':
-		fieldName = fieldName+'_'+className
+        fieldName = fieldName+'_'+className
     if inheritMode=='pure-virtual':
         #print "Inherit Mode: ", className, fieldName
         typeDefName = 'abstract '+typeDefName
