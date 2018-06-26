@@ -1,6 +1,6 @@
 /-############  Add GUI-Toolkit features using GTK3
 requirements = [
-    [tagOneOf, Platform, [Linux, OS-X_Devices, Windows]]
+    [tagOneOf, Platform, [Linux]]
 ]
 
 interface={
@@ -279,13 +279,13 @@ struct GTK_eventDispatcher{
     /- Also: timer, data and user events
 
     me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
-    topWidget = masterWidget;
+        topWidget = masterWidget;
 
-     /-   g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), NULL);
-     /-   g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), NULL);
-     /-   g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), NULL);
-        g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
-        g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
+        g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), topWidget);
+/-      g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), topWidget);
+/-      g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), topWidget);
+        g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), topWidget);
+        g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), topWidget);
 
         gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
              | GDK_LEAVE_NOTIFY_MASK
@@ -313,8 +313,8 @@ struct GLOBAL{
     me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event, their void: data) <- <%{
       /-  EventDispatcher.dispatchWindowEvent(event);
     } %>
-    me bool: drawAppArea_cb(their GtkWidget: widget, their GUI_ctxt: cr, their void: data) <- <%{
-        DashboardWidget* DBW = (DashboardWidget*)data;
+    me bool: drawAppArea_cb(their GtkWidget: gtk_top_widget, their GUI_ctxt: cr, their void: data) <- <%{
+        widget* DBW = (widget*)data;
         DBW->draw(cr);
         return(true);
     }%>

@@ -235,7 +235,7 @@ struct GLOBAL{
             typeName=progSpec.getFieldType(field['typeSpec'])[0]
             fldCat=progSpec.fieldsTypeCategory(typeSpec)
             if fldCat=='func': continue
-            if typeName=='DblLinkedListNode': continue
+   #         if typeName=='DblLinkedListNode': continue
             if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
                 fieldName=field['fieldName']
                 dispStructTypeName = "display_"+typeName

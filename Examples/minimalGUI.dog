@@ -1,12 +1,12 @@
-/- minimalGUI.dog
+/- minimalGUI2.dog
 
-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+/-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 /-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
-/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 /-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
-Title = "minimalGUI"
-FileName = "minimalGUI"
+Title = "minimalGUI2"
+FileName = "minimalGUI2"
 Version = "1.0"
 CopyrightMesg = "Public Domain"
 Authors = "Bruce Long"
@@ -23,19 +23,53 @@ do makeGUI(GUI_Spec)
 
 /-//////////   A p p l i c a t i o n   a n d   G l o b a l s
 
-struct GLOBAL{
-    me GUI_canvas: drawing_area
-    me int: fontSize
+struct testWidget: inherits = 'widget'{
 
-    me bool: drawAppArea_cb (me GUI_item: widget, me GUI_ctxt: cr, their void: data)  <- {
-        thisApp.gui.setWidgetSize(drawing_area, 1200, 1200)
-	cr.moveTo(0, 0) 
-	cr.lineTo(1200, 1200)
-	cr.strokeNow()
-        return(false)
+    void: draw(me GUI_ctxt: cr) <- {
+        print("In DRAW()\n")
+        cr.setColor(GUI.DarkMagenta)
+        cr.moveTo(0, 0)
+        cr.lineTo(1200, 1200)
+        cr.moveTo(1200, 0)
+        cr.lineTo(0, 1200)
+        cr.strokeNow()
+
+        cr.setColor(GUI.DarkSlateBlue)
+        renderText(cr, "Hello World!", "Ariel",  50, 150, 100)
+        cr.strokeNow()
+
+        /- Here you can add tests for other drawing functions:
+        /-    setRGB(), setRGBA()
+        /-    setLineWidth()
+        /-    setScale()
+        /-    moveRel(), lineRel()
+        /-    curveTo(), curveRel()
+        /-    closePath()
+        /-    rectangle()
+        /-    fillNow(), etc
+        /-    setFillPattern() and gradient control functions.
+    }
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        me GUI_scalar: eventX <- event.x
+        me GUI_scalar: eventY <- event.y
+        print("CLICK! (x:", eventX, ", y:", eventY, ")\n")
+        return(true)
+    }
+
+    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
+        me GUI_scalar: eventX <- event.x
+        me GUI_scalar: eventY <- event.y
+        print("SECONDARY CLICK! (x:", eventX, ", y:", eventY, ")\n")
+        return(true)
     }
 }
 
+struct GLOBAL{
+    me GUI_canvas: drawing_area
+    our testWidget: drawAnX
+    me int: fontSize
+}
 
 struct APP{
     my GUI: gui
@@ -49,8 +83,8 @@ struct APP{
         scrollerRef <- scrollerFrame
         gui.addToContainer(scrollerFrame, drawing_area)
         gui.setWidgetSize(drawing_area, 1200, 1200)
-
-        gui.setCallback(drawing_area, "draw", G_CALLBACK(drawAppArea_cb), NULL)
+        Allocate(drawAnX)
+        EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
         gui.addToContainerAndExpand (frame, scrollerFrame)
     }
 }

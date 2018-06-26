@@ -238,6 +238,8 @@ struct ptrToItem: inherits = 'dash' {
         header.isHidden <- false
         header.draw(cr)
     }
+
+    void: INIT()<-{refHidden<-true}
 }
 
 
@@ -352,7 +354,6 @@ struct DashboardWidget: inherits='dash' {
         their GUI_ScrollingWindow: scrollerFrame <- (thisApp.gui.newScrollingWindow(NULL, NULL))
         thisApp.gui.addToContainer(scrollerFrame, canvas)
         thisApp.gui.setWidgetSize(canvas, 1200, 1200)
-        thisApp.gui.setCallback(canvas, "draw", G_CALLBACK(drawAppArea_cb), self)
         EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
         managedWidget <- scrollerFrame
         return(managedWidget)
