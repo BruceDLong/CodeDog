@@ -63,7 +63,7 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
-    
+
     if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return [langType, InnerLangType]
 
     if progSpec.isAContainer(typeSpec):
@@ -144,11 +144,11 @@ def getTheDerefPtrMods(itemTypeSpec):
         if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
             if progSpec.isAContainer(itemTypeSpec):
-            if owner=='itr':
-                containerType = progSpec.getDatastructID(itemTypeSpec)
-                if containerType =='map' or containerType == 'multimap':
-                    return ['', '->second']
-            return ['(*', ')']
+                if owner=='itr':
+                    containerType = progSpec.getDatastructID(itemTypeSpec)
+                    if containerType =='map' or containerType == 'multimap':
+                        return ['', '->second']
+                return ['(*', ')']
             else:
                 if owner!='itr':
                    # print "GettingPTRMode:", itemTypeSpec
@@ -890,15 +890,15 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
         if constructorInit != '':
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
-		constructorInit = ':' + constructorInit
+        constructorInit = ':' + constructorInit
     S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
     return (S)
-    
+
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     S = ''
     if constructorArgs != '':
         S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
-    S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
+  #  S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -976,7 +976,7 @@ def includeDirective(libHdr):
     if libHdr[0] == '"' or libHdr[0] == "'":
         S = '#include "'+libHdr[1:-1]+'"\n'
     else:
-    S = '#include <'+libHdr+'>\n'
+        S = '#include <'+libHdr+'>\n'
     return S
 
 def generateMainFunctionality(classes, tags):

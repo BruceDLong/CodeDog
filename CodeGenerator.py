@@ -900,25 +900,25 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
         #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
             constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
             constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
-            
+
             count += 1
         copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
-    
+
     funcBody = ''
     constructCode=''
     callSuperConstructor=''
     parentClasses = progSpec.getParentClassList(classes, ClassName)
     if parentClasses:
         callSuperConstructor = xlator['codeSuperConstructorCall'](parentClasses[0])
-        
+
     fieldID  = ClassName+'::init'
     if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
         funcBody += xlator['codeConstructorCall'](ClassName)
     if(count>0):
         constructorArgs=constructorArgs[0:-1]
-    if count>0 or funcBody != '':  
+    if count>0 or funcBody != '':
         constructCode += xlator['codeConstructors'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator)
-    
+
     return constructCode
 
 def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
@@ -1302,7 +1302,7 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
                 if libHdr == '"stdafx.h"':
                     headerTopStr = xlator['includeDirective'](libHdr)
                 else:
-                headerStr += xlator['includeDirective'](libHdr)
+                    headerStr += xlator['includeDirective'](libHdr)
     return [headerStr, headerTopStr]
 
 def connectLibraries(classes, tags, libsToUse, xlator):
