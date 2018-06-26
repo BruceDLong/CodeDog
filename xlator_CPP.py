@@ -63,7 +63,7 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
-
+    
     if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return [langType, InnerLangType]
 
     if progSpec.isAContainer(typeSpec):
@@ -144,11 +144,11 @@ def getTheDerefPtrMods(itemTypeSpec):
         if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
             if progSpec.isAContainer(itemTypeSpec):
-                if owner=='itr':
-                    containerType = progSpec.getDatastructID(itemTypeSpec)
-                    if containerType =='map' or containerType == 'multimap':
-                        return ['', '->second']
-                return ['(*', ')']
+            if owner=='itr':
+                containerType = progSpec.getDatastructID(itemTypeSpec)
+                if containerType =='map' or containerType == 'multimap':
+                    return ['', '->second']
+            return ['(*', ')']
             else:
                 if owner!='itr':
                    # print "GettingPTRMode:", itemTypeSpec
@@ -173,7 +173,7 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     if(LeftOwner=="id_their" and RightOwner=="id_their"): return ["&", ""]
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner!='itr' and RightOwner=='itr': return ["", "->second"]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", ")"]
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", "   )"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ["&", '']
     if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
@@ -256,13 +256,14 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='insert'   : typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':{'owner':'itr'}}, {'typeSpec':typeSpecIn}]}
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='erase'    : name='erase';  typeSpecOut['owner']='itr';
+        elif name=='deleteNth': typeSpecOut['codeConverter']='%0->erase(%0->begin()+%1)'; typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
         elif name=='nthItr'   : typeSpecOut['codeConverter']='(%0.begin()+%1)'; typeSpecOut['owner']='itr';
         elif name=='first'    : name='front()';  paramList=None;
-        elif name=='last'     : name='back()';   paramList=None; print "\n\n@@@@@@@@@@@@@@@@@@@@@@@@@@2 CONVERT DEQUE:", name, typeSpecIn
+        elif name=='last'     : name='back()';   paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front';# typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':typeSpecIn}]}
@@ -640,6 +641,7 @@ def addSpecialCode(filename):
         while(1) {
             formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
             strcpy(&formatted[0], fmt_str.c_str());
+// WINDOWS: strcpy_s(&formatted[0], n, fmt_str.c_str());
             va_start(ap, fmt_str);
             final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
             va_end(ap);
@@ -656,6 +658,7 @@ def addSpecialCode(filename):
         string fileDir = "./assets";
 
         mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+// WINDOWS: _mkdir(fileDir.data());
         return (fileDir);
     }
 
@@ -853,7 +856,7 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(name,  convertedType, fieldOwner, paramList, objsRefed, xlator):
+def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, objsRefed, xlator):
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
@@ -887,15 +890,15 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
         if constructorInit != '':
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
-        constructorInit = ':' + constructorInit
+		constructorInit = ':' + constructorInit
     S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
     return (S)
-
+    
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     S = ''
     if constructorArgs != '':
         S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
-#    S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)    # Uncomment this line to generatea an empty default constructor
+    S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -915,6 +918,12 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
+
+def codeConstructorCall(className):
+    return '        init();\n'
+
+def codeSuperConstructorCall(parentClassName):
+    return parentClassName+'()'
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
@@ -964,6 +973,9 @@ def applyTypecast(typeInCodeDog, itemToAlterType):
 #######################################################
 
 def includeDirective(libHdr):
+    if libHdr[0] == '"' or libHdr[0] == "'":
+        S = '#include "'+libHdr[1:-1]+'"\n'
+    else:
     S = '#include <'+libHdr+'>\n'
     return S
 
@@ -1050,5 +1062,7 @@ def fetchXlators():
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['codeConstructorCall']          = codeConstructorCall
+    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
 
     return(xlators)

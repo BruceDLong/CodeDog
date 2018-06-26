@@ -5,7 +5,7 @@ requirements = [
 
 interface={
     provides=[GUI_ToolKit_implementation]
-/-    libFiles=[`pkg-config --cflags --libs gtk+-3.0`]
+/-    libFiles=[`pkg-config --cflags --libs gtk-3.0`]
     headers=[UIKit]
 }
 
@@ -71,6 +71,7 @@ struct GUI_ctxt {
     me void: fillNow() <- <%!fillPath()%>
     me void: strokeKeep() <- <%!strokePath()%>
     me void: fillKeep() <- <%!fillPath()%>
+    me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
 }
 
 struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIApplicationMain'{
@@ -119,6 +120,61 @@ struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIAp
         /- Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
+}
+/-///////////////////////////////  HANDLE EVENTS
+struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
+
+struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
+struct GUI_ButtonEvent{
+me uint: type
+/- GdkWindow *window;
+/- gint8 send_event;
+/- guint32 time;
+me double: x
+me double: y
+me uint: state
+me uint: button
+}
+/-/////////////////////////////// TIME
+struct tm{
+    me tm: tm
+    me int: tm_hour
+    me int: tm_min
+    me int: tm_sec
+}
+
+struct timeStringer{
+    me tm: timeRec
+    me none: timeStringer() <- <%{
+        var rawtime: time_t
+        time(rawtime);
+        timeRec = localtime(rawtime);
+;
+    } %>
+
+    me string: time12Hour() <- <%{
+        var AmPm: String = "am";
+        var hours: Int32 = timeRec.tm_hour;
+        if (hours>=12) {hours = hours-12; AmPm="pm";}
+        if (hours==0) {hours = 12;}
+        var SH: String = (String(hours)+":");
+        var min: Int32 = timeRec.tm_min;
+        if (min<10){SH = SH+"0";}
+        SH = SH + String(min);
+
+        SH=SH+":";
+        var sec: Int32 = timeRec.tm_sec;
+        if (sec<10){SH = SH+"0";}
+        SH = SH + String(sec);
+        SH=SH+AmPm;
+        return(SH);
+    } %>
+}
+struct guiFillPattern{
+    their cairo_pattern_t: guiFillPattern
+    me void: init() <- <%!%0 = cairo_pattern_create_linear(%1, %2, %3, %4)%>
+    me void: AddColorStopRGBA(me double: offset, their Color: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, %2.red/265, %2.green/256, %2.blue/256, %3/256)%>
+    me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, %2.red/265, %2.green/256, %2.blue/256)%>
 }
 
 struct APP {

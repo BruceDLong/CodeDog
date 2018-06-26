@@ -6,7 +6,7 @@ requirements = [
 /- Set up a complete application: fonts, colors, a window/frame with a menu, toolbar, app area and optionally a statusbar.
 /- Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
 
-struct Color{
+struct cdColor{
     me uint: red
     me uint: green
     me uint: blue
@@ -76,7 +76,7 @@ struct GUI_ctxt {
     me void: reset()
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
     me void: setRGB (me double: red, me double: green, me double: blue)
-    me void: setColor(me Color: color)
+    me void: setColor(me cdColor: color)
     me void: setLineWidth(me double: width)
     me void: moveTo(me double: x, me double: y)
     me void: lineTo(me double: x, me double: y)
@@ -199,22 +199,28 @@ struct widget{
 
 struct ListWidgetManager{
     me ListManagerBox: ListEdBox
+    their GUI_Frame[their list]: rows
 
     /- Override all these for each new list editing widget
-    their GUI_item: makeListViewWidget() <- {return(NULL)}
-    void: updateViewableWidget() <- {}
-    their GUI_item: makeEditableWidget() <- {return(NULL)}
-    void: updateEditableWidget(their GUI_item: Wid) <- {}
-    void: updateCrntFromEdited(their GUI_item: Wid) <- {}
-    void: allocateNewCurrentItem() <- {}
-    void: pushCrntToList() <- {}
-    void: deleteNthItem() <- {}
-    void: copyCrntBackToList() <- {}
-    void: pushCrntToListView() <- {}
-    void: handleAdd() <- {}
+    their listWidget: makeListViewWidget()  <- {return(NULL)}
+    their GUI_item: makeListHeader()        <- {return(NULL)}
+    void: updateViewableWidget()            <- {}
+    their GUI_item: makeEditableWidget()    <- {return(NULL)}
+    void: updateEditableWidget(me int: N)   <- {}
+    void: updateCrntFromEdited(me int: N)   <- {}
+    void: allocateNewCurrentItem()          <- {}
+    me int: pushCrntToList(me int: N)       <- {return(0)}
+    me int: deleteNthItem(me int: N)        <- {return(0)}
+    void: deleteNthRow(me int: N)           <- {}
+    void: copyCrntBackToList(me int: N)     <- {}
+    void: copyCrntBackToListView(me int: N) <- {}
+    void: setCurrentItem(me int: idx)       <- {}
+    me int: getListLength()                 <- {return(0)}
+    their GUI_Frame: getNthRow(me int: N)   <- {return(NULL)}
+    void: handleAdd()    <- {}
     void: handleDelete() <- {}
-    void: handleEdit() <- {}
-    void: setCurrentItem(me int: idx) <- {}
+    void: handleEdit()   <- {}
+    
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }

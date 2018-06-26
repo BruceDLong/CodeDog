@@ -1,22 +1,20 @@
-
-
 /- CodeDog HTTP Networking Library
 requirements = [
-    [tagOneOf, Platform, [Linux]]
+    [tagOneOf, Platform, [Windows]]
 ]
 
 interface={
     provides=[Networking_implementation]
-    libFiles=[`pkg-config --cflags --libs libcurl`]
-    headers=[curl/curl.h]
+    libFiles=[]
+    headers=[]
 }
 
 LibDescription ={
     useStatus  ='dynamic'
-    description='Networking for GTK3'
+    description='Networking for Windows'
     features    =[]
-    platforms   =[Linux]
-    bindings    =[C, CPP, perl, python]
+    platforms   =[Windows]
+    bindings    =[C, CPP]
     CPUs        =[i386, amd64, arm7]
 }
 

@@ -82,6 +82,31 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     runStr = "./" + fileName
     return [workingDirectory, buildStr, runStr]
 
+def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+    buildStr = ''
+    codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+    libStr = "-I " + codeDogFolder + " "
+    langStr = 'cl /EHsc'
+    #minLangStr = '-std=gnu++' + minLangVersion + ' '
+    fileExtension = '.cpp'
+    fileStr = fileName + fileExtension
+    #outputFileStr = '-o ' + fileName
+
+    writeFile(buildName, fileName, fileSpecs, fileExtension)
+    makeDir(buildName + os.sep + "assets")
+    copyTree("Resources", buildName + os.sep + "assets")
+    
+    for libFile in libFiles:
+        libStr += "-l"+libFile+ " "
+        #print "libStr: " + libStr
+    
+    currentDirectory = currentWD = os.getcwd()
+    #TODO check if above is typo
+    workingDirectory = currentDirectory + os.sep + buildName
+    buildStr = langStr + " " + fileStr
+    runStr = "python " + "..\CodeDog\\" + fileName
+    return [workingDirectory, buildStr, runStr]
+
 def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
     buildStr = ''
     libStr = ''
@@ -160,6 +185,8 @@ def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fi
     elif platform == 'IOS':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
         printResults(workingDirectory, buildStr, runStr)
+    elif platform == 'Windows':
+        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     else:
         print "buildDog.py error: build string not generated for "+ buildName
         exit(2)

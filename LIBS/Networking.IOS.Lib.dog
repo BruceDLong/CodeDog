@@ -1,0 +1,30 @@
+/- CodeDog HTTP Networking Library
+requirements = [
+    [tagOneOf, Platform, [IOS]]
+]
+
+interface={
+    provides=[Networking_implementation]
+    libFiles=[]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus  ='dynamic'
+    description='Networking for IOS'
+    features    =[]
+    platforms   =[IOS]
+    bindings    =[C, CPP, Swift]
+    CPUs        =[i386, amd64, arm7]
+}
+
+/- struct HTTPRetCode{their CURLcode: HTTPRetCode}
+
+struct MemoryStruct {
+  their void: memory
+  me uint: size
+}
+
+struct NetConnection{
+    me string: retrieve(me string: URLstr) <- <%{}%>
+}

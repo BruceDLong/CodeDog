@@ -109,7 +109,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
     langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', varMode)
     if langType=='TYPE ERROR': print langType, owner, fieldType;
     InnerLangType = langType
-
+    
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
@@ -131,6 +131,8 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
 
             if varMode != 'alloc':
                 langType=applyOwner(containerOwner, langType, InnerLangType, idxType, varMode)
+    if owner =="const":     
+        InnerLangType = fieldType
     return [langType, InnerLangType]
 
 
@@ -211,6 +213,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
         elif name=='pushFirst': name='push_front'
         elif name=='pushLast' : name='add'
+        elif name=='deleteNth': name='remove'
         else: print "Unknown ArrayList command:", name; exit(2);
     elif containerType=='TreeMap':
         convertedIdxType=idxType
@@ -271,7 +274,7 @@ def codeFactor(item, objsRefed, returnType, xlator):
     retType='noType'
     item0 = item[0]
     #print "ITEM0=", item0, ">>>>>", item
-    if (isinstance(item0, basestring)):
+    if (isinstance(item0, basestring)):        
         if item0=='(':
             [S2, retType] = codeExpr(item[1], objsRefed, returnType, xlator)
             S+='(' + S2 +')'
@@ -348,7 +351,7 @@ def codeComparison(item, objsRefed, returnType, xlator):
             elif (i[0] == '>='): S+=' >= '
             else: print "ERROR: One of <, >, <= or >= expected in code generator."; exit(2)
             [S2, retType] = codePlus(i[1], objsRefed, returnType, xlator)
-            S+=S2
+            S+=S2            
             retType='bool'
     return [S, retType]
 
@@ -365,8 +368,14 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             elif (i[0] == '!='): op=' != '
             elif (i[0] == '==='): op=' == '
             else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
-            [S2, retType] = codeComparison(i[1], objsRefed, returnType, xlator)
-            S+= op+S2
+            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
+            rightOwner=progSpec.getTypeSpecOwner(retType2)
+            if not isinstance(retType, basestring) and isinstance(retType['fieldType'], basestring) and isinstance(retType2, basestring):
+                if retType['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
+                    S2 = "'" + S2[1:-1] + "'"
+            if i[0] == '===':
+                S=codeIdentityCheck(S, S2, retType, retType2)
+            else:S+= op+S2
             retType='bool'
     return [S, retType]
 
@@ -597,7 +606,7 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType, ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
@@ -673,11 +682,12 @@ def varTypeIsValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(name, convertedType, fieldOwner, paramList, objsRefed, xlator):
+def codeVarFieldRHS_Str(name, convertedType, fieldType, fieldOwner, paramList, objsRefed, xlator):
     fieldValueText=""
     if fieldOwner=='we':
         convertedType = convertedType.replace('static ', '', 1)
-    if (not varTypeIsValueType(convertedType) and (fieldOwner=='me' or fieldOwner=='we')):
+    if (not varTypeIsValueType(convertedType) and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const')):
+        if fieldOwner =="const": convertedType = fieldType
         if paramList!=None:
             #TODO: make test case
             [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
@@ -709,9 +719,9 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
         funcBody = '        super();\n' + funcBody
     withArgConstructor = ''
     if constructorArgs != '':
-		withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
+        withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
-    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+"    };\n"
+    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+'\n    };\n'
     if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
@@ -725,8 +735,15 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
 
+def codeConstructorCall(className):
+    return '        init_'+className+'();\n'
+
+def codeSuperConstructorCall(parentClassName):
+    return '        '+parentClassName+'();\n'
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
+    if fieldName == 'init':
+        fieldName = fieldName+'_'+className
     if inheritMode=='pure-virtual':
         #print "Inherit Mode: ", className, fieldName
         typeDefName = 'abstract '+typeDefName
@@ -858,7 +875,7 @@ def fetchXlators():
     xlators['generateMainFunctionality']    = generateMainFunctionality
     xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['codeArgText']                  = codeArgText
-    xlators['codeConstructors']        		= codeConstructors
+    xlators['codeConstructors']             = codeConstructors
     xlators['codeConstructorInit']          = codeConstructorInit
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
@@ -868,5 +885,7 @@ def fetchXlators():
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['codeConstructorCall']          = codeConstructorCall
+    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
 
     return(xlators)
