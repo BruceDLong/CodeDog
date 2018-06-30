@@ -151,23 +151,29 @@ struct GLOBAL{
         if(fldCat=='int' or fldCat=='double'):
             valStr='toString('+fieldName+')'
         elif(fldCat=='string' or fldCat=='char'):
-            valStr= "'"+fieldName+"'"
+            valStr= ' '+fieldName+' '
         elif(fldCat=='flag' or fldCat=='bool'):
             valStr='dispBool(('+fieldName+')!=0)'
         elif(fldCat=='mode'):
-            valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
+            valStr=fieldName+'Strings['+fieldName+'] ' #'toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
         elif(fldCat=='struct'):
             valStr=fieldName+'.to_string(indent+"|   ")\n'
 
             structTypeName=progSpec.getFieldType(field['typeSpec'])[0]
             if not(structTypeName in classesEncoded):
-                #print "TO ENDODE:", structTypeName
-                classesEncoded[structTypeName]=1
                 classesToProcess.append(structTypeName)
         if(fldCat=='struct'):
-            S="    "+'print(indent, dispFieldAsText("'+label+'", 15), "\\n")\n    '+valStr+'\n    print("\\n")\n'
+            S="    "+'SRet_ <- SRet_ + indent + dispFieldAsText("'+label+'", 15) + "\\n"\n    SRet_ <- SRet_ + '+valStr+'+ "\\n"\n'
         else:
-            S="    "+'print(indent, dispFieldAsText("'+label+'", 15), '+valStr+', "\\n")\n'
+            ender=''
+            starter=''
+            if(fldCat=='flag' or fldCat=='bool'):
+                starter = 'if('+fieldName+'){'
+                ender = '}'
+            elif(fldCat=='int' or fldCat=='double'):
+                starter = 'if('+fieldName+'!=0){'
+                ender = '}'
+            S="    "+starter+'SRet_ <- SRet_ + indent + dispFieldAsText("'+label+'", 15) + '+valStr+' + "\\n"\n'+ender
         return S
 
     def processField(self, fieldName, field, fldCat):
@@ -183,13 +189,13 @@ struct GLOBAL{
             S+="        "+self.displayTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
         else: S+=self.displayTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
-            T ="    if("+fieldName+' == NULL){print('+'indent, dispFieldAsText("'+fieldName+'", 15)+"NULL\\n")}\n'
+            T ="    if("+fieldName+' == NULL){SRet_ <- SRet_ + '+'indent + dispFieldAsText("'+fieldName+'", 15)+"NULL\\n"}\n'
             T+="    else{\n    "+S+"    }\n"
             S=T
-        return S
+        self.textFuncBody += S
 
     def addOrAmendClasses(self, classes, className, modelRef):
-        Code="me void: to_string(me string:indent) <- {\n"+self.textFuncBody+"    }\n"
+        Code='me string: to_string(me string:indent) <- {\n    me string: SRet_ <- ""\n'+self.textFuncBody+"        return(SRet_)\n    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.toString()')
 
