@@ -911,7 +911,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
     if parentClasses:
         callSuperConstructor = xlator['codeSuperConstructorCall'](parentClasses[0])
 
-    fieldID  = ClassName+'::init'
+    fieldID  = ClassName+'::INIT'
     if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
         funcBody += xlator['codeConstructorCall'](ClassName)
     if(count>0):

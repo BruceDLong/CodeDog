@@ -892,7 +892,7 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
         constructorInit = ':' + constructorInit
-    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
+    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"    
     return (S)
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
@@ -921,7 +921,7 @@ def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
 
 def codeConstructorCall(className):
-    return '        init();\n'
+    return '        INIT();\n'
 
 def codeSuperConstructorCall(parentClassName):
     return parentClassName+'()'
