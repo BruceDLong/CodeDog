@@ -52,7 +52,7 @@ currentObjName=''
 def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
     # Handle print, return, break, etc.
     itemName=segSpec[0]
-    [code, retOwner, retType]=xlator['codeSpecialReference'](segSpec, objsRefed, xlator)
+    [code, retOwner, fieldType]=xlator['codeSpecialReference'](segSpec, objsRefed, xlator)
     if code == '': return None
     if itemName=='self':
         classDef =  progSpec.findSpecOf(globalClassStore[0], currentObjName, "struct")
@@ -60,8 +60,8 @@ def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
             typeSpecOut = classDef['typeSpec']
             typeSpecOut['owner']='their' # Does this work correctly on containers?
             print "SHOULDNT MATCH:", typeSpecOut['owner'],classDef['typeSpec']['owner']
-        else: typeSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
-    else: typeSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
+        else: typeSpecOut={'owner':'their', 'fieldType':fieldType, 'arraySpec':None, 'containerSpec':None,'argList':None}
+    else: typeSpecOut={'owner':retOwner, 'fieldType':fieldType, 'arraySpec':None, 'containerSpec':None,'argList':None}
     typeSpecOut['codeConverter']=code
     return [typeSpecOut, 'BUILTIN']
 
@@ -146,7 +146,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
     REF=CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator)
     if (REF): # RefType="BUILTIN"
         return REF
-    else:
+    else:      
         REF=CheckFunctionsLocalVarArgList(itemName)
         if (REF): # RefType="LOCAL" or "FUNCARG"
             return REF
@@ -158,7 +158,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
                 if xlator['LanguageName']=='Swift':  #TODO Make this part of xlators
                     RefOwner = progSpec.getTypeSpecOwner(REF['typeSpec'])
                     if RefOwner=='we': RefType = "STATIC:" + currentObjName + xlator['ObjConnector']
-            else:
+            else:             
                 REF=CheckObjectVars("GLOBAL", itemName)
                 if (REF):
                     RefType="GLOBAL"
@@ -175,7 +175,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
                         else: return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "CONST"]
                     if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None, 'containerSpec':None}, "CONST"]
                     cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
-                    return [None, "LIB"]      # TODO: Return correct type
+                    return [None, "LIB"]      # TODO: Return correct type  
     return [REF['typeSpec'], RefType]
     # Example: [{typeSpec}, 'OBJVAR']
 
@@ -360,7 +360,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
                 else: print "typeSpecOut = 0 for", name
-
+  
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
         #print"                             codeConverter:", name, "->", convertedName
@@ -381,7 +381,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
 
     if ("<MODENAME>" in S):
         S=S.replace("<MODENAME>", ".get(")
-        S=S.replace("<MODENAMEend>", ")")
+        S=S.replace("<MODENAMEend>", ")")    
     return [S,  typeSpecOut, None, SRC]
 
 def codeUnknownNameSeg(segSpec, objsRefed, xlator):
@@ -410,7 +410,7 @@ def codeUnknownNameSeg(segSpec, objsRefed, xlator):
     print "UNKNOWN NAME SEGMENT:", S
     return S;
 
-def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
+def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):    
     # Returns information related to a variable, function, etc.
     # NOTE: objsRefed is used to accumulate a list of which vars are read and/or written by a function.
     global currentObjName
@@ -495,7 +495,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
         previousSegName = segName
         previousTypeSpec = segType
         segIDX+=1
-
+    
     # Handle cases where seg's type is flag or mode
     if segType and LorR_Val=='RVAL' and 'fieldType' in segType:
         fieldType=progSpec.getFieldType(segType)
@@ -512,7 +512,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
             bitfieldOffset=xlator['applyTypecast']('uint64', prefix+segName+"Offset")
             S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+')'
             S=xlator['applyTypecast']('int', S)
-
+    
     return [S, segType, LHSParentType, AltFormat]
 
 
@@ -577,7 +577,7 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
 
 
 def codeFuncCall(funcCallSpec, objsRefed, returnType, xlator):
-    S=''
+    S=''    
     [codeStr, typeSpec, LHSParentType, AltIDXFormat]=codeItemRef(funcCallSpec, 'RVAL', objsRefed, returnType, xlator)
     S+=codeStr
     return S

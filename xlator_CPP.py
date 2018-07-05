@@ -493,7 +493,7 @@ def adjustConditional(S2, conditionType):
 
 def codeSpecialReference(segSpec, objsRefed, xlator):
     S=''
-    retType='void'   # default to void
+    fieldType='void'   # default to void
     retOwner='me'    # default to 'me'
     funcName=segSpec[0]
     if(len(segSpec)>2):  # If there are arguments...
@@ -528,9 +528,10 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 count=count+1
             S+=")"
         elif(funcName=='callPeriodically'):
-            [objName,  retType]=xlator['codeExpr'](paramList[1][0], objsRefed, None, xlator)
+            [objName,  typeSpec]=xlator['codeExpr'](paramList[1][0], objsRefed, None, xlator)
             [interval,  intSpec]   =xlator['codeExpr'](paramList[2][0], objsRefed, None, xlator)
-            varTypeSpec= retType['fieldType'][0]
+            fieldType = typeSpec['fieldType']
+            varTypeSpec= fieldType[0]
             wrapperName="cb_wraps_"+varTypeSpec
             S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
 
@@ -547,7 +548,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 [S2, argType]=xlator['codeExpr'](P[0][0], objsRefed, None, xlator)
                 S2=derefPtr(S2, argType)
                 S+='to_string('+S2+')'
-                retType='string'
+                fieldType='string'
         elif(funcName=='asClass'):
             if len(paramList)==2:
                 [newTypeStr, argType]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
@@ -560,14 +561,14 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 elif(varOwner=='my'):  S="static_pointer_cast<"+newTypeStr+">("+toCvtStr+")"
                 elif(varOwner=='me'):  S="static_cast<"+newTypeStr+">("+toCvtStr+")"
                 else: cdErr("Casting that to "+str(newTypeStr)+" is not yet supported.")
-                retType = newTypeStr
+                fieldType = newTypeStr
                 retOwner= varOwner
 
     else: # Not parameters, i.e., not a function
         if(funcName=='self'):
             S+='this'
 
-    return [S, retOwner, retType]
+    return [S, retOwner, fieldType]
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     return ""
