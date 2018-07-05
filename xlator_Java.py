@@ -13,7 +13,7 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParamete
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec):
-    containerSpec=typeSpec['arraySpec']
+    containerSpec = progSpec.getContainerSpec(typeSpec)
     if 'owner' in containerSpec: owner=containerSpec['owner']
     else: owner='me'
     idxType=''
@@ -32,7 +32,7 @@ def getContainerType(typeSpec):
     elif(datastructID=='map'): datastructID = "TreeMap"
     elif(datastructID=='multimap'): datastructID = "TreeMap"  # TODO: Implement true multmaps in java
     if (idxType == 'timeValue'):
-        if(typeSpec['arraySpec']!= None):
+        if(containerSpec!= None):
             idxType = 'Long'
         else:
             idxType = 'long'
@@ -110,12 +110,16 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
     if langType=='TYPE ERROR': print langType, owner, fieldType;
     InnerLangType = langType
     
-    if 'arraySpec' in TypeSpec:
-        arraySpec=TypeSpec['arraySpec']
-        if(arraySpec): # Make list, map, etc
+    if 'fieldType' in TypeSpec and not(isinstance(TypeSpec['fieldType'], basestring)) and TypeSpec['fieldType'][0]=='DblLinkedList': 
+        print"xlateLangType DblLinkedList"
+        return [langType, InnerLangType]
+
+    if progSpec.isAContainer(TypeSpec):
+        containerSpec= progSpec.getContainerSpec(TypeSpec)
+        if(containerSpec): # Make list, map, etc
             [containerType, idxType, owner]=getContainerType(TypeSpec)
-            if 'owner' in TypeSpec['arraySpec']:
-                containerOwner=TypeSpec['arraySpec']['owner']
+            if 'owner' in containerSpec:
+                containerOwner=containerSpec['owner']
             else: containerOwner='me'
             if idxType=='int': idxType = "Integer"
             if langType=='int': langType = "Integer"; InnerLangType = "Integer"
@@ -194,8 +198,12 @@ def getEnumStr(fieldName, enumList):
     return(S)
 
 ######################################################   E X P R E S S I O N   C O D I N G
-def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, paramList, xlator):
+def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
+    typeSpecOut = typeSpecIn
+    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], basestring)) and typeSpecIn['fieldType'][0]=='DblLinkedList': 
+        print"getContainerTypeInfo DblLinkedList"
+        return(name, typeSpecOut, paramList, convertedIdxType)
     if containerType=='ArrayList':
         if name=='at': pass
         elif name=='erase'    : name='remove'
@@ -369,12 +377,12 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             elif (i[0] == '==='): op=' == '
             else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
-            rightOwner=progSpec.getTypeSpecOwner(retType2)
+            rightOwner=progSpec.getTypeSpecOwner(retType2)            
             if not isinstance(retType, basestring) and isinstance(retType['fieldType'], basestring) and isinstance(retType2, basestring):
                 if retType['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
                     S2 = "'" + S2[1:-1] + "'"
             if i[0] == '===':
-                S=codeIdentityCheck(S, S2, retType, retType2)
+                S = S + " == "+ S2
             else:S+= op+S2
             retType='bool'
     return [S, retType]
@@ -555,7 +563,8 @@ struct GLOBAL{
 
 def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
     [fieldType, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', xlator)
-    if isinstance(typeSpec['fieldType'], basestring) and typeSpec['arraySpec'] == None:
+    containerSpec = progSpec.getContainerSpec(typeSpec)
+    if isinstance(containerSpec, basestring) and containerSpec == None:
         if(fieldDef['value']):
             [S2, rhsType]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
             RHS = S2
@@ -635,8 +644,20 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
 def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, indent,xlator):
     actionText = ""
     loopCounterName=""
+    owner=containerType['owner']
     containedType=containerType['fieldType']
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+    if containerType['fieldType'][0]=='DblLinkedList':
+        print "iterateContainerStr DblLinkedList"
+        ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':owner, 'fieldType':containedType}
+        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        repItrName = repName+'Itr'
+        actionText += (indent + "for( int " + repItrName+" = 0; " + repItrName + " !=" + repContainer+'.size()' +"; "+ repItrName + " +=1){\n"
+                    + indent+"    "+"infon "+repName+" = "+repItrName+".item;\n")
+        return [actionText, loopCounterName]
     if datastructID=='TreeMap':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
@@ -665,7 +686,8 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     loopVarName=repName+"Idx";
     if(isBackward==False):
-        actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + repContainer+'.size(); ' + loopVarName+' += 1){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
+        actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + repContainer+'.size(); ' + loopVarName+' += 1){\n'
+                    + indent +"    " + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
     else:
         actionText += (indent + "for(int "+loopVarName+'='+repContainer+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+' ){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
     return [actionText, loopCounterName]
@@ -736,14 +758,14 @@ def codeCopyConstructor(fieldName, convertedType, xlator):
     return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
 
 def codeConstructorCall(className):
-    return '        init_'+className+'();\n'
+    return '        INIT();\n'
 
 def codeSuperConstructorCall(parentClassName):
     return '        '+parentClassName+'();\n'
 
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
-    if fieldName == 'init':
-        fieldName = fieldName+'_'+className
+#    if fieldName == 'init':
+#        fieldName = fieldName+'_'+className
     if inheritMode=='pure-virtual':
         #print "Inherit Mode: ", className, fieldName
         typeDefName = 'abstract '+typeDefName
