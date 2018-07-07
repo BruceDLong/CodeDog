@@ -5,7 +5,7 @@ from progSpec import cdlog, cdErr, logLvl
 from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
-def getContainerType(typeSpec):
+def getContainerType(typeSpec, actionOrField):
     containerSpec = progSpec.getContainerSpec(typeSpec)
     if 'owner' in containerSpec: owner=containerSpec['owner']
     else: owner='me'
@@ -69,7 +69,7 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
     if progSpec.isAContainer(typeSpec):
         containerSpec = progSpec.getContainerSpec(typeSpec)
         if(containerSpec): # Make list, map, etc
-            [containerType, idxType, idxOwner]=getContainerType(typeSpec)
+            [containerType, idxType, idxOwner]=getContainerType(typeSpec, '')
             if 'owner' in containerSpec:
                 containerOwner = containerSpec['owner']
             else: containerOwner='me'
@@ -95,7 +95,7 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
                 langType=applyOwner(containerOwner, langType, varMode)
     return [langType, InnerLangType]
 
-def convertType(classes, typeSpec, varMode, xlator):
+def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=typeSpec['owner']
     fieldType=typeSpec['fieldType']
@@ -274,7 +274,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
-        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0.count(%1)>=1)';
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -295,7 +295,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=idxType
-        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='count(%1)>=1';
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -712,9 +712,9 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
+def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
     #TODO: make test case
-    [fieldType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)
+    [fieldType, innerType] = xlator['convertType'](classes, typeSpec, 'var', '', xlator)
     varDeclareStr=''
     assignValue=''
     isAllocated = fieldDef['isAllocated']
@@ -797,7 +797,7 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,isBackward,indent,xlator):
+def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
     #TODO: handle isBackward
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""

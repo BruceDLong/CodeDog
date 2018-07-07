@@ -12,7 +12,7 @@ from progSpec import cdlog, cdErr, logLvl
 from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getModeStateNames
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
-def getContainerType(typeSpec):
+def getContainerType(typeSpec, actionOrField):
     containerSpec = progSpec.getContainerSpec(typeSpec)
     if 'owner' in containerSpec: owner=containerSpec['owner']
     else: owner='me'
@@ -20,8 +20,8 @@ def getContainerType(typeSpec):
     if 'indexType' in containerSpec:
         if 'IDXowner' in containerSpec:
             idxOwner=containerSpec['IDXowner']
-            idxType=containerSpec['idxBaseType'][0]
-            idxType=applyOwner(idxOwner, idxType, 'IDX ERROR', containerSpec['indexType'], '')
+            idxType=containerSpec['idxBaseType'][0]   
+            idxType=applyOwner(idxOwner, idxType, 'IDX ERROR', containerSpec['indexType'], actionOrField, '')
         else: idxType=containerSpec['idxBaseType'][0]
         #idxType=containerSpec['indexType']
     if idxType[0:4]=='uint': idxType = 'int'
@@ -56,7 +56,7 @@ def convertToJavaType(fieldType):
     #print "javaType: ", javaType
     return javaType
 
-def convertType(classes, TypeSpec, varMode, xlator):
+def convertType(classes, TypeSpec, varMode, actionOrField, xlator):
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
     #print "fieldType: ", fieldType
@@ -70,7 +70,7 @@ def convertType(classes, TypeSpec, varMode, xlator):
 
     langType="TYPE ERROR"
     if(fieldType=='<%'): return fieldType[1][0]
-    return xlateLangType(TypeSpec,owner, fieldType, varMode, xlator)
+    return xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator)
 
 def codeIteratorOperation(itrCommand):
     result = ''
@@ -80,9 +80,10 @@ def codeIteratorOperation(itrCommand):
     elif itrCommand=='val':   result='%0'
     return result
 
-def applyOwner(owner, langType, innerType, idxType, varMode):
+def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
     if owner=='const':
-        langType = "final "+langType
+        if actionOrField=="field": langType = "final static "+langType
+        else: langType = "final "+langType
     elif owner=='me':
         langType = langType
     elif owner=='my':
@@ -99,14 +100,14 @@ def applyOwner(owner, langType, innerType, idxType, varMode):
         cdErr("ERROR: Owner of type not valid '" + owner + "'")
     return langType
 
-def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
+def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'.
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
         langType= convertToJavaType(fieldType)
     else: langType=progSpec.flattenObjectName(fieldType[0])
-    langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', varMode)
+    langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', actionOrField, varMode)
     if langType=='TYPE ERROR': print langType, owner, fieldType;
     InnerLangType = langType
     
@@ -117,7 +118,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
     if progSpec.isAContainer(TypeSpec):
         containerSpec= progSpec.getContainerSpec(TypeSpec)
         if(containerSpec): # Make list, map, etc
-            [containerType, idxType, owner]=getContainerType(TypeSpec)
+            [containerType, idxType, owner]=getContainerType(TypeSpec, actionOrField)
             if 'owner' in containerSpec:
                 containerOwner=containerSpec['owner']
             else: containerOwner='me'
@@ -134,7 +135,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, xlator):
                 langType="multimap<"+idxType+', '+langType+">"
 
             if varMode != 'alloc':
-                langType=applyOwner(containerOwner, langType, InnerLangType, idxType, varMode)
+                langType=applyOwner(containerOwner, langType, InnerLangType, idxType, actionOrField, varMode)
     if owner =="const":     
         InnerLangType = fieldType
     return [langType, InnerLangType]
@@ -225,7 +226,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         else: print "Unknown ArrayList command:", name; exit(2);
     elif containerType=='TreeMap':
         convertedIdxType=idxType
-        [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
         if name=='at': pass
         elif name=='containsKey'   : name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -245,7 +246,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         convertedIdxType=idxType
-        [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
         if name=='at' or name=='erase': pass
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
@@ -495,7 +496,7 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     # Check for string A[x] = B;  If so, render A.put(B,x)
-    [containerType, idxType, owner]=getContainerType(AltIDXFormat[1])
+    [containerType, idxType, owner]=getContainerType(AltIDXFormat[1], "")
     if containerType == "ArrayList":
         S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     elif containerType == "TreeMap":
@@ -561,8 +562,8 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code' )
 
-def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
-    [fieldType, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', xlator)
+def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
+    [fieldType, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
     containerSpec = progSpec.getContainerSpec(typeSpec)
     if isinstance(containerSpec, basestring) and containerSpec == None:
         if(fieldDef['value']):
@@ -641,14 +642,13 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, indent,xlator):
+def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
     actionText = ""
     loopCounterName=""
     owner=containerType['owner']
     containedType=containerType['fieldType']
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if containerType['fieldType'][0]=='DblLinkedList':
-        print "iterateContainerStr DblLinkedList"
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':owner, 'fieldType':containedType}
@@ -662,8 +662,8 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-        [containedTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', xlator)
-        [indexTypeStr, innerType]=xlator['convertType'](classes, keyVarSpec, 'var', xlator)
+        [containedTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
+        [indexTypeStr, innerType]=xlator['convertType'](classes, keyVarSpec, 'var', actionOrField, xlator)
         if indexTypeStr=='int': indexTypeStr = "Integer"
         elif indexTypeStr=='long': indexTypeStr = "Long"
         iteratorTypeStr="Map.Entry<"+indexTypeStr+", "+containedTypeStr+">"
@@ -676,12 +676,12 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        [iteratorTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', xlator)
+        [iteratorTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
     else:
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        [iteratorTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', xlator)
+        [iteratorTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
 
     localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     loopVarName=repName+"Idx";
