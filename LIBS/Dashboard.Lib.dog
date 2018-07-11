@@ -497,10 +497,10 @@ struct DashboardWidget: inherits='dash' {
         Allocate(dashboardDBW)
         dashboardDBW.dashParent <- self
         canvas  <- thisApp.gui.newCanvas()
-        their GUI_ScrollingWindow: scrollerFrame <- (thisApp.gui.newScrollingWindow(NULL, NULL))
-        thisApp.gui.addToContainer(scrollerFrame, canvas)
-        thisApp.gui.setWidgetSize(canvas, 1200, 1200)
-        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
+	thisApp.gui.setWidgetSize(canvas, 1200, 1200)
+	EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
+        their scrollerWidget:: scrollView  <- ()
+        their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
         managedWidget <- scrollerFrame
         return(managedWidget)
     }

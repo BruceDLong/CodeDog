@@ -105,6 +105,19 @@ struct enumWidget{
     }%>
 }
 
+struct scrollerWidget{
+    their GtkWidget: layoutArea
+    their GtkWidget: scroller
+    
+    their GUI_ScrollingWindow: makeScrollerWidget(me GUI_canvas: canvas) <- <%{
+        scroller = gtk_scrolled_window_new(0, 0);
+        //GtkWidget* layoutArea = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        //gtk_container_add(GTK_CONTAINER (scroller), layoutArea);
+        gtk_container_add(GTK_CONTAINER (scroller), canvas);
+        return(scroller);
+    }%>
+}
+
 struct boolWidget{
 
 }

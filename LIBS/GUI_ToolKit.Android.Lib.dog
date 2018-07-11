@@ -108,6 +108,25 @@ struct enumWidget{
     }%>
 }
 
+struct scrollerWidget{
+    their LinearLayout: layoutArea <- (GLOBAL.static_Global)
+    their NestedScrollView: scroller
+    
+    their GUI_ScrollingWindow: makeScrollerWidget(their CanvasView: canvas) <- <%{
+        scroller = new NestedScrollView(GLOBAL.static_Global);
+        scroller.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+	HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
+        hScroller.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
+        scroller.addView(hScroller);
+        layoutArea = new LinearLayout(GLOBAL.static_Global);
+        layoutArea.setOrientation(LinearLayout.VERTICAL);
+        layoutArea.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
+        hScroller.addView(layoutArea);
+	layoutArea.addView(canvas);
+        return(scroller);
+    }%>
+}
+
 struct boolWidget{
     their CheckBox: checkBox
 }
@@ -427,8 +446,7 @@ struct CanvasView: inherits="View" implements="OnTouchListener"{
 struct GUI : inherits="LinearLayout"{
     me LinearLayout: frame <- (GLOBAL.static_Global)
     me LinearLayout: layoutArea <- (GLOBAL.static_Global)
-    me NestedScrollView: vScroller
-    me HorizontalScrollView: hScroller
+    me NestedScrollView: scroller
 
     me none: GUI() <- <%{super(GLOBAL.static_Global);}%>
 
