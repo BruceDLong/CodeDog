@@ -19,7 +19,7 @@ struct styleProvider{
     me cdColor: highlight1  <- GUI.Cornflower
     me cdColor: highlight2  <- GUI.OrangeRed
     
-    void: init()<-{
+    void: INIT()<-{
 	fontDefault.name <- "Ariel"
 	fontDefault.size <- 10
 	fontTitle.name   <- "Ariel"
