@@ -313,16 +313,19 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     isStructLikeContainer = False
     if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], basestring)) and typeSpecIn['fieldType'][0]=='DblLinkedList': isStructLikeContainer = True
 
-    if (fieldTypeIn!=None and isinstance(fieldTypeIn, basestring)):
+    IsAContainer = progSpec.isAContainer(typeSpecIn)
+    if (fieldTypeIn!=None and isinstance(fieldTypeIn, basestring) and not IsAContainer):
         if fieldTypeIn=="string":
             [name, typeSpecOut] = xlator['recodeStringFunctions'](name, typeSpecOut)
 
     if owner=='itr':
+        typeSpecOut = copy.copy(typeSpecIn)
+        typeSpecOut['arraySpec'] = None
         codeCvrtText = xlator['codeIteratorOperation'](name)
         if codeCvrtText!='':
             typeSpecOut['codeConverter'] = codeCvrtText
 
-    elif progSpec.isAContainer(typeSpecIn) and (not isStructLikeContainer or name[0]=='['):
+    elif IsAContainer and (not isStructLikeContainer or name[0]=='['):
         [containerType, idxType, owner]=xlator['getContainerType'](typeSpecIn)
         typeSpecOut={'owner':typeSpecIn['owner'], 'fieldType': fieldTypeIn}
         if(name[0]=='['):

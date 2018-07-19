@@ -273,7 +273,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         else: print "Unknown deque or list command:", containerType + '::' +name; exit(2);
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
-        else: convertedIdxType=idxType
+        else: convertedIdxType=adjustBaseTypes(idxType)
         [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0.count(%1)>=1)';
@@ -294,7 +294,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
-        else: convertedIdxType=idxType
+        else: convertedIdxType=adjustBaseTypes(idxType)
         [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='count(%1)>=1';
@@ -892,7 +892,7 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
         constructorInit = ':' + constructorInit
-    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"    
+    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
     return (S)
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
