@@ -49,7 +49,7 @@ struct GUI{
     me void: showWidget(me GUI_item: widget)
     me GUI_item: newCanvas()
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height)
-    me GUI_item: newScrollingWindow()
+/-    me GUI_item: newScrollingWindow()  /-
     me void: addToContainer(me GUI_container: container, me GUI_item: widget)
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget)
     me void: addMenuBar(me GUI_menuBar: menubar)
@@ -153,7 +153,7 @@ struct widget{
 /-    me color: defaultColor
     bool: isHidden
 
-    void: draw(me GUI_ctxt: cr)
+    void: draw(me GUI_ctxt: cr) <-{}
     me bool: handleAllClicks(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: primaryDblClick(their GUI_ButtonEvent: event) <- {return(false)}

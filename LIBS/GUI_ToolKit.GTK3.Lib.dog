@@ -105,6 +105,19 @@ struct enumWidget{
     }%>
 }
 
+struct scrollerWidget{
+    their GtkWidget: layoutArea
+    their GtkWidget: scroller
+    
+    their GUI_ScrollingWindow: makeScrollerWidget(me GUI_canvas: canvas) <- <%{
+        scroller = gtk_scrolled_window_new(0, 0);
+        //GtkWidget* layoutArea = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        //gtk_container_add(GTK_CONTAINER (scroller), layoutArea);
+        gtk_container_add(GTK_CONTAINER (scroller), canvas);
+        return(scroller);
+    }%>
+}
+
 struct boolWidget{
 
 }
@@ -509,7 +522,7 @@ struct GLOBAL{
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
     /- //DRAWING ROUTINES:
-    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
+    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         cairo_move_to(cr,x,y);
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
@@ -530,13 +543,13 @@ struct GLOBAL{
         return(size);
     } %>
     
-    me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
+    me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         deltaSize size = getTextSize(cr, text, font);
 	renderText(cr, text, font, x-size.width/2, y);
         return(size);
     }%>
     
-    me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y, me double: degrees, me string: justify) <- <%{
+    me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
         double radians    = degrees*(M_PI/180.);
 		deltaSize size    = getTextSize(cr, text, font);
 		double hypotenuse = size.width;
@@ -559,7 +572,7 @@ struct GLOBAL{
 		return(tmpSize);
 	}%>
     
-    me void: rotate(me GUI_ctxt: cr, me int: x, me int: y, me int: degrees) <- <%{
+    me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
 	double radians = degrees*(M_PI/180.);
 	cairo_save(cr); 
 	cairo_translate(cr,x,y);

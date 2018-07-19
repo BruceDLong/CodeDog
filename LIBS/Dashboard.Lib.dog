@@ -18,14 +18,14 @@ struct styleProvider{
     me cdColor: textPrimary <- GUI.White
     me cdColor: highlight1  <- GUI.Cornflower
     me cdColor: highlight2  <- GUI.OrangeRed
-
-    void: init()<-{
-    fontDefault.name <- "Ariel"
-    fontDefault.size <- 10
-    fontTitle.name   <- "Ariel"
-    fontTitle.size   <- 16
-    fontSmall.name   <- "Ariel"
-    fontSmall.size   <- 8
+    
+    void: INIT()<-{
+	fontDefault.name <- "Ariel"
+	fontDefault.size <- 10
+	fontTitle.name   <- "Ariel"
+	fontTitle.size   <- 16
+	fontSmall.name   <- "Ariel"
+	fontSmall.size   <- 8
     }
 
 }
@@ -121,7 +121,7 @@ struct horizontalScale: inherits = 'graphScale'{
     me double: YPos <- 0
     me deltaSize: size
     me int: labelHeight <- 0
-    me int: tickHeight
+    me int: tickHeight  <- 0
     me string: label
     me string: justify <- ""
 
@@ -497,10 +497,10 @@ struct DashboardWidget: inherits='dash' {
         Allocate(dashboardDBW)
         dashboardDBW.dashParent <- self
         canvas  <- thisApp.gui.newCanvas()
-        their GUI_ScrollingWindow: scrollerFrame <- (thisApp.gui.newScrollingWindow(NULL, NULL))
-        thisApp.gui.addToContainer(scrollerFrame, canvas)
-        thisApp.gui.setWidgetSize(canvas, 1200, 1200)
-        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
+	thisApp.gui.setWidgetSize(canvas, 1200, 1200)
+	EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
+        their scrollerWidget:: scrollView  <- ()
+        their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
         managedWidget <- scrollerFrame
         return(managedWidget)
     }
