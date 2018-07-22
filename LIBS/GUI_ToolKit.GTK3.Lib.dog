@@ -277,8 +277,9 @@ struct GLOBAL{
     their GtkWidget: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
     their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
     their GtkWidget: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
-    their GtkWidget: makeMakeXStackWidget(me string: label)  <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
-    their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
+    their GtkWidget: makeXStackWidget(me string: label)      <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
+    their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_stack_new()%>
+    their GtkWidget: makeTabbedWidget(me string: label)      <- <%!%Ggtk_notebook_new()%>    
     their GtkWidget: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
     me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
@@ -348,7 +349,11 @@ struct GUI_PointerEvent{
 /-///////////////////////////////  EVENT DISPATCHER
 struct GTK_eventDispatcher{
     their widget: topWidget
-    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
+
+    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- <%{
+        /-topWidget->mouseMoved(event);
+        return false;
+    } %>
     me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
         if(event->type==GDK_BUTTON_PRESS){
             if(event->button==1){
