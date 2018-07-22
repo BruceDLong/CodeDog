@@ -124,7 +124,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     their GUI_Frame: makeListHeader() <- {
         their GUI_Frame: box <- makeFrameWidget()
         their GUI_Frame: headerRow <- makeRowWidget("")
-        their GUI_Frame: headerBox <- makeMakeXStackWidget("")
+        their GUI_Frame: headerBox <- makeXStackWidget("")
         <ROWHEADERCODE>
         addToContainer(headerRow, headerBox)
         addToContainer(box, headerRow)
@@ -133,7 +133,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     
     their GUI_Frame: makeRowView(our <STRUCTNAME>: item) <- {
         crntRecord <- item
-        their GUI_Frame: rowBox <- makeMakeXStackWidget("")
+        their GUI_Frame: rowBox <- makeXStackWidget("")
         <ROWVIEWCODE>
         showWidget(rowBox)
         return(rowBox)
@@ -465,12 +465,14 @@ def apply(classes, tags, topClassName):
     classesEncoded={}
 
     # Choose an appropriate app style
-    appStype='default'
-    if (True): # if all data fields are classes
-        appStype='Z_stack'
+    appStyle='default'
+    topWhichScreenFieldID = topClassName+'::whichScreen(int)'
+    if (progSpec.doesClassDirectlyImlementThisField(classes[0], topClassName, topWhichScreenFieldID)): # if all data fields are classes 
+        appStyle='Z_stack'
+    else: appStyle='TabbedStack'
     guiStructName = topClassName+'_GUI'
     classesEncoded[guiStructName]=1
-    classesToProcess=[[topClassName, 'struct', appStype, guiStructName]]
+    classesToProcess=[[topClassName, 'struct', appStyle, guiStructName]]
 
     # Amend items to each GUI data class
     for classToAmend in classesToProcess:

@@ -491,17 +491,19 @@ struct listOfItems: inherits = 'dash' {
 struct DashboardWidget: inherits='dash' {
     our Dashboard: dashboardDBW
     me GUI_canvas: canvas
-    their GUI_item: managedWidget
+    their GUI_Frame: managedWidget
     void: requestRedraw() <- {markDirtyArea(canvas, 0,0, dashboardDBW.width, dashboardDBW.height)}
     their GUI_item: init() <- {
         Allocate(dashboardDBW)
         dashboardDBW.dashParent <- self
         canvas  <- thisApp.gui.newCanvas()
-	thisApp.gui.setWidgetSize(canvas, 1200, 1200)
+	thisApp.gui.setWidgetSize(canvas, 600, 600)
 	EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
-        their scrollerWidget:: scrollView  <- ()
-        their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
-        managedWidget <- scrollerFrame
+        /-their scrollerWidget:: scrollView  <- ()
+        /-their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
+        /-managedWidget <- scrollerFrame
+	managedWidget <- makeFrameWidget("")
+	addToContainer(managedWidget, canvas)
         return(managedWidget)
     }
     void: draw(me GUI_ctxt: cr) <- {

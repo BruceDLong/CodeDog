@@ -219,7 +219,7 @@ struct GLOBAL{
     /- Widgets
     their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
     their GUI_Frame: makeFrameWidget(me string: label)         <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
-    their GUI_Frame: makeMakeXStackWidget(me string: label)    <- <%{
+    their GUI_Frame: makeXStackWidget(me string: label)    <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         box.setOrientation(LinearLayout.HORIZONTAL);
         return box;
@@ -386,11 +386,12 @@ struct Android_eventDispatcher{
             returnVal= true;
             break;
         case MotionEvent.ACTION_MOVE:
-            returnVal= true;
+	    //GLOBAL.static_Global.toolbar.setTitle("ACTION_MOVE!");
+	    returnVal= true;
             break;
         case MotionEvent.ACTION_UP:
             //GLOBAL.static_Global.toolbar.setTitle("ACTION_UP!");
-            returnVal= true;
+	    returnVal= true;
             break;
         case MotionEvent.ACTION_CANCEL:
             //GLOBAL.static_Global.toolbar.setTitle("ACTION_CANCEL!");
@@ -772,7 +773,7 @@ struct GLOBAL: inherits="AppCompatActivity"{
         GLOBAL.static_Global.toolbar = new Toolbar(GLOBAL.static_Global);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 80);
         GLOBAL.static_Global.toolbar.setLayoutParams(layoutParams);
-        GLOBAL.static_Global.toolbar.setBackgroundColor(Color.rgb(255, 43, 237));
+        GLOBAL.static_Global.toolbar.setBackgroundColor(Color.rgb(100, 149, 237));
         GLOBAL.static_Global.toolbar.setTitle(filename);
         GLOBAL.static_Global.toolbar.setVisibility(View.VISIBLE);
         setSupportActionBar(GLOBAL.static_Global.toolbar);
