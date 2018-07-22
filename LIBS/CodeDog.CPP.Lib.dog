@@ -20,8 +20,10 @@ deinitCode = ""
 
 
 struct stream{
+    me iostream: stream
     me void: open(me string: filename) <- <%!open(%1)%>
-    me int: getChar() <- <%!get()%>
+    me void: close() <- <%!close()%>
+    me int:  getChar() <- <%!get()%>
     me void: getLine(me string: S) <- <%!getLine(%1)%>
     me bool: EOF() <- <%!eof()%>
 }
