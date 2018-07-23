@@ -27,7 +27,7 @@ def getFieldSpec(fldCat, field):
         parameters={1, 10}
 
     typeSpec=field['typeSpec']
-    if progSpec.isAContainer(typeSpec):	
+    if progSpec.isAContainer(typeSpec):
         innerFieldType=typeSpec['fieldType']
         datastructID = progSpec.getDatastructID(typeSpec)
         return [datastructID, innerFieldType]
@@ -130,7 +130,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         addToContainer(box, headerRow)
         return(box)
     }
-    
+
     their GUI_Frame: makeRowView(our <STRUCTNAME>: item) <- {
         crntRecord <- item
         their GUI_Frame: rowBox <- makeXStackWidget("")
@@ -148,7 +148,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         }
         return(listViewWidget)
     }
-    
+
     me int: pushCrntToList(me int: N) <- {
         <STRUCTNAME>_ListData.pushLast(crntRecord);
         me int: listLength <- getListLength()
@@ -158,21 +158,21 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         addToContainer(listViewWidget, row)
         return(listLength)
     }
-    
+
     void: deleteNthRow(me int: N) <- {
         rows.deleteNth(N)
     }
-    
+
     their GUI_Frame: getNthRow(me int: N) <-{
         crntRow <- rows[N]
     }
-    
+
     me int: deleteNthItem(me int: N) <- {
         <STRUCTNAME>_ListData.deleteNth(N)
         me int: retVal <- getListLength()
         return(retVal)
     }
-    
+
     void: updateViewableWidget() <- {<funcTextToUpdateViewWidget>}
     their GUI_item: makeEditableWidget() <- {return(dialog.make<STRUCTNAME>Widget(crntRecord))}
     void: updateEditableWidget(me int: N) <- {<funcTextToUpdateEditWidget>}
@@ -283,7 +283,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
         widgetInitFuncCode   += '        addToContainer(box, '+widgetBoxName+')\n'
-    if dialogStyle == 'Z_stack':
+    if dialogStyle == 'TabbedStack':
         widgetInitFuncCode+='             '+'gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(box), '+ localWidgetVarName+', "'+label+'")\n'
 
 def BuildGuiForList(classes, className, dialogStyle, newStructName):
@@ -426,6 +426,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     # Parse everything
     initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
     if dialogStyle == 'Z_stack': containerWidget='makeStoryBoardWidget("makeStoryBoardWidget")'
+    elif dialogStyle == 'TabbedStack': containerWidget='makeTabbedWidget("makeTabbedWidget")'
     else: containerWidget='makeFrameWidget()'
 
     CODE =  '''
@@ -467,7 +468,7 @@ def apply(classes, tags, topClassName):
     # Choose an appropriate app style
     appStyle='default'
     topWhichScreenFieldID = topClassName+'::whichScreen(int)'
-    if (progSpec.doesClassDirectlyImlementThisField(classes[0], topClassName, topWhichScreenFieldID)): # if all data fields are classes 
+    if (progSpec.doesClassDirectlyImlementThisField(classes[0], topClassName, topWhichScreenFieldID)): # if all data fields are classes
         appStyle='Z_stack'
     else: appStyle='TabbedStack'
     guiStructName = topClassName+'_GUI'
@@ -477,7 +478,7 @@ def apply(classes, tags, topClassName):
     # Amend items to each GUI data class
     for classToAmend in classesToProcess:
         [className, widgetType, dialogStyle, newStructName] = classToAmend
-        cdlog(2, "BUILDING "+dialogStyle+" GUI for "+widgetType+" " + className + ' ('+newStructName+')')
+        cdlog(1, "BUILDING "+dialogStyle+" GUI for "+widgetType+" " + className + ' ('+newStructName+')')
         if widgetType == 'struct':
             BuildGuiForStruct(classes, className, dialogStyle, newStructName)
         elif widgetType == 'list':

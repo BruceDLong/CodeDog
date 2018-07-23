@@ -108,7 +108,7 @@ struct enumWidget{
 struct scrollerWidget{
     their GtkWidget: layoutArea
     their GtkWidget: scroller
-    
+
     their GUI_ScrollingWindow: makeScrollerWidget(me GUI_canvas: canvas) <- <%{
         scroller = gtk_scrolled_window_new(0, 0);
         //GtkWidget* layoutArea = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -133,7 +133,7 @@ struct ListManagerBox{
     their GtkWidget:         deleteBtn
     their GtkWidget:         editBtn
     me int:                  crntIndex <- 0
-    me int:		     listLength
+    me int:          listLength
     their GtkWidget:         crntRow
 
     void: handleOnListClick(me int: idx) <- <% {
@@ -141,7 +141,7 @@ struct ListManagerBox{
         crntIndex = idx;
         listWidgetMgr->setCurrentItem(crntIndex);
     } %>
-    
+
     void: handleAdd() <- <% {
         cout << "Add Btn Clicked\n";
         listWidgetMgr->allocateNewCurrentItem();
@@ -157,95 +157,95 @@ struct ListManagerBox{
             cout<<"ACCEPTED "<<result<<"\n";
             listWidgetMgr->updateCrntFromEdited(crntIndex);
             listLength = listWidgetMgr->pushCrntToList(crntIndex);
-	    setButtonsActive(listLength);
+        setButtonsActive(listLength);
         } else {
             cout<<"CANCELED "<<result<<"\n";
         }
         gtk_widget_destroy(AddItemDialog);
 
     } %>
-    
+
     void: handleDelete() <- <% {
         crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
-	crntRow = listWidgetMgr->getNthRow(crntIndex);
-	cout << "Delete Btn Clicked at idx: "<< crntIndex <<"\n";
-        
-	if (crntIndex >= 0) {
-	    GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
-	    GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Delete Item", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
-	    GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
-	
-	    gtk_widget_show_all(AddItemDialog);
-	    int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
-	    if(result==1){
-		cout<<"ACCEPTED "<<result<<"\n";
-		listLength = listWidgetMgr->deleteNthItem(crntIndex);
-		setButtonsActive(listLength);
-		gtk_container_remove((GtkContainer*)listWidgetView, crntRow); 
-		gtk_widget_show_all(listWidgetView);
-		gtk_widget_queue_draw (listWidgetView);
-		gtk_widget_show_all(listWidgetView);
-		
-	    } else {
-		cout<<"CANCELED "<<result<<"\n";
-	    }
-	    gtk_widget_destroy(AddItemDialog);
-	}
-    } %>
-    
-    void: handleEdit() <- <%{
-	crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
-	cout << "Edit Btn Clicked at idx: "<< crntIndex <<"\n";
-	if (crntIndex >= 0) {
-	    listWidgetMgr->allocateNewCurrentItem();
-	    GtkWidget* itemWidget = listWidgetMgr->makeEditableWidget();
-	    listWidgetMgr->updateEditableWidget(crntIndex);
-	    GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
-	    GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Edit", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
-	    GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
-	    gtk_container_add (GTK_CONTAINER (contentArea), itemWidget);
+    crntRow = listWidgetMgr->getNthRow(crntIndex);
+    cout << "Delete Btn Clicked at idx: "<< crntIndex <<"\n";
 
-	    gtk_widget_show_all(AddItemDialog);
-	    int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
-	    if(result==1){
-		cout<<"ACCEPTED "<<result<<"\n";
-		listWidgetMgr->updateCrntFromEdited(crntIndex);
-		listWidgetMgr->copyCrntBackToList(crntIndex);
-		listWidgetMgr->copyCrntBackToListView(crntIndex);
-	    } else {
-		cout<<"CANCELED "<<result<<"\n";
-	    }
-	    gtk_widget_destroy(AddItemDialog);
-	}
+    if (crntIndex >= 0) {
+        GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+        GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Delete Item", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+        GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+
+        gtk_widget_show_all(AddItemDialog);
+        int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+        if(result==1){
+        cout<<"ACCEPTED "<<result<<"\n";
+        listLength = listWidgetMgr->deleteNthItem(crntIndex);
+        setButtonsActive(listLength);
+        gtk_container_remove((GtkContainer*)listWidgetView, crntRow);
+        gtk_widget_show_all(listWidgetView);
+        gtk_widget_queue_draw (listWidgetView);
+        gtk_widget_show_all(listWidgetView);
+
+        } else {
+        cout<<"CANCELED "<<result<<"\n";
+        }
+        gtk_widget_destroy(AddItemDialog);
+    }
+    } %>
+
+    void: handleEdit() <- <%{
+    crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
+    cout << "Edit Btn Clicked at idx: "<< crntIndex <<"\n";
+    if (crntIndex >= 0) {
+        listWidgetMgr->allocateNewCurrentItem();
+        GtkWidget* itemWidget = listWidgetMgr->makeEditableWidget();
+        listWidgetMgr->updateEditableWidget(crntIndex);
+        GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+        GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Edit", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+        GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+        gtk_container_add (GTK_CONTAINER (contentArea), itemWidget);
+
+        gtk_widget_show_all(AddItemDialog);
+        int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+        if(result==1){
+        cout<<"ACCEPTED "<<result<<"\n";
+        listWidgetMgr->updateCrntFromEdited(crntIndex);
+        listWidgetMgr->copyCrntBackToList(crntIndex);
+        listWidgetMgr->copyCrntBackToListView(crntIndex);
+        } else {
+        cout<<"CANCELED "<<result<<"\n";
+        }
+        gtk_widget_destroy(AddItemDialog);
+    }
     }%>
-    
+
     void: setButtonsActive(me int: L) <- <%{
-	if(L>0){
-	    gtk_widget_set_sensitive (deleteBtn, TRUE);
-	    gtk_widget_set_sensitive (editBtn, TRUE);
-	}else{
-	    gtk_widget_set_sensitive (deleteBtn, FALSE);
-	    gtk_widget_set_sensitive (editBtn, FALSE);
-	}
+    if(L>0){
+        gtk_widget_set_sensitive (deleteBtn, TRUE);
+        gtk_widget_set_sensitive (editBtn, TRUE);
+    }else{
+        gtk_widget_set_sensitive (deleteBtn, FALSE);
+        gtk_widget_set_sensitive (editBtn, FALSE);
+    }
     }%>
-    
+
     their GtkWidget: init_dialog(their ListWidgetManager: LEWM) <- <% {
         listWidgetMgr = LEWM;
         editorFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	listHeader = listWidgetMgr->makeListHeader();
-	listWidgetFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-	listWidgetView = listWidgetMgr->makeListViewWidget();
-        
-	gtk_box_pack_start(GTK_BOX(editorFrame), listHeader, false, true, 0);
+    listHeader = listWidgetMgr->makeListHeader();
+    listWidgetFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    listWidgetView = listWidgetMgr->makeListViewWidget();
+
+    gtk_box_pack_start(GTK_BOX(editorFrame), listHeader, false, true, 0);
         gtk_box_pack_start(GTK_BOX(editorFrame), listWidgetFrame, true, true, 0);
-	gtk_box_pack_start(GTK_BOX(listWidgetFrame), listWidgetView, true, true, 0);
+    gtk_box_pack_start(GTK_BOX(listWidgetFrame), listWidgetView, true, true, 0);
 
         GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         addBtn = gtk_button_new_with_label("Add");
         deleteBtn = gtk_button_new_with_label("Remove");
         editBtn = gtk_button_new_with_label("Edit");
-	listLength <- listWidgetMgr->getListLength();
-	setButtonsActive(listLength);
+    listLength <- listWidgetMgr->getListLength();
+    setButtonsActive(listLength);
 
         gtk_box_pack_start(GTK_BOX(btnBox), addBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(btnBox), deleteBtn, true, true, 10);
@@ -259,7 +259,7 @@ struct ListManagerBox{
 
         return editorFrame;
     } %>
-    
+
 }
 
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
@@ -279,7 +279,7 @@ struct GLOBAL{
     their GtkWidget: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
     their GtkWidget: makeXStackWidget(me string: label)      <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
     their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_stack_new()%>
-    their GtkWidget: makeTabbedWidget(me string: label)      <- <%!%Ggtk_notebook_new()%>    
+    their GtkWidget: makeTabbedWidget(me string: label)      <- <%!%Ggtk_notebook_new()%>
     their GtkWidget: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
     me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
@@ -368,7 +368,7 @@ struct GTK_eventDispatcher{
   /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     /- Also: timer, data and user events
 
-    me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
+    me void: registerWidgetForEventDispatcher(their GUI_item: Widget, their widget: masterWidget) <- <%{
         topWidget = masterWidget;
 
         g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), topWidget);
@@ -432,12 +432,12 @@ struct GUI{
 
 
 struct GUI{
-    me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
-    me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
-    me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
+    me void: showWidget(their GUI_item: widget) <- <%!gtk_widget_show(%1)%>
+    their GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
+    me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
+    their GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
+    me void: addToContainer(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
@@ -547,42 +547,42 @@ struct GLOBAL{
         cairo_fill(cr);
         return(size);
     } %>
-    
+
     me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         deltaSize size = getTextSize(cr, text, font);
-	renderText(cr, text, font, x-size.width/2, y);
+    renderText(cr, text, font, x-size.width/2, y);
         return(size);
     }%>
-    
+
     me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
         double radians    = degrees*(M_PI/180.);
-		deltaSize size    = getTextSize(cr, text, font);
-		double hypotenuse = size.width;
-		deltaSize tmpSize;
-		
-		rotate(cr, x, y, -45);
-		if(justify == "right"){x=x-hypotenuse;}
-		else if(justify == "center"){x=x-hypotenuse/2;}
-		renderText (cr, text, font, x, y);
-		cairo_restore(cr);
-		//TODO: calculate height and width more accurately
-		tmpSize.height       = cos(abs(radians))*hypotenuse;
-		tmpSize.width        = sin(abs(radians))*hypotenuse;
-		hypotenuse           = size.height;
-		radians              = M_PI/2 - abs(radians);
-		tmpSize.height       = tmpSize.height + sin(radians)*hypotenuse;  
-		tmpSize.width        = tmpSize.width + cos(radians)*hypotenuse;        
-		//size.width = size.width*0.9;
-		//size.height = size.width;
-		return(tmpSize);
-	}%>
-    
+        deltaSize size    = getTextSize(cr, text, font);
+        double hypotenuse = size.width;
+        deltaSize tmpSize;
+
+        rotate(cr, x, y, -45);
+        if(justify == "right"){x=x-hypotenuse;}
+        else if(justify == "center"){x=x-hypotenuse/2;}
+        renderText (cr, text, font, x, y);
+        cairo_restore(cr);
+        //TODO: calculate height and width more accurately
+        tmpSize.height       = cos(abs(radians))*hypotenuse;
+        tmpSize.width        = sin(abs(radians))*hypotenuse;
+        hypotenuse           = size.height;
+        radians              = M_PI/2 - abs(radians);
+        tmpSize.height       = tmpSize.height + sin(radians)*hypotenuse;
+        tmpSize.width        = tmpSize.width + cos(radians)*hypotenuse;
+        //size.width = size.width*0.9;
+        //size.height = size.width;
+        return(tmpSize);
+    }%>
+
     me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
-	double radians = degrees*(M_PI/180.);
-	cairo_save(cr); 
-	cairo_translate(cr,x,y);
-	cairo_rotate(cr, radians);
-	cairo_translate(cr,-x,-y);
+    double radians = degrees*(M_PI/180.);
+    cairo_save(cr);
+    cairo_translate(cr,x,y);
+    cairo_rotate(cr, radians);
+    cairo_translate(cr,-x,-y);
     }%>
 
     me void: restore() <- <%!cairo_restore(cr)%>
