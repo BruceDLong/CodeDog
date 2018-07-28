@@ -17,8 +17,164 @@ LibDescription ={
     bindings    =[C, CPP, Swift, ObjectiveC]
     CPUs        =[i386, amd64, arm7]
 }
+embedLow = `
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate{
+    var window: UIWindow?
 
-/---------- Struct Converters
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+        window = UIWindow(frame: UIScreen.main.bounds)
+        let mainViewController = ViewController()
+        window?.rootViewController = mainViewController
+        window?.makeKeyAndVisible()
+        return true
+    }
+
+    func applicationWillResignActive(_ application: UIApplication) -> Void {
+        var application = application
+    }
+    
+    func applicationDidEnterBackground(_ application: UIApplication) -> Void {
+        var application = application
+    }
+    
+    func applicationWillEnterForeground(_ application: UIApplication) -> Void {
+        var application = application
+    }
+    func applicationDidBecomeActive(_ application: UIApplication) -> Void {
+        var application = application
+    }
+    func applicationWillTerminate(_ application: UIApplication) -> Void {
+        var application = application
+    }
+}
+
+
+class ViewController: UIViewController {
+// var appView: UIView!
+var headerView: UIView!
+var titleLabel: UILabel!
+var appView: UIView!
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        appView = UIView()
+        thisApp.createAppArea(appView)
+        setupHeader()
+        setupTitleLabel()
+        jg_function()
+    }
+
+    func setupHeader() {
+        //      Initialize view
+        headerView = UIView()
+
+        //      set background color as a method
+        headerView.backgroundColor = .gray
+
+        self.view.addSubview(headerView)
+
+        //      Set position of headerView view using constraints
+        headerView.translatesAutoresizingMaskIntoConstraints = false
+        headerView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor).isActive = true
+        headerView.topAnchor.constraint(equalTo: self.view.topAnchor).isActive = true
+        headerView.widthAnchor.constraint(equalTo: self.view.widthAnchor, multiplier: 1).isActive = true
+        headerView.heightAnchor.constraint(equalTo: self.view.heightAnchor, multiplier: 0.1).isActive = true
+    }
+    func setupTitleLabel() {
+        //      Initialize view
+        titleLabel = UILabel()
+
+        //      set methods for the look of the titlelabel
+        titleLabel.text = "FutureApp"
+        titleLabel.textAlignment = .center
+        titleLabel.font = UIFont(name: titleLabel.font.fontName, size: 20)
+        titleLabel.textColor = .blue
+        titleLabel.backgroundColor = .orange
+
+        //      add titleLabel to the headerViews view
+        headerView.addSubview(titleLabel)
+
+        //      Set position of titleLabel using constraints
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor).isActive = true
+        titleLabel.bottomAnchor.constraint(equalTo: headerView.bottomAnchor).isActive = true
+        titleLabel.widthAnchor.constraint(equalTo: headerView.widthAnchor, multiplier: 0.4).isActive = true
+        titleLabel.heightAnchor.constraint(equalTo: headerView.heightAnchor, multiplier: 0.5).isActive = true
+    }
+
+    func jg_function() {
+        let tw = topAppWidget(frame: CGRect(x: 0,
+        y: headerView.frame.height+70,
+        width:UIScreen.main.bounds.size.width,
+        height:UIScreen.main.bounds.size.height))
+
+        //        Use some dot notation to assign methods to topAppWidget as tw
+        tw.backgroundColor = .gray
+        //        tw.clearsContextBeforeDrawing = true
+
+        //      add class topAppWidget to the ViewController
+        self.view.addSubview(tw)
+
+        //      add more
+        self.view.backgroundColor = .purple
+        appView = topAppWidget()
+        thisApp.createAppArea(appView)
+        self.view.addSubview(appView)
+
+
+    }
+}
+
+
+
+class topAppWidget: UIView {
+    override func draw(_ rect: CGRect) {
+    let context = UIGraphicsGetCurrentContext()
+    context?.setStrokeColor(UIColor.white.cgColor)
+    context?.__moveTo(x:0, y:0)
+    context?.__addLineTo(x: self.frame.size.width, y:self.frame.size.height)
+    context?.__moveTo(x:UIScreen.main.bounds.size.width, y:0)
+    context?.__addLineTo(x:0, y:UIScreen.main.bounds.size.height)
+    context?.strokePath()
+    // EventDispatcher.topWidget?.draw()
+
+
+    }
+
+    //override func primaryClick(_ event: GdkEventButton?) -> Bool {
+      //  var event = event
+
+        //return(true);
+    //}
+    //override func secondaryClick(_ event: GdkEventButton?) -> Bool {
+     //   var event = event
+
+       // return(true);
+    //}
+
+}
+
+`
+
+/-///////////////////////////////  STRUCT CONVERTERS
+struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
+struct GUI_offset{their GtkAdjustment:GUI_offset}
+struct GUI_item{their UIView: GUI_item}
+struct GUI_Frame{their UIView: GUI_Frame}
+struct GUI_menuBar{their UIView: GUI_menuBar}
+struct GUI_menu{their UIView: GUI_menu}
+struct GUI_menuItem{their UIView: GUI_menuItem}
+struct GUI_canvas{their UIView: GUI_canvas}
+struct GUI_container{their UIView:GUI_container}
+struct GUI_ScrollingWindow{their UIView: GUI_ScrollingWindow}
+struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
+struct GUI_callback{me GCallback: GUI_callback}
+struct GUI_scalar{me Int: GUI_scalar}
+/-struct GUI_label{their textView: GUI_label}
+struct listWidget{their HWND: listWidget}
+
+
 /-///////////////////////////////  HANDLE GUI
 struct GUI{
     me uint32: GUI_Init() <- {
@@ -32,26 +188,26 @@ struct GUI{
     }
 }
 struct GUI_rect{me CGRect:GUI_rect}
-struct GUI_Frame{their UIView:GUI_Frame}
+struct GUI_Frame{me UIView:GUI_Frame}
 
 struct GUI{
     me void: showWidget(me GUI_item: widget) <- <%!%1.isHidden=false%>
     me GUI_item: newCanvas() <- <%!%GUIView()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
     me GUI_item: newScrollingWindow() <- <%!%Gscroller()%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%G%1.addSubview(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
-    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
-    me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
-    me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_TopSubMenu(%1, %2)%>
-    me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+    /-me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
+    /-me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
+    /-me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_TopSubMenu(%1, %2)%>
+    /-me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
 struct GUI_ctxt {
     their CGContext:GUI_ctxt
-    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
+    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%> {}
     me void: reset() <- <%!%G %>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, Double(%1 / 256), Double(%2 / 256), Double(%3 / 256), Double(%4 / 256))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, Double(%1 / 256), Double(%2 / 256), Double(%3 / 256))%>
@@ -74,28 +230,33 @@ struct GUI_ctxt {
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
 }
 
-struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIApplicationMain'{
+/*
+struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIApplicationMain'
+
+{
     their UIWindow: window
+    /-struct AppDelegate: implements='UIResponder, UIApplicationDelegate' {
+    /-their UIWindow: window
 
     me bool: application(me UIApplication: application, their Any[list UIApplicationLaunchOptionsKey]:launchOptions) <- <%{
-        window = UIWindow.init(frame: UIScreen.main.bounds)
-        window?.backgroundColor = UIColor.blue
 
-        let mainViewController = UINavigationController()
+window = UIWindow(frame: UIScreen.main.bounds)
+    window?.backgroundColor = UIColor.blue
+    let mainViewController = ViewController()
+    let mainView = UIView(frame: CGRect(x:0, y:0, width:320, height:568))
+    mainViewController.view = mainView
+    mainViewController.title = "Home View!"
+    //    mainViewController.setToolbarHidden(false, animated: true)
 
-        let mainView = UIView(frame: CGRect(x:0, y:0, width:320, height:568))
+    //    mainViewController.pushViewController(firstViewController, animated: true)
+    //    window!.rootViewController = mainViewController
+    //    window!.makeKeyAndVisible()
+    window?.rootViewController = mainViewController
+    window?.makeKeyAndVisible()
+    thisApp.createAppArea(mainView)
 
-        let firstViewController = UIViewController()
-        firstViewController.view = mainView
-        firstViewController.title = "Home View!"
-        mainViewController.setToolbarHidden(false, animated: true)
+    return true
 
-        thisApp.createAppArea(mainView)
-
-        mainViewController.pushViewController(firstViewController, animated: true)
-        window!.rootViewController = mainViewController
-        window!.makeKeyAndVisible()
-        return true
     }%>
 
     void: applicationWillResignActive(UIApplication: application) <- {
@@ -121,7 +282,23 @@ struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIAp
     }
 
 }
+*/
 /-///////////////////////////////  HANDLE EVENTS
+/-///////////////////////////////  EVENT DISPATCHER
+struct IOS_eventDispatcher{
+their widget: topWidget
+me bool: dispatchPointerMotionEvent(me UIView: event) <- {return(false)}
+/- me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
+/- me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+/- Also: timer, data and user events
+me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{topWidget = masterWidget;}%>
+}
+
+/-///////////////////////////////   Event callbacks
+struct GLOBAL{
+me IOS_eventDispatcher: EventDispatcher
+}
+
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
 struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
@@ -146,10 +323,10 @@ struct tm{
 struct timeStringer{
     me tm: timeRec
     me none: timeStringer() <- <%{
-        var rawtime: time_t
-        time(rawtime);
-        timeRec = localtime(rawtime);
-;
+        /-var rawtime: time_t
+        /-time(rawtime);
+        /-timeRec = localtime(rawtime);
+
     } %>
 
     me string: time12Hour() <- <%{
