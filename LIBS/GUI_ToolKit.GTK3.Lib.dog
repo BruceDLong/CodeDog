@@ -105,6 +105,19 @@ struct enumWidget{
     }%>
 }
 
+struct scrollerWidget{
+    their GtkWidget: layoutArea
+    their GtkWidget: scroller
+
+    their GUI_ScrollingWindow: makeScrollerWidget(me GUI_canvas: canvas) <- <%{
+        scroller = gtk_scrolled_window_new(0, 0);
+        //GtkWidget* layoutArea = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        //gtk_container_add(GTK_CONTAINER (scroller), layoutArea);
+        gtk_container_add(GTK_CONTAINER (scroller), canvas);
+        return(scroller);
+    }%>
+}
+
 struct boolWidget{
 
 }
@@ -113,17 +126,22 @@ struct boolWidget{
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
     their GtkWidget:         editorFrame
-    their listWidget:        listWidget
+    their GtkWidget:         listHeader
+    their GtkWidget:         listWidgetFrame
+    their listWidget:        listWidgetView
     their GtkWidget:         addBtn
     their GtkWidget:         deleteBtn
     their GtkWidget:         editBtn
     me int:                  crntIndex <- 0
+    me int:          listLength
+    their GtkWidget:         crntRow
 
     void: handleOnListClick(me int: idx) <- <% {
         cout << "List Clicked at index: "<< to_string(idx)<<"\n";
         crntIndex = idx;
         listWidgetMgr->setCurrentItem(crntIndex);
     } %>
+
     void: handleAdd() <- <% {
         cout << "Add Btn Clicked\n";
         listWidgetMgr->allocateNewCurrentItem();
@@ -137,44 +155,111 @@ struct ListManagerBox{
         int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
         if(result==1){
             cout<<"ACCEPTED "<<result<<"\n";
-            listWidgetMgr->updateCrntFromEdited(itemWidget);
-            listWidgetMgr->pushCrntToList();
-            listWidgetMgr->pushCrntToListView();
+            listWidgetMgr->updateCrntFromEdited(crntIndex);
+            listLength = listWidgetMgr->pushCrntToList(crntIndex);
+        setButtonsActive(listLength);
         } else {
             cout<<"CANCELED "<<result<<"\n";
         }
         gtk_widget_destroy(AddItemDialog);
 
     } %>
+
     void: handleDelete() <- <% {
-        cout << "Delete Btn Clicked\n";
+        crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
+    crntRow = listWidgetMgr->getNthRow(crntIndex);
+    cout << "Delete Btn Clicked at idx: "<< crntIndex <<"\n";
+
+    if (crntIndex >= 0) {
+        GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+        GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Delete Item", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+        GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+
+        gtk_widget_show_all(AddItemDialog);
+        int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+        if(result==1){
+        cout<<"ACCEPTED "<<result<<"\n";
+        listLength = listWidgetMgr->deleteNthItem(crntIndex);
+        setButtonsActive(listLength);
+        gtk_container_remove((GtkContainer*)listWidgetView, crntRow);
+        gtk_widget_show_all(listWidgetView);
+        gtk_widget_queue_draw (listWidgetView);
+        gtk_widget_show_all(listWidgetView);
+
+        } else {
+        cout<<"CANCELED "<<result<<"\n";
+        }
+        gtk_widget_destroy(AddItemDialog);
+    }
     } %>
+
     void: handleEdit() <- <%{
-        cout << "Edit Btn Clicked\n";
+    crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
+    cout << "Edit Btn Clicked at idx: "<< crntIndex <<"\n";
+    if (crntIndex >= 0) {
+        listWidgetMgr->allocateNewCurrentItem();
+        GtkWidget* itemWidget = listWidgetMgr->makeEditableWidget();
+        listWidgetMgr->updateEditableWidget(crntIndex);
+        GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+        GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Edit", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+        GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+        gtk_container_add (GTK_CONTAINER (contentArea), itemWidget);
+
+        gtk_widget_show_all(AddItemDialog);
+        int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+        if(result==1){
+        cout<<"ACCEPTED "<<result<<"\n";
+        listWidgetMgr->updateCrntFromEdited(crntIndex);
+        listWidgetMgr->copyCrntBackToList(crntIndex);
+        listWidgetMgr->copyCrntBackToListView(crntIndex);
+        } else {
+        cout<<"CANCELED "<<result<<"\n";
+        }
+        gtk_widget_destroy(AddItemDialog);
+    }
     }%>
+
+    void: setButtonsActive(me int: L) <- <%{
+    if(L>0){
+        gtk_widget_set_sensitive (deleteBtn, TRUE);
+        gtk_widget_set_sensitive (editBtn, TRUE);
+    }else{
+        gtk_widget_set_sensitive (deleteBtn, FALSE);
+        gtk_widget_set_sensitive (editBtn, FALSE);
+    }
+    }%>
+
     their GtkWidget: init_dialog(their ListWidgetManager: LEWM) <- <% {
         listWidgetMgr = LEWM;
-        listWidget = listWidgetMgr->makeListViewWidget();
         editorFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-        gtk_box_pack_start(GTK_BOX(editorFrame), listWidget, true, true, 0);
+    listHeader = listWidgetMgr->makeListHeader();
+    listWidgetFrame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    listWidgetView = listWidgetMgr->makeListViewWidget();
+
+    gtk_box_pack_start(GTK_BOX(editorFrame), listHeader, false, true, 0);
+        gtk_box_pack_start(GTK_BOX(editorFrame), listWidgetFrame, true, true, 0);
+    gtk_box_pack_start(GTK_BOX(listWidgetFrame), listWidgetView, true, true, 0);
 
         GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         addBtn = gtk_button_new_with_label("Add");
         deleteBtn = gtk_button_new_with_label("Remove");
         editBtn = gtk_button_new_with_label("Edit");
+    listLength <- listWidgetMgr->getListLength();
+    setButtonsActive(listLength);
 
         gtk_box_pack_start(GTK_BOX(btnBox), addBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(btnBox), deleteBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(btnBox), editBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(editorFrame), btnBox, false, true, 0);
 
-        g_signal_connect(G_OBJECT(listWidget), "row-selected", G_CALLBACK(ListEditorHandleListClick), this);
+        g_signal_connect(G_OBJECT(listWidgetView), "row-selected", G_CALLBACK(ListEditorHandleListClick), this);
         g_signal_connect(G_OBJECT(addBtn), "clicked", G_CALLBACK(ListEditorHandleAdd), this);
         g_signal_connect(G_OBJECT(deleteBtn), "clicked", G_CALLBACK(ListEditorHandleDelete), this);
         g_signal_connect(G_OBJECT(editBtn), "clicked", G_CALLBACK(ListEditorHandleEdit), this);
 
         return editorFrame;
     } %>
+
 }
 
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
@@ -192,17 +277,18 @@ struct GLOBAL{
     their GtkWidget: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
     their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
     their GtkWidget: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
-    their GtkWidget: makeMakeXStackWidget(me string: label)  <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
-    their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
+    their GtkWidget: makeXStackWidget(me string: label)      <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
+    their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_stack_new()%>
+    their GtkWidget: makeTabbedWidget(me string: label)      <- <%!%Ggtk_notebook_new()%>
     their GtkWidget: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
     me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
-    me void: setListWidgetSelectionMode(their listWidget: listWid, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
+    me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
     me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
-    their GtkWidget: getListRowSelected(their listWidget: listWid) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
+    their GtkWidget: getListRowSelected(their listWidget: listWidgetView) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
 
-    their GtkWidget: makeListEditorWidget(their GtkWidget: listWidget) <- <%{
+    their GtkWidget: makeListEditorWidget(their GtkWidget: listWidgetView) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-        gtk_box_pack_start(GTK_BOX(box), listWidget, true, true, 0);
+        gtk_box_pack_start(GTK_BOX(box), listWidgetView, true, true, 0);
 
         GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         GtkWidget* addBtn = gtk_button_new_with_label("Add");
@@ -263,7 +349,11 @@ struct GUI_PointerEvent{
 /-///////////////////////////////  EVENT DISPATCHER
 struct GTK_eventDispatcher{
     their widget: topWidget
-    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
+
+    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- <%{
+        /-topWidget->mouseMoved(event);
+        return false;
+    } %>
     me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
         if(event->type==GDK_BUTTON_PRESS){
             if(event->button==1){
@@ -278,14 +368,14 @@ struct GTK_eventDispatcher{
   /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     /- Also: timer, data and user events
 
-    me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
-    topWidget = masterWidget;
+    me void: registerWidgetForEventDispatcher(their GUI_item: Widget, their widget: masterWidget) <- <%{
+        topWidget = masterWidget;
 
-     /-   g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), NULL);
-     /-   g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), NULL);
-     /-   g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), NULL);
-        g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
-        g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
+        g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), topWidget);
+/-      g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), topWidget);
+/-      g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), topWidget);
+        g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), topWidget);
+        g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), topWidget);
 
         gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
              | GDK_LEAVE_NOTIFY_MASK
@@ -313,8 +403,8 @@ struct GLOBAL{
     me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event, their void: data) <- <%{
       /-  EventDispatcher.dispatchWindowEvent(event);
     } %>
-    me bool: drawAppArea_cb(their GtkWidget: widget, their GUI_ctxt: cr, their void: data) <- <%{
-        DashboardWidget* DBW = (DashboardWidget*)data;
+    me bool: drawAppArea_cb(their GtkWidget: gtk_top_widget, their GUI_ctxt: cr, their void: data) <- <%{
+        widget* DBW = (widget*)data;
         DBW->draw(cr);
         return(true);
     }%>
@@ -342,12 +432,12 @@ struct GUI{
 
 
 struct GUI{
-    me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
-    me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
-    me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
+    me void: showWidget(their GUI_item: widget) <- <%!gtk_widget_show(%1)%>
+    their GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
+    me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
+    their GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
+    me void: addToContainer(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
@@ -362,7 +452,7 @@ struct GUI_ctxt {
     me void: reset() <- <%!%G %>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
-    me void: setColor(me Color: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
+    me void: setColor(me cdColor: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
     me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
     me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
@@ -385,8 +475,8 @@ struct GUI_ctxt {
 struct guiFillPattern{
     their cairo_pattern_t: guiFillPattern
     me void: init() <- <%!%0 = cairo_pattern_create_linear(%1, %2, %3, %4)%>
-    me void: AddColorStopRGBA(me double: offset, their Color: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
-    me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
+    me void: AddColorStopRGBA(me double: offset, their cdColor: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
+    me void: AddColorStop(me double: offset, cdColor: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
 }
 
 struct fontSpec{
@@ -432,12 +522,12 @@ struct timeStringer{
 struct GLOBAL{
     me APP: thisApp
 
-    /- TIME ROUTINES:
+    /- //TIME ROUTINES:
+    me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
-    /- DRAWING ROUTINES:
-
-    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
+    /- //DRAWING ROUTINES:
+    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         cairo_move_to(cr,x,y);
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
@@ -457,42 +547,42 @@ struct GLOBAL{
         cairo_fill(cr);
         return(size);
     } %>
-    
-    me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
+
+    me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         deltaSize size = getTextSize(cr, text, font);
-	renderText(cr, text, font, x-size.width/2, y);
+    renderText(cr, text, font, x-size.width/2, y);
         return(size);
     }%>
-    
-    me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y, me double: degrees, me string: justify) <- <%{
+
+    me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
         double radians    = degrees*(M_PI/180.);
-	deltaSize size    = getTextSize(cr, text, font);
-	double hypotenuse = size.width;
-	deltaSize tmpSize;
-	
-	rotate(cr, x, y, -45);
-	if(justify == "right"){x=x-hypotenuse;}
-	else if(justify == "center"){x=x-hypotenuse/2;}
-	renderText (cr, text, font, x, y);
-	cairo_restore(cr);
-	//TODO: calculate height and width more accurately
-	tmpSize.height       = cos(abs(radians))*hypotenuse;
-	tmpSize.width        = sin(abs(radians))*hypotenuse;
-	hypotenuse           = size.height;
-	radians              = M_PI/2 - abs(radians);
-	tmpSize.height       = tmpSize.height + sin(radians)*hypotenuse;  
-	tmpSize.width        = tmpSize.width + cos(radians)*hypotenuse;        
-	//size.width = size.width*0.9;
-	//size.height = size.width;
+        deltaSize size    = getTextSize(cr, text, font);
+        double hypotenuse = size.width;
+        deltaSize tmpSize;
+
+        rotate(cr, x, y, -45);
+        if(justify == "right"){x=x-hypotenuse;}
+        else if(justify == "center"){x=x-hypotenuse/2;}
+        renderText (cr, text, font, x, y);
+        cairo_restore(cr);
+        //TODO: calculate height and width more accurately
+        tmpSize.height       = cos(abs(radians))*hypotenuse;
+        tmpSize.width        = sin(abs(radians))*hypotenuse;
+        hypotenuse           = size.height;
+        radians              = M_PI/2 - abs(radians);
+        tmpSize.height       = tmpSize.height + sin(radians)*hypotenuse;
+        tmpSize.width        = tmpSize.width + cos(radians)*hypotenuse;
+        //size.width = size.width*0.9;
+        //size.height = size.width;
         return(tmpSize);
     }%>
-    
-    me void: rotate(me GUI_ctxt: cr, me int: x, me int: y, me int: degrees) <- <%{
-	double radians = degrees*(M_PI/180.);
-	cairo_save(cr); 
-	cairo_translate(cr,x,y);
-	cairo_rotate(cr, radians);
-	cairo_translate(cr,-x,-y);
+
+    me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
+    double radians = degrees*(M_PI/180.);
+    cairo_save(cr);
+    cairo_translate(cr,x,y);
+    cairo_rotate(cr, radians);
+    cairo_translate(cr,-x,-y);
     }%>
 
     me void: restore() <- <%!cairo_restore(cr)%>
@@ -542,10 +632,9 @@ struct GLOBAL{
         cairo_restore(cr);
     } %>
 
-/- GUI INTERFACE:
-
-/* Surface to store current scribbles */
-their cairo_surface_t: surface <- 0
+    /- //GUI INTERFACE:
+    /* Surface to store current scribbles */
+    their cairo_surface_t: surface <- 0
 
 me void: close_window() <- {
   if (surface){
@@ -555,6 +644,7 @@ me void: close_window() <- {
   gtk_main_quit()
 }
 
+    /- //MENU ROUTINES:
 me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <%{
     GtkWidget *menuitem;
 
@@ -587,7 +677,7 @@ me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: 
 me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
 me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
-me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
+
 
 
 

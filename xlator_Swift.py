@@ -5,7 +5,7 @@ from progSpec import cdlog, cdErr, isStruct
 from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
-def getContainerType(typeSpec):
+def getContainerType(typeSpec, actionOrField):
     containerSpec=typeSpec['arraySpec']
     if 'owner' in containerSpec: owner=containerSpec['owner']
     else: owner='me'
@@ -64,7 +64,7 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
     if 'arraySpec' in TypeSpec:
         arraySpec=TypeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
-            [containerType, idxType, owner]=getContainerType(TypeSpec)
+            [containerType, idxType, owner]=getContainerType(TypeSpec, '')
             if 'owner' in TypeSpec['arraySpec']:
                 containerOwner=TypeSpec['arraySpec']['owner']
             else: containerOwner='me'
@@ -84,7 +84,7 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
         langType+='?'    # Make pointer func args optionals
     return [langType, fieldAttrs]   # E.g.: langType='uint', file
 
-def convertType(classes, TypeSpec, varMode, xlator):
+def convertType(classes, TypeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
@@ -245,7 +245,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         # https://developer.apple.com/documentation/foundation/nsmutableorderedset
         if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
-        [convertedItmType, fieldAttrs]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        [convertedItmType, fieldAttrs]=xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
         if name=='containsKey': name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         elif name=='size'     : name='count'; typeSpecOut={'owner':'me', 'fieldType': 'Int'}; paramList=None;
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
@@ -264,7 +264,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
-        [convertedItmType, fieldAttrs]=xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        [convertedItmType, fieldAttrs]=xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
         if name=='size'       : name='count'; typeSpecOut={'owner':'me', 'fieldType': 'Int'}; paramList=None;
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : name='removeAll'
@@ -649,10 +649,10 @@ def variableDefaultValueString(fieldType):
         fieldValueText = fieldType +'()'
     return fieldValueText
 
-def codeNewVarStr (classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, xlator):
+def codeNewVarStr (classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
     assignValue=''
-    [fieldType, fieldAttrs]           = xlator['convertType'](classes, lhsTypeSpec, 'var', xlator)
-    [allocFieldType, allocFieldAttrs] = xlator['convertType'](classes, lhsTypeSpec, 'alloc', xlator)
+    [fieldType, fieldAttrs]           = xlator['convertType'](classes, lhsTypeSpec, 'var', '', xlator)
+    [allocFieldType, allocFieldAttrs] = xlator['convertType'](classes, lhsTypeSpec, 'alloc', '', xlator)
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, None, xlator)
         [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)
@@ -717,7 +717,7 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward,indent,xlator):
+def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
@@ -750,7 +750,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         lvName=repName+"Itr"
-       # [containerType, containedType] = convertType(classes, ctrlVarsTypeSpec, 'var', xlator)
+       # [containerType, containedType] = convertType(classes, ctrlVarsTypeSpec, 'var', '', xlator)
         #print "MAKING LOOP:", lvName, repContainer, repName, containerType, repContainer
         actionText += ( indent + "for " + lvName + " in 0..<" +  repContainer+".count {\n"
                     + indent+"var "+repName + ':' + containerType + " = "+repContainer+"["+lvName+"];\n")
@@ -772,7 +772,7 @@ def isNumericType(convertedType):
     else:
         return False
 
-def codeVarFieldRHS_Str(fieldName,  convertedType, fieldOwner, paramList, objsRefed, xlator):
+def codeVarFieldRHS_Str(fieldName,  convertedType, fieldType, fieldOwner, paramList, objsRefed, xlator):
     fieldValueText=""
     if paramList!=None:
         [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)

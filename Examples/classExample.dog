@@ -24,17 +24,17 @@ struct shape {
     me int: W
     
     void: draw()<-{print("inside shape draw(): PASS\n")}
-    void: init()<-{print("inside shape init(): PASS\n")}
+    void: INIT()<-{print("inside shape INIT(): PASS\n")}
 }
 
 struct rectangle: inherits='shape'{
     void: draw()<-{print("inside rectangle draw(): PASS\n")}
-    void: init()<-{print("inside rectangle init() : PASS\n")}
+    void: INIT()<-{print("inside rectangle INIT() : PASS\n")}
 }
 
 struct square: inherits='rectangle'{
     void: draw()<-{print("inside square draw(): PASS\n")}
-    void: init()<-{print("inside square init(): PASS\n")}
+    void: INIT()<-{print("inside square INIT(): PASS\n")}
 }
 
 struct triangle: inherits='shape'{
@@ -42,7 +42,7 @@ struct triangle: inherits='shape'{
     me int: baseWidth
     
     void: draw()<-{print("inside triangle draw(): PASS\n")}
-    void: init()<-{print("inside triangle init(): PASS\n")}
+    void: INIT()<-{print("inside triangle INIT(): PASS\n")}
 }
 
 struct GLOBAL{

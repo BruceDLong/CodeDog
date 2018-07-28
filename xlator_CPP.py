@@ -5,7 +5,7 @@ from progSpec import cdlog, cdErr, logLvl
 from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
-def getContainerType(typeSpec):
+def getContainerType(typeSpec, actionOrField):
     containerSpec = progSpec.getContainerSpec(typeSpec)
     if 'owner' in containerSpec: owner=containerSpec['owner']
     else: owner='me'
@@ -14,9 +14,9 @@ def getContainerType(typeSpec):
     if 'indexType' in containerSpec:
         if 'IDXowner' in containerSpec:
             idxOwner=containerSpec['IDXowner']
-            idxType=containerSpec['idxBaseType']
+            idxType=containerSpec['idxBaseType'][0]
             idxType=applyOwner(idxOwner, idxType, '')
-        else: idxType=containerSpec['idxBaseType']
+        else: idxType=containerSpec['idxBaseType'][0]
     datastructID = containerSpec['datastructID']
     if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
@@ -57,19 +57,21 @@ def applyOwner(owner, langType, varMode):
         cdErr("ERROR: Owner of type not valid '" + owner + "'")
     return langType
 
-def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
+def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
 
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
 
-    if progSpec.isAContainer(TypeSpec):
-        containerSpec = progSpec.getContainerSpec(TypeSpec)
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return [langType, InnerLangType]
+
+    if progSpec.isAContainer(typeSpec):
+        containerSpec = progSpec.getContainerSpec(typeSpec)
         if(containerSpec): # Make list, map, etc
-            [containerType, idxType, idxOwner]=getContainerType(TypeSpec)
-            if 'owner' in progSpec.getContainerSpec(TypeSpec):
-                containerOwner = progSpec.getTypeSpecOwner(TypeSpec)
+            [containerType, idxType, idxOwner]=getContainerType(typeSpec, '')
+            if 'owner' in containerSpec:
+                containerOwner = containerSpec['owner']
             else: containerOwner='me'
             idxType=adjustBaseTypes(idxType)
             if idxType=='timeValue': idxType = 'int64_t'
@@ -93,20 +95,20 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
                 langType=applyOwner(containerOwner, langType, varMode)
     return [langType, InnerLangType]
 
-def convertType(classes, TypeSpec, varMode, xlator):
+def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
-    owner=TypeSpec['owner']
-    fieldType=TypeSpec['fieldType']
+    owner=typeSpec['owner']
+    fieldType=typeSpec['fieldType']
     if not isinstance(fieldType, basestring): fieldType=fieldType[0]
     fieldType2 = progSpec.unwrapClass(classes, fieldType)
 
     baseType = progSpec.isWrappedType(classes, fieldType)
     if(baseType!=None):owner=baseType['owner']
 
-#    else: owner2 =  progSpec.getTypeSpecOwner(TypeSpec)
+#    else: owner2 =  progSpec.getTypeSpecOwner(typeSpec)
 #    if owner!=owner2: print "OWNER MISMATCH:", owner, owner2, varMode
 
-    retVal = xlateLangType(TypeSpec, owner, fieldType2, varMode, xlator)
+    retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, xlator)
     return retVal
 
 def codeIteratorOperation(itrCommand):
@@ -138,13 +140,19 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-        if progSpec.typeIsPointer(itemTypeSpec) and ('arraySpec' in itemTypeSpec):
+        if 'fieldType' in itemTypeSpec and not(isinstance(itemTypeSpec['fieldType'], basestring)) and itemTypeSpec['fieldType'][0]=='DblLinkedList': return ['', '']
+        if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
-            if owner=='itr':
-                containerType = progSpec.getDatastructID(itemTypeSpec)
-                if containerType =='map' or containerType == 'multimap':
-                    return ['', '->second']
-            return ['(*', ')']
+            if progSpec.isAContainer(itemTypeSpec):
+                if owner=='itr':
+                    containerType = progSpec.getDatastructID(itemTypeSpec)
+                    if containerType =='map' or containerType == 'multimap':
+                        return ['', '->second']
+                return ['(*', ')']
+            else:
+                if owner!='itr':
+                   # print "GettingPTRMode:", itemTypeSpec
+                    return ['(*', ')']
     return ['', '']
 
 def derefPtr(varRef, itemTypeSpec):
@@ -241,12 +249,14 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     #print containerType, name
+    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], basestring)) and typeSpecIn['fieldType'][0]=='DblLinkedList': return(name, typeSpecOut, paramList, convertedIdxType)
     if containerType=='deque' or  containerType=='list':
         if name=='at' or name=='resize': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':{'owner':'itr'}}, {'typeSpec':typeSpecIn}]}
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='erase'    : name='erase';  typeSpecOut['owner']='itr';
+        elif name=='deleteNth': typeSpecOut['codeConverter']='%0->erase(%0->begin()+%1)'; typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
@@ -258,11 +268,13 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='popLast'  : name='pop_back'
         elif name=='pushFirst': name='push_front';# typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':typeSpecIn}]}
         elif name=='pushLast' : name='push_back'; # typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':typeSpecIn}]}
-        else: print "Unknown deque or list command:", name; exit(2);
+        elif name=='isEmpty'  : name='empty'
+        elif name=='itmMode'  or name=='tag' or name=='value'  or name=='format' or name=='itmItr' or True: pass # temp fix
+        else: print "Unknown deque or list command:", containerType + '::' +name; exit(2);
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
-        else: convertedIdxType=idxType
-        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        else: convertedIdxType=adjustBaseTypes(idxType)
+        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0.count(%1)>=1)';
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -282,13 +294,14 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
-        else: convertedIdxType=idxType
-        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', xlator)
+        else: convertedIdxType=adjustBaseTypes(idxType)
+        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='count(%1)>=1';
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif name=='find'     : name='find';     typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;
         elif name=='erase'    : name='erase';  typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
@@ -320,30 +333,30 @@ def codeFactor(item, objsRefed, returnType, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
     #print '                  factor: ', item
     S=''
-    retType='noType'
+    retTypeSpec='noType'
     item0 = item[0]
     #print "ITEM0=", item0, ">>>>>", item
     if (isinstance(item0, basestring)):
         if item0=='(':
-            [S2, retType] = codeExpr(item[1], objsRefed, returnType, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, xlator)
             S+='(' + S2 +')'
         elif item0=='!':
-            [S2, retType] = codeExpr(item[1], objsRefed, returnType, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, xlator)
             S+='!' + S2
         elif item0=='-':
-            [S2, retType] = codeExpr(item[1], objsRefed, returnType, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, xlator)
             S+='-' + S2
         elif item0=='[':
             tmp="{"
             for expr in item[1:-1]:
-                [S2, retType] = codeExpr(expr, objsRefed, returnType, xlator)
+                [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, xlator)
                 if len(tmp)>1: tmp+=", "
                 tmp+=S2
             tmp+="}"
             S+=tmp
         else:
             #print "CHECK FOR CHAR", S, returnType
-            retType='string'
+            retTypeSpec='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)
             elif (item0[0]=='"'):
                 if returnType != None and returnType["fieldType"]=="char":
@@ -359,18 +372,18 @@ def codeFactor(item, objsRefed, returnType, xlator):
         if isinstance(item0[0], basestring):
             S+=item0[0]
         else:
-            [codeStr, retType, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, xlator)
+            [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, xlator)
             if(codeStr=="NULL"):
                 codeStr="nullptr"
-                retType={'owner':"PTR"}
+                retTypeSpec={'owner':"PTR"}
             S+=codeStr                                # Code variable reference or function call
-    return [S, retType]
+    return [S, retTypeSpec]
 
 def codeTerm(item, objsRefed, returnType, xlator):
     #print '               term item:', item
-    [S, retType]=codeFactor(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeFactor(item[0], objsRefed, returnType, xlator)
     if (not(isinstance(item, basestring))) and (len(item) > 1) and len(item[1])>0:
-        S=derefPtr(S, retType)
+        S=derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print '               term:', i
             if   (i[0] == '*'): S+=' * '
@@ -380,13 +393,13 @@ def codeTerm(item, objsRefed, returnType, xlator):
             [S2, retType2] = codeFactor(i[1], objsRefed, returnType, xlator)
             S2=derefPtr(S2, retType2)
             S+=S2
-    return [S, retType]
+    return [S, retTypeSpec]
 
 def codePlus(item, objsRefed, returnType, xlator):
     #print '            plus item:', item
-    [S, retType]=codeTerm(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeTerm(item[0], objsRefed, returnType, xlator)
     if len(item) > 1 and len(item[1])>0:
-        S=derefPtr(S, retType)
+        S=derefPtr(S, retTypeSpec)
         for  i in item[1]:
             #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
@@ -395,14 +408,14 @@ def codePlus(item, objsRefed, returnType, xlator):
             [S2, retType2] = codeTerm(i[1], objsRefed, returnType, xlator)
             S2=derefPtr(S2, retType2)
             S+=S2
-    return [S, retType]
+    return [S, retTypeSpec]
 
 def codeComparison(item, objsRefed, returnType, xlator):
     #print '         Comp item', item
-    [S, retType]=codePlus(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codePlus(item[0], objsRefed, returnType, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print "Error: Chained comparisons.\n"; exit(1);
-        S=derefPtr(S, retType)
+        S=derefPtr(S, retTypeSpec)
         for  i in item[1]:
             #print '         comp ', i
             if   (i[0] == '<'): S+=' < '
@@ -410,20 +423,20 @@ def codeComparison(item, objsRefed, returnType, xlator):
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
             else: print "ERROR: One of <, >, <= or >= expected in code generator."; exit(2)
-            [S2, retType] = codePlus(i[1], objsRefed, returnType, xlator)
-            S2=derefPtr(S2, retType)
+            [S2, retTypeSpec] = codePlus(i[1], objsRefed, returnType, xlator)
+            S2=derefPtr(S2, retTypeSpec)
             S+=S2
-            retType='bool'
-    return [S, retType]
+            retTypeSpec='bool'
+    return [S, retTypeSpec]
 
 def codeIsEQ(item, objsRefed, returnType, xlator):
     #print '      IsEq item:', item
-    [S, retType]=codeComparison(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print "Error: Chained == or !=.\n"; exit(1);
-        if (isinstance(retType, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
-        leftOwner=owner=progSpec.getTypeSpecOwner(retType)
-        S_derefd = derefPtr(S, retType)
+        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+        leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
+        S_derefd = derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print '      IsEq ', i
             if   (i[0] == '=='): op=' == '
@@ -432,55 +445,55 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
-            if not isinstance(retType, basestring) and isinstance(retType['fieldType'], basestring) and isinstance(retType2, basestring):
-                if retType['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
+            if not isinstance(retTypeSpec, basestring) and isinstance(retTypeSpec['fieldType'], basestring) and isinstance(retType2, basestring):
+                if retTypeSpec['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
                     S2 = "'" + S2[1:-1] + "'"
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
                 if (S2!='NULL' and S2!='nullptr' ): S=S_derefd
                 S2=derefPtr(S2, retType2)
             if i[0] == '===':
-                S=codeIdentityCheck(S, S2, retType, retType2)
+                S=codeIdentityCheck(S, S2, retTypeSpec, retType2)
             else:S+= op+S2
-            retType='bool'
-    return [S, retType]
+            retTypeSpec='bool'
+    return [S, retTypeSpec]
 
 def codeLogAnd(item, objsRefed, returnType, xlator):
     #print '   And item:', item
-    [S, retType] = codeIsEQ(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec] = codeIsEQ(item[0], objsRefed, returnType, xlator)
     if len(item) > 1 and len(item[1])>0:
-        S=derefPtr(S, retType)
+        S=derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
-                [S2, retType] = codeIsEQ(i[1], objsRefed, returnType, xlator)
-                S2=derefPtr(S2, retType)
+                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, xlator)
+                S2=derefPtr(S2, retTypeSpec)
                 S+=' && ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)
-            retType='bool'
-    return [S, retType]
+            retTypeSpec='bool'
+    return [S, retTypeSpec]
 
 def codeExpr(item, objsRefed, returnType, xlator):
     #print 'Or item:', item
-    [S, retType]=codeLogAnd(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeLogAnd(item[0], objsRefed, returnType, xlator)
     if not isinstance(item, basestring) and len(item) > 1 and len(item[1])>0:
-        S=derefPtr(S, retType)
+        S=derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print 'OR ', i
             if (i[0] == 'or'):
-                [S2, retType] = codeLogAnd(i[1], objsRefed, returnType, xlator)
-                S2=derefPtr(S2, retType)
+                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, xlator)
+                S2=derefPtr(S2, retTypeSpec)
                 S+=' || ' + S2
             else: print "ERROR: 'or' expected in code generator."; exit(2)
-            retType='bool'
+            retTypeSpec='bool'
     #print "S:",S
-    return [S, retType]
+    return [S, retTypeSpec]
 
 def adjustConditional(S2, conditionType):
     return [S2, conditionType]
 
 def codeSpecialReference(segSpec, objsRefed, xlator):
     S=''
-    retType='void'   # default to void
+    fieldType='void'   # default to void
     retOwner='me'    # default to 'me'
     funcName=segSpec[0]
     if(len(segSpec)>2):  # If there are arguments...
@@ -489,14 +502,14 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             # TODO: have a tag to choose cout vs printf()
             S+='cout'
             for P in paramList:
-                [S2, argType]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
-                S2=derefPtr(S2, argType)
+                [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
+                S2=derefPtr(S2, argTypeSpec)
                 S+=' << '+S2
             S+=" << flush"
         elif(funcName=='input'):
             P=paramList[0]
-            [S2, argType]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
-            S2=derefPtr(S2, argType)
+            [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
+            S2=derefPtr(S2, argTypeSpec)
             S+='getline(cin, '+S2+')'
         elif(funcName=='AllocateOrClear'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
@@ -504,20 +517,21 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
-            #print "ALLOCATE:", varName, varTypeSpec
+            #if varTypeSpec==None: print "ALLOCATE:", varName, varTypeSpec, segSpec
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
             for P in paramList[1:]:
                 if(count>0): S+=', '
-                [S2, argType]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
+                [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
                 S+=S2
                 count=count+1
             S+=")"
         elif(funcName=='callPeriodically'):
-            [objName,  retType]=xlator['codeExpr'](paramList[1][0], objsRefed, None, xlator)
-            [interval,  intSpec]   =xlator['codeExpr'](paramList[2][0], objsRefed, None, xlator)
-            varTypeSpec= retType['fieldType'][0]
+            [objName,  typeSpec]=xlator['codeExpr'](paramList[1][0], objsRefed, None, xlator)
+            [interval,  intTypeSpec]   =xlator['codeExpr'](paramList[2][0], objsRefed, None, xlator)
+            fieldType = typeSpec['fieldType']
+            varTypeSpec= fieldType[0]
             wrapperName="cb_wraps_"+varTypeSpec
             S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
 
@@ -531,30 +545,30 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             if len(paramList)==0: S+='return'
         elif(funcName=='toStr'):
             if len(paramList)==1:
-                [S2, argType]=xlator['codeExpr'](P[0][0], objsRefed, None, xlator)
-                S2=derefPtr(S2, argType)
+                [S2, argTypeSpec]=xlator['codeExpr'](P[0][0], objsRefed, None, xlator)
+                S2=derefPtr(S2, argTypeSpec)
                 S+='to_string('+S2+')'
-                retType='string'
+                fieldType='string'
         elif(funcName=='asClass'):
             if len(paramList)==2:
-                [newTypeStr, argType]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
-                newTypeStr=derefPtr(newTypeStr, argType)
-                [toCvtStr, toCvtType]=xlator['codeExpr'](paramList[1][0], objsRefed, None, xlator)
-               # toCvtStr=derefPtr(toCvtStr, toCvtType)
-                varOwner=progSpec.getTypeSpecOwner(toCvtType)
+                [newTypeStr, argTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
+                newTypeStr=derefPtr(newTypeStr, argTypeSpec)
+                [toCvtStr, toCvtTypeSpec]=xlator['codeExpr'](paramList[1][0], objsRefed, None, xlator)
+               # toCvtStr=derefPtr(toCvtStr, toCvtTypeSpec)
+                varOwner=progSpec.getTypeSpecOwner(toCvtTypeSpec)
                 if(varOwner=='their'): S="static_cast<"+newTypeStr+"*>("+toCvtStr+")"
                 elif(varOwner=='our'): S="static_pointer_cast<"+newTypeStr+">("+toCvtStr+")"
                 elif(varOwner=='my'):  S="static_pointer_cast<"+newTypeStr+">("+toCvtStr+")"
                 elif(varOwner=='me'):  S="static_cast<"+newTypeStr+">("+toCvtStr+")"
                 else: cdErr("Casting that to "+str(newTypeStr)+" is not yet supported.")
-                retType = newTypeStr
+                fieldType = newTypeStr
                 retOwner= varOwner
 
     else: # Not parameters, i.e., not a function
         if(funcName=='self'):
             S+='this'
 
-    return [S, retOwner, retType]
+    return [S, retOwner, fieldType]
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     return ""
@@ -628,7 +642,8 @@ def addSpecialCode(filename):
         va_list ap;
         while(1) {
             formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
-            strcpy_s(&formatted[0], n, fmt_str.c_str());
+            strcpy(&formatted[0], fmt_str.c_str());
+// WINDOWS: strcpy_s(&formatted[0], n, fmt_str.c_str());
             va_start(ap, fmt_str);
             final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
             va_end(ap);
@@ -644,7 +659,8 @@ def addSpecialCode(filename):
         //string fileDir = "~/."+filename ";
         string fileDir = "./assets";
 
-        _mkdir(fileDir.data());
+        mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+// WINDOWS: _mkdir(fileDir.data());
         return (fileDir);
     }
 
@@ -696,19 +712,19 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlator):
+def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
     #TODO: make test case
-    [fieldType, innerType] = xlator['convertType'](classes, typeSpec, 'var', xlator)
+    [fieldType, innerType] = xlator['convertType'](classes, typeSpec, 'var', '', xlator)
     varDeclareStr=''
     assignValue=''
     isAllocated = fieldDef['isAllocated']
     owner = progSpec.getTypeSpecOwner(typeSpec)
     if(fieldDef['value']):
-        [S2, rhsType]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, typeSpec, xlator)
+        [S2, rhsTypeSpec]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, typeSpec, xlator)
         if(isAllocated):
             assignValue = " = " + getCodeAllocSetStr(innerType, owner, S2)
         else:
-            [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsType)
+            [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsTypeSpec)
             assignValue = " = " + leftMod+S2+rightMod
 
     else: # If no value was given:
@@ -722,7 +738,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, xlat
                     print "\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList
                     exit(1)
 
-                theParam=paramTypeList[0]['fieldType']
+                theParam=progSpec.getFieldType(paramTypeList[0])
 
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
@@ -757,7 +773,7 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText = ""
     loopCounterName = ""
-    containedType=containerType['fieldType']
+    containedType=progSpec.getFieldType(containerType)
     if progSpec.ownerIsPointer(ContainerOwner): connector="->"
     else: connector = "."
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
@@ -781,15 +797,30 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
 
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner,isBackward,indent,xlator):
+def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
     #TODO: handle isBackward
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
     owner=containerType['owner']
-    containedType=containerType['fieldType']
+    containedType=progSpec.getFieldType(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ContainerOwner)
+
+
+    if containerType['fieldType'][0]=='DblLinkedList':
+        ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':owner, 'fieldType':containedType}
+        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        repItrName = repName+'Itr'
+        actionText += (indent + "for( auto " + repItrName+' ='+ repContainer+RDeclP+'begin()' + "; " + repItrName + " !=" + repContainer+RDeclP+'end()' +"; "+ repItrName + " = " + repItrName+"->next ){\n"
+                    + indent+"    "+"shared_ptr<infon> "+repName+" = "+repItrName+"->item;\n")
+        return [actionText, loopCounterName]
+
+
+
     if datastructID=='multimap' or datastructID=='map':
         keyVarSpec = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
@@ -827,7 +858,7 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(name,  convertedType, fieldOwner, paramList, objsRefed, xlator):
+def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, objsRefed, xlator):
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
@@ -862,14 +893,14 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
         constructorInit = ':' + constructorInit
-    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
+    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"    
     return (S)
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     S = ''
     if constructorArgs != '':
         S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
-    S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
+  #  S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -891,7 +922,7 @@ def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
 
 def codeConstructorCall(className):
-    return '        init();\n'
+    return '        INIT();\n'
 
 def codeSuperConstructorCall(parentClassName):
     return parentClassName+'()'

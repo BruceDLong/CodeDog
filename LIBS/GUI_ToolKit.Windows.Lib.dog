@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
-    headers=["stdafx.h", windows.h, stdlib.h, string.h, tchar.h, direct.h]
+    headers=["stdafx.h", windows.h, stdlib.h, string.h, tchar.h, direct.h, wingdi.h]
 }
 
 LibDescription ={
@@ -19,6 +19,30 @@ LibDescription ={
     CPUs        =[i386, amd64, arm7]
 }
 
+/- Injecting some Windows specific code at the top
+embedHigh = `
+POINT _tagPOINT;
+HPEN hPen;
+HBRUSH hBrush;
+COLORREF objectColor = RGB(0, 0, 0);
+HWND hWnd;
+// COLORREF brushColor = RGB(0, 0, 0);
+TRIVERTEX vertex[2];
+GRADIENT_RECT gRect;
+int penWidth = 1;
+
+wstring s2ws(const string& s) {
+		int len;
+		int slength = (int)s.length() + 1;
+		len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+		wchar_t* buf = new wchar_t[len];
+		MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+		wstring r(buf);
+		delete[] buf;
+		return r;
+	}
+`
+
 /- Injecting some GUI minimal test code here
 embedLow = `
 
@@ -29,7 +53,7 @@ embedLow = `
 static TCHAR szWindowClass[] = _T("DesktopApp");
 
 /- The string that appears in the application's title bar.
-static TCHAR szTitle[] = _T("CoinDog - Windows Version");
+static TCHAR szTitle[] = _T("MinimalGUI - Windows Version");
 
 HINSTANCE hInst;
 
@@ -68,6 +92,7 @@ int CALLBACK WinMain(
 		return 1;
 	}
 	initialize("");
+	
 	// Store instance handle in our global variable
 	hInst = hInstance;
 
@@ -81,7 +106,7 @@ int CALLBACK WinMain(
 	// NULL: this application does not have a menu bar
 	// hInstance: the first parameter from WinMain
 	// NULL: not used in this application
-	HWND hWnd = CreateWindow(
+	hWnd = CreateWindow(
 		szWindowClass,
 		szTitle,
 		WS_OVERLAPPEDWINDOW,
@@ -98,6 +123,8 @@ int CALLBACK WinMain(
 		MessageBox(NULL, _T("Call to CreateWindow failed!"), _T("Windows Desktop Guided Tour"), NULL);
 		return 1;
 	}
+	
+	activate(hWnd);
 
 	// The parameters to ShowWindow explained:
 	// hWnd: the value returned from CreateWindow
@@ -121,42 +148,41 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
 	HDC hdc;
-	TCHAR greeting[] = _T("Hello, CodeDog team! Let's this this platform up and running.");
-	TCHAR greeting2[] = _T("Left button clicked!");
 
 	switch (message)
 	{
-	case WM_PAINT:
+	case WM_PAINT: {
 		hdc = BeginPaint(hWnd, &ps);
-
-		// Here your application is laid out.
-		TextOut(hdc, 5, 5, greeting, _tcslen(greeting));
-		
-		// End application-specific layout section.
-
+		BeginPath(hdc);
+		EventDispatcher.topWidget->draw(hdc);
+		EndPath(hdc);
 		EndPaint(hWnd, &ps);
-		break;
-	case WM_DESTROY:
+		break; }
+	case WM_DESTROY: {
 		PostQuitMessage(0);
-		break;
+		break; }
 	case WM_LBUTTONDOWN: {
-		
-		//topWidget->primaryClick(event);
-		
-		int iPosX = LOWORD(lParam);
-		int iPosY = HIWORD(lParam);
-		TCHAR waCoord[20];
-		wsprintf(waCoord, _T("(%i, %i)"), iPosX, iPosY);
-		::MessageBox(hWnd, waCoord, _T("LMB Click"), MB_OK);
-		break;
-	}
+		POINT winEvent;
+		GUI_ButtonEvent event;
+		GetCursorPos(&winEvent);
+		event.x = winEvent.x;
+		event.y = winEvent.y;
+		EventDispatcher.topWidget->primaryClick(&event);
+		break; }
+	case WM_RBUTTONDOWN: {
+		POINT winEvent;
+		GUI_ButtonEvent event;
+		GetCursorPos(&winEvent);
+		event.x = winEvent.x;
+		event.y = winEvent.y;
+		EventDispatcher.topWidget->secondaryClick(&event);
+		break; }
 	case WM_CHAR:
 		return 0L;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 		break;
 	}
-
 	return 0;
 }
 
@@ -166,7 +192,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{their HWND: GUI_item}
-struct GUI_Frame{their HWND: GUI_Frame}
+struct GUI_Frame{me HWND: GUI_Frame}
 struct GUI_menuBar{their HWND: GUI_menuBar}
 struct GUI_menu{their HWND: GUI_menu}
 struct GUI_menuItem{their HWND: GUI_menuItem}
@@ -253,7 +279,9 @@ struct enumWidget{
 struct boolWidget{
 
 }
+*/
 
+/*
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
@@ -321,7 +349,9 @@ struct ListManagerBox{
         return editorFrame;
     } %>
 }
+*/
 
+/*
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     /- Widgets
@@ -337,7 +367,7 @@ struct GLOBAL{
     their HWND: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
     their HWND: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
     their HWND: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
-    their HWND: makeMakeXStackWidget(me string: label)  <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
+    their HWND: makeXStackWidget(me string: label)  <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
     their HWND: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
     their HWND: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
     me void: setLabelWidth(their HWND: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
@@ -377,95 +407,49 @@ struct GLOBAL{
         listMgrBox.handleEdit()
     }
 }
+*/
 
 /-///////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-struct GUI_ButtonEvent{their HWND: GUI_ButtonEvent}
+/- struct GUI_ButtonEvent{me HWND: GUI_ButtonEvent}
 struct GUI_ButtonEvent{
-  me uint: type
+  me uint32: type
  /- GdkWindow *window;
  /- gint8 send_event;
  /- guint32 time;
   me double: x
   me double: y
-  me uint: state
-  me uint: button
+  me uint32: state
+  me uint32: button
 }
 
-struct GUI_PointerEvent{their HWND: GUI_PointerEvent}
+/-struct GUI_PointerEvent{me HWND: GUI_PointerEvent}
 struct GUI_PointerEvent{
-  me uint: type
+  me uint32: type
  /- GdkWindow *window;
  /- gint8 send_event;
  /- guint32 time;
   me double: x
   me double: y
-
-  me uint: state
-  me uint: button
+  me uint32: state
+  me uint32: button
 }
 
 /-///////////////////////////////  EVENT DISPATCHER
-struct GTK_eventDispatcher{
+struct Windows_eventDispatcher{
     their widget: topWidget
-    me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- {return(false)}
-    me bool: dispatchPointerClickEvent(their HWND: event) <- <%{
-        if(event->type==GDK_BUTTON_PRESS){
-            if(event->button==1){
-                topWidget->primaryClick(event);
-            } else if(event->button==3){
-                topWidget->secondaryClick(event);
-            }
-        }
-        return false;
-    } %>
-    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
-  /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+    me bool: dispatchPointerMotionEvent(me HWND: event) <- {return(false)}
+    /- me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
+    /- me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     /- Also: timer, data and user events
-
-    me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{
-    topWidget = masterWidget;
-
-     /-   g_signal_connect(Widget, "draw", G_CALLBACK(drawAppArea_cb), NULL);
-     /-   g_signal_connect (Widget, "expose_event",      G_CALLBACK(expose_event), NULL);
-     /-   g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), NULL);
-        g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), NULL);
-        g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), NULL);
-
-        gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
-             | GDK_LEAVE_NOTIFY_MASK
-             | GDK_BUTTON_PRESS_MASK
-             | GDK_POINTER_MOTION_MASK
-             | GDK_POINTER_MOTION_HINT_MASK);
-    } %>
+    me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{topWidget = masterWidget;}%>
 }
 
-/-///////////////////////////////   Event callbacks for GTK3
+/-///////////////////////////////   Event callbacks
 struct GLOBAL{
-    me GTK_eventDispatcher: EventDispatcher
-    me void: button_press_event(their HWND: wid, their GdkEventButton: event, their void: data) <- <%{
-        EventDispatcher.dispatchPointerClickEvent(event);
-    } %>
-    me void: motion_notify_event(their HWND: wid, their GdkEventMotion: event, their void: data) <- <%{
-        EventDispatcher.dispatchPointerMotionEvent(event);
-    } %>
-    me void: expose_event(their HWND: wid, their GdkEventExpose: event, their void: data) <- <%{
-      /-  EventDispatcher.dispatchWindowEvent(event);
-    } %>
-    me void: keypress_event(their HWND: wid, their GdkEventKey: event, their void: data) <- <%{
-        EventDispatcher.dispatchKeyboardEvent(event);
-    } %>
-    me void: configure_event(their HWND: wid, their GdkEventConfigure: event, their void: data) <- <%{
-      /-  EventDispatcher.dispatchWindowEvent(event);
-    } %>
-    me bool: drawAppArea_cb(their HWND: widget, their GUI_ctxt: cr, their void: data) <- <%{
-        DashboardWidget* DBW = (DashboardWidget*)data;
-        DBW->draw(cr);
-        return(true);
-    }%>
+    me Windows_eventDispatcher: EventDispatcher
 }
-*/
 
 /-///////////////////////////////  HANDLE GUI
 
@@ -487,55 +471,155 @@ struct GUI{
     }
 }
 
-/*
+/- TURNING ON GUI w/ newCanvas and newScrollingWindow but commenting out everything else
+/- TODO: newCanvas
+/- TODO: newScrollingWindow
 struct GUI{
-    me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
+    /-me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
     me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
     me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
-    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
-    me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
-    me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
-    me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
-    me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, %4)%>
-    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
+    /-me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
+    /-me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
+    /-me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
+    /-me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
+    /-me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+    /-me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+    /-me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, %4)%>
+    /-me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
 struct GUI_ctxt {
-    their HDC:GUI_ctxt
-    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
-    me void: reset() <- <%!%G %>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
-    me void: setColor(me Color: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
-    me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
-    me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
-    me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
-    me void: moveTo(me double: x, me double: y) <- <%!MoveTo(%0, %1, %2)%>
-    me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, %1, %2)%>
-    me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(%0, %1, %2)%>
-    me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(%0, %1, %2)%>
-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
-    me void: closePath() <- <%!cairo_close_path(%0)%>
-    me void: rectangle() <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
-    me void: paintNow() <- <%!cairo_paint(%0)%>
-    me void: strokeNow() <- <%!cairo_stroke(%0)%>
-    me void: fillNow() <- <%!cairo_fill(%0)%>
-    me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
-    me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
-    me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
+    me HDC:GUI_ctxt
+    me void: reset() <- <%!BeginPath(%0)%>
+    /- me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!Color(%3, %0, %1, %2)%>			/- Input RGBA, Color(alpha, red, green, blue)
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%GobjectColor = RGB(%1, %2, %3)%>
+    me void: setColor(me cdColor: color) <- <%!RGB(%1.red, %1.green, %1.blue)%>
+    me void: setLineWidth(me double: width) <- <%!%G
+		penWidth = %1;
+		hPen = CreatePen(PS_SOLID, penWidth, objectColor);
+		SelectObject(cr, hPen);
+	%>		/- maybe separate out an updatePen function?
+    me void: moveTo(me double: x, me double: y) <- <%!MoveToEx(%0, %1, %2, NULL)%>			/- (x, y, [speed])
+    me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, %1, %2)%>			/- (hdc, xEnd, yEnd) , uses current pen
+    me void: moveRel(me double: dx, me double: dy) <- <%!
+		GetCurrentPositionEx(cr, &_tagPOINT);
+		MoveToEx(%0, _tagPOINT.x + %1, _tagPOINT.y + %2, NULL)
+    %>
+    me void: lineRel(me double: dx, me double: dy) <- <%!
+		GetCurrentPositionEx(cr, &_tagPOINT);
+		LineTo(%0, _tagPOINT.x + %1, _tagPOINT.y + %2)
+	%>
+	me void: closePath() <- <%!CloseFigure(%0)%>
+    me void: rectangle() <- <%!Rectangle(%0, %1, %2, %1+%3, %2+%4)%>
+    me void: paintNow() <- <%!
+		RECT clientSize;
+		HBRUSH backgroundBrush;
+		GetClientRect(hWnd, &clientSize);
+		backgroundBrush = CreateSolidBrush(RGB(122,122,0));
+		FillRect(%0, &clientSize, backgroundBrush);%>
+    me void: strokePath() <- <%!
+		EndPath(%0);
+		hPen = CreatePen(PS_SOLID, penWidth, objectColor);
+		SelectObject(cr, hPen);
+		StrokePath(%0);
+		DeleteObject(hPen);
+		BeginPath(%0)
+	%>
+    me void: fillPath() <- <%!
+		EndPath(%0);
+		hBrush = CreateSolidBrush(objectColor);
+		SelectObject(cr, hBrush);
+		FillPath(%0);
+		DeleteObject(hBrush);
+		BeginPath(%0)
+	%>					/- Don't need CloseFigure
+    me void: strokeAndFillPath() <- <%!
+		EndPath(%0);;
+		hBrush = CreateSolidBrush(objectColor);
+		SelectObject(cr, hBrush);
+		StrokeAndFillPath(%0);
+		DeleteObject(hBrush);
+		BeginPath(%0)
+	%>
+	/- GRADIENT IS NOT YET FUNCTIONAL
+	me void: setFillPattern() <- <%!
+		vertex[0].x = 900;
+		vertex[0].y = 100;
+		vertex[0].Red = 0x0000;
+		vertex[0].Green = 0x8000;
+		vertex[0].Blue = 0x8000;
+		vertex[0].Alpha = 0x0000;
+		vertex[1].x = 1300;
+		vertex[1].y = 500;
+		vertex[1].Red = 0x0000;
+		vertex[1].Green = 0xd000;
+		vertex[1].Blue = 0xd000;
+		vertex[1].Alpha = 0x0000;
+		
+		gRect.UpperLeft = 0;
+		gRect.LowerRight = 1;
+
+		GradientFill(%0, vertex, 2, &gRect, 1, GRADIENT_FILL_RECT_V);
+	%>
 }
+/* GRADIENT BRIEFLY WORKED ON, PUT OFF AS FROTH
+struct guiFillPattern{
+	/- their
+	me void: init() <- <%!
+		vertex[0].x = %1;
+		vertex[0].y = %2;
+		vertex[1].x = %3;
+		vertex[1].y = %4;
+	%>
+	me void: AddColorStop(me double: offset, their cdColor: color) <- <%!
+		if(%1 == 0) {
+			vertex[0].red = %2.red;
+			vertex[0].green = %2.green;
+			vertex[0].blue = %2.blue;
+			vertex[0].alpha = 0x0000;
+		} else {
+			vertex[1].red = $2.red;
+			vertex[1].green = %2.green;
+			vertex[1].blue = %2.blue;
+			vertex[1].alpha = 0x0000;
+		}
+	%>
+}*/
+
+/* GTK VERSION FOR REFERENCE
+    /- FROTH me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
+    /- --- me void: reset() <- <%!%G %>
+    /- ** me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
+    /- --- +++ me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
+    /- --- me void: setColor(me cdColor: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
+    /- --- +++ me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%> 		/- Why two inputs?
+    /- FROTH me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
+    /- FROTH me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
+    /- --- +++ me void: lineTo(me double: x, me double: y) <- <%!cairo_line_to(%0, %1, %2)%>
+    /- --- +++ me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(%0, %1, %2)%>
+    /- --- +++ me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(%0, %1, %2)%>
+    /- --- +++ me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(%0, %1, %2)%>
+    /- ** me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
+    /- ** me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
+    /- --- +++ me void: closePath() <- <%!cairo_close_path(%0)%>
+    /- --- me void: rectangle() <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
+    /- --- +++ me void: paintNow() <- <%!cairo_paint(%0)%>
+    /- --- +++ me void: strokeNow() <- <%!cairo_stroke(%0)%>		
+    /- --- +++ me void: fillNow() <- <%!cairo_fill(%0)%>			
+    /- CUT me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
+    /- CUT me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
+    /- ** me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
 
 struct guiFillPattern{
     their cairo_pattern_t: guiFillPattern
     me void: init() <- <%!%0 = cairo_pattern_create_linear(%1, %2, %3, %4)%>
-    me void: AddColorStopRGBA(me double: offset, their Color: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
-    me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
+    me void: AddColorStopRGBA(me double: offset, their cdColor: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
+    me void: AddColorStop(me double: offset, their cdColor: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/256, (double)%2.green/256, (double)%2.blue/256)%>
 }
+*/
 
+/*
 /-/////////////////////////////// TIME
 struct tm{
     me tm: tm
@@ -574,7 +658,45 @@ struct timeStringer{
 
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
-        me APP: thisApp
+	me APP: thisApp
+
+	/- DRAWING ROUTINES:
+    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
+        HFONT hFont;
+
+		std::wstring stemp = s2ws(fontName);
+		LPCWSTR fontNamePtr = stemp.c_str();
+		std::wstring stemp2 = s2ws(text);
+		LPCWSTR outputTextPtr = stemp2.c_str();
+
+		BeginPath(cr);
+		hFont = CreateFont(fontSize, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
+			CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, fontNamePtr);
+		SelectObject(cr, hFont);
+
+		SetBkMode(cr, TRANSPARENT);
+		//SetTextColor(cr, RGB(0, 0, 0));
+
+		EndPath(cr);
+		TextOut(cr, 50, 50, outputTextPtr, text.length());
+		DeleteObject(hFont);
+        return 0;
+    } %>
+    /*
+    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
+        PangoLayout *layout=pango_cairo_create_layout(cr);
+        pango_layout_set_text(layout, text.data(), -1);
+
+        string fontDesc=fontName+' '+ std::to_string(fontSize);
+        PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
+        pango_layout_set_font_description(layout, desc);
+        pango_font_description_free(desc);
+
+        deltaSize size;
+        pango_layout_get_pixel_size(layout, &size.width, &size.height);
+        g_object_unref(layout);
+        return(size);
+    } %> */
 }
 
 /*
@@ -647,7 +769,7 @@ struct GLOBAL{
         cairo_scale(cr,1/scale,1/scale);
         cairo_set_source_surface(cr,pic,x*scale,y*scale);
         cairo_paint(cr);
-cairo_restore(cr);
+		cairo_restore(cr);
     } %>
 
 /- GUI INTERFACE:
@@ -703,49 +825,8 @@ me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
 their HWND: window
 void: setMasterWidget(their widget: masterWidget) <- {EventDispatcher.topWidget<-masterWidget}
+*/
 
-me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
-    HWND *topBox;
-
-    window = gtk_application_window_new (app);
-    gtk_window_set_title (GTK_WINDOW (window), "Window");
-    gtk_window_set_default_size (GTK_WINDOW (window), 1000, 700);
-    g_signal_connect (window, "destroy", G_CALLBACK (close_window), NULL);
-    gtk_container_set_border_width (GTK_CONTAINER (window), 0);
-
-    topBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-    gtk_container_add (GTK_CONTAINER (window), topBox);
-    gtk_widget_show (topBox);
-    
-    /-//////////////////  A d d  A p p l i c a t i o n   M e n u
-
-    HWND *boxForMenubar;
-    HWND *menubar;
-
-    boxForMenubar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_container_add (GTK_CONTAINER (topBox), boxForMenubar);
-    gtk_widget_show (boxForMenubar);
-
-    menubar = gtk_menu_bar_new ();
-    gtk_box_pack_start(GTK_BOX(boxForMenubar), menubar, TRUE, TRUE, 0);
-    gtk_widget_show (menubar);
-
-    thisApp.createAppMenu(menubar);
-
-      /-///////////////////  A d d   A p p l i c a t i o n   I t e m s
-
-    HWND *frame;
-    HWND *appArea;
-
-    frame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_box_pack_start(GTK_BOX(topBox), frame, TRUE, TRUE, 0);
-
-    /-EventDispatcher.registerWidgetForEventDispatcher();
-    thisApp.createAppArea(frame);
-
-    /-///////////////////  A d d  S t a t u s   A r e a
-
-    gtk_widget_show_all (window);
-}%>
-
-}*/
+struct GLOBAL {
+	me void: activate(me HWND: frame) <- <%{thisApp.createAppArea(frame);}%>
+}

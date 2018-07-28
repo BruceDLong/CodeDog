@@ -1,13 +1,22 @@
-
 /- Infon List
 
-struct DblLinkedListNode< ItemType >{
+requirements = []
+interface={
+    provides=[listImplementation]
+}
+LibDescription = {
+    useStatus   ='build'
+    description ='Doubly Linked List Implementation'
+    features    =[List]
+}
+
+struct DblLinkedListNode<ItemType>: implements = ListNode{
     our ItemType: item
     our DblLinkedListNode<ItemType>: next
     our DblLinkedListNode<ItemType>: prev
 }
 
-struct DblLinkedList< ItemType >: implements = list {
+struct DblLinkedList<ItemType>: implements = List{
     our DblLinkedListNode<ItemType>: head
     our DblLinkedListNode<ItemType>: tail
 

@@ -1,18 +1,32 @@
-
 /- CodeDog List model
 
-struct ListNode< ItemType >{
+requirements = [
+    [require, listImplementation]
+]
+
+interface={
+    provides=[List]
+}
+
+LibDescription ={
+    useStatus   ='dynamic'
+    description ='List Model'
+    features    =[]
+}
+
+
+struct ListNode<ItemType>{
     our ItemType: item
     our ListNode<ItemType>: next
     our ListNode<ItemType>: prev
 }
 
-model List< ItemType > {
+model List<ItemType> {
 
     void: clear()
 
     void: append(our ItemType: i)
-    void: prepend(our ItemType: i)ad <- newNode
+    void: prepend(our ItemType: i)
     void: insertBefore(our ListNode<ItemType>: position, our infon: i)
     void: insertAfter(our ListNode<ItemType>: position, our infon: i)
     void: erase(our ListNode<ItemType>: toDel)

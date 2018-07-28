@@ -164,35 +164,41 @@ def reduceSolutionOptions(options, indent):
                    # removeDuplicates(options)  # TODO: Make this line remove duplicates
 
             i+=1
+def fetchFeaturesNeededByLibrary(feature):
+    return []
+
+def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
+    [ReqTags,interfaceTags] = extractLibTags(libFile)
+    Requirements = []
+    LibCanWork=True
+    if need[0] == 'require':
+        LibCanWork=False
+        if 'provides' in interfaceTags:
+            if need[1] in interfaceTags['provides']:
+                #print indent, 'REQUIRE: ', need[1], ' in ' ,interfaceTags['provides']
+                LibCanWork = True
+
+    for Req in ReqTags:
+       # print "REQUIREMENT:", Req[0], Req[1]
+        if Req[0]=='feature':
+            print "\n    Nested Features should be implemented. Please implement them. (", Req[1], ")n"; exit(2);
+        elif Req[0]=='require':
+            Requirements.append(Req)
+        elif Req[0]=='tagOneOf':
+            tagToCheck = Req[1]
+            validValues = progSpec.extractListFromTagList(Req[2])
+            parentTag = progSpec.fetchTagValue(tags, tagToCheck)  # E.g.: "platform"
+            if parentTag==None: LibCanWork=False;  cdErr("ERROR: The tag '"+ tagToCheck + "' was not found in" + libFile + ".\n");
+            if not parentTag in validValues: LibCanWork=False
+            else: cdlog(1, "  Validated: "+tagToCheck+" = "+parentTag)
+
+    return [LibCanWork, Requirements]
 
 def constructORListFromFiles(tags, need, files, indent):
     OR_List = ['OR', []]
     for libFile in files:
         #print indent + "LIB FILE: ", libFile
-        [ReqTags,interfaceTags] = extractLibTags(libFile)
-        Requirements = []
-        LibCanWork=True
-        if need[0] == 'require':
-            if 'provides' in interfaceTags:
-                if need[1] in interfaceTags['provides']:
-                    #print indent, 'REQUIRE: ', need[1], ' in ' ,interfaceTags['provides']
-                    LibCanWork = True
-        for Req in ReqTags:
-            #print indent + "Req: ",Req[0]
-            if Req[0]=='feature':
-                print "\n    Nested Features should be implemented. Please implement them. (", Req[1], ")n"; exit(2);
-            elif Req[0]=='require':
-                #print "REQUIREMENT:", Req[1]
-                Requirements.append(Req)
-            elif Req[0]=='tagOneOf':
-                tagToCheck = Req[1]
-                validValues = progSpec.extractListFromTagList(Req[2])
-                parentTag = progSpec.fetchTagValue(tags, tagToCheck)  # E.g.: "platform"
-                if parentTag==None: LibCanWork=False;  cdErr("ERROR: The tag '"+ tagToCheck + "' was not found in" + libFile + ".\n");
-                if not parentTag in validValues: LibCanWork=False
-                else: cdlog(1, "  Validated: "+tagToCheck+" = "+parentTag)
-
-
+        [LibCanWork, Requirements] = checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent)
         if(LibCanWork):
             #print indent + " LIB CAN WORK:", libFile
             childFileList = findLibraryChildren(os.path.basename(libFile)[:-8])
@@ -211,7 +217,7 @@ def constructANDListFromNeeds(tags, needs, files, indent):
         #print indent + "**need*: ", need
         if need[0] == 'feature':
             if need[1] in featuresHandled: continue
-            cdlog(1, "FEATURE: "+need[1])
+            cdlog(1, "FEATURE: "+str(need[1]))
             featuresHandled.append(need[1])
             filesToTry = [findLibrary(need[1])]
             if filesToTry[0]=='': cdErr('Could not find a dog file for feature '+need[1])
@@ -228,6 +234,7 @@ def ChooseLibs(classes, buildTags, tags):
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
     initialNeeds =[]
     for feature in featuresNeeded:
+        featuresNeeded.extend(fetchFeaturesNeededByLibrary(feature))
         initialNeeds.append(["feature", feature])
     solutionOptions = constructANDListFromNeeds([tags, buildTags], initialNeeds, [], "")
     reduceSolutionOptions(solutionOptions, '')

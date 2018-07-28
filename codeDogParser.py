@@ -43,13 +43,14 @@ buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 expr = Forward()
 CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
-objectName = CID("objectName")
+objectName = (CID)("objectName")
+classSpec = Forward()
 cppType = (Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
 HexNums = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
 BinNums = Combine((Literal("0B") | Literal("0b")) + Word("01"))
 intNum = (HexNums | BinNums | Word(nums))("intNum")
 numRange = Group(intNum + ".." + intNum)("numRange")
-varType = (objectName | cppType | numRange)("varType")
+varType = (classSpec | cppType | numRange)("varType")
 boolValue = (Keyword("true") | Keyword("false"))("boolValue")
 floatNum = Combine(intNum + "." + intNum)("floatNum")
 value = Forward()
@@ -62,7 +63,8 @@ comment = Literal(r'//').suppress() + restOfLine('comment')
 parameters = Forward()
 owners = Forward()
 varSpec = (Optional(owners) + varType)("varSpec")
-varSpecList = Group(delimitedList(varSpec, ','))("varSpecList")
+varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
+classSpec <<= Group(objectName + Optional(Literal("<") + varSpecList + Literal(">")))("objectName")
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 firstRefSegment = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
 secondRefSegment = Group((Literal('.').suppress() + CID | arrayRef) + Optional(parameters))
@@ -129,14 +131,12 @@ nameAndVal = Group(
 
 datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
 arraySpec = Group (Literal('[')  + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + Literal(']'))("arraySpec")
-containerSpec = Group (Literal("[")+ varSpecList +Literal("]"))("containerSpec")
 meOrMy = (Keyword("me") | Keyword("my"))
 modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - Literal("[") - CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
 flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal )("flagDef")
 baseType = (cppType | numRange)("baseType")
 
 #########################################   O B J E C T   D E S C R I P T I O N S
-objectName = Combine(CID + Optional(OneOrMore('::' + CID)))("objectName")
 fieldDefs = ZeroOrMore(fieldDef)("fieldDefs")
 SetFieldStmt = Group(Word(alphas + nums + "_.") + '=' + Word(alphas + nums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
 coFactualEl  = Group(Literal("(") + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEl")
@@ -144,11 +144,11 @@ sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
 alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
 anonModel = (sequenceEl | alternateEl) ("anonModel")
 owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their"))
-fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | objectName | Group(anonModel) | datastructID)('fieldType') +Optional(arraySpec | containerSpec) + Optional(nameAndVal))("fullFieldDef")
+fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | classSpec | Group(anonModel) | datastructID)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")+Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
-objectDef = Group(modelTypes + objectName + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
-doPattern = Group(Keyword("do") + objectName + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
+objectDef = Group(modelTypes + classSpec + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
+doPattern = Group(Keyword("do") + classSpec + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
 macroDef  = Group(Keyword("#define") + CID('macroName') + Literal("(").suppress() + Optional(CIDList('macroArgs')) + Literal(")").suppress() + Group( "<%" + SkipTo("%>", include=True))("macroBody"))
 objectList = Group(ZeroOrMore(objectDef | doPattern | macroDef))("objectList")
 objectDef.setParseAction(logObj)
@@ -223,14 +223,14 @@ def packFieldDef(fieldResult, className, indent):
                 innerDefs.append(innerFieldDef)
 
     else: fieldType=None;
-    if(fieldResult.arraySpec): 
+    if(fieldResult.arraySpec):
         arraySpec=fieldResult.arraySpec
         #print"         ****Old ArraySpec found: "
     else: arraySpec=None
-    if(fieldResult.containerSpec): 
-        containerSpec=fieldResult.containerSpec 
+    if(fieldResult.containerSpec):
+        containerSpec=fieldResult.containerSpec
     else: containerSpec=None
-    
+
     if(fieldResult.nameAndVal):
         nameAndVal = fieldResult.nameAndVal
         #print "nameAndVal = ", nameAndVal

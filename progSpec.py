@@ -134,7 +134,9 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     if MarkItems: MarkedObjects[name]=1
     return name
 
+classImplementationOptions = {}
 def appendToAncestorList(objRef, className, subClassMode, parentClassList):
+    global classImplementationOptions
     #subClassMode ="inherits" or "implements"
     #objRef = objSpecs[className]
     if not subClassMode in objRef:
@@ -145,6 +147,12 @@ def appendToAncestorList(objRef, className, subClassMode, parentClassList):
         if subClassMode=='inherits': processParentClass(className, parentClass)
         if (not parentClass in objRef[subClassMode]):
             objRef[subClassMode].append(parentClass)
+
+        if subClassMode=='implements':
+            print "ADDING:", className, 'to', parentClass
+            if not (parentClass in classImplementationOptions):
+                classImplementationOptions[parentClass] = [className]
+            else: classImplementationOptions[parentClass].append(className)
 
 def addObjTags(objSpecs, className, stateType, objTags):
     startTags = {}
@@ -317,6 +325,11 @@ def setFeaturesNeeded(tags, featureIDs):
     for feature in featureIDs:
         setFeatureNeeded(tags, feature)
 
+dataStructureRequirements = []
+def addDataStructureRequirements(requirementSpec):
+    global dataStructureRequirements
+    dataStructureRequirements.append(requirementSpec)
+
 def addCodeToInit(tagStore, newInitCode):
     appendToStringTagValue(tagStore, "initCode", newInitCode + "\n");
 
@@ -349,7 +362,7 @@ def updateCvt(classes, fieldListToUpdate, fieldsToConvert):
         G = F.copy()
         if baseType!=None:
             G['typeSpec']=typeSpec.copy()
-            G['typeSpec']['fieldType']=baseType
+            G['typeSpec']['fieldType'] = baseType
         insertOrReplaceField(fieldListToUpdate, G)
 
 def updateCpy(fieldListToUpdate, fieldsToCopy):
@@ -493,18 +506,31 @@ def doesChildClassImplementFunc(classes, structName, fieldID):
     #if len(childClasses)>0: print '     Childs Result:', result
     return result
 
+def getImplementationOptionsFor(fieldType):
+    global classImplementationOptions
+    if fieldType in classImplementationOptions:
+        return classImplementationOptions[fieldType]
+    return None
 ###############  Various type-handling functions
 def isAContainer(typeSpec):
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return True  # TODO: Remove this after Dynamix Types work.
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def getContainerSpec(typeSpec):
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return {'owner': 'me', 'datastructID':'list'}
     return(typeSpec['arraySpec'])
 
 def getTemplateArg(typeSpec, argIdx):
     return(typeSpec)
-    
+
 def getDatastructID(typeSpec):
-    return(typeSpec['arraySpec']['datastructID']) 
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return 'list'
+    return(typeSpec['arraySpec']['datastructID'])
+
+def getFieldType(typeSpec):
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return ['infon']
+    if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
+    return None
 
 def getTypeSpecOwner(typeSpec):
     global currentCheckObjectVars
@@ -512,6 +538,7 @@ def getTypeSpecOwner(typeSpec):
         cdErr(currentCheckObjectVars)
     if typeSpec==None or isinstance(typeSpec, basestring): return 'me'
     if isAContainer(typeSpec):
+        if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return typeSpec['owner']
         if "owner" in typeSpec['arraySpec']:
             owner = typeSpec['arraySpec']['owner']
             return owner
@@ -585,7 +612,7 @@ def findSpecOf(objMap, structName, stateTypeWanted):
 def unwrapClass(classes, structName):
     baseType = isWrappedType(classes, structName)
     if(baseType!=None):
-        baseType = baseType['fieldType']
+        baseType = getFieldType(baseType)
         if isinstance(baseType, basestring): return baseType
         return baseType[0]
     else: return structName
@@ -597,7 +624,7 @@ def baseStructName(structName):
 
 def fieldTypeKeyword(fieldType):
     if fieldType==None: return 'NONE'
-    if 'fieldType' in fieldType: fieldType = fieldType['fieldType'];
+    if 'fieldType' in fieldType: fieldType = getFieldType(fieldType)
     if isinstance(fieldType, basestring): return fieldType
     return fieldType[0]
 
@@ -635,7 +662,7 @@ def fetchFieldByName(fields, fieldName):
 
 def TypeSpecsMinimumBaseType(classes, typeSpec):
     owner=typeSpec['owner']
-    fieldType=typeSpec['fieldType']
+    fieldType = typeSpec['fieldType']
     #print "TYPESPEC:", typeSpec, "<", fieldType, ">\n"
     if typeIsNumRange(fieldType):
         minVal = int(fieldType[0])
@@ -668,7 +695,7 @@ def innerTypeCategory(fieldType):
 def varsTypeCategory(typeSpec):
     if isinstance(typeSpec, basestring): fieldType=typeSpec
     else:
-        fieldType=typeSpec['fieldType']
+        fieldType=getFieldType(typeSpec)
     return innerTypeCategory(fieldType)
 
 def fieldsTypeCategory(typeSpec):
@@ -688,7 +715,7 @@ def varTypeKeyWord(typeSpec):
 
 def typeSpecsAreCompatible(typeSpec1, typeSpec2):
     if getTypeSpecOwner(typeSpec1) != getTypeSpecOwner(typeSpec2): return False
-    if fieldTypeKeyword(typeSpec1['fieldType']) != fieldTypeKeyword(typeSpec2['fieldType']): return False
+    if fieldTypeKeyword(getFieldType(typeSpec1)) != fieldTypeKeyword(getFieldType(typeSpec2)): return False
     leftContainerNull  = not(isAContainer(typeSpec1))
     rightContainerNull = not(isAContainer(typeSpec2))
     if not leftContainerNull and rightContainerNull: return False
