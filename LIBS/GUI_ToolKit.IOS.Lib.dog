@@ -59,7 +59,7 @@ var appView: UIView!
     override func viewDidLoad() {
         super.viewDidLoad()
         appView = UIView()
-        thisApp.createAppArea(appView)
+        //thisApp.createAppArea(appView)
         setupHeader()
         setupTitleLabel()
         jg_function()
@@ -107,7 +107,7 @@ var appView: UIView!
         let tw = topAppWidget(frame: CGRect(x: 0,
         y: headerView.frame.height+70,
         width:UIScreen.main.bounds.size.width,
-        height:UIScreen.main.bounds.size.height))
+        height:UIScreen.main.bounds.size.height-70))
 
         //        Use some dot notation to assign methods to topAppWidget as tw
         tw.backgroundColor = .gray
@@ -135,7 +135,7 @@ class topAppWidget: UIView {
     context?.__moveTo(x:0, y:0)
     context?.__addLineTo(x: self.frame.size.width, y:self.frame.size.height)
     context?.__moveTo(x:UIScreen.main.bounds.size.width, y:0)
-    context?.__addLineTo(x:0, y:UIScreen.main.bounds.size.height)
+    context?.__addLineTo(x:0, y:UIScreen.main.bounds.size.height-70)
     context?.strokePath()
     // EventDispatcher.topWidget?.draw()
 
