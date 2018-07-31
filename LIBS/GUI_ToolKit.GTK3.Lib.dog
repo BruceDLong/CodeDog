@@ -41,13 +41,32 @@ struct GUI_storyBoard{
     me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
 }
 
+struct boolWidget{
+    their GtkWidget: box
+    their GtkWidget: dataLabel
+    their GtkWidget: dataValue
+
+    me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0)%>
+    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
+
+    their GtkWidget: makeBoolWidget(me string: name)  <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(name.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
+        dataValue = gtk_check_button_new();
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        return box;
+    }%>
+}
 struct intWidget{
     their GtkWidget: box
     their GtkWidget: dataLabel
     their GtkWidget: dataValue
 
     me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0)%>
-    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0, %1)%>
+    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
 
     their GtkWidget: makeIntWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -77,6 +96,25 @@ struct stringWidget{
         gtk_container_add(GTK_CONTAINER (box), dataValue);
         return box;
     } %>
+}
+struct dateWidget{
+    their GtkWidget: box
+    their GtkWidget: dataLabel
+    their GtkWidget: dataValue
+
+    me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0)%>
+    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
+
+    their GtkWidget: makeDateWidget(me string: name)  <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(name.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
+        dataValue = gtk_calendar_new();
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        return box;
+    }%>
 }
 struct enumWidget{
     their GtkWidget: box
@@ -636,13 +674,12 @@ struct GLOBAL{
     /* Surface to store current scribbles */
     their cairo_surface_t: surface <- 0
 
-me void: close_window() <- {
+me void: close_window() <- <%{
   if (surface){
-    cairo_surface_destroy(surface)
+    cairo_surface_destroy(surface);
   }
-
-  gtk_main_quit()
-}
+  g_application_quit((GApplication*)thisApp.gui->app);
+}%>
 
     /- //MENU ROUTINES:
 me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <%{
@@ -683,7 +720,6 @@ me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!
 
 /--------------- Application areas
 their GtkWidget: window
-void: setMasterWidget(their widget: masterWidget) <- {EventDispatcher.topWidget<-masterWidget}
 
 me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     GtkWidget *topBox;
