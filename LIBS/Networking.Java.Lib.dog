@@ -1,0 +1,27 @@
+/- CodeDog HTTP Networking Library
+requirements = [
+    [tagOneOf, Platform, [Android]]
+]
+
+interface={
+    provides=[Networking_implementation]
+    libFiles=[]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus  ='dynamic'
+    description='Networking for Java'
+    features    =[]
+    platforms   =[IOS]
+    bindings    =[Java]
+    CPUs        =[i386, amd64, arm7]
+}
+
+struct HTTPRetCode{their CURLcode: HTTPRetCode}
+
+
+
+struct NetConnection{
+    me string: retrieve(me string: URLstr) <- <%{return("");}%>
+}
