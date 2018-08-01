@@ -50,6 +50,13 @@ def deCamelCase(identifier):
         chPos+=1
     return outStr
 
+def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
+    global classesEncoded
+    if guiStructName == 'timeValue_Dialog_GUI': return
+    if not(guiStructName in classesEncoded):
+        classesEncoded[guiStructName]=1
+        classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
+
 def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTypeName):
     funcTextToUpdateViewWidget      = ''
     funcTextToUpdateEditWidget      = ''
@@ -220,13 +227,19 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
     widgetBoxName       =  widgetName
     localWidgetVarName  = widgetName
 
-    if fieldSpec=='widget':
+    if fieldType=='timeValue':
+        typeName              = 'dateWidget'
+        widgetBoxName         =  widgetName +'.box'
+        makeTypeNameCall      =  "Allocate("+widgetName+"); " + widgetBoxName + ' <- '+ widgetName+'.makeDateWidget("'+label+'")\n'
+        widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
+        varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
+    elif fieldSpec=='widget':
         typeName              = CasedFieldName +'Widget'
         widgetName            = fieldName +'Widget'
         widgetBoxName         = fieldName
         localWidgetVarName    = fieldName
         newWidgetFields      += '    their GUI_item' + ': ' + fieldName + '\n'
-        makeTypeNameCall      = fieldName + '<- appModel_data.'+fieldName+".init()\n"
+        makeTypeNameCall      = widgetName+" <- Data." + fieldName + "\n" + fieldName + '<- '+widgetName+".init()\n"
     elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'
@@ -243,7 +256,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         for enumItem in params: EnumItems.append('"'+deCamelCase(enumItem)+'"')
         optionString          = '[' + ', '.join(EnumItems) + ']'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = widgetBoxName+' <- '+ widgetName+'.makeEnumWidget("'+label+'", '+optionString+')\n'
+        makeTypeNameCall      = "Allocate("+widgetName+"); " + widgetBoxName+' <- '+ widgetName+'.makeEnumWidget("'+label+'", '+optionString+')\n'
         widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='string':
@@ -253,7 +266,12 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='int':
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      =  widgetBoxName + ' <- '+ widgetName+'.makeIntWidget("'+label+'")\n'
+        makeTypeNameCall      =  "Allocate("+widgetName+"); " + widgetBoxName + ' <- '+ widgetName+'.makeIntWidget("'+label+'")\n'
+        widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
+        varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
+    elif fieldSpec=='bool':
+        widgetBoxName         =  widgetName +'.box'
+        makeTypeNameCall      =  "Allocate("+widgetName+"); " + widgetBoxName + ' <- '+ widgetName+'.makeBoolWidget("'+label+'")\n'
         widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='list' or fieldSpec=='map': pass
@@ -330,16 +348,12 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
             structTypeName =typeSpec['fieldType'][0]
             newGUIStyle    = 'Dialog'
             guiStructName  = structTypeName+'_'+newGUIStyle+'_GUI'
-            if not(guiStructName in classesEncoded):
-                classesEncoded[guiStructName]=1
-                classesToProcess.append([structTypeName, 'struct', 'Dialog', guiStructName])
+            addNewStructToProcess(guiStructName, structTypeName, 'struct', 'Dialog')
 
         if progSpec.isAContainer(typeSpec):# Add a new list to be processed
             structTypeName = typeSpec['fieldType'][0]
             guiStructName  = structTypeName+'_LIST_View'
-            if not(guiStructName in classesEncoded):
-                classesEncoded[guiStructName]=1
-                classesToProcess.append([structTypeName, 'list', 'Dialog', guiStructName])
+            addNewStructToProcess(guiStructName, structTypeName, 'list', 'Dialog')
 
 
     CODE =  '''struct <NEWSTRUCTNAME>{
@@ -407,16 +421,12 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             else:
                 newGUIStyle    = 'Dialog'
                 guiStructName  = structTypeName+'_'+newGUIStyle+'_GUI'
-                if not(guiStructName in classesEncoded):
-                    classesEncoded[guiStructName]=1
-                    classesToProcess.append([structTypeName, 'struct', 'Dialog', guiStructName])
+                addNewStructToProcess(guiStructName, structTypeName, 'struct', 'Dialog')
 
         if fldCat != 'widget' and progSpec.isAContainer(typeSpec):# Add a new list to be processed
             structTypeName = typeSpec['fieldType'][0]
             guiStructName  = structTypeName+'_LIST_View'
-            if not(guiStructName in classesEncoded):
-                classesEncoded[guiStructName]=1
-                classesToProcess.append([structTypeName, 'list', 'Dialog', guiStructName])
+            addNewStructToProcess(guiStructName, structTypeName, 'list', 'Dialog')
 
         #TODO: make actions for each function
         if fldCat=='func': continue
@@ -494,7 +504,6 @@ struct APP{
     our <GUI_STRUCTNAME>: <PRIMARY_GUI>
     me void: createAppArea(me GUI_Frame: frame) <- {
         Allocate(primary)
-        Allocate(primary.dashboard)
         Allocate(<PRIMARY_GUI>)
         their GUI_storyBoard: appStoryBoard <- <PRIMARY_GUI>.<PRIMARY_MAKERFUNCNAME>(primary)
         initializeAppGui()

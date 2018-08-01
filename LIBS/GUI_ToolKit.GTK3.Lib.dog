@@ -156,10 +156,6 @@ struct scrollerWidget{
     }%>
 }
 
-struct boolWidget{
-
-}
-
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
