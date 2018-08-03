@@ -858,12 +858,14 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, objsRefed, xlator):
+def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, xlator):
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
         [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
         fieldValueText += CPL
+    if isAllocated == True:
+        fieldValueText = " = " + getCodeAllocSetStr(fieldType, fieldOwner, "")
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):

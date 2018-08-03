@@ -17,6 +17,7 @@ import pattern_GenSymbols
 import pattern_MakeMenu
 import pattern_MakeGUI
 import pattern_RBMap
+import pattern_MakeStyler
 
 import stringStructs
 
@@ -951,10 +952,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
+        isAllocated = field['isAllocated']
         fieldID   =field['fieldID']
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
+        paramList = field['paramList']
         [intermediateType, innerType] = xlator['convertType'](classes, typeSpec, 'var', 'field', xlator)
         convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
@@ -964,9 +967,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             fieldName='operator='
             #print "                         opAssign: ", fieldType, fieldName
 
-        # CALCULATE RHS
+        # CALCULATE RHS          
         if(fieldValue == None):
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, field['paramList'], objsRefed, xlator)
+            if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
+                isAllocated = False 
+                paramList = None
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, xlator)
            # print "                            RHS none: ", fieldValueText
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, basestring):
@@ -1180,8 +1186,6 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
     currentObjName=''
     return classRecord
 
-
-
 def codeAllNonGlobalStructs(classes, tags, xlator):
     global currentObjName
     global structsNeedingModification
@@ -1320,6 +1324,21 @@ def connectLibraries(classes, tags, libsToUse, xlator):
 
     return headerStr
 
+def appendGLOBALInitCode(classes, tags, xlator):
+    for field in progSpec.generateListOfFieldsToImplement(classes, "GLOBAL"):
+        isAllocated = field['isAllocated']
+        if isAllocated:
+            fieldName =field['fieldName']
+            paramList = field['paramList']
+            paramStr  = ''
+            #if paramList != None:
+				#if(len(paramList)>0 ):
+					#for param in paramList:
+						# TODO: grab base parameter in codeDog, similar to codeExpr but through codeDog xlator 
+					#paramStr = ' <- (' + paramStr + ')'
+            allocStr = '    Allocate('+fieldName+')' + paramStr
+            progSpec.addCodeToInit(tags[0], allocStr)
+        
 def addGLOBALSpecialCode(classes, tags, xlator):
     global libInitCodeAcc
     global libDeinitCodeAcc
@@ -1428,6 +1447,7 @@ def generate(classes, tags, libsToUse, langName, xlator):
 
     cdlog(0, "\n##############  G E N E R A T I N G   "+langName+"   C O D E . . .")
     cdlog(1, "GENERATING: Top-level (e.g., main())...")
+    appendGLOBALInitCode(classes, tags, xlator)
     addGLOBALSpecialCode(classes, tags, xlator)
     testMode = progSpec.fetchTagValue(tags, 'testMode')
     if progSpec.fetchTagValue(tags, 'ProgramOrLibrary') == "program"  or testMode == "makeTests"  or testMode == "runTests":
@@ -1438,7 +1458,7 @@ def generate(classes, tags, libsToUse, langName, xlator):
     fileSpecs=codeAllNonGlobalStructs(classes, tags, xlator)
     topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
-
+    
     fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, fileSpecs, [], topBottomStrings, xlator)
    # print "\n\n##########################################################\n"
     print "\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:"
@@ -1497,6 +1517,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
            # elif pattName=='codeModelToGUI':     pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'toGUI')
             elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, [newTags, topTags], patternArgs)
             elif pattName=='makeRBMap':          pattern_RBMap.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
+            elif pattName=='makeStyler':         pattern_MakeStyler.apply(classes, [newTags, topTags])
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1
     for toDel in reversed(itemsToDelete):

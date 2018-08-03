@@ -331,7 +331,7 @@ def addDataStructureRequirements(requirementSpec):
     dataStructureRequirements.append(requirementSpec)
 
 def addCodeToInit(tagStore, newInitCode):
-    appendToStringTagValue(tagStore, "initCode", newInitCode + "\n");
+    appendToStringTagValue(tagStore, "initCode", newInitCode);
 
 def removeFieldFromObject (classes, className, fieldtoRemove):
     if not className in classes[0]:

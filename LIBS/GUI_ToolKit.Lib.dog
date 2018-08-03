@@ -40,7 +40,6 @@ struct boolWidget{}
 struct floatWidget{}
 struct rangeWidget{}
 struct numRangeWidget {}
-struct GdkEventButton {}
 struct CGContext {}
 struct CGPoint {}
 
@@ -62,9 +61,15 @@ struct GUI{
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)
     me void: setCallback()
+}
 
+struct fontSpec{
+    me string: name
+    me int: size
+}
 
-#include LIBS/x11ColorsRGB.txt
+struct Styler{
+    #include LIBS/x11ColorsRGB.txt
 }
 
 struct GLOBAL{
@@ -191,7 +196,7 @@ struct widget{
         return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
     }
 
-    void: initialize(me Int: PosX, me Int: PosY, me Int: Width, me Int: Height, me Int: Scale, me Int: Alpha ) <- {
+    void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
         posX <- PosX
         posY <- PosY
         width <- Width

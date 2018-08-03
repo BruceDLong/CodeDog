@@ -4,32 +4,6 @@
 
 featuresNeeded = [GUI_ToolKit]
 
-struct styleProvider{
-    const int: backgroundColor <- 1
-    const int: foregroundColor <- 2
-    const int: highlightColor  <- 3
-
-    me fontSpec: fontDefault
-    me fontSpec: fontTitle
-    me fontSpec: fontSmall
-
-    me cdColor: foreground  <- GUI.White
-    me cdColor: background  <- GUI.Black
-    me cdColor: textPrimary <- GUI.White
-    me cdColor: highlight1  <- GUI.Cornflower
-    me cdColor: highlight2  <- GUI.OrangeRed
-
-    void: INIT()<-{
-    fontDefault.name <- "Ariel"
-    fontDefault.size <- 10
-    fontTitle.name   <- "Ariel"
-    fontTitle.size   <- 16
-    fontSmall.name   <- "Ariel"
-    fontSmall.size   <- 8
-    }
-
-}
-
 struct Dashboard: inherits = 'dash'{
     our dash[list]: dashChildren
     their dash[map string]: dependentItems
@@ -248,7 +222,6 @@ struct ptrToItem: inherits = 'dash' {
     void: INIT()<-{refHidden<-true}
 }
 
-
 struct listOfItems: inherits = 'dash' {
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     me mode[vertical, horizontal]: orientation
@@ -374,8 +347,7 @@ struct DashboardWidget: inherits='dash' {
 }
 
 struct GLOBAL{
-    our styleProvider: styler
-
+    
     me int: intersectPoint(me int:outsidePt, me int:smallPt, me int: largePt) <- {
         me int: ret
         if(outsidePt<smallPt){ret<-smallPt}
