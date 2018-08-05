@@ -119,7 +119,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
             else: print"pattern_MakeGUI.codeListWidgetManagerClassOverride fldCat not specified: ", fldCat;  exit(2)
 
 ###############
-    CODE = 'struct '+listManagerStructName+''': inherits = "ListWidgetManager" {
+    CODE = 'struct '+listManagerStructName+''': inherits=ListWidgetManager{
     our <STRUCTNAME>: crntRecord
     our <STRUCTNAME>[our list]: <STRUCTNAME>_ListData
     me <STRUCTNAME>_Dialog_GUI: dialog

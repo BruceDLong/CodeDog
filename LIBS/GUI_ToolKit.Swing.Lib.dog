@@ -15,7 +15,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus  ='dynamic'
+    useStatus  = dynamic 
     description='Swing is a GUI widget toolkit for Java '
     features   =[]
     platforms  =[]
@@ -73,7 +73,7 @@ struct GUI_PointerEvent{
 }
 
 /-///////////////////////////////  HANDLE LISTENERS
-struct MasterMouseListener: implements="MouseListener" {
+struct MasterMouseListener: implements=MouseListener{
     me void: mouseClicked(me GUI_MouseEvent: e)<-     {
         me int: eventX <- e.x
         me int: eventY <- e.y
@@ -98,7 +98,7 @@ struct MasterMouseListener: implements="MouseListener" {
     }
 }
 
-struct MasterMouseMotionListener: implements="MouseMotionListener" {
+struct MasterMouseMotionListener: implements=MouseMotionListener{
     me void: mouseMoved(me GUI_MouseEvent: e)<-     {
         me int: eventX <- e.x
         me int: eventY <- e.y
@@ -215,7 +215,7 @@ struct GUI {
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 }
 
-struct GUI_ctxt: inherits="JPanel" {
+struct GUI_ctxt: inherits=JPanel{
     me void: reset() <- <%!GPath = new GeneralPath()%>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!gr.setColor(new Color(%1, %2, %3, %4))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!gr.setColor(new Color(%1, %2, %3))%>
@@ -237,7 +237,7 @@ struct GUI_ctxt: inherits="JPanel" {
     me void: renderFrame() <- <%!repaint()%>
 }
 
-struct JavaGUI_ctxt: inherits="JPanel" {
+struct JavaGUI_ctxt: inherits=JPanel{
     their Graphics2D: gr
     me GeneralPath: GPath
     me double: cur_x
@@ -252,10 +252,6 @@ struct JavaGUI_ctxt: inherits="JPanel" {
     }%>
 }
 
-struct fontSpec{
-    me string: name
-    me int: size
-}
 /-/////////////////////////////// TIME
 struct tm{
     me Calendar: tm

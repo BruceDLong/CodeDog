@@ -4,7 +4,7 @@
 
 featuresNeeded = [GUI_ToolKit]
 
-struct Dashboard: inherits = 'dash'{
+struct Dashboard: inherits=dash{
     our dash[list]: dashChildren
     their dash[map string]: dependentItems
     our decor[list]: decorations
@@ -100,8 +100,8 @@ struct Dashboard: inherits = 'dash'{
 
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
-        me cdColor: bkCol <- styler.background
-        me cdColor: fgCol <- styler.foreground
+        me cdColor: bkCol <- styler.bkGndColor
+        me cdColor: fgCol <- styler.frGndColor
         /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
         cr.setColor(bkCol)
         cr.paintNow()
@@ -122,7 +122,7 @@ struct Dashboard: inherits = 'dash'{
     }
 }
 
-struct dash: inherits = 'widget'{
+struct dash: inherits=widget{
     me string: title
     me int: extX        /- Dashes right-most extent
     me int: extY        /- Dashes lowest extent
@@ -151,7 +151,7 @@ struct dash: inherits = 'widget'{
     }
 }
 
-struct dataField: inherits = 'dash' {
+struct dataField: inherits=dash{
     me string: label
     me string: value
     me int: midPos
@@ -178,7 +178,7 @@ struct dataField: inherits = 'dash' {
     }
 }
 
-struct ptrToItem: inherits = 'dash' {
+struct ptrToItem: inherits=dash{
     me dataField: header
     me bool: refHidden
     me string: symbol
@@ -222,7 +222,7 @@ struct ptrToItem: inherits = 'dash' {
     void: INIT()<-{refHidden<-true}
 }
 
-struct listOfItems: inherits = 'dash' {
+struct listOfItems: inherits=dash{
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     me mode[vertical, horizontal]: orientation
     me dataField: header
@@ -321,7 +321,7 @@ struct listOfItems: inherits = 'dash' {
     }
 }
 
-struct DashboardWidget: inherits='dash' {
+struct DashboardWidget: inherits=dash{
     our Dashboard:: dashboardDBW
     their GUI_canvas: canvas
     their GUI_item: managedWidget

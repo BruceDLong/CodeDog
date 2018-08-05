@@ -276,7 +276,7 @@ struct GLOBAL{
                 self.handleClicksFuncTxtAcc2+= '    if('+fieldName+' != NULL and !'+fieldName+'Ptr.refHidden){\n'+fieldName+'.isHidden<-false\n    }\n'
 
         Code='''
-struct display_'''+className+": inherits = 'dash' "+'''{
+struct display_'''+className+": inherits=dash"+'''{
     me bool: isChanged
     me dataField: header
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
@@ -336,19 +336,19 @@ struct display_'''+className+": inherits = 'dash' "+'''{
 
     void: draw(me GUI_ctxt: cr) <- {
         header.isHidden <- false
-        me cdColor: hedrColor <- styler.foreground
+        me cdColor: hedrColor <- styler.frGndColor
         cr.setColor(hedrColor)
         header.draw(cr)
         cr.strokeNow()
-        hedrColor <- styler.foreground
+        hedrColor <- styler.frGndColor
         cr.setColor(hedrColor)
         if(displayMode!=headerOnly){
 '''+self.drawFuncTextAcc+'''
-            me cdColor: rectColor <- styler.foreground
+            me cdColor: rectColor <- styler.frGndColor
             cr.setColor(rectColor)
             cr.rectangle(posX, posY, width, height)
             cr.strokeNow()
-            rectColor <- styler.foreground
+            rectColor <- styler.frGndColor
             cr.setColor(rectColor)
 '''+self.drawFuncTextPart2Acc+'''
         }

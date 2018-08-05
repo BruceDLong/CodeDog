@@ -23,7 +23,7 @@ libraries = {
     }
 
     GTK3={
-        useStatus='dynamic'
+        useStatus= dynamic 
         description='GTK is a GUI Toolkit'
         features=[GUI_ToolKit, Mouse, Keyboard, Audio]
         platforms=[Linux, OS-X_Devices, Windows]
@@ -42,7 +42,7 @@ libraries = {
     }
 
     Java={
-        useStatus='dynamic'
+        useStatus= dynamic 
         description='Misc Java'
         features=[System]
         platforms=[Java, Android]
@@ -53,7 +53,7 @@ libraries = {
     }
 
     CPP={
-        useStatus='dynamic'
+        useStatus= dynamic 
         description='Misc CPP'
         features=[System]
         platforms=[Linux, OS-X_Devices, Windows]
@@ -64,7 +64,7 @@ libraries = {
     }
 
     Swing={
-        useStatus='dynamic'
+        useStatus= dynamic 
         description='Swing is a GUI widget toolkit for Java '
         features=[GUI_ToolKit]
         platforms=[Java]
@@ -75,7 +75,7 @@ libraries = {
     }
 
     AndroidGUI={
-        useStatus='dynamic'
+        useStatus= dynamic 
         description='Misc for Android '
         features=[GUI_ToolKit]
         platforms=[Android]
@@ -86,7 +86,7 @@ libraries = {
     }
 
     Android={
-        useStatus='dynamic'
+        useStatus= dynamic 
         description='GUI widget toolkit for Android '
         features=[System]
         platforms=[Android]
@@ -97,7 +97,7 @@ libraries = {
     }
 
     Swift={
-        useStatus='dynamic'
+        useStatus= dynamic 
         description='Misc for Swift '
         features=[System]
         platforms=[XCODE]

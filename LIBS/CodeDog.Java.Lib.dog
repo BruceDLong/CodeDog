@@ -12,7 +12,7 @@ interface={
 
 
 LibDescription ={
-    useStatus   = 'dynamic'
+    useStatus   =  dynamic 
     description = 'Built in routines for Java'
 }
 

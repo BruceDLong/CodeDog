@@ -1517,7 +1517,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
            # elif pattName=='codeModelToGUI':     pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'toGUI')
             elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, [newTags, topTags], patternArgs)
             elif pattName=='makeRBMap':          pattern_RBMap.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
-            elif pattName=='makeStyler':         pattern_MakeStyler.apply(classes, [newTags, topTags])
+            elif pattName=='makeStyler':         pattern_MakeStyler.apply(classes, [newTags, topTags], patternArgs[0])
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         count+=1
     for toDel in reversed(itemsToDelete):

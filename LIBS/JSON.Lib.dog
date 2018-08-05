@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   ='dynamic'
+    useStatus   = dynamic 
     description ='JSON parser'
     features    =[JSON]
     platforms   =[Linux, OS-X_Devices, Windows]
