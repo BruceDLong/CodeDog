@@ -1,4 +1,4 @@
-/- CodeDog grapg dash for DashBoard
+/- CodeDog graph dash for DashBoard
 
 featuresNeeded = [Dashboard]
 
@@ -7,6 +7,7 @@ struct graphScale: inherits = 'dash'{
     me bool:   isVisible
     me int:    ticksPerStep
     me bool:   textSlant
+    me bool:   isDate
 
     me double: step
     me double: tickStep
@@ -19,21 +20,32 @@ struct graphScale: inherits = 'dash'{
     const int: tickPadding  <- 3
     const int: titlePadding <- 7
 
-    void: initScale(me string: titleStr, me bool: IsVisible, me int: TicksPerStep,  me bool: TextSlant) <- {
-    title        <- titleStr
-    isVisible    <- IsVisible
-    ticksPerStep <- TicksPerStep
-    textSlant    <- TextSlant
+    void: initScale(me string: titleStr, me bool: IsVisible, me int: TicksPerStep,  me bool: TextSlant, me bool: IsDate) <- {
+	title        <- titleStr
+	isVisible    <- IsVisible
+	ticksPerStep <- TicksPerStep
+	textSlant    <- TextSlant
+	isDate	     <- IsDate
     }
 
     void: setScale(me double: Span, me double: LowVal, me double: HiVal, me double: Step, me double: XOrig, me double: YOrig, me int: TickOffset) <- {
-    span         <- Span
-    lowVal       <- LowVal
-    hiVal        <- HiVal
-    step         <- Step
-    xOrig        <- XOrig
-    yOrig        <- YOrig
-    tickOffset   <- TickOffset
+	span         <- Span
+	lowVal       <- LowVal
+	hiVal        <- HiVal
+	step         <- Step
+	xOrig        <- XOrig
+	yOrig        <- YOrig
+	tickOffset   <- TickOffset
+    }
+    /- Overloaded setScale for time values
+    void: setScale(me double: Span, me timeValue: LowVal, me timeValue: HiVal, me double: Step, me double: XOrig, me double: YOrig, me int: TickOffset) <- {
+	span         <- Span
+	lowVal       <- LowVal
+	hiVal        <- HiVal
+	step         <- Step
+	xOrig        <- XOrig
+	yOrig        <- YOrig
+	tickOffset   <- TickOffset
     }
 }
 
@@ -45,22 +57,22 @@ struct verticalScale: inherits = 'graphScale'{
     me int: labelWidth <- 0
     me string: label
     me string: justify <- ""
-
+    
     /- AXIS VALUE LABELS
     withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
-        label <- dblToString(val*step+lowVal, 2)
-        size <- getTextSize(cr, label, styler.fontSmall)
-        YPos <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
-        if(textSlant){
-        if (tickOffset > 0){XPos <- xOrig+tickOffset+3*tickPadding+size.height/2}
-        else               {XPos <- xOrig+tickOffset-3*tickPadding; justify <- "right"}
-        size <- renderTextRotate(cr, label, styler.fontSmall, XPos, YPos, -45, justify)
-        }else{
-        if (tickOffset > 0){XPos <- xOrig+tickOffset+3*tickPadding}
-        else               {XPos <- xOrig+tickOffset-3*tickPadding-size.width}
-        renderText(cr, label, styler.fontSmall, XPos, YPos)
-        }
-        if(size.width > labelWidth){labelWidth <- size.width}
+	label <- dblToString(val*step+lowVal, 2)
+	size <- getTextSize(cr, label, styler.fontSmall)
+	YPos <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
+	if(textSlant){
+	    if (tickOffset > 0){XPos <- xOrig+tickOffset+3*tickPadding+size.height/2}
+	    else               {XPos <- xOrig+tickOffset-3*tickPadding; justify <- "right"}
+	    size <- renderTextRotate(cr, label, styler.fontSmall, XPos, YPos, -45, justify)
+	}else{
+	    if (tickOffset > 0){XPos <- xOrig+tickOffset+3*tickPadding}
+	    else               {XPos <- xOrig+tickOffset-3*tickPadding-size.width}
+	    renderText(cr, label, styler.fontSmall, XPos, YPos)
+	}
+	if(size.width > labelWidth){labelWidth <- size.width}
     }
 
     /- AXIS TICK MARKS
@@ -68,11 +80,11 @@ struct verticalScale: inherits = 'graphScale'{
         tickStep <- step/ticksPerStep
         cr.setLineWidth(1)
         withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
-        if (tickOffset > 0){XPos <- xOrig+3}
-        else               {XPos <- xOrig-3}
-        YPos <- yOrig - val*tickStep*span/(hiVal-lowVal)
-        cr.moveTo(XPos, YPos)
-        cr.lineTo(XPos+tickOffset, YPos)
+	    if (tickOffset > 0){XPos <- xOrig+3}
+	    else               {XPos <- xOrig-3}
+	    YPos <- yOrig - val*tickStep*span/(hiVal-lowVal)
+	    cr.moveTo(XPos, YPos)
+	    cr.lineTo(XPos+tickOffset, YPos)
         }
         cr.strokeNow()
     }
@@ -97,27 +109,34 @@ struct horizontalScale: inherits = 'graphScale'{
     me int: tickHeight  <- 0
     me string: label
     me string: justify <- ""
-
+    me sysLocale: loc
+    me UErrorCode: status <- U_ZERO_ERROR
+    
     /- AXIS VALUE LABELS
     withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
-        label <- dblToString(val*step+lowVal, 2)
-        size <- getTextSize(cr, title, styler.fontSmall)
-        if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPos <- yOrig+tickHeight+size.height}
-        else               {tickHeight  <- tickOffset-3*tickPadding; YPos <- yOrig+tickHeight}
-        if(textSlant){
-        if (tickOffset > 0){
-            XPos <- xOrig+val*step*span/(hiVal-lowVal)-5
-            justify <- "right"
-            YPos <- YPos - 10
-        }
-        else{XPos <- xOrig+val*step*span/(hiVal-lowVal)}
-        size <- renderTextRotate(cr, label, styler.fontSmall, XPos, YPos, -45, justify)
-        }else{
-        XPos <- xOrig+val*step*span/(hiVal-lowVal)-5
-        size <- renderText(cr, label, styler.fontSmall, XPos, YPos)
-        }
-        if(size.height > labelHeight){labelHeight <- size.height}
-        cr.strokeNow()
+	if(isDate){
+	    loc <- unicodeMgr.SetLocale("pt")
+	    label <- unicodeMgr.dateToIntlString(val*step+lowVal, hiVal-lowVal, loc, status)
+	}
+	else{label <- dblToString(val*step+lowVal, 2)}
+	/-label <- dblToString(val*step+lowVal, 2)
+	size <- getTextSize(cr, title, styler.fontSmall)
+	if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPos <- yOrig+tickHeight+size.height}
+	else               {tickHeight  <- tickOffset-3*tickPadding; YPos <- yOrig+tickHeight}
+	if(textSlant){
+	    if (tickOffset > 0){
+		XPos <- xOrig+val*step*span/(hiVal-lowVal)-5
+		justify <- "right"
+		YPos <- YPos - 10
+	    }
+	    else{XPos <- xOrig+val*step*span/(hiVal-lowVal)}
+	    size <- renderTextRotate(cr, label, styler.fontSmall, XPos, YPos, -45, justify)
+	}else{
+	    XPos <- xOrig+val*step*span/(hiVal-lowVal)-5
+	    size <- renderText(cr, label, styler.fontSmall, XPos, YPos)
+	}
+	if(size.height > labelHeight){labelHeight <- size.height}
+	cr.strokeNow()
     }
 
     /- AXIS TICK MARKS
@@ -125,11 +144,11 @@ struct horizontalScale: inherits = 'graphScale'{
         tickStep <- step/ticksPerStep
         cr.setLineWidth(1)
         withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
-        if (tickOffset > 0){YPos <- yOrig+tickPadding}
-        else               {YPos <- yOrig-tickPadding}
-        XPos <- xOrig + val*tickStep*span/(hiVal-lowVal)
-        cr.moveTo(XPos, YPos)
-        cr.lineTo(XPos, YPos+tickOffset)
+	    if (tickOffset > 0){YPos <- yOrig+tickPadding}
+	    else               {YPos <- yOrig-tickPadding}
+	    XPos <- xOrig + val*tickStep*span/(hiVal-lowVal)
+	    cr.moveTo(XPos, YPos)
+	    cr.lineTo(XPos, YPos+tickOffset)
         }
         cr.strokeNow()
     }
@@ -229,19 +248,21 @@ struct graph: inherits = 'dash'{
         /-//// TEXT
         cr.setColor(styler.highlight2)
         if(leftScale.isVisible){
-            leftScale.setScale(height, 10,100, 10, posX, YOrig, -4)
+            leftScale.setScale(height, 10.0, 100.0, 10.0, posX, YOrig, -4)
             leftScale.draw(cr)
         }
         if(bottomScale.isVisible){
-            bottomScale.setScale(width, 0, 100000, 10000, posX, YOrig, 4)
+            bottomScale.setScale(width, 9000000000.0, 10000000000.0, 100000000.0, posX, YOrig, 4)
+	    /- WHY DOES THIS CRASH?
+	    /-bottomScale.setScale(width, 9000.0, 10000.0, 100.0, posX, YOrig, 4)
             bottomScale.draw(cr)
         }
         if(rightScale.isVisible){
-            rightScale.setScale(height, 0,10000000, 1000000, posX+width, YOrig, 4)
+            rightScale.setScale(height, 0.0, 10000000.0, 1000000.0, posX+width, YOrig, 4)
             rightScale.draw(cr)
         }
         if(topScale.isVisible){
-            topScale.setScale(width, 0, 100, 10, posX, posY, -4)
+            topScale.setScale(width, 0.0, 100.0, 10.0, posX, posY, -4)
             topScale.draw(cr)
         }
 
@@ -257,10 +278,12 @@ struct graph: inherits = 'dash'{
         height  <- Height
         step    <- Step
 
-        leftScale.initScale("leftScale", true, 1, true)
-        rightScale.initScale("rightScale!", true, 1, true)
+        leftScale.initScale("leftScale", true, 1, true, false)		/- (string titleStr, bool IsVisible, int TicksPerStep, bool TextSlant, bool IsDate)
+        rightScale.initScale("rightScale!", true, 1, true, false)
 
-        bottomScale.initScale("bottomScale!", true, 3, true)
-        topScale.initScale("topScale", true, 1, true)
+        bottomScale.initScale("bottomScale!", true, 3, true, true)
+        topScale.initScale("topScale", true, 1, true, false)
+	
+	/- ??? Set dateLabel format and locale on init? It would need to a way to update w/ zoom/toggle
     }
 }
