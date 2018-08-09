@@ -1505,7 +1505,7 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
 
 def loadProgSpecFromDogFile(filename, ProgSpec, objNames, topLvlTags, macroDefs):
     codeDogStr = progSpec.stringFromFile(filename)
-    codeDogStr = libraryMngr.processIncludedFiles(codeDogStr)
+    codeDogStr = libraryMngr.processIncludedFiles(codeDogStr, filename)
     [tagStore, buildSpecs, FileClasses, newClasses] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs, filename)
     GroomTags(tagStore)
     ScanAndApplyPatterns(FileClasses, topLvlTags, tagStore)
