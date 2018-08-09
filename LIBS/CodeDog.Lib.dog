@@ -8,45 +8,67 @@ struct GLOBAL{
     me string: dispBool(me bool: tf) <- {
         if(tf){return("true")} else {return("false")}
     }
-    
+
     /- Convert doubles to strings w/ a specified number of significant figures. (Pretty axes labels)
     /- TODO: Rounding, trailing 0's, leading 0's, track decimal point, tolerance range test, clean integers, move label w/ high sigfigs
     me string: dblToString(me double: val, me int: sigFigs) <- {
-	me string: S <- toString(val)
-	me string: S2 <- ""
-	me int: sizeS <- S.size()
-	me int: sizeS2 <- 0
-	me int: digits <- 0
-	me char: S2last
-	me bool: hasDecimal <- false
-	
-	/- Limit sig figs to length of double minus possible "." and "-"
-	if(sizeS < sigFigs) {sigFigs <- sizeS-2}
-	
-	/- Zero is 0
-	if(val==0) {return(" 0")}
-	
-	withEach Pos in RANGE(0..sizeS) {
-	    me char: ch <- S[Pos]
-	    if(ch != "." and ch != "-") {
-		digits <- digits + 1
-		/-print("digits is ", digits, ". Pos is ", Pos, ". S is ", S, "\n")
-		if(digits >= sigFigs+1 and hasDecimal == true) {
-		    S2 <- S.subStr(0, Pos)
-		    break()
-		}
-	    } else if(ch == ".") {hasDecimal <- true}
-	}
-	
-	/- Trim trailing period
-	sizeS2 <- S2.size()
-	S2last <- S2[sizeS2-1]
-	if(S2last == ".") { S2 <- S2.subStr(0, sizeS2-1) }
-	
-	/-print(S2)
-	return(S2)
+        me string: S <- toString(val)
+        me string: S2 <- ""
+        me int: sizeS <- S.size()
+        me int: sizeS2 <- 0
+        me int: digits <- 0
+        me char: S2last
+        me bool: hasDecimal <- false
+
+        /- Limit sig figs to length of double minus possible "." and "-"
+        if(sizeS < sigFigs) {sigFigs <- sizeS-2}
+
+        /- Zero is 0
+        if(val==0) {return(" 0")}
+
+        withEach Pos in RANGE(0..sizeS) {
+            me char: ch <- S[Pos]
+            if(ch != "." and ch != "-") {
+            digits <- digits + 1
+            /-print("digits is ", digits, ". Pos is ", Pos, ". S is ", S, "\n")
+            if(digits >= sigFigs+1 and hasDecimal == true) {
+                S2 <- S.subStr(0, Pos)
+                break()
+            }
+            } else if(ch == ".") {hasDecimal <- true}
+        }
+
+        /- Trim trailing period
+        sizeS2 <- S2.size()
+        S2last <- S2[sizeS2-1]
+        if(S2last == ".") { S2 <- S2.subStr(0, sizeS2-1) }
+
+        return(S2)
+    }
+
+    me string: dispFieldAsText(me string: label, me int:labelLen) <- {
+        me string: S <- ""
+        me int: labelSize<-label.size()
+        withEach count in RANGE(0..labelLen){
+            if (count<labelSize){S <- S+label[count]}
+            else if(count==labelSize){ S <- S+":"}
+            else {S <- S+" "}
+        }
+        return(S)
     }
 }
+
+struct sessionFile{
+    me void: openSession(me string: filename) <-{}
+    me void: closeSession() <- {}
+    me void: writeEntry(me string: entry) <- {}
+
+    me void: openToRead(me string: filename) <- {}
+    me string: readEntry() <- {return("")}
+    me bool: eof() <- {return(true)}
+    me void: closeReading() <- {}
+}
+
 struct stringScanner{
     me string: S
     me int: pos
