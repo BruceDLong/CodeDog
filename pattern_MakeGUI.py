@@ -57,6 +57,19 @@ def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetSty
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
 
+def getButtonHandlingCode(classes, buttonLabel, callBackFuncName):
+    global newWidgetFields
+    global widgetInitFuncCode
+    # Add a button to widget and put it in box
+    buttonsWidgetName = buttonLabel+"Button"
+    widgetInitFuncCode   += '        their GUI_button: '+buttonsWidgetName+' <- makeButtonWidget("'+buttonLabel+'")\n'
+    # make its onclick trigger
+    # g_signal_connect(G_OBJECT(EnterButton), "clicked", G_CALLBACK(EntryPad_Dialog__EnterBtnCB), Data.get());
+    widgetInitFuncCode   += '        GUI.setCallback('+buttonsWidgetName+', "clicked", '+ buttonsWidgetName +'_CB, Data)'
+    widgetInitFuncCode   += '        addToContainer(box, '+buttonsWidgetName+')\n'
+    # onClick() should call this.callback()
+    #   GTK: void EntryPad_Dialog__EnterBtnCB(GtkWidget* wid, EntryPad* EPad){EPad->enter_btn();}
+
 def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTypeName):
     funcTextToUpdateViewWidget      = ''
     funcTextToUpdateEditWidget      = ''
@@ -224,7 +237,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
     widgetName          = CasedFieldName + 'Widget'
     fieldType           = field['typeSpec']['fieldType'][0]
     typeSpec            = field['typeSpec']
-    widgetBoxName       =  widgetName
+    widgetBoxName       = widgetName
     localWidgetVarName  = widgetName
 
     if fieldType=='timeValue':
@@ -232,7 +245,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      =  "Allocate("+widgetName+"); " + widgetBoxName + ' <- '+ widgetName+'.makeDateWidget("'+label+'")\n'
         widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
-        varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
+        varsFromWidgetCode   += "        "+currentClassName+"_data." + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='widget':
         typeName              = CasedFieldName +'Widget'
         widgetName            = fieldName +'Widget'
@@ -248,8 +261,8 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetInitFuncCode   += '        Allocate('+guiMgrName+')\n'
         makeTypeNameCall      = widgetName+' <- '+guiMgrName+'.make'+structTypeName+'Widget('+currentClassName+'_data.'+fieldName+')\n'
         newWidgetFields      += '    our ' + guiStructName + ': '+ guiMgrName+'\n'
-        widgetFromVarsCode   += '        '+guiMgrName+ '.setValue(var.'+fieldName+')\n'
-        varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
+        widgetFromVarsCode   += '        ' + guiMgrName+ '.setValue(var.'+fieldName+')\n'
+        varsFromWidgetCode   += '        ' + guiMgrName + '.getValue()\n'
     elif fieldSpec=='enum':
         typeName = 'enumWidget'
         EnumItems=[]
@@ -257,23 +270,23 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         optionString          = '[' + ', '.join(EnumItems) + ']'
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      = "Allocate("+widgetName+"); " + widgetBoxName+' <- '+ widgetName+'.makeEnumWidget("'+label+'", '+optionString+')\n'
-        widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
-        varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
+        widgetFromVarsCode   += '        ' + widgetName+ '.setValue(var.'+ fieldName +')\n'
+        varsFromWidgetCode   += '        '+currentClassName+"_data." + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='string':
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      = "Allocate("+widgetName+"); " + widgetBoxName + ' <- '+ widgetName+'.makeStringWidget("'+label+'")\n'
-        widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
-        varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
+        widgetFromVarsCode   += '        ' + widgetName+ '.setValue(var.'+ fieldName +')\n'
+        varsFromWidgetCode   += '        ' +currentClassName+"_data." + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='int':
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      =  "Allocate("+widgetName+"); " + widgetBoxName + ' <- '+ widgetName+'.makeIntWidget("'+label+'")\n'
         widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
-        varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
+        varsFromWidgetCode   += "        "+currentClassName+"_data." + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='bool':
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      =  "Allocate("+widgetName+"); " + widgetBoxName + ' <- '+ widgetName+'.makeBoolWidget("'+label+'")\n'
-        widgetFromVarsCode   += "        " + widgetName+ '.setValue(var.'+ fieldName +')\n'
-        varsFromWidgetCode    = "        " + fieldName + ' <- ' + widgetName + '.getValue()\n'
+        widgetFromVarsCode   += '        ' + widgetName+ '.setValue(var.'+ fieldName +')\n'
+        varsFromWidgetCode   += '        ' + currentClassName+"_data." + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldSpec=='list' or fieldSpec=='map': pass
     else: print"pattern_MakeGUI.getWidgetHandlingCode fieldSpec not specified: ", fieldSpec;  exit(2)
 
@@ -296,7 +309,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetInitFuncCode   += '        their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget('+currentClassName+'_data.'+fieldName+')\n'
         widgetInitFuncCode   += '        addToContainer(box, '+widgetListEditorName+')\n'
         widgetFromVarsCode   += "        " + listWidMgrName + '.setValue(var.'+ fieldName +')\n'
-        varsFromWidgetCode    = "        " + listWidMgrName + ' <- ' + widgetName + '.getValue()\n'
+#        varsFromWidgetCode   += "        " + listWidMgrName + ' <- ' + widgetName + '.getValue()\n'
     else: # Not an ArraySpec:
         newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
@@ -429,15 +442,22 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             addNewStructToProcess(guiStructName, structTypeName, 'list', 'Dialog')
 
         #TODO: make actions for each function
-        if fldCat=='func': continue
+        if fldCat=='func':
+            if fieldName[-4:]== '_btn':
+                buttonLabel = deCamelCase(fieldName[:-4])
+                # Add a button whose click calls this.
+                print "ADDING BUTTON FOR:", fieldName
+                getButtonHandlingCode(classes, buttonLabel, fieldName)
 
-        getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, '')
+        else: # Here is the main case where code to edit this field is written
+            getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, '')
 
     # Parse everything
     initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
     if dialogStyle == 'Z_stack': containerWidget='makeStoryBoardWidget("makeStoryBoardWidget")'
     elif dialogStyle == 'TabbedStack': containerWidget='makeTabbedWidget("makeTabbedWidget")'
     else: containerWidget='makeFrameWidget()'
+
 
     CODE =  '''
 struct <CLASSNAME> {}
@@ -454,7 +474,7 @@ struct <NEWSTRUCTNAME> {
         <WIDGETFROMVARSCODE>
     }
     void: getValue() <- {
-        /-  <VARSFROMWIDGETCODE>
+        <VARSFROMWIDGETCODE>
     }
 }\n'''  # TODO: add <VARSFROMWIDGETCODE>
 
@@ -466,7 +486,7 @@ struct <NEWSTRUCTNAME> {
     CODE = CODE.replace('<WIDGETFROMVARSCODE>', widgetFromVarsCode)
     CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
     CODE = CODE.replace('<CONTAINERWIDGET>', containerWidget)
-    #print '==========================================================\n'+CODE
+    if newStructName == "EntryPad_Dialog_GUI":print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 def apply(classes, tags, topClassName):

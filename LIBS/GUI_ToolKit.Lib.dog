@@ -32,15 +32,15 @@ struct GUI_Frame{}
 struct GUI_ScrollingWindow{}
 struct GUI_callback{}
 struct GUI_MotionEvent{}
-struct GUI_ButtonEvent{}
 struct INK_Image{}
+
+struct GUI_button{}
 
 /- GUI Widgets
 struct boolWidget{}
 struct floatWidget{}
 struct rangeWidget{}
 struct numRangeWidget {}
-struct GdkEventButton {}
 struct CGContext {}
 struct CGPoint {}
 
@@ -191,7 +191,7 @@ struct widget{
         return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
     }
 
-    void: initialize(me Int: PosX, me Int: PosY, me Int: Width, me Int: Height, me Int: Scale, me Int: Alpha ) <- {
+    void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
         posX <- PosX
         posY <- PosY
         width <- Width
@@ -226,7 +226,7 @@ struct ListWidgetManager{
     void: handleAdd()    <- {}
     void: handleDelete() <- {}
     void: handleEdit()   <- {}
-    
+
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }

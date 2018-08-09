@@ -18,7 +18,7 @@ interface={
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
         android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup,
         android.support.design.widget.FloatingActionButton, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
-	android.R.drawable, android.graphics.drawable.Drawable,	android.graphics.drawable.GradientDrawable
+    android.R.drawable, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable
     ]
 }
 
@@ -48,6 +48,8 @@ struct GUI_scalar{me float: GUI_scalar}
 struct GUI_label{their textView: GUI_label}
 struct listWidget{their LinearLayout: listWidget}
 
+struct GUI_button{me button: GUI_button}
+
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard: inherits="FragmentActivity" {
     their LinearLayout: GUI_storyBoard
@@ -65,10 +67,10 @@ struct intWidget{
     their LinearLayout: makeIntWidget(me string: name)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-	dataLabel.setText(name);
+    dataLabel.setText(name);
         box.addView(dataLabel);
         dataValue = new TextView(GLOBAL.static_Global);
-	dataValue.setText(name);
+    dataValue.setText(name);
         box.addView(dataValue);
         return box;
     }%>
@@ -84,10 +86,10 @@ struct stringWidget{
     their LinearLayout: makeStringWidget(me string: name) <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-	dataLabel.setText(name);
+    dataLabel.setText(name);
         box.addView(dataLabel);
         dataValue = new TextView(GLOBAL.static_Global);
-	dataValue.setText(name);
+    dataValue.setText(name);
         box.addView(dataValue);
         return box;
     } %>
@@ -111,18 +113,18 @@ struct enumWidget{
 struct scrollerWidget{
     their LinearLayout: layoutArea <- (GLOBAL.static_Global)
     their NestedScrollView: scroller
-    
+
     their GUI_ScrollingWindow: makeScrollerWidget(their CanvasView: canvas) <- <%{
         scroller = new NestedScrollView(GLOBAL.static_Global);
         scroller.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-	HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
+    HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
         hScroller.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
         scroller.addView(hScroller);
         layoutArea = new LinearLayout(GLOBAL.static_Global);
         layoutArea.setOrientation(LinearLayout.VERTICAL);
         layoutArea.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         hScroller.addView(layoutArea);
-	layoutArea.addView(canvas);
+    layoutArea.addView(canvas);
         return(scroller);
     }%>
 }
@@ -325,12 +327,12 @@ struct GLOBAL{
     }%>
     me void: setLabelWidth(their GUI_Frame: labelWidget, me int: width) <- <%{
         LayoutParams params = new LayoutParams(width, LayoutParams.WRAP_CONTENT);
-	params.width = width;
-	labelWidget.setLayoutParams(params);
+    params.width = width;
+    labelWidget.setLayoutParams(params);
     }%>
-    
+
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!%G %>
-    
+
 }
 
 struct StoryBoard: inherits="Fragment"{
@@ -386,12 +388,12 @@ struct Android_eventDispatcher{
             returnVal= true;
             break;
         case MotionEvent.ACTION_MOVE:
-	    //GLOBAL.static_Global.toolbar.setTitle("ACTION_MOVE!");
-	    returnVal= true;
+        //GLOBAL.static_Global.toolbar.setTitle("ACTION_MOVE!");
+        returnVal= true;
             break;
         case MotionEvent.ACTION_UP:
             //GLOBAL.static_Global.toolbar.setTitle("ACTION_UP!");
-	    returnVal= true;
+        returnVal= true;
             break;
         case MotionEvent.ACTION_CANCEL:
             //GLOBAL.static_Global.toolbar.setTitle("ACTION_CANCEL!");
@@ -413,7 +415,7 @@ struct Android_eventDispatcher{
     }%>
 
     me void: registerWidgetForEventDispatcher(me CanvasView: appWidget, their widget: masterWidget) <- {
-        EventDispatcher.topWidget<-masterWidget
+        topWidget<-masterWidget
         /-appWidget.addOnTouchListener(onTouchListener);
         /-appWidget.setOnTouchListener(GLOBAL.static_Global.EventDispatcher);
     }
@@ -605,58 +607,58 @@ struct GLOBAL: inherits="AppCompatActivity"{
     me Toolbar: toolbar
 
     /- TIME ROUTINES:
-    
+
     /- //DRAWING ROUTINES:
     me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         cr.paint.setTextSize(font.size);
         cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
         cr.GCanvas.drawText(text, (float)x, (float)y, cr.paint);
-	deltaSize size = getTextSize(cr, text, font);
-	return(size);
+    deltaSize size = getTextSize(cr, text, font);
+    return(size);
     }%>
 
     me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         deltaSize size = getTextSize(cr, text, font);
-	cr.paint.setTextSize(font.size);
+    cr.paint.setTextSize(font.size);
         cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-	renderText(cr, text, font, x-size.width/2, y);
-	return(size);
+    renderText(cr, text, font, x-size.width/2, y);
+    return(size);
     }%>
 
     me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
-	double radians    = degrees*(Math.PI/180.);
-	deltaSize size    = getTextSize(cr, text, font);
-	double hypotenuse = size.width;
-	deltaSize tmpSize = new deltaSize(0,0);
-	
-	
-	if(justify == "right"){x=x-hypotenuse;}
-	else if(justify == "center"){x=x-hypotenuse/2;}
-	cr.GCanvas.save();
-	cr.GCanvas.rotate(45, (float)x, (float)y);
-	renderText (cr, text, font, x, y);
-	cr.GCanvas.restore();
-	//TODO: calculate height and width more accurately      
-	tmpSize.width = size.width;
-	tmpSize.height = size.width;
-	return(tmpSize);
+    double radians    = degrees*(Math.PI/180.);
+    deltaSize size    = getTextSize(cr, text, font);
+    double hypotenuse = size.width;
+    deltaSize tmpSize = new deltaSize(0,0);
+
+
+    if(justify == "right"){x=x-hypotenuse;}
+    else if(justify == "center"){x=x-hypotenuse/2;}
+    cr.GCanvas.save();
+    cr.GCanvas.rotate(45, (float)x, (float)y);
+    renderText (cr, text, font, x, y);
+    cr.GCanvas.restore();
+    //TODO: calculate height and width more accurately
+    tmpSize.width = size.width;
+    tmpSize.height = size.width;
+    return(tmpSize);
     }%>
 
     me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
-	cr.GCanvas.save();
-	cr.GCanvas.rotate(degrees, (float)x, (float)y);
+    cr.GCanvas.save();
+    cr.GCanvas.rotate(degrees, (float)x, (float)y);
     }%>
 
     me void: restore(me GUI_ctxt: cr) <- <%!%G%1.GCanvas.restore()%>
 
     me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
-	Rect bounds = new Rect();
-	cr.paint.getTextBounds(text, 0, text.length(), bounds);
-	cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
+    Rect bounds = new Rect();
+    cr.paint.getTextBounds(text, 0, text.length(), bounds);
+    cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
         cr.paint.setTextSize(font.size);
-	deltaSize size = new deltaSize(0,0);
-	size.height = bounds.height();
-	size.width = bounds.width();
+    deltaSize size = new deltaSize(0,0);
+    size.height = bounds.height();
+    size.width = bounds.width();
         return(size);
     } %>
 
