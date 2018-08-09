@@ -3,7 +3,7 @@
 featuresNeeded = [Dashboard]
 
 
-struct graphScale: inherits = 'dash'{
+struct graphScale: inherits=dash{
     me bool:   isVisible
     me int:    ticksPerStep
     me bool:   textSlant
@@ -37,7 +37,7 @@ struct graphScale: inherits = 'dash'{
     }
 }
 
-struct verticalScale: inherits = 'graphScale'{
+struct verticalScale: inherits=graphScale{
     void: draw(me GUI_ctxt: cr) <- {
     me double: XPos    <- 0
     me double: YPos    <- 0
@@ -88,7 +88,7 @@ struct verticalScale: inherits = 'graphScale'{
     }
 }
 
-struct horizontalScale: inherits = 'graphScale'{
+struct horizontalScale: inherits=graphScale{
     void: draw(me GUI_ctxt: cr) <- {
     me double: XPos <- 0
     me double: YPos <- 0
@@ -151,7 +151,7 @@ struct GraphDataStream {
     me cdColor: fillColor
 }
 
-struct graph: inherits = 'dash'{
+struct graph: inherits=dash{
     our GraphDataStream[me list]: dataStreams
     me int: highVal
     me int: lowVal
@@ -219,7 +219,7 @@ struct graph: inherits = 'dash'{
             linGrad.init(2, 1, 2, YOrig)
             linGrad.AddColorStopRGBA(0, dataStream.lineColor, 255)
             linGrad.AddColorStopRGBA(0.4, dataStream.lineColor, 40)
-            linGrad.AddColorStopRGBA(1.0, styler.background, 255)
+            linGrad.AddColorStopRGBA(1.0, styler.bkGndColor, 255)
             cr.setFillPattern(linGrad)
             cr.fillKeep()*/
             cr.setColor(dataStream.lineColor)
@@ -227,7 +227,7 @@ struct graph: inherits = 'dash'{
         }
 
         /-//// TEXT
-        cr.setColor(styler.highlight2)
+        cr.setColor(styler.highlight2Color)
         if(leftScale.isVisible){
             leftScale.setScale(height, 10,100, 10, posX, YOrig, -4)
             leftScale.draw(cr)

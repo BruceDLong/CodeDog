@@ -4,33 +4,7 @@
 
 featuresNeeded = [GUI_ToolKit]
 
-struct styleProvider{
-    const int: backgroundColor <- 1
-    const int: foregroundColor <- 2
-    const int: highlightColor  <- 3
-
-    me fontSpec: fontDefault
-    me fontSpec: fontTitle
-    me fontSpec: fontSmall
-
-    me cdColor: foreground  <- GUI.White
-    me cdColor: background  <- GUI.Black
-    me cdColor: textPrimary <- GUI.White
-    me cdColor: highlight1  <- GUI.Cornflower
-    me cdColor: highlight2  <- GUI.OrangeRed
-
-    void: INIT()<-{
-    fontDefault.name <- "Ariel"
-    fontDefault.size <- 10
-    fontTitle.name   <- "Ariel"
-    fontTitle.size   <- 16
-    fontSmall.name   <- "Ariel"
-    fontSmall.size   <- 8
-    }
-
-}
-
-struct Dashboard: inherits = 'dash'{
+struct Dashboard: inherits=dash{
     our dash[list]: dashChildren
     their dash[map string]: dependentItems
     our decor[list]: decorations
@@ -126,8 +100,8 @@ struct Dashboard: inherits = 'dash'{
 
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
-        me cdColor: bkCol <- styler.background
-        me cdColor: fgCol <- styler.foreground
+        me cdColor: bkCol <- styler.bkGndColor
+        me cdColor: fgCol <- styler.frGndColor
         /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
         cr.setColor(bkCol)
         cr.paintNow()
@@ -148,7 +122,7 @@ struct Dashboard: inherits = 'dash'{
     }
 }
 
-struct dash: inherits = 'widget'{
+struct dash: inherits=widget{
     me string: title
     me int: extX        /- Dashes right-most extent
     me int: extY        /- Dashes lowest extent
@@ -177,7 +151,7 @@ struct dash: inherits = 'widget'{
     }
 }
 
-struct dataField: inherits = 'dash' {
+struct dataField: inherits=dash{
     me string: label
     me string: value
     me int: midPos
@@ -204,7 +178,7 @@ struct dataField: inherits = 'dash' {
     }
 }
 
-struct ptrToItem: inherits = 'dash' {
+struct ptrToItem: inherits=dash{
     me dataField: header
     me bool: refHidden
     me string: symbol
@@ -248,8 +222,7 @@ struct ptrToItem: inherits = 'dash' {
     void: INIT()<-{refHidden<-true}
 }
 
-
-struct listOfItems: inherits = 'dash' {
+struct listOfItems: inherits=dash{
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     me mode[vertical, horizontal]: orientation
     me dataField: header
@@ -348,7 +321,7 @@ struct listOfItems: inherits = 'dash' {
     }
 }
 
-struct DashboardWidget: inherits='dash' {
+struct DashboardWidget: inherits=dash{
     our Dashboard:: dashboardDBW
     their GUI_canvas: canvas
     their GUI_item: managedWidget
@@ -374,8 +347,7 @@ struct DashboardWidget: inherits='dash' {
 }
 
 struct GLOBAL{
-    our styleProvider: styler
-
+    
     me int: intersectPoint(me int:outsidePt, me int:smallPt, me int: largePt) <- {
         me int: ret
         if(outsidePt<smallPt){ret<-smallPt}

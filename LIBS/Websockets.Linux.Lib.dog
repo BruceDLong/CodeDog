@@ -13,7 +13,7 @@ interface={
 
 
 LibDescription ={
-    useStatus   ='dynamic'
+    useStatus   = dynamic 
     description ='Library for Websockets'
     features    =[Websockets]
     platforms   =[Linux, OS-X_Devices, Windows]

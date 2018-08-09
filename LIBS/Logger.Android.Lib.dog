@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   = 'dynamic'
+    useStatus   =  dynamic 
     description = 'Logger for Android'
 }
 

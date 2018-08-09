@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   ='dynamic'
+    useStatus   = dynamic 
     description ='GTK is a GUI Toolkit'
     features    =[GUI_ToolKit, Mouse, Keyboard, Audio]
     platforms   =[Linux]
@@ -523,10 +523,6 @@ struct guiFillPattern{
     me void: AddColorStop(me double: offset, cdColor: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
 }
 
-struct fontSpec{
-    me string: name
-    me int: size
-}
 /-/////////////////////////////// TIME
 struct tm{
     me tm: tm

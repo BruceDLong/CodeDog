@@ -61,3 +61,14 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Error File
+ErrFile.txt
+
+# Build Directories
+Examples/iPhoneBuild/
+Examples/LinuxBuild/
+Examples/AndroidBuild/
+
+
+

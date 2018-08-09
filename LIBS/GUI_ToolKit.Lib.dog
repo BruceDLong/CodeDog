@@ -62,9 +62,26 @@ struct GUI{
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)
     me void: setCallback()
+}
 
+struct fontSpec{
+    me string: name
+    me int: size
+    me mode[pp, dp, sp]: pixelMode
+    
+    none: fontSpec(me string: initName, me string: initSize) <- {
+		
+    }
 
-#include LIBS/x11ColorsRGB.txt
+    none: fontSpec(me string: initName, me int: initSize, me int: initMode) <- {
+		name      <- initName
+		size      <- initSize
+		pixelMode <- initMode
+    }
+}
+
+struct Styler{
+    #include LIBS/x11ColorsRGB.txt
 }
 
 struct GLOBAL{
@@ -114,7 +131,7 @@ struct decor{
     void: draw(me GUI_ctxt: cr) <- {}
 }
 
-struct arrow: inherits='decor'{
+struct arrow: inherits=decor{
     me double: startX
     me double: startY
     me double: endX

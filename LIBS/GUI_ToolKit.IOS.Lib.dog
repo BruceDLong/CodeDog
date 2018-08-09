@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   ='dynamic'
+    useStatus   = dynamic 
     description ='Provides a GUI Toolkit or iPhone, iPad, etc.'
     features    =[GUI_ToolKit, Mouse, Keyboard, Audio]
     platforms   =[Linux, OS-X_Devices, Windows]

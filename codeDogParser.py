@@ -123,7 +123,7 @@ nameAndVal = Group(
         | (Literal(":") + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
         | (Literal(":") + "<-" - (rValue("givenValue") | funcBody))
         | (Literal(":") + CID("fieldName") + Optional("(" + argList + Literal(")")('argListTag')) - ~Word("{"))
-        | (Literal("::") + CID("fieldName") + "<-" + Group(parameters)("parameters"))
+        | (Literal("::")('allocDoubleColon') + CID("fieldName") + "<-" + Group(parameters)("parameters"))
         | (Literal("::")('allocDoubleColon')+ CID("fieldName") + "<-" - (rValue("givenValue")))
         | (Literal("::")('deprecateDoubleColon') + CID("fieldName")  + Group(parameters)("parameters"))# deprecated
         | (Literal("::")('allocDoubleColon') + CID("fieldName"))
