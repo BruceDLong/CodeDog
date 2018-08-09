@@ -47,21 +47,7 @@ class structAsProteusWriter(structProcessor):
     def addGlobalCode(self, classes):
         if structAsProteusWriter.asProteusGlobalsWritten: return
         else: structAsProteusWriter.asProteusGlobalsWritten=True
-        CODE='''
-struct GLOBAL{
-    me string: dispFieldAsText(me string: label, me int:labelLen) <- {
-        me string: S <- ""
-        me int: labelSize<-label.size()
-        withEach count in RANGE(0..labelLen){
-            if (count<labelSize){S <- S+label[count]}
-            else if(count==labelSize){ S <- S+":"}
-            else {S <- S+" "}
-        }
-        return(S)
-    }
-}
-    '''
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global function used by asProteus()')
+        pass
 
     def resetVars(self, modelRef):
         self.textFuncBody=''
@@ -73,7 +59,7 @@ struct GLOBAL{
         if(fldCat=='int' or fldCat=='double'):
             valStr='toString('+fieldName+')'
         elif(fldCat=='string' or fldCat=='char'):
-            valStr= "'"+fieldName+"'"
+            valStr= fieldName
         elif(fldCat=='flag' or fldCat=='bool'):
             valStr='dispBool(('+fieldName+')!=0)'
         elif(fldCat=='mode'):
@@ -87,9 +73,9 @@ struct GLOBAL{
                 classesEncoded[structTypeName]=1
                 classesToProcess.append(structTypeName)
         if(fldCat=='struct'):
-            S="    "+'print(indent, dispFieldAsText("'+label+'", 15), "\\n")\n    '+valStr+'\n    print("\\n")\n'
+            S='S <- S + indent + dispFieldAsText("'+label+'", 15) + "\\n"\n    '+valStr+' + "\\n"\n'
         else:
-            S="    "+'print(indent, dispFieldAsText("'+label+'", 15), '+valStr+', "\\n")\n'
+            S='S <- S + indent + dispFieldAsText("'+label+'", 15) + '+valStr+' + "\\n"\n'
         return S
 
     def processField(self, fieldName, field, fldCat):
@@ -103,16 +89,16 @@ struct GLOBAL{
             calcdName=fieldName+'["+toString(_item_key)+"]'
             S+="    withEach _item in "+fieldName+"{\n"
             S+="        "+self.toProteusTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
-        else: S+=self.toProteusTextFieldAction(fieldName, fieldName, field, fldCat)
+        else: S+="        "+self.toProteusTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
-            T ="    if("+fieldName+' == NULL){print('+'indent, dispFieldAsText("'+fieldName+'", 15)+"NULL\\n")}\n'
+            T ="    if("+fieldName+' == NULL){S <- S + '+'indent, dispFieldAsText("'+fieldName+'", 15)+"NULL\\n")}\n'
             T+="    else{\n    "+S+"    }\n"
             S=T
-        return S
+        self.textFuncBody += S
 
     def addOrAmendClasses(self, classes, className, modelRef):
-        self.textFuncBody = '    me string: S <- S + "{\\n"\n' + self.textFuncBody + '    S <- S + "\\n"\n'
-        Code="me void: asProteus(me string:indent) <- {\n"+self.textFuncBody+"    }\n"
+        self.textFuncBody = '        me string: S <- "{\\n"\n' + '        indent <- indent + "    "\n' +self.textFuncBody + '        S <- S + "}\\n"\n'
+        Code='    me string: asProteus(me string:indent <- "") <- {\n'+self.textFuncBody+"        return(S)\n    }"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.asProteus()')
 
@@ -125,21 +111,7 @@ class structToStringWriter(structProcessor):
     def addGlobalCode(self, classes):
         if structToStringWriter.toStringGlobalsWritten: return
         else: structToStringWriter.toStringGlobalsWritten=True
-        CODE='''
-struct GLOBAL{
-    me string: dispFieldAsText(me string: label, me int:labelLen) <- {
-        me string: S <- ""
-        me int: labelSize<-label.size()
-        withEach count in RANGE(0..labelLen){
-            if (count<labelSize){S <- S+label[count]}
-            else if(count==labelSize){ S <- S+":"}
-            else {S <- S+" "}
-        }
-        return(S)
-    }
-}
-    '''
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'Global function used by toString()')
+        pass
 
     def resetVars(self, modelRef):
         self.textFuncBody=''
