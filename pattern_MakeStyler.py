@@ -95,13 +95,12 @@ def stringifyList(theList):
         count = count +1
     return S
         
-def processStylerMap(stylerTags, varOwner, varType, defaultVars):
+def processStylerMap(stylerTags, varOwner, varType, setFunc, defaultVars):
     S=''
     for varName in stylerTags:
         varValue = stylerTags[varName]
         if isinstance(varValue, basestring): 
-			print"stylerTags: ", stylerTags
-			RHS=' <- '+varValue
+            RHS=' <- '+varValue
         elif isinstance(varValue, list): 
             RHS=stringifyList(varValue)
             RHS=' <- '+varType+'('+RHS+')'
@@ -109,8 +108,7 @@ def processStylerMap(stylerTags, varOwner, varType, defaultVars):
         if varName in defaultVars:
             S = S+'        ' + varName + RHS +'\n'
         else:
-            S = S+'        setCustomColor("'+ varName +'", '+ varValue +')\n'
-            print varName+ ' not in defaultVars!!!!!!!!!!!!!!', S
+            S = S+'        '+setFunc+'("'+ varName +'", '+ varValue +')\n'
     return S
     
 def processStyler(stylerTagValue):
@@ -121,21 +119,32 @@ def processStyler(stylerTagValue):
         if tag =="colors":
             varOwner = 'me'
             varType  = 'cdColor'
+            setFunc  = 'setCustomColor'
             defaultVars = ['frGndColor', 'bkGndColor', 'highlight1Color', 'highlight2Color', 'highlight3Color']
         elif tag =="fontNames":
             varOwner = 'me'
             varType  = 'string'
+            setFunc  = 'setCustomFont'
             defaultVars = ['titleFont', 'normalFont', 'H1_font', 'H2_font', 'H3_font', 'H4_font', 'H5_font', 'H6_font', 'timesFont', 'sansSerifFont', 'comicFont', 'scriptFont', 'monoFont']
-            '''elif tag =="fontSizes":
+        elif tag =="fontSizes":
             varOwner = 'me'
             varType  = 'string'
-            defaultVars = []'''
+            setFunc  = 'setCustomFontSize'
+            defaultVars = ['fontSizeVerySmall', 'fontSizeSmall', 'fontSizeNormalSize', 'fontSizeLarge', 'fontSizeVeryLarge']
+        elif tag == "fontSizeMode":
+            varOwner = ''
+            varType  = 'pixelMode'
+            setFunc  = ''
+            defaultVars = []
+            RHS      = ' <- '+ stylerTagValue[tag]
         else:
             print '    tag not found'
 
         if isinstance(stylerTagValue[tag], dict): 
-            S = S + processStylerMap(stylerTagValue[tag], varOwner, varType,defaultVars)
-        else: print"!!!!!!!!!!!!!!!!!!styler not map", stylerTagValue[tag]
+            S = S + processStylerMap(stylerTagValue[tag], varOwner, varType, setFunc, defaultVars)
+        elif isinstance(stylerTagValue[tag], basestring): 
+            S = S + '        ' + varType + RHS +'\n'
+        else: print"!!!!!!!!!!!!!!!!!!styler not map or basestring", stylerTagValue[tag]
     return S
         
 def apply(classes, tags, stylerTagName):
@@ -161,10 +170,17 @@ struct Styler{
         our fontSpec:: fontTitle <- ("Ariel", 16, 0)
         our fontSpec:: fontSmall <- ("Ariel", 8, 0)
     
-    void: setCustomColor(me string: ID, me cdColor: C) <- {}
-    me cdColor: color(me string: ID) <- {}
+    void: setCustomColor(me string: ID, me cdColor: color) <- {
+		our cdColor:: tmpColor <- color
+        userColors.insert(ID, tmpColor)
+    }
+    me cdColor: color(me string: ID) <- {
+        return(userColors.get(ID))
+    }
+
     
     /- FONT NAMES
+    me string[map string]: userFontNames
     me string: titleFont
     me string: normalFont
     me string: H1_font
@@ -179,28 +195,32 @@ struct Styler{
     me string: scriptFont
     me string: monoFont
     
-    void: setCustomFont(me string: ID, me string: fontName) <- {}
-    me string: font(me string: ID) <- {}
+    void: setCustomFont(me string: ID, me string: fontName) <- {
+        userFontNames.insert(ID, fontName)
+    }
+    me string: font(me string: ID) <- {return(userFontNames.get(ID))}
     
     /- FONT SIZES
-    me string: fontSizeVerySmall
-    me string: fontSizeSmall
-    me string: fontSizeNormalSize
-    me string: fontSizeLarge
-    me string: fontSizeVeryLarge
+    me int[map string]: userFontSizes
+    me int: fontSizeVerySmall
+    me int: fontSizeSmall
+    me int: fontSizeNormalSize
+    me int: fontSizeLarge
+    me int: fontSizeVeryLarge
     
-    void: setCustomFontSize(me string: ID, me string: fontSize) <- {}
-    me string: fontSize(me string: ID) <- {}
+    void: setCustomFontSize(me string: ID, me int: fontSize) <- {
+        userFontSizes.insert(ID, fontSize)
+    }
+    me int: fontSize(me string: ID) <- {
+		return(userFontSizes.get(ID))
+	}
+    
+    /- FONT SIZE MODES
+    me mode[pp, dp, sp]: pixelMode <- pp
 
     void: INIT()<-{
         <INITCODE>    }
-    void: addColor(me string: colorName, me cdColor: color) <- {
-        our cdColor:: tmpColor <- color
-        userColors.insert(colorName, tmpColor)
-    }
-    our cdColor: getColor(me string: colorName) <- {
-        return(userColors.get(colorName))
-    }
+
 }
     """
     code = code.replace('<INITCODE>', initCode)
