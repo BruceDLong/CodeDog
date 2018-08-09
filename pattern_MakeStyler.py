@@ -94,14 +94,14 @@ def stringifyList(theList):
         S = S + item
         count = count +1
     return S
-        
+
 def processStylerMap(stylerTags, varOwner, varType, setFunc, defaultVars):
     S=''
     for varName in stylerTags:
         varValue = stylerTags[varName]
-        if isinstance(varValue, basestring): 
+        if isinstance(varValue, basestring):
             RHS=' <- '+varValue
-        elif isinstance(varValue, list): 
+        elif isinstance(varValue, list):
             RHS=stringifyList(varValue)
             RHS=' <- '+varType+'('+RHS+')'
         else: cdErr("UNKNOWN RHS type: "+varName)
@@ -110,7 +110,7 @@ def processStylerMap(stylerTags, varOwner, varType, setFunc, defaultVars):
         else:
             S = S+'        '+setFunc+'("'+ varName +'", '+ varValue +')\n'
     return S
-    
+
 def processStyler(stylerTagValue):
     varOwner = ''
     varType  = ''
@@ -140,24 +140,24 @@ def processStyler(stylerTagValue):
         else:
             print '    tag not found'
 
-        if isinstance(stylerTagValue[tag], dict): 
+        if isinstance(stylerTagValue[tag], dict):
             S = S + processStylerMap(stylerTagValue[tag], varOwner, varType, setFunc, defaultVars)
-        elif isinstance(stylerTagValue[tag], basestring): 
+        elif isinstance(stylerTagValue[tag], basestring):
             S = S + '        ' + varType + RHS +'\n'
         else: print"!!!!!!!!!!!!!!!!!!styler not map or basestring", stylerTagValue[tag]
     return S
-        
+
 def apply(classes, tags, stylerTagName):
     if not(isinstance(stylerTagName,basestring)):
         cdErr("Styler tag name must be a string")
     stylerTagValue = progSpec.fetchTagValue(tags, stylerTagName)
     initCode = processStyler(stylerTagValue)
-    
-        
+
+
     code = r"""
 struct GLOBAL{
     our Styler:: styler
-} 
+}
 struct Styler{
     our cdColor[map string]: userColors
     me cdColor:  frGndColor      <- White
@@ -169,16 +169,16 @@ struct Styler{
         our fontSpec:: fontDefault <- ("Ariel", 10, 0)
         our fontSpec:: fontTitle <- ("Ariel", 16, 0)
         our fontSpec:: fontSmall <- ("Ariel", 8, 0)
-    
+
     void: setCustomColor(me string: ID, me cdColor: color) <- {
-		our cdColor:: tmpColor <- color
+        our cdColor:: tmpColor <- color
         userColors.insert(ID, tmpColor)
     }
     me cdColor: color(me string: ID) <- {
         return(userColors.get(ID))
     }
 
-    
+
     /- FONT NAMES
     me string[map string]: userFontNames
     me string: titleFont
@@ -194,12 +194,12 @@ struct Styler{
     me string: comicFont
     me string: scriptFont
     me string: monoFont
-    
+
     void: setCustomFont(me string: ID, me string: fontName) <- {
         userFontNames.insert(ID, fontName)
     }
     me string: font(me string: ID) <- {return(userFontNames.get(ID))}
-    
+
     /- FONT SIZES
     me int[map string]: userFontSizes
     me int: fontSizeVerySmall
@@ -207,19 +207,25 @@ struct Styler{
     me int: fontSizeNormalSize
     me int: fontSizeLarge
     me int: fontSizeVeryLarge
-    
+
     void: setCustomFontSize(me string: ID, me int: fontSize) <- {
         userFontSizes.insert(ID, fontSize)
     }
     me int: fontSize(me string: ID) <- {
-		return(userFontSizes.get(ID))
-	}
-    
+        return(userFontSizes.get(ID))
+    }
+
     /- FONT SIZE MODES
     me mode[pp, dp, sp]: pixelMode <- pp
 
     void: INIT()<-{
-        <INITCODE>    }
+        <INITCODE>
+
+    Allocate(fontDefault, "ariel", "14")
+    Allocate(fontTitle, "ariel", "20")
+    Allocate(fontSmall, "ariel", "10")
+    }
+
 
 }
     """
