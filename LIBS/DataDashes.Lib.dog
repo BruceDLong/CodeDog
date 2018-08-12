@@ -20,27 +20,27 @@ struct graphScale: inherits=dash{
     const int: titlePadding <- 7
 
     void: initScale(me string: titleStr, me bool: IsVisible, me int: TicksPerStep,  me bool: TextSlant) <- {
-    title        <- titleStr
-    isVisible    <- IsVisible
-    ticksPerStep <- TicksPerStep
-    textSlant    <- TextSlant
+	title        <- titleStr
+	isVisible    <- IsVisible
+	ticksPerStep <- TicksPerStep
+	textSlant    <- TextSlant
     }
 
     void: setScale(me double: Span, me double: LowVal, me double: HiVal, me double: Step, me double: XOrig, me double: YOrig, me int: TickOffset) <- {
-    span         <- Span
-    lowVal       <- LowVal
-    hiVal        <- HiVal
-    step         <- Step
-    xOrig        <- XOrig
-    yOrig        <- YOrig
-    tickOffset   <- TickOffset
+	span         <- Span
+	lowVal       <- LowVal
+	hiVal        <- HiVal
+	step         <- Step
+	xOrig        <- XOrig
+	yOrig        <- YOrig
+	tickOffset   <- TickOffset
     }
 }
 
 struct verticalScale: inherits=graphScale{
     void: draw(me GUI_ctxt: cr) <- {
-    me double: XPos    <- 0
-    me double: YPos    <- 0
+    me double: XPoint  <- 0
+    me double: YPoint  <- 0
     me deltaSize: size
     me int: labelWidth <- 0
     me string: label
@@ -50,15 +50,15 @@ struct verticalScale: inherits=graphScale{
     withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
         label <- dblToString(val*step+lowVal, 2)
         size <- getTextSize(cr, label, styler.fontSmall)
-        YPos <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
+        YPoint <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
         if(textSlant){
-        if (tickOffset > 0){XPos <- xOrig+tickOffset+3*tickPadding+size.height/2}
-        else               {XPos <- xOrig+tickOffset-3*tickPadding; justify <- "right"}
-        size <- renderTextRotate(cr, label, styler.fontSmall, XPos, YPos, -45, justify)
+        if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding+size.height/2}
+        else               {XPoint <- xOrig+tickOffset-3*tickPadding; justify <- "right"}
+        size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
         }else{
-        if (tickOffset > 0){XPos <- xOrig+tickOffset+3*tickPadding}
-        else               {XPos <- xOrig+tickOffset-3*tickPadding-size.width}
-        renderText(cr, label, styler.fontSmall, XPos, YPos)
+        if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding}
+        else               {XPoint <- xOrig+tickOffset-3*tickPadding-size.width}
+        renderText(cr, label, styler.fontSmall, XPoint, YPoint)
         }
         if(size.width > labelWidth){labelWidth <- size.width}
     }
@@ -68,21 +68,21 @@ struct verticalScale: inherits=graphScale{
         tickStep <- step/ticksPerStep
         cr.setLineWidth(1)
         withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
-        if (tickOffset > 0){XPos <- xOrig+3}
-        else               {XPos <- xOrig-3}
-        YPos <- yOrig - val*tickStep*span/(hiVal-lowVal)
-        cr.moveTo(XPos, YPos)
-        cr.lineTo(XPos+tickOffset, YPos)
+        if (tickOffset > 0){XPoint <- xOrig+3}
+        else               {XPoint <- xOrig-3}
+        YPoint <- yOrig - val*tickStep*span/(hiVal-lowVal)
+        cr.moveTo(XPoint, YPoint)
+        cr.lineTo(XPoint+tickOffset, YPoint)
         }
         cr.strokeNow()
     }
 
     /- SCALE TITLE
     me int: degree
-    if (tickOffset > 0){XPos <- xOrig+labelWidth+tickOffset+3*tickPadding+titlePadding; degree <- 90}
-    else               {XPos <- xOrig-labelWidth+tickOffset-3*tickPadding-titlePadding; degree <- -90}
-    rotate(cr, XPos, YPos+span/2, degree)
-    renderTextCentered(cr, title, styler.fontDefault, XPos, YPos+span/2)
+    if (tickOffset > 0){XPoint <- xOrig+labelWidth+tickOffset+3*tickPadding+titlePadding; degree <- 90}
+    else               {XPoint <- xOrig-labelWidth+tickOffset-3*tickPadding-titlePadding; degree <- -90}
+    rotate(cr, XPoint, YPoint+span/2, degree)
+    renderTextCentered(cr, title, styler.fontDefault, XPoint, YPoint+span/2)
     restore(cr)
     cr.strokeNow()
     }
@@ -90,8 +90,8 @@ struct verticalScale: inherits=graphScale{
 
 struct horizontalScale: inherits=graphScale{
     void: draw(me GUI_ctxt: cr) <- {
-    me double: XPos <- 0
-    me double: YPos <- 0
+    me double: XPoint <- 0
+    me double: YPoint <- 0
     me deltaSize: size
     me int: labelHeight <- 0
     me int: tickHeight  <- 0
@@ -102,19 +102,19 @@ struct horizontalScale: inherits=graphScale{
     withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
         label <- dblToString(val*step+lowVal, 2)
         size <- getTextSize(cr, title, styler.fontSmall)
-        if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPos <- yOrig+tickHeight+size.height}
-        else               {tickHeight  <- tickOffset-3*tickPadding; YPos <- yOrig+tickHeight}
+        if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPoint <- yOrig+tickHeight+size.height}
+        else               {tickHeight  <- tickOffset-3*tickPadding; YPoint <- yOrig+tickHeight}
         if(textSlant){
         if (tickOffset > 0){
-            XPos <- xOrig+val*step*span/(hiVal-lowVal)-5
+            XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
             justify <- "right"
-            YPos <- YPos - 10
+            YPoint <- YPoint - 10
         }
-        else{XPos <- xOrig+val*step*span/(hiVal-lowVal)}
-        size <- renderTextRotate(cr, label, styler.fontSmall, XPos, YPos, -45, justify)
+        else{XPoint <- xOrig+val*step*span/(hiVal-lowVal)}
+        size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
         }else{
-        XPos <- xOrig+val*step*span/(hiVal-lowVal)-5
-        size <- renderText(cr, label, styler.fontSmall, XPos, YPos)
+        XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
+        size <- renderText(cr, label, styler.fontSmall, XPoint, YPoint)
         }
         if(size.height > labelHeight){labelHeight <- size.height}
         cr.strokeNow()
@@ -125,20 +125,20 @@ struct horizontalScale: inherits=graphScale{
         tickStep <- step/ticksPerStep
         cr.setLineWidth(1)
         withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
-        if (tickOffset > 0){YPos <- yOrig+tickPadding}
-        else               {YPos <- yOrig-tickPadding}
-        XPos <- xOrig + val*tickStep*span/(hiVal-lowVal)
-        cr.moveTo(XPos, YPos)
-        cr.lineTo(XPos, YPos+tickOffset)
+        if (tickOffset > 0){YPoint <- yOrig+tickPadding}
+        else               {YPoint <- yOrig-tickPadding}
+        XPoint <- xOrig + val*tickStep*span/(hiVal-lowVal)
+        cr.moveTo(XPoint, YPoint)
+        cr.lineTo(XPoint, YPoint+tickOffset)
         }
         cr.strokeNow()
     }
 
     /- SCALE TITLE
     size <- getTextSize(cr, title, styler.fontDefault)
-    if(tickOffset > 0){YPos <- yOrig+tickHeight+labelHeight+titlePadding+size.height}
-    else               {YPos <- yOrig+tickHeight-labelHeight-titlePadding}
-    renderText(cr, title, styler.fontDefault, xOrig+span/2, YPos)
+    if(tickOffset > 0){YPoint <- yOrig+tickHeight+labelHeight+titlePadding+size.height}
+    else               {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
+    renderText(cr, title, styler.fontDefault, xOrig+span/2, YPoint)
     cr.strokeNow()
     }
 }
@@ -156,8 +156,6 @@ struct graph: inherits=dash{
     me int: highVal
     me int: lowVal
     me double: step
-    me int: width
-    me int: height
     me double: scnUnitSpan <- 100 /- Height of screen represents 100 units
 
     me verticalScale:   leftScale
@@ -168,13 +166,8 @@ struct graph: inherits=dash{
     void: update() <- {}
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
-        posIsSet <- true
-        posX     <- x;
-        posY     <- y;
+	posIsSet <- true
         extC     <- extCursor
-                /- me deltaSize: DS <- getTextSize(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize)
-        height   <- 15
-        width    <- 180
         extX     <- posX+width
         extY     <- posY+height
     }
@@ -191,8 +184,8 @@ struct graph: inherits=dash{
         me timeValue: rightGraphTime
         me timeValue: leftGraphTime
         me bool: firstTime
-        me double: XPos
-        me double: YPos
+        me double: XPoint
+        me double: YPoint
         me double: YOrig
 
         withEach dataStream in dataStreams{
@@ -202,17 +195,17 @@ struct graph: inherits=dash{
             rightGraphTime <- crntTime
             leftGraphTime  <- crntTime - timeInterval
             firstTime      <- true
-            XPos           <- 0
-            YPos           <- 0
+            XPoint         <- 0
+            YPoint           <- 0
             YOrig          <- posY + height
 
             withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                XPos <- (point_key-leftGraphTime)*pixelsPerMillisec + posX
-                YPos <- point/pixelsPerUnit
-                if(firstTime){cr.moveTo(XPos, YOrig)  firstTime<-false}
-                else {cr.lineTo(XPos, YOrig - YPos)}
+                XPoint <- (point_key-leftGraphTime)*pixelsPerMillisec + posX
+                YPoint <- point/pixelsPerUnit
+                if(firstTime){cr.moveTo(XPoint, YOrig)  firstTime<-false}
+                else {cr.lineTo(XPoint, YOrig - YPoint)}
             }
-            cr.lineTo(XPos, YOrig)
+            cr.lineTo(XPoint, YOrig)
 
             /-//// GRADIENT
             /*their guiFillPattern: linGrad
@@ -250,17 +243,21 @@ struct graph: inherits=dash{
     }
 
     me void: initGraph(me string: titleStr, me int: PosX, me int: PosY, me int: Width, me int: Height, me double: Step, me int: Alpha)<- {
-        title   <- titleStr
-        posX    <- PosX
-        posY    <- PosY
-        width   <- Width
-        height  <- Height
-        step    <- Step
-
+        title        <- titleStr
+        posX         <- PosX
+        posY         <- PosY
+        width        <- Width
+        height       <- Height
+        step         <- Step
+	
         leftScale.initScale("leftScale", true, 1, true)
         rightScale.initScale("rightScale!", true, 1, true)
 
         bottomScale.initScale("bottomScale!", true, 3, true)
         topScale.initScale("topScale", true, 1, true)
+    }
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        return(true)
     }
 }

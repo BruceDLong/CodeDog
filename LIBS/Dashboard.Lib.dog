@@ -128,10 +128,11 @@ struct dash: inherits=widget{
     me int: extY        /- Dashes lowest extent
     me int: extC        /- The current position where the next external item should be drawn
     their dash: dashParent
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {print("SETPOS BASE!!\n")}
     me bool: isNullLike
     me bool: posIsSet
     me bool: isDirty
+    
+    void: setPos(me int:x, me int:y, me int: extCursor) <- {print("SETPOS BASE!!\n")}
     void: addDependent(me string: key, their dash: dashPtr) <- {
         if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
         dashParent.addDependent(key, dashPtr)
@@ -192,8 +193,8 @@ struct ptrToItem: inherits=dash{
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
         posIsSet <- true
-        posX <- x;
-        posY <- y;
+        posX <- x
+        posY <- y
         extC <- extCursor
         header.setPos(x, y, extY)
         height <- header.height

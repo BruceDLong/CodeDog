@@ -167,12 +167,11 @@ struct arrow: inherits=decor{
 }
 
 struct widget{
-    me int: posX
-    me int: posY
-    me int: width
-    me int: height
+    me int: posX	/- x position of top left corner
+    me int: posY	/- y position of top left corner
+    me int: width	/- width of widget
+    me int: height	/- height of widget
     me int: scale
-/-    me color: defaultColor
     bool: isHidden
 
     void: draw(me GUI_ctxt: cr) <- {}
@@ -209,11 +208,11 @@ struct widget{
     }
 
     void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
-        posX <- PosX
-        posY <- PosY
-        width <- Width
+        posX   <- PosX
+        posY   <- PosY
+        width  <- Width
         height <- Height
-        scale <- Scale
+        scale  <- Scale
     }
 }
 
