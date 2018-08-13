@@ -20,20 +20,20 @@ struct graphScale: inherits=dash{
     const int: titlePadding <- 7
 
     void: initScale(me string: titleStr, me bool: IsVisible, me int: TicksPerStep,  me bool: TextSlant) <- {
-	title        <- titleStr
-	isVisible    <- IsVisible
-	ticksPerStep <- TicksPerStep
-	textSlant    <- TextSlant
+    title        <- titleStr
+    isVisible    <- IsVisible
+    ticksPerStep <- TicksPerStep
+    textSlant    <- TextSlant
     }
 
     void: setScale(me double: Span, me double: LowVal, me double: HiVal, me double: Step, me double: XOrig, me double: YOrig, me int: TickOffset) <- {
-	span         <- Span
-	lowVal       <- LowVal
-	hiVal        <- HiVal
-	step         <- Step
-	xOrig        <- XOrig
-	yOrig        <- YOrig
-	tickOffset   <- TickOffset
+    span         <- Span
+    lowVal       <- LowVal
+    hiVal        <- HiVal
+    step         <- Step
+    xOrig        <- XOrig
+    yOrig        <- YOrig
+    tickOffset   <- TickOffset
     }
 }
 
@@ -166,7 +166,7 @@ struct graph: inherits=dash{
     void: update() <- {}
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
-	posIsSet <- true
+    posIsSet <- true
         extC     <- extCursor
         extX     <- posX+width
         extY     <- posY+height
@@ -249,7 +249,7 @@ struct graph: inherits=dash{
         width        <- Width
         height       <- Height
         step         <- Step
-	
+
         leftScale.initScale("leftScale", true, 1, true)
         rightScale.initScale("rightScale!", true, 1, true)
 
@@ -258,6 +258,7 @@ struct graph: inherits=dash{
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        print("CLICK!\n")
         return(true)
     }
 }

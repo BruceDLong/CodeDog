@@ -4,10 +4,45 @@
 
 featuresNeeded = [GUI_ToolKit]
 
+
+struct dash: inherits=widget{
+    me string: title
+    me int: extX        /- Dashes right-most extent
+    me int: extY        /- Dashes lowest extent
+    me int: extC        /- The current position where the next external item should be drawn
+    their dash: dashParent
+    me bool: isNullLike
+    me bool: posIsSet
+    me bool: isDirty
+
+    void: setPos(me int:x, me int:y, me int: extCursor) <- {print("SETPOS BASE!!\n")}
+    void: addDependent(me string: key, their dash: dashPtr) <- {
+        if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
+        dashParent.addDependent(key, dashPtr)
+    }
+    their dash: dependentIsRegistered(me string: key) <- {
+        if(dashParent==NULL){log("In dash.dependentIsRegistered("+key+") dashParent was NULL")}
+        return(dashParent.dependentIsRegistered(key))
+    }
+    void: requestRedraw() <- {
+        if(dashParent==NULL){log("In Dash.requestRedraw() dashParent was NULL")}
+        isDirty<-true; dashParent.requestRedraw()
+    }
+    void: activatePropertyEditor()<- {}
+    void: addRelation(me string: relationType, their dash: from, their dash: to) <- {
+        if(dashParent==NULL){log("In Dash.addRelation() dashParent was NULL")}
+        dashParent.addRelation(relationType, from, to)
+    }
+}
+
 struct Dashboard: inherits=dash{
     our dash[list]: dashChildren
     their dash[map string]: dependentItems
     our decor[list]: decorations
+
+    mode[accomodateParent, accomodateContent]: sizingMode
+    mode[singleDash, verticalStack, userArranges]: layoutMode
+    their GUI_canvas: canvas
 
     their dash: dependentIsRegistered(me string: key) <- {
         if(dependentItems.containsKey(key)){
@@ -45,6 +80,8 @@ struct Dashboard: inherits=dash{
     void: requestRedraw() <- {isDirty<-true; dashParent.requestRedraw()}
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
         if(! isTouchingMe(event.x, event.y)){return(false)}
         withEach Dash in dashChildren{
             Dash.primaryClick(event)
@@ -97,9 +134,20 @@ struct Dashboard: inherits=dash{
         width <- width +30
         height <- height +30
     }
+    /- TODO: Support other layouts: verticalStack and userArranges
+    void: layoutChildDashes() <- {
+        if(sizingMode==accomodateContent){return()}
+        if(layoutMode==singleDash){
+            dashChildren[0].width <- widgetWidth(canvas)-100;
+            dashChildren[0].height <- widgetHeight(canvas)-100;
+        } else if(layoutMode==verticalStack){
+        } else if(layoutMode==userArranges){
+        }
+    }
 
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
+        layoutChildDashes()
         me cdColor: bkCol <- styler.bkGndColor
         me cdColor: fgCol <- styler.frGndColor
         /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
@@ -119,36 +167,6 @@ struct Dashboard: inherits=dash{
         withEach decoration in decorations{
             decoration.draw(cr)
         }
-    }
-}
-
-struct dash: inherits=widget{
-    me string: title
-    me int: extX        /- Dashes right-most extent
-    me int: extY        /- Dashes lowest extent
-    me int: extC        /- The current position where the next external item should be drawn
-    their dash: dashParent
-    me bool: isNullLike
-    me bool: posIsSet
-    me bool: isDirty
-    
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {print("SETPOS BASE!!\n")}
-    void: addDependent(me string: key, their dash: dashPtr) <- {
-        if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
-        dashParent.addDependent(key, dashPtr)
-    }
-    their dash: dependentIsRegistered(me string: key) <- {
-        if(dashParent==NULL){log("In dash.dependentIsRegistered("+key+") dashParent was NULL")}
-        return(dashParent.dependentIsRegistered(key))
-    }
-    void: requestRedraw() <- {
-        if(dashParent==NULL){log("In Dash.requestRedraw() dashParent was NULL")}
-        isDirty<-true; dashParent.requestRedraw()
-    }
-    void: activatePropertyEditor()<- {}
-    void: addRelation(me string: relationType, their dash: from, their dash: to) <- {
-        if(dashParent==NULL){log("In Dash.addRelation() dashParent was NULL")}
-        dashParent.addRelation(relationType, from, to)
     }
 }
 
@@ -326,19 +344,23 @@ struct DashboardWidget: inherits=dash{
     our Dashboard:: dashboardDBW
     their GUI_canvas: canvas
     their GUI_item: managedWidget
-    void: requestRedraw() <- {markDirtyArea(canvas, 0,0, dashboardDBW.width, dashboardDBW.height)}
+    void: requestRedraw() <- {
+        markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
+    }
+
     their GUI_item: init() <- {
         Allocate(dashboardDBW)
-        dashboardDBW.dashParent <- self
         canvas  <- thisApp.gui.newCanvas()
-        thisApp.gui.setWidgetSize(canvas, 600, 200)
-        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
-        /-their scrollerWidget:: scrollView  <- ()
-        /-their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
-        /-managedWidget <- scrollerFrame
+        dashboardDBW.dashParent <- self
+        dashboardDBW.canvas <- canvas
+        thisApp.gui.setWidgetSize(canvas, 100, 100)
+        /-    their scrollerWidget:: scrollView  <- ()
+        /-    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
+        /-    managedWidget <- scrollerFrame
+        /-    managedWidget <- makeFrameWidget("")
+        /-    addToContainer(managedWidget, canvas)
         managedWidget <- canvas
-/-    managedWidget <- makeFrameWidget("")
-/-    addToContainer(managedWidget, canvas)
+        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
         return(managedWidget)
     }
     void: draw(me GUI_ctxt: cr) <- {
@@ -348,7 +370,6 @@ struct DashboardWidget: inherits=dash{
 }
 
 struct GLOBAL{
-    
     me int: intersectPoint(me int:outsidePt, me int:smallPt, me int: largePt) <- {
         me int: ret
         if(outsidePt<smallPt){ret<-smallPt}
