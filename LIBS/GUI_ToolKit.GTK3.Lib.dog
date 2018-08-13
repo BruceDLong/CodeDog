@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description ='GTK is a GUI Toolkit'
     features    =[GUI_ToolKit, Mouse, Keyboard, Audio]
     platforms   =[Linux]
@@ -716,7 +716,7 @@ me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: 
 me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
 me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), (GtkWidget*)%2)%>
-
+me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
 
 
 

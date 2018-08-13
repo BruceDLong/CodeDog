@@ -223,7 +223,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, listManagerStructName)
 
-def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, indent):
+def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, classPrimaryGuiItem, indent):
     # _Dialog_GUI is editable widget
     global newWidgetFields
     global widgetInitFuncCode
@@ -282,9 +282,9 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetBoxName         = widgetName +'.box'
         makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         if progSpec.typeIsNumRange(innerFieldType):
-			range1 = innerFieldType[0]
-			range2 = innerFieldType[2]
-			makeTypeNameCall += '        '+widgetName+'.minValue <- ' + range1 + '\n        '+widgetName+'.maxValue <- ' + range2 + '\n'
+            range1 = innerFieldType[0]
+            range2 = innerFieldType[2]
+            makeTypeNameCall += '        '+widgetName+'.minValue <- ' + range1 + '\n        '+widgetName+'.maxValue <- ' + range2 + '\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeIntWidget("'+label+'")\n'
         widgetFromVarsCode   += '        ' + widgetName+ '.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+currentClassName+'_data.' + fieldName + ' <- ' + widgetName + '.getValue()\n'
@@ -312,13 +312,15 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         localWidgetVarName    = widgetListEditorName
         if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += '        Allocate('+currentClassName+'_data.'+fieldName+')\n'
         widgetInitFuncCode   += '        their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget('+currentClassName+'_data.'+fieldName+')\n'
-        widgetInitFuncCode   += '        addToContainer(box, '+widgetListEditorName+')\n'
+        if classPrimaryGuiItem==fieldName: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetListEditorName+')\n'
+        else: widgetInitFuncCode   += '        addToContainer(box, '+widgetListEditorName+')\n'
         widgetFromVarsCode   += '        ' + listWidMgrName + '.setValue(var.'+ fieldName +')\n'
 #        varsFromWidgetCode   += '        ' + listWidMgrName + ' <- ' + widgetName + '.getValue()\n'
     else: # Not an ArraySpec:
         newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
-        widgetInitFuncCode   += '        addToContainer(box, '+widgetBoxName+')\n'
+        if classPrimaryGuiItem==fieldName: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetBoxName+')\n'
+        else: widgetInitFuncCode   += '        addToContainer(box, '+widgetBoxName+')\n'
     if dialogStyle == 'TabbedStack':
         widgetInitFuncCode+='             '+'gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(box), '+ localWidgetVarName+', "'+label+'")\n'
 
@@ -419,7 +421,9 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     modelRef         = progSpec.findSpecOf(classes[0], className, 'model')
     currentModelSpec = modelRef
     if modelRef==None: cdErr('To build a GUI for class "'+className+'" a model is needed but is not found.')
-    #TODO: write func body for: widgetFromVarsCode(selected item & click edit) & varsFromWidgetCode(ckick OK from editMode)
+    classPrimaryGuiItem=progSpec.searchATagStore(modelRef['tags'], 'primaryGuiItem')
+    if classPrimaryGuiItem != None: # This GUI Item is important visually
+        classPrimaryGuiItem = classPrimaryGuiItem[0]
     ### Write code for each field
     for field in modelRef['fields']:
         typeSpec     = field['typeSpec']
@@ -455,7 +459,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
                 getButtonHandlingCode(classes, buttonLabel, fieldName)
 
         else: # Here is the main case where code to edit this field is written
-            getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, '')
+            getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, classPrimaryGuiItem, '')
 
     # Parse everything
     initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
