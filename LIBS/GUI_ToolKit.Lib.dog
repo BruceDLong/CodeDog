@@ -70,7 +70,8 @@ struct fontSpec{
     me mode[pp, dp, sp]: pixelMode
     
     none: fontSpec(me string: initName, me string: initSize) <- {
-		
+		name 	  <- initName
+		size 	  <- stoi(initSize)
     }
 
     none: fontSpec(me string: initName, me int: initSize, me int: initMode) <- {
