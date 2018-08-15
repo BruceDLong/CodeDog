@@ -68,15 +68,15 @@ struct fontSpec{
     me string: name
     me int: size
     me mode[pp, dp, sp]: pixelMode
-    
+
     none: fontSpec(me string: initName, me string: initSize) <- {
-		
+
     }
 
     none: fontSpec(me string: initName, me int: initSize, me int: initMode) <- {
-		name      <- initName
-		size      <- initSize
-		pixelMode <- initMode
+        name      <- initName
+        size      <- initSize
+        pixelMode <- initMode
     }
 }
 
@@ -167,10 +167,10 @@ struct arrow: inherits=decor{
 }
 
 struct widget{
-    me int: posX	/- x position of top left corner
-    me int: posY	/- y position of top left corner
-    me int: width	/- width of widget
-    me int: height	/- height of widget
+    me int: posX    /- x position of top left corner
+    me int: posY    /- y position of top left corner
+    me int: width   /- width of widget
+    me int: height  /- height of widget
     me int: scale
     bool: isHidden
 
@@ -246,3 +246,62 @@ struct ListWidgetManager{
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }
+
+/-//////////////////////////////////// MISC WIDGETS
+/*
+struct DateWidget{
+    their GUI_YStack: box
+    their GUI_dropDown: year
+    their GUI_dropDown: month
+    their GUI_dropDown: day
+
+    me timeValue: data
+
+    void: initialize(me timeValue: default) <- {
+        year <- makeComboBox()
+        /- Fill the year combo box
+
+        month <- makeComboBox()
+        /- Fill the month combo box
+
+        day <- makeComboBox()
+        /- Fill the day combo box
+
+        /- set defaults
+
+        box <- makeXStackWidget()
+        addToContainer(box, year)
+        addToContainer(box, month)
+        addToContainer(box, day)
+
+    }
+    void: getValue() <- {}
+    void: setValue() <- {}
+}
+
+
+struct TimeWidget{
+    their GUI_YStack: box
+    their GUI_dropDown: hour
+    their GUI_dropDown: minute
+
+    me timeValue: data
+
+    void: initialize(me timeValue: default) <- {
+        hour <- makeComboBox()
+        /- Fill the hour combo box
+
+        minute <- makeComboBox()
+        /- Fill the minute combo box
+
+        /- set defaults
+
+        box <- makeXStackWidget()
+        addToContainer(box, hour)
+        addToContainer(box, minute)
+
+    }
+    void: getValue() <- {}
+    void: setValue() <- {}
+}
+*/
