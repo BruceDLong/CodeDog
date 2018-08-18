@@ -117,3 +117,9 @@ struct stringScanner{
         return(pos)
     }
 }
+
+struct DateValue{
+    me timeValue: year
+    me timeValue: month
+    me timeValue: day
+}

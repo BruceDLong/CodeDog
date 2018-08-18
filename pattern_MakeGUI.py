@@ -53,7 +53,7 @@ def deCamelCase(identifier):
 def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
     global classesEncoded
     if guiStructName == 'timeValue_Dialog_GUI': return
-    if not(guiStructName in classesEncoded):
+    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue'):
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
 
@@ -247,6 +247,13 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         makeTypeNameCall      =  'Allocate('+widgetName+'); ' + widgetBoxName + ' <- '+ widgetName+'.makeDateWidget("'+label+'")\n'
         widgetFromVarsCode   += '        ' + widgetName+ '.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+currentClassName+'_data.' + fieldName + ' <- ' + widgetName + '.getValue()\n'
+    elif fieldType=='DateValue':
+        typeName              = 'DateWidget'
+        widgetBoxName         =  widgetName +'.box'
+        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrntDate("'+label+'")\n'
+        widgetFromVarsCode   += ''
+        varsFromWidgetCode   += ''
     elif fieldSpec=='widget':
         typeName              = CasedFieldName +'Widget'
         widgetName            = fieldName +'Widget'
@@ -495,6 +502,7 @@ struct <NEWSTRUCTNAME> {
     CODE = CODE.replace('<WIDGETFROMVARSCODE>', widgetFromVarsCode)
     CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
     CODE = CODE.replace('<CONTAINERWIDGET>', containerWidget)
+    #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 def apply(classes, tags, topClassName):

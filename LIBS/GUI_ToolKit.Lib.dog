@@ -249,24 +249,37 @@ struct ListWidgetManager{
 }
 
 /-//////////////////////////////////// MISC WIDGETS
-/*
 struct DateWidget{
-    their GUI_YStack: box
+    their GUI_item:     box
     their GUI_dropDown: year
     their GUI_dropDown: month
     their GUI_dropDown: day
+    me DateValue:       data
+    me string[list]:    months <- ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
 
-    me timeValue: data
-
-    void: initialize(me timeValue: default) <- {
+    their GUI_item: initCrntDate(me string: label) <- {
+	me timeValue: crntTime <- getCurrentTimeStamp()
+	box <- initialize(label, crntTime)
+	return(box)
+    }
+    
+    their GUI_item: initialize(me string: label, me timeValue: defaultTime) <- {
         year <- makeComboBox()
         /- Fill the year combo box
 
         month <- makeComboBox()
         /- Fill the month combo box
+	me int: count <-0
+	withEach monthName in months{
+	    month.appendComboBox(toString(count),monthName)
+	    count <- count +1
+	}
 
         day <- makeComboBox()
         /- Fill the day combo box
+	withEach i in RANGE(1..31){
+	    day.appendComboBox(toString(i),toString(i))
+	}
 
         /- set defaults
 
@@ -274,21 +287,31 @@ struct DateWidget{
         addToContainer(box, year)
         addToContainer(box, month)
         addToContainer(box, day)
-
+        return(box)
     }
-    void: getValue() <- {}
-    void: setValue() <- {}
+    me DateValue: getValue() <- {
+	me int: idx
+	me DateValue: retVal
+	return(retVal)
+    }
+    void: setValue(me DateValue: setDate) <- {}
 }
 
-
+/*
 struct TimeWidget{
     their GUI_YStack: box
     their GUI_dropDown: hour
     their GUI_dropDown: minute
 
     me timeValue: data
+    
+    their GUI_item: initCrntTime() <- {
+	me timeValue: crntTime <- getCurrentTimeStamp()
+	box <- initialize(crntTime)
+	return(box)
+    }
 
-    void: initialize(me timeValue: default) <- {
+    void: initialize(me timeValue: defaultTime) <- {
         hour <- makeComboBox()
         /- Fill the hour combo box
 

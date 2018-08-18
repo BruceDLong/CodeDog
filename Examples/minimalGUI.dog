@@ -27,14 +27,14 @@ struct testWidget: inherits = 'widget'{
 
     void: draw(me GUI_ctxt: cr) <- {
         print("In DRAW()\n")
-        cr.setColor(GUI.DarkMagenta)
+        cr.setColor(Styler.DarkMagenta)
         cr.moveTo(0, 0)
         cr.lineTo(1200, 1200)
         cr.moveTo(1200, 0)
         cr.lineTo(0, 1200)
         cr.strokeNow()
 
-        cr.setColor(GUI.DarkSlateBlue)
+        cr.setColor(Styler.DarkSlateBlue)
         renderText(cr, "Hello World!", "Ariel",  50, 150, 100)
         cr.strokeNow()
 
