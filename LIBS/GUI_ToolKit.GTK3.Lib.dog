@@ -364,6 +364,17 @@ struct GLOBAL{
 }
 /-///////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
+struct GUI_MotionEvent{
+  me uint: type
+ /- GdkWindow *window;
+ /- gint8 send_event;
+ /- guint32 time;
+  me double: x
+  me double: y
+
+  me uint: state
+  me uint: button
+}
 
 struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
 struct GUI_ButtonEvent{
@@ -395,17 +406,24 @@ struct GTK_eventDispatcher{
     their widget: topWidget
 
     me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- <%{
-        /-topWidget->mouseMoved(event);
+        topWidget->mouseMoved(event);
         return false;
     } %>
     me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
         if(event->type==GDK_BUTTON_PRESS){
             if(event->button==1){
-                topWidget->primaryClick(event);
+		topWidget->primaryDn(event);
             } else if(event->button==3){
                 topWidget->secondaryClick(event);
             }
-        }
+        } else if(event->type==GDK_BUTTON_RELEASE){
+	    if(event->button==1){
+		topWidget->primaryUp(event);
+		topWidget->primaryClick(event);
+	    } else if(event->button==3){
+		topWidget->secondaryUp(event);
+	    }
+	}
         return false;
     } %>
     me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
@@ -420,10 +438,12 @@ struct GTK_eventDispatcher{
 /-      g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), topWidget);
         g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), topWidget);
         g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), topWidget);
+	g_signal_connect (Widget, "button_release_event",  G_CALLBACK(button_release_event), topWidget);
 
         gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
              | GDK_LEAVE_NOTIFY_MASK
              | GDK_BUTTON_PRESS_MASK
+	     | GDK_BUTTON_RELEASE_MASK
              | GDK_POINTER_MOTION_MASK
              | GDK_POINTER_MOTION_HINT_MASK);
     } %>
@@ -433,6 +453,9 @@ struct GTK_eventDispatcher{
 struct GLOBAL{
     me GTK_eventDispatcher: EventDispatcher
     me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event, their void: data) <- <%{
+        EventDispatcher.dispatchPointerClickEvent(event);
+    } %>
+    me void: button_release_event(their GtkWidget: wid, their GdkEventButton: event, their void: data) <- <%{
         EventDispatcher.dispatchPointerClickEvent(event);
     } %>
     me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event, their void: data) <- <%{

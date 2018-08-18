@@ -162,28 +162,30 @@ struct graph: inherits=dash{
     me horizontalScale: bottomScale
     me verticalScale:   rightScale
     me horizontalScale: topScale
+    
+    me mode[sAutomatic, sManual]:scrollMode
+    me timeValue: timeInterval
+    me timeValue: crntRightSide
 
     void: update() <- {}
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
-    posIsSet <- true
+	posIsSet <- true
         extC     <- extCursor
         extX     <- posX+width
         extY     <- posY+height
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        me timeValue: timeInterval   <- 4 * ticksPerSec()
         me double: scnTimeSpan       <- timeInterval  /- Display 20 seconds of data on the screen
         me double: scnPixSpanW       <- width
         me double: pixelsPerMillisec <- scnPixSpanW / scnTimeSpan
         me double: scnUnitSpan <- 100 /- Height of screen represents 100 units
         me double: scnPixSpanH       <- height
         me double: pixelsPerUnit     <- scnPixSpanH / scnUnitSpan
-        me timeValue: crntTime
         me timeValue: rightGraphTime
-        me timeValue: leftGraphTime
-        me bool: firstTime
+	me timeValue: leftGraphTime
+	me bool: firstTime
         me double: XPoint
         me double: YPoint
         me double: YOrig
@@ -191,12 +193,12 @@ struct graph: inherits=dash{
         withEach dataStream in dataStreams{
             /-cr.setColor(dataStream.lineColor)
             cr.setLineWidth(2)
-            crntTime       <- getCurrentTimeStamp()
-            rightGraphTime <- crntTime
-            leftGraphTime  <- crntTime - timeInterval
+	    if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
+	    rightGraphTime <- crntRightSide
+	    leftGraphTime  <- crntRightSide - timeInterval
             firstTime      <- true
             XPoint         <- 0
-            YPoint           <- 0
+            YPoint         <- 0
             YOrig          <- posY + height
 
             withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
@@ -249,16 +251,47 @@ struct graph: inherits=dash{
         width        <- Width
         height       <- Height
         step         <- Step
+	
+	timeInterval <- 4 * ticksPerSec()
+	crntRightSide <- getCurrentTimeStamp()
 
         leftScale.initScale("leftScale", true, 1, true)
         rightScale.initScale("rightScale!", true, 1, true)
-
         bottomScale.initScale("bottomScale!", true, 3, true)
         topScale.initScale("topScale", true, 1, true)
     }
 
-    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        print("CLICK!\n")
-        return(true)
+    /- CLICK AND DRAG TO SCROLL GRAPH
+    me mode[still, fingerPressed, pullScrolling]: scrollState
+    me int: prevX
+    me int: deltaX <- 0
+    me int: moveThreshold <- 2
+
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+	if (scrollState==still) {
+	    scrollState <- fingerPressed
+	    prevX <- event.x
+	}
+	return(true)
+    }
+    
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+	scrollState <- still
+	return(true)
+    }
+    
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+	deltaX <- event.x - prevX
+	prevX <- event.x
+	if (scrollState==fingerPressed and abs(deltaX) > moveThreshold) {
+	    scrollState <- pullScrolling
+	    scrollMode <- sManual
+	    deltaX <- 0
+	} 
+	if (scrollState==pullScrolling) {
+	    crntRightSide <- crntRightSide - deltaX*timeInterval/width
+	    requestRedraw()
+	}
+	return(true)
     }
 }

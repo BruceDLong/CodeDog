@@ -95,6 +95,74 @@ struct Dashboard: inherits=dash{
         requestRedraw()
         return(true)
     }
+    
+    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
+        if(! isTouchingMe(event.x, event.y)){return(false)}
+        withEach Dash in dashChildren{
+            Dash.secondaryClick(event)
+        }
+        withEach Dash in dependentItems{
+            if(! Dash.isHidden){
+                Dash.secondaryClick(event)
+            }
+        }
+        setPos(15, 15, 35)
+        requestRedraw()
+        return(true)
+    }
+    
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
+        if(! isTouchingMe(event.x, event.y)){return(false)}
+        withEach Dash in dashChildren{
+            Dash.primaryDn(event)
+        }
+        withEach Dash in dependentItems{
+            if(! Dash.isHidden){
+                Dash.primaryDn(event)
+            }
+        }
+        setPos(15, 15, 35)
+        requestRedraw()
+        return(true)
+    }
+    
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
+        if(! isTouchingMe(event.x, event.y)){return(false)}
+        withEach Dash in dashChildren{
+            Dash.primaryUp(event)
+        }
+        withEach Dash in dependentItems{
+            if(! Dash.isHidden){
+                Dash.primaryUp(event)
+            }
+        }
+        setPos(15, 15, 35)
+        requestRedraw()
+        return(true)
+    }
+    
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
+        if(! isTouchingMe(event.x, event.y)){return(false)}
+        withEach Dash in dashChildren{
+            Dash.mouseMoved(event)
+        }
+        withEach Dash in dependentItems{
+            if(! Dash.isHidden){
+                Dash.mouseMoved(event)
+            }
+        }
+        setPos(15, 15, 35)
+        requestRedraw()
+        return(true)
+    }
 
     me void: drawToPDF(me string: filename, me double: inchesWide, me double: inchesHigh, me double: scale) <- {
   /*      me GUI_ctxt: PDF <- gui_tk.newPDF_ctxt(filename, inchesWide, inchesHigh)
@@ -103,7 +171,7 @@ struct Dashboard: inherits=dash{
         PDF.finishPDF()*/
     }
 
-    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
+    /-me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
 
     void: init() <- {isHidden <- false}
 

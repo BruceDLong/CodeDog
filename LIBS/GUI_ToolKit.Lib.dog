@@ -185,11 +185,11 @@ struct widget{
     me bool: secondaryDblClick(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: secondaryDn(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: secondaryUp(their GUI_ButtonEvent: event) <- {return(false)}
-    me bool: mouseMoved(their GUI_PointerEvent: event) <- {return(false)}
-    me bool: mouseDragged(their GUI_PointerEvent: event) <- {return(false)}
-    me bool: mouseEnter(their GUI_PointerEvent: event) <- {return(false)}
-    me bool: mouseExit(their GUI_PointerEvent: event) <- {return(false)}
-    me bool: mouseWheel(their GUI_PointerEvent: event) <- {return(false)}
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {return(false)}
+    me bool: mouseDragged(their GUI_MotionEvent: event) <- {return(false)}
+    me bool: mouseEnter(their GUI_MotionEvent: event) <- {return(false)}
+    me bool: mouseExit(their GUI_MotionEvent: event) <- {return(false)}
+    me bool: mouseWheel(their GUI_MotionEvent: event) <- {return(false)}
     me bool: fingerSqueeze(their GUI_PointerEvent: event) <- {return(false)}
 
     me bool: keyTyped(their GUI_KeyboardEvent: event) <- {return(false)}
