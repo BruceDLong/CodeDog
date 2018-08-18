@@ -247,3 +247,62 @@ struct ListWidgetManager{
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }
+
+/-//////////////////////////////////// MISC WIDGETS
+/*
+struct DateWidget{
+    their GUI_YStack: box
+    their GUI_dropDown: year
+    their GUI_dropDown: month
+    their GUI_dropDown: day
+
+    me timeValue: data
+
+    void: initialize(me timeValue: default) <- {
+        year <- makeComboBox()
+        /- Fill the year combo box
+
+        month <- makeComboBox()
+        /- Fill the month combo box
+
+        day <- makeComboBox()
+        /- Fill the day combo box
+
+        /- set defaults
+
+        box <- makeXStackWidget()
+        addToContainer(box, year)
+        addToContainer(box, month)
+        addToContainer(box, day)
+
+    }
+    void: getValue() <- {}
+    void: setValue() <- {}
+}
+
+
+struct TimeWidget{
+    their GUI_YStack: box
+    their GUI_dropDown: hour
+    their GUI_dropDown: minute
+
+    me timeValue: data
+
+    void: initialize(me timeValue: default) <- {
+        hour <- makeComboBox()
+        /- Fill the hour combo box
+
+        minute <- makeComboBox()
+        /- Fill the minute combo box
+
+        /- set defaults
+
+        box <- makeXStackWidget()
+        addToContainer(box, hour)
+        addToContainer(box, minute)
+
+    }
+    void: getValue() <- {}
+    void: setValue() <- {}
+}
+*/
