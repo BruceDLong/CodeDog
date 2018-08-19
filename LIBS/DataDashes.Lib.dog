@@ -193,6 +193,7 @@ struct graph: inherits=dash{
         withEach dataStream in dataStreams{
             /-cr.setColor(dataStream.lineColor)
             cr.setLineWidth(2)
+	    if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
 	    if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
 	    rightGraphTime <- crntRightSide
 	    leftGraphTime  <- crntRightSide - timeInterval
