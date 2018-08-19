@@ -37,16 +37,6 @@ struct graphScale: inherits=dash{
 	yOrig        <- YOrig
 	tickOffset   <- TickOffset
     }
-    /- Overloaded setScale for time values
-    void: setScale(me double: Span, me timeValue: LowVal, me timeValue: HiVal, me double: Step, me double: XOrig, me double: YOrig, me int: TickOffset) <- {
-	span         <- Span
-	lowVal       <- LowVal
-	hiVal        <- HiVal
-	step         <- Step
-	xOrig        <- XOrig
-	yOrig        <- YOrig
-	tickOffset   <- TickOffset
-    }
 }
 
 struct verticalScale: inherits=graphScale{
@@ -247,9 +237,7 @@ struct graph: inherits=dash{
             leftScale.draw(cr)
         }
         if(bottomScale.isVisible){
-            bottomScale.setScale(width, 9000000000.0, 10000000000.0, 100000000.0, posX, YOrig, 4)
-	    /- WHY DOES THIS CRASH?
-	    /-bottomScale.setScale(width, 9000.0, 10000.0, 100.0, posX, YOrig, 4)
+            bottomScale.setScale(width, leftGraphTime, rightGraphTime, (rightGraphTime-leftGraphTime)/5, posX, YOrig, 4)
             bottomScale.draw(cr)
         }
         if(rightScale.isVisible){
@@ -276,10 +264,11 @@ struct graph: inherits=dash{
 	timeInterval <- 4 * ticksPerSec()
 	crntRightSide <- getCurrentTimeStamp()
 
-        leftScale.initScale("leftScale", true, 1, true, false)		/- (string titleStr, bool IsVisible, int TicksPerStep, bool TextSlant, bool IsDate)
-        rightScale.initScale("rightScale!", true, 1, true, false)
-        bottomScale.initScale("bottomScale!", true, 3, true, true)
-        topScale.initScale("topScale", true, 1, true, false)
+	/- (string titleStr, bool IsVisible, int TicksPerStep, bool TextSlant, bool IsDate)
+        leftScale.initScale("leftScale", true, 1, true, false)
+        rightScale.initScale("rightScale!", false, 1, true, false)
+        bottomScale.initScale("bottomScale!", true, 1, true, true)
+        topScale.initScale("topScale", false, 1, false, false)
     }
 
     /- CLICK AND DRAG TO SCROLL GRAPH
