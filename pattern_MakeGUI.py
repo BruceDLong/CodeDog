@@ -53,7 +53,7 @@ def deCamelCase(identifier):
 def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
     global classesEncoded
     if guiStructName == 'timeValue_Dialog_GUI': return
-    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue'):
+    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='timeOfDay' or structTypeName=='DateTime'):
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
 
@@ -251,9 +251,23 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         typeName              = 'DateWidget'
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      = '        Allocate('+widgetName+')\n'
-        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrntDate("'+label+'")\n'
+        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrnt("'+label+'")\n'
         widgetFromVarsCode   += ''
-        varsFromWidgetCode   += ''
+        varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
+    elif fieldType=='timeOfDay':
+        typeName              = 'TimeWidget'
+        widgetBoxName         =  widgetName +'.box'
+        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrnt("'+label+'")\n'
+        widgetFromVarsCode   += ''
+        varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
+    elif fieldType=='DateTime':
+        typeName              = 'DateTimeWidget'
+        widgetBoxName         =  widgetName +'.box'
+        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrnt("'+label+'")\n'
+        widgetFromVarsCode   += ''
+        varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldSpec=='widget':
         typeName              = CasedFieldName +'Widget'
         widgetName            = fieldName +'Widget'
@@ -502,7 +516,8 @@ struct <NEWSTRUCTNAME> {
     CODE = CODE.replace('<WIDGETFROMVARSCODE>', widgetFromVarsCode)
     CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
     CODE = CODE.replace('<CONTAINERWIDGET>', containerWidget)
-    #print '==========================================================\n'+CODE
+    if className == 'StaticInfo': 
+        print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 def apply(classes, tags, topClassName):

@@ -251,20 +251,21 @@ struct ListWidgetManager{
 /-//////////////////////////////////// MISC WIDGETS
 struct DateWidget{
     their GUI_item:     box
-    their GUI_dropDown: year
+    their intWidget:    year
     their GUI_dropDown: month
     their GUI_dropDown: day
     me DateValue:       data
     me string[list]:    months <- ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
 
-    their GUI_item: initCrntDate(me string: label) <- {
+    their GUI_item: initCrnt(me string: label) <- {
 	me timeValue: crntTime <- getCurrentTimeStamp()
 	box <- initialize(label, crntTime)
 	return(box)
     }
     
     their GUI_item: initialize(me string: label, me timeValue: defaultTime) <- {
-        year <- makeComboBox()
+	Allocate(year)
+        year.box <- year.makeIntWidget("year")
         /- Fill the year combo box
 
         month <- makeComboBox()
@@ -284,48 +285,93 @@ struct DateWidget{
         /- set defaults
 
         box <- makeXStackWidget()
-        addToContainer(box, year)
+        addToContainer(box, year.box)
         addToContainer(box, month)
         addToContainer(box, day)
         return(box)
     }
     me DateValue: getValue() <- {
-	me int: idx
 	me DateValue: retVal
+	retVal.month <- month.comboBoxGetActive()
+	retVal.day   <- day.comboBoxGetActive()
 	return(retVal)
     }
     void: setValue(me DateValue: setDate) <- {}
 }
 
-/*
 struct TimeWidget{
-    their GUI_YStack: box
+    their GUI_item:     box
     their GUI_dropDown: hour
     their GUI_dropDown: minute
-
-    me timeValue: data
+    me timeOfDay:       data
     
-    their GUI_item: initCrntTime() <- {
+    their GUI_item: initCrnt(me string: label) <- {
 	me timeValue: crntTime <- getCurrentTimeStamp()
 	box <- initialize(crntTime)
 	return(box)
     }
-
-    void: initialize(me timeValue: defaultTime) <- {
+    their GUI_item: initialize(me timeValue: defaultTime) <- {
         hour <- makeComboBox()
         /- Fill the hour combo box
+	withEach i in RANGE(1..13){
+	    hour.appendComboBox(toString(i),toString(i))
+	}
 
         minute <- makeComboBox()
         /- Fill the minute combo box
-
+	withEach i in RANGE(1..25){
+	    minute.appendComboBox(toString(i),toString(i))
+	}
         /- set defaults
 
         box <- makeXStackWidget()
         addToContainer(box, hour)
         addToContainer(box, minute)
-
+        return(box)
     }
-    void: getValue() <- {}
+    me timeOfDay: getValue() <- {
+	me timeOfDay: retVal
+	retVal.hour <- hour.comboBoxGetActive()
+	retVal.minute   <- minute.comboBoxGetActive()
+	return(retVal)
+    }
     void: setValue() <- {}
 }
-*/
+
+struct DateTimeWidget{
+    their GUI_item:   box
+    their DateWidget: dateWidget
+    their TimeWidget: timeWidget
+    me DateTime:      data
+    
+    their GUI_item: initCrnt(me string: label) <- {
+	me timeValue: crntTime <- getCurrentTimeStamp()
+	box <- initialize(crntTime)
+	return(box)
+    }
+    their GUI_item: initialize(me timeValue: defaultTime) <- {
+        Allocate(dateWidget)
+	their GUI_Frame: dateBox <- makeFrameWidget()
+	dateBox <- dateWidget.initCrnt('')
+        /- Fill the dateWidget
+
+        Allocate(timeWidget)
+	their GUI_Frame: timeBox <- makeFrameWidget()
+	timeBox <- timeWidget.initCrnt('')
+        /- Fill the timeWidget
+
+        /- set defaults
+
+        box <- makeXStackWidget()
+        addToContainer(box, dateBox)
+        addToContainer(box, timeBox)
+        return(box)
+    }
+    me DateTime: getValue() <- {
+	me DateTime: retVal
+	retVal.date <- dateWidget.getValue()
+	retVal.time <- timeWidget.getValue()
+	return(retVal)
+    }
+    void: setValue() <- {}
+}

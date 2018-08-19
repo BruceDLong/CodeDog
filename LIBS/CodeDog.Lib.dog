@@ -119,7 +119,17 @@ struct stringScanner{
 }
 
 struct DateValue{
-    me timeValue: year
-    me timeValue: month
-    me timeValue: day
+    me int: year
+    me int: month
+    me int: day
+}
+
+struct timeOfDay{
+    me int: hour
+    me int: minute
+}
+
+struct DateTime{
+    me DateValue: date
+    me timeOfDay: time
 }
