@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus  ='dynamic'
+    useStatus  = dynamic 
     description='Networking for Windows'
     features    =[]
     platforms   =[Windows]

@@ -81,7 +81,10 @@ def findLibraryChildren(libID):
                 libs.append(item)
     return libs
 
+
+currentFilesPath = ""
 def replaceFileName(fileMatch):
+    global currentFilesPath
     fileName = fileMatch.group(1)
     currentWD = os.getcwd()
     pathName = abspath(currentWD) +"/"+fileName
@@ -89,19 +92,24 @@ def replaceFileName(fileMatch):
         dirname, filename = os.path.split(abspath(getsourcefile(lambda:0)))
         pathName = dirname +"/"+fileName
         if not os.path.isfile(pathName):
-            cdErr("Cannot find include file '"+fileName+"'")
+            pathName = currentFilesPath +"/"+fileName
+            if not os.path.isfile(pathName):
+                cdErr("Cannot find include file '"+fileName+"'")
 
     includedStr = progSpec.stringFromFile(pathName)
-    includedStr = processIncludedFiles(includedStr)
+    includedStr = processIncludedFiles(includedStr, pathName)
     return includedStr
 
-def processIncludedFiles(fileString):
+def processIncludedFiles(fileString, fileName):
+    global currentFilesPath
+    dirname, filename = os.path.split(abspath(fileName))
+    currentFilesPath = dirname
     pattern = re.compile(r'#include +([\w -\.\/\\]+)')
     return pattern.sub(replaceFileName, fileString)
 
 def loadTagsFromFile(fileName):
     codeDogStr = progSpec.stringFromFile(fileName)
-    codeDogStr = processIncludedFiles(codeDogStr)
+    codeDogStr = processIncludedFiles(codeDogStr, fileName)
     return codeDogParser.parseCodeDogLibTags(codeDogStr)
 
 tagsFromLibFiles = {}

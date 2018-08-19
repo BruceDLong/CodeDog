@@ -5,7 +5,7 @@ requirements = [
 ]
 
 LibDescription  ={
-    useStatus   ='dynamic'
+    useStatus   = dynamic 
     description ='Library for Unicode'
     features    =[Unicode]
     platforms   =[Linux, OS-X_Devices, Windows]

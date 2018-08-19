@@ -6,7 +6,7 @@ featuresNeeded = [Terminal]
 requirements = []
 
 LibDescription  ={
-    useStatus   ='dynamic'
+    useStatus   = dynamic
     description ='Library for read multiline'
     features    =[ReadMultiLine]
 }

@@ -32,13 +32,18 @@ struct GUI_Frame{}
 struct GUI_ScrollingWindow{}
 struct GUI_callback{}
 struct GUI_MotionEvent{}
-struct GUI_ButtonEvent{}
 struct INK_Image{}
+
+struct GUI_button{}
 
 /- GUI Widgets
 struct boolWidget{}
 struct floatWidget{}
 struct rangeWidget{}
+struct numRangeWidget {}
+struct CGContext {}
+struct CGPoint {}
+
 struct intWidget{}
 struct stringWidget{}
 struct enumWidget{}
@@ -57,13 +62,30 @@ struct GUI{
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)
     me void: setCallback()
+}
 
+struct fontSpec{
+    me string: name
+    me int: size
+    me mode[pp, dp, sp]: pixelMode
+    
+    none: fontSpec(me string: initName, me string: initSize) <- {
+		name 	  <- initName
+		size 	  <- stoi(initSize)
+    }
 
-#include LIBS/x11ColorsRGB.txt
+    none: fontSpec(me string: initName, me int: initSize, me int: initMode) <- {
+		name      <- initName
+		size      <- initSize
+		pixelMode <- initMode
+    }
+}
+
+struct Styler{
+    #include LIBS/x11ColorsRGB.txt
 }
 
 struct GLOBAL{
-    /- GUI Widgets
     me boolWidget:      makeBoolWidget(me string: label)
     me floatWidget:     makeFloatWidget(me string: label)
     me numRangeWidget:  makeNumRangeWidget(me string: label)
@@ -72,7 +94,7 @@ struct GLOBAL{
     me dateWidget:      makeDateWidget(me string: label)
 }
 struct GUI_ctxt {
-    /-me void: fetchAreaToBeDrawn(me GUI_rect: area)
+    me void: fetchAreaToBeDrawn(me GUI_rect: area)
     me void: reset()
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
     me void: setRGB (me double: red, me double: green, me double: blue)
@@ -101,6 +123,7 @@ struct GUI_DataEvent{}
 struct GUI_TimeEvent{}
 struct GUI_UserEvent{}
 struct GUI_DrawEvent{}
+struct GUI_scalar{}
 
 
 /- decor(ations) are like light weight widgets. They have only draw().
@@ -109,7 +132,7 @@ struct decor{
     void: draw(me GUI_ctxt: cr) <- {}
 }
 
-struct arrow: inherits='decor'{
+struct arrow: inherits=decor{
     me double: startX
     me double: startY
     me double: endX
@@ -145,15 +168,14 @@ struct arrow: inherits='decor'{
 }
 
 struct widget{
-    me int: posX
-    me int: posY
-    me int: width
-    me int: height
+    me int: posX	/- x position of top left corner
+    me int: posY	/- y position of top left corner
+    me int: width	/- width of widget
+    me int: height	/- height of widget
     me int: scale
-/-    me color: defaultColor
     bool: isHidden
 
-    void: draw(me GUI_ctxt: cr) <-{}
+    void: draw(me GUI_ctxt: cr) <- {}
     me bool: handleAllClicks(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: primaryDblClick(their GUI_ButtonEvent: event) <- {return(false)}
@@ -163,11 +185,11 @@ struct widget{
     me bool: secondaryDblClick(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: secondaryDn(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: secondaryUp(their GUI_ButtonEvent: event) <- {return(false)}
-    me bool: mouseMoved(their GUI_PointerEvent: event) <- {return(false)}
-    me bool: mouseDragged(their GUI_PointerEvent: event) <- {return(false)}
-    me bool: mouseEnter(their GUI_PointerEvent: event) <- {return(false)}
-    me bool: mouseExit(their GUI_PointerEvent: event) <- {return(false)}
-    me bool: mouseWheel(their GUI_PointerEvent: event) <- {return(false)}
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {return(false)}
+    me bool: mouseDragged(their GUI_MotionEvent: event) <- {return(false)}
+    me bool: mouseEnter(their GUI_MotionEvent: event) <- {return(false)}
+    me bool: mouseExit(their GUI_MotionEvent: event) <- {return(false)}
+    me bool: mouseWheel(their GUI_MotionEvent: event) <- {return(false)}
     me bool: fingerSqueeze(their GUI_PointerEvent: event) <- {return(false)}
 
     me bool: keyTyped(their GUI_KeyboardEvent: event) <- {return(false)}
@@ -185,12 +207,13 @@ struct widget{
     bool: isTouchingMe(me GUI_scalar: x, me GUI_scalar: y) <- {
         return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
     }
+
     void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
-        posX <- PosX
-        posY <- PosY
-        width <- Width
+        posX   <- PosX
+        posY   <- PosY
+        width  <- Width
         height <- Height
-        scale <- Scale
+        scale  <- Scale
     }
 }
 
@@ -220,7 +243,66 @@ struct ListWidgetManager{
     void: handleAdd()    <- {}
     void: handleDelete() <- {}
     void: handleEdit()   <- {}
-    
+
 
     /- Also, add their GUI_item: initWidget(<listType>)
 }
+
+/-//////////////////////////////////// MISC WIDGETS
+/*
+struct DateWidget{
+    their GUI_YStack: box
+    their GUI_dropDown: year
+    their GUI_dropDown: month
+    their GUI_dropDown: day
+
+    me timeValue: data
+
+    void: initialize(me timeValue: default) <- {
+        year <- makeComboBox()
+        /- Fill the year combo box
+
+        month <- makeComboBox()
+        /- Fill the month combo box
+
+        day <- makeComboBox()
+        /- Fill the day combo box
+
+        /- set defaults
+
+        box <- makeXStackWidget()
+        addToContainer(box, year)
+        addToContainer(box, month)
+        addToContainer(box, day)
+
+    }
+    void: getValue() <- {}
+    void: setValue() <- {}
+}
+
+
+struct TimeWidget{
+    their GUI_YStack: box
+    their GUI_dropDown: hour
+    their GUI_dropDown: minute
+
+    me timeValue: data
+
+    void: initialize(me timeValue: default) <- {
+        hour <- makeComboBox()
+        /- Fill the hour combo box
+
+        minute <- makeComboBox()
+        /- Fill the minute combo box
+
+        /- set defaults
+
+        box <- makeXStackWidget()
+        addToContainer(box, hour)
+        addToContainer(box, minute)
+
+    }
+    void: getValue() <- {}
+    void: setValue() <- {}
+}
+*/

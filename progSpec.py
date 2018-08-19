@@ -331,7 +331,7 @@ def addDataStructureRequirements(requirementSpec):
     dataStructureRequirements.append(requirementSpec)
 
 def addCodeToInit(tagStore, newInitCode):
-    appendToStringTagValue(tagStore, "initCode", newInitCode + "\n");
+    appendToStringTagValue(tagStore, "initCode", newInitCode);
 
 def removeFieldFromObject (classes, className, fieldtoRemove):
     if not className in classes[0]:
@@ -648,7 +648,7 @@ def typeIsNumRange(fieldType):
     return False
 
 def typeIsInteger(fieldType):
-    if typeIsNumRange(fieldType): return true
+    if typeIsNumRange(fieldType): return True
     if isinstance(fieldType, basestring):
         if fieldType[:3]=='int' or fieldType[:4]=='uint': return True
     elif fieldType[0][:3]=='int' or fieldType[0][:4]=='uint': return True

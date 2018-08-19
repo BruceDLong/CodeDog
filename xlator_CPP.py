@@ -281,6 +281,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='insert'   : typeSpecOut['codeConverter']='insert(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='find'     : name='find';     typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;
+        elif name=='lower_bound'     : name='lower_bound';     typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;
         elif name=='get'      : name='at';    # typeSpecOut['owner']='me';  typeSpecOut['fieldType']=convertedItmType;
         elif name=='erase'    : name='erase';  typeSpecOut['owner']='itr';
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
@@ -858,12 +859,14 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, objsRefed, xlator):
+def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, xlator):
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
         [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
         fieldValueText += CPL
+    if isAllocated == True:
+        fieldValueText = " = " + getCodeAllocSetStr(fieldType, fieldOwner, "")
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
@@ -893,7 +896,7 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
         constructorInit = ':' + constructorInit
-    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"    
+    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
     return (S)
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):

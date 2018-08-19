@@ -753,7 +753,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
        # [containerType, containedType] = convertType(classes, ctrlVarsTypeSpec, 'var', '', xlator)
         #print "MAKING LOOP:", lvName, repContainer, repName, containerType, repContainer
         actionText += ( indent + "for " + lvName + " in 0..<" +  repContainer+".count {\n"
-                    + indent+"    var "+repName + ':' + containerType + " = "+repContainer+"["+lvName+"];\n")
+                    + indent+"var "+repName + ':' + containerType + " = "+repContainer+"["+lvName+"];\n")
     else:
         print "DSID:",datastructID,containerType
         exit(2)
@@ -792,7 +792,7 @@ def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldVal
     #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
-        defn = indent + "public static var "+ fieldName + ": " +  intermediateType  +  fieldValueText + '\n'
+        defn = indent + "public static var "+ indent + fieldName + ": " +  intermediateType  +  fieldValueText + '\n'
         decl = ''
     else:
         fieldTypeMod=''
@@ -810,11 +810,6 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
     elif constructorInit != '':
 		constructorInit = ': ' + constructorInit
     S = "    " + "init" + "(" + constructorArgs + ")" + " {\n" + funcBody + "    };\n"
-    print "\n\nStart Here..."
-    print "(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)"
-    print "S:\n", S
-    print "args: (", ClassName, ", ",  constructorArgs,", ", callSuperConstructor,", ", constructorInit,", ", funcBody, ")"
-    print "\nThis is the contructor init: ", constructorInit
     return (S)
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
@@ -847,7 +842,7 @@ def codeConstructorInit(fieldName, count, defaultVal, xlator):
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
     if defaultVal == "NULL": defaultVal = "0"
     if defaultVal: argType = argType + '=' + defaultVal
-    return "arg_" + argFieldName  + ': ' +argType
+    return "_ arg_" + argFieldName  + ': ' +argType
 
 def codeCopyConstructor(fieldName, convertedType, xlator):
     return ""
@@ -887,12 +882,12 @@ def extraCodeForTopOfFuntion(argList):
         for arg in argList:
             argTypeSpec =arg['typeSpec']
             argFieldName=arg['fieldName']
-            topCode+= 'var '+argFieldName+' = '+argFieldName+'\n'
+            topCode+=  '        var '+argFieldName+' = '+argFieldName+'\n'
     return topCode
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if (containerType == "string"):
-        S= '.getChar(at:'+idx+')'
+        S= '[S.startIndex]'
     else:
         S= '[' + idx +']'
     return S

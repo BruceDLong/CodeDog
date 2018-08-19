@@ -4,36 +4,45 @@
 
 featuresNeeded = [GUI_ToolKit]
 
-struct styleProvider{
-    const int: backgroundColor <- 1
-    const int: foregroundColor <- 2
-    const int: highlightColor  <- 3
 
-    me fontSpec: fontDefault
-    me fontSpec: fontTitle
-    me fontSpec: fontSmall
+struct dash: inherits=widget{
+    me string: title
+    me int: extX        /- Dashes right-most extent
+    me int: extY        /- Dashes lowest extent
+    me int: extC        /- The current position where the next external item should be drawn
+    their dash: dashParent
+    me bool: isNullLike
+    me bool: posIsSet
+    me bool: isDirty
 
-    me cdColor: foreground  <- GUI.White
-    me cdColor: background  <- GUI.Black
-    me cdColor: textPrimary <- GUI.White
-    me cdColor: highlight1  <- GUI.Cornflower
-    me cdColor: highlight2  <- GUI.OrangeRed
-
-    void: INIT()<-{
-    fontDefault.name <- "Ariel"
-    fontDefault.size <- 10
-    fontTitle.name   <- "Ariel"
-    fontTitle.size   <- 16
-    fontSmall.name   <- "Ariel"
-    fontSmall.size   <- 8
+    void: setPos(me int:x, me int:y, me int: extCursor) <- {print("SETPOS BASE!!\n")}
+    void: addDependent(me string: key, their dash: dashPtr) <- {
+        if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
+        dashParent.addDependent(key, dashPtr)
     }
-
+    their dash: dependentIsRegistered(me string: key) <- {
+        if(dashParent==NULL){log("In dash.dependentIsRegistered("+key+") dashParent was NULL")}
+        return(dashParent.dependentIsRegistered(key))
+    }
+    void: requestRedraw() <- {
+        if(dashParent==NULL){log("In Dash.requestRedraw() dashParent was NULL")}
+        isDirty<-true; dashParent.requestRedraw()
+    }
+    void: activatePropertyEditor()<- {}
+    void: addRelation(me string: relationType, their dash: from, their dash: to) <- {
+        if(dashParent==NULL){log("In Dash.addRelation() dashParent was NULL")}
+        dashParent.addRelation(relationType, from, to)
+    }
 }
 
-struct Dashboard: inherits = 'dash'{
+struct Dashboard: inherits=dash{
     our dash[list]: dashChildren
     their dash[map string]: dependentItems
     our decor[list]: decorations
+
+    mode[accomodateParent, accomodateContent]: sizingMode
+    mode[singleDash, verticalStack, userArranges]: layoutMode
+    their GUI_canvas: canvas
 
     their dash: dependentIsRegistered(me string: key) <- {
         if(dependentItems.containsKey(key)){
@@ -71,6 +80,8 @@ struct Dashboard: inherits = 'dash'{
     void: requestRedraw() <- {isDirty<-true; dashParent.requestRedraw()}
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
         if(! isTouchingMe(event.x, event.y)){return(false)}
         withEach Dash in dashChildren{
             Dash.primaryClick(event)
@@ -78,6 +89,74 @@ struct Dashboard: inherits = 'dash'{
         withEach Dash in dependentItems{
             if(! Dash.isHidden){
                 Dash.primaryClick(event)
+            }
+        }
+        setPos(15, 15, 35)
+        requestRedraw()
+        return(true)
+    }
+    
+    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
+        if(! isTouchingMe(event.x, event.y)){return(false)}
+        withEach Dash in dashChildren{
+            Dash.secondaryClick(event)
+        }
+        withEach Dash in dependentItems{
+            if(! Dash.isHidden){
+                Dash.secondaryClick(event)
+            }
+        }
+        setPos(15, 15, 35)
+        requestRedraw()
+        return(true)
+    }
+    
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
+        if(! isTouchingMe(event.x, event.y)){return(false)}
+        withEach Dash in dashChildren{
+            Dash.primaryDn(event)
+        }
+        withEach Dash in dependentItems{
+            if(! Dash.isHidden){
+                Dash.primaryDn(event)
+            }
+        }
+        setPos(15, 15, 35)
+        requestRedraw()
+        return(true)
+    }
+    
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
+        if(! isTouchingMe(event.x, event.y)){return(false)}
+        withEach Dash in dashChildren{
+            Dash.primaryUp(event)
+        }
+        withEach Dash in dependentItems{
+            if(! Dash.isHidden){
+                Dash.primaryUp(event)
+            }
+        }
+        setPos(15, 15, 35)
+        requestRedraw()
+        return(true)
+    }
+    
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+        width <- widgetWidth(canvas);
+        height <- widgetHeight(canvas)
+        if(! isTouchingMe(event.x, event.y)){return(false)}
+        withEach Dash in dashChildren{
+            Dash.mouseMoved(event)
+        }
+        withEach Dash in dependentItems{
+            if(! Dash.isHidden){
+                Dash.mouseMoved(event)
             }
         }
         setPos(15, 15, 35)
@@ -92,7 +171,7 @@ struct Dashboard: inherits = 'dash'{
         PDF.finishPDF()*/
     }
 
-    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
+    /-me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
 
     void: init() <- {isHidden <- false}
 
@@ -123,11 +202,22 @@ struct Dashboard: inherits = 'dash'{
         width <- width +30
         height <- height +30
     }
+    /- TODO: Support other layouts: verticalStack and userArranges
+    void: layoutChildDashes() <- {
+        if(sizingMode==accomodateContent){return()}
+        if(layoutMode==singleDash){
+            dashChildren[0].width <- widgetWidth(canvas)-100;
+            dashChildren[0].height <- widgetHeight(canvas)-100;
+        } else if(layoutMode==verticalStack){
+        } else if(layoutMode==userArranges){
+        }
+    }
 
     void: draw(me GUI_ctxt: cr) <- {
         if (isHidden){return()}
-        me cdColor: bkCol <- styler.background
-        me cdColor: fgCol <- styler.foreground
+        layoutChildDashes()
+        me cdColor: bkCol <- styler.bkGndColor
+        me cdColor: fgCol <- styler.frGndColor
         /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
         cr.setColor(bkCol)
         cr.paintNow()
@@ -148,36 +238,7 @@ struct Dashboard: inherits = 'dash'{
     }
 }
 
-struct dash: inherits = 'widget'{
-    me string: title
-    me int: extX        /- Dashes right-most extent
-    me int: extY        /- Dashes lowest extent
-    me int: extC        /- The current position where the next external item should be drawn
-    their dash: dashParent
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {print("SETPOS BASE!!\n")}
-    me bool: isNullLike
-    me bool: posIsSet
-    me bool: isDirty
-    void: addDependent(me string: key, their dash: dashPtr) <- {
-        if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
-        dashParent.addDependent(key, dashPtr)
-    }
-    their dash: dependentIsRegistered(me string: key) <- {
-        if(dashParent==NULL){log("In dash.dependentIsRegistered("+key+") dashParent was NULL")}
-        return(dashParent.dependentIsRegistered(key))
-    }
-    void: requestRedraw() <- {
-        if(dashParent==NULL){log("In Dash.requestRedraw() dashParent was NULL")}
-        isDirty<-true; dashParent.requestRedraw()
-    }
-    void: activatePropertyEditor()<- {}
-    void: addRelation(me string: relationType, their dash: from, their dash: to) <- {
-        if(dashParent==NULL){log("In Dash.addRelation() dashParent was NULL")}
-        dashParent.addRelation(relationType, from, to)
-    }
-}
-
-struct dataField: inherits = 'dash' {
+struct dataField: inherits=dash{
     me string: label
     me string: value
     me int: midPos
@@ -204,7 +265,7 @@ struct dataField: inherits = 'dash' {
     }
 }
 
-struct ptrToItem: inherits = 'dash' {
+struct ptrToItem: inherits=dash{
     me dataField: header
     me bool: refHidden
     me string: symbol
@@ -218,8 +279,8 @@ struct ptrToItem: inherits = 'dash' {
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
         posIsSet <- true
-        posX <- x;
-        posY <- y;
+        posX <- x
+        posY <- y
         extC <- extCursor
         header.setPos(x, y, extY)
         height <- header.height
@@ -248,8 +309,7 @@ struct ptrToItem: inherits = 'dash' {
     void: INIT()<-{refHidden<-true}
 }
 
-
-struct listOfItems: inherits = 'dash' {
+struct listOfItems: inherits=dash{
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     me mode[vertical, horizontal]: orientation
     me dataField: header
@@ -348,33 +408,36 @@ struct listOfItems: inherits = 'dash' {
     }
 }
 
-struct DashboardWidget: inherits='dash' {
-    our Dashboard: dashboardDBW
+struct DashboardWidget: inherits=dash{
+    our Dashboard:: dashboardDBW
     their GUI_canvas: canvas
     their GUI_item: managedWidget
-    void: requestRedraw() <- {markDirtyArea(canvas, 0,0, dashboardDBW.width, dashboardDBW.height)}
+    void: requestRedraw() <- {
+        markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
+    }
+
     their GUI_item: init() <- {
         Allocate(dashboardDBW)
-        dashboardDBW.dashParent <- self
         canvas  <- thisApp.gui.newCanvas()
-        thisApp.gui.setWidgetSize(canvas, 600, 600)
-        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
-        /-their scrollerWidget:: scrollView  <- ()
-        /-their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
-        /-managedWidget <- scrollerFrame
+        dashboardDBW.dashParent <- self
+        dashboardDBW.canvas <- canvas
+        thisApp.gui.setWidgetSize(canvas, 100, 100)
+        /-    their scrollerWidget:: scrollView  <- ()
+        /-    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
+        /-    managedWidget <- scrollerFrame
+        /-    managedWidget <- makeFrameWidget("")
+        /-    addToContainer(managedWidget, canvas)
         managedWidget <- canvas
-/-    managedWidget <- makeFrameWidget("")
-/-    addToContainer(managedWidget, canvas)
+        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
         return(managedWidget)
     }
     void: draw(me GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)
     }
+    void: INIT() <- {Allocate(dashboardDBW)}
 }
 
 struct GLOBAL{
-    our styleProvider: styler
-
     me int: intersectPoint(me int:outsidePt, me int:smallPt, me int: largePt) <- {
         me int: ret
         if(outsidePt<smallPt){ret<-smallPt}

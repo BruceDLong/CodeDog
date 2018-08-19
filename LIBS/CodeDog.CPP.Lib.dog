@@ -11,7 +11,7 @@ interface={
 
 
 LibDescription ={
-    useStatus   = 'dynamic'
+    useStatus   = dynamic 
     description = 'Built in routines for CPP'
 }
 
@@ -20,11 +20,11 @@ deinitCode = ""
 
 
 struct stream{
-    me iostream: stream
+    me fstream: stream
     me void: open(me string: filename) <- <%!open(%1)%>
     me void: close() <- <%!close()%>
     me int:  getChar() <- <%!get()%>
-    me void: getLine(me string: S) <- <%!getLine(%1)%>
+    me void: getLine(me string: S) <- <%!getline(%0, %1)%>
     me bool: EOF() <- <%!eof()%>
 }
 

@@ -1,6 +1,6 @@
 /- CodeDog HTTP Networking Library
 requirements = [
-    [tagOneOf, Platform, [IOS]]
+    [tagOneOf, Platform, [Android]]
 ]
 
 interface={
@@ -11,20 +11,17 @@ interface={
 
 LibDescription ={
     useStatus  = dynamic 
-    description='Networking for IOS'
+    description='Networking for Java'
     features    =[]
     platforms   =[IOS]
-    bindings    =[C, CPP, Swift]
+    bindings    =[Java]
     CPUs        =[i386, amd64, arm7]
 }
 
-/- struct HTTPRetCode{their CURLcode: HTTPRetCode}
+struct HTTPRetCode{their CURLcode: HTTPRetCode}
 
-struct MemoryStruct {
-  their void: memory
-  me uint: size
-}
+
 
 struct NetConnection{
-    me string: retrieve(me string: URLstr) <- <%{}%>
+    me string: retrieve(me string: URLstr) <- <%{return("");}%>
 }

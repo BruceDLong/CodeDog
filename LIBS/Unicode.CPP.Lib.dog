@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription  ={
-    useStatus   ='dynamic'
+    useStatus   = dynamic 
     description ='Unicode for CPP'
     features    =[Unicode]
     platforms   =[Linux, OS-X_Devices, Windows]
