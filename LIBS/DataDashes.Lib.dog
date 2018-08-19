@@ -1,4 +1,4 @@
-/- CodeDog grapg dash for DashBoard
+/- CodeDog graph dash for DashBoard
 
 featuresNeeded = [Dashboard]
 
@@ -7,6 +7,7 @@ struct graphScale: inherits=dash{
     me bool:   isVisible
     me int:    ticksPerStep
     me bool:   textSlant
+    me bool:   isDate
 
     me double: step
     me double: tickStep
@@ -19,21 +20,22 @@ struct graphScale: inherits=dash{
     const int: tickPadding  <- 3
     const int: titlePadding <- 7
 
-    void: initScale(me string: titleStr, me bool: IsVisible, me int: TicksPerStep,  me bool: TextSlant) <- {
-    title        <- titleStr
-    isVisible    <- IsVisible
-    ticksPerStep <- TicksPerStep
-    textSlant    <- TextSlant
+    void: initScale(me string: titleStr, me bool: IsVisible, me int: TicksPerStep,  me bool: TextSlant, me bool: IsDate) <- {
+	title        <- titleStr
+	isVisible    <- IsVisible
+	ticksPerStep <- TicksPerStep
+	textSlant    <- TextSlant
+	isDate	     <- IsDate
     }
 
     void: setScale(me double: Span, me double: LowVal, me double: HiVal, me double: Step, me double: XOrig, me double: YOrig, me int: TickOffset) <- {
-    span         <- Span
-    lowVal       <- LowVal
-    hiVal        <- HiVal
-    step         <- Step
-    xOrig        <- XOrig
-    yOrig        <- YOrig
-    tickOffset   <- TickOffset
+	span         <- Span
+	lowVal       <- LowVal
+	hiVal        <- HiVal
+	step         <- Step
+	xOrig        <- XOrig
+	yOrig        <- YOrig
+	tickOffset   <- TickOffset
     }
 }
 
@@ -45,22 +47,22 @@ struct verticalScale: inherits=graphScale{
     me int: labelWidth <- 0
     me string: label
     me string: justify <- ""
-
+    
     /- AXIS VALUE LABELS
     withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
-        label <- dblToString(val*step+lowVal, 2)
-        size <- getTextSize(cr, label, styler.fontSmall)
-        YPoint <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
-        if(textSlant){
-        if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding+size.height/2}
-        else               {XPoint <- xOrig+tickOffset-3*tickPadding; justify <- "right"}
-        size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
-        }else{
-        if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding}
-        else               {XPoint <- xOrig+tickOffset-3*tickPadding-size.width}
-        renderText(cr, label, styler.fontSmall, XPoint, YPoint)
-        }
-        if(size.width > labelWidth){labelWidth <- size.width}
+	label <- dblToString(val*step+lowVal, 2)
+	size <- getTextSize(cr, label, styler.fontSmall)
+	YPoint <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
+	if(textSlant){
+	    if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding+size.height/2}
+	    else               {XPoint <- xOrig+tickOffset-3*tickPadding; justify <- "right"}
+	    size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
+	}else{
+	    if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding}
+	    else               {XPoint <- xOrig+tickOffset-3*tickPadding-size.width}
+	    renderText(cr, label, styler.fontSmall, XPoint, YPoint)
+	}
+	if(size.width > labelWidth){labelWidth <- size.width}
     }
 
     /- AXIS TICK MARKS
@@ -68,11 +70,11 @@ struct verticalScale: inherits=graphScale{
         tickStep <- step/ticksPerStep
         cr.setLineWidth(1)
         withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
-        if (tickOffset > 0){XPoint <- xOrig+3}
-        else               {XPoint <- xOrig-3}
-        YPoint <- yOrig - val*tickStep*span/(hiVal-lowVal)
-        cr.moveTo(XPoint, YPoint)
-        cr.lineTo(XPoint+tickOffset, YPoint)
+	    if (tickOffset > 0){XPoint <- xOrig+3}
+	    else               {XPoint <- xOrig-3}
+	    YPoint <- yOrig - val*tickStep*span/(hiVal-lowVal)
+	    cr.moveTo(XPoint, YPoint)
+	    cr.lineTo(XPoint+tickOffset, YPoint)
         }
         cr.strokeNow()
     }
@@ -97,27 +99,33 @@ struct horizontalScale: inherits=graphScale{
     me int: tickHeight  <- 0
     me string: label
     me string: justify <- ""
-
+    me sysLocale: loc
+    me UErrorCode: status <- U_ZERO_ERROR
+    
     /- AXIS VALUE LABELS
     withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
-        label <- dblToString(val*step+lowVal, 2)
-        size <- getTextSize(cr, title, styler.fontSmall)
-        if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPoint <- yOrig+tickHeight+size.height}
-        else               {tickHeight  <- tickOffset-3*tickPadding; YPoint <- yOrig+tickHeight}
-        if(textSlant){
-        if (tickOffset > 0){
-            XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
-            justify <- "right"
-            YPoint <- YPoint - 10
-        }
-        else{XPoint <- xOrig+val*step*span/(hiVal-lowVal)}
-        size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
-        }else{
-        XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
-        size <- renderText(cr, label, styler.fontSmall, XPoint, YPoint)
-        }
-        if(size.height > labelHeight){labelHeight <- size.height}
-        cr.strokeNow()
+	if(isDate){
+	    loc <- unicodeMgr.SetLocale("pt")
+	    label <- unicodeMgr.dateToIntlString(val*step+lowVal, hiVal-lowVal, loc, status)
+	}
+	else{label <- dblToString(val*step+lowVal, 2)}
+	size <- getTextSize(cr, title, styler.fontSmall)
+	if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPoint <- yOrig+tickHeight+size.height}
+	else               {tickHeight  <- tickOffset-3*tickPadding; YPoint <- yOrig+tickHeight}
+	if(textSlant){
+	    if (tickOffset > 0){
+		XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
+		justify <- "right"
+		YPoint <- YPoint - 10
+	    }
+	    else{XPoint <- xOrig+val*step*span/(hiVal-lowVal)}
+	    size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
+	}else{
+	    XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
+	    size <- renderText(cr, label, styler.fontSmall, XPoint, YPoint)
+	}
+	if(size.height > labelHeight){labelHeight <- size.height}
+	cr.strokeNow()
     }
 
     /- AXIS TICK MARKS
@@ -125,11 +133,11 @@ struct horizontalScale: inherits=graphScale{
         tickStep <- step/ticksPerStep
         cr.setLineWidth(1)
         withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
-        if (tickOffset > 0){YPoint <- yOrig+tickPadding}
-        else               {YPoint <- yOrig-tickPadding}
-        XPoint <- xOrig + val*tickStep*span/(hiVal-lowVal)
-        cr.moveTo(XPoint, YPoint)
-        cr.lineTo(XPoint, YPoint+tickOffset)
+	    if (tickOffset > 0){YPoint <- yOrig+tickPadding}
+	    else               {YPoint <- yOrig-tickPadding}
+	    XPoint <- xOrig + val*tickStep*span/(hiVal-lowVal)
+	    cr.moveTo(XPoint, YPoint)
+	    cr.lineTo(XPoint, YPoint+tickOffset)
         }
         cr.strokeNow()
     }
@@ -162,28 +170,30 @@ struct graph: inherits=dash{
     me horizontalScale: bottomScale
     me verticalScale:   rightScale
     me horizontalScale: topScale
+    
+    me mode[sAutomatic, sManual]:scrollMode
+    me timeValue: timeInterval
+    me timeValue: crntRightSide
 
     void: update() <- {}
 
     void: setPos(me int:x, me int:y, me int: extCursor) <- {
-    posIsSet <- true
+	posIsSet <- true
         extC     <- extCursor
         extX     <- posX+width
         extY     <- posY+height
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        me timeValue: timeInterval   <- 4 * ticksPerSec()
         me double: scnTimeSpan       <- timeInterval  /- Display 20 seconds of data on the screen
         me double: scnPixSpanW       <- width
         me double: pixelsPerMillisec <- scnPixSpanW / scnTimeSpan
         me double: scnUnitSpan <- 100 /- Height of screen represents 100 units
         me double: scnPixSpanH       <- height
         me double: pixelsPerUnit     <- scnPixSpanH / scnUnitSpan
-        me timeValue: crntTime
         me timeValue: rightGraphTime
-        me timeValue: leftGraphTime
-        me bool: firstTime
+	me timeValue: leftGraphTime
+	me bool: firstTime
         me double: XPoint
         me double: YPoint
         me double: YOrig
@@ -191,12 +201,13 @@ struct graph: inherits=dash{
         withEach dataStream in dataStreams{
             /-cr.setColor(dataStream.lineColor)
             cr.setLineWidth(2)
-            crntTime       <- getCurrentTimeStamp()
-            rightGraphTime <- crntTime
-            leftGraphTime  <- crntTime - timeInterval
+	    if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
+	    if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
+	    rightGraphTime <- crntRightSide
+	    leftGraphTime  <- crntRightSide - timeInterval
             firstTime      <- true
             XPoint         <- 0
-            YPoint           <- 0
+            YPoint         <- 0
             YOrig          <- posY + height
 
             withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
@@ -222,19 +233,19 @@ struct graph: inherits=dash{
         /-//// TEXT
         cr.setColor(styler.highlight2Color)
         if(leftScale.isVisible){
-            leftScale.setScale(height, 10,100, 10, posX, YOrig, -4)
+            leftScale.setScale(height, 10.0, 100.0, 10.0, posX, YOrig, -4)
             leftScale.draw(cr)
         }
         if(bottomScale.isVisible){
-            bottomScale.setScale(width, 0, 100000, 10000, posX, YOrig, 4)
+            bottomScale.setScale(width, leftGraphTime, rightGraphTime, (rightGraphTime-leftGraphTime)/5, posX, YOrig, 4)
             bottomScale.draw(cr)
         }
         if(rightScale.isVisible){
-            rightScale.setScale(height, 0,10000000, 1000000, posX+width, YOrig, 4)
+            rightScale.setScale(height, 0.0, 10000000.0, 1000000.0, posX+width, YOrig, 4)
             rightScale.draw(cr)
         }
         if(topScale.isVisible){
-            topScale.setScale(width, 0, 100, 10, posX, posY, -4)
+            topScale.setScale(width, 0.0, 100.0, 10.0, posX, posY, -4)
             topScale.draw(cr)
         }
 
@@ -249,16 +260,48 @@ struct graph: inherits=dash{
         width        <- Width
         height       <- Height
         step         <- Step
+	
+	timeInterval <- 4 * ticksPerSec()
+	crntRightSide <- getCurrentTimeStamp()
 
-        leftScale.initScale("leftScale", true, 1, true)
-        rightScale.initScale("rightScale!", true, 1, true)
-
-        bottomScale.initScale("bottomScale!", true, 3, true)
-        topScale.initScale("topScale", true, 1, true)
+	/- (string titleStr, bool IsVisible, int TicksPerStep, bool TextSlant, bool IsDate)
+        leftScale.initScale("leftScale", true, 1, true, false)
+        rightScale.initScale("rightScale!", false, 1, true, false)
+        bottomScale.initScale("bottomScale!", true, 1, true, true)
+        topScale.initScale("topScale", false, 1, false, false)
     }
 
-    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        print("CLICK!\n")
-        return(true)
+    /- CLICK AND DRAG TO SCROLL GRAPH
+    me mode[still, fingerPressed, pullScrolling]: scrollState
+    me int: prevX
+    me int: deltaX <- 0
+    me int: moveThreshold <- 2
+
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+	if (scrollState==still) {
+	    scrollState <- fingerPressed
+	    prevX <- event.x
+	}
+	return(true)
+    }
+    
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+	scrollState <- still
+	return(true)
+    }
+    
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+	deltaX <- event.x - prevX
+	prevX <- event.x
+	if (scrollState==fingerPressed and abs(deltaX) > moveThreshold) {
+	    scrollState <- pullScrolling
+	    scrollMode <- sManual
+	    deltaX <- 0
+	} 
+	if (scrollState==pullScrolling) {
+	    crntRightSide <- crntRightSide - deltaX*timeInterval/width
+	    requestRedraw()
+	}
+	return(true)
     }
 }

@@ -1,21 +1,22 @@
 /- CodeDog Unicode Library
 requirements = [
-    [tagOneOf, Platform, [Linux, OS-X_Devices, Windows]]
+    [tagOneOf, Lang, [CPP]]
 ]
 
 interface={
     provides=[Unicode_implementation]
-    libFiles=[]
-    headers=[]
+    libFiles=[`pkg-config --libs --cflags icu-uc icu-io`]
+    headers=[unicode/locid.h, unicode/unistr.h, unicode/putil.h, unicode/ustream.h, unicode/normalizer2.h, unicode/calendar.h, unicode/smpdtfmt.h, unicode/utypes.h]
 }
 
 LibDescription  ={
     useStatus   = dynamic 
     description ='Unicode for CPP'
-    features    =[]
+    features    =[Unicode]
     platforms   =[Linux, OS-X_Devices, Windows]
     bindings    =[C, CPP, perl, python]
     CPUs        =[i386, amd64, arm7]
+    Lang	=[CPP]
 }
 
 embedHigh = `
@@ -33,8 +34,12 @@ static const char trailingBytesForUTF8[256] = {
 #define isutf(c) (((c)&0xC0)!=0x80)
 #define remainingOctets(chr) (trailingBytesForUTF8[(unsigned int)(unsigned char)chr])
 
+UErrorCode uErr=U_ZERO_ERROR;
+const icu::Normalizer2 *UNormalizer=Normalizer2::getNFKCCasefoldInstance(uErr);
 `
 struct GLOBAL{
+    me Udate: exampleUDate <- 1532000000000
+    
     me int: getUTF8c(me string: str, their uint: pos, their uint: out) <- <%{
         unsigned char c;
         (*out) = 0;
@@ -51,6 +56,63 @@ struct GLOBAL{
     }%>
 }
 
-struct unicodeMgr{
-
+struct UnicodeMgr {
+    me string: dateToIntlString(me UDate: date, me UDate: interval, me Locale: loc, me UErrorCode: success) <- <%{
+	UnicodeString dateUniStr, pattern;
+	string uniLabel;
+	
+	pattern = chooseFormatPattern(interval);
+	SimpleDateFormat* simpleDateFormat = new SimpleDateFormat(pattern, loc, success);
+	simpleDateFormat->format(date, dateUniStr, success);
+	dateUniStr.toUTF8String(uniLabel);
+	return uniLabel;
+    }%>
+    
+    me UnicodeStr: fromUTF8Str(me string: input) <- <%{
+	UnicodeString output = UnicodeString::fromUTF8(input);
+	return(output);
+    }%>
+    
+    me string: toUTF8Str(me UnicodeString: input) <- <%{
+	string output = "";
+	input.toUTF8String(output);
+	return(output);
+    }%>
+    
+    me string: normalizeStr(me string: input) <- <%{
+	UnicodeString uniNorm = UNormalizer->normalize(fromUTF8Str(input.data()), uErr);
+	string outputUTF8 = toUTF8Str(uniNorm);
+	return(outputUTF8);
+    }%>
+    
+    me sysLocale: SetLocale(me string: code) <- <%{
+	Locale locale = Locale::createCanonical(code.data());
+	return locale;
+    }%>
+    
+    /- Optionally pass in a display language. For example:
+    /- to display "French, Italian, English" in successive calls to relevant locales, pass "en"
+    me UnicodeStr: getDisplayLanguage(me Locale: loc, me string: langNameLangDisplayedIn <- "") <- <%{
+	UnicodeString langName;
+	if (langNameLangDisplayedIn != "") {
+	    Locale dispLoc = SetLocale(langNameLangDisplayedIn);
+	    loc.getDisplayLanguage(dispLoc, langName);
+	} else {
+	    loc.getDisplayLanguage(langName);
+	}
+	return(langName);
+    }%>
+    
+    /- Optionally pass in a display language. For example:
+    /- to display "France, Italy, England" in successive calls to relevant locales, pass "en"
+    me UnicodeStr: getDisplayCountry(me Locale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{
+	UnicodeString dispCountry;
+	if (countryNameLangDisplayedIn != "") {
+	    Locale dispLoc = SetLocale(countryNameLangDisplayedIn);
+	    loc.getDisplayCountry(dispLoc, dispCountry);
+	} else {
+	    loc.getDisplayCountry(dispCountry);
+	}
+	return(dispCountry);
+    }%>
 }

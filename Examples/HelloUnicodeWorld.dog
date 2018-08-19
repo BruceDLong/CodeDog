@@ -1,0 +1,49 @@
+/- HelloWorld.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "Hello World"
+FileName = "helloworld"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is an example of a very minimal program"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [Unicode]
+
+LicenseText = `Public Domain`
+
+
+runCode=`runProg()`
+
+struct GLOBAL{
+    void: runProg() <- {
+        me string: hello <- "Hello World!\n"
+	me UnicodeStr: uniHello <- unicodeMgr.fromUTF8Str(hello)
+	me string: output <- unicodeMgr.toUTF8Str(uniHello)
+	print(output)
+	
+	me string: uniNorm <- unicodeMgr.normalizeStr(hello)
+	print(uniNorm)
+	
+	me string: code <- "fr_FR"
+	me string: testLang <- "pt"
+	me sysLocale: loc <- unicodeMgr.SetLocale(code)
+	me UnicodeStr: dispName1 <- unicodeMgr.getDisplayLanguage(loc)
+	print(dispName1)
+	print("\n")
+	me UnicodeStr: dispName2 <- unicodeMgr.getDisplayLanguage(loc, testLang)
+	print(dispName2)
+	print("\n")
+	me UnicodeStr: dispCountry1 <- unicodeMgr.getDisplayCountry(loc)
+	print(dispCountry1)
+	print("\n")
+	me UnicodeStr: dispCountry2 <- unicodeMgr.getDisplayCountry(loc, testLang)
+	print(dispCountry2)
+	print("\n")
+    }
+}
