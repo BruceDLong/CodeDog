@@ -276,8 +276,13 @@ struct graph: inherits=dash{
     me int: prevX
     me int: deltaX <- 0
     me int: moveThreshold <- 2
+    me int: crntX
+    me int: crntY
 
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+	crntX <- event.x - posX
+	crntY <- event.y - posY
+	if (crntX <= 0 or crntX >= width or crntY <= 0 or crntY >= height) {return(false)}
 	if (scrollState==still) {
 	    scrollState <- fingerPressed
 	    prevX <- event.x
