@@ -101,9 +101,11 @@ struct horizontalScale: inherits=graphScale{
     me string: justify <- ""
     me sysLocale: loc
     me UErrorCode: status <- U_ZERO_ERROR
+    me int: lastTick
     
     /- AXIS VALUE LABELS
-    withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
+    lastTick <- (hiVal-lowVal)/step
+    withEach val in RANGE(0.. lastTick+1){
 	if(isDate){
 	    loc <- unicodeMgr.SetLocale("pt")
 	    label <- unicodeMgr.dateToIntlString(val*step+lowVal, hiVal-lowVal, loc, status)
@@ -122,7 +124,12 @@ struct horizontalScale: inherits=graphScale{
 	    size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
 	}else{
 	    XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
-	    size <- renderText(cr, label, styler.fontSmall, XPoint, YPoint)
+	    if (val==0) {renderText(cr, label, styler.fontSmall, XPoint, YPoint)}
+	    else if (val==lastTick) {
+		me deltaSize: labelSize <- getTextSize(cr, label, styler.fontSmall)
+		renderText(cr, label, styler.fontSmall, XPoint - labelSize.width, YPoint)
+	    }
+	    else {size <- renderTextCentered(cr, label, styler.fontSmall, XPoint, YPoint)}
 	}
 	if(size.height > labelHeight){labelHeight <- size.height}
 	cr.strokeNow()
@@ -254,8 +261,8 @@ struct graph: inherits=dash{
             topScale.draw(cr)
         }
 
-        renderText(cr, title, styler.fontTitle, posX, posY-70)
-        cr.strokeNow()
+        /-renderText(cr, title, styler.fontTitle, posX, posY-20)
+	/-cr.strokeNow()
 	
 	zoomToggle.draw(cr, 10, 75)
     }
@@ -270,13 +277,13 @@ struct graph: inherits=dash{
 	zoomLevel    <- 2
 	
 	timeInterval <- zoomTable[zoomLevel]
-	zoomToggle.initZoomWidget(50, 50, labelTable[zoomLevel])
+	zoomToggle.initZoomWidget(90, 5, labelTable[zoomLevel])
 	crntRightSide <- getCurrentTimeStamp()
 
 	/- (string titleStr, bool IsVisible, int TicksPerStep, bool TextSlant, bool IsDate)
-        leftScale.initScale("leftScale", true, 1, false, false)
+        leftScale.initScale("Blood Glucose Level (units)", true, 1, false, false)
         rightScale.initScale("rightScale!", false, 1, false, false)
-        bottomScale.initScale("bottomScale!", true, 1, false, true)
+        bottomScale.initScale("Time", true, 1, false, true)
         topScale.initScale("topScale", false, 1, false, false)
     }
     
