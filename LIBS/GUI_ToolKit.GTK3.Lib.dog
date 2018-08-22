@@ -543,6 +543,7 @@ struct GUI_ctxt {
     me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
     me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!cairo_arc(%0, %1, %2, %3, 0, 2 * M_PI)%>
 }
 
 struct guiFillPattern{
