@@ -174,6 +174,11 @@ struct graph: inherits=dash{
     me mode[sAutomatic, sManual]:scrollMode
     me timeValue: timeInterval
     me timeValue: crntRightSide
+    
+    me zoomWidget: zoomToggle
+    me int: zoomLevel
+    me double[list]: zoomTable <- [1.0*1000*60*60*24, 3.0*1000*60*60*24, 7.0*1000*60*60*24, 14.0*1000*60*60*24, 30.0*1000*60*60*24, 60.0*1000*60*60*24]
+    me string[list]: labelTable <- ["One Day", "Three Days", "One Week", "Two Weeks", "One Month", "Two Months"]
 
     void: update() <- {}
 
@@ -251,6 +256,8 @@ struct graph: inherits=dash{
 
         renderText(cr, title, styler.fontTitle, posX, posY-70)
         cr.strokeNow()
+	
+	zoomToggle.draw(cr, 10, 75)
     }
 
     me void: initGraph(me string: titleStr, me int: PosX, me int: PosY, me int: Width, me int: Height, me double: Step, me int: Alpha)<- {
@@ -260,8 +267,10 @@ struct graph: inherits=dash{
         width        <- Width
         height       <- Height
         step         <- Step
+	zoomLevel    <- 2
 	
-	timeInterval <- 4 * ticksPerSec()
+	timeInterval <- zoomTable[zoomLevel]
+	zoomToggle.initZoomWidget(50, 50, labelTable[zoomLevel])
 	crntRightSide <- getCurrentTimeStamp()
 
 	/- (string titleStr, bool IsVisible, int TicksPerStep, bool TextSlant, bool IsDate)
@@ -270,8 +279,16 @@ struct graph: inherits=dash{
         bottomScale.initScale("bottomScale!", true, 1, true, true)
         topScale.initScale("topScale", false, 1, false, false)
     }
+    
+    void: incrementZoomLevel(me int: change) <- {
+	if (zoomLevel + change >= 0 and zoomLevel + change < zoomTable.size()) {
+	    zoomLevel <- zoomLevel + change
+	    timeInterval <- zoomTable[zoomLevel]
+	    zoomToggle.label <- labelTable[zoomLevel]
+	}
+    }
 
-    /- CLICK AND DRAG TO SCROLL GRAPH
+    /- //// SCROLL IN TIME
     me mode[still, fingerPressed, pullScrolling]: scrollState
     me int: prevX
     me int: deltaX <- 0
@@ -280,18 +297,24 @@ struct graph: inherits=dash{
     me int: crntY
 
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-	crntX <- event.x - posX
-	crntY <- event.y - posY
-	if (crntX <= 0 or crntX >= width or crntY <= 0 or crntY >= height) {return(false)}
-	if (scrollState==still) {
-	    scrollState <- fingerPressed
-	    prevX <- event.x
+	if (zoomToggle.zoomInBtn.primaryDn(event)) {}
+	else if (zoomToggle.zoomOutBtn.primaryDn(event)) {}
+	else {
+	    crntX <- event.x - posX
+	    crntY <- event.y - posY
+	    if (crntX <= 0 or crntX >= width or crntY <= 0 or crntY >= height) {return(false)}
+	    if (scrollState==still) {
+		scrollState <- fingerPressed
+		prevX <- event.x
+	    }
 	}
 	return(true)
     }
     
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-	scrollState <- still
+	if (zoomToggle.zoomInBtn.primaryDn(event)) {incrementZoomLevel(-1)}
+	else if (zoomToggle.zoomOutBtn.primaryDn(event)) {incrementZoomLevel(1)}
+	else {scrollState <- still}
 	return(true)
     }
     
@@ -308,5 +331,74 @@ struct graph: inherits=dash{
 	    requestRedraw()
 	}
 	return(true)
+    }
+}
+
+struct zoomWidget: inherits=dash{
+    me circleButton: zoomInBtn
+    me circleButton: zoomOutBtn
+    me string: label
+    me int: radius
+    me int: labelX
+    me int: maxLabelLength
+    
+    void: draw(me GUI_ctxt: cr, me int: Radius, me int: MaxLabelLength) <- {
+	radius <- Radius
+	maxLabelLength <- MaxLabelLength
+	labelX <- posX + 3*radius
+	
+	zoomOutBtn.initZoomBtn(posX, posY, radius, "-")
+	zoomOutBtn.draw(cr)
+	renderTextCentered(cr, label, styler.fontSmall, labelX + maxLabelLength/2, posY + 3*radius/2)
+	cr.strokeNow()
+	zoomInBtn.initZoomBtn(labelX + maxLabelLength + radius, posY, radius, "+")
+	zoomInBtn.draw(cr)
+    }
+    
+    void: initZoomWidget(me int: PosX, me int: PosY, me string: Label) <- {
+	posX <- PosX
+	posY <- PosY
+	label <- Label
+    }
+}
+
+struct circleButton: inherits=dash{
+    me int: radius
+    me string: symbol
+    
+    me void: draw(me GUI_ctxt: cr) <- {
+	if (symbol=="+") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius, posY + radius/4)
+	    cr.lineTo(posX + radius, posY + 7*radius/4)
+	    cr.strokeNow()
+	}
+	if (symbol=="+" or symbol=="-") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius/4, posY + radius)
+	    cr.lineTo(posX + 7*radius/4, posY + radius)
+	    cr.strokeNow()
+	}
+	cr.circle(posX + radius, posY + radius, radius)
+	cr.strokeNow()
+    }
+    
+    me void: initZoomBtn(me int: PosX, me int: PosY, me int: Radius, me string: Symbol) <- {
+	posX <- PosX
+	posY <- PosY
+	radius <- Radius
+	width <- 2*radius
+	height <- 2*radius
+	symbol <- Symbol
+    }
+    
+    /- Click functionality is inside graph
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
+    }
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
     }
 }
