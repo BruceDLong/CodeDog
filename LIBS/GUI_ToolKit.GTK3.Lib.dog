@@ -594,7 +594,7 @@ struct GLOBAL{
 
     /- //TIME ROUTINES:
     me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
-    me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
+    me int64: getCurrentTimeStamp() <- <%!g_get_real_time()/1000%>
 
     /- //DRAWING ROUTINES:
     me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{

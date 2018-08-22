@@ -177,8 +177,8 @@ struct graph: inherits=dash{
     
     me zoomWidget: zoomToggle
     me int: zoomLevel
-    me double[list]: zoomTable <- [1.0*1000*60*60*24, 3.0*1000*60*60*24, 7.0*1000*60*60*24, 14.0*1000*60*60*24, 30.0*1000*60*60*24, 60.0*1000*60*60*24]
-    me string[list]: labelTable <- ["One Day", "Three Days", "One Week", "Two Weeks", "One Month", "Two Months"]
+    me double[list]: zoomTable <- [1.0*1000*60, 1.0*1000*60*60*24, 3.0*1000*60*60*24, 7.0*1000*60*60*24, 14.0*1000*60*60*24, 30.0*1000*60*60*24, 60.0*1000*60*60*24]
+    me string[list]: labelTable <- ["One Minute", "One Day", "Three Days", "One Week", "Two Weeks", "One Month", "Two Months"]
 
     void: update() <- {}
 
@@ -274,9 +274,9 @@ struct graph: inherits=dash{
 	crntRightSide <- getCurrentTimeStamp()
 
 	/- (string titleStr, bool IsVisible, int TicksPerStep, bool TextSlant, bool IsDate)
-        leftScale.initScale("leftScale", true, 1, true, false)
-        rightScale.initScale("rightScale!", false, 1, true, false)
-        bottomScale.initScale("bottomScale!", true, 1, true, true)
+        leftScale.initScale("leftScale", true, 1, false, false)
+        rightScale.initScale("rightScale!", false, 1, false, false)
+        bottomScale.initScale("bottomScale!", true, 1, false, true)
         topScale.initScale("topScale", false, 1, false, false)
     }
     

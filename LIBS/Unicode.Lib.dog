@@ -26,13 +26,14 @@ struct USpoofChecker {me USpoofChecker: USpoofChecker}
 struct UnicodeMgr {
     me UnicodeString: chooseFormatPattern(me double: graphInterval) <- {
 	me UnicodeString: dateFormat
-	me double: level1 <- 60*60*24*2
-	me double: level2 <- 60*60*24*30*5
+	me double: level0 <- 1000.0*60 + 1
+	me double: level1 <- 1000.0*60*60*24*2
+	me double: level2 <- 1000.0*60*60*24*30*5
 	
-	/- dividing by 1000 rather than multiplying to avoid int overflow error
-	if(graphInterval/1000 > level2) {dateFormat <- "MMM d"}
+	if(graphInterval > level2) {dateFormat <- "MMM d"}
 	else{
-	    if(graphInterval/1000 > level1) {dateFormat <- "E, MMM d"}
+	    if(graphInterval > level1) {dateFormat <- "E, MMM d"}
+	    else if (graphInterval < level0) {dateFormat <- "yyyy.MM.dd G 'at' HH:mm:ss zzz"}
 	    else{dateFormat <- "h:mm a"}
 	}
 	return(dateFormat)
