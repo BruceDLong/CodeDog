@@ -31,8 +31,8 @@ struct UnicodeMgr {
 	me double: level2 <- 1000.0*60*60*24*7
 	
 	if(graphInterval >= level2) {dateFormat <- "MMM d"}
-	else if (graphInterval >= level1) {dateFormat <- "E K:mm a"}
-	else {dateFormat <- "yyyy.MM.dd G 'at' HH:mm:ss zzz"}
+	else if (graphInterval >= level1) {dateFormat <- "E h:mm a"}
+	else {dateFormat <- "yyyy.MM.dd HH:mm:ss"}
 	return(dateFormat)
     }
 }
