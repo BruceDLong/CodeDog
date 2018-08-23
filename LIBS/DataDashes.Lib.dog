@@ -190,10 +190,6 @@ struct GraphDataStream {
 
 struct graph: inherits=dash{
     our GraphDataStream[me list]: dataStreams
-    me int: highVal
-    me int: lowVal
-    me double: step
-    me double: scnUnitSpan <- 100 /- Height of screen represents 100 units
 
     me verticalScale:   leftScale
     me horizontalScale: bottomScale
@@ -219,10 +215,10 @@ struct graph: inherits=dash{
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        me double: scnTimeSpan       <- timeInterval  /- Display 20 seconds of data on the screen
+        me double: scnTimeSpan       <- timeInterval
         me double: scnPixSpanW       <- width
         me double: pixelsPerMillisec <- scnPixSpanW / scnTimeSpan
-        me double: scnUnitSpan <- 100 /- Height of screen represents 100 units
+	me double: scnUnitSpan       <- leftScale.hiVal - leftScale.lowVal
         me double: scnPixSpanH       <- height
         me double: pixelsPerUnit     <- scnPixSpanH / scnUnitSpan
         me timeValue: rightGraphTime
@@ -230,7 +226,7 @@ struct graph: inherits=dash{
 	me bool: firstTime
         me double: XPoint
         me double: YPoint
-        me int: YOrig
+        me int: YOrig <- posY + height
 
         withEach dataStream in dataStreams{
             /-cr.setColor(dataStream.lineColor)
@@ -242,12 +238,11 @@ struct graph: inherits=dash{
             firstTime      <- true
             XPoint         <- 0
             YPoint         <- 0
-            YOrig          <- posY + height
 
             withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
                 XPoint <- (point_key-leftGraphTime)*pixelsPerMillisec + posX
-                YPoint <- point/pixelsPerUnit
-                if(firstTime){cr.moveTo(XPoint, YOrig)  firstTime<-false}
+                YPoint <- (point - leftScale.lowVal)*pixelsPerUnit
+                if(firstTime){cr.moveTo(XPoint, YOrig); firstTime<-false}
                 else {cr.lineTo(XPoint, YOrig - YPoint)}
             }
             cr.lineTo(XPoint, YOrig)
@@ -267,7 +262,7 @@ struct graph: inherits=dash{
         /-//// TEXT
         cr.setColor(styler.highlight2Color)
         if(leftScale.isVisible){
-            leftScale.setScale(height, 10, 100, 10, posX, YOrig, -4)
+            leftScale.setScale(height, 0, 400, 50, posX, YOrig, -4)
             leftScale.draw(cr)
         }
         if(bottomScale.isVisible){
@@ -295,7 +290,6 @@ struct graph: inherits=dash{
         posY         <- PosY
         width        <- Width
         height       <- Height
-        step         <- Step
 	zoomLevel    <- 0
 	
 	timeInterval <- zoomTable[zoomLevel]
