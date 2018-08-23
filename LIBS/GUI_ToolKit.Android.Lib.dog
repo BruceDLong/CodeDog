@@ -132,7 +132,10 @@ struct scrollerWidget{
 struct boolWidget{
     their CheckBox: checkBox
 }
-
+struct GUI_dropDown{
+    me void: appendComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)%1.data(),(gchar*)%2.data())%>
+    me int: comboBoxGetActive() <- <%!gtk_combo_box_get_active((GtkComboBox *)%0)%>
+}
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
@@ -285,7 +288,8 @@ struct GLOBAL{
         box.addView(textBox);
         return box;
     }%>
-
+    their GtkWidget: makeComboBox(me string: label)          <- <%!%Ggtk_combo_box_text_new()%>
+    
     their GUI_Frame: makeFloatWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         EditText editBox = new EditText(GLOBAL.static_Global);
@@ -438,7 +442,7 @@ struct CanvasView: inherits=View implements=OnTouchListener{
         cr = new GUI_ctxt(canvas);
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
-        GLOBAL.static_Global.drawAppArea_cb(this, cr);
+        GLOBAL.static_Global.EventDispatcher.topWidget.draw(cr);
         invalidate();
     }%>
 
@@ -505,7 +509,7 @@ struct GUI {
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
-    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!;%>
+    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents();%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 /-    me GUI_Frame: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
@@ -734,10 +738,6 @@ struct GLOBAL: inherits=AppCompatActivity{
         }
     }%>
 
-    me bool: drawAppArea_cb(their CanvasView: canvas, their GUI_ctxt: cr) <- <%{
-        GLOBAL.static_Global.thisApp.primary_GUI_Mgr.dashboardWidget.draw(cr);
-        return(true);
-    }%>
 
     /- //MENU ROUTINES:
     me boolean: onCreateOptionsMenu(me Menu: androidMenu) <- <%{

@@ -35,7 +35,8 @@ struct testWidget: inherits = 'widget'{
         cr.strokeNow()
 
         cr.setColor(Styler.DarkSlateBlue)
-        renderText(cr, "Hello World!", "Ariel",  50, 150, 100)
+	our fontSpec:: testFont <- ("Ariel", 20, 0)
+        renderText(cr, "Hello World!", testFont, 150, 100)
         cr.strokeNow()
 
         /- Here you can add tests for other drawing functions:
@@ -66,7 +67,7 @@ struct testWidget: inherits = 'widget'{
 }
 
 struct GLOBAL{
-    me GUI_canvas: drawing_area
+    their GUI_canvas: drawing_area
     our testWidget: drawAnX
     me int: fontSize
 }
@@ -79,12 +80,9 @@ struct APP{
 
     me void: createAppArea(me GUI_Frame: frame) <- {
         drawing_area  <- gui.newCanvas()
-        me GUI_ScrollingWindow:: scrollerFrame(gui.newScrollingWindow(NULL, NULL))
-        scrollerRef <- scrollerFrame
-        gui.addToContainer(scrollerFrame, drawing_area)
         gui.setWidgetSize(drawing_area, 1200, 1200)
         Allocate(drawAnX)
         EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
-        gui.addToContainerAndExpand (frame, scrollerFrame)
+        gui.addToContainerAndExpand (frame, drawing_area)
     }
 }
