@@ -68,6 +68,17 @@ struct UnicodeMgr {
 	return uniLabel;
     }%>
     
+    me string: getHour(me UDate: date, me Locale: loc, me UErrorCode: success) <- <%{
+	UnicodeString pattern = "k";   /- k: hour in day (1~24)
+	UnicodeString uniStrHr;
+	string hour;
+	
+	SimpleDateFormat* simpleDateFormat = new SimpleDateFormat(pattern, loc, success);
+	simpleDateFormat->format(date, uniStrHr, success);
+	uniStrHr.toUTF8String(hour);
+	return hour;
+    }%>
+    
     me UnicodeStr: fromUTF8Str(me string: input) <- <%{
 	UnicodeString output = UnicodeString::fromUTF8(input);
 	return(output);
@@ -115,4 +126,6 @@ struct UnicodeMgr {
 	}
 	return(dispCountry);
     }%>
+    
+    
 }
