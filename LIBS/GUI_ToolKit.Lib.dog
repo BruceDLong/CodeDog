@@ -94,16 +94,23 @@ struct GUI_ctxt {
     me void: setRGB (me double: red, me double: green, me double: blue)
     me void: setColor(me cdColor: color)
     me void: setLineWidth(me double: width)
+    me void: finishPDF()
+    me void: setScale()
     me void: moveTo(me double: x, me double: y)
     me void: lineTo(me double: x, me double: y)
     me void: moveRel(me double: dx, me double: dy)
     me void: lineRel(me double: dx, me double: dy)
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3)
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3)
+    me void: closePath()
     me void: rectangle()
     me void: paintNow()
     me void: strokeNow()
     me void: fillNow()
+    me void: strokeKeep()
+    me void: fillKeep()
+    me void: setFillPattern()
+    me void: circle(me int: centerX, me int: centerY, me int: radius)
 }
 
 
