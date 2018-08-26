@@ -221,8 +221,8 @@ struct graph: inherits=dash{
 	me double: scnUnitSpan       <- leftScale.hiVal - leftScale.lowVal
         me double: scnPixSpanH       <- height
         me double: pixelsPerUnit     <- scnPixSpanH / scnUnitSpan
-        me timeValue: rightGraphTime
-	me timeValue: leftGraphTime
+        me timeValue: rightGraphTime <- crntRightSide
+	me timeValue: leftGraphTime  <- crntRightSide
 	me bool: firstTime
         me double: XPoint
         me double: YPoint

@@ -118,7 +118,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
             if idxType=='int':              idxType  = 'Integer'
             if langType=='int':             langType = 'Integer'; InnerLangType = 'Integer'
             if idxType=='long':             idxType  = 'Long'
-            if langType=='long':            langType = 'Long'
+            if langType=='long':            langType = 'Long'; InnerLangType = 'Long'
             if langType=='double':          langType = 'Double'; InnerLangType = 'Double'
             if idxType=='timeValue':        idxType  = 'Long' # this is hack and should be removed ASAP
             
@@ -293,16 +293,14 @@ def codeFactor(item, objsRefed, returnType, xlator):
                 count+=1
                 [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, xlator)
                 if count>1: tmp+=', '
-                tmp+=S2
+                tmp+=S2+'<PARAMTYPE>'
             if retTypeSpec=='noType':retTypeSpec='<LISTTYPE>'
             tmp+="))"
             S+='new '+'ArrayList<'+retTypeSpec+'>'+tmp   # ToDo: make this handle things other than long.
-
         else:
-            retTypeSpec='String'
-            if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)
-            elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
-            else: S+=item0;
+            if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
+            elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
+            else:                 S+=item0;
     else:
         if isinstance(item0[0], basestring):
             S+=item0[0]
@@ -473,17 +471,15 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if LorR_Val=='RVAL':
         #Next line may be cause of bug with printing modes.  remove 'not'?
-        if (previousSegName in getModeStateNames()):
-            S= '<MODENAME>' + idx + '<MODENAMEend>'
+        if (previousSegName in getModeStateNames()): S= '<MODENAME>' + idx + '<MODENAMEend>'
         elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
             S= '.get(' + idx + ')'
-        elif (containerType== 'string'):
-            S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
-        else:
-            S= '[' + idx +']'
-    else: S= '[' + idx +']'
+        elif (containerType== 'string'): S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
+        else: S= '[' + idx +']'
+    else: 
+		if containerType== 'ArrayList': S = '.get('+idx+')'
+		else: S= '[' + idx +']'
     return S
-
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
     # Check for string A[x] = B;  If so, render A.put(B,x)
@@ -562,7 +558,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             RHS = S2
             assignValue=' = '+ RHS
             #TODO: make test case
-        else: assignValue=''
+        else: assignValue=''   
     elif(fieldDef['value']):
         [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
         RHS = S2
@@ -572,8 +568,15 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
         #TODO: make test case
             constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
             if (constructorExists):
-                assignValue=' = new ' + fieldType +'('+ RHS + ')'
+                assignValue=' = new ' + fieldType +'('+ RHS + ')'        
             else:
+                if('<LISTTYPE>'in RHS):
+                    RHS=RHS.replace('<LISTTYPE>',fieldAttrs)
+                paramSuffix = ''
+                if fieldAttrs == 'Long':
+                    paramSuffix = 'L'
+                if('<PARAMTYPE>'in RHS):
+                    RHS=RHS.replace('<PARAMTYPE>',paramSuffix)
                 assignValue= ' = '+ RHS   #' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
     else: # If no value was given:
         #print "TYPE:", fieldType
@@ -727,6 +730,11 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
     if('<LISTTYPE>'in S):
         S=S.replace('<LISTTYPE>',innerType)
+    paramSuffix = ''
+    if innerType == 'Long':
+        paramSuffix = 'L'
+    if('<PARAMTYPE>'in S):
+        S=S.replace('<PARAMTYPE>',paramSuffix)
     return [S, '']
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
