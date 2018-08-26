@@ -26,8 +26,7 @@ struct USpoofChecker {me USpoofChecker: USpoofChecker}
 struct UnicodeMgr {
     me UnicodeString: chooseFormatPattern(me double: graphInterval) <- {
 	me UnicodeString: dateFormat
-	me double: level0 <- 1000.0*60 + 1
-	me double: level1 <- 1000.0*60*60*24
+	me double: level1 <- 1000.0*60*60
 	me double: level2 <- 1000.0*60*60*24*7
 	
 	if(graphInterval >= level2) {dateFormat <- "MMM d"}
