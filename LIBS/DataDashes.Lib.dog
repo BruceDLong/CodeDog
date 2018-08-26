@@ -172,10 +172,12 @@ struct horizontalScale: inherits=graphScale{
 	yOrig        <- YOrig
 	tickOffset   <- TickOffset
 	
-	me timeValue[list]: stepTable <- [1000*12, 1000*60*60*4, 1000*60*60*12, 1000*60*60*24, 1000*60*60*24*2, 1000*60*60*24*7, 1000*60*60*24*7]
-	me timeValue[list]: divisorTable <- [1000*12, 1000*60*60*4, 1000*60*60*12, 1000*60*60*12, 1000*60*60*24*2, 1000*60*60*24*7, 1000*60*60*24*7]
+	me timeValue[list]: stepTable    <- [1000*12, 1000*60*12, 1000*60*60, 1000*60*60*2, 1000*60*60*4, 1000*60*60*24, 
+	    1000*60*60*24*2, 1000*60*60*24*5, 1000*60*60*24*10, 1000*60*60*24*15, 2592000000, 6307200000]
+	me timeValue[list]: divisorTable <- [1000*12, 1000*60*12, 1000*60*60, 1000*60*60*2, 1000*60*60*4, 1000*60*60*12, 
+	    1000*60*60*24*2, 1000*60*60*24*5, 1000*60*60*24*10, 1000*60*60*24*15, 2592000000, 6307200000]
 	
-	step <- stepTable[zoomLvl]
+	step    <- stepTable[zoomLvl]
 	divisor <- divisorTable[zoomLvl]
     }
 }
@@ -202,8 +204,10 @@ struct graph: inherits=dash{
     
     me zoomWidget: zoomToggle
     me int: zoomLevel
-    me timeValue[list]: zoomTable <- [1000*60, 1*1000*60*60*24, 3*1000*60*60*24, 7*1000*60*60*24, 14*1000*60*60*24, 2419200000, 4838400000]
-    me string[list]: labelTable <- ["One Minute", "One Day", "Three Days", "One Week", "Two Weeks", "Four Weeks", "Eight Weeks"]
+    me timeValue[list]: zoomTable <- [1000*60,    1000*60*60, 1000*60*60*6, 1000*60*60*12, 1000*60*60*24, 1000*60*60*24*7, 
+	1000*60*60*24*14, 2592000000, 5184000000, 7776000000, 15552000000, 31536000000]
+    me string[list]: labelTable <-   ["1 Minute", "1 Hour",   "6 Hours",    "12 Hours",    "24 Hours",    "One Week",      
+	"Two Weeks",      "30 Days",  "60 Days",  "90 Days",  "180 Days",  "One Year"]
 
     void: update() <- {}
 
