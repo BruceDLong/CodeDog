@@ -49,6 +49,10 @@ struct GUI_label{their textView: GUI_label}
 struct listWidget{their LinearLayout: listWidget}
 
 struct GUI_button{me button: GUI_button}
+struct GUI_XStack{their GtkWidget: GUI_XStack}
+struct GUI_YStack{their GtkWidget: GUI_YStack}
+struct GUI_dropDown{their GtkWidget: GUI_dropDown}
+struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard: inherits=FragmentActivity{
@@ -56,10 +60,19 @@ struct GUI_storyBoard: inherits=FragmentActivity{
     me void: addPane(their GUI_Frame: frame) <- <%!%1.addView(%2)%>
 }
 
+struct boolWidget{
+    their CheckBox: checkBox
+}
 struct intWidget{
     their LinearLayout: box
     their TextView: dataLabel
     their TextView: dataValue
+    me double: initialValue  <- 0
+    me double: minValue      <- -1000
+    me double: maxValue      <- 1000
+    me double: stepIncrement <- 1
+    me double: pageIncrement <- 10
+    me double: pageSize      <- 10
 
     me void: getValue() <- {}
     me void: setValue() <- {}
@@ -67,10 +80,10 @@ struct intWidget{
     their LinearLayout: makeIntWidget(me string: name)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-    dataLabel.setText(name);
+        dataLabel.setText(name);
         box.addView(dataLabel);
         dataValue = new TextView(GLOBAL.static_Global);
-    dataValue.setText(name);
+        dataValue.setText(name);
         box.addView(dataValue);
         return box;
     }%>
@@ -86,10 +99,10 @@ struct stringWidget{
     their LinearLayout: makeStringWidget(me string: name) <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-    dataLabel.setText(name);
+        dataLabel.setText(name);
         box.addView(dataLabel);
         dataValue = new TextView(GLOBAL.static_Global);
-    dataValue.setText(name);
+        dataValue.setText(name);
         box.addView(dataValue);
         return box;
     } %>
@@ -117,20 +130,16 @@ struct scrollerWidget{
     their GUI_ScrollingWindow: makeScrollerWidget(their CanvasView: canvas) <- <%{
         scroller = new NestedScrollView(GLOBAL.static_Global);
         scroller.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-    HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
+        HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
         hScroller.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
         scroller.addView(hScroller);
         layoutArea = new LinearLayout(GLOBAL.static_Global);
         layoutArea.setOrientation(LinearLayout.VERTICAL);
         layoutArea.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
         hScroller.addView(layoutArea);
-    layoutArea.addView(canvas);
+        layoutArea.addView(canvas);
         return(scroller);
     }%>
-}
-
-struct boolWidget{
-    their CheckBox: checkBox
 }
 struct GUI_dropDown{
     me void: appendComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)%1.data(),(gchar*)%2.data())%>
@@ -222,15 +231,16 @@ struct ListManagerBox{
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     /- Widgets
-    their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_Frame: makeFrameWidget(me string: label)         <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
-    their GUI_Frame: makeXStackWidget(me string: label)    <- <%{
+    their rangeWidget: makeRangeWidget(me string: label)        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
+    their GUI_Frame: makeYStack()                               <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
+    their GUI_Frame: makeXStack()    <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         box.setOrientation(LinearLayout.HORIZONTAL);
         return box;
     }%>
 
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
 
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
@@ -331,8 +341,8 @@ struct GLOBAL{
     }%>
     me void: setLabelWidth(their GUI_Frame: labelWidget, me int: width) <- <%{
         LayoutParams params = new LayoutParams(width, LayoutParams.WRAP_CONTENT);
-    params.width = width;
-    labelWidget.setLayoutParams(params);
+        params.width = width;
+        labelWidget.setLayoutParams(params);
     }%>
 
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!%G %>
@@ -450,7 +460,7 @@ struct CanvasView: inherits=View implements=OnTouchListener{
 
 
 /-///////////////////////////////  HANDLE GUI
-struct GUI : inherits=LinearLayout{
+struct GUI: inherits=LinearLayout{
     me LinearLayout: frame <- (GLOBAL.static_Global)
     me LinearLayout: layoutArea <- (GLOBAL.static_Global)
     me NestedScrollView: scroller
@@ -539,6 +549,7 @@ struct GUI_ctxt: inherits=Canvas{
     me void: fillKeep() <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
     me void: renderFrame() <- <%!repaint()%>
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!drawCircle(%0, %1, %2, %3, null )%>
 }
 
 struct GUI_ctxt {
@@ -613,52 +624,52 @@ struct GLOBAL: inherits=AppCompatActivity{
         cr.paint.setTextSize(font.size);
         cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
         cr.GCanvas.drawText(text, (float)x, (float)y, cr.paint);
-    deltaSize size = getTextSize(cr, text, font);
-    return(size);
+        deltaSize size = getTextSize(cr, text, font);
+        return(size);
     }%>
 
     me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         deltaSize size = getTextSize(cr, text, font);
-    cr.paint.setTextSize(font.size);
+        cr.paint.setTextSize(font.size);
         cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-    renderText(cr, text, font, x-size.width/2, y);
-    return(size);
+        renderText(cr, text, font, x-size.width/2, y);
+        return(size);
     }%>
 
     me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
-    double radians    = degrees*(Math.PI/180.);
-    deltaSize size    = getTextSize(cr, text, font);
-    double hypotenuse = size.width;
-    deltaSize tmpSize = new deltaSize(0,0);
+	double radians    = degrees*(Math.PI/180.);
+	deltaSize size    = getTextSize(cr, text, font);
+	double hypotenuse = size.width;
+	deltaSize tmpSize = new deltaSize(0,0);
 
 
-    if(justify == "right"){x=x-hypotenuse;}
-    else if(justify == "center"){x=x-hypotenuse/2;}
-    cr.GCanvas.save();
-    cr.GCanvas.rotate(45, (float)x, (float)y);
-    renderText (cr, text, font, x, y);
-    cr.GCanvas.restore();
-    //TODO: calculate height and width more accurately
-    tmpSize.width = size.width;
-    tmpSize.height = size.width;
-    return(tmpSize);
+	if(justify == "right"){x=x-hypotenuse;}
+	else if(justify == "center"){x=x-hypotenuse/2;}
+	cr.GCanvas.save();
+	cr.GCanvas.rotate(45, (float)x, (float)y);
+	renderText (cr, text, font, x, y);
+	cr.GCanvas.restore();
+	//TODO: calculate height and width more accurately
+	tmpSize.width = size.width;
+	tmpSize.height = size.width;
+	return(tmpSize);
     }%>
 
     me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
-    cr.GCanvas.save();
-    cr.GCanvas.rotate(degrees, (float)x, (float)y);
+        cr.GCanvas.save();
+        cr.GCanvas.rotate(degrees, (float)x, (float)y);
     }%>
 
     me void: restore(me GUI_ctxt: cr) <- <%!%G%1.GCanvas.restore()%>
 
     me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
-    Rect bounds = new Rect();
-    cr.paint.getTextBounds(text, 0, text.length(), bounds);
-    cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-        cr.paint.setTextSize(font.size);
-    deltaSize size = new deltaSize(0,0);
-    size.height = bounds.height();
-    size.width = bounds.width();
+	Rect bounds = new Rect();
+	cr.paint.getTextBounds(text, 0, text.length(), bounds);
+	cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
+	cr.paint.setTextSize(font.size);
+	deltaSize size = new deltaSize(0,0);
+	size.height = bounds.height();
+	size.width = bounds.width();
         return(size);
     } %>
 

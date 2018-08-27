@@ -49,7 +49,48 @@ struct stringWidget{}
 struct enumWidget{}
 struct timeWidget{}
 struct dateWidget{}
+struct wizardWidget{
+    their GUI_Frame:  box
+    their GUI_Frame:  ZStack
+    their GUI_Frame:  buttonBox /-Hstack
+    their GUI_button: backBtn
+    their GUI_button: nextBtn
+    me int:	      activeScreenIdx
+    me string[list]:  children
 
+    their GUI_Frame: makeWizardWidget(me string: name) <- {
+	activeScreenIdx <- 0
+	box          	<- makeYStack()
+	ZStack      	<- makeStoryBoardWidget('')
+	buttonBox 	<- makeXStack()
+	backBtn   	<- makeButtonWidget("Back")
+	nextBtn   	<- makeButtonWidget("Next")
+	GUI.setCallback2(backBtn, "clicked", ClickBack_CB, self)
+	GUI.setCallback2(nextBtn, "clicked", ClickNext_CB, self)
+	addToContainer(box, ZStack)
+	addToContainer(buttonBox, backBtn)
+	addToContainer(buttonBox, nextBtn)
+	addToContainer(box, buttonBox)
+	return(box)
+    }
+    void: clickNext() <-{
+	activeScreenIdx <- activeScreenIdx+1
+	me int: size <- children.size()
+	if (activeScreenIdx > size-1){activeScreenIdx <-size-1}
+	setActiveChild(activeScreenIdx)
+    }
+    void: clickBack() <-{
+	activeScreenIdx <- activeScreenIdx-1
+	if (activeScreenIdx < 0) {activeScreenIdx <-0}
+	setActiveChild(activeScreenIdx)
+    }
+    void: setActiveChild(me int: N) <- {
+	me string: childStr <- children[N]
+	setZStackActive(ZStack, childStr)
+	if(N==0){hideWidget(backBtn)}else{showWidget(backBtn)}
+	if(N==children.size()-1){hideWidget(nextBtn)}else{showWidget(nextBtn)}
+    }
+}
 struct GUI{
     me void: showWidget(me GUI_item: widget)
     me GUI_item: newCanvas()
@@ -285,7 +326,7 @@ struct DateWidget{
 
         /- set defaults
 
-        box <- makeXStackWidget()
+        box <- makeXStack()
         addToContainer(box, year.box)
         addToContainer(box, month)
         addToContainer(box, day)
@@ -325,7 +366,7 @@ struct TimeWidget{
         }
         /- set defaults
 
-        box <- makeXStackWidget()
+        box <- makeXStack()
         addToContainer(box, hour)
         addToContainer(box, minute)
         return(box)
@@ -359,11 +400,12 @@ struct DateTimeWidget{
         Allocate(timeWidget)
         their GUI_Frame: timeBox <- makeFrameWidget()
         timeBox <- timeWidget.initCrnt('')
+
         /- Fill the timeWidget
 
         /- set defaults
 
-        box <- makeXStackWidget()
+        box <- makeXStack()  
         addToContainer(box, dateBox)
         addToContainer(box, timeBox)
         return(box)

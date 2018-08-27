@@ -314,23 +314,23 @@ struct ListManagerBox{
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     /- Widgets
-    their GtkWidget: makeBoolWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeFloatWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeNumRangeWidget(me string: label)    <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeTimeWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeDateWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeTimeWidget()        		     <- <%!%Ggtk_combo_box_text_new()%>
-    their GtkWidget: makeDateWidget()                        <- <%!%Ggtk_combo_box_text_new()%>
+    their GtkWidget: makeBoolWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeFloatWidget(me string: label)       	<- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeNumRangeWidget(me string: label)    	<- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeRangeWidget(me string: label)       	<- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeDateWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget()        		     	<- <%!%Ggtk_combo_box_text_new()%>
+    their GtkWidget: makeDateWidget()                        	<- <%!%Ggtk_combo_box_text_new()%>
     their GtkButton: makeButtonWidget(me string: label)      <- <%!%G(GtkButton*)gtk_button_new_with_label(%1)%>
-    their GtkWidget: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
-    their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
-    their GtkWidget: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
-    their GtkWidget: makeXStackWidget(me string: label)      <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
-    their GtkWidget: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_stack_new()%>
-    their GtkWidget: makeTabbedWidget(me string: label)      <- <%!%Ggtk_notebook_new()%>
-    their GtkWidget: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
-    their GtkWidget: makeComboBox(me string: label)          <- <%!%Ggtk_combo_box_text_new()%>
+    their GtkWidget: makeListWidget(me string: label)        	<- <%!%Ggtk_list_box_new()%>
+    their GtkWidget: makeRowWidget(me string: label)         	<- <%!%Ggtk_list_box_row_new()%>
+    their GtkWidget: makeYStack()            			<- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
+    their GtkWidget: makeXStack()            		     	<- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
+    their GtkWidget: makeStoryBoardWidget(me string: label)  	<- <%!%Ggtk_stack_new()%>
+    their GtkWidget: makeTabbedWidget(me string: label)      	<- <%!%Ggtk_notebook_new()%>
+    their GtkWidget: makeLabelWidget(me string: label)       	<- <%!%Ggtk_label_new(%1)%>
+    their GtkWidget: makeComboBox(me string: label)          	<- <%!%Ggtk_combo_box_text_new()%>
     me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
     me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
@@ -481,6 +481,14 @@ struct GLOBAL{
         DBW->draw(cr);
         return(true);
     }%>
+    void: ClickBack_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
+	wizardWidget* clickWidget = (wizardWidget*)wizard;
+	clickWidget->clickBack();
+    }%>
+    void: ClickNext_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
+	wizardWidget* clickWidget = (wizardWidget*)wizard;
+	clickWidget->clickNext();
+    }%>
 }
 
 
@@ -516,6 +524,7 @@ struct GUI{
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: setCallback() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4.get())%>
+    me void: setCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
@@ -741,13 +750,15 @@ me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
 me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
 me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
 
-me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(%1)%>
+me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(GTK_WIDGET(%1))%>
+me void: hideWidget(their GUI_item: widget) <- <%!gtk_widget_hide(GTK_WIDGET(%1))%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
 /-me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
 me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), (GtkWidget*)%2)%>
 me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
-
+me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_stack_add_named(GTK_STACK(%1), %2, %3)%>
+me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack_set_visible_child_name(GTK_STACK(%1), %2.data())%>
 
 
 /--------------- Application areas
