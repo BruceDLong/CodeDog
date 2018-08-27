@@ -65,7 +65,7 @@ class structAsProteusWriter(structProcessor):
         elif(fldCat=='mode'):
             valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
         elif(fldCat=='struct'):
-            valStr=fieldName+'.to_string(indent+"|   ")\n'
+            valStr=fieldName+'.to_string(indent+"|   ")'
 
             structTypeName=progSpec.getFieldType(field['typeSpec'])[0]
             if not(structTypeName in classesEncoded):
@@ -73,7 +73,7 @@ class structAsProteusWriter(structProcessor):
                 classesEncoded[structTypeName]=1
                 classesToProcess.append(structTypeName)
         if(fldCat=='struct'):
-            S='S <- S + indent + dispFieldAsText("'+label+'", 15) + "\\n"\n    '+valStr+' + "\\n"\n'
+            S='S <- S + indent + dispFieldAsText("'+label+'", 15) + "\\n" + '+valStr+' + "\\n"\n'
         else:
             S='S <- S + indent + dispFieldAsText("'+label+'", 15) + '+valStr+' + "\\n"\n'
         return S

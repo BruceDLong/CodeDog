@@ -11,7 +11,7 @@ interface={
 
 
 LibDescription ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description = 'Built in routines for CPP'
 }
 
@@ -19,12 +19,14 @@ initCode = "signal(SIGSEGV, reportFault)"
 deinitCode = ""
 
 
-struct stream{
-    me fstream: stream
+struct FileStream{
+    me fstream: FileStream
     me void: open(me string: filename) <- <%!open(%1)%>
+    me void: openAppend(me string: filename) <- <%!open(%1, ios_base::in | ios_base::out | ios_base::app)%>
     me void: close() <- <%!close()%>
     me int:  getChar() <- <%!get()%>
     me void: getLine(me string: S) <- <%!getline(%0, %1)%>
+    me void: write(me string: S) <- <%!write(%1.data(), %1.size())%>
     me bool: EOF() <- <%!eof()%>
 }
 

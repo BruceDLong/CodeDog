@@ -29,12 +29,12 @@ struct GLOBAL{
         withEach Pos in RANGE(0..sizeS) {
             me char: ch <- S[Pos]
             if(ch != "." and ch != "-") {
-            digits <- digits + 1
-            /-print("digits is ", digits, ". Pos is ", Pos, ". S is ", S, "\n")
-            if(digits >= sigFigs+1 and hasDecimal == true) {
-                S2 <- S.subStr(0, Pos)
-                break()
-            }
+                digits <- digits + 1
+                /-print("digits is ", digits, ". Pos is ", Pos, ". S is ", S, "\n")
+                if(digits >= sigFigs+1 and hasDecimal == true) {
+                    S2 <- S.subStr(0, Pos)
+                    break()
+                }
             } else if(ch == ".") {hasDecimal <- true}
         }
 
@@ -59,14 +59,15 @@ struct GLOBAL{
 }
 
 struct sessionFile{
-    me void: openSession(me string: filename) <-{}
-    me void: closeSession() <- {}
-    me void: writeEntry(me string: entry) <- {}
+    me FileStream: session
+    me void: openSession(me string: filename) <-{session.openAppend(filename)}
+    me void: closeSession() <- {session.close()}
+    me void: writeEntry(me string: entry) <- {entry<-entry+"\n"; session.write(entry)}
 
-    me void: openToRead(me string: filename) <- {}
-    me string: readEntry() <- {return("")}
-    me bool: eof() <- {return(true)}
-    me void: closeReading() <- {}
+    me void: openToRead(me string: filename) <- {session.open(filename)}
+    me string: readEntry() <- {me string: retVal; session.getLine(retVal); return(retVal)}
+    me bool: eof() <- {return(session.EOF())}
+    me void: closeReading() <- {session.close()}
 }
 
 struct stringScanner{
@@ -132,4 +133,8 @@ struct timeOfDay{
 struct DateTime{
     me DateValue: date
     me timeOfDay: time
+    me timeValue: toTimeValue() <- {
+        me timeValue: ret <- unicodeMgr.epocTimeFromDateTime(date.year, date.month, date.day, time.hour, time.minute, 0)
+        return(ret)
+    }
 }
