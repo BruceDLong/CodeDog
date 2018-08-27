@@ -64,7 +64,10 @@ struct sessionFile{
     me void: closeSession() <- {session.close()}
     me void: writeEntry(me string: entry) <- {entry<-entry+"\n"; session.write(entry)}
 
-    me void: openToRead(me string: filename) <- {session.open(filename)}
+    me void: openToRead(me string: filename) <- {
+        session.open(filename)
+        if(session.failure()){print("Could not open session file "+filename+"\n"); exit(1);}
+    }
     me string: readEntry() <- {me string: retVal; session.getLine(retVal); return(retVal)}
     me bool: eof() <- {return(session.EOF())}
     me void: closeReading() <- {session.close()}

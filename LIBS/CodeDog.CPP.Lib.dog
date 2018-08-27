@@ -28,6 +28,7 @@ struct FileStream{
     me void: getLine(me string: S) <- <%!getline(%0, %1)%>
     me void: write(me string: S) <- <%!write(%1.data(), %1.size())%>
     me bool: EOF() <- <%!eof()%>
+    me bool: failure() <- <%!fail()%>
 }
 
 struct GLOBAL{

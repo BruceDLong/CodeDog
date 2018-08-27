@@ -393,12 +393,12 @@ struct DateTimeWidget{
     }
     their GUI_item: initialize(me timeValue: defaultTime) <- {
         Allocate(dateWidget)
-        their GUI_Frame: dateBox <- makeFrameWidget()
+	their GUI_Frame: dateBox <- makeYStack()
         dateBox <- dateWidget.initCrnt('')
         /- Fill the dateWidget
 
         Allocate(timeWidget)
-        their GUI_Frame: timeBox <- makeFrameWidget()
+	their GUI_Frame: timeBox <- makeYStack()
         timeBox <- timeWidget.initCrnt('')
 
         /- Fill the timeWidget
