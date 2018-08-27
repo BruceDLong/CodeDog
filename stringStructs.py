@@ -566,8 +566,8 @@ struct EParser{
         errLineNum <- 1
         me int: lastLinePos <- 0
         withEach C in RANGE(0..charPos){
-            me int: LHS <- textToParse[C]
-            if(LHS == 13){
+            me char: ch <- textToParse[C]
+            if(ch == "\n"){
                 errLineNum <- errLineNum+1
                 lastLinePos <- C
             }

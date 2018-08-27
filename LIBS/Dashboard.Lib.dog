@@ -425,7 +425,7 @@ struct DashboardWidget: inherits=dash{
         /-    their scrollerWidget:: scrollView  <- ()
         /-    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
         /-    managedWidget <- scrollerFrame
-        /-    managedWidget <- makeFrameWidget("")
+        /-    managedWidget <- makeYStack()
         /-    addToContainer(managedWidget, canvas)
         managedWidget <- canvas
         EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
