@@ -77,5 +77,7 @@ struct GLOBAL{
         }
         return retVal;
     }%>
+    
+    me double: sqrt(me double: input) <- <%!sqrt(%1)%>
 }
 struct timeValue{me int64: timeValue}
