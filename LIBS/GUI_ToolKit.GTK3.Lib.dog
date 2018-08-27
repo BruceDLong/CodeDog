@@ -32,13 +32,14 @@ struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_scalar{me int: GUI_scalar}
-/-struct GUI_label{their textView: GUI_label}
+struct GUI_Label{their GtkWidget: GUI_Label}
 struct listWidget{their GtkWidget: listWidget}
 struct GUI_button{their GtkButton: GUI_button}
 struct GUI_XStack{their GtkWidget: GUI_XStack}
 struct GUI_YStack{their GtkWidget: GUI_YStack}
-struct GUI_dropDown{their GtkWidget: GUI_dropDown}
+struct GUI_ComboBox{their GtkWidget: GUI_ComboBox}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
+struct GUI_SpinBox{their GtkWidget: GUI_SpinBox}
 
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
@@ -75,6 +76,8 @@ struct intWidget{
     me double: stepIncrement <- 1
     me double: pageIncrement <- 10
     me double: pageSize      <- 10
+    me double: climbRate     <- 1
+    me int:    decimalPlaces <- 0
 
     me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
@@ -86,7 +89,7 @@ struct intWidget{
         gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
         gtk_container_add(GTK_CONTAINER (box), dataLabel);
         GtkAdjustment *adjustment = gtk_adjustment_new (initialValue,minValue,maxValue,stepIncrement,pageIncrement,pageSize);
-        dataValue = gtk_spin_button_new(adjustment, 1, 0);
+        dataValue = gtk_spin_button_new(adjustment, climbRate, decimalPlaces);
         gtk_container_add(GTK_CONTAINER (box), dataValue);
         return box;
     }%>
@@ -167,9 +170,12 @@ struct scrollerWidget{
         return(scroller);
     }%>  
 }
-struct GUI_dropDown{
+struct GUI_ComboBox{
     me void: appendComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)%1.data(),(gchar*)%2.data())%>
     me int: comboBoxGetActive() <- <%!gtk_combo_box_get_active((GtkComboBox *)%0)%>
+}
+struct GUI_SpinBox{
+    me double: spinGetValue() <- <%!gtk_spin_button_get_value((GtkSpinButton *)%0)%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
@@ -316,13 +322,14 @@ struct GLOBAL{
     /- Widgets
     their GtkWidget: makeBoolWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeFloatWidget(me string: label)       	<- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Ggtk_spin_button_new(gtk_adjustment_new(%1,%2,%3,1,10,10),1,%4)%>
     their GtkWidget: makeNumRangeWidget(me string: label)    	<- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeRangeWidget(me string: label)       	<- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeTimeWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeDateWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeTimeWidget()        		     	<- <%!%Ggtk_combo_box_text_new()%>
     their GtkWidget: makeDateWidget()                        	<- <%!%Ggtk_combo_box_text_new()%>
-    their GtkButton: makeButtonWidget(me string: label)      <- <%!%G(GtkButton*)gtk_button_new_with_label(%1)%>
+    their GtkButton: makeButtonWidget(me string: label)      	<- <%!%G(GtkButton*)gtk_button_new_with_label(%1)%>
     their GtkWidget: makeListWidget(me string: label)        	<- <%!%Ggtk_list_box_new()%>
     their GtkWidget: makeRowWidget(me string: label)         	<- <%!%Ggtk_list_box_row_new()%>
     their GtkWidget: makeYStack()            			<- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
@@ -330,6 +337,7 @@ struct GLOBAL{
     their GtkWidget: makeStoryBoardWidget(me string: label)  	<- <%!%Ggtk_stack_new()%>
     their GtkWidget: makeTabbedWidget(me string: label)      	<- <%!%Ggtk_notebook_new()%>
     their GtkWidget: makeLabelWidget(me string: label)       	<- <%!%Ggtk_label_new(%1)%>
+    their GtkWidget: makeLabelWidget2(me string: label)       	<- <%!%Ggtk_label_new(%1.data())%>
     their GtkWidget: makeComboBox(me string: label)          	<- <%!%Ggtk_combo_box_text_new()%>
     me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
