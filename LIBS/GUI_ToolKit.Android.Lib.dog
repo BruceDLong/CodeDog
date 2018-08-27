@@ -231,9 +231,9 @@ struct ListManagerBox{
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     /- Widgets
-    their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_Frame: makeFrameWidget(me string: label)         <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
-    their GUI_Frame: makeXStackWidget(me string: label)    <- <%{
+    their rangeWidget: makeRangeWidget(me string: label)        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
+    their GUI_Frame: makeYStack()                               <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
+    their GUI_Frame: makeXStack()    <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         box.setOrientation(LinearLayout.HORIZONTAL);
         return box;
