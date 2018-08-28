@@ -189,11 +189,14 @@ struct GraphDataStream {
     me cdColor: lineColor
     me cdColor: fillColor
     me bool: isVisible <- false
+    me int: screenDataAvg
 }
 
 struct graph: inherits=dash{
     our GraphDataStream[me list]: dataStreams
     me string[list]: dataStreamsTitleTable <- ["None"]
+    me int64: screenDataTotal
+    me int: screenDataCount
 
     me verticalScale:   leftScale
     me horizontalScale: bottomScale
@@ -245,6 +248,9 @@ struct graph: inherits=dash{
 	}
 
         withEach dataStream in dataStreams{
+	    screenDataTotal <- 0
+	    screenDataCount <- 0
+	
 	    if (dataStream.isVisible) {
 		cr.setLineWidth(2)
 		if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
@@ -260,6 +266,8 @@ struct graph: inherits=dash{
 		    YPoint <- (point - leftScale.lowVal)*pixelsPerUnit
 		    if(firstTime){cr.moveTo(XPoint, YOrig); firstTime<-false}
 		    else {cr.lineTo(XPoint, YOrig - YPoint)}
+		    screenDataTotal <- screenDataTotal + point
+		    screenDataCount <- screenDataCount + 1
 		}
 		cr.lineTo(XPoint, YOrig)
 
@@ -273,6 +281,10 @@ struct graph: inherits=dash{
 		cr.fillKeep()*/
 		cr.setColor(dataStream.lineColor)
 		cr.strokeNow()
+		
+		dataStream.screenDataAvg <- screenDataTotal / screenDataCount
+		if(streamToggle1.label == dataStream.title) {streamToggle1.latest <- dataStream.screenDataAvg}
+		else if(streamToggle2.label == dataStream.title) {streamToggle2.latest <- dataStream.screenDataAvg}
 	    }
 	}
 
@@ -362,10 +374,10 @@ struct graph: inherits=dash{
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
 	if (zoomToggle.zoomInBtn.primaryUp(event)) {incrementZoomLevel(-1)}
 	else if (zoomToggle.zoomOutBtn.primaryUp(event)) {incrementZoomLevel(1)}
-	else if (streamToggle1.left.primaryUp(event)) {streamToggle1.incrementStreamState(-1)}
-	else if (streamToggle1.right.primaryUp(event)) {streamToggle1.incrementStreamState(1)}
-	else if (streamToggle2.left.primaryUp(event)) {streamToggle2.incrementStreamState(-1)}
-	else if (streamToggle2.right.primaryUp(event)) {streamToggle2.incrementStreamState(1)}
+	else if (streamToggle1.left.primaryUp(event)) {streamToggle1.incrementStreamState(-1, streamToggle2.state)}
+	else if (streamToggle1.right.primaryUp(event)) {streamToggle1.incrementStreamState(1, streamToggle2.state)}
+	else if (streamToggle2.left.primaryUp(event)) {streamToggle2.incrementStreamState(-1, streamToggle1.state)}
+	else if (streamToggle2.right.primaryUp(event)) {streamToggle2.incrementStreamState(1, streamToggle1.state)}
 	else {scrollState <- still}
 	return(true)
     }
@@ -397,9 +409,11 @@ struct streamToggle: inherits=dash{
     me int: maxLabelLength
     me double: latest
     
-    void: draw(me GUI_ctxt: cr) <- { /-, me int64: Latest
-	/-latest <- Latest
-	renderTextCentered(cr, dblToString(12, 0), styler.fontTitle, posX + 3*radius + maxLabelLength/2, posY + 45) /- latest in place of 12
+    void: draw(me GUI_ctxt: cr) <- {
+	if (state != 0) {
+	    renderTextCentered(cr, dblToString(latest, 0), styler.fontTitle, posX + 3*radius + maxLabelLength/2, posY + 45)
+	    renderTextCentered(cr, "Avg", styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
+	}
 	label <- dataStreamsTitleTbl[state]
 	left.drawCircleBtn(cr)
 	labelSize <- getTextSize(cr, label, styler.fontSmall)
@@ -415,16 +429,17 @@ struct streamToggle: inherits=dash{
 	dataStreamsTitleTbl <- DataStreamsTitleTbl
 	state <- State
 	label <- dataStreamsTitleTbl[state]
-	latest <- 12
+	latest <- 0
 	
 	left.initCircleBtn(posX, posY, radius, "<")
 	right.initCircleBtn(posX + 3*radius + maxLabelLength + radius, posY, radius, ">")
     }
     
-    void: incrementStreamState(me int: Increment) <- {
+    void: incrementStreamState(me int: Increment, me int: otherState) <- {
 	if (state + Increment < 0) {state <- dataStreamsTitleTbl.size()-1}
 	else if (state + Increment >= dataStreamsTitleTbl.size()) {state <- 0}
 	else {state <- state + Increment}
+	if (state == otherState) {incrementStreamState(Increment, otherState)}
     }
     
     /- Click functionality is inside graph clicks
