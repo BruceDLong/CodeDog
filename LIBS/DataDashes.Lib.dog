@@ -282,7 +282,8 @@ struct graph: inherits=dash{
 		cr.setColor(dataStream.lineColor)
 		cr.strokeNow()
 		
-		dataStream.screenDataAvg <- screenDataTotal / screenDataCount
+		if (screenDataCount > 0) {dataStream.screenDataAvg <- screenDataTotal / screenDataCount}
+		else {dataStream.screenDataAvg <- 0}
 		if(streamToggle1.label == dataStream.title) {streamToggle1.latest <- dataStream.screenDataAvg}
 		else if(streamToggle2.label == dataStream.title) {streamToggle2.latest <- dataStream.screenDataAvg}
 	    }
