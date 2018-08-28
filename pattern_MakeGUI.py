@@ -16,6 +16,12 @@ widgetInitFuncCode=''
 widgetFromVarsCode=''
 varsFromWidgetCode=''
 
+def findModelRef(classes, structTypeName):
+    modelRef = progSpec.findSpecOf(classes, structTypeName, 'model')
+    if modelRef==None:
+        cdErr('To build a list GUI for list of "'+structTypeName+'" a model is needed but is not found.')
+    return modelRef
+
 def getFieldSpec(fldCat, field):
     parameters={}
     if fldCat=='mode': fldCat='enum'
@@ -53,7 +59,7 @@ def deCamelCase(identifier):
 def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
     global classesEncoded
     if guiStructName == 'timeValue_Dialog_GUI': return
-    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='timeOfDay' or structTypeName=='DateTime'):
+    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm'):
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
     
@@ -65,7 +71,7 @@ def getButtonHandlingCode(classes, buttonLabel, callBackFuncName):
     widgetInitFuncCode   += '        their GUI_button: '+buttonsWidgetName+' <- makeButtonWidget("'+buttonLabel+'")\n'
     # make its onclick trigger
     # g_signal_connect(G_OBJECT(EnterButton), "clicked", G_CALLBACK(EntryPad_Dialog__EnterBtnCB), Data.get());
-    widgetInitFuncCode   += '        GUI.setCallback('+buttonsWidgetName+', "clicked", '+ buttonsWidgetName +'_CB, Data)'
+    widgetInitFuncCode   += '        GUI.setCallback('+buttonsWidgetName+', "clicked", '+ buttonsWidgetName +'_CB, Data)\n'
     widgetInitFuncCode   += '        addToContainer(box, '+buttonsWidgetName+')\n'
     # onClick() should call this.callback()
     #   GTK: void EntryPad_Dialog__EnterBtnCB(GtkWidget* wid, EntryPad* EPad){EPad->enter_btn();}
@@ -79,11 +85,8 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     rowViewCode                     = ''
 
     # Find the model
-    modelRef = progSpec.findSpecOf(classes[0], structTypeName, 'model')
-    currentModelSpec = modelRef
-    if modelRef==None:
-        cdErr('To build a list GUI for list of "'+structTypeName+'" a model is needed but is not found.')
-
+    modelRef = findModelRef(classes[0], structTypeName)
+    currentModelSpec = modelRef    
     ### Write code for each field
     for field in modelRef['fields']:
         typeSpec        = field['typeSpec']
@@ -244,7 +247,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
     if fieldType=='timeValue':
         typeName              = 'dateWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      =  'Allocate('+widgetName+'); ' + widgetBoxName + ' <- '+ widgetName+'.makeDateWidget("'+label+'")\n'
+        makeTypeNameCall      =  'Allocate('+widgetName+');\n' + widgetBoxName + ' <- '+ widgetName+'.makeDateWidget("'+label+'")\n'
         widgetFromVarsCode   += '        ' + widgetName+ '.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+currentClassName+'_data.' + fieldName + ' <- ' + widgetName + '.getValue()\n'
     elif fieldType=='DateValue':
@@ -266,6 +269,13 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      = '        Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrnt("'+label+'")\n'
+        widgetFromVarsCode   += ''
+        varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
+    elif fieldType=='matterTerm':
+        typeName              = 'MatterTermWidget'
+        widgetBoxName         =  widgetName +'.box'
+        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeMatterTermWidget("'+label+'", '+currentClassName+'_data.'+fieldName+')\n'
         widgetFromVarsCode   += ''
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldSpec=='widget':
@@ -378,8 +388,7 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
     varsFromWidgetCode=''
 
     # Find the model
-    modelRef            = progSpec.findSpecOf(classes[0], className, 'model')
-    if modelRef==None: cdErr('To build a GUI for a list of "'+className+'" a model is needed but is not found.')
+    modelRef            = findModelRef(classes[0], className)
     currentModelSpec    = modelRef
     rowHeaderCode       = ''
     rowViewCode         = ''
@@ -425,7 +434,6 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
 
     # dialogStyles: 'Z_stack', 'X_stack', 'Y_stack', 'TabbedStack', 'FlowStack', 'WizardStack', 'Dialog', 'SectionedDialogStack', 'V_viewable'
     # also, handle non-modal dialogs
-
     global classesEncoded
     global currentClassName
     global currentModelSpec
@@ -444,9 +452,8 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     varsFromWidgetCode=''
 
     # Find the model
-    modelRef         = progSpec.findSpecOf(classes[0], className, 'model')
+    modelRef         = findModelRef(classes[0], className)
     currentModelSpec = modelRef
-    if modelRef==None: cdErr('To build a GUI for class "'+className+'" a model is needed but is not found.')
     classPrimaryGuiItem=progSpec.searchATagStore(modelRef['tags'], 'primaryGuiItem')
     if classPrimaryGuiItem != None: # This GUI Item is important visually
         classPrimaryGuiItem = classPrimaryGuiItem[0]

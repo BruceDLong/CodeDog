@@ -91,6 +91,58 @@ struct wizardWidget{
 	if(N==children.size()-1){hideWidget(nextBtn)}else{showWidget(nextBtn)}
     }
 }
+struct matterTerm{
+    me string[list]: matterTypes <- ["a", "b"]
+    me string:	     matter	 <- ""
+    me double: 	     term	 <- 0
+    me string:       units	 <- ""
+}
+struct MatterTermWidget{
+    their GUI_Frame:  	box
+    their GUI_Label:	label
+    their GUI_ComboBox:	matterBox
+    their GUI_SpinBox:  termBox
+    their GUI_Label:	unitsBox
+    
+    our matterTerm:: 	data 
+    me double: initialValue  <- 0
+    me double: minValue      <- 0
+    me double: maxValue      <- 1000
+    me int:    decimalPlaces <- 0
+    
+    their GUI_Frame: makeMatterTermWidget(me string: name, our matterTerm: dataInit) <- {
+	/- DATA
+	data <- dataInit
+	me string: units <- data.units
+	/- MAKE WIDGETS
+	box          	 <- makeXStack()
+	label		 <- makeLabelWidget2(name)
+	matterBox	 <- makeComboBox()
+	termBox		 <- makeSpinBox(initialValue, minValue, maxValue, decimalPlaces)
+	unitsBox	 <- makeLabelWidget2(units)
+	/- FILL WIDGETS
+	me int: count <-0
+	withEach matterType in data.matterTypes{
+	    matterBox.appendComboBox(toString(count),matterType)
+	    count <- count +1
+	}
+	/- ADD WIDGETS
+	addToContainer(box, label)
+	addToContainer(box, matterBox)
+	addToContainer(box, termBox)
+	addToContainer(box, unitsBox)
+	return(box)
+    }
+    our matterTerm: getValue() <- {
+	our matterTerm: retVal
+	Allocate(retVal)
+	retVal.matterTypes <- data.matterTypes
+	retVal.matter      <- matterBox.comboBoxGetActive()
+	retVal.term	   <- termBox.spinGetValue()
+	retVal.units	   <- data.units
+	return(retVal)
+    }
+}
 struct GUI{
     me void: showWidget(me GUI_item: widget)
     me GUI_item: newCanvas()
@@ -294,8 +346,8 @@ struct ListWidgetManager{
 struct DateWidget{
     their GUI_item:     box
     their intWidget:    year
-    their GUI_dropDown: month
-    their GUI_dropDown: day
+    their GUI_ComboBox: month
+    their GUI_ComboBox: day
     me DateValue:       data
     me string[list]:    months <- ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
 
@@ -343,8 +395,8 @@ struct DateWidget{
 
 struct TimeWidget{
     their GUI_item:     box
-    their GUI_dropDown: hour
-    their GUI_dropDown: minute
+    their GUI_ComboBox: hour
+    their GUI_ComboBox: minute
     me timeOfDay:       data
 
     their GUI_item: initCrnt(me string: label) <- {
