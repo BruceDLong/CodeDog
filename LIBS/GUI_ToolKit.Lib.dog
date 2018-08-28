@@ -142,6 +142,11 @@ struct MatterTermWidget{
 	retVal.units	   <- data.units
 	return(retVal)
     }
+    void: setValue(our matterTerm: setVal) <- {
+	data.matter        <- setVal.matter
+	data.term	   <- setVal.term
+	data.units	   <- setVal.units
+    }
 }
 struct GUI{
     me void: showWidget(me GUI_item: widget)

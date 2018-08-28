@@ -276,7 +276,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      = '        Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeMatterTermWidget("'+label+'", '+currentClassName+'_data.'+fieldName+')\n'
-        widgetFromVarsCode   += ''
+        widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldSpec=='widget':
         typeName              = CasedFieldName +'Widget'
