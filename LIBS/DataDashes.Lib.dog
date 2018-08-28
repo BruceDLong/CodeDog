@@ -188,10 +188,15 @@ struct GraphDataStream {
     me int64[me map timeValue]: dataMap
     me cdColor: lineColor
     me cdColor: fillColor
+    me bool: isVisible <- false
+    me int: screenDataAvg
 }
 
 struct graph: inherits=dash{
     our GraphDataStream[me list]: dataStreams
+    me string[list]: dataStreamsTitleTable <- ["None"]
+    me int64: screenDataTotal
+    me int: screenDataCount
 
     me verticalScale:   leftScale
     me horizontalScale: bottomScale
@@ -204,10 +209,14 @@ struct graph: inherits=dash{
     
     me zoomWidget: zoomToggle
     me int: zoomLevel
+
     me timeValue[list]: zoomTable <- [1000*60,    1000*60*60, 1000*60*60*6, 1000*60*60*12, 1000*60*60*24, 1000*60*60*24*7, 
 	1000*60*60*24*14, 2592000000, 5184000000, 7776000000, 15552000000, 31536000000]
     me string[list]: labelTable <-   ["1 Minute", "1 Hour",   "6 Hours",    "12 Hours",    "24 Hours",    "One Week",      
 	"Two Weeks",      "30 Days",  "60 Days",  "90 Days",  "180 Days",  "One Year"]
+	
+    me streamToggle: streamToggle1
+    me streamToggle: streamToggle2
 
     void: update() <- {}
 
@@ -232,36 +241,52 @@ struct graph: inherits=dash{
         me double: YPoint
         me int: YOrig <- posY + height
 
+	me int: ii
+	withEach ii in RANGE(0.. dataStreams.size()) {
+	    if (streamToggle1.state == ii + 1 or streamToggle2.state == ii + 1) {dataStreams[ii].isVisible <- true}
+	    else {dataStreams[ii].isVisible <- false}
+	}
+
         withEach dataStream in dataStreams{
-            /-cr.setColor(dataStream.lineColor)
-            cr.setLineWidth(2)
-	    if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
-	    if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
-	    rightGraphTime <- crntRightSide
-	    leftGraphTime  <- crntRightSide - timeInterval
-            firstTime      <- true
-            XPoint         <- 0
-            YPoint         <- 0
+	    screenDataTotal <- 0
+	    screenDataCount <- 0
+	
+	    if (dataStream.isVisible) {
+		cr.setLineWidth(2)
+		if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
+		if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
+		rightGraphTime <- crntRightSide
+		leftGraphTime  <- crntRightSide - timeInterval
+		firstTime      <- true
+		XPoint         <- 0
+		YPoint         <- 0
 
-            withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                XPoint <- (point_key-leftGraphTime)*pixelsPerMillisec + posX
-                YPoint <- (point - leftScale.lowVal)*pixelsPerUnit
-                if(firstTime){cr.moveTo(XPoint, YOrig); firstTime<-false}
-                else {cr.lineTo(XPoint, YOrig - YPoint)}
-            }
-            cr.lineTo(XPoint, YOrig)
+		withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
+		    XPoint <- (point_key-leftGraphTime)*pixelsPerMillisec + posX
+		    YPoint <- (point - leftScale.lowVal)*pixelsPerUnit
+		    if(firstTime){cr.moveTo(XPoint, YOrig); firstTime<-false}
+		    else {cr.lineTo(XPoint, YOrig - YPoint)}
+		    screenDataTotal <- screenDataTotal + point
+		    screenDataCount <- screenDataCount + 1
+		}
+		cr.lineTo(XPoint, YOrig)
 
-            /-//// GRADIENT
-            /*their guiFillPattern: linGrad
-            linGrad.init(2, 1, 2, YOrig)
-            linGrad.AddColorStopRGBA(0, dataStream.lineColor, 255)
-            linGrad.AddColorStopRGBA(0.4, dataStream.lineColor, 40)
-            linGrad.AddColorStopRGBA(1.0, styler.bkGndColor, 255)
-            cr.setFillPattern(linGrad)
-            cr.fillKeep()*/
-            cr.setColor(dataStream.lineColor)
-            cr.strokeNow()
-        }
+		/-//// GRADIENT
+		/*their guiFillPattern: linGrad
+		linGrad.init(2, 1, 2, YOrig)
+		linGrad.AddColorStopRGBA(0, dataStream.lineColor, 255)
+		linGrad.AddColorStopRGBA(0.4, dataStream.lineColor, 40)
+		linGrad.AddColorStopRGBA(1.0, styler.bkGndColor, 255)
+		cr.setFillPattern(linGrad)
+		cr.fillKeep()*/
+		cr.setColor(dataStream.lineColor)
+		cr.strokeNow()
+		
+		dataStream.screenDataAvg <- screenDataTotal / screenDataCount
+		if(streamToggle1.label == dataStream.title) {streamToggle1.latest <- dataStream.screenDataAvg}
+		else if(streamToggle2.label == dataStream.title) {streamToggle2.latest <- dataStream.screenDataAvg}
+	    }
+	}
 
         /-//// TEXT
         cr.setColor(styler.highlight2Color)
@@ -284,8 +309,9 @@ struct graph: inherits=dash{
 
         /-renderText(cr, title, styler.fontTitle, posX, posY-20)
 	/-cr.strokeNow()
-	
 	zoomToggle.draw(cr, 10, 75)
+	streamToggle1.draw(cr) /-, dataStreams[0].dataMap.lower_bound(getCurrentTimeStamp()).second)
+	streamToggle2.draw(cr) /-, dataStreams[1].dataMap.lower_bound(getCurrentTimeStamp()).second)
     }
 
     me void: initGraph(me string: titleStr, me int: PosX, me int: PosY, me int: Width, me int: Height, me double: Step, me int: Alpha)<- {
@@ -296,6 +322,10 @@ struct graph: inherits=dash{
         height       <- Height
 	zoomLevel    <- 0
 	
+	withEach dataStream in dataStreams {
+	    dataStreamsTitleTable.pushLast(dataStream.title)
+	}
+	
 	timeInterval <- zoomTable[zoomLevel]
 	zoomToggle.initZoomWidget(90, 5, labelTable[zoomLevel])
 	crntRightSide <- getCurrentTimeStamp()
@@ -305,6 +335,9 @@ struct graph: inherits=dash{
         rightScale.initScale("rightScale!", false, 1, false, false)
         bottomScale.initScale("Time", true, 1, false, true)
         topScale.initScale("topScale", false, 1, false, false)
+	
+	streamToggle1.initialize(250, 5, dataStreamsTitleTable, 1)
+	streamToggle2.initialize(400, 5, dataStreamsTitleTable, 0)
     }
     
     void: incrementZoomLevel(me int: change) <- {
@@ -339,8 +372,12 @@ struct graph: inherits=dash{
     }
     
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-	if (zoomToggle.zoomInBtn.primaryDn(event)) {incrementZoomLevel(-1)}
-	else if (zoomToggle.zoomOutBtn.primaryDn(event)) {incrementZoomLevel(1)}
+	if (zoomToggle.zoomInBtn.primaryUp(event)) {incrementZoomLevel(-1)}
+	else if (zoomToggle.zoomOutBtn.primaryUp(event)) {incrementZoomLevel(1)}
+	else if (streamToggle1.left.primaryUp(event)) {streamToggle1.incrementStreamState(-1, streamToggle2.state)}
+	else if (streamToggle1.right.primaryUp(event)) {streamToggle1.incrementStreamState(1, streamToggle2.state)}
+	else if (streamToggle2.left.primaryUp(event)) {streamToggle2.incrementStreamState(-1, streamToggle1.state)}
+	else if (streamToggle2.right.primaryUp(event)) {streamToggle2.incrementStreamState(1, streamToggle1.state)}
 	else {scrollState <- still}
 	return(true)
     }
@@ -361,6 +398,61 @@ struct graph: inherits=dash{
     }
 }
 
+struct streamToggle: inherits=dash{
+    me circleButton: left
+    me circleButton: right
+    me string[list]: dataStreamsTitleTbl
+    me int: state
+    me string: label
+    me deltaSize: labelSize
+    me int: radius
+    me int: maxLabelLength
+    me double: latest
+    
+    void: draw(me GUI_ctxt: cr) <- {
+	if (state != 0) {
+	    renderTextCentered(cr, dblToString(latest, 0), styler.fontTitle, posX + 3*radius + maxLabelLength/2, posY + 45)
+	    renderTextCentered(cr, "Avg", styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
+	}
+	label <- dataStreamsTitleTbl[state]
+	left.drawCircleBtn(cr)
+	labelSize <- getTextSize(cr, label, styler.fontSmall)
+	renderTextCentered(cr, label, styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + labelSize.height)
+	right.drawCircleBtn(cr)
+    }
+    
+    void: initialize(me int: PosX, me int: PosY, me string[list]: DataStreamsTitleTbl, me int: State) <- {
+	posX <- PosX
+	posY <- PosY
+	radius <- 10
+	maxLabelLength <- 75
+	dataStreamsTitleTbl <- DataStreamsTitleTbl
+	state <- State
+	label <- dataStreamsTitleTbl[state]
+	latest <- 0
+	
+	left.initCircleBtn(posX, posY, radius, "<")
+	right.initCircleBtn(posX + 3*radius + maxLabelLength + radius, posY, radius, ">")
+    }
+    
+    void: incrementStreamState(me int: Increment, me int: otherState) <- {
+	if (state + Increment < 0) {state <- dataStreamsTitleTbl.size()-1}
+	else if (state + Increment >= dataStreamsTitleTbl.size()) {state <- 0}
+	else {state <- state + Increment}
+	if (state == otherState) {incrementStreamState(Increment, otherState)}
+    }
+    
+    /- Click functionality is inside graph clicks
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
+    }
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
+    }
+}
+
 struct zoomWidget: inherits=dash{
     me circleButton: zoomInBtn
     me circleButton: zoomOutBtn
@@ -374,12 +466,12 @@ struct zoomWidget: inherits=dash{
 	maxLabelLength <- MaxLabelLength
 	labelX <- posX + 3*radius
 	
-	zoomOutBtn.initZoomBtn(posX, posY, radius, "-")
-	zoomOutBtn.draw(cr)
+	zoomOutBtn.initCircleBtn(posX, posY, radius, "-")
+	zoomOutBtn.drawCircleBtn(cr)
 	renderTextCentered(cr, label, styler.fontSmall, labelX + maxLabelLength/2, posY + 3*radius/2)
 	cr.strokeNow()
-	zoomInBtn.initZoomBtn(labelX + maxLabelLength + radius, posY, radius, "+")
-	zoomInBtn.draw(cr)
+	zoomInBtn.initCircleBtn(labelX + maxLabelLength + radius, posY, radius, "+")
+	zoomInBtn.drawCircleBtn(cr)
     }
     
     void: initZoomWidget(me int: PosX, me int: PosY, me string: Label) <- {
@@ -392,8 +484,9 @@ struct zoomWidget: inherits=dash{
 struct circleButton: inherits=dash{
     me int:    radius
     me string: symbol
+    me double: stickLen
     
-    me void: draw(me GUI_ctxt: cr) <- {
+    me void: drawCircleBtn(me GUI_ctxt: cr) <- {
 	if (symbol=="+") {
 	    cr.setLineWidth(1)
 	    cr.moveTo(posX + radius, posY + radius/4)
@@ -406,17 +499,32 @@ struct circleButton: inherits=dash{
 	    cr.lineTo(posX + 7*radius/4, posY + radius)
 	    cr.strokeNow()
 	}
+	if (symbol=="<") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
+	    cr.lineTo(posX + radius - stickLen * sqrt(2), posY + radius)
+	    cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
+	    cr.strokeNow()
+	}
+	if (symbol==">") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
+	    cr.lineTo(posX + radius + stickLen * sqrt(2), posY + radius)
+	    cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
+	    cr.strokeNow()
+	}
 	cr.circle(posX + radius, posY + radius, radius)
 	cr.strokeNow()
     }
     
-    me void: initZoomBtn(me int: PosX, me int: PosY, me int: Radius, me string: Symbol) <- {
+    me void: initCircleBtn(me int: PosX, me int: PosY, me int: Radius, me string: Symbol) <- {
 	posX   <- PosX
 	posY   <- PosY
 	radius <- Radius
 	width  <- 2*radius
 	height <- 2*radius
 	symbol <- Symbol
+	stickLen <- radius/3
     }
     
     /- Click functionality is inside graph clicks
