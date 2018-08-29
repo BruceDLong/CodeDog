@@ -477,7 +477,6 @@ struct GUI: inherits=LinearLayout{
     } %>
 
     me uint32: GUI_Init() <- <%{
-        GUI_Run();
         return(0);
     }%>
 
@@ -513,7 +512,7 @@ struct GUI: inherits=LinearLayout{
 struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%GGLOBAL.static_Global.thisApp.setWidgetSize(%1, %2, %3)%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1(%2, %3)%>
     me GUI_item: newScrollingWindow() <- <%!newScrollingView()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
@@ -792,7 +791,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
     me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setLayoutParams(%2, %3)%>
 }
 
 struct APP: inherits=LinearLayout{
@@ -801,11 +800,6 @@ struct APP: inherits=LinearLayout{
     me ourSubMenu: menubar <- ("menubar")
 
     me none: APP() <- <%{super(GLOBAL.static_Global);}%>
-
-    me void: setWidgetSize(me CanvasView: myCanvas, me int: width, me int: height) <- <%{
-        myCanvas.setLayoutParams(new LayoutParams(5000, 5000));
-    }%>
-
 }
 
 struct ourSubMenu{
@@ -815,4 +809,3 @@ struct ourSubMenu{
     me none: ourSubMenu() <- {Allocate(items)}
 }
 
-struct dashboard{me bool: isTouchingMe()<- <%!%GisTouchingMe(event.getX(), event.getY())%>}
