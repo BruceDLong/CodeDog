@@ -49,9 +49,9 @@ struct GUI_Label{their textView: GUI_Label}
 struct listWidget{their LinearLayout: listWidget}
 
 struct GUI_button{me button: GUI_button}
-struct GUI_XStack{their GtkWidget: GUI_XStack}
-struct GUI_YStack{their GtkWidget: GUI_YStack}
-struct GUI_ComboBox{their GtkWidget: GUI_ComboBox}
+struct GUI_XStack{their LinearLayout: GUI_XStack}
+struct GUI_YStack{their LinearLayout: GUI_YStack}
+struct GUI_ComboBox{their Spinner: GUI_ComboBox}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 
 /-///////////////////////////////  WIDGETS
@@ -231,11 +231,17 @@ struct ListManagerBox{
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     /- Widgets
-    their rangeWidget: makeRangeWidget(me string: label)        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_Frame: makeYStack()                               <- <%!%Gnew LinearLayout(GLOBAL.static_Global)%>
-    their GUI_Frame: makeXStack()    <- <%{
+    their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
+    their GUI_Frame: makeXStack(me string: label)              <- <%!makeAndroidHorizontalLayout(%1)%>
+    their GUI_Frame: makeAndroidHorizontalLayout(me string: label) <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         box.setOrientation(LinearLayout.HORIZONTAL);
+        return box;
+    }%>
+    their GUI_Frame: makeYStack(me string: label)        	<- <%!makeAndroidVerticalLayout(%1)%>
+    their GUI_Frame: makeAndroidVerticalLayout(me string: label) <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        box.setOrientation(LinearLayout.VERTICAL);
         return box;
     }%>
 
@@ -298,7 +304,7 @@ struct GLOBAL{
         box.addView(textBox);
         return box;
     }%>
-    their GtkWidget: makeComboBox(me string: label)          <- <%!%Ggtk_combo_box_text_new()%>
+    their GtkWidget: makeComboBox(me string: label)          <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     
     their GUI_Frame: makeFloatWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
@@ -512,7 +518,7 @@ struct GUI: inherits=LinearLayout{
 struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1(%2, %3)%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
     me GUI_item: newScrollingWindow() <- <%!newScrollingView()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
@@ -548,7 +554,7 @@ struct GUI_ctxt: inherits=Canvas{
     me void: fillKeep() <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
     me void: renderFrame() <- <%!repaint()%>
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
-    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!drawCircle(%0, %1, %2, %3, null )%>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!cr.drawCircle(%1, %2, %3, cr.paint)%>
 }
 
 struct GUI_ctxt {
@@ -615,6 +621,11 @@ struct GLOBAL: inherits=AppCompatActivity{
     me AssetManager: assetManager
     me Android_eventDispatcher: EventDispatcher
     me Toolbar: toolbar
+    
+    me string: getFilesDirAsString()<- <%{
+        File file = GLOBAL.static_Global.getFilesDir();
+        return file.getAbsolutePath();
+    }%>
 
     /- TIME ROUTINES:
 

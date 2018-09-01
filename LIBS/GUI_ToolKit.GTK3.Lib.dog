@@ -332,8 +332,8 @@ struct GLOBAL{
     their GtkButton: makeButtonWidget(me string: label)      	<- <%!%G(GtkButton*)gtk_button_new_with_label(%1)%>
     their GtkWidget: makeListWidget(me string: label)        	<- <%!%Ggtk_list_box_new()%>
     their GtkWidget: makeRowWidget(me string: label)         	<- <%!%Ggtk_list_box_row_new()%>
-    their GtkWidget: makeYStack()            			<- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
-    their GtkWidget: makeXStack()            		     	<- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
+    their GtkWidget: makeYStack(me string: label)            	<- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
+    their GtkWidget: makeXStack(me string: label)             	<- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
     their GtkWidget: makeStoryBoardWidget(me string: label)  	<- <%!%Ggtk_stack_new()%>
     their GtkWidget: makeTabbedWidget(me string: label)      	<- <%!%Ggtk_notebook_new()%>
     their GtkWidget: makeLabelWidget(me string: label)       	<- <%!%Ggtk_label_new(%1)%>
