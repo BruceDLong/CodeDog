@@ -17,8 +17,5 @@ LibDescription ={
 }
 
 struct GLOBAL{
-    me string: getFilesDirAsString()<- <%{
-        File file = GLOBAL.static_Global.getFilesDir();
-        return file.getAbsolutePath();
-    }%>
+
 }

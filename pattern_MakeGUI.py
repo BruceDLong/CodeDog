@@ -145,9 +145,9 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
 
     /- Override all these for each new list editing widget
     their GUI_Frame: makeListHeader() <- {
-        their GUI_Frame: box       <- makeYStack()
-        their GUI_Frame: headerRow <- makeRowWidget('')
-        their GUI_Frame: headerBox <- makeXStack()
+        their GUI_Frame: box       <- makeYStack("")
+        their GUI_Frame: headerRow <- makeRowWidget("")
+        their GUI_Frame: headerBox <- makeXStack("")
         <ROWHEADERCODE>
         addToContainer(headerRow, headerBox)
         addToContainer(box, headerRow)
@@ -156,7 +156,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
 
     their GUI_Frame: makeRowView(our <STRUCTNAME>: item) <- {
         crntRecord <- item
-        their GUI_Frame: rowBox <- makeXStack()
+        their GUI_Frame: rowBox <- makeXStack("")
         <ROWVIEWCODE>
         showWidget(rowBox)
         return(rowBox)
@@ -508,7 +508,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         containerWidget     = 'Allocate(wiz)\n'
         containerWidget    += '        their GUI_Frame:box <- wiz.makeWizardWidget("WizardWidget")\n'
         widgetInitFuncCode += 'wiz.setActiveChild(0)\n'
-    else: containerWidget='their GUI_Frame:box <- makeYStack()'
+    else: containerWidget='their GUI_Frame:box <- makeYStack("")'
 
     CODE =  '''
 struct <CLASSNAME> {}
