@@ -258,7 +258,7 @@ struct arrow: inherits=decor{
         cr.strokeNow()
     }
 
-    none: arrow(me int: StartX, me int: StartY, me int: EndX, me int: EndY) <- {
+    none: arrow(me GUI_Scalar: StartX, me GUI_Scalar: StartY, me GUI_Scalar: EndX, me GUI_Scalar: EndY) <- {
         startX <- StartX
         startY <- StartY
         endX   <- EndX
@@ -267,10 +267,10 @@ struct arrow: inherits=decor{
 }
 
 struct widget{
-    me int: posX    /- x position of top left corner
-    me int: posY    /- y position of top left corner
-    me int: width   /- width of widget
-    me int: height  /- height of widget
+    me GUI_Scalar: posX    /- x position of top left corner
+    me GUI_Scalar: posY    /- y position of top left corner
+    me GUI_Scalar: width   /- width of widget
+    me GUI_Scalar: height  /- height of widget
     me int: scale
     bool: isHidden
 
@@ -307,7 +307,7 @@ struct widget{
         return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
     }
 
-    void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
+    void: initialize(me int: PosX, me int: PosY, me GUI_Scalar: Width, me GUI_Scalar: Height, me int: Scale, me int: Alpha ) <- {
         posX   <- PosX
         posY   <- PosY
         width  <- Width

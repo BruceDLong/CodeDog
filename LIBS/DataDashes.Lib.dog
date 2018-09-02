@@ -10,11 +10,11 @@ struct graphScale: inherits=dash{
     me bool:      isDate
     me timeValue: step
     me double:    tickStep
-    me int:       yOrig
-    me int:       xOrig
+    me GUI_Scalar:       yOrig
+    me GUI_Scalar:       xOrig
     me timeValue: lowVal
     me timeValue: hiVal
-    me int:       span
+    me GUI_Scalar:       span
     me int:       tickOffset
     const int:    tickPadding  <- 3
     const int:    titlePadding <- 7
@@ -80,7 +80,7 @@ struct verticalScale: inherits=graphScale{
 	cr.strokeNow()
     }
     
-    void: setScale(me int: Span, me timeValue: LowVal, me timeValue: HiVal, me int: Step, me int: XOrig, me int: YOrig, me int: TickOffset) <- {
+    void: setScale(me GUI_Scalar: Span, me timeValue: LowVal, me timeValue: HiVal, me int: Step, me GUI_Scalar: XOrig, me GUI_Scalar: YOrig, me int: TickOffset) <- {
 	span         <- Span	/- length of axis (width or height of graph)
 	lowVal       <- LowVal
 	hiVal        <- HiVal
@@ -163,7 +163,7 @@ struct horizontalScale: inherits=graphScale{
 	cr.strokeNow()
     }
     
-    void: setScale(me int: Span, me timeValue: LowVal, me timeValue: HiVal, me int: ZoomLvl, me int: XOrig, me int: YOrig, me int: TickOffset) <- {
+    void: setScale(me GUI_Scalar: Span, me timeValue: LowVal, me timeValue: HiVal, me int: ZoomLvl, me GUI_Scalar: XOrig, me GUI_Scalar: YOrig, me int: TickOffset) <- {
 	span         <- Span	/- length of axis (width or height of graph)
 	lowVal       <- LowVal
 	hiVal        <- HiVal
@@ -220,7 +220,7 @@ struct graph: inherits=dash{
 
     void: update() <- {}
 
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {
+    void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {
 	posIsSet <- true
         extC     <- extCursor
         extX     <- posX+width
@@ -239,7 +239,7 @@ struct graph: inherits=dash{
 	me bool: firstTime
         me double: XPoint
         me double: YPoint
-        me int: YOrig <- posY + height
+        me GUI_Scalar: YOrig <- posY + height
 
 	me int: ii
 	withEach ii in RANGE(0.. dataStreams.size()) {
@@ -315,7 +315,7 @@ struct graph: inherits=dash{
 	streamToggle2.draw(cr) /-, dataStreams[1].dataMap.lower_bound(getCurrentTimeStamp()).second)
     }
 
-    me void: initGraph(me string: titleStr, me int: PosX, me int: PosY, me int: Width, me int: Height, me double: Step, me int: Alpha)<- {
+    me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Width, me GUI_Scalar: Height, me double: Step, me int: Alpha)<- {
         title        <- titleStr
         posX         <- PosX
         posY         <- PosY
@@ -351,11 +351,11 @@ struct graph: inherits=dash{
 
     /- CLICK AND DRAG DATA HORIZONTALLY
     me mode[still, fingerPressed, pullScrolling]: scrollState
-    me int: prevX
-    me int: deltaX <- 0
+    me GUI_Scalar: prevX
+    me GUI_Scalar: deltaX <- 0
     me int: moveThreshold <- 2
-    me int: crntX
-    me int: crntY
+    me GUI_Scalar: crntX
+    me GUI_Scalar: crntY
 
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
 	if (zoomToggle.zoomInBtn.primaryDn(event)) {}
@@ -422,7 +422,7 @@ struct streamToggle: inherits=dash{
 	right.drawCircleBtn(cr)
     }
     
-    void: initialize(me int: PosX, me int: PosY, me string[list]: DataStreamsTitleTbl, me int: State) <- {
+    void: initialize(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string[list]: DataStreamsTitleTbl, me int: State) <- {
 	posX <- PosX
 	posY <- PosY
 	radius <- 10
@@ -458,11 +458,11 @@ struct zoomWidget: inherits=dash{
     me circleButton: zoomInBtn
     me circleButton: zoomOutBtn
     me string:       label
-    me int:          radius
-    me int:          labelX
+    me GUI_Scalar:          radius
+    me GUI_Scalar:          labelX
     me int:          maxLabelLength
     
-    void: draw(me GUI_ctxt: cr, me int: Radius, me int: MaxLabelLength) <- {
+    void: draw(me GUI_ctxt: cr, me GUI_Scalar: Radius, me int: MaxLabelLength) <- {
 	radius <- Radius
 	maxLabelLength <- MaxLabelLength
 	labelX <- posX + 3*radius
@@ -475,7 +475,7 @@ struct zoomWidget: inherits=dash{
 	zoomInBtn.drawCircleBtn(cr)
     }
     
-    void: initZoomWidget(me int: PosX, me int: PosY, me string: Label) <- {
+    void: initZoomWidget(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string: Label) <- {
 	posX  <- PosX
 	posY  <- PosY
 	label <- Label
@@ -483,7 +483,7 @@ struct zoomWidget: inherits=dash{
 }
 
 struct circleButton: inherits=dash{
-    me int:    radius
+    me GUI_Scalar:    radius
     me string: symbol
     me double: stickLen
     
@@ -518,7 +518,7 @@ struct circleButton: inherits=dash{
 	cr.strokeNow()
     }
     
-    me void: initCircleBtn(me int: PosX, me int: PosY, me int: Radius, me string: Symbol) <- {
+    me void: initCircleBtn(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Radius, me string: Symbol) <- {
 	posX   <- PosX
 	posY   <- PosY
 	radius <- Radius
