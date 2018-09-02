@@ -44,7 +44,7 @@ struct GUI_container{me LinearLayout:GUI_container}
 struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_scalar{me float: GUI_scalar}
+struct GUI_Scalar{me float: GUI_Scalar}
 struct GUI_Label{their textView: GUI_Label}
 struct listWidget{their LinearLayout: listWidget}
 
@@ -524,6 +524,7 @@ struct GUI {
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
+    me void: setCallback2() <- <%!%G %>
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents();%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
@@ -554,7 +555,7 @@ struct GUI_ctxt: inherits=Canvas{
     me void: fillKeep() <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
     me void: renderFrame() <- <%!repaint()%>
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
-    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!cr.drawCircle(%1, %2, %3, cr.paint)%>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!drawCircle(%1, %2, %3, cr.paint)%>
 }
 
 struct GUI_ctxt {

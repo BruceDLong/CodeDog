@@ -1,4 +1,4 @@
-/-//////// Add routines for Java
+/-///////// Add routines for Java
 /-TODO: make conversion for rand to GLOBAL.getRandInt & main return(0)
 requirements = [
     [tagOneOf, Lang, [Java]]
@@ -12,12 +12,26 @@ interface={
 
 
 LibDescription ={
-    useStatus   =  dynamic 
+    useStatus   = dynamic
     description = 'Built in routines for Java'
 }
 
-struct random{me Random: random}
-struct timeValue{me long: timeValue}
+initCode = ""
+deinitCode = ""
+
+
+struct FileStream{
+    me fstream: FileStream
+    me void: open(me string: filename) <- <%!open(%1)%>
+    me void: openAppend(me string: filename) <- <%!open(%1, ios_base::in | ios_base::out | ios_base::app)%>
+    me void: close() <- <%!close()%>
+    me int:  getChar() <- <%!get()%>
+    me void: getLine(me string: S) <- <%!getline(%0, %1)%>
+    me void: write(me string: S) <- <%!write(%1.data(), %1.size())%>
+    me bool: EOF() <- <%!eof()%>
+    me bool: failure() <- <%!fail()%>
+}
+
 struct GLOBAL{
     we GLOBAL: static_Global
     me Random: javaRandomVar
@@ -69,4 +83,7 @@ struct GLOBAL{
     me int: sin(me int: val) <- <%!%GMath.sin(%1)%>
     me int: cos(me int: val) <- <%!%GMath.cos(%1)%>
     me int: atan2(me int: val1, me int: val2) <- <%!%GMath.atan2(%1, %2)%>
+    me int: sqrt(me int: val) <- <%!%GMath.sqrt(%1)%>
 }
+struct timeValue{me long: timeValue}
+struct random{me Random: random}

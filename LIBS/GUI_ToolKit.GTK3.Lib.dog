@@ -31,7 +31,7 @@ struct GUI_container{their GtkContainer:GUI_container}
 struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_scalar{me int: GUI_scalar}
+struct GUI_Scalar{me int: GUI_Scalar}
 struct GUI_Label{their GtkWidget: GUI_Label}
 struct listWidget{their GtkWidget: listWidget}
 struct GUI_button{their GtkButton: GUI_button}

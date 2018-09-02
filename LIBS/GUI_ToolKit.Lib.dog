@@ -222,7 +222,7 @@ struct GUI_DataEvent{}
 struct GUI_TimeEvent{}
 struct GUI_UserEvent{}
 struct GUI_DrawEvent{}
-struct GUI_scalar{}
+struct GUI_Scalar{}
 
 
 /- decor(ations) are like light weight widgets. They have only draw().
@@ -303,7 +303,7 @@ struct widget{
     me bool: focused(their GUI_PointerEvent: event) <- {return(false)}
     me bool: unfocused(their GUI_PointerEvent: event) <- {return(false)}
 
-    bool: isTouchingMe(me GUI_scalar: x, me GUI_scalar: y) <- {
+    bool: isTouchingMe(me GUI_Scalar: x, me GUI_Scalar: y) <- {
         return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
     }
 
