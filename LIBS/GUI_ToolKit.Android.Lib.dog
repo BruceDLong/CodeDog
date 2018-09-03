@@ -166,7 +166,7 @@ struct GUI_ComboBox{
     me void: setAndroidAdapter() <- <%!ArrayAdapter<%2> %1 = new ArrayAdapter<%2>(GLOBAL.static_Global, android.R.layout.simple_spinner_dropdown_item, %3); %0.setAdapter(%1)%>
 }
 struct GUI_SpinBox{
-    me double: spinGetValue() <- <%!%0.getSelectedItem()%>
+    me double: spinGetValue() <- <%!%0.getSelectedItemPosition()%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{

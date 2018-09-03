@@ -380,7 +380,7 @@ struct DateWidget{
         dayBox <- makeComboBox()
 	dayBox.setAndroidAdapter(dayArrayAdapter, Integer, days)
         withEach i in RANGE(1..31){
-            dayBox.appendComboBox(toString(i), toString(i), dayArrayAdapter)
+            dayBox.appendComboBox(i, i, dayArrayAdapter)
         }
         /-/// RETURN BOX //////////////////////////////
         box <- makeXStack("")
@@ -416,13 +416,13 @@ struct TimeWidget{
 	hourBox <- makeComboBox()
 	hourBox.setAndroidAdapter(hourArrayAdapter, Integer, hours)
         withEach i in RANGE(1..13){
-            hourBox.appendComboBox(toString(i),toString(i), hourArrayAdapter)
+            hourBox.appendComboBox(i, i, hourArrayAdapter)
         }
         /-/// MINUTE //////////////////////////////////
         minuteBox <- makeComboBox()
 	minuteBox.setAndroidAdapter(minuteArrayAdapter, Integer, minutes)
         withEach i in RANGE(1..25){
-            minuteBox.appendComboBox(toString(i),toString(i), minuteArrayAdapter)
+            minuteBox.appendComboBox(i,i, minuteArrayAdapter)
         }
         /-/// RETURN BOX //////////////////////////////
         box <- makeXStack("")
