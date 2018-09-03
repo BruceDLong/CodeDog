@@ -65,8 +65,8 @@ struct wizardWidget{
 	buttonBox 	<- makeXStack("")
 	backBtn   	<- makeButtonWidget("Back")
 	nextBtn   	<- makeButtonWidget("Next")
-	GUI.setCallback2(backBtn, "clicked", ClickBack_CB, self)
-	GUI.setCallback2(nextBtn, "clicked", ClickNext_CB, self)
+	GUI.setCallback2(backBtn, "clicked", clickBack, self)
+	GUI.setCallback2(nextBtn, "clicked", clickNext, self)
 	addToContainer(box, ZStack)
 	addToContainer(buttonBox, backBtn)
 	addToContainer(buttonBox, nextBtn)
@@ -93,7 +93,7 @@ struct wizardWidget{
 }
 struct matterTerm{
     me string[list]: matterTypes <- ["a", "b"]
-    me string:	     matter	 <- ""
+    me int:	     matterIdx	 <- 0
     me double: 	     term	 <- 0
     me string:       units	 <- ""
 }
@@ -111,22 +111,23 @@ struct MatterTermWidget{
     me int:    decimalPlaces <- 0
     
     their GUI_Frame: makeMatterTermWidget(me string: name, our matterTerm: dataInit) <- {
-	/- DATA
+	/-/// DATA //////////////////////////////////////
 	data <- dataInit
 	me string: units <- data.units
-	/- MAKE WIDGETS
+	/-/// MAKE WIDGETS //////////////////////////////
 	box              <- makeXStack("")
 	label		 <- makeLabelWidget2(name)
 	matterBox	 <- makeComboBox()
 	termBox		 <- makeSpinBox(initialValue, minValue, maxValue, decimalPlaces)
 	unitsBox	 <- makeLabelWidget2(units)
-	/- FILL WIDGETS
+	/-/// FILL WIDGETS //////////////////////////////
+        matterBox.setAndroidAdapter(matterTermArrayAdapter, String, data.matterTypes)
 	me int: count <-0
 	withEach matterType in data.matterTypes{
-	    matterBox.appendComboBox(toString(count),matterType)
+	    matterBox.appendStringComboBox(toString(count),matterType, matterTermArrayAdapter)
 	    count <- count +1
 	}
-	/- ADD WIDGETS
+	/-/// ADD WIDGETS //////////////////////////////
 	addToContainer(box, label)
 	addToContainer(box, matterBox)
 	addToContainer(box, termBox)
@@ -137,13 +138,13 @@ struct MatterTermWidget{
 	our matterTerm: retVal
 	Allocate(retVal)
 	retVal.matterTypes <- data.matterTypes
-	retVal.matter      <- matterBox.comboBoxGetActive()
+	retVal.matterIdx   <- matterBox.comboBoxGetActive()
 	retVal.term	   <- termBox.spinGetValue()
 	retVal.units	   <- data.units
 	return(retVal)
     }
     void: setValue(our matterTerm: setVal) <- {
-	data.matter        <- setVal.matter
+	data.matterIdx     <- setVal.matterIdx
 	data.term	   <- setVal.term
 	data.units	   <- setVal.units
     }
@@ -222,7 +223,7 @@ struct GUI_DataEvent{}
 struct GUI_TimeEvent{}
 struct GUI_UserEvent{}
 struct GUI_DrawEvent{}
-struct GUI_scalar{}
+struct GUI_Scalar{}
 
 
 /- decor(ations) are like light weight widgets. They have only draw().
@@ -258,7 +259,7 @@ struct arrow: inherits=decor{
         cr.strokeNow()
     }
 
-    none: arrow(me int: StartX, me int: StartY, me int: EndX, me int: EndY) <- {
+    none: arrow(me GUI_Scalar: StartX, me GUI_Scalar: StartY, me GUI_Scalar: EndX, me GUI_Scalar: EndY) <- {
         startX <- StartX
         startY <- StartY
         endX   <- EndX
@@ -267,10 +268,10 @@ struct arrow: inherits=decor{
 }
 
 struct widget{
-    me int: posX    /- x position of top left corner
-    me int: posY    /- y position of top left corner
-    me int: width   /- width of widget
-    me int: height  /- height of widget
+    me GUI_Scalar: posX    /- x position of top left corner
+    me GUI_Scalar: posY    /- y position of top left corner
+    me GUI_Scalar: width   /- width of widget
+    me GUI_Scalar: height  /- height of widget
     me int: scale
     bool: isHidden
 
@@ -303,11 +304,11 @@ struct widget{
     me bool: focused(their GUI_PointerEvent: event) <- {return(false)}
     me bool: unfocused(their GUI_PointerEvent: event) <- {return(false)}
 
-    bool: isTouchingMe(me GUI_scalar: x, me GUI_scalar: y) <- {
+    bool: isTouchingMe(me GUI_Scalar: x, me GUI_Scalar: y) <- {
         return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
     }
 
-    void: initialize(me int: PosX, me int: PosY, me int: Width, me int: Height, me int: Scale, me int: Alpha ) <- {
+    void: initialize(me int: PosX, me int: PosY, me GUI_Scalar: Width, me GUI_Scalar: Height, me int: Scale, me int: Alpha ) <- {
         posX   <- PosX
         posY   <- PosY
         width  <- Width
@@ -355,6 +356,7 @@ struct DateWidget{
     their GUI_ComboBox: dayBox
     me DateValue:       data
     me string[list]:    months <- ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+    me int[list]:       days 
 
     their GUI_Frame: initCrnt(me string: label) <- {
 	me timeValue: crntTime <- getCurrentTimeStamp()
@@ -363,23 +365,24 @@ struct DateWidget{
     }
 
     their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
+        /-/// YEAR ///////////////////////////////////
         Allocate(yearBox)
         yearBox.box <- yearBox.makeIntWidget("Year")
-        /- Fill the year combo box
+        /-/// MONTH //////////////////////////////////
         monthBox <- makeComboBox()
-        /- Fill the month combo box
+	monthBox.setAndroidAdapter(monthArrayAdapter, String, months)
         me int: count <-0
         withEach monthName in months{
-            monthBox.appendComboBox(toString(count),monthName)
+            monthBox.appendStringComboBox(toString(count),monthName, monthArrayAdapter)
             count <- count +1
         }
+	/-/// DAY ////////////////////////////////////
         dayBox <- makeComboBox()
-        /- Fill the day combo box
+	dayBox.setAndroidAdapter(dayArrayAdapter, Integer, days)
         withEach i in RANGE(1..31){
-            dayBox.appendComboBox(toString(i),toString(i))
+            dayBox.appendComboBox(toString(i), toString(i), dayArrayAdapter)
         }
-
-        /- set defaults
+        /-/// RETURN BOX //////////////////////////////
         box <- makeXStack("")
         addToContainer(box, yearBox.box)
         addToContainer(box, monthBox)
@@ -400,26 +403,28 @@ struct TimeWidget{
     their GUI_ComboBox: hourBox
     their GUI_ComboBox: minuteBox
     me timeOfDay:       data
-
+    me int[list]:       hours
+    me int[list]:       minutes 
+  
     their GUI_Frame: initCrnt(me string: label) <- {
         me timeValue: crntTime <- getCurrentTimeStamp()
         box <- initialize(crntTime)
         return(box)
     }
     their GUI_Frame: initialize(me timeValue: defaultTime) <- {
-        hourBox <- makeComboBox()
-        /- Fill the hour combo box
+        /-/// HOUR //////////////////////////////////
+	hourBox <- makeComboBox()
+	hourBox.setAndroidAdapter(hourArrayAdapter, Integer, hours)
         withEach i in RANGE(1..13){
-            hourBox.appendComboBox(toString(i),toString(i))
+            hourBox.appendComboBox(toString(i),toString(i), hourArrayAdapter)
         }
-
+        /-/// MINUTE //////////////////////////////////
         minuteBox <- makeComboBox()
-        /- Fill the minute combo box
+	minuteBox.setAndroidAdapter(minuteArrayAdapter, Integer, minutes)
         withEach i in RANGE(1..25){
-            minuteBox.appendComboBox(toString(i),toString(i))
+            minuteBox.appendComboBox(toString(i),toString(i), minuteArrayAdapter)
         }
-        /- set defaults
-
+        /-/// RETURN BOX //////////////////////////////
         box <- makeXStack("")
         addToContainer(box, hourBox)
         addToContainer(box, minuteBox)
@@ -446,19 +451,15 @@ struct DateTimeWidget{
         return(box)
     }
     their GUI_Frame: initialize(me timeValue: defaultTime) <- {
+        /-/// DATE ////////////////////////////////////
         Allocate(dateWidget)
 	their GUI_Frame: dateBox <- makeYStack("")
         dateBox <- dateWidget.initCrnt("")
-        /- Fill the dateWidget
-
+        /-/// TIME ////////////////////////////////////
         Allocate(timeWidget)
 	their GUI_Frame: timeBox <- makeYStack("")
         timeBox <- timeWidget.initCrnt("")
-
-        /- Fill the timeWidget
-
-        /- set defaults
-
+        /-/// RETURN BOX //////////////////////////////
         box <- makeXStack("")
         addToContainer(box, dateBox)
         addToContainer(box, timeBox)

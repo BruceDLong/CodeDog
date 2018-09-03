@@ -18,7 +18,7 @@ interface={
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
         android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup,
         android.support.design.widget.FloatingActionButton, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
-    android.R.drawable, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable
+        android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable
     ]
 }
 
@@ -44,15 +44,15 @@ struct GUI_container{me LinearLayout:GUI_container}
 struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_scalar{me float: GUI_scalar}
-struct GUI_Label{their textView: GUI_Label}
+struct GUI_Scalar{me float: GUI_Scalar}
+struct GUI_Label{their LinearLayout: GUI_Label}
 struct listWidget{their LinearLayout: listWidget}
-
-struct GUI_button{me button: GUI_button}
+struct GUI_button{me Button: GUI_button}
 struct GUI_XStack{their LinearLayout: GUI_XStack}
 struct GUI_YStack{their LinearLayout: GUI_YStack}
 struct GUI_ComboBox{their Spinner: GUI_ComboBox}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
+struct GUI_SpinBox{their Spinner: GUI_SpinBox}
 
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard: inherits=FragmentActivity{
@@ -61,10 +61,17 @@ struct GUI_storyBoard: inherits=FragmentActivity{
 }
 
 struct boolWidget{
-    their CheckBox: checkBox
+    their GUI_Frame: box
+
+    me void: getValue() <- {}
+    me void: setValue() <- {}
+    their GUI_Frame: makeBoolWidget(me string: name)  <- <%{
+        box = new LinearLayout(GLOBAL.static_Global);
+        return box;
+    }%>
 }
 struct intWidget{
-    their LinearLayout: box
+    their GUI_Frame: box
     their TextView: dataLabel
     their TextView: dataValue
     me double: initialValue  <- 0
@@ -73,11 +80,12 @@ struct intWidget{
     me double: stepIncrement <- 1
     me double: pageIncrement <- 10
     me double: pageSize      <- 10
+    me double: climbRate     <- 1
+    me int:    decimalPlaces <- 0
 
     me void: getValue() <- {}
     me void: setValue() <- {}
-
-    their LinearLayout: makeIntWidget(me string: name)  <- <%{
+    their GUI_Frame: makeIntWidget(me string: name)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(name);
@@ -89,14 +97,13 @@ struct intWidget{
     }%>
 }
 struct stringWidget{
-    their LinearLayout: box
+    their GUI_Frame: box
     their TextView: dataLabel
     their TextView: dataValue
 
     me void: getValue() <- {}
     me void: setValue(me string: label) <- {}
-
-    their LinearLayout: makeStringWidget(me string: name) <- <%{
+    their GUI_Frame: makeStringWidget(me string: name) <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(name);
@@ -107,8 +114,18 @@ struct stringWidget{
         return box;
     } %>
 }
+struct dateWidget{
+    their GUI_Frame: box
+
+    me void: getValue() <- {}
+    me void: setValue(me string: label) <- {}
+    their GUI_Frame: makeDateWidget(me string: name)  <- <%{
+        box = new LinearLayout(GLOBAL.static_Global);
+        return box;
+    }%>
+}
 struct enumWidget{
-    their LinearLayout: box
+    their GUI_Frame: box
     their TextView: dataLabel
     their TextView: dataValue
     me string[list]: options
@@ -116,7 +133,7 @@ struct enumWidget{
     me void: getValue() <- {}
     me void: setValue() <- {}
 
-    their LinearLayout: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
+    their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
         options = Options;
         box = new LinearLayout(GLOBAL.static_Global);
         return box;
@@ -124,7 +141,7 @@ struct enumWidget{
 }
 
 struct scrollerWidget{
-    their LinearLayout: layoutArea <- (GLOBAL.static_Global)
+    their GUI_Frame: layoutArea <- (GLOBAL.static_Global)
     their NestedScrollView: scroller
 
     their GUI_ScrollingWindow: makeScrollerWidget(their CanvasView: canvas) <- <%{
@@ -142,8 +159,14 @@ struct scrollerWidget{
     }%>
 }
 struct GUI_ComboBox{
-    me void: appendComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)%1.data(),(gchar*)%2.data())%>
-    me int: comboBoxGetActive() <- <%!gtk_combo_box_get_active((GtkComboBox *)%0)%>
+    me void: appendComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
+    me void: appendStringComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
+    me int: comboBoxGetActive() <- <%!%0.getSelectedItemPosition()%>
+    /- TODO: fix android ArrayAdapter after dynamic types working
+    me void: setAndroidAdapter() <- <%!ArrayAdapter<%2> %1 = new ArrayAdapter<%2>(GLOBAL.static_Global, android.R.layout.simple_spinner_dropdown_item, %3); %0.setAdapter(%1)%>
+}
+struct GUI_SpinBox{
+    me double: spinGetValue() <- <%!%0.getSelectedItem()%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
@@ -231,6 +254,7 @@ struct ListManagerBox{
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
     /- Widgets
+    their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
     their GUI_Frame: makeXStack(me string: label)              <- <%!makeAndroidHorizontalLayout(%1)%>
     their GUI_Frame: makeAndroidHorizontalLayout(me string: label) <- <%{
@@ -247,6 +271,8 @@ struct GLOBAL{
 
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
+    me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_stack_add_named(GTK_STACK(%1), %2, %3)%>
+    me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack_set_visible_child_name(GTK_STACK(%1), %2.data())%>
 
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
@@ -275,7 +301,7 @@ struct GLOBAL{
         box.addView(checkBox);
         return box;
     }%>
-
+    their GtkButton: makeButtonWidget(me string: label)    <- <%!%Gnew Button(GLOBAL.static_Global)%>
     their GUI_Frame: makeListWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         TextView textView = new TextView(GLOBAL.static_Global);
@@ -298,6 +324,13 @@ struct GLOBAL{
     }%>
 
     their GUI_Frame: makeLabelWidget(me string: label)      <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        TextView textBox = new TextView(GLOBAL.static_Global);
+        textBox.setText(label);
+        box.addView(textBox);
+        return box;
+    }%>
+    their GUI_Frame: makeLabelWidget2(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         TextView textBox = new TextView(GLOBAL.static_Global);
         textBox.setText(label);
@@ -441,6 +474,11 @@ struct Android_eventDispatcher{
     }
 }
 
+/-///////////////////////////////  GLOBAL EVENT HANDLERS
+struct GLOBAL{
+    me Android_eventDispatcher: EventDispatcher
+}
+
 /-///////////////////////////////  HANDLE GUI
 struct CanvasView: inherits=View implements=OnTouchListener{
     me GUI_ctxt: cr
@@ -461,7 +499,6 @@ struct CanvasView: inherits=View implements=OnTouchListener{
         GLOBAL.static_Global.EventDispatcher.topWidget.draw(cr);
         invalidate();
     }%>
-
 }
 
 
@@ -517,14 +554,14 @@ struct GUI: inherits=LinearLayout{
 
 struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
-    me GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
+    their GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
-    me GUI_item: newScrollingWindow() <- <%!newScrollingView()%>
+    their GUI_item: newScrollingWindow() <- <%!newScrollingView()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
-    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents();%>
+    me void: setCallback2() <- <%!%G %1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%3();}})%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 /-    me GUI_Frame: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
@@ -533,12 +570,14 @@ struct GUI {
 }
 
 struct GUI_ctxt: inherits=Canvas{
+    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents();%>
     me void: reset() <- <%!GPath = new Path()%>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!paint.setColor(Color.argb(%4, %1, %2, %3))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!paint.setColor(Color.rgb(%1, %2, %3))%>
     me void: setColor(me cdColor: color) <- <%!%0.paint.setColor( Color.rgb(%1.red, %1.green, %1.blue))%>
     me void: setLineWidth(me double: width) <- <%!paint.setStrokeWidth(%1)%>
     me void: finishPDF() <- <%!%GSystem.out.print("PDF Functions not given.")%>
+    me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
     me void: moveTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo((float)(%1), (float)(%2))%>
     me void: lineTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo((float)(%1), (float)(%2))%>
     me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
@@ -554,7 +593,7 @@ struct GUI_ctxt: inherits=Canvas{
     me void: fillKeep() <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
     me void: renderFrame() <- <%!repaint()%>
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
-    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!cr.drawCircle(%1, %2, %3, cr.paint)%>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!drawCircle(%1, %2, %3, cr.paint)%>
 }
 
 struct GUI_ctxt {
@@ -619,7 +658,6 @@ struct GLOBAL: inherits=AppCompatActivity{
     me long: ticksPerSec() <- <%!%G1000%>
     me SubMenu: parentMenu
     me AssetManager: assetManager
-    me Android_eventDispatcher: EventDispatcher
     me Toolbar: toolbar
     
     me string: getFilesDirAsString()<- <%{
@@ -701,6 +739,7 @@ struct GLOBAL: inherits=AppCompatActivity{
         } catch (IOException e) {Log.e("TAG", e.getMessage());}
    }%>
 
+    /- //GUI INTERFACE:
     me void: onCreate(me Bundle: savedInstanceState) <- <%{
         super.onCreate(savedInstanceState);
         GLOBAL.static_Global = this;
@@ -711,7 +750,6 @@ struct GLOBAL: inherits=AppCompatActivity{
         GLOBAL.static_Global.addToolbar();
     }%>
 
-/- //GUI INTERFACE:
     me void: close_window() <- {
          /- gtk_main_quit()
     }
@@ -799,7 +837,8 @@ struct GLOBAL: inherits=AppCompatActivity{
         GLOBAL.static_Global.thisApp.gui.frame.addView(GLOBAL.static_Global.toolbar, 0);
     }%>
 
-    me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
+    me void: showWidget(me GUI_item: widget) <-  <%!%G%1.setVisibility(0)%>
+    me void: hideWidget(their GUI_item: widget) <- <%!%G%1.setVisibility(1)%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
     me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setLayoutParams(%2, %3)%>

@@ -7,15 +7,15 @@ featuresNeeded = [GUI_ToolKit]
 
 struct dash: inherits=widget{
     me string: title
-    me int: extX        /- Dashes right-most extent
-    me int: extY        /- Dashes lowest extent
-    me int: extC        /- The current position where the next external item should be drawn
+    me GUI_Scalar: extX        /- Dashes right-most extent
+    me GUI_Scalar: extY        /- Dashes lowest extent
+    me GUI_Scalar: extC        /- The current position where the next external item should be drawn
     their dash: dashParent
     me bool: isNullLike
     me bool: posIsSet
     me bool: isDirty
 
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {print("SETPOS BASE!!\n")}
+    void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {print("SETPOS BASE!!\n")}
     void: addDependent(me string: key, their dash: dashPtr) <- {
         if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
         dashParent.addDependent(key, dashPtr)
@@ -61,12 +61,12 @@ struct Dashboard: inherits=dash{
     }
 
     me void: addArrow(their dash: from, their dash: to) <- {
-        me int: fromX    <- from.posX+155
-        me int: fromY    <- from.posY+12
-        me int: smallToX <- to.posX
-        me int: largeToX <- to.posX + to.width
-        me int: smallToY <- to.posY
-        me int: largeToY <- to.posY + to.height
+        me GUI_Scalar: fromX    <- from.posX+155
+        me GUI_Scalar: fromY    <- from.posY+12
+        me GUI_Scalar: smallToX <- to.posX
+        me GUI_Scalar: largeToX <- to.posX + to.width
+        me GUI_Scalar: smallToY <- to.posY
+        me GUI_Scalar: largeToY <- to.posY + to.height
         our arrow: Arrow <- (fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
         decorations.pushLast(Arrow)
     }
@@ -177,8 +177,8 @@ struct Dashboard: inherits=dash{
 
     void: update() <- {}
 
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {
-        me int: YCursor <- y
+    void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {
+        me GUI_Scalar: YCursor <- y
         decorations.clear()
         width <- 10
         height <- 10
@@ -247,7 +247,7 @@ struct dataField: inherits=dash{
         midPos<-MidPos; label<-Label; value<-Value;
     }
 
-   void: setPos(me int:x, me int:y, me int: extCursor) <- {
+   void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {
         posIsSet <- true
         posX <- x;
         posY <- y;
@@ -277,7 +277,7 @@ struct ptrToItem: inherits=dash{
         header.update(100, 180, Label, textValue, false)
     }
 
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {
+    void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {
         posIsSet <- true
         posX <- x
         posY <- y
@@ -327,7 +327,7 @@ struct listOfItems: inherits=dash{
         elements.pushLast(element)
     }
 
-    void: setPos(me int:x, me int:y, me int: extCursor) <- {
+    void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {
         posIsSet <- true
         posX <- x;
         posY <- y;
@@ -351,9 +351,9 @@ struct listOfItems: inherits=dash{
                 }
                 height <- y-posY
             } else if(orientation==horizontal){
-                me int: listX <- posX + header.width+30    /- This 30 should really be calculated to compensate for nested items. Actual distance should be 40.
-                me int: listY <- extC
-                me int: listC <- extC+40;
+                me GUI_Scalar: listX <- posX + header.width+30    /- This 30 should really be calculated to compensate for nested items. Actual distance should be 40.
+                me GUI_Scalar: listY <- extC
+                me GUI_Scalar: listC <- extC+40;
                 withEach element in elements{
                     element.dashParent <- self
                     element.isHidden <- false
@@ -373,8 +373,8 @@ struct listOfItems: inherits=dash{
     }
 
    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        me GUI_scalar: eventX <- event.x
-        me GUI_scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event.x
+        me GUI_Scalar: eventY <- event.y
         if( header.isTouchingMe(eventX, eventY)){
             if(displayMode==headerOnly){displayMode <- fullDisplay; orientation <- vertical}
             else if(displayMode==fullDisplay and orientation==vertical){
@@ -438,8 +438,8 @@ struct DashboardWidget: inherits=dash{
 }
 
 struct GLOBAL{
-    me int: intersectPoint(me int:outsidePt, me int:smallPt, me int: largePt) <- {
-        me int: ret
+    me GUI_Scalar: intersectPoint(me GUI_Scalar:outsidePt, me GUI_Scalar:smallPt, me GUI_Scalar: largePt) <- {
+        me GUI_Scalar: ret
         if(outsidePt<smallPt){ret<-smallPt}
         else if(outsidePt>largePt){ret<-largePt}
         else{ret<-outsidePt}

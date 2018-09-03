@@ -37,7 +37,7 @@ struct GUI_ScrollingWindow{me JScrollPane: GUI_ScrollingWindow}
 struct INK_Image{me BufferedImage: INK_Image}
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_ctxt{their JavaGUI_ctxt:GUI_ctxt}
-struct GUI_scalar{me int: GUI_scalar}
+struct GUI_Scalar{me int: GUI_Scalar}
 
 /-///////////////////////////////  HANDLE EVENTS
 

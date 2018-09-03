@@ -291,8 +291,8 @@ struct display_'''+className+": inherits=dash"+'''{
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         if(isHidden){return(false)}
-        me GUI_scalar: eventX <- event.x
-        me GUI_scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event.x
+        me GUI_Scalar: eventY <- event.y
         if( header.isTouchingMe(eventX, eventY)){
             if(displayMode==headerOnly){displayMode <- noZeros}
             else if(displayMode==noZeros){displayMode <- fullDisplay}
