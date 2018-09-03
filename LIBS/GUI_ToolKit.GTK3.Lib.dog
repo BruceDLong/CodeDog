@@ -40,6 +40,9 @@ struct GUI_YStack{their GtkWidget: GUI_YStack}
 struct GUI_ComboBox{their GtkWidget: GUI_ComboBox}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 struct GUI_SpinBox{their GtkWidget: GUI_SpinBox}
+struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
+struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
+struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
 
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
@@ -48,14 +51,14 @@ struct GUI_storyBoard{
 }
 
 struct boolWidget{
-    their GtkWidget: box
+    their GUI_Frame: box
     their GtkWidget: dataLabel
     their GtkWidget: dataValue
 
     me string: getValue() <- <%!gtk_toggle_button_get_active((GtkToggleButton*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_toggle_button_set_active ((GtkToggleButton*)%0->dataValue, %1)%>
 
-    their GtkWidget: makeBoolWidget(me string: name)  <- <%{
+    their GUI_Frame: makeBoolWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
         gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
@@ -67,7 +70,7 @@ struct boolWidget{
     }%>
 }
 struct intWidget{
-    their GtkWidget: box
+    their GUI_Frame: box
     their GtkWidget: dataLabel
     their GtkWidget: dataValue
     me double: initialValue  <- 0
@@ -82,7 +85,7 @@ struct intWidget{
     me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
 
-    their GtkWidget: makeIntWidget(me string: name)  <- <%{
+    their GUI_Frame: makeIntWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
         gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
@@ -95,13 +98,13 @@ struct intWidget{
     }%>
 }
 struct stringWidget{
-    their GtkWidget: box
+    their GUI_Frame: box
     their GtkWidget: dataLabel
     their GtkWidget: dataValue
 
     me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0->dataValue)%>
     me void: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0->dataValue, %1.data())%>
-    their GtkWidget: makeStringWidget(me string: name) <- <%{
+    their GUI_Frame: makeStringWidget(me string: name) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
         gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
@@ -113,14 +116,14 @@ struct stringWidget{
     } %>
 }
 struct dateWidget{
-    their GtkWidget: box
+    their GUI_Frame: box
     their GtkWidget: dataLabel
     their GtkWidget: dataValue
 
     me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->dataValue, %1)%>
 
-    their GtkWidget: makeDateWidget(me string: name)  <- <%{
+    their GUI_Frame: makeDateWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
         gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
@@ -132,7 +135,7 @@ struct dateWidget{
     }%>
 }
 struct enumWidget{
-    their GtkWidget: box
+    their GUI_Frame: box
     their GtkWidget: dataLabel
     their GtkWidget: dataValue
     me string[list]: options
@@ -140,7 +143,7 @@ struct enumWidget{
     me string: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
     me void: setValue(me int: val) <- {}
 
-    their GtkWidget: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
+    their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
         options = Options;
         box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(label.data());
@@ -159,7 +162,7 @@ struct enumWidget{
 }
 
 struct scrollerWidget{
-    their GtkWidget: layoutArea
+    their GUI_Frame: layoutArea
     their GtkWidget: scroller
 
     their GUI_ScrollingWindow: makeScrollerWidget(me GUI_canvas: canvas) <- <%{
@@ -168,11 +171,13 @@ struct scrollerWidget{
         //gtk_container_add(GTK_CONTAINER (scroller), layoutArea);
         gtk_container_add(GTK_CONTAINER (scroller), canvas);
         return(scroller);
-    }%>  
+    }%>
 }
 struct GUI_ComboBox{
     me void: appendComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)%1.data(),(gchar*)%2.data())%>
+    me void: appendStringComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)%1.data(),(gchar*)%2.data())%>
     me int: comboBoxGetActive() <- <%!gtk_combo_box_get_active((GtkComboBox *)%0)%>
+    me void: setAndroidAdapter() <- <%!%G %>
 }
 struct GUI_SpinBox{
     me double: spinGetValue() <- <%!gtk_spin_button_get_value((GtkSpinButton *)%0)%>
@@ -377,7 +382,6 @@ struct GLOBAL{
     }
 }
 /-///////////////////////////////  HANDLE EVENTS
-struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct GUI_MotionEvent{
   me uint: type
  /- GdkWindow *window;
@@ -389,8 +393,6 @@ struct GUI_MotionEvent{
   me uint: state
   me uint: button
 }
-
-struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
 struct GUI_ButtonEvent{
   me uint: type
  /- GdkWindow *window;
@@ -401,8 +403,6 @@ struct GUI_ButtonEvent{
   me uint: state
   me uint: button
 }
-
-struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
 struct GUI_PointerEvent{
   me uint: type
  /- GdkWindow *window;
@@ -463,7 +463,7 @@ struct GTK_eventDispatcher{
     } %>
 }
 
-/-///////////////////////////////   Event callbacks for GTK3
+/-///////////////////////////////  GLOBAL EVENT HANDLERS
 struct GLOBAL{
     me GTK_eventDispatcher: EventDispatcher
     me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event, their void: data) <- <%{
@@ -489,11 +489,11 @@ struct GLOBAL{
         DBW->draw(cr);
         return(true);
     }%>
-    void: ClickBack_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
+    void: clickBack_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
 	wizardWidget* clickWidget = (wizardWidget*)wizard;
 	clickWidget->clickBack();
     }%>
-    void: ClickNext_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
+    void: clickNext_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
 	wizardWidget* clickWidget = (wizardWidget*)wizard;
 	clickWidget->clickNext();
     }%>
@@ -532,7 +532,7 @@ struct GUI{
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: setCallback() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4.get())%>
-    me void: setCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4)%>
+    me void: setCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_CB), %4)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
@@ -633,7 +633,7 @@ struct GLOBAL{
         g_object_unref(layout);
         cairo_fill(cr);
         return(size);
-    } %>
+    }%>
 
     me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         deltaSize size = getTextSize(cr, text, font);
@@ -754,15 +754,13 @@ me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
   return SubMenu;
 } %>
 
-
-me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
-me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
-
 me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(GTK_WIDGET(%1))%>
 me void: hideWidget(their GUI_item: widget) <- <%!gtk_widget_hide(GTK_WIDGET(%1))%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
 /-me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
 me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
+me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
+me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
 me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), (GtkWidget*)%2)%>
 me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
 me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_stack_add_named(GTK_STACK(%1), %2, %3)%>
