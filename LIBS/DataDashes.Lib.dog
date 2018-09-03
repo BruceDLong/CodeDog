@@ -241,7 +241,6 @@ struct graph: inherits=dash{
         me double: YPoint
         me GUI_Scalar: YOrig <- posY + height
 
-	me int: ii
 	withEach ii in RANGE(0.. dataStreams.size()) {
 	    if (streamToggle1.state == ii + 1 or streamToggle2.state == ii + 1) {dataStreams[ii].isVisible <- true}
 	    else {dataStreams[ii].isVisible <- false}
