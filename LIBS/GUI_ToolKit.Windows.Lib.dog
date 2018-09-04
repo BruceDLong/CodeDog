@@ -368,7 +368,7 @@ struct GLOBAL{
     their HWND: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
     their HWND: makeYStack(me string: label)            <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
     their HWND: makeXStack(me string: label)            <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
-    their HWND: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
+    their HWND: makeZStack(me string: label)            <- <%!%Ggtk_notebook_new()%>
     their HWND: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
     me void: setLabelWidth(their HWND: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
     me void: setListWidgetSelectionMode(their listWidget: listWid, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
