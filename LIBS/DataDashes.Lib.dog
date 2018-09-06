@@ -314,7 +314,7 @@ struct graph: inherits=dash{
 	streamToggle2.draw(cr) /-, dataStreams[1].dataMap.lower_bound(getCurrentTimeStamp()).second)
     }
 
-    me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Width, me GUI_Scalar: Height, me double: Step, me int: Alpha)<- {
+    me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Width, me GUI_Scalar: Height, me int: Alpha)<- {
         title        <- titleStr
         posX         <- PosX
         posY         <- PosY
