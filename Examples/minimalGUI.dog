@@ -52,15 +52,15 @@ struct testWidget: inherits = 'widget'{
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        me GUI_scalar: eventX <- event.x
-        me GUI_scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event.x
+        me GUI_Scalar: eventY <- event.y
         print("CLICK! (x:", eventX, ", y:", eventY, ")\n")
         return(true)
     }
 
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
-        me GUI_scalar: eventX <- event.x
-        me GUI_scalar: eventY <- event.y
+        me GUI_Scalar: eventX <- event.x
+        me GUI_Scalar: eventY <- event.y
         print("SECONDARY CLICK! (x:", eventX, ", y:", eventY, ")\n")
         return(true)
     }

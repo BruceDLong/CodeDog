@@ -201,7 +201,7 @@ struct GUI_container{their HWND:GUI_container}
 struct GUI_ScrollingWindow{their HWND: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_scalar{me int: GUI_scalar}
+struct GUI_Scalar{me int: GUI_Scalar}
 /-struct GUI_Label{their textView: GUI_Label}
 struct listWidget{their HWND: listWidget}
 
@@ -366,8 +366,8 @@ struct GLOBAL{
 
     their HWND: makeListWidget(me string: label)        <- <%!%Ggtk_list_box_new()%>
     their HWND: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
-    their HWND: makeFrameWidget(me string: label)       <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
-    their HWND: makeXStackWidget(me string: label)  <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
+    their HWND: makeYStack(me string: label)            <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
+    their HWND: makeXStack(me string: label)            <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 50)%>
     their HWND: makeStoryBoardWidget(me string: label)  <- <%!%Ggtk_notebook_new()%>
     their HWND: makeLabelWidget(me string: label)       <- <%!%Ggtk_label_new(%1)%>
     me void: setLabelWidth(their HWND: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>

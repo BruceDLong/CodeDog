@@ -170,7 +170,7 @@ struct GUI_container{their UIView:GUI_container}
 struct GUI_ScrollingWindow{their UIView: GUI_ScrollingWindow}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_scalar{me Int: GUI_scalar}
+struct GUI_Scalar{me Int: GUI_Scalar}
 /-struct GUI_Label{their textView: GUI_Label}
 struct listWidget{their HWND: listWidget}
 
