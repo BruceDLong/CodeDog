@@ -465,14 +465,12 @@ struct graph: inherits=dash{
 	streamToggle2.draw(cr) /-, dataStreams[1].dataMap.lower_bound(getCurrentTimeStamp()).second)
     }
 
-    me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Width, me GUI_Scalar: Height, me bool: Gradients)<- {
+    me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me bool: Gradients)<- {
         title        <- titleStr
         posX         <- PosX
         posY         <- PosY
-        width        <- Width
-        height       <- Height
-	zoomLevel    <- 0
 	gradients    <- Gradients
+	zoomLevel    <- 0
 	
 	withEach dataStream in dataStreams {
 	    dataStreamsTitleTable.pushLast(dataStream.title)
@@ -500,7 +498,7 @@ struct graph: inherits=dash{
 	}
     }
 
-    /- CLICK AND DRAG DATA HORIZONTALLY
+    /- Click and drag data horizontally
     me mode[still, fingerPressed, pullScrolling]: scrollState
     me GUI_Scalar: prevX
     me GUI_Scalar: deltaX <- 0
