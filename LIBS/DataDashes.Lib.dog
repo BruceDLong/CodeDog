@@ -247,23 +247,22 @@ struct zoomWidget: inherits=dash{
     me GUI_Scalar:          labelX
     me int:          maxLabelLength
     
-    void: draw(me GUI_ctxt: cr, me GUI_Scalar: Radius, me int: MaxLabelLength) <- {
-	radius <- Radius
-	maxLabelLength <- MaxLabelLength
-	labelX <- posX + 3*radius
-	
+    void: draw(me GUI_ctxt: cr) <- {
 	zoomOutBtn.initCircleBtn(posX, posY, radius, "-")
 	zoomOutBtn.drawCircleBtn(cr)
+	labelX <- posX + 3*radius
 	renderTextCentered(cr, label, styler.fontSmall, labelX + maxLabelLength/2, posY + 3*radius/2)
 	cr.strokeNow()
 	zoomInBtn.initCircleBtn(labelX + maxLabelLength + radius, posY, radius, "+")
 	zoomInBtn.drawCircleBtn(cr)
     }
     
-    void: initZoomWidget(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string: Label) <- {
+    void: initZoomWidget(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string: Label, me GUI_Scalar: Radius, me int: MaxLabelLength) <- {
 	posX  <- PosX
 	posY  <- PosY
 	label <- Label
+	radius <- Radius
+	maxLabelLength <- MaxLabelLength
     }
 }
 
@@ -384,11 +383,11 @@ struct graph: inherits=dash{
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        me timeValue: rightGraphTime
-	me timeValue: leftGraphTime
-	me bool: firstTime
-        me double: XPoint
-        me double: YPoint
+        me timeValue:  rightGraphTime
+	me timeValue:  leftGraphTime
+	me bool:       firstTime
+        me double:     XPoint
+        me double:     YPoint
         me GUI_Scalar: YOrig <- posY + height
 
 	withEach ii in RANGE(0.. dataStreams.size()) {
@@ -456,9 +455,7 @@ struct graph: inherits=dash{
 		else if(streamToggle2.label == dataStream.title) {streamToggle2.latest <- dataStream.screenDataAvg}
 	    }
 	}
-
-        /-//// TEXT
-        cr.setColor(styler.highlight2Color)
+	cr.setColor(styler.highlight2Color)
         if(leftScale.isVisible){
             leftScale.setScale(height, 0, 400, 50, posX, YOrig, -4)
             leftScale.draw(cr)
@@ -477,9 +474,9 @@ struct graph: inherits=dash{
         }
 
 	if(graphTitle.isVisible) {graphTitle.draw(cr, posX + width/2, posY)}
-	zoomToggle.draw(cr, 10, 75)
-	streamToggle1.draw(cr) /-, dataStreams[0].dataMap.lower_bound(getCurrentTimeStamp()).second)
-	streamToggle2.draw(cr) /-, dataStreams[1].dataMap.lower_bound(getCurrentTimeStamp()).second)
+	zoomToggle.draw(cr)
+	streamToggle1.draw(cr)
+	streamToggle2.draw(cr)
     }
 
     me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me bool: Gradients)<- {
@@ -493,7 +490,7 @@ struct graph: inherits=dash{
 	}
 	
 	timeInterval <- zoomTable[zoomLevel]
-	zoomToggle.initZoomWidget(90, 5, labelTable[zoomLevel])
+	zoomToggle.initZoomWidget(90, 5, labelTable[zoomLevel], 10, 75)
 	crntRightSide <- getCurrentTimeStamp()
 
         leftScale.initScale("Blood Glucose Level (units)", true, 1, false, false)
