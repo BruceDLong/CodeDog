@@ -401,7 +401,6 @@ struct graph: inherits=dash{
 		    screenDataTotal <- screenDataTotal + point
 		    screenDataCount <- screenDataCount + 1
 		}
-		cr.lineTo(XPoint, YOrig)
 
 		/-//// GRADIENT
 		/*their guiFillPattern: linGrad
