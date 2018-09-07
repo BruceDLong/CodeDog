@@ -568,6 +568,7 @@ struct guiFillPattern{
     me void: init() <- <%!%0 = cairo_pattern_create_linear(%1, %2, %3, %4)%>
     me void: AddColorStopRGBA(me double: offset, their cdColor: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
     me void: AddColorStop(me double: offset, cdColor: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
+    me void: destroy() <- <%!cairo_pattern_destroy(%0)%>
 }
 
 /-/////////////////////////////// TIME
