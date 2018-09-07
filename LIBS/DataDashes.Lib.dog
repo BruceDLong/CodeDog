@@ -367,8 +367,8 @@ struct graph: inherits=dash{
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        me timeValue: rightGraphTime <- crntRightSide
-	me timeValue: leftGraphTime  <- crntRightSide
+        me timeValue: rightGraphTime
+	me timeValue: leftGraphTime
 	me bool: firstTime
         me double: XPoint
         me double: YPoint
@@ -396,7 +396,7 @@ struct graph: inherits=dash{
 		withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
 		    XPoint <- (point_key-leftGraphTime)*double(width)/timeInterval + posX
 		    YPoint <- (point - leftScale.lowVal)*double(height)/(leftScale.hiVal - leftScale.lowVal)
-		    if(firstTime){cr.moveTo(XPoint, YOrig); firstTime<-false}
+		    if(firstTime){cr.moveTo(XPoint, YOrig - YPoint); firstTime<-false}
 		    else {cr.lineTo(XPoint, YOrig - YPoint)}
 		    screenDataTotal <- screenDataTotal + point
 		    screenDataCount <- screenDataCount + 1
