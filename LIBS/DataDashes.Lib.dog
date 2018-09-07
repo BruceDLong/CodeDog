@@ -328,6 +328,7 @@ struct GraphDataStream {
     me cdColor: lineColor
     me cdColor: fillColor
     me bool: isVisible <- false
+    me bool: hasGradient <- true
     me int: screenDataAvg
 }
 
@@ -336,6 +337,8 @@ struct graph: inherits=dash{
     me string[list]: dataStreamsTitleTable <- ["None"]
     me int64: screenDataTotal
     me int: screenDataCount
+    me timeValue: timeInterval
+    me timeValue: crntRightSide
 
     me verticalScale:   leftScale
     me horizontalScale: bottomScale
@@ -343,19 +346,15 @@ struct graph: inherits=dash{
     me horizontalScale: topScale
     
     me mode[sAutomatic, sManual]:scrollMode
-    me timeValue: timeInterval
-    me timeValue: crntRightSide
-    
     me zoomWidget: zoomToggle
     me int: zoomLevel
-
     me timeValue[list]: zoomTable <- [1000*60,    1000*60*60, 1000*60*60*6, 1000*60*60*12, 1000*60*60*24, 1000*60*60*24*7, 
 	1000*60*60*24*14, 2592000000, 5184000000, 7776000000, 15552000000, 31536000000]
     me string[list]: labelTable <-   ["1 Minute", "1 Hour",   "6 Hours",    "12 Hours",    "24 Hours",    "One Week",      
 	"Two Weeks",      "30 Days",  "60 Days",  "90 Days",  "180 Days",  "One Year"]
-	
     me streamToggle: streamToggle1
     me streamToggle: streamToggle2
+    me bool: gradients
 
     void: update() <- {}
 
@@ -377,11 +376,15 @@ struct graph: inherits=dash{
 	withEach ii in RANGE(0.. dataStreams.size()) {
 	    if (streamToggle1.state == ii + 1 or streamToggle2.state == ii + 1) {dataStreams[ii].isVisible <- true}
 	    else {dataStreams[ii].isVisible <- false}
+	    if (streamToggle1.state == 0 or streamToggle2.state == 0) {dataStreams[ii].hasGradient <- true}
+	    else {dataStreams[ii].hasGradient <- false}
 	}
 
         withEach dataStream in dataStreams{
 	    screenDataTotal <- 0
 	    screenDataCount <- 0
+	    XPoint          <- 0
+	    YPoint          <- 0
 	
 	    if (dataStream.isVisible) {
 		cr.setLineWidth(2)
@@ -390,27 +393,43 @@ struct graph: inherits=dash{
 		rightGraphTime <- crntRightSide
 		leftGraphTime  <- crntRightSide - timeInterval
 		firstTime      <- true
-		XPoint         <- 0
-		YPoint         <- 0
-
+		
+		/-/// Gradient - requires duplicate 'invisible' data plot as boundary
+		if (dataStream.hasGradient) {
+		    withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
+			XPoint <- (point_key-leftGraphTime)*double(width)/timeInterval + posX
+			YPoint <- (point - leftScale.lowVal)*double(height)/(leftScale.hiVal - leftScale.lowVal)
+			if(firstTime){
+			    cr.setColor(styler.bkGndColor)
+			    cr.moveTo(XPoint, YOrig)
+			    cr.lineTo(XPoint, YOrig - YPoint)
+			    firstTime<-false
+			} else {cr.lineTo(XPoint, YOrig - YPoint)}
+		    }
+		    cr.lineTo(XPoint, YOrig)
+		    their guiFillPattern: linGrad
+		    linGrad.init(posX, YOrig-height, posX, YOrig)
+		    linGrad.AddColorStopRGBA(0, dataStream.lineColor, 255)
+		    linGrad.AddColorStopRGBA(1.0, styler.bkGndColor, 255)
+		    cr.setFillPattern(linGrad)
+		    cr.fillNow()
+		    cr.strokeNow()
+		    linGrad.destroy()
+		}
+		
+		/-/// Visible data plot
+		firstTime <- true
 		withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
 		    XPoint <- (point_key-leftGraphTime)*double(width)/timeInterval + posX
 		    YPoint <- (point - leftScale.lowVal)*double(height)/(leftScale.hiVal - leftScale.lowVal)
-		    if(firstTime){cr.moveTo(XPoint, YOrig - YPoint); firstTime<-false}
-		    else {cr.lineTo(XPoint, YOrig - YPoint)}
+		    if(firstTime){
+			cr.setColor(dataStream.lineColor)
+			cr.moveTo(XPoint, YOrig - YPoint)
+			firstTime<-false
+		    } else {cr.lineTo(XPoint, YOrig - YPoint)}
 		    screenDataTotal <- screenDataTotal + point
 		    screenDataCount <- screenDataCount + 1
 		}
-
-		/-//// GRADIENT
-		/*their guiFillPattern: linGrad
-		linGrad.init(2, 1, 2, YOrig)
-		linGrad.AddColorStopRGBA(0, dataStream.lineColor, 255)
-		linGrad.AddColorStopRGBA(0.4, dataStream.lineColor, 40)
-		linGrad.AddColorStopRGBA(1.0, styler.bkGndColor, 255)
-		cr.setFillPattern(linGrad)
-		cr.fillKeep()*/
-		cr.setColor(dataStream.lineColor)
 		cr.strokeNow()
 		
 		if (screenDataCount > 0) {dataStream.screenDataAvg <- screenDataTotal / screenDataCount}
@@ -446,13 +465,14 @@ struct graph: inherits=dash{
 	streamToggle2.draw(cr) /-, dataStreams[1].dataMap.lower_bound(getCurrentTimeStamp()).second)
     }
 
-    me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Width, me GUI_Scalar: Height, me int: Alpha)<- {
+    me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Width, me GUI_Scalar: Height, me bool: Gradients)<- {
         title        <- titleStr
         posX         <- PosX
         posY         <- PosY
         width        <- Width
         height       <- Height
 	zoomLevel    <- 0
+	gradients    <- Gradients
 	
 	withEach dataStream in dataStreams {
 	    dataStreamsTitleTable.pushLast(dataStream.title)
