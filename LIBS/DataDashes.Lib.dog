@@ -2,7 +2,7 @@
 
 featuresNeeded = [Dashboard]
 
-
+/- //// GRAPH SCALES
 struct graphScale: inherits=dash{
     me bool:      isVisible
     me int:       ticksPerStep
@@ -181,7 +181,146 @@ struct horizontalScale: inherits=graphScale{
 	divisor <- divisorTable[zoomLvl]
     }
 }
+/- //// TOP BAR TOGGLES
+struct circleButton: inherits=dash{
+    me GUI_Scalar:    radius
+    me string: symbol
+    me double: stickLen
+    
+    me void: drawCircleBtn(me GUI_ctxt: cr) <- {
+	if (symbol=="+") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius, posY + radius/4)
+	    cr.lineTo(posX + radius, posY + 7*radius/4)
+	    cr.strokeNow()
+	}
+	if (symbol=="+" or symbol=="-") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius/4, posY + radius)
+	    cr.lineTo(posX + 7*radius/4, posY + radius)
+	    cr.strokeNow()
+	}
+	if (symbol=="<") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
+	    cr.lineTo(posX + radius - stickLen * sqrt(2), posY + radius)
+	    cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
+	    cr.strokeNow()
+	}
+	if (symbol==">") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
+	    cr.lineTo(posX + radius + stickLen * sqrt(2), posY + radius)
+	    cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
+	    cr.strokeNow()
+	}
+	cr.circle(posX + radius, posY + radius, radius)
+	cr.strokeNow()
+    }
+    
+    me void: initCircleBtn(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Radius, me string: Symbol) <- {
+	posX   <- PosX
+	posY   <- PosY
+	radius <- Radius
+	width  <- 2*radius
+	height <- 2*radius
+	symbol <- Symbol
+	stickLen <- radius/3
+    }
+    
+    /- Click functionality is inside graph clicks
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
+    }
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
+    }
+}
 
+struct zoomWidget: inherits=dash{
+    me circleButton: zoomInBtn
+    me circleButton: zoomOutBtn
+    me string:       label
+    me GUI_Scalar:          radius
+    me GUI_Scalar:          labelX
+    me int:          maxLabelLength
+    
+    void: draw(me GUI_ctxt: cr, me GUI_Scalar: Radius, me int: MaxLabelLength) <- {
+	radius <- Radius
+	maxLabelLength <- MaxLabelLength
+	labelX <- posX + 3*radius
+	
+	zoomOutBtn.initCircleBtn(posX, posY, radius, "-")
+	zoomOutBtn.drawCircleBtn(cr)
+	renderTextCentered(cr, label, styler.fontSmall, labelX + maxLabelLength/2, posY + 3*radius/2)
+	cr.strokeNow()
+	zoomInBtn.initCircleBtn(labelX + maxLabelLength + radius, posY, radius, "+")
+	zoomInBtn.drawCircleBtn(cr)
+    }
+    
+    void: initZoomWidget(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string: Label) <- {
+	posX  <- PosX
+	posY  <- PosY
+	label <- Label
+    }
+}
+
+struct streamToggle: inherits=dash{
+    me circleButton: left
+    me circleButton: right
+    me string[list]: dataStreamsTitleTbl
+    me int: state
+    me string: label
+    me deltaSize: labelSize
+    me int: radius
+    me int: maxLabelLength
+    me double: latest
+    
+    void: draw(me GUI_ctxt: cr) <- {
+	if (state != 0) {
+	    renderTextCentered(cr, dblToString(latest, 0), styler.fontTitle, posX + 3*radius + maxLabelLength/2, posY + 45)
+	    renderTextCentered(cr, "Avg", styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
+	}
+	label <- dataStreamsTitleTbl[state]
+	left.drawCircleBtn(cr)
+	labelSize <- getTextSize(cr, label, styler.fontSmall)
+	renderTextCentered(cr, label, styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + labelSize.height)
+	right.drawCircleBtn(cr)
+    }
+    
+    void: initStreamToggle(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string[list]: DataStreamsTitleTbl, me int: State) <- {
+	posX <- PosX
+	posY <- PosY
+	radius <- 10
+	maxLabelLength <- 75
+	dataStreamsTitleTbl <- DataStreamsTitleTbl
+	state <- State
+	label <- dataStreamsTitleTbl[state]
+	latest <- 0
+	
+	left.initCircleBtn(posX, posY, radius, "<")
+	right.initCircleBtn(posX + 3*radius + maxLabelLength + radius, posY, radius, ">")
+    }
+    
+    void: incrementStreamState(me int: Increment, me int: otherState) <- {
+	if (state + Increment < 0) {state <- dataStreamsTitleTbl.size()-1}
+	else if (state + Increment >= dataStreamsTitleTbl.size()) {state <- 0}
+	else {state <- state + Increment}
+	if (state == otherState) {incrementStreamState(Increment, otherState)}
+    }
+    
+    /- Click functionality is inside graph clicks
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
+    }
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
+    }
+}
 
 struct GraphDataStream {
     me string: title
@@ -228,12 +367,6 @@ struct graph: inherits=dash{
     }
 
     void: draw(me GUI_ctxt: cr) <- {
-        me double: scnTimeSpan       <- timeInterval
-        me double: scnPixSpanW       <- width
-        me double: pixelsPerMillisec <- scnPixSpanW / scnTimeSpan
-	me double: scnUnitSpan       <- leftScale.hiVal - leftScale.lowVal
-        me double: scnPixSpanH       <- height
-        me double: pixelsPerUnit     <- scnPixSpanH / scnUnitSpan
         me timeValue: rightGraphTime <- crntRightSide
 	me timeValue: leftGraphTime  <- crntRightSide
 	me bool: firstTime
@@ -261,8 +394,8 @@ struct graph: inherits=dash{
 		YPoint         <- 0
 
 		withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-		    XPoint <- (point_key-leftGraphTime)*pixelsPerMillisec + posX
-		    YPoint <- (point - leftScale.lowVal)*pixelsPerUnit
+		    XPoint <- (point_key-leftGraphTime)*double(width)/timeInterval + posX
+		    YPoint <- (point - leftScale.lowVal)*double(height)/(leftScale.hiVal - leftScale.lowVal)
 		    if(firstTime){cr.moveTo(XPoint, YOrig); firstTime<-false}
 		    else {cr.lineTo(XPoint, YOrig - YPoint)}
 		    screenDataTotal <- screenDataTotal + point
@@ -336,8 +469,8 @@ struct graph: inherits=dash{
         bottomScale.initScale("Time", true, 1, false, true)
         topScale.initScale("topScale", false, 1, false, false)
 	
-	streamToggle1.initialize(250, 5, dataStreamsTitleTable, 1)
-	streamToggle2.initialize(400, 5, dataStreamsTitleTable, 0)
+	streamToggle1.initStreamToggle(250, 5, dataStreamsTitleTable, 1)
+	streamToggle2.initStreamToggle(400, 5, dataStreamsTitleTable, 0)
     }
     
     void: incrementZoomLevel(me int: change) <- {
@@ -395,145 +528,5 @@ struct graph: inherits=dash{
 	    requestRedraw()
 	}
 	return(true)
-    }
-}
-
-struct streamToggle: inherits=dash{
-    me circleButton: left
-    me circleButton: right
-    me string[list]: dataStreamsTitleTbl
-    me int: state
-    me string: label
-    me deltaSize: labelSize
-    me int: radius
-    me int: maxLabelLength
-    me double: latest
-    
-    void: draw(me GUI_ctxt: cr) <- {
-	if (state != 0) {
-	    renderTextCentered(cr, dblToString(latest, 0), styler.fontTitle, posX + 3*radius + maxLabelLength/2, posY + 45)
-	    renderTextCentered(cr, "Avg", styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
-	}
-	label <- dataStreamsTitleTbl[state]
-	left.drawCircleBtn(cr)
-	labelSize <- getTextSize(cr, label, styler.fontSmall)
-	renderTextCentered(cr, label, styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + labelSize.height)
-	right.drawCircleBtn(cr)
-    }
-    
-    void: initialize(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string[list]: DataStreamsTitleTbl, me int: State) <- {
-	posX <- PosX
-	posY <- PosY
-	radius <- 10
-	maxLabelLength <- 75
-	dataStreamsTitleTbl <- DataStreamsTitleTbl
-	state <- State
-	label <- dataStreamsTitleTbl[state]
-	latest <- 0
-	
-	left.initCircleBtn(posX, posY, radius, "<")
-	right.initCircleBtn(posX + 3*radius + maxLabelLength + radius, posY, radius, ">")
-    }
-    
-    void: incrementStreamState(me int: Increment, me int: otherState) <- {
-	if (state + Increment < 0) {state <- dataStreamsTitleTbl.size()-1}
-	else if (state + Increment >= dataStreamsTitleTbl.size()) {state <- 0}
-	else {state <- state + Increment}
-	if (state == otherState) {incrementStreamState(Increment, otherState)}
-    }
-    
-    /- Click functionality is inside graph clicks
-    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-	if (isTouchingMe(event.x, event.y)) {return(true)}
-	else {return(false)}
-    }
-    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-	if (isTouchingMe(event.x, event.y)) {return(true)}
-	else {return(false)}
-    }
-}
-
-struct zoomWidget: inherits=dash{
-    me circleButton: zoomInBtn
-    me circleButton: zoomOutBtn
-    me string:       label
-    me GUI_Scalar:          radius
-    me GUI_Scalar:          labelX
-    me int:          maxLabelLength
-    
-    void: draw(me GUI_ctxt: cr, me GUI_Scalar: Radius, me int: MaxLabelLength) <- {
-	radius <- Radius
-	maxLabelLength <- MaxLabelLength
-	labelX <- posX + 3*radius
-	
-	zoomOutBtn.initCircleBtn(posX, posY, radius, "-")
-	zoomOutBtn.drawCircleBtn(cr)
-	renderTextCentered(cr, label, styler.fontSmall, labelX + maxLabelLength/2, posY + 3*radius/2)
-	cr.strokeNow()
-	zoomInBtn.initCircleBtn(labelX + maxLabelLength + radius, posY, radius, "+")
-	zoomInBtn.drawCircleBtn(cr)
-    }
-    
-    void: initZoomWidget(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string: Label) <- {
-	posX  <- PosX
-	posY  <- PosY
-	label <- Label
-    }
-}
-
-struct circleButton: inherits=dash{
-    me GUI_Scalar:    radius
-    me string: symbol
-    me double: stickLen
-    
-    me void: drawCircleBtn(me GUI_ctxt: cr) <- {
-	if (symbol=="+") {
-	    cr.setLineWidth(1)
-	    cr.moveTo(posX + radius, posY + radius/4)
-	    cr.lineTo(posX + radius, posY + 7*radius/4)
-	    cr.strokeNow()
-	}
-	if (symbol=="+" or symbol=="-") {
-	    cr.setLineWidth(1)
-	    cr.moveTo(posX + radius/4, posY + radius)
-	    cr.lineTo(posX + 7*radius/4, posY + radius)
-	    cr.strokeNow()
-	}
-	if (symbol=="<") {
-	    cr.setLineWidth(1)
-	    cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
-	    cr.lineTo(posX + radius - stickLen * sqrt(2), posY + radius)
-	    cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
-	    cr.strokeNow()
-	}
-	if (symbol==">") {
-	    cr.setLineWidth(1)
-	    cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
-	    cr.lineTo(posX + radius + stickLen * sqrt(2), posY + radius)
-	    cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
-	    cr.strokeNow()
-	}
-	cr.circle(posX + radius, posY + radius, radius)
-	cr.strokeNow()
-    }
-    
-    me void: initCircleBtn(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Radius, me string: Symbol) <- {
-	posX   <- PosX
-	posY   <- PosY
-	radius <- Radius
-	width  <- 2*radius
-	height <- 2*radius
-	symbol <- Symbol
-	stickLen <- radius/3
-    }
-    
-    /- Click functionality is inside graph clicks
-    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-	if (isTouchingMe(event.x, event.y)) {return(true)}
-	else {return(false)}
-    }
-    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-	if (isTouchingMe(event.x, event.y)) {return(true)}
-	else {return(false)}
     }
 }
