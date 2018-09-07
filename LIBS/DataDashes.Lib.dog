@@ -322,6 +322,23 @@ struct streamToggle: inherits=dash{
     }
 }
 
+struct graphTitleWidget: inherits=dash{
+    me string: titleTxt
+    me bool:   isVisible
+    
+    void: draw(me GUI_ctxt: cr, me GUI_Scalar: PosX, me GUI_Scalar: PosY) <- {
+	posX     <- PosX
+	posY     <- PosY
+	renderTextCentered(cr, titleTxt, styler.fontTitle, posX, posY)
+	cr.strokeNow()
+    }
+    
+    void: initGraphTitle(me string: TitleTxt, me bool: IsVisible) <- {
+	titleTxt  <- TitleTxt
+	isVisible <- IsVisible
+    }
+}
+
 struct GraphDataStream {
     me string: title
     me int64[me map timeValue]: dataMap
@@ -340,6 +357,7 @@ struct graph: inherits=dash{
     me timeValue: timeInterval
     me timeValue: crntRightSide
 
+    me graphTitleWidget: graphTitle 
     me verticalScale:   leftScale
     me horizontalScale: bottomScale
     me verticalScale:   rightScale
@@ -458,15 +476,13 @@ struct graph: inherits=dash{
             topScale.draw(cr)
         }
 
-        /-renderText(cr, title, styler.fontTitle, posX, posY-20)
-	/-cr.strokeNow()
+	if(graphTitle.isVisible) {graphTitle.draw(cr, posX + width/2, posY)}
 	zoomToggle.draw(cr, 10, 75)
 	streamToggle1.draw(cr) /-, dataStreams[0].dataMap.lower_bound(getCurrentTimeStamp()).second)
 	streamToggle2.draw(cr) /-, dataStreams[1].dataMap.lower_bound(getCurrentTimeStamp()).second)
     }
 
     me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me bool: Gradients)<- {
-        title        <- titleStr
         posX         <- PosX
         posY         <- PosY
 	gradients    <- Gradients
@@ -480,12 +496,11 @@ struct graph: inherits=dash{
 	zoomToggle.initZoomWidget(90, 5, labelTable[zoomLevel])
 	crntRightSide <- getCurrentTimeStamp()
 
-	/- (string titleStr, bool IsVisible, int TicksPerStep, bool TextSlant, bool IsDate)
         leftScale.initScale("Blood Glucose Level (units)", true, 1, false, false)
         rightScale.initScale("rightScale!", false, 1, false, false)
         bottomScale.initScale("Time", true, 1, false, true)
         topScale.initScale("topScale", false, 1, false, false)
-	
+	graphTitle.initGraphTitle(titleStr, false)
 	streamToggle1.initStreamToggle(250, 5, dataStreamsTitleTable, 1)
 	streamToggle2.initStreamToggle(400, 5, dataStreamsTitleTable, 0)
     }
