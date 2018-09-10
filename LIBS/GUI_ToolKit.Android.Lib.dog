@@ -54,7 +54,7 @@ struct GUI_ComboBox{their Spinner: GUI_ComboBox}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 struct GUI_SpinBox{their Spinner: GUI_SpinBox}
 
-/-///////////////////////////////  WIDGETS
+/-///////////////////////////////  WIDGET STRUCTS
 struct GUI_storyBoard: inherits=FragmentActivity{
     their LinearLayout: GUI_storyBoard
     me void: addPane(their GUI_Frame: frame) <- <%!%1.addView(%2)%>
@@ -251,28 +251,21 @@ struct ListManagerBox{
     /-me void: gtk_label_new() <- <%!addView(%1)%>
 }
 
-/-///////////////////////////////  HIGHER LEVEL WIDGETS
+/-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
     /- Widgets
     their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
-    their rangeWidget: makeRangeWidget(me string: label)       <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_Frame: makeXStack(me string: label)              <- <%!makeAndroidHorizontalLayout(%1)%>
-    their GUI_Frame: makeAndroidHorizontalLayout(me string: label) <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        box.setOrientation(LinearLayout.HORIZONTAL);
-        return box;
-    }%>
-    their GUI_Frame: makeYStack(me string: label)        	<- <%!makeAndroidVerticalLayout(%1)%>
-    their GUI_Frame: makeAndroidVerticalLayout(me string: label) <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        box.setOrientation(LinearLayout.VERTICAL);
-        return box;
-    }%>
-
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
+    their rangeWidget: makeRangeWidget(me string: label)       			<- <%!%Gnew EditText(GLOBAL.static_Global)%>
+    their GUI_Frame: makeXStack(me string: label)              			<- <%!makeAndroidHorizontalLayout(%1)%>
+    their GUI_Frame: makeYStack(me string: label)        			<- <%!makeAndroidVerticalLayout(%1)%>
+    their GtkWidget: makeZStack(me string: label)               		<- <%!makeAndroidFragmentView(%1)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget)  	<- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
-    me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_stack_add_named(GTK_STACK(%1), %2, %3)%>
-    me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack_set_visible_child_name(GTK_STACK(%1), %2.data())%>
+    me void: addToZStack(me GUI_container: container, their GUI_item: widget) 	<- <%!%G // TODO %>
+    me void: setZStackActive(their GUI_item: widget, me string: S) 		<- <%!%G // TODO %>
+    their GtkButton: makeButtonWidget(me string: label)    			<- <%!%Gnew Button(GLOBAL.static_Global)%>
+    their GtkWidget: makeTabbedWidget(me string: label)      			<- <%!makeAndroidFragmentView(%1)%>
+    me void: setTabLabelText() 							<- <%!%G // TODO %>
 
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
@@ -311,17 +304,6 @@ struct GLOBAL{
     }%>
 
     their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
-    their FragmentManager: fragmentManager
-
-    their GUI_Frame: makeStoryBoardWidget(me string: label)      <- <%{
-        LinearLayout storyBoard = new LinearLayout(GLOBAL.static_Global);
-        storyBoard.setOrientation(LinearLayout.VERTICAL);
-        FragmentTransaction fragmentTransaction = GLOBAL.static_Global.fragmentManager.beginTransaction();
-        Fragment testFrag = new StoryBoard();
-        fragmentTransaction.add(testFrag, label);
-        fragmentTransaction.commit();
-        return storyBoard;
-    }%>
 
     their GUI_Frame: makeLabelWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
@@ -387,11 +369,36 @@ struct GLOBAL{
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!%G %>
 
 }
+/-///////////////////////////////  GLOBAL WIDGET FUNCTIONS
+struct GLOBAL{
+    their GUI_Frame: makeAndroidHorizontalLayout(me string: label) <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        box.setOrientation(LinearLayout.HORIZONTAL);
+        return box;
+    }%>
+    their GUI_Frame: makeAndroidVerticalLayout(me string: label)   <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        box.setOrientation(LinearLayout.VERTICAL);
+        return box;
+    }%>
 
-struct StoryBoard: inherits=Fragment{
+}
+/-///////////////////////////////  ANDROID FRAGMENTS
+struct GLOBAL{
+    their FragmentManager: fragmentManager
+    their GUI_Frame: makeAndroidFragmentView(me string: label)     <- <%{
+        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        box.setOrientation(LinearLayout.VERTICAL);
+        FragmentTransaction fragmentTransaction = GLOBAL.static_Global.fragmentManager.beginTransaction();
+        Fragment fragView = new FragmentView();
+        fragmentTransaction.add(fragView, label);
+        fragmentTransaction.commit();
+        return box;
+    }%>
+}
+struct FragmentView: inherits=Fragment{
     their LinearLayout: frame
-    me String: label <- "StoryBoard"
-
+    me String: label <- "FragmentView"
     me LinearLayout: onCreateView(me LayoutInflater: inflater, me View: container, me Bundle: savedInstanceState) <- <%{
         LinearLayout frame = new LinearLayout(getActivity());
         TextView tv = new TextView(GLOBAL.static_Global);
