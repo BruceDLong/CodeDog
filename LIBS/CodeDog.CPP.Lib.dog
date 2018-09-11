@@ -82,5 +82,6 @@ struct GLOBAL{
     }%>
     
     me double: sqrt(me double: input) <- <%!sqrt(%1)%>
+    me timeValue: convertToTimeVal()						<- <%!%G%1%>
 }
 struct timeValue{me int64: timeValue}

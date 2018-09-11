@@ -9,7 +9,7 @@ struct graphScale: inherits=dash{
     me bool:      textSlant
     me bool:      isDate
     me timeValue: step
-    me double:    tickStep
+    me GUI_Scalar:    tickStep
     me GUI_Scalar:       yOrig
     me GUI_Scalar:       xOrig
     me timeValue: lowVal
@@ -32,8 +32,8 @@ struct graphScale: inherits=dash{
 
 struct verticalScale: inherits=graphScale{
     void: draw(me GUI_ctxt: cr) <- {
-	me double:    XPoint  <- 0
-	me double:    YPoint  <- 0
+	me GUI_Scalar:    XPoint  <- 0
+	me GUI_Scalar:    YPoint  <- 0
 	me deltaSize: size
 	me int:       labelWidth <- 0
 	me string:    label
@@ -63,7 +63,7 @@ struct verticalScale: inherits=graphScale{
 	    withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
 		if (tickOffset > 0){XPoint <- xOrig+3}
 		else               {XPoint <- xOrig-3}
-		YPoint <- yOrig - val*tickStep*span/(hiVal-lowVal)
+		YPoint <- yOrig - convertToGUIScalar(val)*tickStep*span/(hiVal-lowVal)
 		cr.moveTo(XPoint, YPoint)
 		cr.lineTo(XPoint+tickOffset, YPoint)
 	    }
@@ -93,8 +93,8 @@ struct verticalScale: inherits=graphScale{
 
 struct horizontalScale: inherits=graphScale{
     void: draw(me GUI_ctxt: cr) <- {
-	me double:     XPoint <- 0
-	me double:     YPoint <- 0
+	me GUI_Scalar:     XPoint <- 0
+	me GUI_Scalar:     YPoint <- 0
 	me deltaSize:  size
 	me int:        labelHeight <- 0
 	me int:        tickHeight  <- 0
@@ -386,8 +386,8 @@ struct graph: inherits=dash{
         me timeValue:  rightGraphTime
 	me timeValue:  leftGraphTime
 	me bool:       firstTime
-        me double:     XPoint
-        me double:     YPoint
+        me GUI_Scalar:     XPoint
+        me GUI_Scalar:     YPoint
         me GUI_Scalar: YOrig <- posY + height
 
 	withEach ii in RANGE(0.. dataStreams.size()) {
@@ -553,7 +553,7 @@ struct graph: inherits=dash{
 	    deltaX <- 0
 	} 
 	if (scrollState==pullScrolling) {
-	    crntRightSide <- crntRightSide - deltaX*timeInterval/width
+	    crntRightSide <- crntRightSide - convertToTimeVal(deltaX)*timeInterval/convertToTimeVal(width)
 	    requestRedraw()
 	}
 	return(true)
