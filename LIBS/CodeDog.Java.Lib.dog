@@ -84,6 +84,7 @@ struct GLOBAL{
     me int: cos(me int: val) <- <%!%GMath.cos(%1)%>
     me int: atan2(me int: val1, me int: val2) <- <%!%GMath.atan2(%1, %2)%>
     me int: sqrt(me int: val) <- <%!%GMath.sqrt(%1)%>
+    me timeValue: convertToTimeVal()						<- <%!%G (long)(%1)%>
 }
 struct timeValue{me long: timeValue}
 struct random{me Random: random}

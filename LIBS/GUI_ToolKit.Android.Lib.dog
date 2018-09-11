@@ -101,7 +101,10 @@ struct stringWidget{
     their TextView: dataLabel
     their TextView: dataValue
 
-    me void: getValue() <- {}
+    me string: getValue() <- <%{
+	String retVal = "";
+	return retVal;
+    }%>
     me void: setValue(me string: label) <- {}
     their GUI_Frame: makeStringWidget(me string: name) <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
@@ -261,11 +264,12 @@ struct GLOBAL{
     their GtkWidget: makeZStack(me string: label)               		<- <%!makeAndroidFragmentView(%1)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget)  	<- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
-    me void: addToZStack(me GUI_container: container, their GUI_item: widget) 	<- <%!%G // TODO %>
-    me void: setZStackActive(their GUI_item: widget, me string: S) 		<- <%!%G // TODO %>
+    me void: addToZStack(me GUI_container: container, their GUI_item: widget) 	<- <%!%G // TODO code converter for GLOBAL.addToZStack%>
+    me void: setZStackActive(their GUI_item: widget, me string: S) 		<- <%!%G // TODO code converter for GLOBAL.setZStackActive%>
     their GtkButton: makeButtonWidget(me string: label)    			<- <%!%Gnew Button(GLOBAL.static_Global)%>
     their GtkWidget: makeTabbedWidget(me string: label)      			<- <%!makeAndroidFragmentView(%1)%>
-    me void: setTabLabelText() 							<- <%!%G // TODO %>
+    me void: setTabLabelText() 							<- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
+    me GUI_Scalar: convertToGUIScalar()						<- <%!%G (float)(%1)%>
 
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
@@ -628,6 +632,7 @@ struct guiFillPattern{
     me void: init() <- <%!%0 = new LinearGradient(%1, %2, %3, %4)%>
     me void: AddColorStopRGBA(me double: offset, their cdColor: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
     me void: AddColorStop(me double: offset, their cdColor: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
+    me void: destroy() <- <%! // TODO: code converter for guiFillPattern.destroy()%>
 }
 
 /-/////////////////////////////// TIME
