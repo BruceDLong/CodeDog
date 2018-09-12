@@ -289,12 +289,14 @@ def codeFactor(item, objsRefed, returnType, xlator):
         elif item0=='[':
             count=0
             tmp="(Arrays.asList("
+            paramTypeSpec = '<PARAMTYPE>'
             for expr in item[1:-1]:
                 count+=1
                 [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, xlator)
+                if retTypeSpec=='String':paramTypeSpec=''
+                if retTypeSpec=='noType':retTypeSpec='<LISTTYPE>'
                 if count>1: tmp+=', '
-                tmp+=S2+'<PARAMTYPE>'
-            if retTypeSpec=='noType':retTypeSpec='<LISTTYPE>'
+                tmp+=S2+paramTypeSpec
             tmp+="))"
             S+='new '+'ArrayList<'+retTypeSpec+'>'+tmp   # ToDo: make this handle things other than long.
         else:

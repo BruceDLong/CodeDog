@@ -43,7 +43,7 @@ struct GUI_SpinBox{their GtkWidget: GUI_SpinBox}
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
 struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
-
+struct GUI_Bool{their GtkWidget: GUI_Bool}
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
     their GtkWidget: GUI_storyBoard
