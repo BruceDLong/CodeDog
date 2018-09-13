@@ -61,7 +61,7 @@ struct wizardWidget{
     their GUI_Frame: makeWizardWidget(me string: name) <- {
 	activeScreenIdx <- 0
 	box          	<- makeYStack("")
-	ZStack      	<- makeStoryBoardWidget("")
+	ZStack      	<- makeZStack("")
 	buttonBox 	<- makeXStack("")
 	backBtn   	<- makeButtonWidget("Back")
 	nextBtn   	<- makeButtonWidget("Next")

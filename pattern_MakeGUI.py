@@ -358,7 +358,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         if classPrimaryGuiItem==fieldName: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetBoxName+')\n'
         else: widgetInitFuncCode   += '        addToContainer(box, '+widgetBoxName+')\n'
     if dialogStyle == 'TabbedStack':
-        widgetInitFuncCode+='             '+'gtk_notebook_set_tab_label_text(GTK_NOTEBOOK(box), '+ localWidgetVarName+', "'+label+'")\n'
+        widgetInitFuncCode+='             '+'setTabLabelText(box, '+ localWidgetVarName+', "'+label+'")\n'
 
 def BuildGuiForList(classes, className, dialogStyle, newStructName):
     # This makes 4 types of changes to the class:
@@ -501,7 +501,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
 
     # Parse everything
     initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
-    if dialogStyle   == 'Z_stack':     containerWidget='their GUI_Frame:box <- makeStoryBoardWidget("makeStoryBoardWidget")'
+    if dialogStyle   == 'Z_stack':     containerWidget='their GUI_Frame:box <- makeZStack('+className+')'
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
     elif dialogStyle == 'WizardStack':
         newWidgetFields    += '    our wizardWidget: wiz\n'

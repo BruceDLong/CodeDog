@@ -43,7 +43,7 @@ struct GUI_SpinBox{their GtkWidget: GUI_SpinBox}
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
 struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
-
+struct GUI_Bool{their GtkWidget: GUI_Bool}
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
     their GtkWidget: GUI_storyBoard
@@ -339,7 +339,7 @@ struct GLOBAL{
     their GtkWidget: makeRowWidget(me string: label)         	<- <%!%Ggtk_list_box_row_new()%>
     their GtkWidget: makeYStack(me string: label)            	<- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
     their GtkWidget: makeXStack(me string: label)             	<- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
-    their GtkWidget: makeStoryBoardWidget(me string: label)  	<- <%!%Ggtk_stack_new()%>
+    their GtkWidget: makeZStack(me string: label)       	<- <%!%Ggtk_stack_new()%>
     their GtkWidget: makeTabbedWidget(me string: label)      	<- <%!%Ggtk_notebook_new()%>
     their GtkWidget: makeLabelWidget(me string: label)       	<- <%!%Ggtk_label_new(%1)%>
     their GtkWidget: makeLabelWidget2(me string: label)       	<- <%!%Ggtk_label_new(%1.data())%>
@@ -348,7 +348,8 @@ struct GLOBAL{
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
     me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
     their GtkWidget: getListRowSelected(their listWidget: listWidgetView) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
-
+    me void: setTabLabelText() <- <%!%Ggtk_notebook_set_tab_label_text(GTK_NOTEBOOK(%1), %2, %3)%>
+    me GUI_Scalar: convertToGUIScalar()						    <- <%!%G%1%>
     their GtkWidget: makeListEditorWidget(their GtkWidget: listWidgetView) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_box_pack_start(GTK_BOX(box), listWidgetView, true, true, 0);
