@@ -62,7 +62,7 @@ def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetSty
     if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm'):
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
-    
+
 def getButtonHandlingCode(classes, buttonLabel, callBackFuncName):
     global newWidgetFields
     global widgetInitFuncCode
@@ -86,7 +86,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
 
     # Find the model
     modelRef = findModelRef(classes[0], structTypeName)
-    currentModelSpec = modelRef    
+    currentModelSpec = modelRef
     ### Write code for each field
     for field in modelRef['fields']:
         typeSpec        = field['typeSpec']
@@ -457,11 +457,11 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     classPrimaryGuiItem=progSpec.searchATagStore(modelRef['tags'], 'primaryGuiItem')
     if classPrimaryGuiItem != None: # This GUI Item is important visually
         classPrimaryGuiItem = classPrimaryGuiItem[0]
-    guiStyleTag=progSpec.searchATagStore(modelRef['tags'], 'GuiStyle')
+    guiStyleTag=progSpec.searchATagStore(modelRef['tags'], 'dialogStyle')
     if guiStyleTag != None: # This GUI Item is important visually
         guiStyleTag = guiStyleTag[0]
         if guiStyleTag == 'WizardStack': dialogStyle = 'WizardStack'
-        
+
     ### Write code for each field
     for field in modelRef['fields']:
         typeSpec     = field['typeSpec']
@@ -503,7 +503,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
     if dialogStyle   == 'Z_stack':     containerWidget='their GUI_Frame:box <- makeStoryBoardWidget("makeStoryBoardWidget")'
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
-    elif dialogStyle == 'WizardStack': 
+    elif dialogStyle == 'WizardStack':
         newWidgetFields    += '    our wizardWidget: wiz\n'
         containerWidget     = 'Allocate(wiz)\n'
         containerWidget    += '        their GUI_Frame:box <- wiz.makeWizardWidget("WizardWidget")\n'

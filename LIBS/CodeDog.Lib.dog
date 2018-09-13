@@ -5,6 +5,8 @@ requirements = [
 ]
 
 struct GLOBAL{
+    const double: pi <- 3.1415926535897
+
     me string: dispBool(me bool: tf) <- {
         if(tf){return("true")} else {return("false")}
     }
