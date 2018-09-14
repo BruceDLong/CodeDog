@@ -139,7 +139,7 @@ struct MatterTermWidget{
 	Allocate(retVal)
 	retVal.matterTypes <- data.matterTypes
 	retVal.matterIdx   <- matterBox.comboBoxGetActive()
-	retVal.term	   <- termBox.spinGetValue()
+	retVal.term	   <- termBox.getValue()
 	retVal.units	   <- data.units
 	return(retVal)
     }
@@ -179,7 +179,6 @@ struct Styler{
 }
 
 struct GLOBAL{
-    me boolWidget:      makeBoolWidget(me string: label)
     me floatWidget:     makeFloatWidget(me string: label)
     me numRangeWidget:  makeNumRangeWidget(me string: label)
     me rangeWidget:     makeRangeWidget(me string: label)
@@ -472,4 +471,28 @@ struct DateTimeWidget{
         return(retVal)
     }
     void: setValue() <- {}
+}
+struct Agreement{
+    me string: text
+    me bool:   doesAgree 
+}
+struct AgreeWidget{
+    their GUI_Frame: box
+    their GUI_Label: textBox
+    their GUI_Bool:  agreeCheckBox
+    me Agreement:    agreement
+    
+    their GUI_Frame: makeAgreeWidget(me string: text) <- {
+        agreement.text <- text
+	textBox        <- makeLabelWidget2(agreement.text)
+        agreeCheckBox  <- makeCheckBox()
+        /-/// RETURN BOX //////////////////////////////
+        box            <- makeXStack("")
+        addToContainer(box, textBox)
+        addToContainer(box, agreeCheckBox)
+        return(box)
+    }
+    me bool: getValue()            <- {agreeCheckBox.getValue()}
+    void: setValue(me bool: value) <- {agreeCheckBox.setValue(agreement.doesAgree)}
+    void: setText(me string: text) <- {textBox.setValue(agreement.text)}
 }
