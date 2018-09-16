@@ -59,7 +59,7 @@ def deCamelCase(identifier):
 def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
     global classesEncoded
     if guiStructName == 'timeValue_Dialog_GUI': return
-    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm'):
+    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='Agreement' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm'):
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
 
@@ -250,6 +250,13 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         makeTypeNameCall      =  'Allocate('+widgetName+');\n' + widgetBoxName + ' <- '+ widgetName+'.makeDateWidget("'+label+'")\n'
         widgetFromVarsCode   += '        ' + widgetName+ '.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+currentClassName+'_data.' + fieldName + ' <- ' + widgetName + '.getValue()\n'
+    elif fieldType=='Agreement':
+        typeName              = 'AgreeWidget'
+        widgetBoxName         =  widgetName +'.box'
+        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeAgreeWidget("'+label+'")\n'
+        widgetFromVarsCode   += ''
+        varsFromWidgetCode   += ''
     elif fieldType=='DateValue':
         typeName              = 'DateWidget'
         widgetBoxName         =  widgetName +'.box'

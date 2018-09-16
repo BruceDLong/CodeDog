@@ -45,7 +45,7 @@ struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_Scalar{me float: GUI_Scalar}
-struct GUI_Label{their LinearLayout: GUI_Label}
+struct GUI_Label{their TextView: GUI_Label}
 struct listWidget{their LinearLayout: listWidget}
 struct GUI_button{me Button: GUI_button}
 struct GUI_XStack{their LinearLayout: GUI_XStack}
@@ -64,19 +64,11 @@ struct GUI_storyBoard: inherits=FragmentActivity{
 
 struct boolWidget{
     their GUI_Frame: box
-    their TextView:  dataLabel
+    their GUI_Label: dataLabel
     their GUI_Bool:  dataValue
 
-    me bool: getValue() <- <%{
-        Boolean retVal = false;
-        if (dataValue.isChecked()) {
-            retVal = true;
-        }
-        return retVal;
-    }%>
-    me void: setValue(me bool: value) <- <%{
-        dataValue.setChecked(value);
-    }%>
+    me bool: getValue()            <- {dataValue.getValue()}
+    void: setValue(me bool: value) <- {dataValue.setValue(value)}
     their GUI_Frame: makeBoolWidget(me string: name)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
@@ -89,7 +81,7 @@ struct boolWidget{
 }
 struct intWidget{
     their GUI_Frame: box
-    their TextView:  dataLabel
+    their GUI_Label: dataLabel
     their GUI_Text:  dataValue
     me double: initialValue  <- 0
     me double: minValue      <- -1000
@@ -121,7 +113,7 @@ struct intWidget{
 }
 struct stringWidget{
     their GUI_Frame: box
-    their TextView:  dataLabel
+    their GUI_Label: dataLabel
     their GUI_Text:  dataValue
 
     me string: getValue() <- <%{
@@ -144,7 +136,7 @@ struct stringWidget{
 }
 struct dateWidget{
     their GUI_Frame:         box
-    their TextView:          dataLabel
+    their GUI_Label:          dataLabel
     their GUI_Text:          dataValue
     me SimpleDateFormat:     dateFormatter
     their DatePickerDialog:  datePickerDialog
@@ -192,8 +184,8 @@ struct dateWidget{
 }
 struct enumWidget{
     their GUI_Frame: box
-    their TextView: dataLabel
-    their TextView: dataValue
+    their GUI_Label: dataLabel
+    their GUI_Label: dataValue
     me string[list]: options
 
     me void: getValue() <- <%{
@@ -227,6 +219,7 @@ struct scrollerWidget{
         return(scroller);
     }%>
 }
+/-///////////////////////////////  GUI STRUCTS
 struct GUI_ComboBox{
     me void: appendComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
     me void: appendStringComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
@@ -235,7 +228,14 @@ struct GUI_ComboBox{
     me void: setAndroidAdapter() <- <%!ArrayAdapter<%2> %1 = new ArrayAdapter<%2>(GLOBAL.static_Global, android.R.layout.simple_spinner_dropdown_item, %3); %0.setAdapter(%1)%>
 }
 struct GUI_SpinBox{
-    me double: spinGetValue() <- <%!%0.getSelectedItemPosition()%>
+    me double: getValue()               <- <%!%0.getSelectedItemPosition()%>
+}
+struct GUI_Bool{
+    void: setValue(me bool: value)      <- <%!setChecked(%1)%>
+    me bool: getValue()                 <- <%!if (%0.isChecked()){return true;} return false%>
+}
+struct GUI_Label{
+    void: setValue(me string: text)     <- <%!setText(%1)%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
@@ -316,26 +316,24 @@ struct ListManagerBox{
         return editorFrame;
     } %>
 
-/-//// Code Converters
-    /-me void: gtk_label_new() <- <%!addView(%1)%>
 }
 
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
-    /- Widgets
     their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     their rangeWidget: makeRangeWidget(me string: label)       			<- <%!%Gnew EditText(GLOBAL.static_Global)%>
     their GUI_Frame: makeXStack(me string: label)              			<- <%!makeAndroidHorizontalLayout(%1)%>
     their GUI_Frame: makeYStack(me string: label)        			<- <%!makeAndroidVerticalLayout(%1)%>
-    their GtkWidget: makeZStack(me string: label)               		<- <%!makeAndroidFragmentView(%1)%>
+    their GUI_Frame: makeZStack(me string: label)               		<- <%!makeAndroidFragmentView(%1)%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget)  	<- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
-    me void: addToZStack(me GUI_container: container, their GUI_item: widget) 	<- <%!%G // TODO code converter for GLOBAL.addToZStack%>
-    me void: setZStackActive(their GUI_item: widget, me string: S) 		<- <%!%G // TODO code converter for GLOBAL.setZStackActive%>
-    their GtkButton: makeButtonWidget(me string: label)    			<- <%!%Gnew Button(GLOBAL.static_Global)%>
-    their GtkWidget: makeTabbedWidget(me string: label)      			<- <%!makeAndroidFragmentView(%1)%>
-    me void: setTabLabelText() 							<- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
-    me GUI_Scalar: convertToGUIScalar()						<- <%!%G (float)(%1)%>
+    me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G // TODO code converter for GLOBAL.addToZStack%>
+    me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G // TODO code converter for GLOBAL.setZStackActive%>
+    their GUI_button: makeButtonWidget(me string: label)                         <- <%!%Gnew Button(GLOBAL.static_Global)%>
+    their GtkWidget: makeTabbedWidget(me string: label)                         <- <%!makeAndroidFragmentView(%1)%>
+    me void: setTabLabelText()                                                  <- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
+    me GUI_Scalar: convertToGUIScalar()                                         <- <%!%G (float)(%1)%>
+    their GUI_Bool: makeCheckBox()                                              <- <%!%G new CheckBox(GLOBAL.static_Global)%>
 
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
@@ -357,14 +355,6 @@ struct GLOBAL{
         box.addView(timePicker);
         return box;
     }%>
-
-    their GUI_Frame: makeBoolWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        CheckBox checkBox = new CheckBox(GLOBAL.static_Global);
-        box.addView(checkBox);
-        return box;
-    }%>
-    their GtkButton: makeButtonWidget(me string: label)    <- <%!%Gnew Button(GLOBAL.static_Global)%>
     their GUI_Frame: makeListWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         TextView textView = new TextView(GLOBAL.static_Global);
@@ -375,19 +365,15 @@ struct GLOBAL{
 
     their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
 
-    their GUI_Frame: makeLabelWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+    their GUI_Label: makeLabelWidget(me string: label)      <- <%{
         TextView textBox = new TextView(GLOBAL.static_Global);
         textBox.setText(label);
-        box.addView(textBox);
-        return box;
+        return textBox;
     }%>
-    their GUI_Frame: makeLabelWidget2(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+    their GUI_Label: makeLabelWidget2(me string: label)      <- <%{
         TextView textBox = new TextView(GLOBAL.static_Global);
         textBox.setText(label);
-        box.addView(textBox);
-        return box;
+        return textBox;
     }%>
     their GtkWidget: makeComboBox(me string: label)          <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     
