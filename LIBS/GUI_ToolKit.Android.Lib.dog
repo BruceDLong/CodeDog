@@ -16,7 +16,7 @@ interface={
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.LinearGradient,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.graphics.Shader, android.graphics.Shader.TileMode,
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
-        android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup,
+        android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup, android.widget.TimePicker, android.app.TimePickerDialog, android.app.TimePickerDialog.OnTimeSetListener,
         android.support.design.widget.FloatingActionButton, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
         android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable
     ]
@@ -69,10 +69,10 @@ struct boolWidget{
 
     me bool: getValue()            <- {dataValue.getValue()}
     void: setValue(me bool: value) <- {dataValue.setValue(value)}
-    their GUI_Frame: makeBoolWidget(me string: name)  <- <%{
+    their GUI_Frame: makeBoolWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(name);
+        dataLabel.setText(label);
         box.addView(dataLabel);
         dataValue = new CheckBox(GLOBAL.static_Global);
         box.addView(dataValue);
@@ -100,10 +100,10 @@ struct intWidget{
     me void: setValue(me int: value) <- <%{
         dataValue.setText(value, TextView.BufferType.EDITABLE);
     }%>
-    their GUI_Frame: makeIntWidget(me string: name)  <- <%{
+    their GUI_Frame: makeIntWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(name);
+        dataLabel.setText(label);
         box.addView(dataLabel);
         dataValue = new EditText(GLOBAL.static_Global);
         dataValue.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -122,10 +122,10 @@ struct stringWidget{
     me void: setValue(me string: value) <- <%{
         dataValue.setText(value, TextView.BufferType.EDITABLE);
     }%>
-    their GUI_Frame: makeStringWidget(me string: name) <- <%{
+    their GUI_Frame: makeStringWidget(me string: label) <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(name);
+        dataLabel.setText(label);
         box.addView(dataLabel);
         EditText dataValue = new EditText(GLOBAL.static_Global);
         dataValue.setWidth(50);
@@ -136,7 +136,7 @@ struct stringWidget{
 }
 struct dateWidget{
     their GUI_Frame:         box
-    their GUI_Label:          dataLabel
+    their GUI_Label:         dataLabel
     their GUI_Text:          dataValue
     me SimpleDateFormat:     dateFormatter
     their DatePickerDialog:  datePickerDialog
@@ -151,13 +151,13 @@ struct dateWidget{
     me void: setValue(me timeValue: value) <- <%{
         dataValue.setText(dateFormatter.format(value));
     }%>
-    their GUI_Frame: makeDateWidget(me string: name)  <- <%{
+    their GUI_Frame: makeDateWidget(me string: label)  <- <%{
         dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
         calendar      = Calendar.getInstance();
         box           = new LinearLayout(GLOBAL.static_Global);
         dataLabel     = new TextView(GLOBAL.static_Global);
         dataValue     = new EditText(GLOBAL.static_Global);
-        dataLabel.setText(name);
+        dataLabel.setText(label);
         dataValue.setInputType(InputType.TYPE_NULL);
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
@@ -200,7 +200,95 @@ struct enumWidget{
         return box;
     }%>
 }
+struct DateWidget{
+    their GUI_Text:          dataValue
+    me SimpleDateFormat:     dateFormatter
+    their Calendar:          calendar
+    their DatePickerDialog:  datePickerDialog
+    their OnDateSetListener: dateListener
 
+    me timeValue: getValue() <- <%{
+        String strVal = dataValue.getText().toString();
+        long retVal   =  Long.parseLong(strVal);
+        return retVal;
+    }%>
+    me void: setValue(me timeValue: value) <- <%{
+        dataValue.setText(dateFormatter.format(value));
+    }%>
+    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- <%{
+        dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
+        calendar      = Calendar.getInstance();
+        box           = new LinearLayout(GLOBAL.static_Global);
+        dataLabel     = new TextView(GLOBAL.static_Global);
+        dataValue     = new EditText(GLOBAL.static_Global);
+        dataLabel.setText(label);
+        dataValue.setInputType(InputType.TYPE_NULL);
+        dateListener = new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+                month = month + 1;
+                String date = month + "/" + day + "/" + year;
+                dataValue.setText(date);
+            }
+        };
+        dataValue.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int year  = calendar.get(Calendar.YEAR);
+                int month = calendar.get(Calendar.MONTH);
+                int day   = calendar.get(Calendar.DAY_OF_MONTH);
+                DatePickerDialog dialog = new DatePickerDialog(GLOBAL.static_Global,android.R.style.Theme_Holo_Light_Dialog_MinWidth,dateListener,year,month,day);
+                dialog.show();
+            }
+        });
+        box.addView(dataLabel);
+        box.addView(dataValue);
+        return box;
+    }%>
+}
+struct TimeWidget{
+    their GUI_Frame:         box
+    their GUI_Text:          dataValue
+    me timeOfDay:            data
+    their Calendar:          calendar
+    their TimePickerDialog:  timePickerDialog
+    their OnTimeSetListener: timeListener
+
+    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- <%{
+        calendar      = Calendar.getInstance();
+        box           = new LinearLayout(GLOBAL.static_Global);
+        dataLabel     = new TextView(GLOBAL.static_Global);
+        dataValue     = new EditText(GLOBAL.static_Global);
+        dataLabel.setText(label);
+        dataValue.setInputType(InputType.TYPE_NULL);
+        timeListener = new TimePickerDialog.OnTimeSetListener() {
+            @Override
+            public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                dataValue.setText(hourOfDay + ":" + minute);
+            }
+        };
+        dataValue.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int hour      = calendar.get(Calendar.HOUR_OF_DAY);
+                int minute    = calendar.get(Calendar.MINUTE);
+                TimePickerDialog dialog = new TimePickerDialog(GLOBAL.static_Global, android.R.style.Theme_Holo_Light_Dialog_MinWidth,timeListener,hour,minute, false);
+                dialog.show();
+            }
+        });
+        
+        box.addView(dataLabel);
+        box.addView(dataValue);
+        return box;
+    }%>
+    me timeOfDay: getValue() <- {
+        me timeOfDay: retVal
+        retVal.hour     <- hourBox.comboBoxGetActive()
+        retVal.minute   <- minuteBox.comboBoxGetActive()
+        return(retVal)
+    }
+    void: setValue() <- {}
+}
 struct scrollerWidget{
     their GUI_Frame: layoutArea <- (GLOBAL.static_Global)
     their NestedScrollView: scroller
