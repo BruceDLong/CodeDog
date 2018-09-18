@@ -83,14 +83,6 @@ struct intWidget{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GUI_Text:  dataValue
-    me double: initialValue  <- 0
-    me double: minValue      <- -1000
-    me double: maxValue      <- 1000
-    me double: stepIncrement <- 1
-    me double: pageIncrement <- 10
-    me double: pageSize      <- 10
-    me double: climbRate     <- 1
-    me int:    decimalPlaces <- 0
 
     me int: getValue() <- <%{
         String strVal = dataValue.getText().toString();
@@ -107,6 +99,45 @@ struct intWidget{
         box.addView(dataLabel);
         dataValue = new EditText(GLOBAL.static_Global);
         dataValue.setInputType(InputType.TYPE_CLASS_NUMBER);
+        box.addView(dataValue);
+        return box;
+    }%>
+}
+struct intRangeWidget{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their NumberPicker:  dataValue
+    me int: initialValue  <- 0
+    me int: minValue      <- -1000
+    me int: maxValue      <- 1000
+    me int: stepIncrement <- 1
+    me int: pageIncrement <- 10
+    me int: pageSize      <- 10
+    me int: climbRate     <- 1
+
+    me int: getValue() <- <%{
+        return 0;
+    }%>
+    me void: setValue(me int: value) <- <%{
+        
+    }%>
+    their GUI_Frame: makeIntRangeWidget(me string: label)  <- <%{
+        box = new LinearLayout(GLOBAL.static_Global);
+        dataLabel = new TextView(GLOBAL.static_Global);
+        dataLabel.setText(label);
+        box.addView(dataLabel);
+        dataValue = new NumberPicker(GLOBAL.static_Global);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(100, ViewGroup.LayoutParams.WRAP_CONTENT);
+        dataValue.setLayoutParams(layoutParams);
+        dataValue.setMinValue(minValue);
+        dataValue.setMaxValue(maxValue);
+        dataValue.setWrapSelectorWheel(true);
+        dataValue.setFormatter(new NumberPicker.Formatter() {
+            @Override
+            public String format(int index) {
+                return Integer.toString(index + minValue);
+            }
+        });
         box.addView(dataValue);
         return box;
     }%>
@@ -183,20 +214,29 @@ struct dateWidget{
     }%>
 }
 struct enumWidget{
-    their GUI_Frame: box
-    their GUI_Label: dataLabel
-    their GUI_Label: dataValue
-    me string[list]: options
+    their GUI_Frame:    box
+    their GUI_Label:    dataLabel
+    their GUI_ComboBox: dataValue
+    me string[list]:    options
 
-    me void: getValue() <- <%{
-        
+    me int: getValue() <- <%{
+        return 0;
     }%>
-    me void: setValue() <- <%{
+    me void: setValue(me int: val) <- <%{
         
     }%>
     their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
-        options = Options;
+        options   = Options;
+        dataLabel = new TextView(GLOBAL.static_Global);
+        dataLabel.setText(label);
+        dataValue = new Spinner(GLOBAL.static_Global);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, android.R.layout.simple_spinner_item, options);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        dataValue.setAdapter(adapter);
+        /-//////////////  BOX
         box = new LinearLayout(GLOBAL.static_Global);
+        box.addView(dataLabel);
+        box.addView(dataValue);
         return box;
     }%>
 }
@@ -409,11 +449,11 @@ struct ListManagerBox{
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
     their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
-    their rangeWidget: makeRangeWidget(me string: label)       			<- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_Frame: makeXStack(me string: label)              			<- <%!makeAndroidHorizontalLayout(%1)%>
-    their GUI_Frame: makeYStack(me string: label)        			<- <%!makeAndroidVerticalLayout(%1)%>
-    their GUI_Frame: makeZStack(me string: label)               		<- <%!makeAndroidFragmentView(%1)%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget)  	<- <%!%G%1.addView(%2)%>
+    their rangeWidget: makeRangeWidget(me string: label)                        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
+    their GUI_Frame: makeXStack(me string: label)                               <- <%!makeAndroidHorizontalLayout(%1)%>
+    their GUI_Frame: makeYStack(me string: label)                               <- <%!makeAndroidVerticalLayout(%1)%>
+    their GUI_Frame: makeZStack(me string: label)                               <- <%!makeAndroidFragmentView(%1)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget)   <- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G // TODO code converter for GLOBAL.addToZStack%>
     me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G // TODO code converter for GLOBAL.setZStackActive%>
@@ -838,22 +878,22 @@ struct GLOBAL: inherits=AppCompatActivity{
     }%>
 
     me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
-	double radians    = degrees*(Math.PI/180.);
-	deltaSize size    = getTextSize(cr, text, font);
-	double hypotenuse = size.width;
-	deltaSize tmpSize = new deltaSize(0,0);
+        double radians    = degrees*(Math.PI/180.);
+        deltaSize size    = getTextSize(cr, text, font);
+        double hypotenuse = size.width;
+        deltaSize tmpSize = new deltaSize(0,0);
 
 
-	if(justify == "right"){x=x-hypotenuse;}
-	else if(justify == "center"){x=x-hypotenuse/2;}
-	cr.GCanvas.save();
-	cr.GCanvas.rotate(45, (float)x, (float)y);
-	renderText (cr, text, font, x, y);
-	cr.GCanvas.restore();
-	//TODO: calculate height and width more accurately
-	tmpSize.width = size.width;
-	tmpSize.height = size.width;
-	return(tmpSize);
+        if(justify == "right"){x=x-hypotenuse;}
+        else if(justify == "center"){x=x-hypotenuse/2;}
+        cr.GCanvas.save();
+        cr.GCanvas.rotate(45, (float)x, (float)y);
+        renderText (cr, text, font, x, y);
+        cr.GCanvas.restore();
+        //TODO: calculate height and width more accurately
+        tmpSize.width = size.width;
+        tmpSize.height = size.width;
+        return(tmpSize);
     }%>
 
     me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
@@ -864,13 +904,13 @@ struct GLOBAL: inherits=AppCompatActivity{
     me void: restore(me GUI_ctxt: cr) <- <%!%G%1.GCanvas.restore()%>
 
     me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
-	Rect bounds = new Rect();
-	cr.paint.getTextBounds(text, 0, text.length(), bounds);
-	cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-	cr.paint.setTextSize(font.size);
-	deltaSize size = new deltaSize(0,0);
-	size.height = bounds.height();
-	size.width = bounds.width();
+        Rect bounds = new Rect();
+        cr.paint.getTextBounds(text, 0, text.length(), bounds);
+        cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
+        cr.paint.setTextSize(font.size);
+        deltaSize size = new deltaSize(0,0);
+        size.height = bounds.height();
+        size.width = bounds.width();
         return(size);
     } %>
 

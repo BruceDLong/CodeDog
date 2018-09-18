@@ -406,7 +406,7 @@ struct DateTimeWidget{
         return(box)
     }
     me timeValue: getValue() <- {
-        me timeValue: retVal
+        me timeValue: retVal <-  getCurrentTimeStamp()
         /-retVal <- dateWidget.getValue()
         /-retVal.time <- timeWidget.getValue()
         return(retVal)

@@ -92,6 +92,33 @@ struct intWidget{
         gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
         gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
         gtk_container_add(GTK_CONTAINER (box), dataLabel);
+	dataValue = gtk_entry_new();
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        return box;
+    }%>
+}
+struct intRangeWidget{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their GUI_Text:  dataValue
+    me double: initialValue  <- 0
+    me double: minValue      <- -1000
+    me double: maxValue      <- 1000
+    me double: stepIncrement <- 1
+    me double: pageIncrement <- 10
+    me double: pageSize      <- 10
+    me double: climbRate     <- 1
+    me int:    decimalPlaces <- 0
+
+    me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
+    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
+
+    their GUI_Frame: makeIntRangeWidget(me string: name)  <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(name.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
         GtkAdjustment *adjustment = gtk_adjustment_new (initialValue,minValue,maxValue,stepIncrement,pageIncrement,pageSize);
         dataValue = gtk_spin_button_new(adjustment, climbRate, decimalPlaces);
         gtk_container_add(GTK_CONTAINER (box), dataValue);
@@ -141,7 +168,7 @@ struct enumWidget{
     their GtkWidget: dataValue
     me string[list]: options
 
-    me string: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
+    me int: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
     me void: setValue(me int: val) <- {}
 
     their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
