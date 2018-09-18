@@ -40,10 +40,12 @@ struct GUI_YStack{their GtkWidget: GUI_YStack}
 struct GUI_ComboBox{their GtkWidget: GUI_ComboBox}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 struct GUI_SpinBox{their GtkWidget: GUI_SpinBox}
+struct GUI_Bool{their GtkWidget: GUI_Bool}
+struct GUI_Text{their GtkWidget: GUI_Text}
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
 struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
-struct GUI_Bool{their GtkWidget: GUI_Bool}
+
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
     their GtkWidget: GUI_storyBoard
@@ -52,12 +54,11 @@ struct GUI_storyBoard{
 
 struct boolWidget{
     their GUI_Frame: box
-    their GtkWidget: dataLabel
-    their GtkWidget: dataValue
+    their GUI_Label: dataLabel
+    their GUI_Bool:  dataValue
 
-    me string: getValue() <- <%!gtk_toggle_button_get_active((GtkToggleButton*)%0->dataValue)%>
-    me void: setValue(me int: val) <- <%!gtk_toggle_button_set_active ((GtkToggleButton*)%0->dataValue, %1)%>
-
+    me bool: getValue()            <- {dataValue.getValue()}
+    void: setValue(me bool: value) <- {dataValue.setValue(value)}
     their GUI_Frame: makeBoolWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
@@ -71,8 +72,8 @@ struct boolWidget{
 }
 struct intWidget{
     their GUI_Frame: box
-    their GtkWidget: dataLabel
-    their GtkWidget: dataValue
+    their GUI_Label: dataLabel
+    their GUI_Text:  dataValue
     me double: initialValue  <- 0
     me double: minValue      <- -1000
     me double: maxValue      <- 1000
@@ -91,6 +92,33 @@ struct intWidget{
         gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
         gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
         gtk_container_add(GTK_CONTAINER (box), dataLabel);
+	dataValue = gtk_entry_new();
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        return box;
+    }%>
+}
+struct intRangeWidget{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their GUI_Text:  dataValue
+    me double: initialValue  <- 0
+    me double: minValue      <- -1000
+    me double: maxValue      <- 1000
+    me double: stepIncrement <- 1
+    me double: pageIncrement <- 10
+    me double: pageSize      <- 10
+    me double: climbRate     <- 1
+    me int:    decimalPlaces <- 0
+
+    me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
+    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
+
+    their GUI_Frame: makeIntRangeWidget(me string: name)  <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(name.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
         GtkAdjustment *adjustment = gtk_adjustment_new (initialValue,minValue,maxValue,stepIncrement,pageIncrement,pageSize);
         dataValue = gtk_spin_button_new(adjustment, climbRate, decimalPlaces);
         gtk_container_add(GTK_CONTAINER (box), dataValue);
@@ -99,8 +127,8 @@ struct intWidget{
 }
 struct stringWidget{
     their GUI_Frame: box
-    their GtkWidget: dataLabel
-    their GtkWidget: dataValue
+    their GUI_Label: dataLabel
+    their GUI_Text:  dataValue
 
     me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0->dataValue)%>
     me void: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0->dataValue, %1.data())%>
@@ -117,8 +145,8 @@ struct stringWidget{
 }
 struct dateWidget{
     their GUI_Frame: box
-    their GtkWidget: dataLabel
-    their GtkWidget: dataValue
+    their GUI_Label: dataLabel
+    their GUI_Text:  dataValue
 
     me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->dataValue, %1)%>
@@ -136,11 +164,11 @@ struct dateWidget{
 }
 struct enumWidget{
     their GUI_Frame: box
-    their GtkWidget: dataLabel
+    their GUI_Label: dataLabel
     their GtkWidget: dataValue
     me string[list]: options
 
-    me string: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
+    me int: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
     me void: setValue(me int: val) <- {}
 
     their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
@@ -160,7 +188,78 @@ struct enumWidget{
         return box;
     }%>
 }
+struct DateWidget{
+    their intWidget:    yearBox
+    their GUI_ComboBox: monthBox
+    their GUI_ComboBox: dayBox
 
+    me timeValue: getValue() <- {
+        me timeValue: retVal
+        /-retVal.month <- monthBox.comboBoxGetActive()
+        /-retVal.day   <- dayBox.comboBoxGetActive()
+        return(retVal)
+    }
+    void: setValue(me timeValue: setDate) <- {}
+    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
+        /-/// YEAR ///////////////////////////////////
+        Allocate(yearBox)
+        yearBox.box <- yearBox.makeIntWidget("Year")
+        /-/// MONTH //////////////////////////////////
+        monthBox <- makeComboBox()
+        monthBox.setAndroidAdapter(monthArrayAdapter, String, months)
+        me int: count <-0
+        withEach monthName in months{
+            monthBox.appendStringComboBox(toString(count),monthName, monthArrayAdapter)
+            count <- count +1
+        }
+        /-/// DAY ////////////////////////////////////
+        dayBox <- makeComboBox()
+        dayBox.setAndroidAdapter(dayArrayAdapter, Integer, days)
+        withEach i in RANGE(1..31){
+            dayBox.appendComboBox(i, i, dayArrayAdapter)
+        }
+        /-/// RETURN BOX //////////////////////////////
+        box <- makeXStack("")
+        addToContainer(box, yearBox.box)
+        addToContainer(box, monthBox)
+        addToContainer(box, dayBox)
+        return(box)
+    }
+}
+struct TimeWidget{
+    their GUI_ComboBox: hourBox
+    their GUI_ComboBox: minuteBox
+    me timeOfDay:       data
+    me int[list]:       hours
+    me int[list]:       minutes 
+  
+    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
+        /-/// HOUR //////////////////////////////////
+        hourBox <- makeComboBox()
+        hourBox.setAndroidAdapter(hourArrayAdapter, Integer, hours)
+        withEach i in RANGE(1..13){
+            hourBox.appendComboBox(i, i, hourArrayAdapter)
+        }
+        /-/// MINUTE //////////////////////////////////
+        minuteBox <- makeComboBox()
+        minuteBox.setAndroidAdapter(minuteArrayAdapter, Integer, minutes)
+        withEach i in RANGE(1..25){
+            minuteBox.appendComboBox(i,i, minuteArrayAdapter)
+        }
+        /-/// RETURN BOX //////////////////////////////
+        box <- makeXStack("")
+        addToContainer(box, hourBox)
+        addToContainer(box, minuteBox)
+        return(box)
+    }
+    me timeOfDay: getValue() <- {
+        me timeOfDay: retVal
+        retVal.hour     <- hourBox.comboBoxGetActive()
+        retVal.minute   <- minuteBox.comboBoxGetActive()
+        return(retVal)
+    }
+    void: setValue() <- {}
+}
 struct scrollerWidget{
     their GUI_Frame: layoutArea
     their GtkWidget: scroller
@@ -173,6 +272,7 @@ struct scrollerWidget{
         return(scroller);
     }%>
 }
+/-///////////////////////////////  GUI STRUCTS
 struct GUI_ComboBox{
     me void: appendComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)std::to_string(%1).data(),(gchar*)std::to_string(%2).data())%>
     me void: appendStringComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)%1.data(),(gchar*)%2.data())%>
@@ -180,7 +280,14 @@ struct GUI_ComboBox{
     me void: setAndroidAdapter() <- <%!%G %>
 }
 struct GUI_SpinBox{
-    me double: spinGetValue() <- <%!gtk_spin_button_get_value((GtkSpinButton *)%0)%>
+    me double: getValue()               <- <%!gtk_spin_button_get_value((GtkSpinButton *)%0)%>
+}
+struct GUI_Bool{
+    me string: getValue()               <- <%!gtk_toggle_button_get_active((GtkToggleButton*)%0)%>
+    me void: setValue(me int: value)    <- <%!gtk_toggle_button_set_active ((GtkToggleButton*)%0, %1)%>
+}
+struct GUI_Label{
+    void: setValue(me string: text)     <- <%!gtk_label_set_text (GTK_LABEL(%0), %1.data())%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
@@ -322,9 +429,8 @@ struct ListManagerBox{
 
 }
 
-/-///////////////////////////////  HIGHER LEVEL WIDGETS
+/-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
-    /- Widgets
     their GtkWidget: makeBoolWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeFloatWidget(me string: label)       	<- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Ggtk_spin_button_new(gtk_adjustment_new(%1,%2,%3,1,10,10),1,%4)%>
@@ -350,6 +456,8 @@ struct GLOBAL{
     their GtkWidget: getListRowSelected(their listWidget: listWidgetView) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
     me void: setTabLabelText() <- <%!%Ggtk_notebook_set_tab_label_text(GTK_NOTEBOOK(%1), %2, %3)%>
     me GUI_Scalar: convertToGUIScalar()						    <- <%!%G%1%>
+    their GUI_Bool: makeCheckBox()                               <- <%!%Ggtk_check_button_new()%>
+
     their GtkWidget: makeListEditorWidget(their GtkWidget: listWidgetView) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_box_pack_start(GTK_BOX(box), listWidgetView, true, true, 0);

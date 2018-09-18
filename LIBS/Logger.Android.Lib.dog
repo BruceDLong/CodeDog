@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [Logger_implementation]
     libFiles = []
-    headers  = []
+    headers  = [android.util.Log]
 }
 
 LibDescription ={
@@ -15,31 +15,21 @@ LibDescription ={
 }
 
 struct logger{
-    me void: LogEntry(me string: loggerName, me string: MSG)    <- {
-       
-    }
-    me void: Show()                 <- <%{isVisible = true;}%>
-    me void: Hide()                 <- <%{isVisible = false;}%>
-    me void: Route(me string: routeSpec)    <- <%{}%>
+    me void: LogEntry(me string: loggerName, me string: MSG)    <- <%{Log.w(loggerName,MSG);}%>
+    me void: Show()                                             <- <%{isVisible = true;}%>
+    me void: Hide()                                             <- <%{isVisible = false;}%>
+    me void: Route(me string: routeSpec)                        <- <%{System.out.println(routeSpec+"\n");}%>
 }
 
 struct logManager{
-    me void: writeToLog (me string: txt) <- <%{
-
-    }%>
-
-    me void: openLogFile() <- <%{
-
-    }%>
-
-
+    me void: openLogFile() <- <%{}%>
 }
 
 struct GLOBAL{
-    me void: log(me string: MSG)            <- <%!logMgr.Mesg.LogEntry("MESSAGE: ", %1)%>
-    me void: logInfo(me string: MSG)        <- <%!logMgr.Info.LogEntry("INFO: ", %1)%>
-    me void: logCritical(me string: MSG)    <- <%!logMgr.Critical.LogEntry("CRITICAL ERROR: ", %1)%>
-    me void: logFatalError(me string: MSG)  <- <%!logMgr.FatalError.LogEntry("FATAL ERROR: ", %1); exit(1);%>
-    me void: logWarn(me string: MSG)        <- <%!logMgr.Warning.LogEntry("WARNING: ", %1)%>
-    me void: logDbg(me string: MSG)         <- <%!logMgr.Debug.LogEntry("DEBUG: ", %1)%>
+    me void: log(me string: MSG)            <- <%!%GLog.v("GLOBAL",%1)%>
+    me void: logInfo(me string: MSG)        <- <%!%GLog.i("GLOBAL",%1)%>
+    me void: logCritical(me string: MSG)    <- <%!%GLog.e("GLOBAL",%1)%>
+    me void: logFatalError(me string: MSG)  <- <%!%GLog.e("GLOBAL",%1); System.exit(1);%>
+    me void: logWarn(me string: MSG)        <- <%!%GLog.w("GLOBAL",%1)%>
+    me void: logDbg(me string: MSG)         <- <%!%GLog.d("GLOBAL",%1)%>
 }

@@ -16,7 +16,7 @@ interface={
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.LinearGradient,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.graphics.Shader, android.graphics.Shader.TileMode,
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
-        android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup,
+        android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup, android.widget.TimePicker, android.app.TimePickerDialog, android.app.TimePickerDialog.OnTimeSetListener,
         android.support.design.widget.FloatingActionButton, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
         android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable
     ]
@@ -45,7 +45,7 @@ struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_Scalar{me float: GUI_Scalar}
-struct GUI_Label{their LinearLayout: GUI_Label}
+struct GUI_Label{their TextView: GUI_Label}
 struct listWidget{their LinearLayout: listWidget}
 struct GUI_button{me Button: GUI_button}
 struct GUI_XStack{their LinearLayout: GUI_XStack}
@@ -64,23 +64,15 @@ struct GUI_storyBoard: inherits=FragmentActivity{
 
 struct boolWidget{
     their GUI_Frame: box
-    their TextView:  dataLabel
+    their GUI_Label: dataLabel
     their GUI_Bool:  dataValue
 
-    me bool: getValue() <- <%{
-        Boolean retVal = false;
-        if (dataValue.isChecked()) {
-            retVal = true;
-        }
-        return retVal;
-    }%>
-    me void: setValue(me bool: value) <- <%{
-        dataValue.setChecked(value);
-    }%>
-    their GUI_Frame: makeBoolWidget(me string: name)  <- <%{
+    me bool: getValue()            <- {dataValue.getValue()}
+    void: setValue(me bool: value) <- {dataValue.setValue(value)}
+    their GUI_Frame: makeBoolWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(name);
+        dataLabel.setText(label);
         box.addView(dataLabel);
         dataValue = new CheckBox(GLOBAL.static_Global);
         box.addView(dataValue);
@@ -89,16 +81,8 @@ struct boolWidget{
 }
 struct intWidget{
     their GUI_Frame: box
-    their TextView:  dataLabel
+    their GUI_Label: dataLabel
     their GUI_Text:  dataValue
-    me double: initialValue  <- 0
-    me double: minValue      <- -1000
-    me double: maxValue      <- 1000
-    me double: stepIncrement <- 1
-    me double: pageIncrement <- 10
-    me double: pageSize      <- 10
-    me double: climbRate     <- 1
-    me int:    decimalPlaces <- 0
 
     me int: getValue() <- <%{
         String strVal = dataValue.getText().toString();
@@ -108,10 +92,10 @@ struct intWidget{
     me void: setValue(me int: value) <- <%{
         dataValue.setText(value, TextView.BufferType.EDITABLE);
     }%>
-    their GUI_Frame: makeIntWidget(me string: name)  <- <%{
+    their GUI_Frame: makeIntWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(name);
+        dataLabel.setText(label);
         box.addView(dataLabel);
         dataValue = new EditText(GLOBAL.static_Global);
         dataValue.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -119,9 +103,48 @@ struct intWidget{
         return box;
     }%>
 }
+struct intRangeWidget{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their NumberPicker:  dataValue
+    me int: initialValue  <- 0
+    me int: minValue      <- -1000
+    me int: maxValue      <- 1000
+    me int: stepIncrement <- 1
+    me int: pageIncrement <- 10
+    me int: pageSize      <- 10
+    me int: climbRate     <- 1
+
+    me int: getValue() <- <%{
+        return 0;
+    }%>
+    me void: setValue(me int: value) <- <%{
+        
+    }%>
+    their GUI_Frame: makeIntRangeWidget(me string: label)  <- <%{
+        box = new LinearLayout(GLOBAL.static_Global);
+        dataLabel = new TextView(GLOBAL.static_Global);
+        dataLabel.setText(label);
+        box.addView(dataLabel);
+        dataValue = new NumberPicker(GLOBAL.static_Global);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(100, ViewGroup.LayoutParams.WRAP_CONTENT);
+        dataValue.setLayoutParams(layoutParams);
+        dataValue.setMinValue(minValue);
+        dataValue.setMaxValue(maxValue);
+        dataValue.setWrapSelectorWheel(true);
+        dataValue.setFormatter(new NumberPicker.Formatter() {
+            @Override
+            public String format(int index) {
+                return Integer.toString(index + minValue);
+            }
+        });
+        box.addView(dataValue);
+        return box;
+    }%>
+}
 struct stringWidget{
     their GUI_Frame: box
-    their TextView:  dataLabel
+    their GUI_Label: dataLabel
     their GUI_Text:  dataValue
 
     me string: getValue() <- <%{
@@ -130,10 +153,10 @@ struct stringWidget{
     me void: setValue(me string: value) <- <%{
         dataValue.setText(value, TextView.BufferType.EDITABLE);
     }%>
-    their GUI_Frame: makeStringWidget(me string: name) <- <%{
+    their GUI_Frame: makeStringWidget(me string: label) <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(name);
+        dataLabel.setText(label);
         box.addView(dataLabel);
         EditText dataValue = new EditText(GLOBAL.static_Global);
         dataValue.setWidth(50);
@@ -144,7 +167,7 @@ struct stringWidget{
 }
 struct dateWidget{
     their GUI_Frame:         box
-    their TextView:          dataLabel
+    their GUI_Label:         dataLabel
     their GUI_Text:          dataValue
     me SimpleDateFormat:     dateFormatter
     their DatePickerDialog:  datePickerDialog
@@ -159,13 +182,13 @@ struct dateWidget{
     me void: setValue(me timeValue: value) <- <%{
         dataValue.setText(dateFormatter.format(value));
     }%>
-    their GUI_Frame: makeDateWidget(me string: name)  <- <%{
+    their GUI_Frame: makeDateWidget(me string: label)  <- <%{
         dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
         calendar      = Calendar.getInstance();
         box           = new LinearLayout(GLOBAL.static_Global);
         dataLabel     = new TextView(GLOBAL.static_Global);
         dataValue     = new EditText(GLOBAL.static_Global);
-        dataLabel.setText(name);
+        dataLabel.setText(label);
         dataValue.setInputType(InputType.TYPE_NULL);
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
@@ -191,24 +214,121 @@ struct dateWidget{
     }%>
 }
 struct enumWidget{
-    their GUI_Frame: box
-    their TextView: dataLabel
-    their TextView: dataValue
-    me string[list]: options
+    their GUI_Frame:    box
+    their GUI_Label:    dataLabel
+    their GUI_ComboBox: dataValue
+    me string[list]:    options
 
-    me void: getValue() <- <%{
-        
+    me int: getValue() <- <%{
+        return 0;
     }%>
-    me void: setValue() <- <%{
+    me void: setValue(me int: val) <- <%{
         
     }%>
     their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
-        options = Options;
+        options   = Options;
+        dataLabel = new TextView(GLOBAL.static_Global);
+        dataLabel.setText(label);
+        dataValue = new Spinner(GLOBAL.static_Global);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, android.R.layout.simple_spinner_item, options);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        dataValue.setAdapter(adapter);
+        /-//////////////  BOX
         box = new LinearLayout(GLOBAL.static_Global);
+        box.addView(dataLabel);
+        box.addView(dataValue);
         return box;
     }%>
 }
+struct DateWidget{
+    their GUI_Text:          dataValue
+    me SimpleDateFormat:     dateFormatter
+    their Calendar:          calendar
+    their DatePickerDialog:  datePickerDialog
+    their OnDateSetListener: dateListener
 
+    me timeValue: getValue() <- <%{
+        String strVal = dataValue.getText().toString();
+        long retVal   =  Long.parseLong(strVal);
+        return retVal;
+    }%>
+    me void: setValue(me timeValue: value) <- <%{
+        dataValue.setText(dateFormatter.format(value));
+    }%>
+    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- <%{
+        dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
+        calendar      = Calendar.getInstance();
+        box           = new LinearLayout(GLOBAL.static_Global);
+        dataLabel     = new TextView(GLOBAL.static_Global);
+        dataValue     = new EditText(GLOBAL.static_Global);
+        dataLabel.setText(label);
+        dataValue.setInputType(InputType.TYPE_NULL);
+        dateListener = new DatePickerDialog.OnDateSetListener() {
+            @Override
+            public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+                month = month + 1;
+                String date = month + "/" + day + "/" + year;
+                dataValue.setText(date);
+            }
+        };
+        dataValue.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int year  = calendar.get(Calendar.YEAR);
+                int month = calendar.get(Calendar.MONTH);
+                int day   = calendar.get(Calendar.DAY_OF_MONTH);
+                DatePickerDialog dialog = new DatePickerDialog(GLOBAL.static_Global,android.R.style.Theme_Holo_Light_Dialog_MinWidth,dateListener,year,month,day);
+                dialog.show();
+            }
+        });
+        box.addView(dataLabel);
+        box.addView(dataValue);
+        return box;
+    }%>
+}
+struct TimeWidget{
+    their GUI_Frame:         box
+    their GUI_Text:          dataValue
+    me timeOfDay:            data
+    their Calendar:          calendar
+    their TimePickerDialog:  timePickerDialog
+    their OnTimeSetListener: timeListener
+
+    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- <%{
+        calendar      = Calendar.getInstance();
+        box           = new LinearLayout(GLOBAL.static_Global);
+        dataLabel     = new TextView(GLOBAL.static_Global);
+        dataValue     = new EditText(GLOBAL.static_Global);
+        dataLabel.setText(label);
+        dataValue.setInputType(InputType.TYPE_NULL);
+        timeListener = new TimePickerDialog.OnTimeSetListener() {
+            @Override
+            public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                dataValue.setText(hourOfDay + ":" + minute);
+            }
+        };
+        dataValue.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                int hour      = calendar.get(Calendar.HOUR_OF_DAY);
+                int minute    = calendar.get(Calendar.MINUTE);
+                TimePickerDialog dialog = new TimePickerDialog(GLOBAL.static_Global, android.R.style.Theme_Holo_Light_Dialog_MinWidth,timeListener,hour,minute, false);
+                dialog.show();
+            }
+        });
+        
+        box.addView(dataLabel);
+        box.addView(dataValue);
+        return box;
+    }%>
+    me timeOfDay: getValue() <- {
+        me timeOfDay: retVal
+        retVal.hour     <- hourBox.comboBoxGetActive()
+        retVal.minute   <- minuteBox.comboBoxGetActive()
+        return(retVal)
+    }
+    void: setValue() <- {}
+}
 struct scrollerWidget{
     their GUI_Frame: layoutArea <- (GLOBAL.static_Global)
     their NestedScrollView: scroller
@@ -227,6 +347,7 @@ struct scrollerWidget{
         return(scroller);
     }%>
 }
+/-///////////////////////////////  GUI STRUCTS
 struct GUI_ComboBox{
     me void: appendComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
     me void: appendStringComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
@@ -235,7 +356,14 @@ struct GUI_ComboBox{
     me void: setAndroidAdapter() <- <%!ArrayAdapter<%2> %1 = new ArrayAdapter<%2>(GLOBAL.static_Global, android.R.layout.simple_spinner_dropdown_item, %3); %0.setAdapter(%1)%>
 }
 struct GUI_SpinBox{
-    me double: spinGetValue() <- <%!%0.getSelectedItemPosition()%>
+    me double: getValue()               <- <%!%0.getSelectedItemPosition()%>
+}
+struct GUI_Bool{
+    void: setValue(me bool: value)      <- <%!setChecked(%1)%>
+    me bool: getValue()                 <- <%!if (%0.isChecked()){return true;} return false%>
+}
+struct GUI_Label{
+    void: setValue(me string: text)     <- <%!setText(%1)%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
@@ -316,26 +444,24 @@ struct ListManagerBox{
         return editorFrame;
     } %>
 
-/-//// Code Converters
-    /-me void: gtk_label_new() <- <%!addView(%1)%>
 }
 
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
-    /- Widgets
     their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
-    their rangeWidget: makeRangeWidget(me string: label)       			<- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_Frame: makeXStack(me string: label)              			<- <%!makeAndroidHorizontalLayout(%1)%>
-    their GUI_Frame: makeYStack(me string: label)        			<- <%!makeAndroidVerticalLayout(%1)%>
-    their GtkWidget: makeZStack(me string: label)               		<- <%!makeAndroidFragmentView(%1)%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget)  	<- <%!%G%1.addView(%2)%>
+    their rangeWidget: makeRangeWidget(me string: label)                        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
+    their GUI_Frame: makeXStack(me string: label)                               <- <%!makeAndroidHorizontalLayout(%1)%>
+    their GUI_Frame: makeYStack(me string: label)                               <- <%!makeAndroidVerticalLayout(%1)%>
+    their GUI_Frame: makeZStack(me string: label)                               <- <%!makeAndroidFragmentView(%1)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget)   <- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
-    me void: addToZStack(me GUI_container: container, their GUI_item: widget) 	<- <%!%G // TODO code converter for GLOBAL.addToZStack%>
-    me void: setZStackActive(their GUI_item: widget, me string: S) 		<- <%!%G // TODO code converter for GLOBAL.setZStackActive%>
-    their GtkButton: makeButtonWidget(me string: label)    			<- <%!%Gnew Button(GLOBAL.static_Global)%>
-    their GtkWidget: makeTabbedWidget(me string: label)      			<- <%!makeAndroidFragmentView(%1)%>
-    me void: setTabLabelText() 							<- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
-    me GUI_Scalar: convertToGUIScalar()						<- <%!%G (float)(%1)%>
+    me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G // TODO code converter for GLOBAL.addToZStack%>
+    me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G // TODO code converter for GLOBAL.setZStackActive%>
+    their GUI_button: makeButtonWidget(me string: label)                         <- <%!%Gnew Button(GLOBAL.static_Global)%>
+    their GtkWidget: makeTabbedWidget(me string: label)                         <- <%!makeAndroidFragmentView(%1)%>
+    me void: setTabLabelText()                                                  <- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
+    me GUI_Scalar: convertToGUIScalar()                                         <- <%!%G (float)(%1)%>
+    their GUI_Bool: makeCheckBox()                                              <- <%!%G new CheckBox(GLOBAL.static_Global)%>
 
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
@@ -357,14 +483,6 @@ struct GLOBAL{
         box.addView(timePicker);
         return box;
     }%>
-
-    their GUI_Frame: makeBoolWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        CheckBox checkBox = new CheckBox(GLOBAL.static_Global);
-        box.addView(checkBox);
-        return box;
-    }%>
-    their GtkButton: makeButtonWidget(me string: label)    <- <%!%Gnew Button(GLOBAL.static_Global)%>
     their GUI_Frame: makeListWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         TextView textView = new TextView(GLOBAL.static_Global);
@@ -375,19 +493,15 @@ struct GLOBAL{
 
     their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
 
-    their GUI_Frame: makeLabelWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+    their GUI_Label: makeLabelWidget(me string: label)      <- <%{
         TextView textBox = new TextView(GLOBAL.static_Global);
         textBox.setText(label);
-        box.addView(textBox);
-        return box;
+        return textBox;
     }%>
-    their GUI_Frame: makeLabelWidget2(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+    their GUI_Label: makeLabelWidget2(me string: label)      <- <%{
         TextView textBox = new TextView(GLOBAL.static_Global);
         textBox.setText(label);
-        box.addView(textBox);
-        return box;
+        return textBox;
     }%>
     their GtkWidget: makeComboBox(me string: label)          <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     
@@ -764,22 +878,22 @@ struct GLOBAL: inherits=AppCompatActivity{
     }%>
 
     me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
-	double radians    = degrees*(Math.PI/180.);
-	deltaSize size    = getTextSize(cr, text, font);
-	double hypotenuse = size.width;
-	deltaSize tmpSize = new deltaSize(0,0);
+        double radians    = degrees*(Math.PI/180.);
+        deltaSize size    = getTextSize(cr, text, font);
+        double hypotenuse = size.width;
+        deltaSize tmpSize = new deltaSize(0,0);
 
 
-	if(justify == "right"){x=x-hypotenuse;}
-	else if(justify == "center"){x=x-hypotenuse/2;}
-	cr.GCanvas.save();
-	cr.GCanvas.rotate(45, (float)x, (float)y);
-	renderText (cr, text, font, x, y);
-	cr.GCanvas.restore();
-	//TODO: calculate height and width more accurately
-	tmpSize.width = size.width;
-	tmpSize.height = size.width;
-	return(tmpSize);
+        if(justify == "right"){x=x-hypotenuse;}
+        else if(justify == "center"){x=x-hypotenuse/2;}
+        cr.GCanvas.save();
+        cr.GCanvas.rotate(45, (float)x, (float)y);
+        renderText (cr, text, font, x, y);
+        cr.GCanvas.restore();
+        //TODO: calculate height and width more accurately
+        tmpSize.width = size.width;
+        tmpSize.height = size.width;
+        return(tmpSize);
     }%>
 
     me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
@@ -790,13 +904,13 @@ struct GLOBAL: inherits=AppCompatActivity{
     me void: restore(me GUI_ctxt: cr) <- <%!%G%1.GCanvas.restore()%>
 
     me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
-	Rect bounds = new Rect();
-	cr.paint.getTextBounds(text, 0, text.length(), bounds);
-	cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-	cr.paint.setTextSize(font.size);
-	deltaSize size = new deltaSize(0,0);
-	size.height = bounds.height();
-	size.width = bounds.width();
+        Rect bounds = new Rect();
+        cr.paint.getTextBounds(text, 0, text.length(), bounds);
+        cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
+        cr.paint.setTextSize(font.size);
+        deltaSize size = new deltaSize(0,0);
+        size.height = bounds.height();
+        size.width = bounds.width();
         return(size);
     } %>
 

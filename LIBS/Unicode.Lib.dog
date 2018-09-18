@@ -15,17 +15,13 @@ struct GLOBAL {
     me UnicodeMgr: unicodeMgr
 }
 
-struct UnicodeStr {me UnicodeString: UnicodeStr}
 struct DateFormat {me SimpleDateFormat: DateFormat}
-struct sysLocale {me Locale: sysLocale}
-struct Udate {me UDate: Udate}
-struct UniErrorCode {me UErrorCode: UniErrorCode}
 struct Normalizer {their Normalizer2: Normalizer}
 struct USpoofChecker {me USpoofChecker: USpoofChecker}
 
 struct UnicodeMgr {
-    me UnicodeString: chooseFormatPattern(me double: graphInterval) <- {
-	me UnicodeString: dateFormat
+    me UnicodeStr: chooseFormatPattern(me double: graphInterval) <- {
+	me UnicodeStr: dateFormat
 	me double: level1 <- 1000.0*60*60
 	me double: level2 <- 1000.0*60*60*24*7
 	

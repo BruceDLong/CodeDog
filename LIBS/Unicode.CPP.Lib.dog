@@ -37,6 +37,12 @@ static const char trailingBytesForUTF8[256] = {
 UErrorCode uErr=U_ZERO_ERROR;
 const icu::Normalizer2 *UNormalizer=Normalizer2::getNFKCCasefoldInstance(uErr);
 `
+
+struct UnicodeStr {me UnicodeString: UnicodeStr}
+struct sysLocale {me Locale: sysLocale}
+struct Udate {me UDate: Udate}
+struct UniErrorCode {me UErrorCode: UniErrorCode}
+
 struct GLOBAL{
     me Udate: exampleUDate <- 1532000000000
 
@@ -57,8 +63,9 @@ struct GLOBAL{
 }
 
 struct UnicodeMgr {
-    me string: dateToIntlString(me UDate: date, me UDate: interval, me Locale: loc, me UErrorCode: success) <- <%{
-        UnicodeString dateUniStr, pattern;
+    me string: dateToIntlString(me UDate: date, me UDate: interval, me Locale: loc) <- <%{
+        UErrorCode success = U_ZERO_ERROR;
+	UnicodeString dateUniStr, pattern;
         string uniLabel;
 
         pattern = chooseFormatPattern(interval);
@@ -68,8 +75,9 @@ struct UnicodeMgr {
         return uniLabel;
     }%>
 
-    me string: getHour(me UDate: date, me Locale: loc, me UErrorCode: success) <- <%{
-        UnicodeString pattern = "k";   /- k: hour in day (1~24)
+    me string: getHour(me UDate: date, me Locale: loc) <- <%{
+        UErrorCode success = U_ZERO_ERROR;
+	UnicodeString pattern = "k";   /- k: hour in day (1~24)
         UnicodeString uniStrHr;
         string hour;
 

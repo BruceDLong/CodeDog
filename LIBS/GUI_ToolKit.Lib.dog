@@ -139,7 +139,7 @@ struct MatterTermWidget{
 	Allocate(retVal)
 	retVal.matterTypes <- data.matterTypes
 	retVal.matterIdx   <- matterBox.comboBoxGetActive()
-	retVal.term	   <- termBox.spinGetValue()
+	retVal.term	   <- termBox.getValue()
 	retVal.units	   <- data.units
 	return(retVal)
     }
@@ -179,7 +179,6 @@ struct Styler{
 }
 
 struct GLOBAL{
-    me boolWidget:      makeBoolWidget(me string: label)
     me floatWidget:     makeFloatWidget(me string: label)
     me numRangeWidget:  makeNumRangeWidget(me string: label)
     me rangeWidget:     makeRangeWidget(me string: label)
@@ -351,55 +350,22 @@ struct ListWidgetManager{
 /-//////////////////////////////////// MISC WIDGETS
 struct DateWidget{
     their GUI_Frame:    box
-    their intWidget:    yearBox
-    their GUI_ComboBox: monthBox
-    their GUI_ComboBox: dayBox
-    me DateValue:       data
+    their GUI_Label:    dataLabel
+    me timeValue:       data
     me string[list]:    months <- ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
     me int[list]:       days 
 
     their GUI_Frame: initCrnt(me string: label) <- {
-	me timeValue: crntTime <- getCurrentTimeStamp()
-	box <- initialize(label, crntTime)
-	return(box)
-    }
-
-    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
-        /-/// YEAR ///////////////////////////////////
-        Allocate(yearBox)
-        yearBox.box <- yearBox.makeIntWidget("Year")
-        /-/// MONTH //////////////////////////////////
-        monthBox <- makeComboBox()
-	monthBox.setAndroidAdapter(monthArrayAdapter, String, months)
-        me int: count <-0
-        withEach monthName in months{
-            monthBox.appendStringComboBox(toString(count),monthName, monthArrayAdapter)
-            count <- count +1
-        }
-	/-/// DAY ////////////////////////////////////
-        dayBox <- makeComboBox()
-	dayBox.setAndroidAdapter(dayArrayAdapter, Integer, days)
-        withEach i in RANGE(1..31){
-            dayBox.appendComboBox(i, i, dayArrayAdapter)
-        }
-        /-/// RETURN BOX //////////////////////////////
-        box <- makeXStack("")
-        addToContainer(box, yearBox.box)
-        addToContainer(box, monthBox)
-        addToContainer(box, dayBox)
+        me timeValue: crntTime <- getCurrentTimeStamp()
+        box <- initialize(label, crntTime)
         return(box)
     }
-    me DateValue: getValue() <- {
-        me DateValue: retVal
-        retVal.month <- monthBox.comboBoxGetActive()
-        retVal.day   <- dayBox.comboBoxGetActive()
-        return(retVal)
-    }
-    void: setValue(me DateValue: setDate) <- {}
+
 }
 
 struct TimeWidget{
     their GUI_Frame:    box
+    their GUI_Label:    dataLabel
     their GUI_ComboBox: hourBox
     their GUI_ComboBox: minuteBox
     me timeOfDay:       data
@@ -408,42 +374,16 @@ struct TimeWidget{
   
     their GUI_Frame: initCrnt(me string: label) <- {
         me timeValue: crntTime <- getCurrentTimeStamp()
-        box <- initialize(crntTime)
+        box <- initialize(label, crntTime)
         return(box)
     }
-    their GUI_Frame: initialize(me timeValue: defaultTime) <- {
-        /-/// HOUR //////////////////////////////////
-	hourBox <- makeComboBox()
-	hourBox.setAndroidAdapter(hourArrayAdapter, Integer, hours)
-        withEach i in RANGE(1..13){
-            hourBox.appendComboBox(i, i, hourArrayAdapter)
-        }
-        /-/// MINUTE //////////////////////////////////
-        minuteBox <- makeComboBox()
-	minuteBox.setAndroidAdapter(minuteArrayAdapter, Integer, minutes)
-        withEach i in RANGE(1..25){
-            minuteBox.appendComboBox(i,i, minuteArrayAdapter)
-        }
-        /-/// RETURN BOX //////////////////////////////
-        box <- makeXStack("")
-        addToContainer(box, hourBox)
-        addToContainer(box, minuteBox)
-        return(box)
-    }
-    me timeOfDay: getValue() <- {
-        me timeOfDay: retVal
-        retVal.hour     <- hourBox.comboBoxGetActive()
-        retVal.minute   <- minuteBox.comboBoxGetActive()
-        return(retVal)
-    }
-    void: setValue() <- {}
 }
 
 struct DateTimeWidget{
     their GUI_Frame:   box
     their DateWidget: dateWidget
     their TimeWidget: timeWidget
-    me DateTime:      data
+    me timeValue:      data
 
     their GUI_Frame: initCrnt(me string: label) <- {
         me timeValue: crntTime <- getCurrentTimeStamp()
@@ -465,11 +405,35 @@ struct DateTimeWidget{
         addToContainer(box, timeBox)
         return(box)
     }
-    me DateTime: getValue() <- {
-        me DateTime: retVal
-        retVal.date <- dateWidget.getValue()
-        retVal.time <- timeWidget.getValue()
+    me timeValue: getValue() <- {
+        me timeValue: retVal <-  getCurrentTimeStamp()
+        /-retVal <- dateWidget.getValue()
+        /-retVal.time <- timeWidget.getValue()
         return(retVal)
     }
     void: setValue() <- {}
+}
+struct Agreement{
+    me string: text
+    me bool:   doesAgree 
+}
+struct AgreeWidget{
+    their GUI_Frame: box
+    their GUI_Label: textBox
+    their GUI_Bool:  agreeCheckBox
+    me Agreement:    agreement
+    
+    their GUI_Frame: makeAgreeWidget(me string: text) <- {
+        agreement.text <- text
+	textBox        <- makeLabelWidget2(agreement.text)
+        agreeCheckBox  <- makeCheckBox()
+        /-/// RETURN BOX //////////////////////////////
+        box            <- makeXStack("")
+        addToContainer(box, textBox)
+        addToContainer(box, agreeCheckBox)
+        return(box)
+    }
+    me bool: getValue()            <- {agreeCheckBox.getValue()}
+    void: setValue(me bool: value) <- {agreeCheckBox.setValue(agreement.doesAgree)}
+    void: setText(me string: text) <- {textBox.setValue(agreement.text)}
 }
