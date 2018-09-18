@@ -93,7 +93,6 @@ struct verticalScale: inherits=graphScale{
 
 struct horizontalScale: inherits=graphScale{
     void: draw(me GUI_ctxt: cr) <- {
-<<<<<<< HEAD
         me GUI_Scalar:     XPoint <- 0
         me GUI_Scalar:     YPoint <- 0
         me deltaSize:  size
@@ -115,7 +114,7 @@ struct horizontalScale: inherits=graphScale{
             while(firstTickHr != "24") {
                 remainder <- remainder + 1000*60*60
                 firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
-            firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
+                firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
             }
         }
 
@@ -162,76 +161,6 @@ struct horizontalScale: inherits=graphScale{
         else              {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
         renderText(cr, title, styler.fontDefault, xOrig+span/2, YPoint)
         cr.strokeNow()
-=======
-	me GUI_Scalar:     XPoint <- 0
-	me GUI_Scalar:     YPoint <- 0
-	me deltaSize:  size
-	me int:        labelHeight <- 0
-	me int:        tickHeight  <- 0
-	me string:     label
-	me string:     justify <- ""
-	me sysLocale:  loc
-	me timeValue:  firstTick
-	me timeValue:  remainder
-	
-	loc <- unicodeMgr.SetLocale("en")
-	remainder <- hiVal % divisor
-	firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
-	/-me string: firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
-	me string: firstTickHr <- "24"
-	
-	if (step >= 1000*60*60*24) {
-	    while(firstTickHr != "24") {
-		remainder <- remainder + 1000*60*60
-		firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
-		/-firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
-	    }
-	}
-
-	/- AXIS VALUE LABELS
-	withEach val in RANGE(0.. (hiVal-lowVal)/step){
-	    if(isDate){label <- unicodeMgr.dateToIntlString(val*step+firstTick, hiVal-lowVal, loc)}
-	    else      {label <- dblToString(val*step+firstTick, 2)}
-	    size <- getTextSize(cr, title, styler.fontSmall)
-	    if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPoint <- yOrig+tickHeight+size.height}
-	    else               {tickHeight  <- tickOffset-3*tickPadding; YPoint <- yOrig+tickHeight}
-	    if(textSlant){
-		if (tickOffset > 0){
-		    XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
-		    justify <- "right"
-		    YPoint <- YPoint - 10
-		}
-		else{XPoint <- xOrig+val*step*span/(hiVal-lowVal)}
-		size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
-	    }else{
-		XPoint <- xOrig+(val*step + firstTick - lowVal)*span/(hiVal-lowVal)-5
-		size <- renderTextCentered(cr, label, styler.fontSmall, XPoint, YPoint)
-	    }
-	    if(size.height > labelHeight){labelHeight <- size.height}
-	    cr.strokeNow()
-	}
-
-	/- AXIS TICK MARKS
-	if(ticksPerStep>0){
-	    tickStep <- step/ticksPerStep
-	    cr.setLineWidth(1)
-	    withEach val in RANGE(0.. (hiVal-lowVal)/tickStep){
-		if (tickOffset > 0){YPoint <- yOrig+tickPadding}
-		else               {YPoint <- yOrig-tickPadding}
-		XPoint <- xOrig + (val*tickStep + firstTick - lowVal)*span/(hiVal-lowVal)
-		cr.moveTo(XPoint, YPoint)
-		cr.lineTo(XPoint, YPoint+tickOffset)
-	    }
-	    cr.strokeNow()
-	}
-
-	/- SCALE TITLE
-	size <- getTextSize(cr, title, styler.fontDefault)
-	if(tickOffset > 0){YPoint <- yOrig+tickHeight+labelHeight+titlePadding+size.height}
-	else              {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
-	renderText(cr, title, styler.fontDefault, xOrig+span/2, YPoint)
-	cr.strokeNow()
->>>>>>> e699d92107b6507a8d06154a0e3c918b1d632e80
     }
 
     void: setScale(me GUI_Scalar: Span, me timeValue: LowVal, me timeValue: HiVal, me int: ZoomLvl, me GUI_Scalar: XOrig, me GUI_Scalar: YOrig, me int: TickOffset) <- {
