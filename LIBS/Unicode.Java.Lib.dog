@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides=[Unicode_implementation]
     libFiles=[]
-    headers=[android.icu.util.ULocale, android.icu.text.SimpleDateFormat] /- android.icu.util.Calendar
+    headers=[android.icu.util.ULocale, android.icu.text.SimpleDateFormat, android.icu.util.Calendar, android.icu.util.GregorianCalendar]
 }
 
 LibDescription  ={
@@ -40,9 +40,15 @@ struct UnicodeMgr {
     
     me timeValue: epocTimeFromDateTime(me int: year, me int: month, me int: date, me int: hour, me int: minute, me int: second) <- <%{
         Calendar cal = new GregorianCalendar(year, month, date, hour, minute, second);
-        Date retval = cal.getTime();
-        delete cal;
+        long retval = cal.getTimeInMillis();
         return retval;
+    }%>
+    
+    me string: getHour(me long: date, me sysLocale: loc) <- <%{
+	String pattern = "k";   /- k: hour in day (1~24)
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
+        String hour = simpleDateFormat.format(date);
+        return hour;
     }%>
 }
 
