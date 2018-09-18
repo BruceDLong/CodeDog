@@ -101,26 +101,26 @@ struct horizontalScale: inherits=graphScale{
 	me string:     label
 	me string:     justify <- ""
 	me sysLocale:  loc
-	me UErrorCode: status <- U_ZERO_ERROR
 	me timeValue:  firstTick
 	me timeValue:  remainder
 	
 	loc <- unicodeMgr.SetLocale("en")
 	remainder <- hiVal % divisor
 	firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
-	me string: firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
+	/-me string: firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
+	me string: firstTickHr <- "24"
 	
 	if (step >= 1000*60*60*24) {
 	    while(firstTickHr != "24") {
 		remainder <- remainder + 1000*60*60
 		firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
-		firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
+		/-firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
 	    }
 	}
 
 	/- AXIS VALUE LABELS
 	withEach val in RANGE(0.. (hiVal-lowVal)/step){
-	    if(isDate){label <- unicodeMgr.dateToIntlString(val*step+firstTick, hiVal-lowVal, loc, status)}
+	    if(isDate){label <- unicodeMgr.dateToIntlString(val*step+firstTick, hiVal-lowVal, loc)}
 	    else      {label <- dblToString(val*step+firstTick, 2)}
 	    size <- getTextSize(cr, title, styler.fontSmall)
 	    if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPoint <- yOrig+tickHeight+size.height}

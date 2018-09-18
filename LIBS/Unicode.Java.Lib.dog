@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides=[Unicode_implementation]
     libFiles=[]
-    headers=[android.icu.util.Calendar]
+    headers=[android.icu.util.ULocale, android.icu.text.SimpleDateFormat] /- android.icu.util.Calendar
 }
 
 LibDescription  ={
@@ -19,34 +19,30 @@ LibDescription  ={
     Lang	=[Java]
 }
 
-embedHigh = `
-static const char trailingBytesForUTF8[256] = {
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,4,4,4,4,5,5,5,5
-};
+struct UnicodeStr {me String: UnicodeStr}
+struct sysLocale {me ULocale: sysLocale}
+struct Udate {me Date: Udate}
 
-#define isutf(c) (((c)&0xC0)!=0x80)
-#define remainingOctets(chr) (trailingBytesForUTF8[(unsigned int)(unsigned char)chr])
-
-`
-struct GLOBAL {
+struct UnicodeMgr {
     /- form "pt", "BR" is Java compatible while form "pt_BR" is not
-    me sysLocale: SetLocale() <- <%{
-	ULocale location = new ULocale("pt", "BR");
+    me sysLocale: SetLocale(me string: code) <- <%{
+	ULocale location = new ULocale(code);
 	return location;
     }%>
     
-    me string: dateToIntlString(me UDate: date, me UDate: interval, me Locale: loc) <- <%{
+    me string: dateToIntlString(me timeValue: time, me double: interval, me sysLocale: loc) <- <%{
+	Date date = new Date(time);
 	String pattern = chooseFormatPattern(interval);
 	SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
 	String uniLabel = simpleDateFormat.format(date);
 	return uniLabel;
+    }%>
+    
+    me timeValue: epocTimeFromDateTime(me int: year, me int: month, me int: date, me int: hour, me int: minute, me int: second) <- <%{
+        Calendar cal = new GregorianCalendar(year, month, date, hour, minute, second);
+        Date retval = cal.getTime();
+        delete cal;
+        return retval;
     }%>
 }
 
