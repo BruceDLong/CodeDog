@@ -20,7 +20,7 @@ def getContainerType(typeSpec, actionOrField):
     if 'indexType' in containerSpec:
         if 'IDXowner' in containerSpec:
             idxOwner=containerSpec['IDXowner']
-            idxType=containerSpec['idxBaseType'][0]   
+            idxType=containerSpec['idxBaseType'][0]
             idxType=applyOwner(idxOwner, idxType, 'IDX ERROR', containerSpec['indexType'], actionOrField, '')
         else: idxType=containerSpec['idxBaseType'][0]
         #idxType=containerSpec['indexType']
@@ -103,8 +103,8 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', actionOrField, varMode)
     if langType=='TYPE ERROR': print langType, owner, fieldType;
     InnerLangType = langType
-    
-    if 'fieldType' in TypeSpec and not(isinstance(TypeSpec['fieldType'], basestring)) and TypeSpec['fieldType'][0]=='DblLinkedList': 
+
+    if 'fieldType' in TypeSpec and not(isinstance(TypeSpec['fieldType'], basestring)) and TypeSpec['fieldType'][0]=='DblLinkedList':
         print"xlateLangType DblLinkedList"
         return [langType, InnerLangType]
 
@@ -114,14 +114,14 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
             [containerType, idxType, owner]=getContainerType(TypeSpec, actionOrField)
             if 'owner' in containerSpec:    containerOwner=containerSpec['owner']
             else:                           containerOwner='me'
-            
+
             if idxType=='int':              idxType  = 'Integer'
             if langType=='int':             langType = 'Integer'; InnerLangType = 'Integer'
             if idxType=='long':             idxType  = 'Long'
             if langType=='long':            langType = 'Long'; InnerLangType = 'Long'
             if langType=='double':          langType = 'Double'; InnerLangType = 'Double'
             if idxType=='timeValue':        idxType  = 'Long' # this is hack and should be removed ASAP
-            
+
             if containerType=='ArrayList':  langType ="ArrayList<"+langType+'>'
             elif containerType=='TreeMap':  langType ='TreeMap<'+idxType+', '+langType+'>'
             elif containerType=='multimap': langType ='multimap<'+idxType+', '+langType+'>'
@@ -192,7 +192,7 @@ def getEnumStr(fieldName, enumList):
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
-    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], basestring)) and typeSpecIn['fieldType'][0]=='DblLinkedList': 
+    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], basestring)) and typeSpecIn['fieldType'][0]=='DblLinkedList':
         print"getContainerTypeInfo DblLinkedList"
         return(name, typeSpecOut, paramList, convertedIdxType)
     if containerType=='ArrayList':
@@ -212,6 +212,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
         elif name=='pushFirst': name='push_front'
         elif name=='pushLast' : name='add'
+        elif name=='isEmpty'  : name='isEmpty'
         elif name=='deleteNth': name='remove'
         else: print "Unknown ArrayList command:", name; exit(2);
     elif containerType=='TreeMap':
@@ -273,7 +274,7 @@ def codeFactor(item, objsRefed, returnType, xlator):
     retTypeSpec='noType'
     item0 = item[0]
     #print "ITEM0=", item0, ">>>>>", item
-    if (isinstance(item0, basestring)):        
+    if (isinstance(item0, basestring)):
         if item0=='(':
             [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, xlator)
             S+='(' + S2 +')'
@@ -298,7 +299,7 @@ def codeFactor(item, objsRefed, returnType, xlator):
                 if count>1: tmp+=', '
                 tmp+=S2+paramTypeSpec
             tmp+="))"
-            S+='new '+'ArrayList<'+retTypeSpec+'>'+tmp   # ToDo: make this handle things other than long.
+            S+='new '+'ArrayList<'+progSpec.fieldTypeKeyword(retTypeSpec)+'>'+tmp   # ToDo: make this handle things other than long.
         else:
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
@@ -351,7 +352,7 @@ def codeComparison(item, objsRefed, returnType, xlator):
             elif (i[0] == '>='): S+=' >= '
             else: print "ERROR: One of <, >, <= or >= expected in code generator."; exit(2)
             [S2, retTypeSpec] = codePlus(i[1], objsRefed, returnType, xlator)
-            S+=S2            
+            S+=S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
@@ -369,7 +370,7 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             elif (i[0] == '==='): op=' == '
             else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
-            rightOwner=progSpec.getTypeSpecOwner(retType2)            
+            rightOwner=progSpec.getTypeSpecOwner(retType2)
             if not isinstance(retTypeSpec, basestring) and isinstance(retTypeSpec['fieldType'], basestring) and isinstance(retType2, basestring):
                 if retTypeSpec['fieldType'] == "char" and retType2 == 'String'and S2[0] == '"':
                     S2 = "'" + S2[1:-1] + "'"
@@ -478,9 +479,9 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
             S= '.get(' + idx + ')'
         elif (containerType== 'string'): S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
         else: S= '[' + idx +']'
-    else: 
-		if containerType== 'ArrayList': S = '.get('+idx+')'
-		else: S= '[' + idx +']'
+    else:
+        if containerType== 'ArrayList': S = '.get('+idx+')'
+        else: S= '[' + idx +']'
     return S
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
@@ -560,7 +561,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             RHS = S2
             assignValue=' = '+ RHS
             #TODO: make test case
-        else: assignValue=''   
+        else: assignValue=''
     elif(fieldDef['value']):
         [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
         RHS = S2
@@ -570,7 +571,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
         #TODO: make test case
             constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
             if (constructorExists):
-                assignValue=' = new ' + fieldType +'('+ RHS + ')'        
+                assignValue=' = new ' + fieldType +'('+ RHS + ')'
             else:
                 if('<LISTTYPE>'in RHS):
                     RHS=RHS.replace('<LISTTYPE>',fieldAttrs)
