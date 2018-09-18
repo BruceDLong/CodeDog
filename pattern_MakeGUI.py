@@ -320,12 +320,15 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetBoxName         = widgetName +'.box'
         makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         if progSpec.typeIsNumRange(innerFieldType):
+            typeName = 'intRangeWidget'
             range1 = innerFieldType[0]
             range2 = innerFieldType[2]
-            makeTypeNameCall += '        '+widgetName+'.minValue <- ' + range1 + '\n        '+widgetName+'.maxValue <- ' + range2 + '\n'
-        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeIntWidget("'+label+'")\n'
-        widgetFromVarsCode   += '        ' + widgetName+ '.setValue(var.'+ fieldName +')\n'
-        varsFromWidgetCode   += '        '+currentClassName+'_data.' + fieldName + ' <- ' + widgetName + '.getValue()\n'
+            makeTypeNameCall += '        '+widgetName+'.minValue <- '+range1+'\n        '+widgetName+'.maxValue <- '+range2+'\n'
+            makeTypeNameCall += '        '+widgetBoxName+' <- '+ widgetName+'.makeIntRangeWidget("'+label+'")\n'
+        else:
+            makeTypeNameCall += '        '+widgetBoxName+' <- '+widgetName+'.makeIntWidget("'+label+'")\n'
+        widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
+        varsFromWidgetCode   += '        '+currentClassName+'_data.'+fieldName+' <- '+widgetName+'.getValue()\n'
     elif fieldSpec=='bool':
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      =  'Allocate('+widgetName+'); ' + widgetBoxName + ' <- '+ widgetName+'.makeBoolWidget("'+label+'")\n'
