@@ -406,7 +406,9 @@ struct graph: inherits=dash{
             YPoint          <- 0
 
             if (dataStream.isVisible) {
-                cr.setLineWidth(2)
+                me double: dblWidth <- width
+		me double: dblHeight <- height
+		cr.setLineWidth(2)
                 if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
                 if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
                 rightGraphTime <- crntRightSide
@@ -416,8 +418,8 @@ struct graph: inherits=dash{
                 /-/// Gradient - requires duplicate 'invisible' data plot as boundary
                 if (dataStream.hasGradient) {
                     withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                        XPoint <- (point_key-leftGraphTime)*double(width)/timeInterval + posX
-                        YPoint <- (point - leftScale.lowVal)*double(height)/(leftScale.hiVal - leftScale.lowVal)
+                        XPoint <- (point_key-leftGraphTime)*dblWidth/timeInterval + posX
+                        YPoint <- (point - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
                         if(firstTime){
                             cr.setColor(styler.bkGndColor)
                             cr.moveTo(XPoint, YOrig)
@@ -439,8 +441,8 @@ struct graph: inherits=dash{
                 /-/// Visible data plot
                 firstTime <- true
                 withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                    XPoint <- (point_key-leftGraphTime)*double(width)/timeInterval + posX
-                    YPoint <- (point - leftScale.lowVal)*double(height)/(leftScale.hiVal - leftScale.lowVal)
+                    XPoint <- (point_key-leftGraphTime)*dblWidth/timeInterval + posX
+                    YPoint <- (point - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
                     if(firstTime){
                         cr.setColor(dataStream.lineColor)
                         cr.moveTo(XPoint, YOrig - YPoint)
