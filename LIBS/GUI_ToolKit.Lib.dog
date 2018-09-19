@@ -368,7 +368,7 @@ struct TimeWidget{
     their GUI_Label:    dataLabel
     their GUI_ComboBox: hourBox
     their GUI_ComboBox: minuteBox
-    me timeOfDay:       data
+    me timeValue:       data
     me int[list]:       hours
     me int[list]:       minutes 
   
@@ -380,10 +380,10 @@ struct TimeWidget{
 }
 
 struct DateTimeWidget{
-    their GUI_Frame:   box
+    their GUI_Frame:  box
     their DateWidget: dateWidget
     their TimeWidget: timeWidget
-    me timeValue:      data
+    me timeValue:     data
 
     their GUI_Frame: initCrnt(me string: label) <- {
         me timeValue: crntTime <- getCurrentTimeStamp()
@@ -393,11 +393,11 @@ struct DateTimeWidget{
     their GUI_Frame: initialize(me timeValue: defaultTime) <- {
         /-/// DATE ////////////////////////////////////
         Allocate(dateWidget)
-	their GUI_Frame: dateBox <- makeYStack("")
+        their GUI_Frame: dateBox <- makeYStack("")
         dateBox <- dateWidget.initCrnt("")
         /-/// TIME ////////////////////////////////////
         Allocate(timeWidget)
-	their GUI_Frame: timeBox <- makeYStack("")
+        their GUI_Frame: timeBox <- makeYStack("")
         timeBox <- timeWidget.initCrnt("")
         /-/// RETURN BOX //////////////////////////////
         box <- makeXStack("")
@@ -406,9 +406,9 @@ struct DateTimeWidget{
         return(box)
     }
     me timeValue: getValue() <- {
-        me timeValue: retVal <-  getCurrentTimeStamp()
-        /-retVal <- dateWidget.getValue()
-        /-retVal.time <- timeWidget.getValue()
+        me timeValue: tmpDate <- dateWidget.getValue()
+        me timeValue: tmpTime <- timeWidget.getValue()
+        me timeValue: retVal  <- tmpDate + tmpTime
         return(retVal)
     }
     void: setValue() <- {}

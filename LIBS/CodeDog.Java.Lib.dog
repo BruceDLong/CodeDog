@@ -87,4 +87,7 @@ struct GLOBAL{
     me timeValue: convertToTimeVal()						<- <%!%G (long)(%1)%>
 }
 struct timeValue{me long: timeValue}
+struct DateValue{me long: DateValue}
+struct timeOfDay{me long: timeOfDay}
+struct DateTime{me long: DateTime}
 struct random{me Random: random}
