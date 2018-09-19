@@ -7,7 +7,10 @@ requirements = [
 interface={
     provides = [CodeDog_implementation]
     libFiles = []
-    headers  = [java.lang.String, java.io.*, java.util.logging.Level, java.util.logging.Logger, java.util.Random, java.util.Date, java.util.Map, java.util.TreeMap, java.util.ArrayList, java.util.Arrays, java.util.concurrent.*,java.lang.Math.*, java.util.Iterator, java.lang.Object]
+    headers  = [java.lang.String, java.io.*, java.util.logging.Level, java.util.logging.Logger, java.util.Random,
+                java.util.Date, java.util.Map, java.util.TreeMap, java.util.ArrayList, java.util.Arrays,
+                java.util.concurrent.*,java.lang.Math.*, java.util.Iterator, java.lang.Object
+               ]
 }
 
 
@@ -22,14 +25,14 @@ deinitCode = ""
 
 struct FileStream{
     me fstream: FileStream
-    me void: open(me string: filename) <- <%!open(%1)%>
-    me void: openAppend(me string: filename) <- <%!open(%1, ios_base::in | ios_base::out | ios_base::app)%>
+    me void: open(me string: filename) <- <%!%G%0 = new  RandomAccessFile(%1, "rw")%>
+    me void: openAppend(me string: filename) <- <%!%G%0 = new  RandomAccessFile(%1, "rw"); %0.seek(%0.length)%>
     me void: close() <- <%!close()%>
-    me int:  getChar() <- <%!get()%>
-    me void: getLine(me string: S) <- <%!getline(%0, %1)%>
+    me int:  getChar() <- <%!readChar()%>
+    me void: getLine(me string: S) <- <%!%G%1 = %0.readline()%>
     me void: write(me string: S) <- <%!write(%1.data(), %1.size())%>
-    me bool: EOF() <- <%!eof()%>
-    me bool: failure() <- <%!fail()%>
+    me bool: EOF() <- <%!%G!%0.hasNext()%>
+    me bool: failure() <- <%!%G!%0.hasNext()%>
 }
 
 struct GLOBAL{
@@ -84,7 +87,7 @@ struct GLOBAL{
     me int: cos(me int: val) <- <%!%GMath.cos(%1)%>
     me int: atan2(me int: val1, me int: val2) <- <%!%GMath.atan2(%1, %2)%>
     me int: sqrt(me int: val) <- <%!%GMath.sqrt(%1)%>
-    me timeValue: convertToTimeVal()						<- <%!%G (long)(%1)%>
+    me timeValue: convertToTimeVal()                        <- <%!%G (long)(%1)%>
 }
 struct timeValue{me long: timeValue}
 struct random{me Random: random}
