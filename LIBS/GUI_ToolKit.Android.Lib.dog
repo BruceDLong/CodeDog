@@ -289,7 +289,7 @@ struct DateWidget{
 struct TimeWidget{
     their GUI_Frame:         box
     their GUI_Text:          dataValue
-    me timeOfDay:            data
+    me timeValue:            data
     their Calendar:          calendar
     their TimePickerDialog:  timePickerDialog
     their OnTimeSetListener: timeListener
@@ -321,10 +321,8 @@ struct TimeWidget{
         box.addView(dataValue);
         return box;
     }%>
-    me timeOfDay: getValue() <- {
-        me timeOfDay: retVal
-        retVal.hour     <- hourBox.comboBoxGetActive()
-        retVal.minute   <- minuteBox.comboBoxGetActive()
+    me timeValue: getValue() <- {
+        me timeValue: retVal <- dataValue.getValueAsTime()
         return(retVal)
     }
     void: setValue() <- {}
@@ -348,6 +346,11 @@ struct scrollerWidget{
     }%>
 }
 /-///////////////////////////////  GUI STRUCTS
+struct GUI_Text{
+    me string: getValue()               <- <%!gtk_entry_get_text((GtkEntry *)%0)%>
+    me string: getValueAsInt()          <- <%!atoi(gtk_entry_get_text((GtkEntry *)%0))%>
+    me timeValue: getValueAsTime()      <- <%!Long.parseLong(%0.getText().toString())%>
+}
 struct GUI_ComboBox{
     me void: appendComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
     me void: appendStringComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
