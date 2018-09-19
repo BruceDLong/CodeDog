@@ -124,23 +124,3 @@ struct stringScanner{
         return(pos)
     }
 }
-
-struct DateValue{
-    me int: year
-    me int: month
-    me int: day
-}
-
-struct timeOfDay{
-    me int: hour
-    me int: minute
-}
-
-struct DateTime{
-    me DateValue: date
-    me timeOfDay: time
-    me timeValue: toTimeValue() <- {
-        me timeValue: ret <- unicodeMgr.epocTimeFromDateTime(date.year, date.month, date.day, time.hour, time.minute, 0)
-        return(ret)
-    }
-}

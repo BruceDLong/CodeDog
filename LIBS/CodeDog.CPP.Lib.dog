@@ -85,3 +85,6 @@ struct GLOBAL{
     me timeValue: convertToTimeVal()						<- <%!%G%1%>
 }
 struct timeValue{me int64: timeValue}
+struct DateValue{me int64: DateValue}
+struct timeOfDay{me int64: timeOfDay}
+struct DateTime{me int64: DateTime}
