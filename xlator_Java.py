@@ -207,7 +207,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
         elif name=='nthItr'   : typeSpecOut['codeConverter']='%G%1';  typeSpecOut['owner']='itr';
         elif name=='first'    : name='get(0)';   paramList=None;
-        elif name=='last'     : name='rbegin()->second'; paramList=None;
+        elif name=='last'     : name='get(%0.size()-1)'; paramList=None;
         elif name=='popFirst' : name='remove(0)'
         elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
         elif name=='pushFirst': name='push_front'
@@ -230,7 +230,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='first'    : name='get(0)';   paramList=None;
-        elif name=='last'     : name='rbegin()->second'; paramList=None;
+        elif name=='last'     : name='get(%0.size()-1)'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pollLastEntry'
         elif name=='erase'    : name='remove'
@@ -290,15 +290,18 @@ def codeFactor(item, objsRefed, returnType, xlator):
         elif item0=='[':
             count=0
             tmp="(Arrays.asList("
-            paramTypeSpec = '<PARAMTYPE>'
+            paramTypeSpec = '' #<PARAMTYPE>'
             for expr in item[1:-1]:
                 count+=1
                 [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, xlator)
-                if retTypeSpec=='String':paramTypeSpec=''
-                if retTypeSpec=='noType':retTypeSpec='<LISTTYPE>'
+                if retTypeSpec=='String' or retTypeSpec=='int':paramTypeSpec=''
+                if retTypeSpec=='noType':retTypeSpec='' #<LISTTYPE>'
                 if count>1: tmp+=', '
-                tmp+=S2+paramTypeSpec
+                tmp+=S2
+                if retTypeSpec=='' and expr > 2147483647: tmp+="L"
+                tmp+=paramTypeSpec
             tmp+="))"
+            if retTypeSpec=='String' or retTypeSpec=='int':paramTypeSpec=''
             S+='new '+'ArrayList<'+progSpec.fieldTypeKeyword(retTypeSpec)+'>'+tmp   # ToDo: make this handle things other than long.
         else:
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
