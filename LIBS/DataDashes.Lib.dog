@@ -337,6 +337,8 @@ struct graphTitleWidget: inherits=dash{
     }
 }
 
+struct timeStepInterval{their DataGen: parentDataSource me timeValue: start me timeValue: end me int: stepSize}
+
 struct GraphDataStream {
     me string: title
     me int64[me map timeValue]: dataMap
@@ -345,13 +347,25 @@ struct GraphDataStream {
     me bool: isVisible <- false
     me bool: hasGradient <- true
     me int: screenDataAvg
-    void: requestDataRange(me timeValue:  leftGraphTime, me timeValue:  rightGraphTime, me int: stepSize) <- {
+}
 
+struct GraphDataStreamSources{
+    our GraphDataStream[me list]: dataStreams
+    their DataGen: parentDataSource
+
+    void: requestDataRange(me timeValue: start, me timeValue: end, me int: stepSize) <-{
+        their timeStepInterval:: TSI
+        TSI.parentDataSource <- parentDataSource
+        TSI.start <- start; TSI.end <- end; TSI.stepSize <- stepSize
+        print("> GraphDataStreamSources::requestDataRange\n")
+        their GMainContext: GUIContext <- g_main_context_get_thread_default()
+        g_main_context_invoke(GUIContext, GSourceFunc(CallRequestDataRange), TSI);
+        print("< GraphDataStreamSources::requestDataRange\n")
     }
 }
 
 struct graph: inherits=dash{
-    our GraphDataStream[me list]: dataStreams
+    our GraphDataStreamSources: dataStreamSrcs
     me string[list]: dataStreamsTitleTable <- ["None"]
     me int64: screenDataTotal
     me int: screenDataCount
@@ -392,14 +406,14 @@ struct graph: inherits=dash{
         me GUI_Scalar:     YPoint
         me GUI_Scalar: YOrig <- posY + height
 
-        withEach ii in RANGE(0.. dataStreams.size()) {
-            if (streamToggle1.state == ii + 1 or streamToggle2.state == ii + 1) {dataStreams[ii].isVisible <- true}
-            else {dataStreams[ii].isVisible <- false}
-            if (streamToggle1.state == 0 or streamToggle2.state == 0) {dataStreams[ii].hasGradient <- true}
-            else {dataStreams[ii].hasGradient <- false}
+        withEach ii in RANGE(0.. dataStreamSrcs.dataStreams.size()) {
+            if (streamToggle1.state == ii + 1 or streamToggle2.state == ii + 1) {dataStreamSrcs.dataStreams[ii].isVisible <- true}
+            else {dataStreamSrcs.dataStreams[ii].isVisible <- false}
+            if (streamToggle1.state == 0 or streamToggle2.state == 0) {dataStreamSrcs.dataStreams[ii].hasGradient <- true}
+            else {dataStreamSrcs.dataStreams[ii].hasGradient <- false}
         }
 
-        withEach dataStream in dataStreams{
+        withEach dataStream in dataStreamSrcs.dataStreams{
             screenDataTotal <- 0
             screenDataCount <- 0
             XPoint          <- 0
@@ -407,8 +421,8 @@ struct graph: inherits=dash{
 
             if (dataStream.isVisible) {
                 me double: dblWidth <- width
-		me double: dblHeight <- height
-		cr.setLineWidth(2)
+                me double: dblHeight <- height
+                cr.setLineWidth(2)
                 if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
                 if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
                 rightGraphTime <- crntRightSide
@@ -489,7 +503,7 @@ struct graph: inherits=dash{
         gradients    <- Gradients
         zoomLevel    <- 0
 
-        withEach dataStream in dataStreams {
+        withEach dataStream in dataStreamSrcs.dataStreams {
             dataStreamsTitleTable.pushLast(dataStream.title)
         }
 
@@ -497,13 +511,15 @@ struct graph: inherits=dash{
         zoomToggle.initZoomWidget(90, 5, labelTable[zoomLevel], 10, 75)
         crntRightSide <- getCurrentTimeStamp()
 
-            leftScale.initScale("Blood Glucose Level (units)", true, 1, false, false)
+            leftScale.initScale("Blood Glucose Level (ml/dl)", true, 1, false, false)
             rightScale.initScale("rightScale!", false, 1, false, false)
             bottomScale.initScale("Time", true, 1, false, true)
             topScale.initScale("topScale", false, 1, false, false)
         graphTitle.initGraphTitle(titleStr, false)
         streamToggle1.initStreamToggle(250, 5, dataStreamsTitleTable, 1)
         streamToggle2.initStreamToggle(400, 5, dataStreamsTitleTable, 0)
+
+        dataStreamSrcs.requestDataRange(crntRightSide-timeInterval, crntRightSide, timeInterval / (100))
     }
 
     void: incrementZoomLevel(me int: change) <- {
@@ -511,6 +527,7 @@ struct graph: inherits=dash{
             zoomLevel <- zoomLevel + change
             timeInterval <- zoomTable[zoomLevel]
             zoomToggle.label <- labelTable[zoomLevel]
+            dataStreamSrcs.requestDataRange(crntRightSide-timeInterval, crntRightSide, timeInterval / (width / 10))
         }
     }
 
@@ -558,6 +575,7 @@ struct graph: inherits=dash{
         }
         if (scrollState==pullScrolling) {
             crntRightSide <- crntRightSide - convertToTimeVal(deltaX)*timeInterval/convertToTimeVal(width)
+            dataStreamSrcs.requestDataRange(crntRightSide-timeInterval, crntRightSide, timeInterval / (width / 10))
             requestRedraw()
         }
         return(true)

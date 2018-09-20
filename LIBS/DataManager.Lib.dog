@@ -29,7 +29,7 @@ struct DataManager{
     }
 
     void: initTypesOfInfoSources_Views() <-{
-        addInfoSourceType("dispStockData", "Stock Market Data", "ticker", true)
+        addInfoSourceType("dispSystemData", "BioSystem Data", "ticker", true)
         addInfoSourceType("TestRANDOM", "Randon noise", "Random", false)
         addInfoSourceType("TestWaves", "Various waves", "Wave", false)
         addInfoSourceType("Time", "Time", "Time", false)
