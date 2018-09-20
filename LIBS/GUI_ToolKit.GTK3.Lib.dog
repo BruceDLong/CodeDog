@@ -659,7 +659,8 @@ struct GUI{
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: setCallback() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4.get())%>
-    me void: setCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_CB), %4)%>
+    me void: setBtnCallback()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_CB), %4)%>
+    me void: setBtnCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4.get())%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
