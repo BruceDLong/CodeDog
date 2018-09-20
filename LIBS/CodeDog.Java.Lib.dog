@@ -25,14 +25,14 @@ deinitCode = ""
 
 struct FileStream{
     me fstream: FileStream
-    me void: open(me string: filename) <- <%!%G%0 = new  RandomAccessFile(%1, "rw")%>
-    me void: openAppend(me string: filename) <- <%!%G%0 = new  RandomAccessFile(%1, "rw"); %0.seek(%0.length)%>
+    me void: open(me string: filename) <- <%!%0 = new  RandomAccessFile(%1, "rw")%>
+    me void: openAppend(me string: filename) <- <%!%0 = new  RandomAccessFile(%1, "rw"); %0.seek(%0.length)%>
     me void: close() <- <%!close()%>
     me int:  getChar() <- <%!readChar()%>
-    me void: getLine(me string: S) <- <%!%G%1 = %0.readline()%>
-    me void: write(me string: S) <- <%!write(%1.data(), %1.size())%>
-    me bool: EOF() <- <%!%G!%0.hasNext()%>
-    me bool: failure() <- <%!%G!%0.hasNext()%>
+    me void: getLine(me string: S) <- <%!%1 = %0.readline()%>
+    me void: write(me string: S) <- <%!write(%1, %1.size())%>
+    me bool: EOF() <- <%!!%0.hasNext()%>
+    me bool: failure() <- <%!!%0.hasNext()%>
 }
 
 struct GLOBAL{
