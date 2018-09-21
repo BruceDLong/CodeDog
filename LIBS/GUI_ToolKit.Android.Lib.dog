@@ -89,7 +89,8 @@ struct intWidget{
 
     me int: getValue() <- <%{
         String strVal = dataValue.getText().toString();
-        int retVal   =  Integer.parseInt(strVal);
+	//TODO: handle no entry
+        int retVal    =  Integer.parseInt(strVal);
         return retVal;
     }%>
     me void: setValue(me int: value) <- <%{
@@ -119,7 +120,8 @@ struct intRangeWidget{
     me int: climbRate     <- 1
 
     me int: getValue() <- <%{
-        return 0;
+        int retVal = dataValue.getValue(); 
+	return retVal;
     }%>
     me void: setValue(me int: value) <- <%{
         
@@ -161,8 +163,8 @@ struct stringWidget{
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
         box.addView(dataLabel);
-        EditText dataValue = new EditText(GLOBAL.static_Global);
-        dataValue.setWidth(50);
+        dataValue = new EditText(GLOBAL.static_Global);
+        dataValue.setWidth(300);
         dataValue.setInputType(InputType.TYPE_CLASS_TEXT);
         box.addView(dataValue);
         return box;
@@ -172,15 +174,14 @@ struct dateWidget{
     their GUI_Frame:         box
     their GUI_Label:         dataLabel
     their GUI_Text:          dataValue
+    me timeValue:            data
     me SimpleDateFormat:     dateFormatter
     their DatePickerDialog:  datePickerDialog
     their Calendar:          calendar
     their OnDateSetListener: dateListener
     
     me timeValue: getValue() <- <%{
-        String strVal = dataValue.getText().toString();
-        long retVal   =  Long.parseLong(strVal);
-        return retVal;
+        return data;
     }%>
     me void: setValue(me timeValue: value) <- <%{
         dataValue.setText(dateFormatter.format(value));
@@ -196,9 +197,11 @@ struct dateWidget{
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
-                month = month + 1;
-                String date = month + "/" + day + "/" + year;
-                dataValue.setText(date);
+		calendar.set(year, month - 1, day, 0, 0); 
+		data = calendar.getTimeInMillis();
+		month = month + 1;
+                String dateStr = month + "/" + day + "/" + year;
+                dataValue.setText(dateStr);
             }
         };
         dataValue.setOnClickListener(new View.OnClickListener() {
@@ -223,7 +226,8 @@ struct enumWidget{
     me string[list]:    options
 
     me int: getValue() <- <%{
-        return 0;
+        int retVal = dataValue.getSelectedItemPosition();
+	return retVal;
     }%>
     me void: setValue(me int: val) <- <%{
         
@@ -245,15 +249,14 @@ struct enumWidget{
 }
 struct DateWidget{
     their GUI_Text:          dataValue
+    me timeValue:            data
     me SimpleDateFormat:     dateFormatter
     their Calendar:          calendar
     their DatePickerDialog:  datePickerDialog
     their OnDateSetListener: dateListener
 
     me timeValue: getValue() <- <%{
-        String strVal = dataValue.getText().toString();
-        long retVal   =  Long.parseLong(strVal);
-        return retVal;
+        return data;
     }%>
     me void: setValue(me timeValue: value) <- <%{
         dataValue.setText(dateFormatter.format(value));
@@ -269,7 +272,9 @@ struct DateWidget{
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
-                month = month + 1;
+                calendar.set(year, month - 1, day, 0, 0); 
+		data = calendar.getTimeInMillis();
+		month = month + 1;
                 String date = month + "/" + day + "/" + year;
                 dataValue.setText(date);
             }
@@ -306,8 +311,11 @@ struct TimeWidget{
         dataValue.setInputType(InputType.TYPE_NULL);
         timeListener = new TimePickerDialog.OnTimeSetListener() {
             @Override
-            public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-                dataValue.setText(hourOfDay + ":" + minute);
+            public void onTimeSet(TimePicker view, int hour, int minute) {
+		int tmpHour = hour*60*60*1000;
+		int tmpMinute = minute*60*1000;
+		data =  tmpHour + tmpMinute;
+		dataValue.setText(hour + ":" + minute);
             }
         };
         dataValue.setOnClickListener(new View.OnClickListener() {
@@ -325,8 +333,7 @@ struct TimeWidget{
         return box;
     }%>
     me timeValue: getValue() <- {
-        me timeValue: retVal <- dataValue.getValueAsTime()
-        return(retVal)
+        return(data)
     }
     void: setValue() <- {}
 }
@@ -458,7 +465,7 @@ struct GLOBAL{
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G // TODO code converter for GLOBAL.addToZStack%>
     me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G // TODO code converter for GLOBAL.setZStackActive%>
-    their GUI_button: makeButtonWidget(me string: label)                         <- <%!%Gnew Button(GLOBAL.static_Global)%>
+    their GUI_button: makeButtonWidget(me string: label)                        <- <%!makeAndroidButton(%1)%>
     their GtkWidget: makeTabbedWidget(me string: label)                         <- <%!makeAndroidFragmentView(%1)%>
     me void: setTabLabelText()                                                  <- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
     me GUI_Scalar: convertToGUIScalar()                                         <- <%!%G (float)(%1)%>
@@ -577,6 +584,11 @@ struct GLOBAL{
         ScrollView  scroller = new  ScrollView(GLOBAL.static_Global);
         scroller.setLayoutParams(new ViewGroup.LayoutParams(width, height));
         return(scroller);
+    }%>
+    their GUI_button: makeAndroidButton(me string: label)           <- <%{
+        Button btn = new Button(GLOBAL.static_Global);
+        btn.setText(label);
+        return btn;
     }%>
 }
 /-///////////////////////////////  ANDROID FRAGMENTS
@@ -765,7 +777,12 @@ struct GUI {
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
-    me void: setCallback2() <- <%!%G %1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%3();}})%>
+    me void: setBtnCallback()  <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%3();}})%>
+    me void: setBtnCallback2() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){
+	    public void onClick(View v) {
+		%5;
+	    }
+	})%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 /-    me GUI_Frame: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
