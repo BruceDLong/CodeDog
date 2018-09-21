@@ -65,8 +65,8 @@ struct wizardWidget{
 	buttonBox 	<- makeXStack("")
 	backBtn   	<- makeButtonWidget("Back")
 	nextBtn   	<- makeButtonWidget("Next")
-	GUI.setCallback2(backBtn, "clicked", clickBack, self)
-	GUI.setCallback2(nextBtn, "clicked", clickNext, self)
+	GUI.setBtnCallback(backBtn, "clicked", clickBack, self)
+	GUI.setBtnCallback(nextBtn, "clicked", clickNext, self)
 	addToContainer(box, ZStack)
 	addToContainer(buttonBox, backBtn)
 	addToContainer(buttonBox, nextBtn)
@@ -111,42 +111,42 @@ struct MatterTermWidget{
     me int:    decimalPlaces <- 0
     
     their GUI_Frame: makeMatterTermWidget(me string: name, our matterTerm: dataInit) <- {
-	/-/// DATA //////////////////////////////////////
-	data <- dataInit
-	me string: units <- data.units
-	/-/// MAKE WIDGETS //////////////////////////////
-	box              <- makeXStack("")
-	label		 <- makeLabelWidget2(name)
-	matterBox	 <- makeComboBox()
-	termBox		 <- makeSpinBox(initialValue, minValue, maxValue, decimalPlaces)
-	unitsBox	 <- makeLabelWidget2(units)
-	/-/// FILL WIDGETS //////////////////////////////
+        /-/// DATA //////////////////////////////////////
+        data <- dataInit
+        me string: units <- data.units
+        /-/// MAKE WIDGETS //////////////////////////////
+        box              <- makeXStack("")
+        label            <- makeLabelWidget2(name)
+        matterBox        <- makeComboBox()
+        termBox          <- makeSpinBox(initialValue, minValue, maxValue, decimalPlaces)
+        unitsBox         <- makeLabelWidget2(units)
+        /-/// FILL WIDGETS //////////////////////////////
         matterBox.setAndroidAdapter(matterTermArrayAdapter, String, data.matterTypes)
-	me int: count <-0
-	withEach matterType in data.matterTypes{
-	    matterBox.appendStringComboBox(toString(count),matterType, matterTermArrayAdapter)
-	    count <- count +1
-	}
-	/-/// ADD WIDGETS //////////////////////////////
-	addToContainer(box, label)
-	addToContainer(box, matterBox)
-	addToContainer(box, termBox)
-	addToContainer(box, unitsBox)
-	return(box)
+        me int: count <-0
+        withEach matterType in data.matterTypes{
+            matterBox.appendStringComboBox(toString(count),matterType, matterTermArrayAdapter)
+            count <- count +1
+        }
+        /-/// ADD WIDGETS //////////////////////////////
+        addToContainer(box, label)
+        addToContainer(box, matterBox)
+        addToContainer(box, termBox)
+        addToContainer(box, unitsBox)
+        return(box)
     }
     our matterTerm: getValue() <- {
-	our matterTerm: retVal
-	Allocate(retVal)
-	retVal.matterTypes <- data.matterTypes
-	retVal.matterIdx   <- matterBox.comboBoxGetActive()
-	retVal.term	   <- termBox.getValue()
-	retVal.units	   <- data.units
-	return(retVal)
+        our matterTerm: retVal
+        Allocate(retVal)
+        retVal.matterTypes <- data.matterTypes
+        retVal.matterIdx   <- matterBox.comboBoxGetActive()
+        retVal.term        <- termBox.getValue()
+        retVal.units       <- data.units
+        return(retVal)
     }
     void: setValue(our matterTerm: setVal) <- {
-	data.matterIdx     <- setVal.matterIdx
-	data.term	   <- setVal.term
-	data.units	   <- setVal.units
+        data.matterIdx     <- setVal.matterIdx
+        data.term          <- setVal.term
+        data.units         <- setVal.units
     }
 }
 struct GUI{
@@ -414,26 +414,38 @@ struct DateTimeWidget{
     void: setValue() <- {}
 }
 struct Agreement{
-    me string: text
+    me string: fileName
     me bool:   doesAgree 
 }
 struct AgreeWidget{
-    their GUI_Frame: box
-    their GUI_Label: textBox
-    their GUI_Bool:  agreeCheckBox
-    me Agreement:    agreement
+    their GUI_Frame:            box
+    their GUI_VerticalScroller: textScroller
+    their GUI_TextViewer:       textBox
+    their GUI_Frame:            agreeFrame
+    their GUI_Label:            agreeLabel
+    their GUI_Bool:             agreeCheckBox
+    me Agreement:               agreement
+    me string:                  bodyTxt 
     
-    their GUI_Frame: makeAgreeWidget(me string: text) <- {
-        agreement.text <- text
-	textBox        <- makeLabelWidget2(agreement.text)
-        agreeCheckBox  <- makeCheckBox()
+    their GUI_Frame: makeAgreeWidget(me string: fileName) <- {
+        agreement.fileName <- fileName
+        bodyTxt            <- readAssetAsString(agreement.fileName)
+        textScroller       <- makeVerticalScroller(1000,500)
+        textBox            <- makeTextViewer(bodyTxt)
+        /-/// CHECKBOX ////////////////////////////////
+        agreeFrame         <- makeXStack("")
+        agreeLabel         <- makeLabelWidget("I Accept")
+        agreeCheckBox      <- makeCheckBox()
         /-/// RETURN BOX //////////////////////////////
-        box            <- makeXStack("")
-        addToContainer(box, textBox)
-        addToContainer(box, agreeCheckBox)
+        box                <- makeYStack("")
+        addToContainer(textScroller, textBox)
+        addToContainer(agreeFrame, agreeLabel)
+        addToContainer(agreeFrame, agreeCheckBox)
+        addToContainer(box, textScroller)
+        addToContainer(box, agreeFrame)
         return(box)
     }
     me bool: getValue()            <- {agreeCheckBox.getValue()}
-    void: setValue(me bool: value) <- {agreeCheckBox.setValue(agreement.doesAgree)}
-    void: setText(me string: text) <- {textBox.setValue(agreement.text)}
+    void: setValue(me bool: value) <- {}
+    void: setText(me string: text) <- {}
 }

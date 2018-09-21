@@ -63,7 +63,7 @@ def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetSty
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
 
-def getButtonHandlingCode(classes, buttonLabel, callBackFuncName):
+def getButtonHandlingCode(classes, buttonLabel, fieldName):
     global newWidgetFields
     global widgetInitFuncCode
     # Add a button to widget and put it in box
@@ -71,7 +71,7 @@ def getButtonHandlingCode(classes, buttonLabel, callBackFuncName):
     widgetInitFuncCode   += '        their GUI_button: '+buttonsWidgetName+' <- makeButtonWidget("'+buttonLabel+'")\n'
     # make its onclick trigger
     # g_signal_connect(G_OBJECT(EnterButton), "clicked", G_CALLBACK(EntryPad_Dialog__EnterBtnCB), Data.get());
-    widgetInitFuncCode   += '        GUI.setCallback('+buttonsWidgetName+', "clicked", '+ buttonsWidgetName +'_CB, Data)\n'
+    widgetInitFuncCode   += '        GUI.setBtnCallback2('+buttonsWidgetName+', "clicked", '+ buttonsWidgetName +'_CB, Data,'+currentClassName+"_data."+fieldName+'())\n'
     widgetInitFuncCode   += '        addToContainer(box, '+buttonsWidgetName+')\n'
     # onClick() should call this.callback()
     #   GTK: void EntryPad_Dialog__EnterBtnCB(GtkWidget* wid, EntryPad* EPad){EPad->enter_btn();}
@@ -254,7 +254,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         typeName              = 'AgreeWidget'
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      = '        Allocate('+widgetName+')\n'
-        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeAgreeWidget("'+label+'")\n'
+        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeAgreeWidget("'+fieldName+'")\n'
         widgetFromVarsCode   += ''
         varsFromWidgetCode   += ''
     elif fieldType=='DateValue':

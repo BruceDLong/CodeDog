@@ -7,8 +7,8 @@ interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
-        android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.TextView,
-        android.widget.RelativeLayout, android.widget.FrameLayout, java.text.SimpleDateFormat,
+        android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.ScrollView, android.widget.TextView,
+        android.widget.RelativeLayout, android.widget.FrameLayout, java.text.SimpleDateFormat, java.util.Calendar,
         android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface, android.support.v4.content.ContextCompat,
         android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
         android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment, android.support.v4.app.DialogFragment,
@@ -42,6 +42,7 @@ struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me CanvasView: GUI_canvas}
 struct GUI_container{me LinearLayout:GUI_container}
 struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
+struct GUI_VerticalScroller{me ScrollView: GUI_VerticalScroller}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_Scalar{me float: GUI_Scalar}
@@ -51,10 +52,12 @@ struct GUI_button{me Button: GUI_button}
 struct GUI_XStack{their LinearLayout: GUI_XStack}
 struct GUI_YStack{their LinearLayout: GUI_YStack}
 struct GUI_ComboBox{their Spinner: GUI_ComboBox}
-struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 struct GUI_SpinBox{their Spinner: GUI_SpinBox}
 struct GUI_Bool{their CheckBox: GUI_Bool}
 struct GUI_Text{their EditText: GUI_Text}
+struct GUI_Entry{their GtkWidget: GUI_Entry}
+struct GUI_TextViewer{their TextView: GUI_TextViewer}
+struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 
 /-///////////////////////////////  WIDGET STRUCTS
 struct GUI_storyBoard: inherits=FragmentActivity{
@@ -86,7 +89,8 @@ struct intWidget{
 
     me int: getValue() <- <%{
         String strVal = dataValue.getText().toString();
-        int retVal   =  Integer.parseInt(strVal);
+	//TODO: handle no entry
+        int retVal    =  Integer.parseInt(strVal);
         return retVal;
     }%>
     me void: setValue(me int: value) <- <%{
@@ -116,7 +120,8 @@ struct intRangeWidget{
     me int: climbRate     <- 1
 
     me int: getValue() <- <%{
-        return 0;
+        int retVal = dataValue.getValue(); 
+	return retVal;
     }%>
     me void: setValue(me int: value) <- <%{
         
@@ -158,8 +163,8 @@ struct stringWidget{
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
         box.addView(dataLabel);
-        EditText dataValue = new EditText(GLOBAL.static_Global);
-        dataValue.setWidth(50);
+        dataValue = new EditText(GLOBAL.static_Global);
+        dataValue.setWidth(300);
         dataValue.setInputType(InputType.TYPE_CLASS_TEXT);
         box.addView(dataValue);
         return box;
@@ -169,15 +174,14 @@ struct dateWidget{
     their GUI_Frame:         box
     their GUI_Label:         dataLabel
     their GUI_Text:          dataValue
+    me timeValue:            data
     me SimpleDateFormat:     dateFormatter
     their DatePickerDialog:  datePickerDialog
     their Calendar:          calendar
     their OnDateSetListener: dateListener
     
     me timeValue: getValue() <- <%{
-        String strVal = dataValue.getText().toString();
-        long retVal   =  Long.parseLong(strVal);
-        return retVal;
+        return data;
     }%>
     me void: setValue(me timeValue: value) <- <%{
         dataValue.setText(dateFormatter.format(value));
@@ -193,9 +197,11 @@ struct dateWidget{
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
-                month = month + 1;
-                String date = month + "/" + day + "/" + year;
-                dataValue.setText(date);
+		calendar.set(year, month - 1, day, 0, 0); 
+		data = calendar.getTimeInMillis();
+		month = month + 1;
+                String dateStr = month + "/" + day + "/" + year;
+                dataValue.setText(dateStr);
             }
         };
         dataValue.setOnClickListener(new View.OnClickListener() {
@@ -220,7 +226,8 @@ struct enumWidget{
     me string[list]:    options
 
     me int: getValue() <- <%{
-        return 0;
+        int retVal = dataValue.getSelectedItemPosition();
+	return retVal;
     }%>
     me void: setValue(me int: val) <- <%{
         
@@ -242,15 +249,14 @@ struct enumWidget{
 }
 struct DateWidget{
     their GUI_Text:          dataValue
+    me timeValue:            data
     me SimpleDateFormat:     dateFormatter
     their Calendar:          calendar
     their DatePickerDialog:  datePickerDialog
     their OnDateSetListener: dateListener
 
     me timeValue: getValue() <- <%{
-        String strVal = dataValue.getText().toString();
-        long retVal   =  Long.parseLong(strVal);
-        return retVal;
+        return data;
     }%>
     me void: setValue(me timeValue: value) <- <%{
         dataValue.setText(dateFormatter.format(value));
@@ -266,7 +272,9 @@ struct DateWidget{
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
-                month = month + 1;
+                calendar.set(year, month - 1, day, 0, 0); 
+		data = calendar.getTimeInMillis();
+		month = month + 1;
                 String date = month + "/" + day + "/" + year;
                 dataValue.setText(date);
             }
@@ -303,8 +311,11 @@ struct TimeWidget{
         dataValue.setInputType(InputType.TYPE_NULL);
         timeListener = new TimePickerDialog.OnTimeSetListener() {
             @Override
-            public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-                dataValue.setText(hourOfDay + ":" + minute);
+            public void onTimeSet(TimePicker view, int hour, int minute) {
+		int tmpHour = hour*60*60*1000;
+		int tmpMinute = minute*60*1000;
+		data =  tmpHour + tmpMinute;
+		dataValue.setText(hour + ":" + minute);
             }
         };
         dataValue.setOnClickListener(new View.OnClickListener() {
@@ -322,26 +333,19 @@ struct TimeWidget{
         return box;
     }%>
     me timeValue: getValue() <- {
-        me timeValue: retVal <- dataValue.getValueAsTime()
-        return(retVal)
+        return(data)
     }
     void: setValue() <- {}
 }
 struct scrollerWidget{
-    their GUI_Frame: layoutArea <- (GLOBAL.static_Global)
     their NestedScrollView: scroller
 
-    their GUI_ScrollingWindow: makeScrollerWidget(their CanvasView: canvas) <- <%{
+    their GUI_ScrollingWindow: makeScrollerWidget() <- <%{
         scroller = new NestedScrollView(GLOBAL.static_Global);
         scroller.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
         hScroller.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
         scroller.addView(hScroller);
-        layoutArea = new LinearLayout(GLOBAL.static_Global);
-        layoutArea.setOrientation(LinearLayout.VERTICAL);
-        layoutArea.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-        hScroller.addView(layoutArea);
-        layoutArea.addView(canvas);
         return(scroller);
     }%>
 }
@@ -368,6 +372,7 @@ struct GUI_Bool{
 struct GUI_Label{
     void: setValue(me string: text)     <- <%!setText(%1)%>
 }
+
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
@@ -460,12 +465,14 @@ struct GLOBAL{
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G // TODO code converter for GLOBAL.addToZStack%>
     me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G // TODO code converter for GLOBAL.setZStackActive%>
-    their GUI_button: makeButtonWidget(me string: label)                         <- <%!%Gnew Button(GLOBAL.static_Global)%>
+    their GUI_button: makeButtonWidget(me string: label)                        <- <%!makeAndroidButton(%1)%>
     their GtkWidget: makeTabbedWidget(me string: label)                         <- <%!makeAndroidFragmentView(%1)%>
     me void: setTabLabelText()                                                  <- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
     me GUI_Scalar: convertToGUIScalar()                                         <- <%!%G (float)(%1)%>
     their GUI_Bool: makeCheckBox()                                              <- <%!%G new CheckBox(GLOBAL.static_Global)%>
-
+    their GUI_VerticalScroller: makeVerticalScroller(me int: width, me int: height) <- <%!makeAndroidVerticalScroller(%1,%2)%>
+    their GUI_TextViewer: makeTextViewer(me string: text)                       <- <%!makeAndroidTextViewer(%1)%>
+    
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         NumberPicker numberPicker  = new NumberPicker(GLOBAL.static_Global);
@@ -568,7 +575,21 @@ struct GLOBAL{
         box.setOrientation(LinearLayout.VERTICAL);
         return box;
     }%>
-
+    their GUI_TextViewer: makeAndroidTextViewer(me string: text)   <- <%{
+        TextView textViewer = new TextView(GLOBAL.static_Global);
+        textViewer.setText(text);
+        return textViewer;
+    }%>
+    their GUI_VerticalScroller: makeAndroidVerticalScroller(me int: width, me int: height) <- <%{
+        ScrollView  scroller = new  ScrollView(GLOBAL.static_Global);
+        scroller.setLayoutParams(new ViewGroup.LayoutParams(width, height));
+        return(scroller);
+    }%>
+    their GUI_button: makeAndroidButton(me string: label)           <- <%{
+        Button btn = new Button(GLOBAL.static_Global);
+        btn.setText(label);
+        return btn;
+    }%>
 }
 /-///////////////////////////////  ANDROID FRAGMENTS
 struct GLOBAL{
@@ -756,7 +777,12 @@ struct GUI {
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
-    me void: setCallback2() <- <%!%G %1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%3();}})%>
+    me void: setBtnCallback()  <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%3();}})%>
+    me void: setBtnCallback2() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){
+	    public void onClick(View v) {
+		%5;
+	    }
+	})%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 /-    me GUI_Frame: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
@@ -933,8 +959,21 @@ struct GLOBAL: inherits=AppCompatActivity{
             cr.GCanvas.drawBitmap(newBitmap, (float)x, (float)y, cr.paint);
             Log.v("TAG", "display image: " + filename);
         } catch (IOException e) {Log.e("TAG", e.getMessage());}
+    }%>
+    me string: readAssetAsString(me string: filename) <- <%{
+        String text = "";
+        try {
+            InputStream inputStream = getAssets().open(filename);
+            int size = inputStream.available();
+            byte[] buffer = new byte[size];
+            inputStream.read(buffer);
+            inputStream.close();
+            text = new String(buffer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return text;
    }%>
-
     /- //GUI INTERFACE:
     me void: onCreate(me Bundle: savedInstanceState) <- <%{
         super.onCreate(savedInstanceState);
