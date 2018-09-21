@@ -29,6 +29,7 @@ struct GUI_menuItem{their GtkWidget: GUI_menuItem}
 struct GUI_canvas{their GtkWidget: GUI_canvas}
 struct GUI_container{their GtkContainer:GUI_container}
 struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
+struct GUI_VerticalScroller{their GtkWidget: GUI_VerticalScroller}
 struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_Scalar{me int: GUI_Scalar}
@@ -38,14 +39,15 @@ struct GUI_button{their GtkButton: GUI_button}
 struct GUI_XStack{their GtkWidget: GUI_XStack}
 struct GUI_YStack{their GtkWidget: GUI_YStack}
 struct GUI_ComboBox{their GtkWidget: GUI_ComboBox}
-struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 struct GUI_SpinBox{their GtkWidget: GUI_SpinBox}
 struct GUI_Bool{their GtkWidget: GUI_Bool}
 struct GUI_Text{their GtkWidget: GUI_Text}
 struct GUI_Entry{their GtkWidget: GUI_Entry}
+struct GUI_TextViewer{their GtkWidget: GUI_TextViewer}
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
 struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
+struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
@@ -93,7 +95,7 @@ struct intWidget{
         gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
         gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
         gtk_container_add(GTK_CONTAINER (box), dataLabel);
-	dataValue = gtk_entry_new();
+        dataValue = gtk_entry_new();
         gtk_container_add(GTK_CONTAINER (box), dataValue);
         return box;
     }%>
@@ -306,6 +308,9 @@ struct GUI_Bool{
 struct GUI_Label{
     void: setValue(me string: text)     <- <%!gtk_label_set_text (GTK_LABEL(%0), %1.data())%>
 }
+struct GUI_TextViewer{
+    me void: setEditable(me bool: isEditable)                 <- <%!gtk_text_view_set_editable(GTK_TEXT_VIEW(%0), %1)%>
+}
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
@@ -448,34 +453,53 @@ struct ListManagerBox{
 
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
-    their GtkWidget: makeBoolWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeFloatWidget(me string: label)       	<- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeBoolWidget(me string: label)           <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeFloatWidget(me string: label)          <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Ggtk_spin_button_new(gtk_adjustment_new(%1,%2,%3,1,10,10),1,%4)%>
-    their GtkWidget: makeNumRangeWidget(me string: label)    	<- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeRangeWidget(me string: label)       	<- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeTimeWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeDateWidget(me string: label)        	<- <%!%Ggtk_entry_new()%>
-    their GtkWidget: makeTimeWidget()        		     	<- <%!%Ggtk_combo_box_text_new()%>
-    their GtkWidget: makeDateWidget()                        	<- <%!%Ggtk_combo_box_text_new()%>
-    their GtkButton: makeButtonWidget(me string: label)      	<- <%!%G(GtkButton*)gtk_button_new_with_label(%1)%>
-    their GtkWidget: makeListWidget(me string: label)        	<- <%!%Ggtk_list_box_new()%>
-    their GtkWidget: makeRowWidget(me string: label)         	<- <%!%Ggtk_list_box_row_new()%>
-    their GtkWidget: makeYStack(me string: label)            	<- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
-    their GtkWidget: makeXStack(me string: label)             	<- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
-    their GtkWidget: makeZStack(me string: label)       	<- <%!%Ggtk_stack_new()%>
-    their GtkWidget: makeTabbedWidget(me string: label)      	<- <%!%Ggtk_notebook_new()%>
-    their GtkWidget: makeLabelWidget(me string: label)       	<- <%!%Ggtk_label_new(%1)%>
-    their GtkWidget: makeLabelWidget2(me string: label)       	<- <%!%Ggtk_label_new(%1.data())%>
-    their GtkWidget: makeComboBox(me string: label)          	<- <%!%Ggtk_combo_box_text_new()%>
-    their GtkWidget: makeEntryBox(me string: label)         	<- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeNumRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeRangeWidget(me string: label)          <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget(me string: label)           <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeDateWidget(me string: label)           <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget()                           <- <%!%Ggtk_combo_box_text_new()%>
+    their GtkWidget: makeDateWidget()                           <- <%!%Ggtk_combo_box_text_new()%>
+    their GtkButton: makeButtonWidget(me string: label)         <- <%!%G(GtkButton*)gtk_button_new_with_label(%1)%>
+    their GtkWidget: makeListWidget(me string: label)           <- <%!%Ggtk_list_box_new()%>
+    their GtkWidget: makeRowWidget(me string: label)            <- <%!%Ggtk_list_box_row_new()%>
+    their GtkWidget: makeYStack(me string: label)               <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
+    their GtkWidget: makeXStack(me string: label)               <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
+    their GtkWidget: makeZStack(me string: label)               <- <%!%Ggtk_stack_new()%>
+    their GtkWidget: makeTabbedWidget(me string: label)         <- <%!%Ggtk_notebook_new()%>
+    their GtkWidget: makeLabelWidget(me string: label)          <- <%!%Ggtk_label_new(%1)%>
+    their GtkWidget: makeLabelWidget2(me string: label)         <- <%!%Ggtk_label_new(%1.data())%>
+    their GtkWidget: makeComboBox(me string: label)             <- <%!%Ggtk_combo_box_text_new()%>
+    their GtkWidget: makeEntryBox(me string: label)             <- <%!%Ggtk_entry_new()%>
     me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
     me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
     their GtkWidget: getListRowSelected(their listWidget: listWidgetView) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
     me void: setTabLabelText() <- <%!%Ggtk_notebook_set_tab_label_text(GTK_NOTEBOOK(%1), %2, %3)%>
-    me GUI_Scalar: convertToGUIScalar()						    <- <%!%G%1%>
-    their GUI_Bool: makeCheckBox()                               <- <%!%Ggtk_check_button_new()%>
-
+    me GUI_Scalar: convertToGUIScalar()                                    <- <%!%G%1%>
+    their GUI_Bool: makeCheckBox()                                         <- <%!%Ggtk_check_button_new()%>
+    their GUI_VerticalScroller: makeVerticalScroller(me int: width, me int: height) <- <%!%GmakeGTKVerticalScroller(%1,%2)%>
+    their GUI_TextViewer: makeTextViewer(me string: text)                  <- <%!%GmakeGTKTextViewer(%1)%>
+    
+    their GUI_TextViewer: makeGTKTextViewer(me string: text)    <- <%{
+        GtkWidget *textViewer = gtk_text_view_new();
+        GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW (textViewer));
+        int length = strlen(text.data());
+        gtk_text_buffer_set_text (buffer,text.data(),length);
+        gtk_text_view_set_editable(GTK_TEXT_VIEW(textViewer), FALSE);
+        gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(textViewer), FALSE);
+        gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(textViewer),GTK_WRAP_WORD);
+        return textViewer;
+    }%>
+    their GUI_VerticalScroller: makeGTKVerticalScroller(me int: width, me int: height) <- <%{
+        GtkWidget* scroller = gtk_scrolled_window_new(NULL, NULL);
+        gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroller),height);
+        gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(scroller),width);
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+        return(scroller);
+    }%>
     their GtkWidget: makeListEditorWidget(their GtkWidget: listWidgetView) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         gtk_box_pack_start(GTK_BOX(box), listWidgetView, true, true, 0);
@@ -553,18 +577,18 @@ struct GTK_eventDispatcher{
     me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
         if(event->type==GDK_BUTTON_PRESS){
             if(event->button==1){
-		topWidget->primaryDn(event);
+                topWidget->primaryDn(event);
             } else if(event->button==3){
                 topWidget->secondaryClick(event);
             }
         } else if(event->type==GDK_BUTTON_RELEASE){
-	    if(event->button==1){
-		topWidget->primaryUp(event);
-		topWidget->primaryClick(event);
-	    } else if(event->button==3){
-		topWidget->secondaryUp(event);
-	    }
-	}
+            if(event->button==1){
+                topWidget->primaryUp(event);
+                topWidget->primaryClick(event);
+            } else if(event->button==3){
+                topWidget->secondaryUp(event);
+            }
+        }
         return false;
     } %>
     me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
@@ -579,12 +603,12 @@ struct GTK_eventDispatcher{
 /-      g_signal_connect (Widget, "configure_event",   G_CALLBACK(configure_event), topWidget);
         g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), topWidget);
         g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), topWidget);
-	g_signal_connect (Widget, "button_release_event",  G_CALLBACK(button_release_event), topWidget);
+        g_signal_connect (Widget, "button_release_event",  G_CALLBACK(button_release_event), topWidget);
 
         gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
              | GDK_LEAVE_NOTIFY_MASK
              | GDK_BUTTON_PRESS_MASK
-	     | GDK_BUTTON_RELEASE_MASK
+             | GDK_BUTTON_RELEASE_MASK
              | GDK_POINTER_MOTION_MASK
              | GDK_POINTER_MOTION_HINT_MASK);
     } %>
@@ -617,12 +641,12 @@ struct GLOBAL{
         return(true);
     }%>
     void: clickBack_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
-	wizardWidget* clickWidget = (wizardWidget*)wizard;
-	clickWidget->clickBack();
+        wizardWidget* clickWidget = (wizardWidget*)wizard;
+        clickWidget->clickBack();
     }%>
     void: clickNext_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
-	wizardWidget* clickWidget = (wizardWidget*)wizard;
-	clickWidget->clickNext();
+        wizardWidget* clickWidget = (wizardWidget*)wizard;
+        clickWidget->clickNext();
     }%>
 }
 
@@ -846,7 +870,12 @@ struct GLOBAL{
         cairo_paint(cr);
         cairo_restore(cr);
     } %>
-
+    me string: readAssetAsString(me string: filename) <- <%{
+        string text = "";
+        string fileDir = getFilesDirAsString()+"/"+filename;
+        text = readFileAsString(fileDir);
+        return text;
+   }%>
     /- //GUI INTERFACE:
     /* Surface to store current scribbles */
     their cairo_surface_t: surface <- 0

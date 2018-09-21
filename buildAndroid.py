@@ -122,20 +122,20 @@ def androidManifest(topDomain, domain, appName, workingDir):
     fo.close()
 
 def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, outStr):
-    fileExt = '.java'
-    topDomain = "com"
-    domain = "infomage"
-    currentDir = os.getcwd()
-    workingDir = currentDir + '/' + buildName
-    fileName = 'GLOBAL'
-    packageDir = '/src/main/java/'+topDomain+'/'+domain+'/'+fileName
-    packageName = topDomain+'.'+domain+'.'+fileName
+    fileExt        = '.java'
+    topDomain      = "com"
+    domain         = "infomage"
+    currentDir     = os.getcwd()
+    workingDir     = currentDir + '/' + buildName
+    fileName       = 'GLOBAL'
+    packageDir     = '/src/main/java/'+topDomain+'/'+domain+'/'+fileName
+    assetsDir      = '/src/main/assets'
+    packageName    = topDomain+'.'+domain+'.'+fileName
     targetPlatform = ""
-    dirsToGen = ['/assets', packageDir]
-
+    dirsToGen = [assetsDir, packageDir]
     print 'Building for Android'
     pathAndroid(workingDir, dirsToGen)
-    copyTree("Resources", buildName+"/assets")
+    copyTree("Resources", buildName+assetsDir)
     writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName)
     gradleFile(topDomain, domain, fileName, workingDir)
     androidManifest(topDomain, domain, fileName, workingDir+'/src/main')
