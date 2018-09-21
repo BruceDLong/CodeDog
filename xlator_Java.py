@@ -1,11 +1,4 @@
-
-"""
-This file, along with Lib_Java.py specify to the CodeGenerater how to compile CodeDog source code into Java source code.
-
-
-
-"""
-
+#This file, along with Lib_Java.py specify to the CodeGenerater how to compile CodeDog source code into Java source code.
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, logLvl
@@ -17,36 +10,45 @@ def getContainerType(typeSpec, actionOrField):
     if 'owner' in containerSpec: owner=containerSpec['owner']
     else: owner='me'
     idxType=''
-    if 'indexType' in containerSpec:
-        if 'IDXowner' in containerSpec:
-            idxOwner=containerSpec['IDXowner']
-            idxType=containerSpec['idxBaseType'][0]
-            idxType=applyOwner(idxOwner, idxType, 'IDX ERROR', containerSpec['indexType'], actionOrField, '')
-        else: idxType=containerSpec['idxBaseType'][0]
-        #idxType=containerSpec['indexType']
-        if idxType[0:4]=='uint': idxType = 'int'
-        elif idxType=='string': idxType = 'String'
+    if progSpec.isAContainer(typeSpec):
+        if 'indexType' in containerSpec:
+            if 'IDXowner' in containerSpec:
+                idxOwner=containerSpec['IDXowner']
+                idxType=containerSpec['idxBaseType'][0]
+                idxType=applyOwner(idxOwner, idxType, 'IDX ERROR', containerSpec['indexType'], actionOrField, '')
+            else: idxType=containerSpec['idxBaseType'][0]
+        else:
+            idxType = progSpec.getFieldType(typeSpec)
+        convertToJavaType(idxType, True)
 
     datastructID = containerSpec['datastructID']
     if(datastructID=='list'):       datastructID = 'ArrayList'
     elif(datastructID=='map'):      datastructID = 'TreeMap'
     elif(datastructID=='multimap'): datastructID = 'TreeMap'  # TODO: Implement true multmaps in java
-    if (idxType == 'timeValue'):
-        if(containerSpec!= None):
-            idxType = 'Long'
-        else:
-            idxType = 'long'
     return [datastructID, idxType, owner]
 
-def convertToJavaType(fieldType):
-    if(fieldType=='int32'):     javaType='int'
-    elif(fieldType=='uint32' or fieldType=='uint64' or fieldType=='uint'):javaType='int'  # these should be long but Java won't allow
-    elif(fieldType=='int64'):   javaType='int'
-    elif(fieldType=='char' ):   javaType='char'
-    elif(fieldType=='bool' ):   javaType='boolean'
-    elif(fieldType=='string'):  javaType='String'
-    else: javaType=progSpec.flattenObjectName(fieldType)
-    #print "javaType: ", javaType
+def convertToJavaType(fieldType, isContainer):
+    javaType = ''
+    if fieldType !="":
+        if isContainer:
+            if fieldType=='int':         javaType = 'Integer'
+            elif fieldType=='long':      javaType = 'Long'
+            elif fieldType=='double':    javaType = 'Double'
+            elif fieldType=='timeValue': javaType = 'Long' # this is hack and should be removed ASAP
+            elif fieldType=='int64':     javaType = 'Long'
+            elif fieldType=='string':    javaType = 'String'
+            elif fieldType=='uint':      javaType = 'Integer'
+            else:                        
+                javaType = fieldType
+                #print "javaType: ", javaType
+        else:
+            if(fieldType=='int32'):      javaType= 'int'
+            elif(fieldType=='uint32' or fieldType=='uint64' or fieldType=='uint'):javaType='int'  # these should be long but Java won't allow
+            elif(fieldType=='int64'):    javaType= 'int'
+            elif(fieldType=='char' ):    javaType= 'char'
+            elif(fieldType=='bool' ):    javaType= 'boolean'
+            elif(fieldType=='string'):   javaType= 'String'
+            else: javaType=progSpec.flattenObjectName(fieldType)
     return javaType
 
 def convertType(classes, TypeSpec, varMode, actionOrField, xlator):
@@ -95,10 +97,12 @@ def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
 
 def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'.
+    if progSpec.isAContainer(TypeSpec): isContainer=True
+    else: isContainer=False
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        langType= convertToJavaType(fieldType)
+        langType= convertToJavaType(fieldType, isContainer)
     else: langType=progSpec.flattenObjectName(fieldType[0])
     langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', actionOrField, varMode)
     if langType=='TYPE ERROR': print langType, owner, fieldType;
@@ -114,18 +118,12 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
             [containerType, idxType, owner]=getContainerType(TypeSpec, actionOrField)
             if 'owner' in containerSpec:    containerOwner=containerSpec['owner']
             else:                           containerOwner='me'
-
-            if idxType=='int':              idxType  = 'Integer'
-            if langType=='int':             langType = 'Integer'; InnerLangType = 'Integer'
-            if idxType=='long':             idxType  = 'Long'
-            if langType=='long':            langType = 'Long'; InnerLangType = 'Long'
-            if langType=='double':          langType = 'Double'; InnerLangType = 'Double'
-            if idxType=='timeValue':        idxType  = 'Long' # this is hack and should be removed ASAP
-
+            idxType = convertToJavaType(idxType, True)
+            langType = convertToJavaType(langType, True)
+            InnerLangType = langType
             if containerType=='ArrayList':  langType ="ArrayList<"+langType+'>'
             elif containerType=='TreeMap':  langType ='TreeMap<'+idxType+', '+langType+'>'
             elif containerType=='multimap': langType ='multimap<'+idxType+', '+langType+'>'
-
             if varMode != 'alloc':          langType=applyOwner(containerOwner, langType, InnerLangType, idxType, actionOrField, varMode)
     if owner =="const":                     InnerLangType = fieldType
     return [langType, InnerLangType]
@@ -290,26 +288,35 @@ def codeFactor(item, objsRefed, returnType, xlator):
         elif item0=='[':
             count=0
             tmp="(Arrays.asList("
-            paramTypeSpec = '' #<PARAMTYPE>'
             for expr in item[1:-1]:
                 count+=1
-                [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, xlator)
-                if retTypeSpec=='String' or retTypeSpec=='int':paramTypeSpec=''
-                if retTypeSpec=='noType':retTypeSpec='' #<LISTTYPE>'
+                [S2, exprTypeSpec] = codeExpr(expr, objsRefed, returnType, xlator)
+                if not exprTypeSpec=='noType':
+                    retTypeSpec = convertToJavaType(exprTypeSpec, True)
                 if count>1: tmp+=', '
                 tmp+=S2
-                if retTypeSpec=='' and expr > 2147483647: tmp+="L"
-                tmp+=paramTypeSpec
+                if exprTypeSpec=='Long' or exprTypeSpec=='noType': 
+                    if '*' in S2:
+                        numVal = S2
+                        #print 'numVal', numVal
+                    elif long(S2) > 2147483647:
+                        tmp+="L"
+                        retTypeSpec = 'Long'
             tmp+="))"
-            if retTypeSpec=='String' or retTypeSpec=='int':paramTypeSpec=''
-            S+='new '+'ArrayList<'+progSpec.fieldTypeKeyword(retTypeSpec)+'>'+tmp   # ToDo: make this handle things other than long.
+            typeKeyword = progSpec.fieldTypeKeyword(retTypeSpec)
+            typeKeyword = convertToJavaType(typeKeyword, True)
+            S+='new '+'ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
         else:
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
             else:                 S+=item0;
-    else:
+    else: # CODEDOG LITERALS
         if isinstance(item0[0], basestring):
             S+=item0[0]
+            if '"' in S or "'" in S: retTypeSpec = 'string'
+            if '.' in S: retTypeSpec = 'double'
+            if isinstance(S, long): retTypeSpec = 'int64'
+            else:  retTypeSpec = 'int32'
         else:
             [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, xlator)
             if(codeStr=="NULL"): codeStr="null"
@@ -438,9 +445,6 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 if(count!=0): S+=" + "
                 count+=1
                 [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
-                if ("<MODENAME>" in S2):
-                    S2=S2.replace("<MODENAME>", ".get(")
-                    S2=S2.replace("<MODENAMEend>", ")")
                 S+=S2
             S+=")"
         elif(funcName=='AllocateOrClear'):
@@ -477,7 +481,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if LorR_Val=='RVAL':
         #Next line may be cause of bug with printing modes.  remove 'not'?
-        if (previousSegName in getModeStateNames()): S= '<MODENAME>' + idx + '<MODENAMEend>'
+        if (previousSegName in getModeStateNames()): S= '.get(' + idx + ')'
         elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
             S= '.get(' + idx + ')'
         elif (containerType== 'string'): S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
@@ -628,6 +632,7 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        keyFieldType = convertToJavaType(keyFieldType, True)
         actionText += (indent + 'for(Map.Entry<'+keyFieldType+',Integer> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
                        indent + indent +'int '+ repName + ' = ' + repName+'Entry.getValue();\n' +
                        indent + indent +keyFieldType +' '+ repName + '_key = ' + repName+'Entry.getKey();\n\n'  )
@@ -664,11 +669,9 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
         [containedTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
         [indexTypeStr, innerType]=xlator['convertType'](classes, keyVarSpec, 'var', actionOrField, xlator)
-        if indexTypeStr=='int': indexTypeStr = 'Integer'
-        elif indexTypeStr=='long': indexTypeStr = 'Long'
+        indexTypeStr = convertToJavaType(indexTypeStr, True)
         iteratorTypeStr="Map.Entry<"+indexTypeStr+', '+containedTypeStr+'>'
         repContainer+='.entrySet()'
-
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
         return [actionText, loopCounterName]

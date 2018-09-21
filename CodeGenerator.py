@@ -382,10 +382,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         [CPL, paramTypeList] = codeParameterList(name, paramList, modelParams, objsRefed, xlator)
         S+= CPL
     if(typeSpecOut==None): cdlog(logLvl(), "Type for {} was not found.".format(name))
-
-    if ("<MODENAME>" in S):
-        S=S.replace("<MODENAME>", ".get(")
-        S=S.replace("<MODENAMEend>", ")")
     return [S,  typeSpecOut, None, SRC]
 
 def codeUnknownNameSeg(segSpec, objsRefed, xlator):

@@ -22,162 +22,163 @@ struct graphScale: inherits=dash{
     me timeValue: divisor
 
     void: initScale(me string: titleStr, me bool: IsVisible, me int: TicksPerStep,  me bool: TextSlant, me bool: IsDate) <- {
-        title        <- titleStr
-        isVisible    <- IsVisible
-        ticksPerStep <- TicksPerStep
-        textSlant    <- TextSlant
-        isDate       <- IsDate
+	title        <- titleStr
+	isVisible    <- IsVisible
+	ticksPerStep <- TicksPerStep
+	textSlant    <- TextSlant
+	isDate	     <- IsDate
     }
 }
 
 struct verticalScale: inherits=graphScale{
     void: draw(me GUI_ctxt: cr) <- {
-        me GUI_Scalar:    XPoint  <- 0
-        me GUI_Scalar:    YPoint  <- 0
-        me deltaSize: size
-        me int:       labelWidth <- 0
-        me string:    label
-        me string:    justify <- ""
+	me GUI_Scalar:    XPoint  <- 0
+	me GUI_Scalar:    YPoint  <- 0
+	me deltaSize: size
+	me int:       labelWidth <- 0
+	me string:    label
+	me string:    justify <- ""
+	
+	/- AXIS VALUE LABELS
+	withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
+	    label <- dblToString(val*step+lowVal, 2)
+	    size <- getTextSize(cr, label, styler.fontSmall)
+	    YPoint <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
+	    if(textSlant){
+		if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding+size.height/2}
+		else               {XPoint <- xOrig+tickOffset-3*tickPadding; justify <- "right"}
+		size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
+	    }else{
+		if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding}
+		else               {XPoint <- xOrig+tickOffset-3*tickPadding-size.width}
+		renderText(cr, label, styler.fontSmall, XPoint, YPoint)
+	    }
+	    if(size.width > labelWidth){labelWidth <- size.width}
+	}
 
-        /- AXIS VALUE LABELS
-        withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
-            label <- dblToString(val*step+lowVal, 2)
-            size <- getTextSize(cr, label, styler.fontSmall)
-            YPoint <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
-            if(textSlant){
-            if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding+size.height/2}
-            else               {XPoint <- xOrig+tickOffset-3*tickPadding; justify <- "right"}
-            size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
-            }else{
-            if (tickOffset > 0){XPoint <- xOrig+tickOffset+3*tickPadding}
-            else               {XPoint <- xOrig+tickOffset-3*tickPadding-size.width}
-            renderText(cr, label, styler.fontSmall, XPoint, YPoint)
-            }
-            if(size.width > labelWidth){labelWidth <- size.width}
-        }
+	/- AXIS TICK MARKS
+	if(ticksPerStep>0){
+	    tickStep <- step/ticksPerStep
+	    cr.setLineWidth(1)
+	    withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
+		if (tickOffset > 0){XPoint <- xOrig+3}
+		else               {XPoint <- xOrig-3}
+		YPoint <- yOrig - convertToGUIScalar(val)*tickStep*span/(hiVal-lowVal)
+		cr.moveTo(XPoint, YPoint)
+		cr.lineTo(XPoint+tickOffset, YPoint)
+	    }
+	    cr.strokeNow()
+	}
 
-        /- AXIS TICK MARKS
-        if(ticksPerStep>0){
-            tickStep <- step/ticksPerStep
-            cr.setLineWidth(1)
-            withEach val in RANGE(0.. (hiVal-lowVal)/tickStep+1){
-            if (tickOffset > 0){XPoint <- xOrig+3}
-            else               {XPoint <- xOrig-3}
-            YPoint <- yOrig - convertToGUIScalar(val)*tickStep*span/(hiVal-lowVal)
-            cr.moveTo(XPoint, YPoint)
-            cr.lineTo(XPoint+tickOffset, YPoint)
-            }
-            cr.strokeNow()
-        }
-
-        /- SCALE TITLE
-        me int: degree
-        if (tickOffset > 0){XPoint <- xOrig+labelWidth+tickOffset+3*tickPadding+titlePadding; degree <- 90}
-        else               {XPoint <- xOrig-labelWidth+tickOffset-3*tickPadding-titlePadding; degree <- -90}
-        rotate(cr, XPoint, YPoint+span/2, degree)
-        renderTextCentered(cr, title, styler.fontDefault, XPoint, YPoint+span/2)
-        restore(cr)
-        cr.strokeNow()
+	/- SCALE TITLE
+	me int: degree
+	if (tickOffset > 0){XPoint <- xOrig+labelWidth+tickOffset+3*tickPadding+titlePadding; degree <- 90}
+	else               {XPoint <- xOrig-labelWidth+tickOffset-3*tickPadding-titlePadding; degree <- -90}
+	rotate(cr, XPoint, YPoint+span/2, degree)
+	renderTextCentered(cr, title, styler.fontDefault, XPoint, YPoint+span/2)
+	restore(cr)
+	cr.strokeNow()
     }
-
+    
     void: setScale(me GUI_Scalar: Span, me timeValue: LowVal, me timeValue: HiVal, me int: Step, me GUI_Scalar: XOrig, me GUI_Scalar: YOrig, me int: TickOffset) <- {
-        span         <- Span    /- length of axis (width or height of graph)
-        lowVal       <- LowVal
-        hiVal        <- HiVal
-        step         <- Step
-        xOrig        <- XOrig
-        yOrig        <- YOrig
-        tickOffset   <- TickOffset
+	span         <- Span	/- length of axis (width or height of graph)
+	lowVal       <- LowVal
+	hiVal        <- HiVal
+	step         <- Step	
+	xOrig        <- XOrig
+	yOrig        <- YOrig
+	tickOffset   <- TickOffset
     }
 }
 
 struct horizontalScale: inherits=graphScale{
     void: draw(me GUI_ctxt: cr) <- {
-        me GUI_Scalar:     XPoint <- 0
-        me GUI_Scalar:     YPoint <- 0
-        me deltaSize:  size
-        me int:        labelHeight <- 0
-        me int:        tickHeight  <- 0
-        me string:     label
-        me string:     justify <- ""
-        me sysLocale:  loc
-        me timeValue:  firstTick
-        me timeValue:  remainder
+	me GUI_Scalar:     XPoint <- 0
+	me GUI_Scalar:     YPoint <- 0
+	me deltaSize:  size
+	me int:        labelHeight <- 0
+	me int:        tickHeight  <- 0
+	me string:     label
+	me string:     justify <- ""
+/-	me sysLocale:  loc
+/-	me UErrorCode: status <- U_ZERO_ERROR
+	me timeValue:  firstTick
+	me timeValue:  remainder
+	
+/-	loc <- unicodeMgr.SetLocale("en")
+	remainder <- hiVal % divisor
+	firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
+/-	me string: firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
+	
+/*	if (step >= 1000*60*60*24) {
+	    while(firstTickHr != "24") {
+		remainder <- remainder + 1000*60*60
+		firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
+		firstTickHr <- unicodeMgr.getHour(firstTick, loc, status)
+	    }
+	}*/
 
-        loc <- unicodeMgr.SetLocale("en")
-        remainder <- hiVal % divisor
-        firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
-        me string: firstTickHr <- unicodeMgr.getHour(firstTick, loc)
+	/- AXIS VALUE LABELS
+	withEach val in RANGE(0.. (hiVal-lowVal)/step){
+/-	    if(isDate){label <- unicodeMgr.dateToIntlString(val*step+firstTick, hiVal-lowVal, loc, status)}
+/-	    else      {label <- dblToString(val*step+firstTick, 2)}
+	    size <- getTextSize(cr, title, styler.fontSmall)
+	    if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPoint <- yOrig+tickHeight+size.height}
+	    else               {tickHeight  <- tickOffset-3*tickPadding; YPoint <- yOrig+tickHeight}
+	    if(textSlant){
+		if (tickOffset > 0){
+		    XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
+		    justify <- "right"
+		    YPoint <- YPoint - 10
+		}
+		else{XPoint <- xOrig+val*step*span/(hiVal-lowVal)}
+		size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
+	    }else{
+		XPoint <- xOrig+(val*step + firstTick - lowVal)*span/(hiVal-lowVal)-5
+		size <- renderTextCentered(cr, label, styler.fontSmall, XPoint, YPoint)
+	    }
+	    if(size.height > labelHeight){labelHeight <- size.height}
+	    cr.strokeNow()
+	}
 
-        if (step >= 1000*60*60*24) {
-            while(firstTickHr != "24") {
-                remainder <- remainder + 1000*60*60
-                firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
-                firstTickHr <- unicodeMgr.getHour(firstTick, loc)
-            }
-        }
+	/- AXIS TICK MARKS
+	if(ticksPerStep>0){
+	    tickStep <- step/ticksPerStep
+	    cr.setLineWidth(1)
+	    withEach val in RANGE(0.. (hiVal-lowVal)/tickStep){
+		if (tickOffset > 0){YPoint <- yOrig+tickPadding}
+		else               {YPoint <- yOrig-tickPadding}
+		XPoint <- xOrig + (val*tickStep + firstTick - lowVal)*span/(hiVal-lowVal)
+		cr.moveTo(XPoint, YPoint)
+		cr.lineTo(XPoint, YPoint+tickOffset)
+	    }
+	    cr.strokeNow()
+	}
 
-        /- AXIS VALUE LABELS
-        withEach val in RANGE(0.. (hiVal-lowVal)/step){
-            if(isDate){label <- unicodeMgr.dateToIntlString(val*step+firstTick, hiVal-lowVal, loc)}
-            else      {label <- dblToString(val*step+firstTick, 2)}
-            size <- getTextSize(cr, title, styler.fontSmall)
-            if (tickOffset > 0){tickHeight  <- tickOffset+3*tickPadding; YPoint <- yOrig+tickHeight+size.height}
-            else               {tickHeight  <- tickOffset-3*tickPadding; YPoint <- yOrig+tickHeight}
-            if(textSlant){
-            if (tickOffset > 0){
-                XPoint <- xOrig+val*step*span/(hiVal-lowVal)-5
-                justify <- "right"
-                YPoint <- YPoint - 10
-            }
-            else{XPoint <- xOrig+val*step*span/(hiVal-lowVal)}
-            size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
-            }else{
-            XPoint <- xOrig+(val*step + firstTick - lowVal)*span/(hiVal-lowVal)-5
-            size <- renderTextCentered(cr, label, styler.fontSmall, XPoint, YPoint)
-            }
-            if(size.height > labelHeight){labelHeight <- size.height}
-            cr.strokeNow()
-        }
-
-        /- AXIS TICK MARKS
-        if(ticksPerStep>0){
-            tickStep <- step/ticksPerStep
-            cr.setLineWidth(1)
-            withEach val in RANGE(0.. (hiVal-lowVal)/tickStep){
-            if (tickOffset > 0){YPoint <- yOrig+tickPadding}
-            else               {YPoint <- yOrig-tickPadding}
-            XPoint <- xOrig + (val*tickStep + firstTick - lowVal)*span/(hiVal-lowVal)
-            cr.moveTo(XPoint, YPoint)
-            cr.lineTo(XPoint, YPoint+tickOffset)
-            }
-            cr.strokeNow()
-        }
-
-        /- SCALE TITLE
-        size <- getTextSize(cr, title, styler.fontDefault)
-        if(tickOffset > 0){YPoint <- yOrig+tickHeight+labelHeight+titlePadding+size.height}
-        else              {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
-        renderText(cr, title, styler.fontDefault, xOrig+span/2, YPoint)
-        cr.strokeNow()
+	/- SCALE TITLE
+	size <- getTextSize(cr, title, styler.fontDefault)
+	if(tickOffset > 0){YPoint <- yOrig+tickHeight+labelHeight+titlePadding+size.height}
+	else              {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
+	renderText(cr, title, styler.fontDefault, xOrig+span/2, YPoint)
+	cr.strokeNow()
     }
-
+    
     void: setScale(me GUI_Scalar: Span, me timeValue: LowVal, me timeValue: HiVal, me int: ZoomLvl, me GUI_Scalar: XOrig, me GUI_Scalar: YOrig, me int: TickOffset) <- {
-        span         <- Span    /- length of axis (width or height of graph)
-        lowVal       <- LowVal
-        hiVal        <- HiVal
-        zoomLvl      <- ZoomLvl
-        xOrig        <- XOrig
-        yOrig        <- YOrig
-        tickOffset   <- TickOffset
-
-        me timeValue[list]: stepTable    <- [1000*12, 1000*60*12, 1000*60*60, 1000*60*60*2, 1000*60*60*4, 1000*60*60*24,
-            1000*60*60*24*2, 1000*60*60*24*5, 1000*60*60*24*10, 1000*60*60*24*15, 2592000000, 6307200000]
-        me timeValue[list]: divisorTable <- [1000*12, 1000*60*12, 1000*60*60, 1000*60*60*2, 1000*60*60*4, 1000*60*60*12,
-            1000*60*60*24*2, 1000*60*60*24*5, 1000*60*60*24*10, 1000*60*60*24*15, 2592000000, 6307200000]
-
-        step    <- stepTable[zoomLvl]
-        divisor <- divisorTable[zoomLvl]
+	span         <- Span	/- length of axis (width or height of graph)
+	lowVal       <- LowVal
+	hiVal        <- HiVal
+	zoomLvl      <- ZoomLvl	
+	xOrig        <- XOrig
+	yOrig        <- YOrig
+	tickOffset   <- TickOffset
+	
+	me timeValue[list]: stepTable    <- [1000*12, 1000*60*12, 1000*60*60, 1000*60*60*2, 1000*60*60*4, 1000*60*60*24, 
+	    1000*60*60*24*2, 1000*60*60*24*5, 1000*60*60*24*10, 1000*60*60*24*15, 2592000000, 6307200000]
+	me timeValue[list]: divisorTable <- [1000*12, 1000*60*12, 1000*60*60, 1000*60*60*2, 1000*60*60*4, 1000*60*60*12, 
+	    1000*60*60*24*2, 1000*60*60*24*5, 1000*60*60*24*10, 1000*60*60*24*15, 2592000000, 6307200000]
+	
+	step    <- stepTable[zoomLvl]
+	divisor <- divisorTable[zoomLvl]
     }
 }
 /- //// TOP BAR TOGGLES
@@ -185,56 +186,56 @@ struct circleButton: inherits=dash{
     me GUI_Scalar:    radius
     me string: symbol
     me double: stickLen
-
+    
     me void: drawCircleBtn(me GUI_ctxt: cr) <- {
-        if (symbol=="+") {
-            cr.setLineWidth(1)
-            cr.moveTo(posX + radius, posY + radius/4)
-            cr.lineTo(posX + radius, posY + 7*radius/4)
-            cr.strokeNow()
-        }
-        if (symbol=="+" or symbol=="-") {
-            cr.setLineWidth(1)
-            cr.moveTo(posX + radius/4, posY + radius)
-            cr.lineTo(posX + 7*radius/4, posY + radius)
-            cr.strokeNow()
-        }
-        if (symbol=="<") {
-            cr.setLineWidth(1)
-            cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
-            cr.lineTo(posX + radius - stickLen * sqrt(2), posY + radius)
-            cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
-            cr.strokeNow()
-        }
-        if (symbol==">") {
-            cr.setLineWidth(1)
-            cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
-            cr.lineTo(posX + radius + stickLen * sqrt(2), posY + radius)
-            cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
-            cr.strokeNow()
-        }
-        cr.circle(posX + radius, posY + radius, radius)
-        cr.strokeNow()
+	if (symbol=="+") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius, posY + radius/4)
+	    cr.lineTo(posX + radius, posY + 7*radius/4)
+	    cr.strokeNow()
+	}
+	if (symbol=="+" or symbol=="-") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius/4, posY + radius)
+	    cr.lineTo(posX + 7*radius/4, posY + radius)
+	    cr.strokeNow()
+	}
+	if (symbol=="<") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
+	    cr.lineTo(posX + radius - stickLen * sqrt(2), posY + radius)
+	    cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
+	    cr.strokeNow()
+	}
+	if (symbol==">") {
+	    cr.setLineWidth(1)
+	    cr.moveTo(posX + radius, posY + radius - stickLen * sqrt(2.0))
+	    cr.lineTo(posX + radius + stickLen * sqrt(2), posY + radius)
+	    cr.lineTo(posX + radius, posY + radius + stickLen * sqrt(2.0))
+	    cr.strokeNow()
+	}
+	cr.circle(posX + radius, posY + radius, radius)
+	cr.strokeNow()
     }
-
+    
     me void: initCircleBtn(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Radius, me string: Symbol) <- {
-        posX   <- PosX
-        posY   <- PosY
-        radius <- Radius
-        width  <- 2*radius
-        height <- 2*radius
-        symbol <- Symbol
-        stickLen <- radius/3
+	posX   <- PosX
+	posY   <- PosY
+	radius <- Radius
+	width  <- 2*radius
+	height <- 2*radius
+	symbol <- Symbol
+	stickLen <- radius/3
     }
-
+    
     /- Click functionality is inside graph clicks
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
-        else {return(false)}
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
-        else {return(false)}
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
     }
 }
 
@@ -245,23 +246,23 @@ struct zoomWidget: inherits=dash{
     me GUI_Scalar:          radius
     me GUI_Scalar:          labelX
     me int:          maxLabelLength
-
+    
     void: draw(me GUI_ctxt: cr) <- {
-        zoomOutBtn.initCircleBtn(posX, posY, radius, "-")
-        zoomOutBtn.drawCircleBtn(cr)
-        labelX <- posX + 3*radius
-        renderTextCentered(cr, label, styler.fontSmall, labelX + maxLabelLength/2, posY + 3*radius/2)
-        cr.strokeNow()
-        zoomInBtn.initCircleBtn(labelX + maxLabelLength + radius, posY, radius, "+")
-        zoomInBtn.drawCircleBtn(cr)
+	zoomOutBtn.initCircleBtn(posX, posY, radius, "-")
+	zoomOutBtn.drawCircleBtn(cr)
+	labelX <- posX + 3*radius
+	renderTextCentered(cr, label, styler.fontSmall, labelX + maxLabelLength/2, posY + 3*radius/2)
+	cr.strokeNow()
+	zoomInBtn.initCircleBtn(labelX + maxLabelLength + radius, posY, radius, "+")
+	zoomInBtn.drawCircleBtn(cr)
     }
-
+    
     void: initZoomWidget(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string: Label, me GUI_Scalar: Radius, me int: MaxLabelLength) <- {
-        posX  <- PosX
-        posY  <- PosY
-        label <- Label
-        radius <- Radius
-        maxLabelLength <- MaxLabelLength
+	posX  <- PosX
+	posY  <- PosY
+	label <- Label
+	radius <- Radius
+	maxLabelLength <- MaxLabelLength
     }
 }
 
@@ -275,65 +276,65 @@ struct streamToggle: inherits=dash{
     me int: radius
     me int: maxLabelLength
     me double: latest
-
+    
     void: draw(me GUI_ctxt: cr) <- {
-        if (state != 0) {
-            renderTextCentered(cr, dblToString(latest, 0), styler.fontTitle, posX + 3*radius + maxLabelLength/2, posY + 45)
-            renderTextCentered(cr, "Avg", styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
-        }
-        label <- dataStreamsTitleTbl[state]
-        left.drawCircleBtn(cr)
-        labelSize <- getTextSize(cr, label, styler.fontSmall)
-        renderTextCentered(cr, label, styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + labelSize.height)
-        right.drawCircleBtn(cr)
+	if (state != 0) {
+	    renderTextCentered(cr, dblToString(latest, 0), styler.fontTitle, posX + 3*radius + maxLabelLength/2, posY + 45)
+	    renderTextCentered(cr, "Avg", styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
+	}
+	label <- dataStreamsTitleTbl[state]
+	left.drawCircleBtn(cr)
+	labelSize <- getTextSize(cr, label, styler.fontSmall)
+	renderTextCentered(cr, label, styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + labelSize.height)
+	right.drawCircleBtn(cr)
     }
-
+    
     void: initStreamToggle(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string[list]: DataStreamsTitleTbl, me int: State) <- {
-        posX <- PosX
-        posY <- PosY
-        radius <- 10
-        maxLabelLength <- 75
-        dataStreamsTitleTbl <- DataStreamsTitleTbl
-        state <- State
-        label <- dataStreamsTitleTbl[state]
-        latest <- 0
-
-        left.initCircleBtn(posX, posY, radius, "<")
-        right.initCircleBtn(posX + 3*radius + maxLabelLength + radius, posY, radius, ">")
+	posX <- PosX
+	posY <- PosY
+	radius <- 10
+	maxLabelLength <- 75
+	dataStreamsTitleTbl <- DataStreamsTitleTbl
+	state <- State
+	label <- dataStreamsTitleTbl[state]
+	latest <- 0
+	
+	left.initCircleBtn(posX, posY, radius, "<")
+	right.initCircleBtn(posX + 3*radius + maxLabelLength + radius, posY, radius, ">")
     }
-
+    
     void: incrementStreamState(me int: Increment, me int: otherState) <- {
-        if (state + Increment < 0) {state <- dataStreamsTitleTbl.size()-1}
-        else if (state + Increment >= dataStreamsTitleTbl.size()) {state <- 0}
-        else {state <- state + Increment}
-        if (state == otherState) {incrementStreamState(Increment, otherState)}
+	if (state + Increment < 0) {state <- dataStreamsTitleTbl.size()-1}
+	else if (state + Increment >= dataStreamsTitleTbl.size()) {state <- 0}
+	else {state <- state + Increment}
+	if (state == otherState) {incrementStreamState(Increment, otherState)}
     }
-
+    
     /- Click functionality is inside graph clicks
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
-        else {return(false)}
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
-        else {return(false)}
+	if (isTouchingMe(event.x, event.y)) {return(true)}
+	else {return(false)}
     }
 }
 
 struct graphTitleWidget: inherits=dash{
     me string: titleTxt
     me bool:   isVisible
-
+    
     void: draw(me GUI_ctxt: cr, me GUI_Scalar: PosX, me GUI_Scalar: PosY) <- {
-        posX     <- PosX
-        posY     <- PosY
-        renderTextCentered(cr, titleTxt, styler.fontTitle, posX, posY)
-        cr.strokeNow()
+	posX     <- PosX
+	posY     <- PosY
+	renderTextCentered(cr, titleTxt, styler.fontTitle, posX, posY)
+	cr.strokeNow()
     }
-
+    
     void: initGraphTitle(me string: TitleTxt, me bool: IsVisible) <- {
-        titleTxt  <- TitleTxt
-        isVisible <- IsVisible
+	titleTxt  <- TitleTxt
+	isVisible <- IsVisible
     }
 }
 
@@ -345,9 +346,6 @@ struct GraphDataStream {
     me bool: isVisible <- false
     me bool: hasGradient <- true
     me int: screenDataAvg
-    void: requestDataRange(me timeValue:  leftGraphTime, me timeValue:  rightGraphTime, me int: stepSize) <- {
-
-    }
 }
 
 struct graph: inherits=dash{
@@ -358,19 +356,19 @@ struct graph: inherits=dash{
     me timeValue: timeInterval
     me timeValue: crntRightSide
 
-    me graphTitleWidget: graphTitle
+    me graphTitleWidget: graphTitle 
     me verticalScale:   leftScale
     me horizontalScale: bottomScale
     me verticalScale:   rightScale
     me horizontalScale: topScale
-
+    
     me mode[sAutomatic, sManual]:scrollMode
     me zoomWidget: zoomToggle
     me int: zoomLevel
-    me timeValue[list]: zoomTable <- [1000*60,    1000*60*60, 1000*60*60*6, 1000*60*60*12, 1000*60*60*24, 1000*60*60*24*7,
-    1000*60*60*24*14, 2592000000, 5184000000, 7776000000, 15552000000, 31536000000]
-    me string[list]: labelTable <-   ["1 Minute", "1 Hour",   "6 Hours",    "12 Hours",    "24 Hours",    "One Week",
-    "Two Weeks",      "30 Days",  "60 Days",  "90 Days",  "180 Days",  "One Year"]
+    me timeValue[list]: zoomTable <- [1000*60,    1000*60*60, 1000*60*60*6, 1000*60*60*12, 1000*60*60*24, 1000*60*60*24*7, 
+	1000*60*60*24*14, 2592000000, 5184000000, 7776000000, 15552000000, 31536000000]
+    me string[list]: labelTable <-   ["1 Minute", "1 Hour",   "6 Hours",    "12 Hours",    "24 Hours",    "One Week",      
+	"Two Weeks",      "30 Days",  "60 Days",  "90 Days",  "180 Days",  "One Year"]
     me streamToggle: streamToggle1
     me streamToggle: streamToggle2
     me bool: gradients
@@ -378,7 +376,7 @@ struct graph: inherits=dash{
     void: update() <- {}
 
     void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {
-        posIsSet <- true
+	posIsSet <- true
         extC     <- extCursor
         extX     <- posX+width
         extY     <- posY+height
@@ -386,86 +384,84 @@ struct graph: inherits=dash{
 
     void: draw(me GUI_ctxt: cr) <- {
         me timeValue:  rightGraphTime
-        me timeValue:  leftGraphTime
-        me bool:       firstTime
+	me timeValue:  leftGraphTime
+	me bool:       firstTime
         me GUI_Scalar:     XPoint
         me GUI_Scalar:     YPoint
         me GUI_Scalar: YOrig <- posY + height
 
-        withEach ii in RANGE(0.. dataStreams.size()) {
-            if (streamToggle1.state == ii + 1 or streamToggle2.state == ii + 1) {dataStreams[ii].isVisible <- true}
-            else {dataStreams[ii].isVisible <- false}
-            if (streamToggle1.state == 0 or streamToggle2.state == 0) {dataStreams[ii].hasGradient <- true}
-            else {dataStreams[ii].hasGradient <- false}
-        }
+	withEach ii in RANGE(0.. dataStreams.size()) {
+	    if (streamToggle1.state == ii + 1 or streamToggle2.state == ii + 1) {dataStreams[ii].isVisible <- true}
+	    else {dataStreams[ii].isVisible <- false}
+	    if (streamToggle1.state == 0 or streamToggle2.state == 0) {dataStreams[ii].hasGradient <- true}
+	    else {dataStreams[ii].hasGradient <- false}
+	}
 
         withEach dataStream in dataStreams{
-            screenDataTotal <- 0
-            screenDataCount <- 0
-            XPoint          <- 0
-            YPoint          <- 0
-
-            if (dataStream.isVisible) {
-                me double: dblWidth <- width
-		me double: dblHeight <- height
+	    screenDataTotal <- 0
+	    screenDataCount <- 0
+	    XPoint          <- 0
+	    YPoint          <- 0
+	
+	    if (dataStream.isVisible) {
 		cr.setLineWidth(2)
-                if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
-                if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
-                rightGraphTime <- crntRightSide
-                leftGraphTime  <- crntRightSide - timeInterval
-                firstTime      <- true
-
-                /-/// Gradient - requires duplicate 'invisible' data plot as boundary
-                if (dataStream.hasGradient) {
-                    withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                        XPoint <- (point_key-leftGraphTime)*dblWidth/timeInterval + posX
-                        YPoint <- (point - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
-                        if(firstTime){
-                            cr.setColor(styler.bkGndColor)
-                            cr.moveTo(XPoint, YOrig)
-                            cr.lineTo(XPoint, YOrig - YPoint)
-                            firstTime<-false
-                        } else {cr.lineTo(XPoint, YOrig - YPoint)}
-                    }
-                    cr.lineTo(XPoint, YOrig)
-                    their guiFillPattern: linGrad
-                    linGrad.init(posX, YOrig-height, posX, YOrig)
-                    linGrad.AddColorStopRGBA(0, dataStream.lineColor, 255)
-                    linGrad.AddColorStopRGBA(1.0, styler.bkGndColor, 255)
-                    cr.setFillPattern(linGrad)
-                    cr.fillNow()
-                    cr.strokeNow()
-                    linGrad.destroy()
-                }
-
-                /-/// Visible data plot
-                firstTime <- true
-                withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                    XPoint <- (point_key-leftGraphTime)*dblWidth/timeInterval + posX
-                    YPoint <- (point - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
-                    if(firstTime){
-                        cr.setColor(dataStream.lineColor)
-                        cr.moveTo(XPoint, YOrig - YPoint)
-                        firstTime<-false
-                    } else {cr.lineTo(XPoint, YOrig - YPoint)}
-                    screenDataTotal <- screenDataTotal + point
-                    screenDataCount <- screenDataCount + 1
-                }
-                cr.strokeNow()
-
-                if (screenDataCount > 0) {dataStream.screenDataAvg <- screenDataTotal / screenDataCount}
-                else {dataStream.screenDataAvg <- 0}
-                if(streamToggle1.label == dataStream.title) {streamToggle1.latest <- dataStream.screenDataAvg}
-                else if(streamToggle2.label == dataStream.title) {streamToggle2.latest <- dataStream.screenDataAvg}
-            }
-        }
-        cr.setColor(styler.highlight2Color)
+		if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
+		if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
+		rightGraphTime <- crntRightSide
+		leftGraphTime  <- crntRightSide - timeInterval
+		firstTime      <- true
+		
+		/-/// Gradient - requires duplicate 'invisible' data plot as boundary
+		if (dataStream.hasGradient) {
+		    withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
+/-			XPoint <- (point_key-leftGraphTime)*double(width)/timeInterval + posX
+/-			YPoint <- (point - leftScale.lowVal)*double(height)/(leftScale.hiVal - leftScale.lowVal)
+			if(firstTime){
+			    cr.setColor(styler.bkGndColor)
+			    cr.moveTo(XPoint, YOrig)
+			    cr.lineTo(XPoint, YOrig - YPoint)
+			    firstTime<-false
+			} else {cr.lineTo(XPoint, YOrig - YPoint)}
+		    }
+		    cr.lineTo(XPoint, YOrig)
+/*		    their guiFillPattern: linGrad
+		    linGrad.init(posX, YOrig-height, posX, YOrig)
+		    linGrad.AddColorStopRGBA(0, dataStream.lineColor, 255)
+		    linGrad.AddColorStopRGBA(1.0, styler.bkGndColor, 255)
+		    cr.setFillPattern(linGrad)
+		    cr.fillNow()
+		    cr.strokeNow()
+		    linGrad.destroy()*/
+		}
+		
+		/-/// Visible data plot
+		firstTime <- true
+		withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
+/-		    XPoint <- (point_key-leftGraphTime)*double(width)/timeInterval + posX
+/-		    YPoint <- (point - leftScale.lowVal)*double(height)/(leftScale.hiVal - leftScale.lowVal)
+		    if(firstTime){
+			cr.setColor(dataStream.lineColor)
+			cr.moveTo(XPoint, YOrig - YPoint)
+			firstTime<-false
+		    } else {cr.lineTo(XPoint, YOrig - YPoint)}
+		    screenDataTotal <- screenDataTotal + point
+		    screenDataCount <- screenDataCount + 1
+		}
+		cr.strokeNow()
+		
+		if (screenDataCount > 0) {dataStream.screenDataAvg <- screenDataTotal / screenDataCount}
+		else {dataStream.screenDataAvg <- 0}
+		if(streamToggle1.label == dataStream.title) {streamToggle1.latest <- dataStream.screenDataAvg}
+		else if(streamToggle2.label == dataStream.title) {streamToggle2.latest <- dataStream.screenDataAvg}
+	    }
+	}
+	cr.setColor(styler.highlight2Color)
         if(leftScale.isVisible){
             leftScale.setScale(height, 0, 400, 50, posX, YOrig, -4)
             leftScale.draw(cr)
         }
         if(bottomScale.isVisible){
-            bottomScale.setScale(width, leftGraphTime, rightGraphTime, zoomLevel, posX, YOrig, 4)
+/-            bottomScale.setScale(width, leftGraphTime, rightGraphTime, zoomLevel, posX, YOrig, 4)
             bottomScale.draw(cr)
         }
         if(rightScale.isVisible){
@@ -477,41 +473,41 @@ struct graph: inherits=dash{
             topScale.draw(cr)
         }
 
-        if(graphTitle.isVisible) {graphTitle.draw(cr, posX + width/2, posY)}
-        zoomToggle.draw(cr)
-        streamToggle1.draw(cr)
-        streamToggle2.draw(cr)
+	if(graphTitle.isVisible) {graphTitle.draw(cr, posX + width/2, posY)}
+	zoomToggle.draw(cr)
+	streamToggle1.draw(cr)
+	streamToggle2.draw(cr)
     }
 
     me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me bool: Gradients)<- {
         posX         <- PosX
         posY         <- PosY
-        gradients    <- Gradients
-        zoomLevel    <- 0
+	gradients    <- Gradients
+	zoomLevel    <- 0
+	
+	withEach dataStream in dataStreams {
+	    dataStreamsTitleTable.pushLast(dataStream.title)
+	}
+	
+	timeInterval <- zoomTable[zoomLevel]
+	zoomToggle.initZoomWidget(90, 5, labelTable[zoomLevel], 10, 75)
+	crntRightSide <- getCurrentTimeStamp()
 
-        withEach dataStream in dataStreams {
-            dataStreamsTitleTable.pushLast(dataStream.title)
-        }
-
-        timeInterval <- zoomTable[zoomLevel]
-        zoomToggle.initZoomWidget(90, 5, labelTable[zoomLevel], 10, 75)
-        crntRightSide <- getCurrentTimeStamp()
-
-            leftScale.initScale("Blood Glucose Level (units)", true, 1, false, false)
-            rightScale.initScale("rightScale!", false, 1, false, false)
-            bottomScale.initScale("Time", true, 1, false, true)
-            topScale.initScale("topScale", false, 1, false, false)
-        graphTitle.initGraphTitle(titleStr, false)
-        streamToggle1.initStreamToggle(250, 5, dataStreamsTitleTable, 1)
-        streamToggle2.initStreamToggle(400, 5, dataStreamsTitleTable, 0)
+        leftScale.initScale("Blood Glucose Level (units)", true, 1, false, false)
+        rightScale.initScale("rightScale!", false, 1, false, false)
+        bottomScale.initScale("Time", true, 1, false, true)
+        topScale.initScale("topScale", false, 1, false, false)
+	graphTitle.initGraphTitle(titleStr, false)
+	streamToggle1.initStreamToggle(250, 5, dataStreamsTitleTable, 1)
+	streamToggle2.initStreamToggle(400, 5, dataStreamsTitleTable, 0)
     }
-
+    
     void: incrementZoomLevel(me int: change) <- {
-        if (zoomLevel + change >= 0 and zoomLevel + change < zoomTable.size()) {
-            zoomLevel <- zoomLevel + change
-            timeInterval <- zoomTable[zoomLevel]
-            zoomToggle.label <- labelTable[zoomLevel]
-        }
+	if (zoomLevel + change >= 0 and zoomLevel + change < zoomTable.size()) {
+	    zoomLevel <- zoomLevel + change
+	    timeInterval <- zoomTable[zoomLevel]
+	    zoomToggle.label <- labelTable[zoomLevel]
+	}
     }
 
     /- Click and drag data horizontally
@@ -523,43 +519,43 @@ struct graph: inherits=dash{
     me GUI_Scalar: crntY
 
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        if (zoomToggle.zoomInBtn.primaryDn(event)) {}
-        else if (zoomToggle.zoomOutBtn.primaryDn(event)) {}
-        else {
-            crntX <- event.x - posX
-            crntY <- event.y - posY
-            if (crntX <= 0 or crntX >= width or crntY <= 0 or crntY >= height) {return(false)}
-            if (scrollState==still) {
-                scrollState <- fingerPressed
-                prevX <- event.x
-            }
-        }
-        return(true)
+	if (zoomToggle.zoomInBtn.primaryDn(event)) {}
+	else if (zoomToggle.zoomOutBtn.primaryDn(event)) {}
+	else {
+	    crntX <- event.x - posX
+	    crntY <- event.y - posY
+	    if (crntX <= 0 or crntX >= width or crntY <= 0 or crntY >= height) {return(false)}
+	    if (scrollState==still) {
+		scrollState <- fingerPressed
+		prevX <- event.x
+	    }
+	}
+	return(true)
     }
-
+    
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        if (zoomToggle.zoomInBtn.primaryUp(event)) {incrementZoomLevel(-1)}
-        else if (zoomToggle.zoomOutBtn.primaryUp(event)) {incrementZoomLevel(1)}
-        else if (streamToggle1.left.primaryUp(event)) {streamToggle1.incrementStreamState(-1, streamToggle2.state)}
-        else if (streamToggle1.right.primaryUp(event)) {streamToggle1.incrementStreamState(1, streamToggle2.state)}
-        else if (streamToggle2.left.primaryUp(event)) {streamToggle2.incrementStreamState(-1, streamToggle1.state)}
-        else if (streamToggle2.right.primaryUp(event)) {streamToggle2.incrementStreamState(1, streamToggle1.state)}
-        else {scrollState <- still}
-        return(true)
+	if (zoomToggle.zoomInBtn.primaryUp(event)) {incrementZoomLevel(-1)}
+	else if (zoomToggle.zoomOutBtn.primaryUp(event)) {incrementZoomLevel(1)}
+	else if (streamToggle1.left.primaryUp(event)) {streamToggle1.incrementStreamState(-1, streamToggle2.state)}
+	else if (streamToggle1.right.primaryUp(event)) {streamToggle1.incrementStreamState(1, streamToggle2.state)}
+	else if (streamToggle2.left.primaryUp(event)) {streamToggle2.incrementStreamState(-1, streamToggle1.state)}
+	else if (streamToggle2.right.primaryUp(event)) {streamToggle2.incrementStreamState(1, streamToggle1.state)}
+	else {scrollState <- still}
+	return(true)
     }
-
+    
     me bool: mouseMoved(their GUI_MotionEvent: event) <- {
-        deltaX <- event.x - prevX
-        prevX <- event.x
-        if (scrollState==fingerPressed and abs(deltaX) > moveThreshold) {
-            scrollState <- pullScrolling
-            scrollMode <- sManual
-            deltaX <- 0
-        }
-        if (scrollState==pullScrolling) {
-            crntRightSide <- crntRightSide - convertToTimeVal(deltaX)*timeInterval/convertToTimeVal(width)
-            requestRedraw()
-        }
-        return(true)
+	deltaX <- event.x - prevX
+	prevX <- event.x
+	if (scrollState==fingerPressed and abs(deltaX) > moveThreshold) {
+	    scrollState <- pullScrolling
+	    scrollMode <- sManual
+	    deltaX <- 0
+	} 
+	if (scrollState==pullScrolling) {
+	    crntRightSide <- crntRightSide - convertToTimeVal(deltaX)*timeInterval/convertToTimeVal(width)
+	    requestRedraw()
+	}
+	return(true)
     }
 }
