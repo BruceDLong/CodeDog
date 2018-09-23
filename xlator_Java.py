@@ -97,12 +97,10 @@ def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
 
 def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'.
-    if progSpec.isAContainer(TypeSpec): isContainer=True
-    else: isContainer=False
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        langType= convertToJavaType(fieldType, isContainer)
+        langType= convertToJavaType(fieldType, progSpec.isAContainer(TypeSpec))
     else: langType=progSpec.flattenObjectName(fieldType[0])
     langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', actionOrField, varMode)
     if langType=='TYPE ERROR': print langType, owner, fieldType;
@@ -128,7 +126,6 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     if owner =="const":                     InnerLangType = fieldType
     return [langType, InnerLangType]
 
-
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
     elif name == "subStr":
@@ -147,7 +144,6 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(S, segType, owner):
         return S
 
-
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
     RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
@@ -160,7 +156,6 @@ def chooseVirtualRValOwner(LVAL, RVAL):
 
 def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     return ['','',  '','']
-
 
 def getCodeAllocStr(varTypeStr, owner):
     if(owner!='const'):  S="new "+varTypeStr
@@ -185,7 +180,6 @@ def getEnumStr(fieldName, enumList):
     S += "\n"
    # S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
-
 ######################################################   E X P R E S S I O N   C O D I N G
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
@@ -504,7 +498,6 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
         print "ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType
         exit(1)
     return S
-
 ################################################
 def codeMain(classes, tags, objsRefed, xlator):
     return ["", ""]
@@ -541,7 +534,6 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
     #if classAttrs!='': print "ATTRIBUTE:", classAttrs +"class "+structName+''+parentClass
     return([S,""])
 
-
 def produceTypeDefs(typeDefMap, xlator):
     return ''
 
@@ -564,9 +556,7 @@ struct GLOBAL{
 def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
     [fieldType, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
     containerSpec = progSpec.getContainerSpec(typeSpec)
-    if progSpec.isAContainer(typeSpec): isContainer=True
-    else: isContainer=False
-    fieldType = convertToJavaType(fieldType, isContainer)
+    fieldType = convertToJavaType(fieldType, progSpec.isAContainer(typeSpec))
     if isinstance(containerSpec, basestring) and containerSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
@@ -585,13 +575,9 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             if (constructorExists):
                 assignValue=' = new ' + fieldType +'('+ RHS + ')'
             else:
-                if('<LISTTYPE>'in RHS):
-                    RHS=RHS.replace('<LISTTYPE>',fieldAttrs)
                 paramSuffix = ''
                 if fieldAttrs == 'Long':
                     paramSuffix = 'L'
-                if('<PARAMTYPE>'in RHS):
-                    RHS=RHS.replace('<PARAMTYPE>',paramSuffix)
                 assignValue= ' = '+ RHS   #' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
     else: # If no value was given:
         #print "TYPE:", fieldType
@@ -742,13 +728,9 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-    if('<LISTTYPE>'in S):
-        S=S.replace('<LISTTYPE>',innerType)
     paramSuffix = ''
     if innerType == 'Long':
         paramSuffix = 'L'
-    if('<PARAMTYPE>'in S):
-        S=S.replace('<PARAMTYPE>',paramSuffix)
     return [S, '']
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
@@ -820,17 +802,12 @@ def codeSwitchBreak(caseAction, indent, xlator):
     else:
         return ''
 
-
 def applyTypecast(typeInCodeDog, itemToAlterType):
     return '('+itemToAlterType+')'
-
 #######################################################
-
 def includeDirective(libHdr):
     S = 'import '+libHdr+';\n'
     return S
-
-
 
 def generateMainFunctionality(classes, tags):
     # TODO: Some deInitialize items should automatically run during abort().
@@ -856,7 +833,6 @@ def generateMainFunctionality(classes, tags):
     """
     progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ), 'Java start-up code')
-
 
 def fetchXlators():
     xlators = {}

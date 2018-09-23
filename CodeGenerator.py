@@ -41,7 +41,6 @@ def bitsNeeded(n):
         return 0
     else:
         return 1 + bitsNeeded((n + 1) / 2)
-
 ###### Routines to track types of identifiers and to look up type based on identifier.
 
 globalClassStore=[]
@@ -65,7 +64,6 @@ def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
     else: typeSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
     typeSpecOut['codeConverter']=code
     return [typeSpecOut, 'BUILTIN']
-
 
 def CheckFunctionsLocalVarArgList(itemName):
     #print "Searching function for", itemName
@@ -124,7 +122,6 @@ def CheckClassStaticVars(className, itemName):
         return None
     return [{'owner':'me', 'fieldType':[itemName], 'StaticMode':'yes'}, "CLASS:"+itemName]
 
-
 StaticMemberVars={} # Used to find parent-class of const and enums
 
 def staticVarNamePrefix(staticVarName, parentClass, xlator):
@@ -181,7 +178,6 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
     # Example: [{typeSpec}, 'OBJVAR']
 
 ###### End of type tracking code
-
 modeStateNames={}
 
 def getModeStateNames():
@@ -284,7 +280,6 @@ def convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator):
             count+=1
         paramList=None
     return [newName, paramList]
-
 ################################  C o d e   E x p r e s s i o n s
 
 def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, returnType, xlator):
@@ -515,7 +510,6 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
 
     return [S, segTypeSpec, LHSParentType, AltFormat]
 
-
 def codeUserMesg(item, xlator):
     # TODO: Make 'user messages'interpolate and adjust for locale.
     S=''; fmtStr=''; argStr='';
@@ -528,7 +522,6 @@ def codeUserMesg(item, xlator):
     fmtStr=fmtStr.replace('"', r'\"')
     S=xlator['langStringFormatterCommand'](fmtStr, argStr)
     return S
-
 
 def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
     global listOfFuncsWithUnknownArgTypes
@@ -575,7 +568,6 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
         S='(' + S + ')'
     return [S, paramTypeList]
 
-
 def codeFuncCall(funcCallSpec, objsRefed, returnType, xlator):
     S=''
     [codeStr, typeSpec, LHSParentType, AltIDXFormat]=codeItemRef(funcCallSpec, 'RVAL', objsRefed, returnType, xlator)
@@ -590,7 +582,6 @@ def startPointOfNamesLastSegment(name):
         p-=1
     return -1
 
-
 def genIfBody(ifBody, indent, objsRefed, returnType, xlator):
     ifBodyText = ""
     for ifAction in ifBody:
@@ -602,6 +593,7 @@ def genIfBody(ifBody, indent, objsRefed, returnType, xlator):
 def encodeConditionalStatement(action, indent, objsRefed, returnType, xlator):
     #print "                                         encodeConditionalStatement: "
     [S2, conditionTypeSpec] =  xlator['codeExpr'](action['ifCondition'][0], objsRefed, None, xlator)
+    [S2, conditionTypeSpec] =  xlator['adjustConditional'](S2, conditionTypeSpec)
     ifCondition = S2
     ifBodyText = genIfBody(action['ifBody'], indent, objsRefed, returnType, xlator)
     actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
@@ -1462,10 +1454,7 @@ def generate(classes, tags, libsToUse, langName, xlator):
     print "\n";
     return fileSpecStrings
 
-
-
 ###############  Load a file to progspec, processing include files, string-structs, and patterns.
-
 def GroomTags(tags):
     global globalTagStore
     if globalTagStore==None: TopLevelTags=tags
@@ -1518,7 +1507,6 @@ def ScanAndApplyPatterns(classes, topTags, newTags):
         count+=1
     for toDel in reversed(itemsToDelete):
         del(classes[1][toDel])
-
 
 def loadProgSpecFromDogFile(filename, ProgSpec, objNames, topLvlTags, macroDefs):
     codeDogStr = progSpec.stringFromFile(filename)
