@@ -152,7 +152,7 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
     RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
     if LHS_KeyType == 'bool' and progSpec.typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
-    if LHS_KeyType == 'bool' and RHS_KeyType=='int': return '(' + codeStr + ' != 0)'
+    if LHS_KeyType == 'bool' and (RHS_KeyType=='int' or RHS_KeyType=='flag'): return '(' + codeStr + ' != 0)'
     return codeStr
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -427,7 +427,9 @@ def adjustConditional(S2, conditionType):
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):
             S2+=" != null"
         elif conditionType['owner']=='me' and (conditionType['fieldType']=='flag' or progSpec.typeIsInteger(conditionType['fieldType'])):
-            S2+=" != 0"
+            if S2[0]=='!':
+                S2 = '('+S2[1:]+' ==0)'
+            else:S2+=" !=0"
         conditionType='bool'
     return [S2, conditionType]
 
@@ -562,6 +564,9 @@ struct GLOBAL{
 def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
     [fieldType, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
     containerSpec = progSpec.getContainerSpec(typeSpec)
+    if progSpec.isAContainer(typeSpec): isContainer=True
+    else: isContainer=False
+    fieldType = convertToJavaType(fieldType, isContainer)
     if isinstance(containerSpec, basestring) and containerSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
