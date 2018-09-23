@@ -314,6 +314,9 @@ def codeFactor(item, objsRefed, returnType, xlator):
         else:
             [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, xlator)
             if(codeStr=="NULL"): codeStr="null"
+            typeKeyword = progSpec.fieldTypeKeyword(retTypeSpec)
+            if (len(item0[0]) > 1  and item0[0][0]==typeKeyword and item0[0][1] and item0[0][1]=='('): 
+                codeStr = 'new ' + codeStr
             S+=codeStr                                # Code variable reference or function call
     return [S, retTypeSpec]
 
