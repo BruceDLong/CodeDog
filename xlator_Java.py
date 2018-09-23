@@ -148,7 +148,7 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
     RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
     if LHS_KeyType == 'bool' and progSpec.typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
-    if LHS_KeyType == 'bool' and (RHS_KeyType=='int' or RHS_KeyType=='flag'): return '(' + codeStr + ' != 0)'
+    if (LHS_KeyType == 'bool' or LHS_KeyType == 'boolean') and (RHS_KeyType=='int' or RHS_KeyType=='flag'): return '(' + codeStr + ' != 0)'
     return codeStr
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -554,9 +554,9 @@ struct GLOBAL{
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code' )
 
 def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
-    [fieldType, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
+    [fieldTypeSpec, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
     containerSpec = progSpec.getContainerSpec(typeSpec)
-    fieldType = convertToJavaType(fieldType, progSpec.isAContainer(typeSpec))
+    fieldType = convertToJavaType(fieldTypeSpec, progSpec.isAContainer(typeSpec))
     if isinstance(containerSpec, basestring) and containerSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
@@ -566,6 +566,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
         else: assignValue=''
     elif(fieldDef['value']):
         [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
+        S2=checkForTypeCastNeed(fieldTypeSpec, rhsTypeSpec, S2) 
         RHS = S2
         if varTypeIsValueType(fieldType):
             assignValue=' = '+ RHS
