@@ -72,7 +72,7 @@ def codeIteratorOperation(itrCommand):
     if itrCommand=='goNext':  result='%0.next()'
     elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
     elif itrCommand=='key':   result='%0.getKey()'
-    elif itrCommand=='val':   result='%0'
+    elif itrCommand=='val':   result='%0.getValue()'
     return result
 
 def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
@@ -148,7 +148,9 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
     RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
     if LHS_KeyType == 'bool' and progSpec.typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
-    if (LHS_KeyType == 'bool' or LHS_KeyType == 'boolean') and (RHS_KeyType=='int' or RHS_KeyType=='flag'): return '(' + codeStr + ' != 0)'
+    if (LHS_KeyType == 'bool' or LHS_KeyType == 'boolean') and (RHS_KeyType=='int' or RHS_KeyType=='flag'): 
+        if codeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
+        else: return '(' + codeStr + ' != 0)'
     return codeStr
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -199,10 +201,10 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
         elif name=='nthItr'   : typeSpecOut['codeConverter']='%G%1';  typeSpecOut['owner']='itr';
         elif name=='first'    : name='get(0)';   paramList=None;
-        elif name=='last'     : name='get(%0.size()-1)'; paramList=None;
+        elif name=='last'     : name='%0.get(%0.size()-1)'; paramList=None;
         elif name=='popFirst' : name='remove(0)'
         elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
-        elif name=='pushFirst': name='push_front'
+        elif name=='pushFirst': typeSpecOut['codeConverter']='%0.add(0, %1)';  typeSpecOut['owner']='itr';
         elif name=='pushLast' : name='add'
         elif name=='isEmpty'  : name='isEmpty'
         elif name=='deleteNth': name='remove'
@@ -217,12 +219,12 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='find'     : typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;  typeSpecOut['codeConverter']='tailMap(%1).entrySet().iterator()';
         elif name=='get'      : name='get';      typeSpecOut['owner']='me';  typeSpecOut['fieldType']=convertedItmType;
-        elif name=='front'    : name='firstKey()';  typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='front'    : name='firstEntry().getValue()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='first'    : name='get(0)';   paramList=None;
-        elif name=='last'     : name='get(%0.size()-1)'; paramList=None;
+        elif name=='last'     : name='%0.get(%0.size()-1)'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pollLastEntry'
         elif name=='erase'    : name='remove'
@@ -394,8 +396,8 @@ def codeLogAnd(item, objsRefed, returnType, xlator):
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
-                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, xlator)
                 S = checkForTypeCastNeed('bool', retTypeSpec, S)
+                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, xlator)
                 S2= checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' && ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)
@@ -409,8 +411,8 @@ def codeExpr(item, objsRefed, returnType, xlator):
         for i in item[1]:
             #print 'OR ', i
             if (i[0] == 'or'):
-                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, xlator)
                 S = checkForTypeCastNeed('bool', retTypeSpec, S)
+                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, xlator)
                 S2= checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' || ' + S2
             else: print "ERROR: 'or' expected in code generator."; exit(2)
@@ -422,7 +424,8 @@ def adjustConditional(S2, conditionType):
     #print "CONDITIONTYPE:", conditionType, '[', S2, ']'
     if not isinstance(conditionType, basestring):
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):
-            S2+=" != null"
+            if S2[0]=='!': S2 = S2[1:]+ " == true"
+            else: S2+=" != null"
         elif conditionType['owner']=='me' and (conditionType['fieldType']=='flag' or progSpec.typeIsInteger(conditionType['fieldType'])):
             if S2[0]=='!':
                 S2 = '('+S2[1:]+' ==0)'
@@ -625,13 +628,13 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
     if datastructID=='TreeMap':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         keyFieldType = convertToJavaType(keyFieldType, True)
-        actionText += (indent + 'for(Map.Entry<'+keyFieldType+',Integer> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
-                       indent + indent +'int '+ repName + ' = ' + repName+'Entry.getValue();\n' +
-                       indent + indent +keyFieldType +' '+ repName + '_key = ' + repName+'Entry.getKey();\n\n'  )
-
+        repContainerTypeSpec = (repContainer)
+        repContainerTYPE ='aItem'  # TODO: this is hardCoded, should fix with dynamic types
+        actionText += (indent + 'for(Map.Entry<'+keyFieldType+','+repContainerTYPE+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
+                       indent + '    '+repContainerTYPE+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
+                       indent + '    ' +keyFieldType +' '+ repName + '_key = ' + repName+'Entry.getKey();\n\n'  )
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
@@ -656,7 +659,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         repItrName = repName+'Itr'
         actionText += (indent + "for( int " + repItrName+" = 0; " + repItrName + " !=" + repContainer+'.size()' +"; "+ repItrName + " +=1){\n"
-                    + indent+"    "+"infon "+repName+" = "+repItrName+".item;\n")
+                    + indent+"    "+"infon "+repName+" = "+repContainer+".at("+repItrName+").item;\n")
         return [actionText, loopCounterName]
     if datastructID=='TreeMap':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
@@ -791,12 +794,14 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
         item = LHS_Left+"flags"
         mask = prefix+bitMask
-        if (RHS != 'true' and RHS !='false'):
+        if (RHS != 'true' and RHS !='false' and progSpec.fieldTypeKeyword(rhsType)!='bool' ):
             RHS += '!=0'
         val = '('+ RHS +')?'+mask+':0'
     elif (LHS_FieldType =='mode' ):
         item = LHS_Left+"flags"
         mask = prefix+bitMask+"Mask"
+        if RHS == 'false': RHS = '0'
+        if RHS == 'true': RHS = '1'
         val = RHS+"<<"+prefix+bitMask+"Offset"
     return "{"+item+" &= ~"+mask+"; "+item+" |= ("+val+");}\n"
 
