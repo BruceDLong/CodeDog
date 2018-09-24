@@ -72,7 +72,7 @@ def codeIteratorOperation(itrCommand):
     if itrCommand=='goNext':  result='%0.next()'
     elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
     elif itrCommand=='key':   result='%0.getKey()'
-    elif itrCommand=='val':   result='%0'
+    elif itrCommand=='val':   result='%0.getValue()'
     return result
 
 def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
@@ -97,12 +97,10 @@ def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
 
 def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'.
-    if progSpec.isAContainer(TypeSpec): isContainer=True
-    else: isContainer=False
     if(isinstance(fieldType, basestring)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        langType= convertToJavaType(fieldType, isContainer)
+        langType= convertToJavaType(fieldType, progSpec.isAContainer(TypeSpec))
     else: langType=progSpec.flattenObjectName(fieldType[0])
     langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', actionOrField, varMode)
     if langType=='TYPE ERROR': print langType, owner, fieldType;
@@ -128,7 +126,6 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     if owner =="const":                     InnerLangType = fieldType
     return [langType, InnerLangType]
 
-
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
     elif name == "subStr":
@@ -147,12 +144,13 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(S, segType, owner):
         return S
 
-
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
     RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
     if LHS_KeyType == 'bool' and progSpec.typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
-    if LHS_KeyType == 'bool' and RHS_KeyType=='int': return '(' + codeStr + ' != 0)'
+    if (LHS_KeyType == 'bool' or LHS_KeyType == 'boolean') and (RHS_KeyType=='int' or RHS_KeyType=='flag'): 
+        if codeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
+        else: return '(' + codeStr + ' != 0)'
     return codeStr
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -160,7 +158,6 @@ def chooseVirtualRValOwner(LVAL, RVAL):
 
 def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     return ['','',  '','']
-
 
 def getCodeAllocStr(varTypeStr, owner):
     if(owner!='const'):  S="new "+varTypeStr
@@ -185,7 +182,6 @@ def getEnumStr(fieldName, enumList):
     S += "\n"
    # S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
-
 ######################################################   E X P R E S S I O N   C O D I N G
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
@@ -205,10 +201,10 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
         elif name=='nthItr'   : typeSpecOut['codeConverter']='%G%1';  typeSpecOut['owner']='itr';
         elif name=='first'    : name='get(0)';   paramList=None;
-        elif name=='last'     : name='get(%0.size()-1)'; paramList=None;
+        elif name=='last'     : name='%0.get(%0.size()-1)'; paramList=None;
         elif name=='popFirst' : name='remove(0)'
         elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
-        elif name=='pushFirst': name='push_front'
+        elif name=='pushFirst': typeSpecOut['codeConverter']='%0.add(0, %1)';  typeSpecOut['owner']='itr';
         elif name=='pushLast' : name='add'
         elif name=='isEmpty'  : name='isEmpty'
         elif name=='deleteNth': name='remove'
@@ -223,12 +219,12 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='find'     : typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;  typeSpecOut['codeConverter']='tailMap(%1).entrySet().iterator()';
         elif name=='get'      : name='get';      typeSpecOut['owner']='me';  typeSpecOut['fieldType']=convertedItmType;
-        elif name=='front'    : name='firstKey()';  typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='front'    : name='firstEntry().getValue()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='first'    : name='get(0)';   paramList=None;
-        elif name=='last'     : name='get(%0.size()-1)'; paramList=None;
+        elif name=='last'     : name='%0.get(%0.size()-1)'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pollLastEntry'
         elif name=='erase'    : name='remove'
@@ -320,6 +316,9 @@ def codeFactor(item, objsRefed, returnType, xlator):
         else:
             [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, xlator)
             if(codeStr=="NULL"): codeStr="null"
+            typeKeyword = progSpec.fieldTypeKeyword(retTypeSpec)
+            if (len(item0[0]) > 1  and item0[0][0]==typeKeyword and item0[0][1] and item0[0][1]=='('): 
+                codeStr = 'new ' + codeStr
             S+=codeStr                                # Code variable reference or function call
     return [S, retTypeSpec]
 
@@ -397,8 +396,8 @@ def codeLogAnd(item, objsRefed, returnType, xlator):
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
-                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, xlator)
                 S = checkForTypeCastNeed('bool', retTypeSpec, S)
+                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, xlator)
                 S2= checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' && ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)
@@ -412,8 +411,8 @@ def codeExpr(item, objsRefed, returnType, xlator):
         for i in item[1]:
             #print 'OR ', i
             if (i[0] == 'or'):
-                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, xlator)
                 S = checkForTypeCastNeed('bool', retTypeSpec, S)
+                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, xlator)
                 S2= checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' || ' + S2
             else: print "ERROR: 'or' expected in code generator."; exit(2)
@@ -425,9 +424,12 @@ def adjustConditional(S2, conditionType):
     #print "CONDITIONTYPE:", conditionType, '[', S2, ']'
     if not isinstance(conditionType, basestring):
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):
-            S2+=" != null"
+            if S2[0]=='!': S2 = S2[1:]+ " == true"
+            else: S2+=" != null"
         elif conditionType['owner']=='me' and (conditionType['fieldType']=='flag' or progSpec.typeIsInteger(conditionType['fieldType'])):
-            S2+=" != 0"
+            if S2[0]=='!':
+                S2 = '('+S2[1:]+' ==0)'
+            else:S2+=" !=0"
         conditionType='bool'
     return [S2, conditionType]
 
@@ -502,7 +504,6 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
         print "ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType
         exit(1)
     return S
-
 ################################################
 def codeMain(classes, tags, objsRefed, xlator):
     return ["", ""]
@@ -539,7 +540,6 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
     #if classAttrs!='': print "ATTRIBUTE:", classAttrs +"class "+structName+''+parentClass
     return([S,""])
 
-
 def produceTypeDefs(typeDefMap, xlator):
     return ''
 
@@ -560,8 +560,9 @@ struct GLOBAL{
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code' )
 
 def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
-    [fieldType, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
+    [fieldTypeSpec, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
     containerSpec = progSpec.getContainerSpec(typeSpec)
+    fieldType = convertToJavaType(fieldTypeSpec, progSpec.isAContainer(typeSpec))
     if isinstance(containerSpec, basestring) and containerSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
@@ -571,6 +572,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
         else: assignValue=''
     elif(fieldDef['value']):
         [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
+        S2=checkForTypeCastNeed(fieldTypeSpec, rhsTypeSpec, S2) 
         RHS = S2
         if varTypeIsValueType(fieldType):
             assignValue=' = '+ RHS
@@ -580,13 +582,9 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             if (constructorExists):
                 assignValue=' = new ' + fieldType +'('+ RHS + ')'
             else:
-                if('<LISTTYPE>'in RHS):
-                    RHS=RHS.replace('<LISTTYPE>',fieldAttrs)
                 paramSuffix = ''
                 if fieldAttrs == 'Long':
                     paramSuffix = 'L'
-                if('<PARAMTYPE>'in RHS):
-                    RHS=RHS.replace('<PARAMTYPE>',paramSuffix)
                 assignValue= ' = '+ RHS   #' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
     else: # If no value was given:
         #print "TYPE:", fieldType
@@ -630,13 +628,13 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
     if datastructID=='TreeMap':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         keyFieldType = convertToJavaType(keyFieldType, True)
-        actionText += (indent + 'for(Map.Entry<'+keyFieldType+',Integer> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
-                       indent + indent +'int '+ repName + ' = ' + repName+'Entry.getValue();\n' +
-                       indent + indent +keyFieldType +' '+ repName + '_key = ' + repName+'Entry.getKey();\n\n'  )
-
+        repContainerTypeSpec = (repContainer)
+        repContainerTYPE ='aItem'  # TODO: this is hardCoded, should fix with dynamic types
+        actionText += (indent + 'for(Map.Entry<'+keyFieldType+','+repContainerTYPE+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
+                       indent + '    '+repContainerTYPE+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
+                       indent + '    ' +keyFieldType +' '+ repName + '_key = ' + repName+'Entry.getKey();\n\n'  )
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
@@ -661,7 +659,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         repItrName = repName+'Itr'
         actionText += (indent + "for( int " + repItrName+" = 0; " + repItrName + " !=" + repContainer+'.size()' +"; "+ repItrName + " +=1){\n"
-                    + indent+"    "+"infon "+repName+" = "+repItrName+".item;\n")
+                    + indent+"    "+"infon "+repName+" = "+repContainer+".at("+repItrName+").item;\n")
         return [actionText, loopCounterName]
     if datastructID=='TreeMap':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
@@ -737,13 +735,9 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-    if('<LISTTYPE>'in S):
-        S=S.replace('<LISTTYPE>',innerType)
     paramSuffix = ''
     if innerType == 'Long':
         paramSuffix = 'L'
-    if('<PARAMTYPE>'in S):
-        S=S.replace('<PARAMTYPE>',paramSuffix)
     return [S, '']
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
@@ -800,12 +794,14 @@ def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
         item = LHS_Left+"flags"
         mask = prefix+bitMask
-        if (RHS != 'true' and RHS !='false'):
+        if (RHS != 'true' and RHS !='false' and progSpec.fieldTypeKeyword(rhsType)!='bool' ):
             RHS += '!=0'
         val = '('+ RHS +')?'+mask+':0'
     elif (LHS_FieldType =='mode' ):
         item = LHS_Left+"flags"
         mask = prefix+bitMask+"Mask"
+        if RHS == 'false': RHS = '0'
+        if RHS == 'true': RHS = '1'
         val = RHS+"<<"+prefix+bitMask+"Offset"
     return "{"+item+" &= ~"+mask+"; "+item+" |= ("+val+");}\n"
 
@@ -815,17 +811,12 @@ def codeSwitchBreak(caseAction, indent, xlator):
     else:
         return ''
 
-
 def applyTypecast(typeInCodeDog, itemToAlterType):
     return '('+itemToAlterType+')'
-
 #######################################################
-
 def includeDirective(libHdr):
     S = 'import '+libHdr+';\n'
     return S
-
-
 
 def generateMainFunctionality(classes, tags):
     # TODO: Some deInitialize items should automatically run during abort().
@@ -851,7 +842,6 @@ def generateMainFunctionality(classes, tags):
     """
     progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ), 'Java start-up code')
-
 
 def fetchXlators():
     xlators = {}
