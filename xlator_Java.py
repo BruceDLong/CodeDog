@@ -44,7 +44,7 @@ def convertToJavaType(fieldType, isContainer):
         else:
             if(fieldType=='int32'):      javaType= 'int'
             elif(fieldType=='uint32' or fieldType=='uint64' or fieldType=='uint'):javaType='int'  # these should be long but Java won't allow
-            elif(fieldType=='int64'):    javaType= 'int'
+            elif(fieldType=='int64'):    javaType= 'long'
             elif(fieldType=='char' ):    javaType= 'char'
             elif(fieldType=='bool' ):    javaType= 'boolean'
             elif(fieldType=='string'):   javaType= 'String'
@@ -72,7 +72,7 @@ def codeIteratorOperation(itrCommand):
     if itrCommand=='goNext':  result='%0.next()'
     elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
     elif itrCommand=='key':   result='%0.getKey()'
-    elif itrCommand=='val':   result='%0.getValue()'
+    elif itrCommand=='val':   result='%0.next().getValue()'
     return result
 
 def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
@@ -582,9 +582,6 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             if (constructorExists):
                 assignValue=' = new ' + fieldType +'('+ RHS + ')'
             else:
-                paramSuffix = ''
-                if fieldAttrs == 'Long':
-                    paramSuffix = 'L'
                 assignValue= ' = '+ RHS   #' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
     else: # If no value was given:
         #print "TYPE:", fieldType
@@ -605,7 +602,11 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
                 else: assignValue = " = new " + fieldType + CPL
             else: assignValue = " = new " + fieldType + CPL
         elif varTypeIsValueType(fieldType):
-            assignValue=''
+            if fieldType == 'long' or fieldType == 'int' or fieldType == 'float'or fieldType == 'double': assignValue=' = 0'
+            elif fieldType == 'string':  assignValue=' = ""'
+            elif fieldType == 'boolean': assignValue=' = false'
+            elif fieldType == 'char':    assignValue=" = ' '"
+            else: assignValue=''
         else:assignValue= " = new " + fieldType + "()"
     varDeclareStr= fieldType + " " + varName + assignValue
     #print"codeNewVarStr: ",varDeclareStr
@@ -735,9 +736,6 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
-    paramSuffix = ''
-    if innerType == 'Long':
-        paramSuffix = 'L'
     return [S, '']
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
