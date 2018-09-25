@@ -8,7 +8,7 @@ interface={
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
         android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.ScrollView, android.widget.TextView,
-        android.widget.RelativeLayout, android.widget.FrameLayout, java.text.SimpleDateFormat, java.util.Calendar,
+        android.widget.RelativeLayout, android.widget.FrameLayout,
         android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface, android.support.v4.content.ContextCompat,
         android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
         android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment, android.support.v4.app.DialogFragment,
