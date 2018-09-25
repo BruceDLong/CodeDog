@@ -30,6 +30,21 @@ struct FileStream{
     me bool: EOF() <- <%!eof()%>
     me bool: failure() <- <%!fail()%>
 }
+struct sessionFile{
+    me FileStream: session
+    me void: openSession(me string: filename) <-{session.openAppend(filename)}
+    me void: closeSession() <- {session.close()}
+    me void: writeEntry(me string: entry) <- {entry<-entry+"\n"; session.write(entry)}
+
+    me bool: openToRead(me string: filename) <- {
+        session.open(filename)
+        if(session.failure()){print("Creating session file "+filename+"\n"); return(true)}
+        return(false)
+    }
+    me string: readEntry() <- {me string: retVal; session.getLine(retVal); return(retVal)}
+    me bool: eof() <- {return(session.EOF())}
+    me void: closeReading() <- {session.close()}
+}
 
 struct GLOBAL{
     me uint: shiftLeft (me uint: bits, me uint: shft) <- <%!(%1 << %2)%>
@@ -80,9 +95,9 @@ struct GLOBAL{
         }
         return retVal;
     }%>
-    
+
     me double: sqrt(me double: input) <- <%!sqrt(%1)%>
-    me timeValue: convertToTimeVal()						<- <%!%G%1%>
+    me timeValue: convertToTimeVal()                        <- <%!%G%1%>
 }
 struct timeValue{me int64: timeValue}
 struct DateValue{me int64: DateValue}
