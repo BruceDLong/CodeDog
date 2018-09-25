@@ -337,7 +337,7 @@ struct graphTitleWidget: inherits=dash{
     }
 }
 
-struct timeStepInterval{their DataGen: parentDataSource me timeValue: start me timeValue: end me int: stepSize}
+struct timeStepInterval{their DataGen: parentDataSource me timeValue: start me timeValue: end me double: stepSize}
 
 struct GraphDataStream {
     me string: title
@@ -353,7 +353,7 @@ struct GraphDataStreamSources{
     our GraphDataStream[me list]: dataStreams
     their DataGen: parentDataSource
 
-    void: requestDataRange(me timeValue: start, me timeValue: end, me int: stepSize) <-{
+    void: requestDataRange(me timeValue: start, me timeValue: end, me double: stepSize) <-{
         their timeStepInterval:: TSI
         TSI.parentDataSource <- parentDataSource
         TSI.start <- start; TSI.end <- end; TSI.stepSize <- stepSize
@@ -519,7 +519,7 @@ struct graph: inherits=dash{
         streamToggle1.initStreamToggle(250, 5, dataStreamsTitleTable, 1)
         streamToggle2.initStreamToggle(400, 5, dataStreamsTitleTable, 0)
 
-        dataStreamSrcs.requestDataRange(crntRightSide-timeInterval, crntRightSide, timeInterval / (100))
+        dataStreamSrcs.requestDataRange(crntRightSide-timeInterval, crntRightSide, timeInterval / 100)
     }
 
     void: incrementZoomLevel(me int: change) <- {

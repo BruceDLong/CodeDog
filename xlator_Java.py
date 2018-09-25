@@ -38,7 +38,7 @@ def convertToJavaType(fieldType, isContainer):
             elif fieldType=='int64':     javaType = 'Long'
             elif fieldType=='string':    javaType = 'String'
             elif fieldType=='uint':      javaType = 'Integer'
-            else:                        
+            else:
                 javaType = fieldType
                 #print "javaType: ", javaType
         else:
@@ -148,7 +148,7 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
     RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
     if LHS_KeyType == 'bool' and progSpec.typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
-    if (LHS_KeyType == 'bool' or LHS_KeyType == 'boolean') and (RHS_KeyType=='int' or RHS_KeyType=='flag'): 
+    if (LHS_KeyType == 'bool' or LHS_KeyType == 'boolean') and (RHS_KeyType=='int' or RHS_KeyType=='flag'):
         if codeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
         else: return '(' + codeStr + ' != 0)'
     return codeStr
@@ -291,7 +291,7 @@ def codeFactor(item, objsRefed, returnType, xlator):
                     retTypeSpec = convertToJavaType(exprTypeSpec, True)
                 if count>1: tmp+=', '
                 tmp+=S2
-                if exprTypeSpec=='Long' or exprTypeSpec=='noType': 
+                if exprTypeSpec=='Long' or exprTypeSpec=='noType':
                     if '*' in S2:
                         numVal = S2
                         #print 'numVal', numVal
@@ -317,7 +317,7 @@ def codeFactor(item, objsRefed, returnType, xlator):
             [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, xlator)
             if(codeStr=="NULL"): codeStr="null"
             typeKeyword = progSpec.fieldTypeKeyword(retTypeSpec)
-            if (len(item0[0]) > 1  and item0[0][0]==typeKeyword and item0[0][1] and item0[0][1]=='('): 
+            if (len(item0[0]) > 1  and item0[0][0]==typeKeyword and item0[0][1] and item0[0][1]=='('):
                 codeStr = 'new ' + codeStr
             S+=codeStr                                # Code variable reference or function call
     return [S, retTypeSpec]
@@ -572,7 +572,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
         else: assignValue=''
     elif(fieldDef['value']):
         [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
-        S2=checkForTypeCastNeed(fieldTypeSpec, rhsTypeSpec, S2) 
+        S2=checkForTypeCastNeed(fieldTypeSpec, rhsTypeSpec, S2)
         RHS = S2
         if varTypeIsValueType(fieldType):
             assignValue=' = '+ RHS
@@ -669,6 +669,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         [containedTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
         [indexTypeStr, innerType]=xlator['convertType'](classes, keyVarSpec, 'var', actionOrField, xlator)
         indexTypeStr = convertToJavaType(indexTypeStr, True)
+        containedTypeStr = convertToJavaType(containedTypeStr, True)
         iteratorTypeStr="Map.Entry<"+indexTypeStr+', '+containedTypeStr+'>'
         repContainer+='.entrySet()'
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
