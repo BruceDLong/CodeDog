@@ -667,6 +667,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
         [containedTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
+        containedTypeStr = convertToJavaType(containedTypeStr, True)
         [indexTypeStr, innerType]=xlator['convertType'](classes, keyVarSpec, 'var', actionOrField, xlator)
         indexTypeStr = convertToJavaType(indexTypeStr, True)
         containedTypeStr = convertToJavaType(containedTypeStr, True)

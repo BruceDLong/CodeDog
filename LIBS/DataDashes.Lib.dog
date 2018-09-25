@@ -100,11 +100,10 @@ struct horizontalScale: inherits=graphScale{
         me int:        tickHeight  <- 0
         me string:     label
         me string:     justify <- ""
-        me sysLocale:  loc
+        me sysLocale:  loc <- unicodeMgr.SetLocale("en")
         me timeValue:  firstTick
         me timeValue:  remainder
 
-        loc <- unicodeMgr.SetLocale("en")
         remainder <- hiVal % divisor
         firstTick <- hiVal - remainder - step*((hiVal-lowVal)/step-1)
         me string: firstTickHr <- unicodeMgr.getHour(firstTick, loc)
@@ -346,7 +345,7 @@ struct GraphDataStream {
     me cdColor: fillColor
     me bool: isVisible <- false
     me bool: hasGradient <- true
-    me int: screenDataAvg
+    me double: screenDataAvg
 }
 
 struct GraphDataStreamSources{
@@ -428,7 +427,7 @@ struct graph: inherits=dash{
                 rightGraphTime <- crntRightSide
                 leftGraphTime  <- crntRightSide - timeInterval
                 firstTime      <- true
-
+		/*
                 /-/// Gradient - requires duplicate 'invisible' data plot as boundary
                 if (dataStream.hasGradient) {
                     withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
@@ -450,7 +449,7 @@ struct graph: inherits=dash{
                     cr.fillNow()
                     cr.strokeNow()
                     linGrad.destroy()
-                }
+                }*/
 
                 /-/// Visible data plot
                 firstTime <- true
