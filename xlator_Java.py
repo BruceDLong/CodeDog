@@ -627,14 +627,14 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
 
     if datastructID=='TreeMap':
+        valueFieldType = convertToJavaType(progSpec.fieldTypeKeyword(progSpec.getFieldType(containerType)), True)
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         keyFieldType = convertToJavaType(keyFieldType, True)
         repContainerTypeSpec = (repContainer)
-        repContainerTYPE ='aItem'  # TODO: this is hardCoded, should fix with dynamic types
-        actionText += (indent + 'for(Map.Entry<'+keyFieldType+','+repContainerTYPE+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
-                       indent + '    '+repContainerTYPE+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
+        actionText += (indent + 'for(Map.Entry<'+keyFieldType+','+valueFieldType+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
+                       indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
                        indent + '    ' +keyFieldType +' '+ repName + '_key = ' + repName+'Entry.getKey();\n\n'  )
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         pass;
@@ -643,7 +643,6 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
     else:
         print "DSID range:",datastructID,containerType
         exit(2)
-
     return [actionText, loopCounterName]
 
 def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):

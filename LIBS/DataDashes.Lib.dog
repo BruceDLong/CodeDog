@@ -169,11 +169,20 @@ struct horizontalScale: inherits=graphScale{
         xOrig        <- XOrig
         yOrig        <- YOrig
         tickOffset   <- TickOffset
+	me timeValue: t0  <- 1000*12
+	me timeValue: t1  <- 1000*60*12
+	me timeValue: t2  <- 1000*60*60
+	me timeValue: t3  <- 1000*60*60*2
+	me timeValue: t4  <- 1000*60*60*4
+	me timeValue: t5  <- 1000*60*60*24
+	me timeValue: t6  <- 1000*60*60*24*2
+	me timeValue: t7  <- 1000*60*60*24*5
+	me timeValue: t8  <- 1000*60*60*24*10
+	me timeValue: t9  <- 1000*60*60*24*15
+	me timeValue: t10 <- 1000*60*60*12
 
-        me timeValue[list]: stepTable    <- [1000*12, 1000*60*12, 1000*60*60, 1000*60*60*2, 1000*60*60*4, 1000*60*60*24,
-            1000*60*60*24*2, 1000*60*60*24*5, 1000*60*60*24*10, 1000*60*60*24*15, 2592000000, 6307200000]
-        me timeValue[list]: divisorTable <- [1000*12, 1000*60*12, 1000*60*60, 1000*60*60*2, 1000*60*60*4, 1000*60*60*12,
-            1000*60*60*24*2, 1000*60*60*24*5, 1000*60*60*24*10, 1000*60*60*24*15, 2592000000, 6307200000]
+        me timeValue[list]: stepTable    <- [t0,t1,t2,t3,t4, t5,t6,t7,t8,t9, 2592000000, 6307200000]
+        me timeValue[list]: divisorTable <- [t0,t1,t2,t3,t4,t10,t6,t7,t8,t9, 2592000000, 6307200000]
 
         step    <- stepTable[zoomLvl]
         divisor <- divisorTable[zoomLvl]
@@ -380,10 +389,15 @@ struct graph: inherits=dash{
     me mode[sAutomatic, sManual]:scrollMode
     me zoomWidget: zoomToggle
     me int: zoomLevel
-    me timeValue[list]: zoomTable <- [1000*60,    1000*60*60, 1000*60*60*6, 1000*60*60*12, 1000*60*60*24, 1000*60*60*24*7,
-    1000*60*60*24*14, 2592000000, 5184000000, 7776000000, 15552000000, 31536000000]
-    me string[list]: labelTable <-   ["1 Minute", "1 Hour",   "6 Hours",    "12 Hours",    "24 Hours",    "One Week",
-    "Two Weeks",      "30 Days",  "60 Days",  "90 Days",  "180 Days",  "One Year"]
+    me timeValue: t0 <- 1000*60
+    me timeValue: t1 <- 1000*60*60
+    me timeValue: t2 <- 1000*60*60*6
+    me timeValue: t3 <- 1000*60*60*12
+    me timeValue: t4 <- 1000*60*60*24
+    me timeValue: t5 <- 1000*60*60*24*7
+    me timeValue: t6 <- 1000*60*60*24*14
+    me timeValue[list]: zoomTable <- [t0,t1,t2,t3,t4,t5,t6, 2592000000, 5184000000, 7776000000, 15552000000, 31536000000]
+    me string[list]: labelTable   <-   ["1 Minute","1 Hour","6 Hours","12 Hours","24 Hours","One Week","Two Weeks","30 Days","60 Days","90 Days","180 Days","One Year"]
     me streamToggle: streamToggle1
     me streamToggle: streamToggle2
     me bool: gradients
@@ -454,14 +468,14 @@ struct graph: inherits=dash{
                 /-/// Visible data plot
                 firstTime <- true
                 withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                    XPoint <- (point_key-leftGraphTime)*dblWidth/timeInterval + posX
-                    YPoint <- (point - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
+                    XPoint <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
+                    YPoint <- convertToGUIScalar((point - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
                     if(firstTime){
                         cr.setColor(dataStream.lineColor)
                         cr.moveTo(XPoint, YOrig - YPoint)
                         firstTime<-false
                     } else {cr.lineTo(XPoint, YOrig - YPoint)}
-                    screenDataTotal <- screenDataTotal + point
+                    screenDataTotal <- screenDataTotal + convertToLongVal(point)
                     screenDataCount <- screenDataCount + 1
                 }
                 cr.strokeNow()

@@ -1155,7 +1155,11 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         if (className in structsNeedingModification):
             cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[className])))
             [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[className]
-            classInherits.append( interfaceImplemented)
+            if modificationMode == 'implement': 
+                if classImplements is None:
+                    classImplements=[]
+                classImplements.append( [interfaceImplemented])
+            else: classInherits.append( interfaceImplemented)
 
         parentClass=''
         seperatorIdx=className.rfind('::')
@@ -1216,11 +1220,12 @@ def codeStructureCommands(classes, tags, xlator):
     global MarkItems
     for command in progSpec.ModifierCommands:
         if (command[3] == 'addImplements'):
-            calledFuncName = command[1]
+            calledFuncID = command[1]
+            calledFuncName = progSpec.fieldNameID(calledFuncID)
             if calledFuncName in progSpec.funcsCalled:
                 calledFuncInstances = progSpec.funcsCalled[calledFuncName]
                 #print '     addImplements:'
-                print '          calledFuncName:', calledFuncName
+                #print '          calledFuncName:', calledFuncName
                 for funcCalledParams in calledFuncInstances:
                     #print '\n funcCalledParams:',funcCalledParams
                     paramList = funcCalledParams[0]
