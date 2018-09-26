@@ -405,6 +405,12 @@ def fieldOnlyID(fieldID):
     if breakPos<0: return fieldID
     return fieldID[breakPos+2:]
 
+def fieldNameID(fieldID):
+    colonIndex = fieldID.find('::')
+    fieldID = fieldID[colonIndex+2:]
+    parenIndex=fieldID.find('(')
+    return fieldID[0:parenIndex]
+
 def fieldDefIsInList(fieldList, fieldID):
     for field in fieldList:
         if 'fieldID' in field and fieldOnlyID(field['fieldID']) == fieldOnlyID(fieldID):

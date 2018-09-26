@@ -469,13 +469,13 @@ struct graph: inherits=dash{
                 firstTime <- true
                 withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
                     XPoint <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
-                    YPoint <- (point - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
+                    YPoint <- convertToGUIScalar((point - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
                     if(firstTime){
                         cr.setColor(dataStream.lineColor)
                         cr.moveTo(XPoint, YOrig - YPoint)
                         firstTime<-false
                     } else {cr.lineTo(XPoint, YOrig - YPoint)}
-                    screenDataTotal <- screenDataTotal + point
+                    screenDataTotal <- screenDataTotal + convertToLongVal(point)
                     screenDataCount <- screenDataCount + 1
                 }
                 cr.strokeNow()
