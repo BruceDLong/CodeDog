@@ -51,60 +51,60 @@ struct timeWidget{}
 struct dateWidget{}
 struct wizardWidget{
     their GUI_Frame:  box
-    their GUI_Frame:  ZStack
+    their GUI_ZStack: ZStack
     their GUI_Frame:  buttonBox /-Hstack
     their GUI_button: backBtn
     their GUI_button: nextBtn
-    me int:	      activeScreenIdx
+    me int:           activeScreenIdx
     me string[list]:  children
 
     their GUI_Frame: makeWizardWidget(me string: name) <- {
-	activeScreenIdx <- 0
-	box          	<- makeYStack("")
-	ZStack      	<- makeZStack("")
-	buttonBox 	<- makeXStack("")
-	backBtn   	<- makeButtonWidget("Back")
-	nextBtn   	<- makeButtonWidget("Next")
-	GUI.setBtnCallback(backBtn, "clicked", clickBack, self)
-	GUI.setBtnCallback(nextBtn, "clicked", clickNext, self)
-	addToContainer(box, ZStack)
-	addToContainer(buttonBox, backBtn)
-	addToContainer(buttonBox, nextBtn)
-	addToContainer(box, buttonBox)
-	return(box)
+        activeScreenIdx <- 0
+        box             <- makeYStack("")
+        ZStack          <- makeZStack("")
+        buttonBox       <- makeXStack("")
+        backBtn         <- makeButtonWidget("Back")
+        nextBtn         <- makeButtonWidget("Next")
+        GUI.setBtnCallback(backBtn, "clicked", clickBack, self)
+        GUI.setBtnCallback(nextBtn, "clicked", clickNext, self)
+        addToContainer(box, ZStack)
+        addToContainer(buttonBox, backBtn)
+        addToContainer(buttonBox, nextBtn)
+        addToContainer(box, buttonBox)
+        return(box)
     }
     void: clickNext() <-{
-	activeScreenIdx <- activeScreenIdx+1
-	me int: size <- children.size()
-	if (activeScreenIdx > size-1){activeScreenIdx <-size-1}
-	setActiveChild(activeScreenIdx)
+        activeScreenIdx <- activeScreenIdx+1
+        me int: size <- children.size()
+        if (activeScreenIdx > size-1){activeScreenIdx <-size-1}
+        setActiveChild(activeScreenIdx)
     }
     void: clickBack() <-{
-	activeScreenIdx <- activeScreenIdx-1
-	if (activeScreenIdx < 0) {activeScreenIdx <-0}
-	setActiveChild(activeScreenIdx)
+        activeScreenIdx <- activeScreenIdx-1
+        if (activeScreenIdx < 0) {activeScreenIdx <-0}
+        setActiveChild(activeScreenIdx)
     }
     void: setActiveChild(me int: N) <- {
-	me string: childStr <- children[N]
-	setZStackActive(ZStack, childStr)
-	if(N==0){hideWidget(backBtn)}else{showWidget(backBtn)}
-	if(N==children.size()-1){hideWidget(nextBtn)}else{showWidget(nextBtn)}
+        me string: childStr <- children[N]
+        setZStackActive(ZStack, childStr)
+        if(N==0){hideWidget(backBtn)}else{showWidget(backBtn)}
+        if(N==children.size()-1){hideWidget(nextBtn)}else{showWidget(nextBtn)}
     }
 }
 struct matterTerm{
     me string[list]: matterTypes <- ["a", "b"]
-    me int:	     matterIdx	 <- 0
-    me double: 	     term	 <- 0
-    me string:       units	 <- ""
+    me int:          matterIdx   <- 0
+    me double:       term        <- 0
+    me string:       units       <- ""
 }
 struct MatterTermWidget{
-    their GUI_Frame:  	box
-    their GUI_Label:	label
-    their GUI_ComboBox:	matterBox
+    their GUI_Frame:    box
+    their GUI_Label:    label
+    their GUI_ComboBox: matterBox
     their GUI_SpinBox:  termBox
-    their GUI_Label:	unitsBox
+    their GUI_Label:    unitsBox
     
-    our matterTerm:: 	data 
+    our matterTerm::    data 
     me double: initialValue  <- 0
     me double: minValue      <- 0
     me double: maxValue      <- 1000

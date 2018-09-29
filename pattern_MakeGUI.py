@@ -93,8 +93,8 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         fldCat          = progSpec.fieldsTypeCategory(typeSpec)
         fieldName       = field['fieldName']
         label           = deCamelCase(fieldName)
-        CasedFieldName          = fieldName[0].upper() + fieldName[1:]
-        widgetName         = CasedFieldName + 'Widget'
+        CasedFieldName  = fieldName[0].upper() + fieldName[1:]
+        widgetName      = CasedFieldName + 'Widget'
 
         if not progSpec.isAContainer(typeSpec):
             if(fldCat!='struct'):
@@ -139,13 +139,14 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     our <STRUCTNAME>: crntRecord
     our <STRUCTNAME>[our list]: <STRUCTNAME>_ListData
     me <STRUCTNAME>_Dialog_GUI: dialog
+    their GUI_Frame: box
     their GUI_Frame:            listViewWidget
     their GUI_Frame[their list]:rows
     their GUI_Frame:            crntRow
 
     /- Override all these for each new list editing widget
     their GUI_Frame: makeListHeader() <- {
-        their GUI_Frame: box       <- makeYStack("")
+        box                        <- makeYStack("")
         their GUI_Frame: headerRow <- makeRowWidget("")
         their GUI_Frame: headerBox <- makeXStack("")
         <ROWHEADERCODE>
@@ -362,6 +363,12 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetInitFuncCode   += '        '+makeTypeNameCall
         widgetInitFuncCode   += '        addToZStack(wiz.ZStack, '+widgetBoxName+', "'+CasedFieldName+'")\n'
         widgetInitFuncCode   += '        wiz.children.pushLast("'+CasedFieldName+'")\n'
+    elif dialogStyle   == 'Z_stack': 
+        widgetBoxName         =  guiMgrName +'.box'
+        newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
+        widgetInitFuncCode   += '        '+makeTypeNameCall+'\n'
+        widgetInitFuncCode   += '        addToZStack(Zbox, '+widgetBoxName+', "'+CasedFieldName+'")\n'
+        widgetInitFuncCode   += '        children.pushLast("'+CasedFieldName+'")\n'
     else: # Not an ArraySpec:
         newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
@@ -510,15 +517,33 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, classPrimaryGuiItem, '')
 
     # Parse everything
-    initFuncName = 'make'+className[0].upper() + className[1:]+'Widget'
-    if dialogStyle   == 'Z_stack':     containerWidget='their GUI_Frame:box <- makeZStack('+className+')'
+    initFuncName        = 'make'+className[0].upper() + className[1:]+'Widget'
+    retrunCode          = 'return(box)'
+    if dialogStyle   == 'Z_stack':     
+        newWidgetFields   += '    their GUI_ZStack: Zbox\n'
+        newWidgetFields   += '    me string[list]: children\n'
+        newWidgetFields   += '    me int: activeScreenIdx <-1\n'
+        newWidgetFields   += '    void: setActiveChild(me int: N) <- {\n'
+        newWidgetFields   += '        if (N >= 0 and N < children.size()-1){'
+        newWidgetFields   += '            me string: childName <- children[N]\n'
+        newWidgetFields   += '            print("^^^setZStackActive: ",N)\n'
+        newWidgetFields   += '            setZStackActive(Zbox, childName)\n'
+        newWidgetFields   += '        }\n'
+        newWidgetFields   += '    }\n'
+        containerWidget    = 'Zbox <- makeZStack("'+className+'")\n'
+        retrunCode         = '    setActiveChild(1)\n'
+        retrunCode        += '    return(Zbox)\n'
+        # addToContainer or 
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
     elif dialogStyle == 'WizardStack':
         newWidgetFields    += '    our wizardWidget: wiz\n'
+        newWidgetFields    += '    their GUI_Frame: box\n'
         containerWidget     = 'Allocate(wiz)\n'
-        containerWidget    += '        their GUI_Frame:box <- wiz.makeWizardWidget("WizardWidget")\n'
-        widgetInitFuncCode += 'wiz.setActiveChild(0)\n'
-    else: containerWidget='their GUI_Frame:box <- makeYStack("")'
+        containerWidget    += '        box <- wiz.makeWizardWidget("WizardWidget")\n'
+        widgetInitFuncCode += '        wiz.setActiveChild(0)\n'
+    else: 
+        newWidgetFields    += '    their GUI_Frame:box\n'
+        containerWidget     ='box <- makeYStack("")'
 
     CODE =  '''
 struct <CLASSNAME> {}
@@ -529,7 +554,7 @@ struct <NEWSTRUCTNAME> {
         <CLASSNAME>_data<-Data
         <CONTAINERWIDGET>
         <WIDGETINITFUNCCODE>
-        return(box)
+        <RETURNCODE>
     }
     void: setValue(our <CLASSNAME>: var) <- {
         <WIDGETFROMVARSCODE>
@@ -547,6 +572,7 @@ struct <NEWSTRUCTNAME> {
     CODE = CODE.replace('<WIDGETFROMVARSCODE>', widgetFromVarsCode)
     CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
     CODE = CODE.replace('<CONTAINERWIDGET>', containerWidget)
+    CODE = CODE.replace('<RETURNCODE>', retrunCode)
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
