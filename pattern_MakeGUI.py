@@ -363,6 +363,12 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetInitFuncCode   += '        '+makeTypeNameCall
         widgetInitFuncCode   += '        addToZStack(wiz.ZStack, '+widgetBoxName+', "'+CasedFieldName+'")\n'
         widgetInitFuncCode   += '        wiz.children.pushLast("'+CasedFieldName+'")\n'
+    elif dialogStyle   == 'Z_stack': 
+        widgetBoxName         =  guiMgrName +'.box'
+        newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
+        widgetInitFuncCode   += '        '+makeTypeNameCall+'\n'
+        widgetInitFuncCode   += '        addToZStack(Zbox, '+widgetBoxName+', "'+CasedFieldName+'")\n'
+        widgetInitFuncCode   += '        children.pushLast("'+CasedFieldName+'")\n'
     else: # Not an ArraySpec:
         newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
@@ -514,7 +520,20 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     initFuncName        = 'make'+className[0].upper() + className[1:]+'Widget'
     retrunCode          = 'return(box)'
     if dialogStyle   == 'Z_stack':     
-        containerWidget='their GUI_Frame:box <- makeZStack('+className+')'
+        newWidgetFields   += '    their GUI_ZStack: Zbox\n'
+        newWidgetFields   += '    me string[list]: children\n'
+        newWidgetFields   += '    me int: activeScreenIdx <-1\n'
+        newWidgetFields   += '    void: setActiveChild(me int: N) <- {\n'
+        newWidgetFields   += '        if (N >= 0 and N < children.size()-1){'
+        newWidgetFields   += '            me string: childName <- children[N]\n'
+        newWidgetFields   += '            print("^^^setZStackActive: ",N)\n'
+        newWidgetFields   += '            setZStackActive(Zbox, childName)\n'
+        newWidgetFields   += '        }\n'
+        newWidgetFields   += '    }\n'
+        containerWidget    = 'Zbox <- makeZStack("'+className+'")\n'
+        retrunCode         = '    setActiveChild(1)\n'
+        retrunCode        += '    return(Zbox)\n'
+        # addToContainer or 
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
     elif dialogStyle == 'WizardStack':
         newWidgetFields    += '    our wizardWidget: wiz\n'
