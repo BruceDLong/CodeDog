@@ -51,7 +51,7 @@ struct timeWidget{}
 struct dateWidget{}
 struct wizardWidget{
     their GUI_Frame:  box
-    their GUI_Frame:  ZStack
+    their GUI_ZStack: ZStack
     their GUI_Frame:  buttonBox /-Hstack
     their GUI_button: backBtn
     their GUI_button: nextBtn
@@ -93,18 +93,18 @@ struct wizardWidget{
 }
 struct matterTerm{
     me string[list]: matterTypes <- ["a", "b"]
-    me int:	     matterIdx	 <- 0
-    me double: 	     term	 <- 0
-    me string:       units	 <- ""
+    me int:          matterIdx   <- 0
+    me double:       term        <- 0
+    me string:       units       <- ""
 }
 struct MatterTermWidget{
-    their GUI_Frame:  	box
-    their GUI_Label:	label
-    their GUI_ComboBox:	matterBox
+    their GUI_Frame:    box
+    their GUI_Label:    label
+    their GUI_ComboBox: matterBox
     their GUI_SpinBox:  termBox
-    their GUI_Label:	unitsBox
+    their GUI_Label:    unitsBox
     
-    our matterTerm:: 	data 
+    our matterTerm::    data 
     me double: initialValue  <- 0
     me double: minValue      <- 0
     me double: maxValue      <- 1000
