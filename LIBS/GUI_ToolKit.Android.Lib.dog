@@ -372,7 +372,22 @@ struct GUI_Bool{
 struct GUI_Label{
     void: setValue(me string: text)     <- <%!setText(%1)%>
 }
+struct GUI_ZStack: inherits=LinearLayout{
+    their GUI_Frame[map string]: children
+    
+    me none: GUI_ZStack() <- <%{
+	super(GLOBAL.static_Global);
+    }%>
 
+    me void: addZStackChild(their GUI_Frame: child, me string: childName) <- <%{ 
+	children.put(childName, child);
+    }%>
+    me void: setZStackChild(me string: childName)                         <- <%{ 
+	removeAllViews();
+	LinearLayout childView = children.get(childName);
+	addView(childView);
+    }%>
+}
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
@@ -460,13 +475,13 @@ struct GLOBAL{
     their rangeWidget: makeRangeWidget(me string: label)                        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
     their GUI_Frame: makeXStack(me string: label)                               <- <%!makeAndroidHorizontalLayout(%1)%>
     their GUI_Frame: makeYStack(me string: label)                               <- <%!makeAndroidVerticalLayout(%1)%>
-    their GUI_Frame: makeZStack(me string: label)                               <- <%!makeAndroidFragmentView(%1)%>
+    their GUI_Frame: makeZStack(me string: label)                               <- <%!%G new GUI_ZStack()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget)   <- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
-    me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G // TODO code converter for GLOBAL.addToZStack%>
-    me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G // TODO code converter for GLOBAL.setZStackActive%>
+    me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G%1.addZStackChild(%2,%3)%>
+    me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G%1.setZStackChild(%2)%>
     their GUI_button: makeButtonWidget(me string: label)                        <- <%!makeAndroidButton(%1)%>
-    their GtkWidget: makeTabbedWidget(me string: label)                         <- <%!makeAndroidFragmentView(%1)%>
+    their GtkWidget: makeTabbedWidget(me string: label)                         <- <%!makeAndroidVerticalLayout(%1)%>
     me void: setTabLabelText()                                                  <- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
     me GUI_Scalar: convertToGUIScalar()                                         <- <%!%G (float)(%1)%>
     their GUI_Bool: makeCheckBox()                                              <- <%!%G new CheckBox(GLOBAL.static_Global)%>

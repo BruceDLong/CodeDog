@@ -627,14 +627,14 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
 
     if datastructID=='TreeMap':
+        valueFieldType = convertToJavaType(progSpec.fieldTypeKeyword(progSpec.getFieldType(containerType)), True)
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         keyFieldType = convertToJavaType(keyFieldType, True)
         repContainerTypeSpec = (repContainer)
-        repContainerTYPE ='aItem'  # TODO: this is hardCoded, should fix with dynamic types
-        actionText += (indent + 'for(Map.Entry<'+keyFieldType+','+repContainerTYPE+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
-                       indent + '    '+repContainerTYPE+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
+        actionText += (indent + 'for(Map.Entry<'+keyFieldType+','+valueFieldType+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
+                       indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
                        indent + '    ' +keyFieldType +' '+ repName + '_key = ' + repName+'Entry.getKey();\n\n'  )
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         pass;
@@ -643,7 +643,6 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
     else:
         print "DSID range:",datastructID,containerType
         exit(2)
-
     return [actionText, loopCounterName]
 
 def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
@@ -733,7 +732,7 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     # TODO: make next line so it is not hard coded
-    if(Platform == 'Android' and (convertedType == "TextView" or convertedType == "CanvasView" or convertedType == "FragmentTransaction" or convertedType == "FragmentManager" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "Toolbar" or convertedType == "NestedScrollView" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI"or convertedType == "CheckBox" or convertedType == "HorizontalScrollView"or convertedType == "widget"or convertedType == "GLOBAL")):
+    if(Platform == 'Android' and (convertedType == "TextView" or convertedType == "CanvasView" or convertedType == "FragmentTransaction" or convertedType == "FragmentManager" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "Toolbar" or convertedType == "NestedScrollView" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI"or convertedType == "CheckBox" or convertedType == "HorizontalScrollView"or convertedType == "GUI_ZStack"or convertedType == "widget"or convertedType == "GLOBAL")):
         #print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
@@ -748,7 +747,7 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
         withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(" + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
     noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+'\n    };\n'
-    if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"):
+    if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"or ClassName =="GUI_ZStack"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
 

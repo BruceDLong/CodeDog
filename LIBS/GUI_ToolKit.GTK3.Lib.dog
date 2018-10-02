@@ -52,7 +52,7 @@ struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
 struct GUI_PointerEvent{their GdkEventButton: GUI_PointerEvent}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
-
+struct GUI_ZStack{their GtkWidget: GUI_ZStack}
 /-///////////////////////////////  WIDGETS
 struct GUI_storyBoard{
     their GtkWidget: GUI_storyBoard
