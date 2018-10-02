@@ -18,6 +18,10 @@ LibDescription ={
     CPUs        =[i386, amd64, arm7]
 }
 
+initCode = `
+    GUI_threads_messagePasser <- threadsMesgPasser()
+`
+
 /-///////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
@@ -240,8 +244,8 @@ struct TimeWidget{
     their GUI_ComboBox: minuteBox
     me timeValue:       data
     me int[list]:       hours
-    me int[list]:       minutes 
-  
+    me int[list]:       minutes
+
     their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
         /-/// HOUR //////////////////////////////////
         their GUI_Label: hourLabel <- makeLabelWidget("Hour");
@@ -482,7 +486,7 @@ struct GLOBAL{
     their GUI_Bool: makeCheckBox()                                         <- <%!%Ggtk_check_button_new()%>
     their GUI_VerticalScroller: makeVerticalScroller(me int: width, me int: height) <- <%!%GmakeGTKVerticalScroller(%1,%2)%>
     their GUI_TextViewer: makeTextViewer(me string: text)                  <- <%!%GmakeGTKTextViewer(%1)%>
-    
+
     their GUI_TextViewer: makeGTKTextViewer(me string: text)    <- <%{
         GtkWidget *textViewer = gtk_text_view_new();
         GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW (textViewer));
@@ -923,9 +927,41 @@ me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!
 me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
 me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_stack_add_named(GTK_STACK(%1), %2, %3)%>
 me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack_set_visible_child_name(GTK_STACK(%1), %2.data())%>
+}
 
+/--------------- Inter-thread communication
+
+/- Initialization: get main thread's "mainContext" and store it and make a global getter for it.
+struct MessagePasser {their GMainContext: MessagePasser}
+
+struct HandlerThread: inherits = Thread {
+    their MessagePasser: mesgPasser
+    void: run() <- <%{
+        mesgPasser = g_main_context_new();
+        GMainLoop *main_loop;
+
+        /* Set up the thread’s context and run it forever. */
+        g_main_context_push_thread_default (mesgPasser);
+
+        main_loop = g_main_loop_new (mesgPasser, FALSE);
+        g_main_loop_run (main_loop);
+        g_main_loop_unref (main_loop);
+
+        g_main_context_pop_thread_default (mesgPasser);
+        g_main_context_unref (mesgPasser);
+
+    }%>
+}
+
+struct GLOBAL{
+    their MessagePasser: GUI_threads_messagePasser <- NULL   /- Set this at beginning of the program
+    their MessagePasser: threadsMesgPasser() <- <%!g_main_context_default()%>
+    their MessagePasser: GUIsMesgPasser() <- <%!GUI_threads_messagePasser%>
+    void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: funcToCall, their void: arguments) <- <%!g_main_context_invoke(%1, GSourceFunc(%2), (void*)%3)%>
+}
 
 /--------------- Application areas
+struct GLOBAL {
 their GtkWidget: window
 
 me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{

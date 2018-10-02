@@ -351,15 +351,13 @@ struct GraphDataStream {
 struct GraphDataStreamSources{
     our GraphDataStream[me list]: dataStreams
     their DataGen: parentDataSource
+    me timeStepInterval: requestedInterval
+    me bool: dataRangeChangeRequested
 
     void: requestDataRange(me timeValue: start, me timeValue: end, me double: stepSize) <-{
-        their timeStepInterval:: TSI
-        TSI.parentDataSource <- parentDataSource
-        TSI.start <- start; TSI.end <- end; TSI.stepSize <- stepSize
-        print("> GraphDataStreamSources::requestDataRange\n")
-        their GMainContext: GUIContext <- g_main_context_get_thread_default()
-        g_main_context_invoke(GUIContext, GSourceFunc(CallRequestDataRange), TSI);
-        print("< GraphDataStreamSources::requestDataRange\n")
+        dataRangeChangeRequested <- true
+        requestedInterval.parentDataSource <- parentDataSource
+        requestedInterval.start <- start; requestedInterval.end <- end; requestedInterval.stepSize <- stepSize
     }
 }
 
