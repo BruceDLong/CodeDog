@@ -938,6 +938,7 @@ struct HandlerThread: inherits = Thread {
     their MessagePasser: mesgPasser
     void: run() <- <%{
         mesgPasser = g_main_context_new();
+        worker_thread_messagePasser = mesgPasser;
         GMainLoop *main_loop;
 
         /* Set up the thread’s context and run it forever. */
@@ -955,7 +956,8 @@ struct HandlerThread: inherits = Thread {
 
 struct GLOBAL{
     their MessagePasser: GUI_threads_messagePasser <- NULL   /- Set this at beginning of the program
-    their MessagePasser: threadsMesgPasser() <- <%!g_main_context_default()%>
+    their MessagePasser: worker_thread_messagePasser <- NULL   /- Set this at beginning of the program
+    their MessagePasser: threadsMesgPasser() <- <%!g_main_context_get_thread_default()%>
     their MessagePasser: GUIsMesgPasser() <- <%!GUI_threads_messagePasser%>
     void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: funcToCall, their void: arguments) <- <%!g_main_context_invoke(%1, GSourceFunc(%2), (void*)%3)%>
 }

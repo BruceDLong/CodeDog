@@ -169,17 +169,17 @@ struct horizontalScale: inherits=graphScale{
         xOrig        <- XOrig
         yOrig        <- YOrig
         tickOffset   <- TickOffset
-	me timeValue: t0  <- 1000*12
-	me timeValue: t1  <- 1000*60*12
-	me timeValue: t2  <- 1000*60*60
-	me timeValue: t3  <- 1000*60*60*2
-	me timeValue: t4  <- 1000*60*60*4
-	me timeValue: t5  <- 1000*60*60*24
-	me timeValue: t6  <- 1000*60*60*24*2
-	me timeValue: t7  <- 1000*60*60*24*5
-	me timeValue: t8  <- 1000*60*60*24*10
-	me timeValue: t9  <- 1000*60*60*24*15
-	me timeValue: t10 <- 1000*60*60*12
+    me timeValue: t0  <- 1000*12
+    me timeValue: t1  <- 1000*60*12
+    me timeValue: t2  <- 1000*60*60
+    me timeValue: t3  <- 1000*60*60*2
+    me timeValue: t4  <- 1000*60*60*4
+    me timeValue: t5  <- 1000*60*60*24
+    me timeValue: t6  <- 1000*60*60*24*2
+    me timeValue: t7  <- 1000*60*60*24*5
+    me timeValue: t8  <- 1000*60*60*24*10
+    me timeValue: t9  <- 1000*60*60*24*15
+    me timeValue: t10 <- 1000*60*60*12
 
         me timeValue[list]: stepTable    <- [t0,t1,t2,t3,t4, t5,t6,t7,t8,t9, 2592000000, 6307200000]
         me timeValue[list]: divisorTable <- [t0,t1,t2,t3,t4,t10,t6,t7,t8,t9, 2592000000, 6307200000]
@@ -345,7 +345,7 @@ struct graphTitleWidget: inherits=dash{
     }
 }
 
-struct timeStepInterval{their DataGen: parentDataSource me timeValue: start me timeValue: end me double: stepSize}
+struct timeStepInterval{their graph: parentWidget me timeValue: start me timeValue: end me double: stepSize}
 
 struct GraphDataStream {
     me string: title
@@ -363,11 +363,6 @@ struct GraphDataStreamSources{
     me timeStepInterval: requestedInterval
     me bool: dataRangeChangeRequested
 
-    void: requestDataRange(me timeValue: start, me timeValue: end, me double: stepSize) <-{
-        dataRangeChangeRequested <- true
-        requestedInterval.parentDataSource <- parentDataSource
-        requestedInterval.start <- start; requestedInterval.end <- end; requestedInterval.stepSize <- stepSize
-    }
 }
 
 struct graph: inherits=dash{
@@ -508,6 +503,17 @@ struct graph: inherits=dash{
         streamToggle2.draw(cr)
     }
 
+
+    void: requestDataRange(me timeValue: start, me timeValue: end, me double: stepSize) <-{
+        dataStreamSrcs.dataRangeChangeRequested <- true
+        dataStreamSrcs.requestedInterval.parentWidget <- self
+        dataStreamSrcs.requestedInterval.start <- start; dataStreamSrcs.requestedInterval.end <- end; dataStreamSrcs.requestedInterval.stepSize <- stepSize
+    }
+    void: applyDataRange(me timeStepInterval: req) <- {
+        crntRightSide <- req.end
+        timeInterval  <- req.stepSize
+    }
+
     me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me bool: Gradients)<- {
         posX         <- PosX
         posY         <- PosY
@@ -530,15 +536,15 @@ struct graph: inherits=dash{
         streamToggle1.initStreamToggle(250, 5, dataStreamsTitleTable, 1)
         streamToggle2.initStreamToggle(400, 5, dataStreamsTitleTable, 0)
 
-        dataStreamSrcs.requestDataRange(crntRightSide-timeInterval, crntRightSide, timeInterval / 100)
+        requestDataRange(crntRightSide-timeInterval, crntRightSide, timeInterval)
     }
 
     void: incrementZoomLevel(me int: change) <- {
         if (zoomLevel + change >= 0 and zoomLevel + change < zoomTable.size()) {
             zoomLevel <- zoomLevel + change
-            timeInterval <- zoomTable[zoomLevel]
+            me timeValue: tmpTimeInterval <- zoomTable[zoomLevel]
             zoomToggle.label <- labelTable[zoomLevel]
-            dataStreamSrcs.requestDataRange(crntRightSide-timeInterval, crntRightSide, timeInterval / (width / 10))
+            requestDataRange(crntRightSide-tmpTimeInterval, crntRightSide, tmpTimeInterval)
         }
     }
 
@@ -585,8 +591,8 @@ struct graph: inherits=dash{
             deltaX <- 0
         }
         if (scrollState==pullScrolling) {
-            crntRightSide <- crntRightSide - convertToTimeVal(deltaX)*timeInterval/convertToTimeVal(width)
-            dataStreamSrcs.requestDataRange(crntRightSide-timeInterval, crntRightSide, timeInterval / (width / 10))
+            me timeValue: tmpCrntRightSide <- crntRightSide - convertToTimeVal(deltaX)*timeInterval/convertToTimeVal(width)
+            requestDataRange(tmpCrntRightSide-timeInterval, tmpCrntRightSide, timeInterval)
             requestRedraw()
         }
         return(true)
