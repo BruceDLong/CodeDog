@@ -244,6 +244,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
     fieldType           = innerFieldType[0]
     widgetBoxName       = widgetName
     localWidgetVarName  = widgetName
+    makeTypeNameCall    = ''
 
     if fieldType=='timeValue':
         typeName              = 'dateWidget'
@@ -287,7 +288,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldSpec=='widget':
-        typeName              = CasedFieldName +'Widget'
+        typeName              = fieldType
         widgetName            = fieldName +'Widget'
         widgetBoxName         = fieldName
         localWidgetVarName    = fieldName
