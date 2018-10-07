@@ -288,12 +288,22 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldSpec=='widget':
-        typeName              = fieldType
-        widgetName            = fieldName +'Widget'
-        widgetBoxName         = fieldName
-        localWidgetVarName    = fieldName
-        newWidgetFields      += '    their GUI_item' + ': ' + fieldName + '\n'
-        makeTypeNameCall      = widgetName+' <- Data.' + fieldName + '\n' + fieldName + '<- '+widgetName+'.init()\n'
+        if fieldType=='DashboardWidget': 
+            print 'widget: ', fieldType
+            typeName              = fieldType
+            widgetName            = fieldName +'Widget'
+            widgetBoxName         = fieldName
+            localWidgetVarName    = fieldName
+            newWidgetFields      += '    their GUI_item' + ': ' + fieldName + '\n'
+            makeTypeNameCall      = widgetName+' <- Data.' + fieldName + '\n' + fieldName + '<- '+widgetName+'.init("'+label+'")\n'
+        else:
+            typeName              = fieldType
+            widgetName            = fieldName +'Widget'
+            widgetBoxName         = fieldName+'Canvas'
+            localWidgetVarName    = fieldName
+            newWidgetFields      += '    me int' + ': ' + fieldName + '\n'
+            makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+            makeTypeNameCall     += '        their GUI_canvas:    '+fieldName+'Canvas <- ' + widgetName+'.init("'+label+'")\n'
     elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'

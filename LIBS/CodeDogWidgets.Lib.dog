@@ -1,0 +1,217 @@
+/- CodeDog IntDraggerWidget
+featuresNeeded = [GUI_ToolKit]
+struct LabelDash: inherits=dash{
+    me string:          label
+    void: initLabelDash(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string: Label) <- {
+        title                <- "LabelDash."+Label
+        label                <- Label
+        posX                 <- PosX
+        posY                 <- PosY    
+    }
+    void: draw(me GUI_ctxt: cr) <- {
+        me GUI_Scalar: padding <- 5
+        cr.setColor(Styler.Black)
+        me deltaSize: size <- getTextSize(cr, label, styler.fontSmall)
+        me GUI_Scalar: rightJustifyOffset <- size.width + padding
+        renderText(cr, label, styler.fontSmall, posX-rightJustifyOffset, posY+padding+size.height)
+    }
+}
+struct IntDraggerDash: inherits=dash{
+    me circleButton: leftIncrBtn
+    me circleButton: rightDecrBtn
+    me GUI_Scalar:   radius
+    me int:          intData
+    me GUI_Scalar:   btnSpan
+    me double:       textYPosMultiplier
+    void: initIntDraggerDash(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Radius, me string: Label) <- {
+        title                <- "IntDraggerDash."+Label
+        posX                 <- PosX
+        posY                 <- PosY
+        radius               <- Radius
+        btnSpan              <- 100
+        intData              <- 444       
+        textYPosMultiplier   <- 1.95
+    }
+    void: draw(me GUI_ctxt: cr) <- {
+        me GUI_Scalar:   padding <- 0
+	cr.setColor(Styler.Black)
+        leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
+        leftIncrBtn.drawCircleBtn(cr)
+        me string: dataStr <- toString(intData)
+        me deltaSize: size <- getTextSize(cr, dataStr, styler.fontDefault)
+        renderText(cr, dataStr, styler.fontDefault, posX+padding+radius*2+(btnSpan-size.width)/2, posY+padding+textYPosMultiplier*radius)
+        rightDecrBtn.initCircleBtn(posX+padding+radius*2+btnSpan, posY+padding, radius, ">")
+        rightDecrBtn.drawCircleBtn(cr)
+    }
+    void: incrValue() <- {
+        intData <- intData + 1
+    }
+    void: decrValue() <- {
+        intData <- intData - 1
+    }
+    void: applyDelta(me int: val) <- {
+        intData <- intData + val
+    }
+}
+struct IntDraggerWidget: inherits=DashboardWidget{
+    our LabelDash:      labelDash
+    our IntDraggerDash: intDraggerDash
+    me int:             lowVal
+    me int:             highVal
+    me GUI_Scalar:      prevX
+    me GUI_Scalar:      deltaX <- 0
+    me int:             moveThreshold <- 2
+    me bool:            isBtnDown     <- false
+    me bool:            isDragging    <- false
+    their GUI_canvas: init(me string: label)      <- {
+        /-/// CANVAS AND EVENTS
+        title                   <- 'IntDraggerWidget.'+label
+        dashboardDBW.init()
+        canvas                  <- thisApp.gui.newCanvas()
+/-	canvas.setParent(self)
+        dashboardDBW.dashParent <- self
+        dashboardDBW.canvas     <- canvas
+        thisApp.gui.setWidgetSize(canvas, 1000, 150)
+        managedWidget           <- canvas
+        EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
+        /-/// CHILDREN
+        labelDash.initLabelDash(150,0,label)
+        dashboardDBW.addChild(labelDash)
+        intDraggerDash.initIntDraggerDash(150,0,18,label)
+        dashboardDBW.addChild(intDraggerDash)
+        return(managedWidget)
+    }
+    void: draw(me GUI_ctxt: cr) <- {
+        dashboardDBW.draw(cr)
+    }
+    void: INIT()                <- {
+        Allocate(dashboardDBW)
+        Allocate(labelDash)
+        Allocate(intDraggerDash)
+    }
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+        if (intDraggerDash.rightDecrBtn.primaryUp(event)) {intDraggerDash.incrValue();requestRedraw()}
+        else if (intDraggerDash.leftIncrBtn.primaryUp(event)) {intDraggerDash.decrValue();requestRedraw()}
+        isBtnDown     <- false
+        isDragging    <- false
+        deltaX        <- 0
+        return(true)
+    }
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+        isBtnDown     <- true
+        return(true)
+    }
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+        deltaX <- event.x - prevX
+        prevX  <- event.x
+        me int: multiplier <- convertToIntVal(deltaX)
+        if (isBtnDown and abs(deltaX) > moveThreshold) {
+            isDragging    <- true
+            intDraggerDash.applyDelta(multiplier)
+            requestRedraw()
+        }
+        return(true)
+    }
+}
+struct TimeDraggerDash: inherits=dash{
+    me circleButton: leftIncrBtn
+    me circleButton: rightDecrBtn
+    me GUI_Scalar:   radius
+    me timeValue:    timeData
+    me int:          minOffset
+    me GUI_Scalar:   btnSpan
+    void: initTimeDraggerDash(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Radius, me string: Label) <- {
+        title                <- "timeDraggerDash."+Label
+        posX                 <- PosX
+        posY                 <- PosY
+        radius               <- Radius
+        btnSpan              <- 100    
+	minOffset            <- 12
+    }
+    void: draw(me GUI_ctxt: cr) <- {
+        me GUI_Scalar:   padding <- 0
+	me string:         hrStr <- "10"
+	me string:        minStr <- "20"
+	me string:       dataStr <- toString(minOffset)
+	me GUI_Scalar:   YOffset <- posY
+	cr.setColor(Styler.Black)
+        leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
+        leftIncrBtn.drawCircleBtn(cr)
+	me deltaSize: size <- getTextSize(cr, dataStr, styler.fontDefault)
+	YOffset <- YOffset+size.height
+	renderText(cr, dataStr, styler.fontDefault, posX+padding+radius*2+(btnSpan-size.width)/2, YOffset)
+	dataStr <- hrStr+":"+minStr
+        size <- getTextSize(cr, dataStr, styler.fontSmall)
+	YOffset <- YOffset+size.height
+        renderText(cr, dataStr, styler.fontSmall, posX+padding+radius*2+(btnSpan-size.width)/2, YOffset)
+        rightDecrBtn.initCircleBtn(posX+padding+radius*2+btnSpan, posY+padding, radius, ">")
+        rightDecrBtn.drawCircleBtn(cr)
+    }
+    void: incrValue() <- {
+       minOffset <- minOffset + 1
+    }
+    void: decrValue() <- {
+        minOffset <- minOffset - 1
+    }
+    void: applyDelta(me int: val) <- {
+        minOffset <- minOffset + val
+    }
+}
+struct TimeDraggerWidget: inherits=DashboardWidget{
+    our LabelDash:       dashLabel
+    our TimeDraggerDash: timeDraggerDash
+    me int:              lowVal
+    me int:              highVal
+    me GUI_Scalar:       prevX
+    me GUI_Scalar:       deltaX <- 0
+    me int:              moveThreshold <- 2
+    me bool:             isBtnDown     <- false
+    me bool:             isDragging    <- false
+    their GUI_canvas: init(me string: label)      <- {
+        /-/// CANVAS AND EVENTS
+        title                   <- 'TimeDraggerWidget.'+label
+	Allocate(dashboardDBW)
+        dashboardDBW.init()
+        canvas                  <- thisApp.gui.newCanvas()
+/-	canvas.setParent(self)
+        dashboardDBW.dashParent <- self
+        dashboardDBW.canvas     <- canvas
+        thisApp.gui.setWidgetSize(canvas, 1000, 150)
+        managedWidget           <- canvas
+        EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
+        /-/// CHILDREN
+	Allocate(dashLabel)
+        dashLabel.initLabelDash(150,10,label)
+        dashboardDBW.addChild(dashLabel)
+	Allocate(timeDraggerDash)
+        timeDraggerDash.initTimeDraggerDash(150,0,25,label)
+        dashboardDBW.addChild(timeDraggerDash)
+        return(managedWidget)
+    }
+    void: draw(me GUI_ctxt: cr) <- {
+        dashboardDBW.draw(cr)
+    }
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+        if (timeDraggerDash.rightDecrBtn.primaryUp(event)) {timeDraggerDash.incrValue();requestRedraw()}
+        else if (timeDraggerDash.leftIncrBtn.primaryUp(event)) {timeDraggerDash.decrValue();requestRedraw()}
+        isBtnDown     <- false
+        isDragging    <- false
+        deltaX        <- 0
+        return(true)
+    }
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+        isBtnDown     <- true
+        return(true)
+    }
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+        deltaX <- event.x - prevX
+        prevX  <- event.x
+        me int: multiplier <- convertToIntVal(deltaX)
+        if (isBtnDown and abs(deltaX) > moveThreshold) {
+            isDragging    <- true
+            timeDraggerDash.applyDelta(multiplier)
+            requestRedraw()
+        }
+        return(true)
+    }
+}
