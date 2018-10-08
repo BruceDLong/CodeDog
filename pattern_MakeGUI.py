@@ -56,6 +56,14 @@ def deCamelCase(identifier):
         chPos+=1
     return outStr
 
+def changeDataFieldType(classes, structTypeName, typeSpec):
+    retFieldType = ""
+    if structTypeName[:4] == "Time": retFieldType = 'timeValue'; newFieldOwner = 'me'
+    elif structTypeName[:3] == "Int": retFieldType = 'int'; newFieldOwner = 'me'
+    else: print "ERROR: UNKNOWN WIDGET DATA TYPE CONVERSION: ", structTypeName
+    if retFieldType != "": typeSpec['fieldType'][0] = retFieldType;typeSpec['owner'] = newFieldOwner
+    return retFieldType
+
 def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
     global classesEncoded
     if guiStructName == 'timeValue_Dialog_GUI': return
@@ -301,11 +309,11 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
             widgetName            = fieldName +'Widget'
             widgetBoxName         = fieldName+'Canvas'
             localWidgetVarName    = fieldName
-            #newWidgetFields      += '    me timeValue' + ': ' + fieldName + '\n'
+            dataType = changeDataFieldType(classes, structTypeName, typeSpec)
             makeTypeNameCall      = '        Allocate('+widgetName+')\n'
             makeTypeNameCall     += '        their GUI_canvas:    '+fieldName+'Canvas <- ' + widgetName+'.init("'+label+'")\n'
             #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
-            #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
+            varsFromWidgetCode   += '        '+currentClassName+'_data.' + fieldName + ' <- ' +widgetName+'.getValue()\n'
     elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'
