@@ -301,9 +301,11 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
             widgetName            = fieldName +'Widget'
             widgetBoxName         = fieldName+'Canvas'
             localWidgetVarName    = fieldName
-            newWidgetFields      += '    me int' + ': ' + fieldName + '\n'
+            #newWidgetFields      += '    me timeValue' + ': ' + fieldName + '\n'
             makeTypeNameCall      = '        Allocate('+widgetName+')\n'
             makeTypeNameCall     += '        their GUI_canvas:    '+fieldName+'Canvas <- ' + widgetName+'.init("'+label+'")\n'
+            #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
+            #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'

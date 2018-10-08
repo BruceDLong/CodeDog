@@ -652,8 +652,10 @@ struct GLOBAL{
         clickWidget->clickNext();
     }%>
 }
-
-
+/-///////////////////////////////  HANDLE GUI
+struct GUI_canvas{
+    me void: setParent(our DashboardWidget: wid) <- <%!%G%>
+}
 /-///////////////////////////////  HANDLE GUI
 struct GUI{
     their GtkApplication: app
