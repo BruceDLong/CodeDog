@@ -89,7 +89,7 @@ struct intWidget{
 
     me int: getValue() <- <%{
         String strVal = dataValue.getText().toString();
-	//TODO: handle no entry
+        //TODO: handle no entry
         int retVal    =  Integer.parseInt(strVal);
         return retVal;
     }%>
@@ -121,7 +121,7 @@ struct intRangeWidget{
 
     me int: getValue() <- <%{
         int retVal = dataValue.getValue(); 
-	return retVal;
+        return retVal;
     }%>
     me void: setValue(me int: value) <- <%{
         
@@ -197,9 +197,9 @@ struct dateWidget{
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
-		calendar.set(year, month - 1, day, 0, 0); 
-		data = calendar.getTimeInMillis();
-		month = month + 1;
+                calendar.set(year, month - 1, day, 0, 0); 
+                data = calendar.getTimeInMillis();
+                month = month + 1;
                 String dateStr = month + "/" + day + "/" + year;
                 dataValue.setText(dateStr);
             }
@@ -227,7 +227,7 @@ struct enumWidget{
 
     me int: getValue() <- <%{
         int retVal = dataValue.getSelectedItemPosition();
-	return retVal;
+        return retVal;
     }%>
     me void: setValue(me int: val) <- <%{
         
@@ -273,8 +273,8 @@ struct DateWidget{
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
                 calendar.set(year, month - 1, day, 0, 0); 
-		data = calendar.getTimeInMillis();
-		month = month + 1;
+                data = calendar.getTimeInMillis();
+                month = month + 1;
                 String date = month + "/" + day + "/" + year;
                 dataValue.setText(date);
             }
@@ -312,10 +312,10 @@ struct TimeWidget{
         timeListener = new TimePickerDialog.OnTimeSetListener() {
             @Override
             public void onTimeSet(TimePicker view, int hour, int minute) {
-		int tmpHour = hour*60*60*1000;
-		int tmpMinute = minute*60*1000;
-		data =  tmpHour + tmpMinute;
-		dataValue.setText(hour + ":" + minute);
+                int tmpHour = hour*60*60*1000;
+                int tmpMinute = minute*60*1000;
+                data =  tmpHour + tmpMinute;
+                dataValue.setText(hour + ":" + minute);
             }
         };
         dataValue.setOnClickListener(new View.OnClickListener() {
@@ -376,16 +376,16 @@ struct GUI_ZStack: inherits=LinearLayout{
     their GUI_Frame[map string]: children
     
     me none: GUI_ZStack() <- <%{
-	super(GLOBAL.static_Global);
+        super(GLOBAL.static_Global);
     }%>
 
     me void: addZStackChild(their GUI_Frame: child, me string: childName) <- <%{ 
-	children.put(childName, child);
+        children.put(childName, child);
     }%>
     me void: setZStackChild(me string: childName)                         <- <%{ 
-	removeAllViews();
-	LinearLayout childView = children.get(childName);
-	addView(childView);
+        removeAllViews();
+        LinearLayout childView = children.get(childName);
+        addView(childView);
     }%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
@@ -659,7 +659,7 @@ struct GUI_PointerEvent{
 }
 
 /-///////////////////////////////  EVENT DISPATCHER
-struct Android_eventDispatcher{
+struct GUI_eventDispatcher{
     their widget: topWidget
 
     me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
@@ -668,16 +668,18 @@ struct Android_eventDispatcher{
         switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
             //GLOBAL.static_Global.toolbar.setTitle("ACTION_DOWN!");
-            topWidget.primaryClick(event);
+            topWidget.primaryDn(event);
             returnVal= true;
             break;
         case MotionEvent.ACTION_MOVE:
-        //GLOBAL.static_Global.toolbar.setTitle("ACTION_MOVE!");
-        returnVal= true;
+            //GLOBAL.static_Global.toolbar.setTitle("ACTION_MOVE!");
+            topWidget.mouseMoved(event);
+            returnVal= true;
             break;
         case MotionEvent.ACTION_UP:
             //GLOBAL.static_Global.toolbar.setTitle("ACTION_UP!");
-        returnVal= true;
+            topWidget.primaryUp(event);
+            returnVal= true;
             break;
         case MotionEvent.ACTION_CANCEL:
             //GLOBAL.static_Global.toolbar.setTitle("ACTION_CANCEL!");
@@ -705,21 +707,17 @@ struct Android_eventDispatcher{
     }
 }
 
-/-///////////////////////////////  GLOBAL EVENT HANDLERS
-struct GLOBAL{
-    me Android_eventDispatcher: EventDispatcher
-}
-
 /-///////////////////////////////  HANDLE GUI
 struct CanvasView: inherits=View implements=OnTouchListener{
     me GUI_ctxt: cr
+    our DashboardWidget:  parent
 
     me none: CanvasView() <- <%{
         super(GLOBAL.static_Global);
         setOnTouchListener(this);
     }%>
     me bool: onTouch(me View: v, me MotionEvent: event) <- <%{
-        boolean retVal = GLOBAL.static_Global.EventDispatcher.dispatchPointerClickEvent(event);
+        boolean retVal = parent.EventDispatcher.dispatchPointerClickEvent(event);
         return retVal;
     }%>
     me void: onDraw(me Canvas: canvas) <- <%{
@@ -727,9 +725,10 @@ struct CanvasView: inherits=View implements=OnTouchListener{
         cr = new GUI_ctxt(canvas);
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
-        GLOBAL.static_Global.EventDispatcher.topWidget.draw(cr);
+        parent.EventDispatcher.topWidget.draw(cr);
         invalidate();
     }%>
+    me void: setParent(our DashboardWidget: wid) <- {parent <- wid}
 }
 
 
@@ -793,11 +792,7 @@ struct GUI {
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
     me void: setBtnCallback()  <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%3();}})%>
-    me void: setBtnCallback2() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){
-	    public void onClick(View v) {
-		%5;
-	    }
-	})%>
+    me void: setBtnCallback2() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%5;}})%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 /-    me GUI_Frame: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>

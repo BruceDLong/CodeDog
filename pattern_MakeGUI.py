@@ -56,6 +56,14 @@ def deCamelCase(identifier):
         chPos+=1
     return outStr
 
+def changeDataFieldType(classes, structTypeName, typeSpec):
+    retFieldType = ""
+    if structTypeName[:4] == "Time": retFieldType = 'timeValue'; newFieldOwner = 'me'
+    elif structTypeName[:3] == "Int": retFieldType = 'int'; newFieldOwner = 'me'
+    else: print "ERROR: UNKNOWN WIDGET DATA TYPE CONVERSION: ", structTypeName
+    if retFieldType != "": typeSpec['fieldType'][0] = retFieldType;typeSpec['owner'] = newFieldOwner
+    return retFieldType
+
 def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
     global classesEncoded
     if guiStructName == 'timeValue_Dialog_GUI': return
@@ -288,12 +296,24 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldSpec=='widget':
-        typeName              = fieldType
-        widgetName            = fieldName +'Widget'
-        widgetBoxName         = fieldName
-        localWidgetVarName    = fieldName
-        newWidgetFields      += '    their GUI_item' + ': ' + fieldName + '\n'
-        makeTypeNameCall      = widgetName+' <- Data.' + fieldName + '\n' + fieldName + '<- '+widgetName+'.init()\n'
+        if fieldType=='DashboardWidget': 
+            print 'widget: ', fieldType
+            typeName              = fieldType
+            widgetName            = fieldName +'Widget'
+            widgetBoxName         = fieldName
+            localWidgetVarName    = fieldName
+            newWidgetFields      += '    their GUI_item' + ': ' + fieldName + '\n'
+            makeTypeNameCall      = widgetName+' <- Data.' + fieldName + '\n' + fieldName + '<- '+widgetName+'.init("'+label+'")\n'
+        else:
+            typeName              = fieldType
+            widgetName            = fieldName +'Widget'
+            widgetBoxName         = fieldName+'Canvas'
+            localWidgetVarName    = fieldName
+            dataType = changeDataFieldType(classes, structTypeName, typeSpec)
+            makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+            makeTypeNameCall     += '        their GUI_canvas:    '+fieldName+'Canvas <- ' + widgetName+'.init("'+label+'")\n'
+            #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
+            varsFromWidgetCode   += '        '+currentClassName+'_data.' + fieldName + ' <- ' +widgetName+'.getValue()\n'
     elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'

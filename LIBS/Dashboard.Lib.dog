@@ -411,13 +411,12 @@ struct listOfItems: inherits=dash{
 struct DashboardWidget: inherits=dash{
     our Dashboard:: dashboardDBW
     their GUI_canvas: canvas
-    their GUI_item: managedWidget
-    void: requestRedraw() <- {
-        markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
-    }
-
-    their GUI_item: init() <- {
+    their GUI_canvas: managedWidget
+    me GUI_eventDispatcher: EventDispatcher
+    void: requestRedraw() <- {markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))}
+    their GUI_canvas: init(me string: label) <- {
         Allocate(dashboardDBW)
+	title   <- 'DashboardWidget.'+label
         canvas  <- thisApp.gui.newCanvas()
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas <- canvas
@@ -428,7 +427,7 @@ struct DashboardWidget: inherits=dash{
         /-    managedWidget <- makeYStack("")
         /-    addToContainer(managedWidget, canvas)
         managedWidget <- canvas
-        EventDispatcher.registerWidgetForEventDispatcher(canvas, dashboardDBW)
+        EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         return(managedWidget)
     }
     void: draw(me GUI_ctxt: cr) <- {

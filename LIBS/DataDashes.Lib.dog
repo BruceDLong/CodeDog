@@ -511,7 +511,7 @@ struct graph: inherits=dash{
     }
     void: applyDataRange(me timeStepInterval: req) <- {
         crntRightSide <- req.end
-        timeInterval  <- req.stepSize
+        timeInterval  <- convertToTimeVal(req.stepSize)
     }
 
     me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me bool: Gradients)<- {
@@ -519,6 +519,7 @@ struct graph: inherits=dash{
         posY         <- PosY
         gradients    <- Gradients
         zoomLevel    <- 0
+	title        <- 'Graph'
 
         withEach dataStream in dataStreamSrcs.dataStreams {
             dataStreamsTitleTable.pushLast(dataStream.title)

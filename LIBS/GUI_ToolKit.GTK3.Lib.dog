@@ -571,7 +571,7 @@ struct GUI_PointerEvent{
 }
 
 /-///////////////////////////////  EVENT DISPATCHER
-struct GTK_eventDispatcher{
+struct GUI_eventDispatcher{
     their widget: topWidget
 
     me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- <%{
@@ -620,21 +620,20 @@ struct GTK_eventDispatcher{
 
 /-///////////////////////////////  GLOBAL EVENT HANDLERS
 struct GLOBAL{
-    me GTK_eventDispatcher: EventDispatcher
     me void: button_press_event(their GtkWidget: wid, their GdkEventButton: event, their void: data) <- <%{
-        EventDispatcher.dispatchPointerClickEvent(event);
+        ((DashboardWidget*) data)->EventDispatcher.dispatchPointerClickEvent(event);
     } %>
     me void: button_release_event(their GtkWidget: wid, their GdkEventButton: event, their void: data) <- <%{
-        EventDispatcher.dispatchPointerClickEvent(event);
+        ((DashboardWidget*) data)->EventDispatcher.dispatchPointerClickEvent(event);
     } %>
     me void: motion_notify_event(their GtkWidget: wid, their GdkEventMotion: event, their void: data) <- <%{
-        EventDispatcher.dispatchPointerMotionEvent(event);
+        ((DashboardWidget*) data)->EventDispatcher.dispatchPointerMotionEvent(event);
     } %>
     me void: expose_event(their GtkWidget: wid, their GdkEventExpose: event, their void: data) <- <%{
-      /-  EventDispatcher.dispatchWindowEvent(event);
+      /-  ((DashboardWidget*) data)->EventDispatcher.dispatchWindowEvent(event);
     } %>
     me void: keypress_event(their GtkWidget: wid, their GdkEventKey: event, their void: data) <- <%{
-        EventDispatcher.dispatchKeyboardEvent(event);
+        ((DashboardWidget*) data)->EventDispatcher.dispatchKeyboardEvent(event);
     } %>
     me void: configure_event(their GtkWidget: wid, their GdkEventConfigure: event, their void: data) <- <%{
       /-  EventDispatcher.dispatchWindowEvent(event);
@@ -653,8 +652,10 @@ struct GLOBAL{
         clickWidget->clickNext();
     }%>
 }
-
-
+/-///////////////////////////////  HANDLE GUI
+struct GUI_canvas{
+    me void: setParent(our DashboardWidget: wid) <- <%!%G%>
+}
 /-///////////////////////////////  HANDLE GUI
 struct GUI{
     their GtkApplication: app
