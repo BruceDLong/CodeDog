@@ -131,7 +131,7 @@ struct TimeDraggerDash: inherits=dash{
         minOffset            <- 12
     }
     void: draw(me GUI_ctxt: cr) <- {
-        me GUI_Scalar:   padding <- 0
+        me GUI_Scalar:   padding <- 5
         me string:         hrStr <- "10"
         me string:        minStr <- "20"
         me string:       dataStr <- toString(minOffset)
@@ -140,7 +140,7 @@ struct TimeDraggerDash: inherits=dash{
         leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
         leftIncrBtn.drawCircleBtn(cr)
         me deltaSize: size <- getTextSize(cr, dataStr, styler.fontDefault)
-        YOffset <- YOffset+size.height
+        YOffset <- YOffset+size.height+padding
         renderText(cr, dataStr, styler.fontDefault, posX+padding+radius*2+(btnSpan-size.width)/2, YOffset)
         dataStr <- hrStr+":"+minStr
         size <- getTextSize(cr, dataStr, styler.fontSmall)
@@ -178,12 +178,12 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
         canvas.setParent(self)
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas     <- canvas
-        thisApp.gui.setWidgetSize(canvas, 1000, 150)
+        thisApp.gui.setWidgetSize(canvas, 300, 60)
         managedWidget           <- canvas
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         /-/// CHILDREN
         Allocate(dashLabel)
-        dashLabel.initLabelDash(100,10,label)
+        dashLabel.initLabelDash(90,15,label)
         dashboardDBW.addChild(dashLabel)
         Allocate(timeDraggerDash)
         timeDraggerDash.initTimeDraggerDash(100,0,25,label)

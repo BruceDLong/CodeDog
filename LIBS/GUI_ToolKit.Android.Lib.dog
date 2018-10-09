@@ -8,7 +8,7 @@ interface={
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
         android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.ScrollView, android.widget.TextView,
-        android.widget.RelativeLayout, android.widget.FrameLayout,
+        android.widget.RelativeLayout, android.widget.FrameLayout, android.util.DisplayMetrics,
         android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface, android.support.v4.content.ContextCompat,
         android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
         android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment, android.support.v4.app.DialogFragment,
@@ -711,21 +711,31 @@ struct GUI_eventDispatcher{
 struct CanvasView: inherits=View implements=OnTouchListener{
     me GUI_ctxt: cr
     our DashboardWidget:  parent
+    me float: scaleFactor
 
     me none: CanvasView() <- <%{
         super(GLOBAL.static_Global);
         setOnTouchListener(this);
     }%>
     me bool: onTouch(me View: v, me MotionEvent: event) <- <%{
-        boolean retVal = parent.EventDispatcher.dispatchPointerClickEvent(event);
+        scaleFactor = GLOBAL.static_Global.displayDensity;
+	float scaleX = event.getX()/scaleFactor;
+	float scaleY = event.getY()/scaleFactor;
+	event.setLocation(scaleX,scaleY);
+	boolean retVal = parent.EventDispatcher.dispatchPointerClickEvent(event);
         return retVal;
     }%>
     me void: onDraw(me Canvas: canvas) <- <%{
         super.onDraw(canvas);
         cr = new GUI_ctxt(canvas);
+	canvas.save();
+	scaleFactor = GLOBAL.static_Global.displayDensity;
+	canvas.translate(scaleFactor, scaleFactor);
+	canvas.scale(scaleFactor, scaleFactor);
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
         parent.EventDispatcher.topWidget.draw(cr);
+	canvas.restore();
         invalidate();
     }%>
     me void: setParent(our DashboardWidget: wid) <- {parent <- wid}
@@ -785,7 +795,7 @@ struct GUI: inherits=LinearLayout{
 struct GUI {
     me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     their GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(%2, %3))%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(Math.round(%2*GLOBAL.static_Global.displayDensity), Math.round(%3*GLOBAL.static_Global.displayDensity)))%>
     their GUI_item: newScrollingWindow() <- <%!newScrollingView()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
@@ -891,6 +901,9 @@ struct GLOBAL: inherits=AppCompatActivity{
     me SubMenu: parentMenu
     me AssetManager: assetManager
     me Toolbar: toolbar
+    me int: displayHeightPx
+    me int: displayWidthPx
+    me float: displayDensity
     
     me string: getFilesDirAsString()<- <%{
         File file = GLOBAL.static_Global.getFilesDir();
@@ -988,6 +1001,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     me void: onCreate(me Bundle: savedInstanceState) <- <%{
         super.onCreate(savedInstanceState);
         GLOBAL.static_Global = this;
+        GLOBAL.static_Global.getMetrics();
         GLOBAL.static_Global.thisApp = new APP();
         GLOBAL.static_Global.fragmentManager = getFragmentManager();
         GLOBAL.static_Global.initialize("");
@@ -1081,12 +1095,19 @@ struct GLOBAL: inherits=AppCompatActivity{
         setSupportActionBar(GLOBAL.static_Global.toolbar);
         GLOBAL.static_Global.thisApp.gui.frame.addView(GLOBAL.static_Global.toolbar, 0);
     }%>
+    me void: getMetrics() <- <%{
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        displayHeightPx = displayMetrics.heightPixels;
+        displayWidthPx = displayMetrics.widthPixels;
+        displayDensity = displayMetrics.density;
+    }%>
 
     me void: showWidget(me GUI_item: widget) <-  <%!%G%1.setVisibility(0)%>
     me void: hideWidget(their GUI_item: widget) <- <%!%G%1.setVisibility(1)%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
     me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setLayoutParams(%2, %3)%>
+   /- me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setLayoutParams(%2, %3)%>
 }
 
 struct APP: inherits=LinearLayout{
