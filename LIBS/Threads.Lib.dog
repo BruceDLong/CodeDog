@@ -17,7 +17,7 @@ LibDescription  ={
     platforms   =[Linux, OS-X_Devices, Windows]
 }
 
-struct Thread{
+struct Threads{
     me bool: notDone <- true
     void: run()
     me uint: ID()

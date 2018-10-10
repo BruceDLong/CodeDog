@@ -935,7 +935,7 @@ me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack
 /- Initialization: get main thread's "mainContext" and store it and make a global getter for it.
 struct MessagePasser {their GMainContext: MessagePasser}
 
-struct HandlerThread: inherits = Thread {
+struct HandlerThread: inherits = Threads {
     their MessagePasser: mesgPasser
     void: run() <- <%{
         mesgPasser = g_main_context_new();
