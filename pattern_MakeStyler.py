@@ -217,6 +217,9 @@ struct Styler{
 
     /- FONT SIZE MODES
     me mode[pp, dp, sp]: pixelMode <- pp
+    
+    me int: widgetLabelBoxWidth <- 100
+    me int: widgetValueBoxWidth <- 100
 
     void: INIT()<-{
         <INITCODE>

@@ -8,7 +8,7 @@ interface={
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
         android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.ScrollView, android.widget.TextView,
-        android.widget.RelativeLayout, android.widget.FrameLayout, android.util.DisplayMetrics,
+        android.widget.RelativeLayout, android.widget.FrameLayout, android.util.DisplayMetrics, android.content.res.Configuration,
         android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface, android.support.v4.content.ContextCompat,
         android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
         android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment, android.support.v4.app.DialogFragment,
@@ -76,6 +76,8 @@ struct boolWidget{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
+        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         box.addView(dataLabel);
         dataValue = new CheckBox(GLOBAL.static_Global);
         box.addView(dataValue);
@@ -100,8 +102,12 @@ struct intWidget{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
+        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         box.addView(dataLabel);
         dataValue = new EditText(GLOBAL.static_Global);
+        dataValue.setWidth(GLOBAL.static_Global.styler.widgetValueBoxWidth);
+        dataValue.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue.setInputType(InputType.TYPE_CLASS_NUMBER);
         box.addView(dataValue);
         return box;
@@ -130,6 +136,8 @@ struct intRangeWidget{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
+        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         box.addView(dataLabel);
         dataValue = new NumberPicker(GLOBAL.static_Global);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(100, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -162,9 +170,12 @@ struct stringWidget{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
+        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         box.addView(dataLabel);
         dataValue = new EditText(GLOBAL.static_Global);
-        dataValue.setWidth(300);
+        dataValue.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataValue.setWidth(GLOBAL.static_Global.styler.widgetValueBoxWidth);
         dataValue.setInputType(InputType.TYPE_CLASS_TEXT);
         box.addView(dataValue);
         return box;
@@ -193,6 +204,8 @@ struct dateWidget{
         dataLabel     = new TextView(GLOBAL.static_Global);
         dataValue     = new EditText(GLOBAL.static_Global);
         dataLabel.setText(label);
+        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue.setInputType(InputType.TYPE_NULL);
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
@@ -236,6 +249,8 @@ struct enumWidget{
         options   = Options;
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
+        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue = new Spinner(GLOBAL.static_Global);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, android.R.layout.simple_spinner_item, options);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -268,6 +283,8 @@ struct DateWidget{
         dataLabel     = new TextView(GLOBAL.static_Global);
         dataValue     = new EditText(GLOBAL.static_Global);
         dataLabel.setText(label);
+        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue.setInputType(InputType.TYPE_NULL);
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
@@ -308,6 +325,8 @@ struct TimeWidget{
         dataLabel     = new TextView(GLOBAL.static_Global);
         dataValue     = new EditText(GLOBAL.static_Global);
         dataLabel.setText(label);
+        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue.setInputType(InputType.TYPE_NULL);
         timeListener = new TimePickerDialog.OnTimeSetListener() {
             @Override
@@ -719,23 +738,23 @@ struct CanvasView: inherits=View implements=OnTouchListener{
     }%>
     me bool: onTouch(me View: v, me MotionEvent: event) <- <%{
         scaleFactor = GLOBAL.static_Global.displayDensity;
-	float scaleX = event.getX()/scaleFactor;
-	float scaleY = event.getY()/scaleFactor;
-	event.setLocation(scaleX,scaleY);
-	boolean retVal = parent.EventDispatcher.dispatchPointerClickEvent(event);
+        float scaleX = event.getX()/scaleFactor;
+        float scaleY = event.getY()/scaleFactor;
+        event.setLocation(scaleX,scaleY);
+        boolean retVal = parent.EventDispatcher.dispatchPointerClickEvent(event);
         return retVal;
     }%>
     me void: onDraw(me Canvas: canvas) <- <%{
         super.onDraw(canvas);
         cr = new GUI_ctxt(canvas);
-	canvas.save();
-	scaleFactor = GLOBAL.static_Global.displayDensity;
-	canvas.translate(scaleFactor, scaleFactor);
-	canvas.scale(scaleFactor, scaleFactor);
+        canvas.save();
+        scaleFactor = GLOBAL.static_Global.displayDensity;
+        canvas.translate(scaleFactor, scaleFactor);
+        canvas.scale(scaleFactor, scaleFactor);
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
         parent.EventDispatcher.topWidget.draw(cr);
-	canvas.restore();
+        canvas.restore();
         invalidate();
     }%>
     me void: setParent(our DashboardWidget: wid) <- {parent <- wid}
@@ -825,16 +844,16 @@ struct GUI_ctxt: inherits=Canvas{
     me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    me void: closePath() <- <%!GPath.close()%>
-    me void: rectangle() <- <%!%0.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
-    me void: paintNow() <- <%!paint.setStyle(Paint.Style.FILL);cr.GCanvas.drawPaint(cr.paint)%>
-    me void: strokeNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
-    me void: fillNow() <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
-    me void: strokeKeep() <- <%!draw(cr.GPath)%>
-    me void: fillKeep() <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
-    me void: renderFrame() <- <%!repaint()%>
+    me void: closePath()      <- <%!GPath.close()%>
+    me void: rectangle()      <- <%!%0.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
+    me void: paintNow()       <- <%!paint.setStyle(Paint.Style.FILL);cr.GCanvas.drawPaint(cr.paint)%>
+    me void: strokeNow()      <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
+    me void: fillNow()        <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
+    me void: strokeKeep()     <- <%!draw(cr.GPath)%>
+    me void: fillKeep()       <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
+    me void: renderFrame()    <- <%!repaint()%>
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
-    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!drawCircle(%1, %2, %3, cr.paint)%>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!%0.paint.setStyle(Paint.Style.STROKE);%0.paint.setStrokeWidth(2);%0.GCanvas.drawCircle(%1, %2, %3, cr.paint)%>
 }
 
 struct GUI_ctxt {
@@ -957,10 +976,10 @@ struct GLOBAL: inherits=AppCompatActivity{
 
     me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
         Rect bounds = new Rect();
-        cr.paint.getTextBounds(text, 0, text.length(), bounds);
-        cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-        cr.paint.setTextSize(font.size);
         deltaSize size = new deltaSize(0,0);
+        cr.paint.setTextSize(font.size);
+        cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
+        cr.paint.getTextBounds(text, 0, text.length(), bounds);
         size.height = bounds.height();
         size.width = bounds.width();
         return(size);
@@ -1001,10 +1020,10 @@ struct GLOBAL: inherits=AppCompatActivity{
     me void: onCreate(me Bundle: savedInstanceState) <- <%{
         super.onCreate(savedInstanceState);
         GLOBAL.static_Global = this;
-        GLOBAL.static_Global.getMetrics();
         GLOBAL.static_Global.thisApp = new APP();
         GLOBAL.static_Global.fragmentManager = getFragmentManager();
         GLOBAL.static_Global.initialize("");
+        GLOBAL.static_Global.getMetrics();
         GLOBAL.static_Global.runDogCode();
         GLOBAL.static_Global.addToolbar();
     }%>
@@ -1096,13 +1115,22 @@ struct GLOBAL: inherits=AppCompatActivity{
         GLOBAL.static_Global.thisApp.gui.frame.addView(GLOBAL.static_Global.toolbar, 0);
     }%>
     me void: getMetrics() <- <%{
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        displayHeightPx = displayMetrics.heightPixels;
-        displayWidthPx = displayMetrics.widthPixels;
-        displayDensity = displayMetrics.density;
+        DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        displayHeightPx  = metrics.heightPixels;
+        displayWidthPx   = metrics.widthPixels;
+        GLOBAL.static_Global.styler.widgetLabelBoxWidth = (int)Math.round((double)displayWidthPx*0.38);
+        GLOBAL.static_Global.styler.widgetValueBoxWidth = displayWidthPx - GLOBAL.static_Global.styler.widgetLabelBoxWidth;
+        displayDensity   = metrics.density;
     }%>
-
+    me void: setFontScale() <- <%{
+        Configuration configuration = getResources().getConfiguration();
+        configuration.fontScale=(float) 1; //0.85 small size, 1 normal size, 1,15 big etc
+        DisplayMetrics metrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        metrics.scaledDensity = configuration.fontScale * metrics.density;
+        getBaseContext().getResources().updateConfiguration(configuration, metrics);
+    }%>
     me void: showWidget(me GUI_item: widget) <-  <%!%G%1.setVisibility(0)%>
     me void: hideWidget(their GUI_item: widget) <- <%!%G%1.setVisibility(1)%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
