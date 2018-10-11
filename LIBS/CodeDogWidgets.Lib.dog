@@ -11,9 +11,9 @@ struct LabelDash: inherits=dash{
     void: draw(me GUI_ctxt: cr) <- {
         me GUI_Scalar: padding <- 5
         cr.setColor(Styler.Black)
-        me deltaSize: size <- getTextSize(cr, label, styler.fontSmall)
+        me deltaSize: size <- getTextSize(cr, label, styler.fontDefault)
         me GUI_Scalar: rightJustifyOffset <- size.width + padding
-        renderText(cr, label, styler.fontSmall, posX-rightJustifyOffset, posY+padding+size.height)
+        renderText(cr, label, styler.fontDefault, posX-rightJustifyOffset, posY+padding+size.height)
     }
 }
 struct IntDraggerDash: inherits=dash{
@@ -35,7 +35,7 @@ struct IntDraggerDash: inherits=dash{
         cr.setColor(Styler.Black)
         leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
         leftIncrBtn.drawCircleBtn(cr)
-	cr.setLineWidth(1)
+        cr.setLineWidth(1)
         me string: dataStr <- toString(intData)
         me deltaSize: size <- getTextSize(cr, dataStr, styler.fontDefault)
         renderText(cr, dataStr, styler.fontDefault, posX+padding+radius*2+(btnSpan-size.width)/2, posY+padding+radius+size.height/2)
@@ -65,18 +65,19 @@ struct IntDraggerWidget: inherits=DashboardWidget{
     their GUI_canvas: init(me string: label)      <- {
         /-/// CANVAS AND EVENTS
         title                   <- 'IntDraggerWidget.'+label
+        me int: radius          <- 20
         dashboardDBW.init()
         canvas                  <- thisApp.gui.newCanvas()
         canvas.setParent(self)
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas     <- canvas
-        thisApp.gui.setWidgetSize(canvas,290, 50)
+        thisApp.gui.setWidgetSize(canvas,320, 50)
         managedWidget           <- canvas
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         /-/// CHILDREN
-        labelDash.initLabelDash(100,6,label)
+        labelDash.initLabelDash(120,6,label)
         dashboardDBW.addChild(labelDash)
-        intDraggerDash.initIntDraggerDash(100,0,18,label)
+        intDraggerDash.initIntDraggerDash(120,0,radius,label)
         dashboardDBW.addChild(intDraggerDash)
         return(managedWidget)
     }
@@ -138,7 +139,7 @@ struct TimeDraggerDash: inherits=dash{
         cr.setColor(Styler.Black)
         leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
         leftIncrBtn.drawCircleBtn(cr)
-	cr.setLineWidth(1)
+        cr.setLineWidth(1)
         me deltaSize: size <- getTextSize(cr, dataStr, styler.fontDefault)
         YOffset <- YOffset+size.height+padding
         renderText(cr, dataStr, styler.fontDefault, posX+padding+radius*2+(btnSpan-size.width)/2, YOffset)
@@ -172,21 +173,22 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
     their GUI_canvas: init(me string: label)      <- {
         /-/// CANVAS AND EVENTS
         title                   <- 'TimeDraggerWidget.'+label
+        me int: radius          <- 20
         Allocate(dashboardDBW)
         dashboardDBW.init()
         canvas                  <- thisApp.gui.newCanvas()
         canvas.setParent(self)
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas     <- canvas
-        thisApp.gui.setWidgetSize(canvas, 315, 65)
+        thisApp.gui.setWidgetSize(canvas, 320, 65)
         managedWidget           <- canvas
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         /-/// CHILDREN
         Allocate(dashLabel)
-        dashLabel.initLabelDash(100,15,label)
+        dashLabel.initLabelDash(120,15,label)
         dashboardDBW.addChild(dashLabel)
         Allocate(timeDraggerDash)
-        timeDraggerDash.initTimeDraggerDash(100,0,25,label)
+        timeDraggerDash.initTimeDraggerDash(120,0,radius,label)
         dashboardDBW.addChild(timeDraggerDash)
         return(managedWidget)
     }
