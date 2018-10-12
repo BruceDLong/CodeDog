@@ -292,6 +292,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
+        elif name=='isEmpty'  : name='empty';     typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
