@@ -67,7 +67,7 @@ def changeDataFieldType(classes, structTypeName, typeSpec):
 def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
     global classesEncoded
     if guiStructName == 'timeValue_Dialog_GUI': return
-    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='Agreement' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm'):
+    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='Agreement' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm' or structTypeName=='FoodData' or structTypeName=='MealData'):
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
 
@@ -288,6 +288,20 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrnt("'+label+'")\n'
         widgetFromVarsCode   += ''
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
+    elif fieldType=='FoodData':
+        typeName              = 'FoodDataWidget'
+        widgetBoxName         =  widgetName +'.box'
+        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeFoodDataWidget("'+label+'", '+currentClassName+'_data.'+fieldName+')\n'
+        #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
+        #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
+    elif fieldType=='MealData':
+        typeName              = 'MealDataWidget'
+        widgetBoxName         =  widgetName +'.box'
+        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeMealDataWidget("'+label+'", '+currentClassName+'_data.'+fieldName+')\n'
+        #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
+        #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='matterTerm':
         typeName              = 'MatterTermWidget'
         widgetBoxName         =  widgetName +'.box'
