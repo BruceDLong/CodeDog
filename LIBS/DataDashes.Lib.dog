@@ -345,7 +345,7 @@ struct graphTitleWidget: inherits=dash{
     }
 }
 
-struct timeStepInterval{their graph: parentWidget me timeValue: start me timeValue: end me double: stepSize}
+struct timeStepInterval{their graph: parentWidget me timeValue: start me timeValue: end me timeValue: stepSize}
 
 struct GraphDataStream {
     me string: title
@@ -504,14 +504,14 @@ struct graph: inherits=dash{
     }
 
 
-    void: requestDataRange(me timeValue: start, me timeValue: end, me double: stepSize) <-{
+    void: requestDataRange(me timeValue: start, me timeValue: end, me timeValue: stepSize) <-{
         dataStreamSrcs.dataRangeChangeRequested <- true
         dataStreamSrcs.requestedInterval.parentWidget <- self
         dataStreamSrcs.requestedInterval.start <- start; dataStreamSrcs.requestedInterval.end <- end; dataStreamSrcs.requestedInterval.stepSize <- stepSize
     }
     void: applyDataRange(me timeStepInterval: req) <- {
         crntRightSide <- req.end
-        timeInterval  <- convertToTimeVal(req.stepSize)
+        timeInterval  <- req.stepSize
     }
 
     me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me bool: Gradients)<- {
@@ -519,7 +519,7 @@ struct graph: inherits=dash{
         posY         <- PosY
         gradients    <- Gradients
         zoomLevel    <- 0
-	title        <- 'Graph'
+        title        <- 'Graph'
 
         withEach dataStream in dataStreamSrcs.dataStreams {
             dataStreamsTitleTable.pushLast(dataStream.title)

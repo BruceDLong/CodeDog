@@ -26,8 +26,20 @@ deinitCode = ""
 struct FileStream{
     me RandomAccessFile: RAFileStream <- NULL
     me bool: failureFlag <- false
-    me void: open(me string: filename) <- <%{try{RAFileStream = new  RandomAccessFile(filename, "rw"); failureFlag=false;}catch(IOException e){failureFlag=true;}}%>
-    me void: openAppend(me string: filename) <- <%{try{RAFileStream = new  RandomAccessFile(filename, "rw"); RAFileStream.seek(RAFileStream.length()); failureFlag=false;}catch(IOException e){failureFlag=true;}}%>
+    me void: open(me string: filename) <- <%{
+        /-Log.d("GLOBAL", "    >>FileStream::open \n");
+        try{
+            RAFileStream = new  RandomAccessFile(filename, "rw"); 
+            failureFlag=false;
+        }catch(IOException e){failureFlag=true;}
+    }%>
+    me void: openAppend(me string: filename) <- <%{
+    /-Log.d("GLOBAL", "    >>FileStream::openAppend \n");
+    try{RAFileStream = new  RandomAccessFile(filename, "rw"); 
+        RAFileStream.seek(RAFileStream.length()); 
+        failureFlag=false;}
+    catch(IOException e){failureFlag=true;}
+    }%>
     me void: close() <- <%{try{RAFileStream.close();}catch(IOException e){failureFlag=true;}}%>
     me int:  getChar() <- <%{char ch=' '; try{ch = RAFileStream.readChar();}catch(IOException e){failureFlag=true;} return(ch);}%>
     me void: getLine(me string: S) <- <%{try{S = RAFileStream.readLine();}catch(IOException e){failureFlag=true;}}%>
@@ -37,12 +49,18 @@ struct FileStream{
 }
 
 struct sessionFile{
-    me FileStream: session <- NULL
-    me void: openSession(me string: filename) <-{session.openAppend(filename)}
+    our FileStream: session <- NULL
+    me void: openSession(me string: filename) <-{
+    /-Log.d("GLOBAL", "    >>sessionFile::openSession \n");
+    Allocate(session)
+    session.openAppend(filename)
+    }
     me void: closeSession() <- {session.close()}
     me void: writeEntry(me string: entry) <- {entry<-entry+"\n"; session.write(entry)}
 
     me bool: openToRead(me string: filename) <- {
+        /-Log.d("GLOBAL", "    >>sessionFile::openToRead \n");
+        Allocate(session)
         session.open(filename)
         if(session.failure()){print("Creating session file "+filename+"\n"); return(true)}
         return(false)

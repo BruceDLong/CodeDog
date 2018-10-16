@@ -930,16 +930,16 @@ me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%
 me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack_set_visible_child_name(GTK_STACK(%1), %2.data())%>
 }
 
-/--------------- Inter-thread communication
+/-///////////////////////////////  INTER-THREAD COMMUNICATION
 
 /- Initialization: get main thread's "mainContext" and store it and make a global getter for it.
 struct MessagePasser {their GMainContext: MessagePasser}
 
-struct HandlerThread: inherits = Threads {
+struct workerMsgThread: inherits = Threads {
     their MessagePasser: mesgPasser
     void: run() <- <%{
         mesgPasser = g_main_context_new();
-        worker_thread_messagePasser = mesgPasser;
+        workerThreadMessagePasser = mesgPasser;
         GMainLoop *main_loop;
 
         /* Set up the thread’s context and run it forever. */
@@ -957,10 +957,11 @@ struct HandlerThread: inherits = Threads {
 
 struct GLOBAL{
     their MessagePasser: GUI_threads_messagePasser <- NULL   /- Set this at beginning of the program
-    their MessagePasser: worker_thread_messagePasser <- NULL   /- Set this at beginning of the program
+    their MessagePasser: workerThreadMessagePasser <- NULL   /- Set this at beginning of the program
     their MessagePasser: threadsMesgPasser() <- <%!g_main_context_get_thread_default()%>
     their MessagePasser: GUIsMesgPasser() <- <%!GUI_threads_messagePasser%>
-    void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: funcToCall, their void: arguments) <- <%!g_main_context_invoke(%1, GSourceFunc(%2), (void*)%3)%>
+    void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: objToCall, their void: classToCall, their void: funcToCall, their void: arguments) 
+        <- <%!g_main_context_invoke(%1, GSourceFunc(%3_%4_CB), (void*)%5)%>
 }
 
 /--------------- Application areas

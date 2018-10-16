@@ -292,6 +292,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
+        elif name=='isEmpty'  : name='empty';     typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         else: print "Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
@@ -310,7 +311,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
         elif name=='first'    : name='begin()->second';  paramList=None;
         elif name=='last'     : name='rbegin()->second'; paramList=None;
-        elif name=='popFirst' : name='pop_front'
+        elif name=='popFirst' : name='%0.erase(%0.begin())'; paramList=None;
         elif name=='popLast'  : name='pop_back'
         else: print "Unknown multimap command:", name; exit(2);
     elif containerType=='tree': # TODO: Make trees work

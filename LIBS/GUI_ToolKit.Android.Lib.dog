@@ -8,11 +8,11 @@ interface={
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
         android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.ScrollView, android.widget.TextView,
-        android.widget.RelativeLayout, android.widget.FrameLayout, android.util.DisplayMetrics,
+        android.widget.RelativeLayout, android.widget.FrameLayout, android.util.DisplayMetrics, android.os.Handler,
         android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface, android.support.v4.content.ContextCompat,
         android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
         android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment, android.support.v4.app.DialogFragment,
-        android.util.Log, android.content.res.AssetManager, android.content.Context, android.graphics.Rect,
+        android.util.Log, android.content.res.AssetManager, android.content.Context, android.graphics.Rect, android.os.Looper,  android.os.HandlerThread,
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.LinearGradient,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.graphics.Shader, android.graphics.Shader.TileMode,
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
@@ -30,6 +30,10 @@ LibDescription ={
     bindings   =[]
     CPUs       =[]
 }
+
+initCode = `
+   /- GUI_threads_messagePasser <- workerThread.threadsMesgPasser()
+`
 
 /-///////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
@@ -719,23 +723,23 @@ struct CanvasView: inherits=View implements=OnTouchListener{
     }%>
     me bool: onTouch(me View: v, me MotionEvent: event) <- <%{
         scaleFactor = GLOBAL.static_Global.displayDensity;
-	float scaleX = event.getX()/scaleFactor;
-	float scaleY = event.getY()/scaleFactor;
-	event.setLocation(scaleX,scaleY);
-	boolean retVal = parent.EventDispatcher.dispatchPointerClickEvent(event);
+        float scaleX = event.getX()/scaleFactor;
+        float scaleY = event.getY()/scaleFactor;
+        event.setLocation(scaleX,scaleY);
+        boolean retVal = parent.EventDispatcher.dispatchPointerClickEvent(event);
         return retVal;
     }%>
     me void: onDraw(me Canvas: canvas) <- <%{
         super.onDraw(canvas);
         cr = new GUI_ctxt(canvas);
-	canvas.save();
-	scaleFactor = GLOBAL.static_Global.displayDensity;
-	canvas.translate(scaleFactor, scaleFactor);
-	canvas.scale(scaleFactor, scaleFactor);
+        canvas.save();
+        scaleFactor = GLOBAL.static_Global.displayDensity;
+        canvas.translate(scaleFactor, scaleFactor);
+        canvas.scale(scaleFactor, scaleFactor);
         cr.cur_x=0; cr.cur_y=0;
         cr.GPath.reset();
         parent.EventDispatcher.topWidget.draw(cr);
-	canvas.restore();
+        canvas.restore();
         invalidate();
     }%>
     me void: setParent(our DashboardWidget: wid) <- {parent <- wid}
@@ -1110,6 +1114,21 @@ struct GLOBAL: inherits=AppCompatActivity{
    /- me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setLayoutParams(%2, %3)%>
 }
 
+/-///////////////////////////////  INTER-THREAD COMMUNICATION
+struct MessagePasser {their Looper: MessagePasser}
+struct workerMsgThread{their HandlerThread: workerMsgThread}
+struct workerMsgThread{
+    their MessagePasser: threadsMesgPasser()         <- <%!getLooper()%>
+    void: start()                                    <- <%!start()%>
+}
+struct GLOBAL{
+    their MessagePasser: GUI_threads_messagePasser   <- NULL   /- Set this at beginning of the program
+    their MessagePasser: workerThreadMessagePasser   <- NULL   /- Set this at beginning of the program
+    their MessagePasser: threadsMesgPasser()         <- <%!%G%0.getLooper()%>
+    their MessagePasser: GUIsMesgPasser()            <- <%!Looper.getMainLooper()%>
+    void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: objToCall, their void: classToCall, their void: funcToCall, their void: arguments) 
+        <- <%!%Gnew Handler(%1.getMainLooper()).post(new %3_%4_CB(%2, %5))%>
+}
 struct APP: inherits=LinearLayout{
     me LinearLayout: thisFrame
     me GUI: gui
