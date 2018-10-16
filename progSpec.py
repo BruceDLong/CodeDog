@@ -171,6 +171,11 @@ def addObjTags(objSpecs, className, stateType, objTags):
         addDependancyToStruct(className, parentClassList)
     if ('implements' in objRef['tags']):
         appendToAncestorList(objRef, className, 'implements', objRef['tags']['implements'])
+    for tag in objRef['tags']:
+        if tag[:7]=='COMMAND':
+            newCommand = objRef['tags'][tag]
+            commandArg = tag[8:]
+            addModifierCommand(objSpecs, className, commandArg, commandArg, newCommand)
 
 def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems

@@ -129,7 +129,7 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
     elif name == "subStr":
-        typeSpec['codeConverter']='%0.substring(%1, %2)'
+        typeSpec['codeConverter']='%0.substring(%1, %1+%2)'
     elif name == "append":
         typeSpec['codeConverter']='%0 += %1'
 
@@ -202,7 +202,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='nthItr'   : typeSpecOut['codeConverter']='%G%1';  typeSpecOut['owner']='itr';
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='last'     : name='%0.get(%0.size()-1)'; paramList=None;
-        elif name=='popFirst' : name='remove(0)'
+        elif name=='popFirst' : name='remove(0)';   paramList=None;
         elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
         elif name=='pushFirst': typeSpecOut['codeConverter']='%0.add(0, %1)';  typeSpecOut['owner']='itr';
         elif name=='pushLast' : name='add'
@@ -225,10 +225,11 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='rend'     : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='first'    : name='get(0)';   paramList=None;
         elif name=='last'     : name='%0.get(%0.size()-1)'; paramList=None;
-        elif name=='popFirst' : name='pop_front'
+        elif name=='popFirst' : name='%0.remove(%0.firstKey())'; paramList=None;
         elif name=='popLast'  : name='pollLastEntry'
         elif name=='erase'    : name='remove'
-        else: print "Unknown map command:", name; exit(2);
+        elif name=='isEmpty'  : name='isEmpty';typeSpecOut={'owner':'me', 'fieldType': 'bool'}
+        else: print "ERROR: Unknown map command:", name; exit(2);
     elif containerType=='multimap':
         convertedIdxType=idxType
         [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
@@ -454,13 +455,19 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
+            fieldType = progSpec.getFieldType(varTypeSpec)
+            if not isinstance(fieldType, basestring):
+                fieldType = fieldType[0]
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
-            for P in paramList[1:]:
-                if(count>0): S+=', '
-                [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
-                S+=S2
-                count=count+1
+            if fieldType=='workerMsgThread':
+                S += '"workerMsgThread"'
+            else:
+                for P in paramList[1:]:
+                    if(count>0): S+=', '
+                    [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
+                    S+=S2
+                    count=count+1
             S+=")"
         elif(funcName=='break'):
             if len(paramList)==0: S='break'

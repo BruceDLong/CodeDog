@@ -18,6 +18,7 @@ import pattern_MakeMenu
 import pattern_MakeGUI
 import pattern_RBMap
 import pattern_MakeStyler
+import pattern_WriteCallProxy
 
 import stringStructs
 
@@ -874,7 +875,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
         [convertedType, innerType] = xlator['convertType'](classes, typeSpec, 'var', 'constructor', xlator)
         fieldName=field['fieldName']
 
-        cdlog(4, "                        Constructing: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
+        cdlog(4, "Coding Constructor: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
         if not isinstance(fieldType, basestring): fieldType=fieldType[0]
         defaultVal=''
         if(fieldOwner != 'me'):
@@ -1244,6 +1245,16 @@ def codeStructureCommands(classes, tags, xlator):
                     classToModify=commandArgs[secondColonPos+1:]
                     structsNeedingModification[classToModify] = [classToModify, "implement", interfaceImplemented, progSpec.MarkItems]
                    # print "          impl: ", structsNeedingModification[classToModify]
+        if (command[3] == 'addCallProxy'):
+            className       = command[0]
+            funcBundle      = command[2]
+            funcArgs        = funcBundle.split(":")
+            proxyStyle      = funcArgs[0]
+            funcName        = funcArgs[1]
+            platformTag      = tags[1]['Platform']
+            print '     addCallProxy:', className, funcName, proxyStyle, platformTag
+            pattern_WriteCallProxy.apply(classes, tags, proxyStyle, className, funcName, platformTag)
+
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
@@ -1325,10 +1336,10 @@ def appendGLOBALInitCode(classes, tags, xlator):
             paramList = field['paramList']
             paramStr  = ''
             #if paramList != None:
-				#if(len(paramList)>0 ):
-					#for param in paramList:
-						# TODO: grab base parameter in codeDog, similar to codeExpr but through codeDog xlator 
-					#paramStr = ' <- (' + paramStr + ')'
+                #if(len(paramList)>0 ):
+                    #for param in paramList:
+                        # TODO: grab base parameter in codeDog, similar to codeExpr but through codeDog xlator 
+                    #paramStr = ' <- (' + paramStr + ')'
             allocStr = '    Allocate('+fieldName+')' + paramStr
             progSpec.addCodeToInit(tags[0], allocStr)
         
