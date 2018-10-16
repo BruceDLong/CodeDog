@@ -217,12 +217,15 @@ struct Styler{
 
     /- FONT SIZE MODES
     me mode[pp, dp, sp]: pixelMode <- pp
+    
+    me int: widgetLabelBoxWidth <- 100
+    me int: widgetValueBoxWidth <- 100
 
     void: INIT()<-{
         <INITCODE>
-        Allocate(fontDefault, "ariel", "16")
-        Allocate(fontTitle, "ariel", "24")
-        Allocate(fontSmall, "ariel", "12")
+        Allocate(fontDefault, "ariel", "14")
+        Allocate(fontTitle, "ariel", "20")
+        Allocate(fontSmall, "ariel", "10")
     }
 
 
