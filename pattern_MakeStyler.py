@@ -223,9 +223,9 @@ struct Styler{
 
     void: INIT()<-{
         <INITCODE>
-        Allocate(fontDefault, "ariel", "16")
-        Allocate(fontTitle, "ariel", "24")
-        Allocate(fontSmall, "ariel", "12")
+        Allocate(fontDefault, "ariel", "14")
+        Allocate(fontTitle, "ariel", "20")
+        Allocate(fontSmall, "ariel", "10")
     }
 
 
