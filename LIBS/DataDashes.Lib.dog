@@ -349,7 +349,7 @@ struct timeStepInterval{their graph: parentWidget me timeValue: start me timeVal
 
 struct GraphDataStream {
     me string: title
-    me double[me map timeValue]: dataMap
+    me double[our map timeValue]: dataMap
     me cdColor: lineColor
     me cdColor: fillColor
     me bool: isVisible <- false
@@ -365,7 +365,7 @@ struct GraphDataStreamSources{
 
 }
 
-struct graph: inherits=dash{
+struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
     our GraphDataStreamSources: dataStreamSrcs
     me string[list]: dataStreamsTitleTable <- ["None"]
     me int64: screenDataTotal
