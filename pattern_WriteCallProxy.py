@@ -92,5 +92,3 @@ struct '''+bundleName+''': implements=Runnable{
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
     else: print "###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag; exit(1)
     
-
-    

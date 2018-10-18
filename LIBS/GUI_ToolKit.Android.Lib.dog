@@ -211,6 +211,7 @@ struct dateWidget{
         dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
         dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue.setInputType(InputType.TYPE_NULL);
+	dataValue.setWidth(GLOBAL.static_Global.styler.widgetValueBoxWidth);
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
