@@ -223,13 +223,23 @@ def packFieldDef(fieldResult, className, indent):
                 innerDefs.append(innerFieldDef)
 
     else: fieldType=None;
+
+    isAContainer = False
     if(fieldResult.arraySpec):
         arraySpec=fieldResult.arraySpec
+        isAContainer = True
         #print"         ****Old ArraySpec found: "
     else: arraySpec=None
     if(fieldResult.containerSpec):
         containerSpec=fieldResult.containerSpec
+        isAContainer = True
     else: containerSpec=None
+
+    varOwner = owner
+    if isAContainer:
+        if "owner" in arraySpec:
+            varOwner = arraySpec['owner']
+        else: varOwner = 'me'
 
     if(fieldResult.nameAndVal):
         nameAndVal = fieldResult.nameAndVal
@@ -240,7 +250,7 @@ def packFieldDef(fieldResult, className, indent):
         else: fieldName=None;
 
         if(nameAndVal.allocDoubleColon):
-            if owner == 'me' or owner == 'we': print "Error: unable to allocate variable with owner me or we: ", fieldName; exit(1)
+            if varOwner == 'me' or varOwner == 'we': print "Error: unable to allocate variable with owner me or we: ", fieldName; exit(1)
             else: isAllocated = True
 
         if(nameAndVal.givenValue):

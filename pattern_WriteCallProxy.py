@@ -39,17 +39,16 @@ def apply(classes, tags, proxyStyle, className, funcName, platformTag):
                 argOwner     = argTypeSpec['owner']
                 argFieldType = progSpec.getFieldType(argTypeSpec)
                 if not isinstance(argFieldType, basestring): argFieldType=argFieldType[0]
-                if count > 0: 
+                if count > 0:
                     runParams      = runParams+', '
                     newParamFields = newParamFields+ '    '
                 runParams      = runParams+' bundle.'+argName
                 newParamFields = newParamFields + argOwner+' '+ argFieldType+': '+ argName + '\n'
                 count = count + 1
-        
+
         CODE =  '''
 struct GLOBAL {
     bool: '''+callbackName+'''(their '''+bundleName+''': bundle) <- {
-        print(".")
         bundle._object.'''+funcName+'''('''+runParams+''')
         return(false)
     }
@@ -70,13 +69,13 @@ struct '''+bundleName+''' {
                 argOwner     = argTypeSpec['owner']
                 argFieldType = progSpec.getFieldType(argTypeSpec)
                 if not isinstance(argFieldType, basestring): argFieldType=argFieldType[0]
-                if count > 0: 
+                if count > 0:
                     runParams      = runParams+', '
                     newParamFields = newParamFields+ '    '
                 runParams=runParams+argName
                 newParamFields = newParamFields + argOwner+' '+ argFieldType+': '+ argName + '\n'
                 count = count + 1
-    
+
         CODE =  '''
 struct '''+bundleName+''': implements=Runnable{
     their '''+className+''': objToCall
@@ -86,9 +85,9 @@ struct '''+bundleName+''': implements=Runnable{
        /- objToCall.'''+funcName+'''('''+runParams+''')
     }
 }\n'''
-        
+
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
     else: print "###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag; exit(1)
     #print '==========================================================\n'+CODE
 
-    
+

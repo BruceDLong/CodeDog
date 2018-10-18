@@ -349,7 +349,7 @@ struct timeStepInterval{their graph: parentWidget me timeValue: start me timeVal
 
 struct GraphDataStream {
     me string: title
-    me double[our map timeValue]: dataMap
+    me double[our map timeValue]:: dataMap
     me cdColor: lineColor
     me cdColor: fillColor
     me bool: isVisible <- false
@@ -505,13 +505,14 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
 
 
     void: requestDataRange(me timeValue: start, me timeValue: end, me timeValue: stepSize) <-{
-        dataStreamSrcs.dataRangeChangeRequested <- true
         dataStreamSrcs.requestedInterval.parentWidget <- self
         dataStreamSrcs.requestedInterval.start <- start; dataStreamSrcs.requestedInterval.end <- end; dataStreamSrcs.requestedInterval.stepSize <- stepSize
+        dataStreamSrcs.dataRangeChangeRequested <- true
     }
     void: applyDataRange(me timeStepInterval: req) <- {
         crntRightSide <- req.end
         timeInterval  <- req.stepSize
+        requestRedraw()
     }
 
     me void: initGraph(me string: titleStr, me GUI_Scalar: PosX, me GUI_Scalar: PosY, me bool: Gradients)<- {
@@ -594,7 +595,6 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
         if (scrollState==pullScrolling) {
             me timeValue: tmpCrntRightSide <- crntRightSide - convertToTimeVal(deltaX)*timeInterval/convertToTimeVal(width)
             requestDataRange(tmpCrntRightSide-timeInterval, tmpCrntRightSide, timeInterval)
-            requestRedraw()
         }
         return(true)
     }
