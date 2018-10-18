@@ -511,6 +511,8 @@ struct GLOBAL{
     their GUI_Bool: makeCheckBox()                                              <- <%!%G new CheckBox(GLOBAL.static_Global)%>
     their GUI_VerticalScroller: makeVerticalScroller(me int: width, me int: height) <- <%!makeAndroidVerticalScroller(%1,%2)%>
     their GUI_TextViewer: makeTextViewer(me string: text)                       <- <%!makeAndroidTextViewer(%1)%>
+    me void: setButtonLabel(their GtkButton: btn, me string: label)
+        <- <%!%G%1.setText(%2)%>
     
     their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);

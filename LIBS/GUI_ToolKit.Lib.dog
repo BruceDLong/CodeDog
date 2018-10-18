@@ -50,6 +50,8 @@ struct enumWidget{}
 struct timeWidget{}
 struct dateWidget{}
 struct wizardWidget{
+    me string: widgetID
+    our appComponent: parent
     their GUI_Frame:  box
     their GUI_ZStack: ZStack
     their GUI_Frame:  buttonBox /-Hstack
@@ -59,6 +61,7 @@ struct wizardWidget{
     me string[list]:  children
 
     their GUI_Frame: makeWizardWidget(me string: name) <- {
+	widgetID        <- name
         activeScreenIdx <- 0
         box             <- makeYStack("")
         ZStack          <- makeZStack("")
@@ -74,13 +77,19 @@ struct wizardWidget{
         return(box)
     }
     void: clickNext() <-{
-        activeScreenIdx <- activeScreenIdx+1
-        me int: size <- children.size()
-        if (activeScreenIdx > size-1){activeScreenIdx <-size-1}
-        setActiveChild(activeScreenIdx)
+	if (activeScreenIdx == size-1){
+	    parent.wizardFinished(widgetID)
+	}else{
+	    activeScreenIdx <- activeScreenIdx+1
+	    me int: size <- children.size()
+	    if (activeScreenIdx > size-1){activeScreenIdx <-size-1}
+	    if (activeScreenIdx == size-1){setButtonLabel(nextBtn, "Done")}
+	    setActiveChild(activeScreenIdx)
+	}
     }
     void: clickBack() <-{
-        activeScreenIdx <- activeScreenIdx-1
+        if (activeScreenIdx == size-1){setButtonLabel(nextBtn, "Next")}
+	activeScreenIdx <- activeScreenIdx-1
         if (activeScreenIdx < 0) {activeScreenIdx <-0}
         setActiveChild(activeScreenIdx)
     }
@@ -88,7 +97,6 @@ struct wizardWidget{
         me string: childStr <- children[N]
         setZStackActive(ZStack, childStr)
         if(N==0){hideWidget(backBtn)}else{showWidget(backBtn)}
-        if(N==children.size()-1){hideWidget(nextBtn)}else{showWidget(nextBtn)}
     }
 }
 struct matterTerm{
@@ -315,7 +323,11 @@ struct widget{
         scale  <- Scale
     }
 }
-
+struct appComponent{
+    void: wizardFinished(me string: wizID) <- {
+        print ("wizardFinished BASE: ", wizID, "\n")
+    }
+}
 
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 
