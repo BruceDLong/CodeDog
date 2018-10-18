@@ -21,7 +21,8 @@ def apply(classes, tags, proxyStyle, className, funcName, platformTag):
     print 'APPLY: in pattern_WriteCallProxy.apply\n'
     newParamFields = ''
     runParams      = ''
-    callbackName  = className+'_'+funcName+'_CB'
+    callbackName   = className+'_'+funcName+'_CB'
+    bundleName     = className+'_'+funcName+'_bundle'
     structRef      = findStructRef(classes[0], className)
     funcSpec       = getFieldSpec(funcName, structRef)
     typeSpec       = funcSpec['typeSpec']
@@ -39,19 +40,24 @@ def apply(classes, tags, proxyStyle, className, funcName, platformTag):
                 argFieldType = progSpec.getFieldType(argTypeSpec)
                 if not isinstance(argFieldType, basestring): argFieldType=argFieldType[0]
                 if count > 0: 
-                    newParamFields=newParamFields+', '
-                    runParams=runParams+', '
-                newParamFields = newParamFields + '    '+ argOwner+' '+ argFieldType+': '+ argName
-                runParams=runParams+argName
+                    runParams      = runParams+', '
+                    newParamFields = newParamFields+ '    '
+                runParams      = runParams+' bundle.'+argName
+                newParamFields = newParamFields + argOwner+' '+ argFieldType+': '+ argName + '\n'
                 count = count + 1
         
         CODE =  '''
 struct GLOBAL {
-    bool: '''+callbackName+'''('''+newParamFields+''') <- {
-        /-'''+className+'''.'''+funcName+'''('''+runParams+''')
-        '''+argName+'''.parentWidget.dataStreamSrcs.parentDataSource.requestDataRange('''+argName+''')
+    bool: '''+callbackName+'''(their '''+bundleName+''': bundle) <- {
+        print(".")
+        bundle._object.'''+funcName+'''('''+runParams+''')
         return(false)
     }
+}
+struct '''+bundleName+''' {
+    their '''+className+''': _object
+    '''+newParamFields+'''
+
 }\n'''
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
     elif proxyStyle == "bundledArgs" and platformTag == "Android":
@@ -64,13 +70,15 @@ struct GLOBAL {
                 argOwner     = argTypeSpec['owner']
                 argFieldType = progSpec.getFieldType(argTypeSpec)
                 if not isinstance(argFieldType, basestring): argFieldType=argFieldType[0]
-                newParamFields = newParamFields + '    '+ argOwner+' '+ argFieldType+': '+ argName + '\n'
-                if count > 0: runParams=runParams+', '
+                if count > 0: 
+                    runParams      = runParams+', '
+                    newParamFields = newParamFields+ '    '
                 runParams=runParams+argName
+                newParamFields = newParamFields + argOwner+' '+ argFieldType+': '+ argName + '\n'
                 count = count + 1
     
         CODE =  '''
-struct '''+callbackName+''': implements=Runnable{
+struct '''+bundleName+''': implements=Runnable{
     their '''+className+''': objToCall
     '''+newParamFields+'''
 

@@ -995,7 +995,7 @@ struct GLOBAL{
     their MessagePasser: threadsMesgPasser() <- <%!g_main_context_get_thread_default()%>
     their MessagePasser: GUIsMesgPasser() <- <%!GUI_threads_messagePasser%>
     void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: objToCall, their void: classToCall, their void: funcToCall, their void: arguments) 
-        <- <%!g_main_context_invoke(%1, GSourceFunc(%3_%4_CB), (void*)%5)%>
+        <- <%!g_main_context_invoke(%1, GSourceFunc(%3_%4_CB), (%3_%4_bundle*)%5)%>
 }
 
 /--------------- Application areas

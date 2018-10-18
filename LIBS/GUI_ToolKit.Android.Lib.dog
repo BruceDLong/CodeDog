@@ -1155,7 +1155,7 @@ struct GLOBAL{
     their MessagePasser: threadsMesgPasser()         <- <%!%G%0.getLooper()%>
     their MessagePasser: GUIsMesgPasser()            <- <%!Looper.getMainLooper()%>
     void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: objToCall, their void: classToCall, their void: funcToCall, their void: arguments) 
-        <- <%!%Gnew Handler(%1.getMainLooper()).post(new %3_%4_CB(%2, %5))%>
+        <- <%!%Gnew Handler(%1.getMainLooper()).post(new %3_%4_bundle(%5))%>
 }
 struct APP: inherits=LinearLayout{
     me LinearLayout: thisFrame
