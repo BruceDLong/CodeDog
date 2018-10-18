@@ -412,7 +412,7 @@ struct DateTimeWidget{
     }
     void: setValue() <- {}
 }
-/*struct FoodData {
+struct FoodData {
     me bool: isVisible <- true
     me string: name
     me int: quantity
@@ -567,7 +567,7 @@ struct MealDataWidget {
 	    }
 	}
     }
-}*/
+}
 struct Agreement{
     me string: fileName
     me bool:   doesAgree 
