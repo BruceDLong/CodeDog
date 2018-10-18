@@ -1147,10 +1147,14 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
 
         cdlog(1, "   Class: " + className)
         classDef = progSpec.findSpecOf(classes[0], className, 'struct')
+        modelDef = progSpec.findSpecOf(classes[0], className, 'model')
         classAttrs=progSpec.searchATagStore(classDef['tags'], 'attrs')
         if(classAttrs): classAttrs=classAttrs[0]+' '
         else: classAttrs=''
         classInherits=progSpec.searchATagStore(classDef, 'inherits')
+        if modelDef != None:
+            if classInherits is None: classInherits=progSpec.searchATagStore(modelDef, 'inherits')
+            else: classInherits.append(progSpec.searchATagStore(modelDef, 'inherits'))
         classImplements=progSpec.searchATagStore(classDef, 'implements')
 
         if (className in structsNeedingModification):

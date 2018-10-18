@@ -513,6 +513,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     if guiStyleTag != None: # This GUI Item is important visually
         guiStyleTag = guiStyleTag[0]
         if guiStyleTag == 'WizardStack': dialogStyle = 'WizardStack'
+        if guiStyleTag == 'Z_stack':     dialogStyle = 'Z_stack'
 
     ### Write code for each field
     for field in modelRef['fields']:
@@ -559,14 +560,14 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         newWidgetFields   += '    me string[list]: children\n'
         newWidgetFields   += '    me int: activeScreenIdx <-1\n'
         newWidgetFields   += '    void: setActiveChild(me int: N) <- {\n'
-        newWidgetFields   += '        if (N >= 0 and N < children.size()-1){'
+        newWidgetFields   += '        if (N >= 0 and N < children.size()){'
         newWidgetFields   += '            me string: childName <- children[N]\n'
         newWidgetFields   += '            print("^^^setZStackActive: ",N)\n'
         newWidgetFields   += '            setZStackActive(Zbox, childName)\n'
         newWidgetFields   += '        }\n'
         newWidgetFields   += '    }\n'
         containerWidget    = 'Zbox <- makeZStack("'+className+'")\n'
-        retrunCode         = '    setActiveChild(1)\n'
+        retrunCode         = '    setActiveChild(0)\n'
         retrunCode        += '    return(Zbox)\n'
         # addToContainer or 
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
@@ -574,7 +575,8 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         newWidgetFields    += '    our wizardWidget: wiz\n'
         newWidgetFields    += '    their GUI_Frame: box\n'
         containerWidget     = 'Allocate(wiz)\n'
-        containerWidget    += '        box <- wiz.makeWizardWidget("WizardWidget")\n'
+        containerWidget    += '        box <- wiz.makeWizardWidget("'+currentClassName+'")\n'
+        containerWidget    += '        wiz.parent <- '+currentClassName+'_data\n'
         widgetInitFuncCode += '        wiz.setActiveChild(0)\n'
     else: 
         newWidgetFields    += '    their GUI_Frame:box\n'

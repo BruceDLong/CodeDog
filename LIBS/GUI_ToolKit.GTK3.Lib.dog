@@ -508,6 +508,8 @@ struct GLOBAL{
     their GUI_Bool: makeCheckBox()                                         <- <%!%Ggtk_check_button_new()%>
     their GUI_VerticalScroller: makeVerticalScroller(me int: width, me int: height) <- <%!%GmakeGTKVerticalScroller(%1,%2)%>
     their GUI_TextViewer: makeTextViewer(me string: text)                  <- <%!%GmakeGTKTextViewer(%1)%>
+    me void: setButtonLabel(their GtkButton: btn, me string: label)
+        <- <%!%Ggtk_button_set_label(%1,%2)%>
 
     their GUI_TextViewer: makeGTKTextViewer(me string: text)    <- <%{
         GtkWidget *textViewer = gtk_text_view_new();
