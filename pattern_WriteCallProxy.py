@@ -21,16 +21,17 @@ def apply(classes, tags, proxyStyle, className, funcName, platformTag):
     print 'APPLY: in pattern_WriteCallProxy.apply\n'
     newParamFields = ''
     runParams      = ''
-    callbackName   = className+'_'+funcName+'_CB'
-    bundleName     = className+'_'+funcName+'_bundle'
     structRef      = findStructRef(classes[0], className)
     funcSpec       = getFieldSpec(funcName, structRef)
     typeSpec       = funcSpec['typeSpec']
     fieldOwner     = typeSpec['owner']
     argList        = typeSpec['argList']
     fieldType      = typeSpec['fieldType']
+    if className[0] == '%': className = className[1:]
+    callbackName   = className+'_'+funcName+'_CB'
+    bundleName     = className+'_'+funcName+'_bundle'
     if proxyStyle == "bundledArgs" and platformTag == "Linux":
-        #print "Linux BundledArgs: ", callbackName, typeSpec
+        print "Linux BundledArgs: ", callbackName, typeSpec
         if len(argList)>0:
             count=0
             for arg in argList:
@@ -59,6 +60,7 @@ struct '''+bundleName+''' {
     '''+newParamFields+'''
 
 }\n'''
+        print '==========================================================\n'+CODE
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
     elif proxyStyle == "bundledArgs" and platformTag == "Android":
         #print "Android BundledArgs: ", callbackName, funcSpec
@@ -89,6 +91,6 @@ struct '''+bundleName+''': implements=Runnable{
         
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
     else: print "###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag; exit(1)
-    print '==========================================================\n'+CODE
+    
 
     
