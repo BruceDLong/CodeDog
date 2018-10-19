@@ -18,7 +18,7 @@ interface={
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
         android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup, android.widget.TimePicker, android.app.TimePickerDialog, android.app.TimePickerDialog.OnTimeSetListener,
         android.support.design.widget.FloatingActionButton, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
-        android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable
+        android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable, android.widget.AutoCompleteTextView 
     ]
 }
 
@@ -59,7 +59,8 @@ struct GUI_ComboBox{their Spinner: GUI_ComboBox}
 struct GUI_SpinBox{their Spinner: GUI_SpinBox}
 struct GUI_Bool{their CheckBox: GUI_Bool}
 struct GUI_Text{their EditText: GUI_Text}
-struct GUI_Entry{their GtkWidget: GUI_Entry}
+struct GUI_Entry{their TextView: GUI_Entry}
+struct GUI_Completer{their AutoCompleteTextView: GUI_Completer}
 struct GUI_TextViewer{their TextView: GUI_TextViewer}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 
@@ -375,13 +376,21 @@ struct scrollerWidget{
 }
 /-///////////////////////////////  GUI STRUCTS
 struct GUI_Text{
-    me string: getValue()               <- <%!gtk_entry_get_text((GtkEntry *)%0)%>
-    me string: getValueAsInt()          <- <%!atoi(gtk_entry_get_text((GtkEntry *)%0))%>
+    me string: getValue()               <- <%!getText().toString()%>
+    me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
     me timeValue: getValueAsTime()      <- <%!Long.parseLong(%0.getText().toString())%>
+}
+struct GUI_Entry{
+    me string: getValue()               <- <%!getText().toString()%>
+    me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
+}
+struct GUI_Completer{
+    me string: getValue()               <- <%!getText().toString()%>
+    me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
 }
 struct GUI_ComboBox{
     me void: appendComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
-    me void: appendStringComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
+    me void: appendStringComboBox(me string: id, me string: label)  <- <%!%G%>
     me int: comboBoxGetActive() <- <%!%0.getSelectedItemPosition()%>
     /- TODO: fix android ArrayAdapter after dynamic types working
     me void: setAndroidAdapter() <- <%!ArrayAdapter<%2> %1 = new ArrayAdapter<%2>(GLOBAL.static_Global, android.R.layout.simple_spinner_dropdown_item, %3); %0.setAdapter(%1)%>
@@ -555,7 +564,14 @@ struct GLOBAL{
         return textBox;
     }%>
     their GtkWidget: makeComboBox(me string: label)          <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
-    
+    me void: addToComboBox(me GUI_item: box, me string: val) <- <%!%G%>
+    their GtkWidget: makeEntryBox(me string: label)          <- <%!%Gnew TextView(GLOBAL.static_Global)%>
+    their GUI_Completer: makeCompleterBox(me string: label, me string[list]: completerList)  <- <%{
+	AutoCompleteTextView autoCompleter = new AutoCompleteTextView(GLOBAL.static_Global);
+	ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, completerList);
+        autoCompleter.setAdapter(adapter);
+	return autoCompleter;
+    }%>
     their GUI_Frame: makeFloatWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         EditText editBox = new EditText(GLOBAL.static_Global);
