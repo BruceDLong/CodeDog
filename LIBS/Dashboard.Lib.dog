@@ -424,7 +424,6 @@ struct DashboardWidget: inherits=dash{
 	markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
     }
     their GUI_canvas: init(me string: label) <- {
-        Allocate(dashboardDBW)
         title   <- 'DashboardWidget.'+label
         canvas  <- thisApp.gui.newCanvas()
         canvas.setParent(self)

@@ -562,7 +562,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         newWidgetFields   += '    void: setActiveChild(me int: N) <- {\n'
         newWidgetFields   += '        if (N >= 0 and N < children.size()){'
         newWidgetFields   += '            me string: childName <- children[N]\n'
-        newWidgetFields   += '            print("^^^setZStackActive: ",N)\n'
+        #newWidgetFields   += '            print("^^^setZStackActive: ",N)\n'
         newWidgetFields   += '            setZStackActive(Zbox, childName)\n'
         newWidgetFields   += '        }\n'
         newWidgetFields   += '    }\n'
