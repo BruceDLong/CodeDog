@@ -460,17 +460,19 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
 
                 /-/// Visible data plot
                 firstTime <- true
-                withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-                    XPoint <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
-                    YPoint <- convertToGUIScalar((point - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
-                    if(firstTime){
-                        cr.setColor(dataStream.lineColor)
-                        cr.moveTo(XPoint, YOrig - YPoint)
-                        firstTime<-false
-                    } else {cr.lineTo(XPoint, YOrig - YPoint)}
-                    screenDataTotal <- screenDataTotal + convertToLongVal(point)
-                    screenDataCount <- screenDataCount + 1
-                }
+		if (dataStream.dataMap != NULL) {
+		    withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
+			XPoint <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
+			YPoint <- convertToGUIScalar((point - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
+			if(firstTime){
+			    cr.setColor(dataStream.lineColor)
+			    cr.moveTo(XPoint, YOrig - YPoint)
+			    firstTime<-false
+			} else {cr.lineTo(XPoint, YOrig - YPoint)}
+			screenDataTotal <- screenDataTotal + convertToLongVal(point)
+			screenDataCount <- screenDataCount + 1
+		    }
+		}
                 cr.strokeNow()
 
                 if (screenDataCount > 0) {dataStream.screenDataAvg <- screenDataTotal / screenDataCount}
@@ -506,8 +508,11 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
 
     void: requestDataRange(me timeValue: start, me timeValue: end, me timeValue: stepSize) <-{
         dataStreamSrcs.requestedInterval.parentWidget <- self
-        dataStreamSrcs.requestedInterval.start <- start; dataStreamSrcs.requestedInterval.end <- end; dataStreamSrcs.requestedInterval.stepSize <- stepSize
-        dataStreamSrcs.dataRangeChangeRequested <- true
+        dataStreamSrcs.requestedInterval.start        <- start
+	dataStreamSrcs.requestedInterval.end          <- end
+	dataStreamSrcs.requestedInterval.stepSize     <- stepSize
+	if (stepSize==0) {print("\nInvalid Step size in graph.requestDataRange()\n"); exit(1);}
+        dataStreamSrcs.dataRangeChangeRequested       <- true
     }
     void: applyDataRange(me timeStepInterval: req) <- {
         crntRightSide <- req.end
