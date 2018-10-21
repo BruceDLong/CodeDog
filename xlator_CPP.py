@@ -261,7 +261,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
         elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='nthItr'   : typeSpecOut['codeConverter']='(%0.begin()+%1)'; typeSpecOut['owner']='itr';
+        elif name=='nthItr'   : typeSpecOut['codeConverter']='(%0->begin()+%1)'; typeSpecOut['owner']='itr';
         elif name=='first'    : name='front()';  paramList=None;
         elif name=='last'     : name='back()';   paramList=None;
         elif name=='popFirst' : name='pop_front'
