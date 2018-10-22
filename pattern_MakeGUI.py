@@ -301,7 +301,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         makeTypeNameCall      = '        Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeMealDataWidget("'+label+'", '+currentClassName+'_data.'+fieldName+')\n'
         #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
-        #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
+        varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='matterTerm':
         typeName              = 'MatterTermWidget'
         widgetBoxName         =  widgetName +'.box'
