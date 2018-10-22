@@ -448,6 +448,13 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 if(count!=0): S+=" + "
                 count+=1
                 [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
+                if 'fieldType' in argTypeSpec: 
+                    fieldType = argTypeSpec['fieldType']
+                    if not isinstance(fieldType, basestring):
+                        fieldType=fieldType[0]
+                    fieldType = convertToJavaType(fieldType, False)
+                else: fieldType = argTypeSpec
+                if fieldType == "timeValue" or fieldType == "int" or fieldType == "double": S2 = '('+S2+')'
                 S+=S2
             S+=")"
         elif(funcName=='AllocateOrClear'):
