@@ -61,7 +61,7 @@ struct GUI_Bool{their CheckBox: GUI_Bool}
 struct GUI_Text{their EditText: GUI_Text}
 struct GUI_Entry{their TextView: GUI_Entry}
 struct GUI_CompleterBox{their AutoCompleteTextView: GUI_CompleterBox}
-struct GUI_Completer{their ArrayAdapter: GUI_Completer}
+struct GUI_Completer{their ArrayAdapter<String>: GUI_Completer}
 struct GUI_TextViewer{their TextView: GUI_TextViewer}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 
@@ -572,13 +572,15 @@ struct GLOBAL{
     me void: addToComboBox(me GUI_item: box, me string: val) <- <%!%G%>
     their GtkWidget: makeEntryBox(me string: label)          <- <%!%Gnew TextView(GLOBAL.static_Global)%>
     void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
-        <- <%!%G%1.setAdapter(%2)%>
+        <- <%!%G%1.setAdapter(%2);%2.setNotifyOnChange(true)%>
     their GUI_Completer: makeCompleter(me string: label, me string[list]: completerList)  <- <%{
-	ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, completerList);
-	return adapter;
+	ArrayAdapter<String> suggestAdapter = new ArrayAdapter<>(this, android.R.layout.select_dialog_item, completerList);
+	return suggestAdapter;
     }%>
     their GUI_CompleterBox: makeCompleterBox(me string: label)  <- <%{
 	AutoCompleteTextView autoCompleter = new AutoCompleteTextView(GLOBAL.static_Global);
+	autoCompleter.setThreshold(1);
+	autoCompleter.setWidth(100);
 	return autoCompleter;
     }%>
     their GUI_Frame: makeFloatWidget(me string: label)      <- <%{
