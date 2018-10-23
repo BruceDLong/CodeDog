@@ -18,7 +18,7 @@ def getFieldSpec(fieldName, structRef):
     cdErr('Field not found in model "'+fieldName+'".')
 
 def apply(classes, tags, proxyStyle, className, funcName, platformTag):
-    print 'APPLY: in pattern_WriteCallProxy.apply\n'
+    print 'APPLY: in pattern_WriteCallProxy.apply: ',proxyStyle, '::', className,'\n'
     newParamFields = ''
     runParams      = ''
     structRef      = findStructRef(classes[0], className)
@@ -88,6 +88,19 @@ struct '''+bundleName+''': implements=Runnable{
 }\n'''
         
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
+    elif proxyStyle == "widgetData" and platformTag == "Linux":
+        #print "Linux widgetData: ", callbackName, funcSpec
+        
+        CODE =  '''
+struct GLOBAL {
+    void: '''+callbackName+'''(their GtkWidget: wid, their '''+className+''': _obj) <- {
+       _obj.'''+funcName+'''()
+    }
+}\n'''
+
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
+    elif proxyStyle == "widgetData" and platformTag == "Android":
+        print "Android widgetData: ", callbackName, funcSpec
     else: print "###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag; exit(1)
     #print '==========================================================\n'+CODE
 

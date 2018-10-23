@@ -60,7 +60,8 @@ struct GUI_SpinBox{their Spinner: GUI_SpinBox}
 struct GUI_Bool{their CheckBox: GUI_Bool}
 struct GUI_Text{their EditText: GUI_Text}
 struct GUI_Entry{their TextView: GUI_Entry}
-struct GUI_Completer{their AutoCompleteTextView: GUI_Completer}
+struct GUI_CompleterBox{their AutoCompleteTextView: GUI_CompleterBox}
+struct GUI_Completer{their ArrayAdapter: GUI_Completer}
 struct GUI_TextViewer{their TextView: GUI_TextViewer}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 
@@ -384,6 +385,10 @@ struct GUI_Entry{
     me string: getValue()               <- <%!getText().toString()%>
     me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
 }
+struct GUI_CompleterBox{
+    me string: getValue()               <- <%!getText().toString()%>
+    me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
+}
 struct GUI_Completer{
     me string: getValue()               <- <%!getText().toString()%>
     me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
@@ -566,10 +571,14 @@ struct GLOBAL{
     their GtkWidget: makeComboBox(me string: label)          <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     me void: addToComboBox(me GUI_item: box, me string: val) <- <%!%G%>
     their GtkWidget: makeEntryBox(me string: label)          <- <%!%Gnew TextView(GLOBAL.static_Global)%>
-    their GUI_Completer: makeCompleterBox(me string: label, me string[list]: completerList)  <- <%{
-	AutoCompleteTextView autoCompleter = new AutoCompleteTextView(GLOBAL.static_Global);
+    void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
+        <- <%!%G%1.setAdapter(%2)%>
+    their GUI_Completer: makeCompleter(me string: label, me string[list]: completerList)  <- <%{
 	ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, completerList);
-        autoCompleter.setAdapter(adapter);
+	return adapter;
+    }%>
+    their GUI_CompleterBox: makeCompleterBox(me string: label)  <- <%{
+	AutoCompleteTextView autoCompleter = new AutoCompleteTextView(GLOBAL.static_Global);
 	return autoCompleter;
     }%>
     their GUI_Frame: makeFloatWidget(me string: label)      <- <%{
