@@ -65,17 +65,16 @@ class structAsProteusWriter(structProcessor):
         elif(fldCat=='mode'):
             valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
         elif(fldCat=='struct'):
-            valStr=fieldName+'.to_string(indent+"|   ")'
+            valStr=fieldName+'.asProteus(indent)'
 
             structTypeName=progSpec.getFieldType(field['typeSpec'])[0]
             if not(structTypeName in classesEncoded):
-                #print "TO ENDODE:", structTypeName
-                classesEncoded[structTypeName]=1
+              #  classesEncoded[structTypeName]=1
                 classesToProcess.append(structTypeName)
         if(fldCat=='struct'):
-            S='S <- S + indent + dispFieldAsText("'+label+'", 15) + "\\n" + '+valStr+' + "\\n"\n'
+            S='S <- S + indent2 + dispFieldAsText("'+label+'", 15) + "\\n" + '+valStr+' + "\\n"\n'
         else:
-            S='S <- S + indent + dispFieldAsText("'+label+'", 15) + '+valStr+' + "\\n"\n'
+            S='S <- S + indent2 + dispFieldAsText("'+label+'", 15) + '+valStr+' + "\\n"\n'
         return S
 
     def processField(self, fieldName, field, fldCat):
@@ -87,17 +86,17 @@ class structAsProteusWriter(structProcessor):
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             calcdName=fieldName+'["+toString(_item_key)+"]'
-            S+="    withEach _item in "+fieldName+"{\n"
-            S+="        "+self.toProteusTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
-        else: S+="        "+self.toProteusTextFieldAction(fieldName, fieldName, field, fldCat)
+            S+="        withEach _item in "+fieldName+"{\n"
+            S+="            "+self.toProteusTextFieldAction(calcdName, '_item', field, fldCatInner)+"        }\n"
+        else: S+="            "+self.toProteusTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
-            T ="    if("+fieldName+' == NULL){S <- S + '+'indent, dispFieldAsText("'+fieldName+'", 15)+"NULL\\n")}\n'
-            T+="    else{\n    "+S+"    }\n"
+            T ="            if("+fieldName+' == NULL){S <- S + '+'indent2 + dispFieldAsText("'+fieldName+'", 15)+"NULL\\n"}\n'
+            T+="            else{\n    "+S+"    }\n"
             S=T
         self.textFuncBody += S
 
     def addOrAmendClasses(self, classes, className, modelRef):
-        self.textFuncBody = '        me string: S <- "{\\n"\n' + '        indent <- indent + "    "\n' +self.textFuncBody + '        S <- S + "}\\n"\n'
+        self.textFuncBody = '        me string: S <- indent + "{\\n"\n' + '        me string: indent2 <- indent + "    "\n' +self.textFuncBody + '        S <- S + indent + "}\\n"\n'
         Code='    me string: asProteus(me string:indent <- "") <- {\n'+self.textFuncBody+"        return(S)\n    }"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.asProteus()')
@@ -433,7 +432,7 @@ def apply(classes, tags, className, dispMode):
     processor.addGlobalCode(classes)
 
     for classToEncode in classesToProcess:
-        if (classToEncode in classesEncoded): continue
+        if classToEncode in classesEncoded: continue
         cdlog(1, "  ENCODING "+dispMode+": "+ classToEncode)
         classesEncoded[classToEncode]=1
         pattern_GenSymbols.apply(classes, {}, [classToEncode])      # Invoke the GenSymbols pattern
