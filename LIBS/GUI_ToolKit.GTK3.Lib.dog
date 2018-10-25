@@ -683,15 +683,23 @@ struct GLOBAL{
         clickWidget->clickNext();
     }%>
     void: clickRemove_CB(their GtkWidget: wid, their FoodDataWidget: food) <- <%{
-    FoodDataWidget* clickWidget = (FoodDataWidget*)food;
+	FoodDataWidget* clickWidget = (FoodDataWidget*)food;
         clickWidget->clickRemove();
     }%>
+    void: clickRemoveMed_CB(their GtkWidget: wid, their MedItemDataWidget: food) <- <%{
+	MedItemDataWidget* clickWidget = (MedItemDataWidget*)food;
+        clickWidget->clickRemoveMed();
+    }%>
     void: clickAdd_CB(their GtkWidget: wid, their MealDataWidget: meal) <- <%{
-    MealDataWidget* clickWidget = (MealDataWidget*)meal;
+	MealDataWidget* clickWidget = (MealDataWidget*)meal;
         clickWidget->clickAdd();
     }%>
+    void: clickAddMed_CB(their GtkWidget: wid, their MedBunchDataWidget: meal) <- <%{
+	MedBunchDataWidget* clickWidget = (MedBunchDataWidget*)meal;
+        clickWidget->clickAddMed();
+    }%>
     /*void: clickSave_CB(their GtkWidget: wid, their MealDataWidget: meal) <- <%{
-    MealDataWidget* clickWidget = (MealDataWidget*)meal;
+	MealDataWidget* clickWidget = (MealDataWidget*)meal;
         clickWidget->clickSave();
     }%>*/
 }
