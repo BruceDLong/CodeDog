@@ -51,7 +51,7 @@ struct timeWidget{}
 struct dateWidget{}
 struct wizardWidget{
     me string: widgetID
-    our appComponent: parent
+    our appComponentData: parent
     their GUI_Frame:  box
     their GUI_ZStack: ZStack
     their GUI_Frame:  buttonBox /-Hstack
@@ -323,7 +323,7 @@ struct widget{
         scale  <- Scale
     }
 }
-struct appComponent{
+struct appComponentData{
     void: wizardFinished(me string: wizID) <- {
         print ("wizardFinished BASE: ", wizID, "\n")
     }
