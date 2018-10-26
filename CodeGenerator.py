@@ -80,7 +80,8 @@ def CheckFunctionsLocalVarArgList(itemName):
     return 0
 
 def CheckObjectVars(className, itemName):
-    #print "Searching",className,"for", itemName
+    searchFieldID = className+'::'+itemName
+    #print "Searching",className,"for", itemName, searchFieldID
     ClassDef =  progSpec.findSpecOf(globalClassStore[0], className, "struct")
     if ClassDef==None:
         message = "ERROR: definition not found for: "+ str(className) + " : " + str(itemName)
@@ -108,11 +109,24 @@ def CheckObjectVars(className, itemName):
 
     callableStructFields=[]
     progSpec.populateCallableStructFields(callableStructFields, globalClassStore, className)
+    foundFieldID = 'None'
+    # TODO: Need to complete but fix, should search callableStructFields
+    #       by inheritance hierarchy.  Currently searches child class
+    #       then all other fields returned.  Should find hierarchy then
+    #       search child, parent, grandparent etc.  
+    #       commit 2111d27664f99c2b4aad289586438efa1846e355 (HEAD -> master, origin/master, origin/HEAD, patternMakeGUI)
     for field in callableStructFields:
+        fieldID=field['fieldID']
         fieldName=field['fieldName']
-        if fieldName==itemName:
-            #print "Found", itemName
+        structAndFieldID = fieldID.split("(")
+        fieldID      = structAndFieldID[0]
+        if searchFieldID== fieldID:
             return field
+        if fieldName==itemName:
+            foundFieldID = field
+    if foundFieldID != 'None':
+        #print "Found", itemName
+        return foundFieldID
 
     #print "WARNING: Could not find field",itemName ,"in", className
     return 0 # Field not found in model

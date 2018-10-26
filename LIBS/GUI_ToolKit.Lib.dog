@@ -328,7 +328,9 @@ struct appComponentData{
         print ("wizardFinished BASE: ", wizID, "\n")
     }
 }
+struct appComponentGUI{
 
+}
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 
 struct ListWidgetManager{
