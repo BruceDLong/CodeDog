@@ -598,7 +598,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
 
     CODE =  '''
 struct <CLASSNAME>:inherits=appComponentData{}
-struct <NEWSTRUCTNAME>{
+struct <NEWSTRUCTNAME>:inherits=appComponentGUI{
     <NEWWIDGETFIELDS>
     our <CLASSNAME>: _data
     their GUI_Frame: <INITFUNCNAME>(our <CLASSNAME>: Data) <- {
