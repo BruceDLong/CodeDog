@@ -349,6 +349,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += '        Allocate(_data.'+fieldName+')\n'
         widgetInitFuncCode   += '        Allocate('+guiMgrName+')\n'
         makeTypeNameCall      = widgetName+' <- '+guiMgrName+'.make'+structTypeName+'Widget(_data.'+fieldName+')\n'
+        makeTypeNameCall     +=  guiMgrName + '.parentGuiMgr <- self\n'
         newWidgetFields      += '    our ' + guiStructName + ': '+ guiMgrName+'\n'
         widgetFromVarsCode   += '        ' + guiMgrName+ '.setValue(var.'+fieldName+')\n'
         varsFromWidgetCode   += '        ' + guiMgrName + '.getValue()\n'
@@ -590,7 +591,8 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         newWidgetFields    += '    their GUI_Frame: box\n'
         containerWidget     = 'Allocate(wiz)\n'
         containerWidget    += '        box <- wiz.makeWizardWidget("'+currentClassName+'")\n'
-        containerWidget    += '        wiz.parent <- _data\n'
+        containerWidget    += '        wiz._data <- _data\n'
+        containerWidget    += '        wiz.parentGuiMgr <- self\n'
         widgetInitFuncCode += '        wiz.setActiveChild(0)\n'
     else: 
         newWidgetFields    += '    their GUI_Frame:box\n'
@@ -602,7 +604,8 @@ struct <NEWSTRUCTNAME>:inherits=appComponentGUI{
     <NEWWIDGETFIELDS>
     our <CLASSNAME>: _data
     their GUI_Frame: <INITFUNCNAME>(our <CLASSNAME>: Data) <- {
-        _data<-Data
+        _data <- Data
+        _data.guiMgr <- self
         <CONTAINERWIDGET>
         <WIDGETINITFUNCCODE>
         <RETURNCODE>
