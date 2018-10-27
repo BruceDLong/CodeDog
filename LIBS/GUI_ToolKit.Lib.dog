@@ -49,9 +49,9 @@ struct stringWidget{}
 struct enumWidget{}
 struct timeWidget{}
 struct dateWidget{}
-struct wizardWidget{
+struct wizardWidget:inherits=appComponentGUI{
     me string: widgetID
-    our appComponentData: parent
+    our appComponentData: _data
     their GUI_Frame:  box
     their GUI_ZStack: ZStack
     their GUI_Frame:  buttonBox /-Hstack
@@ -78,7 +78,7 @@ struct wizardWidget{
     }
     void: clickNext() <-{
 	if (activeScreenIdx == size-1){
-	    parent.wizardFinished(widgetID)
+	    _data.wizardFinished(widgetID)
 	}else{
 	    activeScreenIdx <- activeScreenIdx+1
 	    me int: size <- children.size()
@@ -324,12 +324,16 @@ struct widget{
     }
 }
 struct appComponentData{
+    their appComponentGUI: guiMgr
     void: wizardFinished(me string: wizID) <- {
         print ("wizardFinished BASE: ", wizID, "\n")
     }
 }
 struct appComponentGUI{
-
+    their appComponentGUI: parentGuiMgr
+    me string: title
+    void: setActiveChild(me int: N) <-{print ("setActiveChild BASE: \n")}
+    void: getValue() <- {print ("getValue BASE: \n")}
 }
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 
