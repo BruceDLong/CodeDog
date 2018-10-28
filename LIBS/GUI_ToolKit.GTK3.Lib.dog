@@ -674,12 +674,12 @@ struct GLOBAL{
         DBW->draw(cr);
         return(true);
     }%>
-    void: clickBack_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
-        wizardWidget* clickWidget = (wizardWidget*)wizard;
+    void: clickBack_CB(their GtkWidget: btn, their appComponentGUI: wid) <- <%{
+        appComponentGUI* clickWidget = (appComponentGUI*)wid;
         clickWidget->clickBack();
     }%>
-    void: clickNext_CB(their GtkWidget: wid, their wizardWidget: wizard) <- <%{
-        wizardWidget* clickWidget = (wizardWidget*)wizard;
+    void: clickNext_CB(their GtkWidget: btn, their appComponentGUI: wid) <- <%{
+	appComponentGUI* clickWidget = (appComponentGUI*)wid;
         clickWidget->clickNext();
     }%>
     void: clickRemove_CB(their GtkWidget: wid, their FoodDataWidget: food) <- <%{
