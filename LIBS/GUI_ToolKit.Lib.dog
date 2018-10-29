@@ -303,7 +303,7 @@ struct appComponentGUI{
     me string: title
     void: setActiveChild(me int: N) <-{print ("setActiveChild BASE: \n")}
     void: getValue() <- {print ("getValue BASE: \n")}
-    void: isComplete() <- {print ("isComplete BASE: \n")}
+    bool: isComplete() <- {print ("isComplete BASE: \n");return(true)}
     void: clickNext() <-{print("clickNext BASE:\n")}
     void: clickBack() <-{print("clickBack BASE:\n")}
 }

@@ -645,7 +645,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             boxFooterCode      += '        addToContainer(boxFooter, backBtn)\n'
         if makeNextBtn:
             newWidgetFields    += '    their GUI_button: nextBtn\n'
-            newWidgetFields    += '    void: clickNext() <-{parentGuiMgr.clickNext()}\n'
+            newWidgetFields    += '    void: clickNext() <-{if(isComplete()){parentGuiMgr.clickNext()}}\n'
             boxFooterCode      += '        nextBtn         <- makeButtonWidget("'+clickNextLabel+'")\n'
             boxFooterCode      += '        GUI.setBtnCallback(nextBtn, "clicked", clickNext, this)\n'
             boxFooterCode      += '        addToContainer(boxFooter, nextBtn)\n'   

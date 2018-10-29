@@ -155,9 +155,16 @@ struct stringWidget{
 struct dateWidget{
     their GUI_Frame: box
     their GUI_Label: dataLabel
-    their GUI_Text:  dataValue
+    their GtkWidget:  dataValue
 
-    me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
+    me timeValue: getValue() <- <%{
+        guint year;
+	guint month;
+	guint day;
+	gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
+	int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
+	return(retVal);
+    }%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->dataValue, %1)%>
 
     their GUI_Frame: makeDateWidget(me string: name)  <- <%{
