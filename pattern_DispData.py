@@ -72,9 +72,9 @@ class structAsProteusWriter(structProcessor):
               #  classesEncoded[structTypeName]=1
                 classesToProcess.append(structTypeName)
         if(fldCat=='struct'):
-            S='S <- S + indent2 + dispFieldAsText("'+label+'", 15) + "\\n" + '+valStr+' + "\\n"\n'
+            S='S <- S + indent2 + "'+label+'" + " =\\n" + '+valStr+' + "\\n"\n'
         else:
-            S='S <- S + indent2 + dispFieldAsText("'+label+'", 15) + '+valStr+' + "\\n"\n'
+            S='S <- S + indent2 + "'+label+'" + " = " +'+valStr+' + "\\n"\n'
         return S
 
     def processField(self, fieldName, field, fldCat):
@@ -90,7 +90,7 @@ class structAsProteusWriter(structProcessor):
             S+="            "+self.toProteusTextFieldAction(calcdName, '_item', field, fldCatInner)+"        }\n"
         else: S+="            "+self.toProteusTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
-            T ="            if("+fieldName+' == NULL){S <- S + '+'indent2 + dispFieldAsText("'+fieldName+'", 15)+"NULL\\n"}\n'
+            T ="            if("+fieldName+' == NULL){S <- S + '+'indent2 + dispFieldAsText("'+fieldName+'", 10, " = ")+"NULL\\n"}\n'
             T+="            else{\n    "+S+"    }\n"
             S=T
         self.textFuncBody += S

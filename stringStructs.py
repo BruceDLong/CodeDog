@@ -1308,9 +1308,9 @@ def CreateStructsForStringModels(classes, newClasses, tags):
         }
         return(S)
     }
-    me int: makeInt(our stateRec: SRec) <- {
+    me int64: makeInt(our stateRec: SRec) <- {
         me string: S <- makeStr(SRec)
-        me int: N <- stoi(S)
+        me int64: N <- stol(S)
         return(N)
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(NULL) }
