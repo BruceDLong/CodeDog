@@ -100,6 +100,7 @@ struct GLOBAL{
     me double: sqrt(me double: input) <- <%!sqrt(%1)%>
     me timeValue: convertToTimeVal()                        <- <%!%G%1%>
     me timeValue: convertToLongVal()                        <- <%!%G%1%>
+    me timeValue: convertToL()                              <- <%!%G%1%>
     me int: convertToIntVal()                               <- <%!%G%1%>
     me float: convertToFloatVal()                           <- <%!%G%1%>
 }

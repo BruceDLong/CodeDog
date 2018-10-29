@@ -49,14 +49,11 @@ struct stringWidget{}
 struct enumWidget{}
 struct timeWidget{}
 struct dateWidget{}
-struct wizardWidget{
+struct wizardWidget:inherits=appComponentGUI{
     me string: widgetID
-    our appComponent: parent
+    our appComponentData: _data
     their GUI_Frame:  box
     their GUI_ZStack: ZStack
-    their GUI_Frame:  buttonBox /-Hstack
-    their GUI_button: backBtn
-    their GUI_button: nextBtn
     me int:           activeScreenIdx
     me string[list]:  children
 
@@ -65,38 +62,12 @@ struct wizardWidget{
         activeScreenIdx <- 0
         box             <- makeYStack("")
         ZStack          <- makeZStack("")
-        buttonBox       <- makeXStack("")
-        backBtn         <- makeButtonWidget("Back")
-        nextBtn         <- makeButtonWidget("Next")
-        GUI.setBtnCallback(backBtn, "clicked", clickBack, self)
-        GUI.setBtnCallback(nextBtn, "clicked", clickNext, self)
         addToContainer(box, ZStack)
-        addToContainer(buttonBox, backBtn)
-        addToContainer(buttonBox, nextBtn)
-        addToContainer(box, buttonBox)
         return(box)
-    }
-    void: clickNext() <-{
-	if (activeScreenIdx == size-1){
-	    parent.wizardFinished(widgetID)
-	}else{
-	    activeScreenIdx <- activeScreenIdx+1
-	    me int: size <- children.size()
-	    if (activeScreenIdx > size-1){activeScreenIdx <-size-1}
-	    if (activeScreenIdx == size-1){setButtonLabel(nextBtn, "Done")}
-	    setActiveChild(activeScreenIdx)
-	}
-    }
-    void: clickBack() <-{
-        if (activeScreenIdx == size-1){setButtonLabel(nextBtn, "Next")}
-	activeScreenIdx <- activeScreenIdx-1
-        if (activeScreenIdx < 0) {activeScreenIdx <-0}
-        setActiveChild(activeScreenIdx)
     }
     void: setActiveChild(me int: N) <- {
         me string: childStr <- children[N]
         setZStackActive(ZStack, childStr)
-        if(N==0){hideWidget(backBtn)}else{showWidget(backBtn)}
     }
 }
 struct matterTerm{
@@ -323,12 +294,19 @@ struct widget{
         scale  <- Scale
     }
 }
-struct appComponent{
-    void: wizardFinished(me string: wizID) <- {
-        print ("wizardFinished BASE: ", wizID, "\n")
-    }
+struct appComponentData{
+    their appComponentGUI: guiMgr
+    void: wizardFinished(me string: wizID) <- {print ("wizardFinished BASE: ", wizID, "\n")}
 }
-
+struct appComponentGUI{
+    their appComponentGUI: parentGuiMgr
+    me string: title
+    void: setActiveChild(me int: N) <-{print ("setActiveChild BASE: \n")}
+    void: getValue() <- {print ("getValue BASE: \n")}
+    bool: isComplete() <- {print ("isComplete BASE: \n");return(true)}
+    void: clickNext() <-{print("clickNext BASE:\n")}
+    void: clickBack() <-{print("clickBack BASE:\n")}
+}
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 
 struct ListWidgetManager{

@@ -376,6 +376,7 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
 
 def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type::subType::subType2'
     #print "POPULATING-STRUCT:", structName
+    # TODO: fix sometimes will populateCallableStructFields with sibling class fields 
     structSpec=findSpecOf(classes[0], structName, 'struct')
     if structSpec==None: return
     if structSpec['vFields']!=None:
