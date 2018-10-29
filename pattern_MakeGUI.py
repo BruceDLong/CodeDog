@@ -513,10 +513,15 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     global widgetFromVarsCode
     global varsFromWidgetCode
 
-    newWidgetFields=''
-    widgetInitFuncCode=''
-    widgetFromVarsCode=''
-    varsFromWidgetCode=''
+    newWidgetFields    = ''
+    widgetInitFuncCode = ''
+    widgetFromVarsCode = ''
+    varsFromWidgetCode = ''
+    containerWidget    = ''
+    boxFooterCode      = ''
+    makeBoxFooter      = False
+    makeBackBtn        = False
+    makeNextBtn        = False
 
     # Find the model
     modelRef         = findModelRef(classes[0], className)
@@ -529,6 +534,23 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         guiStyleTag = guiStyleTag[0]
         if guiStyleTag == 'WizardStack': dialogStyle = 'WizardStack'
         if guiStyleTag == 'Z_stack':     dialogStyle = 'Z_stack'
+        if guiStyleTag == 'WizardChild': 
+            dialogStyle    = 'WizardChild'
+            makeBoxFooter  = True
+            makeBackBtn    = True
+            makeNextBtn    = True
+            clickNextLabel = "Next"
+        if guiStyleTag == 'WizardChildLast':
+            dialogStyle    = 'WizardChild'
+            makeBoxFooter  = True
+            makeBackBtn    = True
+            makeNextBtn    = True
+            clickNextLabel = "Done" 
+        if guiStyleTag == 'WizardChildFirst':
+            dialogStyle    = 'WizardChild'
+            makeBoxFooter  = True
+            makeNextBtn    = True
+            clickNextLabel = "Next" 
 
     ### Write code for each field
     for field in modelRef['fields']:
@@ -589,6 +611,21 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     elif dialogStyle == 'WizardStack':
         newWidgetFields    += '    our wizardWidget: wiz\n'
         newWidgetFields    += '    their GUI_Frame: box\n'
+        newWidgetFields    += '''    void: clickNext() <-{
+            me int: size <- wiz.children.size()
+            if (wiz.activeScreenIdx == size-1){
+                _data.wizardFinished(wiz.widgetID)
+            }
+            else if (wiz.activeScreenIdx < size-1){
+                wiz.activeScreenIdx <- wiz.activeScreenIdx+1
+                wiz.setActiveChild(wiz.activeScreenIdx)
+            }
+        }\n'''
+        newWidgetFields    += '''    void: clickBack() <-{
+            me int: size <- wiz.children.size()
+	        if (wiz.activeScreenIdx > 0){wiz.activeScreenIdx <- wiz.activeScreenIdx-1}
+            wiz.setActiveChild(wiz.activeScreenIdx)
+        }\n'''
         containerWidget     = 'Allocate(wiz)\n'
         containerWidget    += '        box <- wiz.makeWizardWidget("'+currentClassName+'")\n'
         containerWidget    += '        wiz._data <- _data\n'
@@ -597,6 +634,22 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     else: 
         newWidgetFields    += '    their GUI_Frame:box\n'
         containerWidget     ='box <- makeYStack("")'
+    if makeBoxFooter:
+        newWidgetFields    += '    their GUI_Frame:  boxFooter\n'
+        boxFooterCode      += '        boxFooter       <- makeXStack("")\n'
+        if makeBackBtn:
+            newWidgetFields    += '    their GUI_button: backBtn\n'
+            newWidgetFields    += '    void: clickBack() <-{parentGuiMgr.clickBack()}\n'
+            boxFooterCode      += '        backBtn         <- makeButtonWidget("Back")\n'
+            boxFooterCode      += '        GUI.setBtnCallback(backBtn, "clicked", clickBack, this)\n'
+            boxFooterCode      += '        addToContainer(boxFooter, backBtn)\n'
+        if makeNextBtn:
+            newWidgetFields    += '    their GUI_button: nextBtn\n'
+            newWidgetFields    += '    void: clickNext() <-{if(isComplete()){parentGuiMgr.clickNext()}}\n'
+            boxFooterCode      += '        nextBtn         <- makeButtonWidget("'+clickNextLabel+'")\n'
+            boxFooterCode      += '        GUI.setBtnCallback(nextBtn, "clicked", clickNext, this)\n'
+            boxFooterCode      += '        addToContainer(boxFooter, nextBtn)\n'   
+        boxFooterCode      += '        addToContainer(box, boxFooter)\n'
 
     CODE =  '''
 struct <CLASSNAME>:inherits=appComponentData{}
@@ -608,6 +661,7 @@ struct <NEWSTRUCTNAME>:inherits=appComponentGUI{
         _data.guiMgr <- self
         <CONTAINERWIDGET>
         <WIDGETINITFUNCCODE>
+        '''+boxFooterCode+'''
         <RETURNCODE>
     }
     void: setValue(our <CLASSNAME>: var) <- {
