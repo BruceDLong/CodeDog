@@ -6,11 +6,11 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParamete
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
-    containerSpec = progSpec.getContainerSpec(typeSpec)
-    if 'owner' in containerSpec: owner=containerSpec['owner']
-    else: owner='me'
     idxType=''
     if progSpec.isAContainer(typeSpec):
+        containerSpec = progSpec.getContainerSpec(typeSpec)
+        if 'owner' in containerSpec: owner=containerSpec['owner']
+        else: owner='me'
         if 'indexType' in containerSpec:
             if 'IDXowner' in containerSpec:
                 idxOwner=containerSpec['IDXowner']
@@ -20,11 +20,13 @@ def getContainerType(typeSpec, actionOrField):
         else:
             idxType = progSpec.getFieldType(typeSpec)
         convertToJavaType(idxType, True)
-
-    datastructID = containerSpec['datastructID']
-    if(datastructID=='list'):       datastructID = 'ArrayList'
-    elif(datastructID=='map'):      datastructID = 'TreeMap'
-    elif(datastructID=='multimap'): datastructID = 'TreeMap'  # TODO: Implement true multmaps in java
+        datastructID = containerSpec['datastructID']
+        if(datastructID=='list'):       datastructID = 'ArrayList'
+        elif(datastructID=='map'):      datastructID = 'TreeMap'
+        elif(datastructID=='multimap'): datastructID = 'TreeMap'  # TODO: Implement true multmaps in java
+    else: 
+        owner = typeSpec['owner']
+        datastructID = 'None'
     return [datastructID, idxType, owner]
 
 def convertToJavaType(fieldType, isContainer):
@@ -507,10 +509,14 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
         else: S= '[' + idx +']'
     return S
 
-def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
+def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
     # Check for string A[x] = B;  If so, render A.put(B,x)
     [containerType, idxType, owner]=getContainerType(AltIDXFormat[1], "")
-    if containerType == 'ArrayList':
+    if LHSParentType == 'string' and LHS_FieldType == 'char':
+        S=AltIDXFormat[0] + '= replaceCharAt(' +AltIDXFormat[0]+', '+ AltIDXFormat[2] + ', ' + RHS + ');\n'
+        print "AltIDXFormat", AltIDXFormat
+        print "rhsType", rhsType
+    elif containerType == 'ArrayList':
         S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     elif containerType == 'TreeMap':
         S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
