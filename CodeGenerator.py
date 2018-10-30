@@ -687,7 +687,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
             else:
                 if AltIDXFormat!=None:
                     # Handle special forms of assignment such as LVal(idx, RVal)
-                    actionText = xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsTypeSpec)
+                    actionText = xlator['checkIfSpecialAssignmentFormIsNeeded'](AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
                     if actionText != '': actionText = indent+actionText
                 if actionText=="":
                     # Handle the normal assignment case

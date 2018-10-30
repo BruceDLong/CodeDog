@@ -572,7 +572,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
 
     return [S, retOwner, fieldType]
 
-def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
+def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
     return ""
 
 ############################################
