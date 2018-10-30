@@ -11,7 +11,7 @@ struct LabelDash: inherits=dash{
     void: draw(me GUI_ctxt: cr) <- {
         me GUI_Scalar: padding <- 5
         cr.setColor(Styler.Black)
-	cr.setLineWidth(convertToFloatVal(0.5))
+        cr.setLineWidth(convertToFloatVal(0.5))
         me deltaSize: size <- getTextSize(cr, label, styler.fontDefault)
         me GUI_Scalar: rightJustifyOffset <- size.width + padding
         renderText(cr, label, styler.fontDefault, posX-rightJustifyOffset, posY+padding+size.height)
@@ -32,17 +32,17 @@ struct IntDraggerDash: inherits=dash{
         intData              <- 444       
     }
     void: requestRedraw() <- {
-	if(dashParent==NULL){log("In IntDraggerDash.requestRedraw() dashParent was NULL")}
+        if(dashParent==NULL){log("In IntDraggerDash.requestRedraw() dashParent was NULL")}
         isDirty<-true; 
         dashParent.requestRedraw()
     }
     void: draw(me GUI_ctxt: cr) <- {
         me GUI_Scalar:   padding <- 5
-	/- BACKGROUND
-	me cdColor: bkCol <- styler.White
-	cr.setColor(bkCol)
+        /- BACKGROUND
+        me cdColor: bkCol <- styler.White
+        cr.setColor(bkCol)
         cr.paintNow()
-	/- FOREGROUND
+        /- FOREGROUND
         cr.setColor(Styler.Black)
         leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
         leftIncrBtn.drawCircleBtn(cr)
@@ -64,15 +64,15 @@ struct IntDraggerDash: inherits=dash{
     }
 }
 struct IntDraggerWidget: inherits=DashboardWidget{
-    our LabelDash:      labelDash
-    our IntDraggerDash: intDraggerDash
-    me int:             lowVal
-    me int:             highVal
-    me GUI_Scalar:      prevX
-    me GUI_Scalar:      deltaX <- 0
-    me int:             moveThreshold <- 2
-    me bool:            isBtnDown     <- false
-    me bool:            isDragging    <- false
+    our LabelDash:       labelDash
+    our IntDraggerDash:  intDraggerDash
+    me int:              lowVal
+    me int:              highVal
+    me GUI_Scalar:       prevX
+    me GUI_Scalar:       deltaX <- 0
+    me int:              moveThreshold <- 2
+    me bool:             isBtnDown     <- false
+    me bool:             isDragging    <- false
     their GUI_canvas: init(me string: label)      <- {
         /-/// CANVAS AND EVENTS
         title                   <- 'IntDraggerWidget.'+label
@@ -88,7 +88,7 @@ struct IntDraggerWidget: inherits=DashboardWidget{
         /-/// CHILDREN
         intDraggerDash.initIntDraggerDash(120,0,radius,label)
         dashboardDBW.addChild(intDraggerDash)
-	labelDash.initLabelDash(120,6,label)
+        labelDash.initLabelDash(120,6,label)
         dashboardDBW.addChild(labelDash)
         return(managedWidget)
     }
@@ -101,7 +101,7 @@ struct IntDraggerWidget: inherits=DashboardWidget{
         Allocate(intDraggerDash)
     }
     void: requestRedraw() <- {
-	markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
+        markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
         if (intDraggerDash.rightDecrBtn.primaryUp(event)) {intDraggerDash.incrValue();requestRedraw()}
@@ -145,7 +145,7 @@ struct TimeDraggerDash: inherits=dash{
         minOffset            <- 12
     }
     void: requestRedraw() <- {
-	if(dashParent==NULL){log("In TimeDraggerDash.requestRedraw() dashParent was NULL")}
+        if(dashParent==NULL){log("In TimeDraggerDash.requestRedraw() dashParent was NULL")}
         isDirty<-true; 
         dashParent.requestRedraw()
     }
@@ -155,11 +155,11 @@ struct TimeDraggerDash: inherits=dash{
         me string:        minStr <- "20"
         me string:       dataStr <- toString(minOffset)
         me GUI_Scalar:   YOffset <- posY+padding
-	/- BACKGROUND
-	me cdColor: bkCol <- styler.White
-	cr.setColor(bkCol)
+        /- BACKGROUND
+        me cdColor: bkCol <- styler.White
+        cr.setColor(bkCol)
         cr.paintNow()
-	/- FOREGROUND
+        /- FOREGROUND
         cr.setColor(Styler.Black)
         leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
         leftIncrBtn.drawCircleBtn(cr)
@@ -205,6 +205,7 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
         dashboardDBW.canvas     <- canvas
         thisApp.gui.setWidgetSize(canvas, 320, 65)
         managedWidget           <- canvas
+        EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         /-/// CHILDREN
         timeDraggerDash.initTimeDraggerDash(120,0,radius,label)
         dashboardDBW.addChild(timeDraggerDash)
@@ -221,7 +222,7 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
         Allocate(timeDraggerDash)
     }
     void: requestRedraw() <- {
-	markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
+        markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
         if (timeDraggerDash.rightDecrBtn.primaryUp(event)) {timeDraggerDash.incrValue();requestRedraw()}

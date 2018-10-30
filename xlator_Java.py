@@ -43,8 +43,8 @@ def convertToJavaType(fieldType, isContainer):
                 #print "javaType: ", javaType
         else:
             if(fieldType=='int32'):      javaType= 'int'
-            elif(fieldType=='uint32' or fieldType=='uint64' or fieldType=='uint'):javaType='int'  # these should be long but Java won't allow
-            elif(fieldType=='int64'):    javaType= 'long'
+            elif(fieldType=='uint32'  or fieldType=='uint'):javaType='int'  # these should be long but Java won't allow
+            elif(fieldType=='int64'or fieldType=='uint64'):    javaType= 'long'
             elif(fieldType=='char' ):    javaType= 'char'
             elif(fieldType=='bool' ):    javaType= 'boolean'
             elif(fieldType=='string'):   javaType= 'String'
@@ -497,7 +497,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
     if LorR_Val=='RVAL':
         #Next line may be cause of bug with printing modes.  remove 'not'?
-        if (previousSegName in getModeStateNames()): S= '.get(' + idx + ')'
+        if (previousSegName in getModeStateNames()): S= '.get((int)' + idx + ')'
         elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
             S= '.get(' + idx + ')'
         elif (containerType== 'string'): S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
@@ -825,7 +825,7 @@ def codeSwitchBreak(caseAction, indent, xlator):
         return ''
 
 def applyTypecast(typeInCodeDog, itemToAlterType):
-    return '('+itemToAlterType+')'
+    return '((int)'+itemToAlterType+')'
 #######################################################
 def includeDirective(libHdr):
     S = 'import '+libHdr+';\n'
