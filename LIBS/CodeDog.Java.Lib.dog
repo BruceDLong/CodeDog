@@ -130,6 +130,7 @@ struct GLOBAL{
     me timeValue: convertToL()                              <- <%!%G%1L%>
     me int: convertToIntVal()                               <- <%!%G (int)(%1)%>
     me float: convertToFloatVal()                           <- <%!%G (%1f)%>
+    me long: stol(me string: S)                             <- <%!%GLong.parseLong(%1)%>
 }
 struct timeValue{me long: timeValue}
 struct DateValue{me long: DateValue}
