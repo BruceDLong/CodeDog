@@ -142,4 +142,15 @@ struct UnicodeMgr {
         delete cal;
         return retval;
     }%>
+
+    me string: customPatternDateTime(me UDate: dt, me UnicodeStr: pattern, me string: locPat) <- <%{
+        UErrorCode success = U_ZERO_ERROR;
+        UnicodeString dateUniStr;
+        string output;
+        Locale loc = SetLocale(locPat);
+        SimpleDateFormat* simpleDateFormat = new SimpleDateFormat(pattern, loc, success);
+        simpleDateFormat->format(dt, dateUniStr, success);
+        dateUniStr.toUTF8String(output);
+        return output;
+    }%>
 }

@@ -29,7 +29,7 @@ struct IntDraggerDash: inherits=dash{
         posY                 <- PosY
         radius               <- Radius
         btnSpan              <- 100
-        intData              <- 444       
+        intData              <- 44       
     }
     void: requestRedraw() <- {
         if(dashParent==NULL){log("In IntDraggerDash.requestRedraw() dashParent was NULL")}
@@ -134,7 +134,7 @@ struct TimeDraggerDash: inherits=dash{
     me circleButton: rightDecrBtn
     me GUI_Scalar:   radius
     me timeValue:    timeData
-    me int:          minOffset
+    me int:          minuteOffset
     me GUI_Scalar:   btnSpan
     void: initTimeDraggerDash(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Radius, me string: Label) <- {
         title                <- "timeDraggerDash."+Label
@@ -142,7 +142,8 @@ struct TimeDraggerDash: inherits=dash{
         posY                 <- PosY
         radius               <- Radius
         btnSpan              <- 100    
-        minOffset            <- 12
+        minuteOffset         <- 0
+	timeData             <- getCurrentTimeStamp()
     }
     void: requestRedraw() <- {
         if(dashParent==NULL){log("In TimeDraggerDash.requestRedraw() dashParent was NULL")}
@@ -153,7 +154,7 @@ struct TimeDraggerDash: inherits=dash{
         me GUI_Scalar:   padding <- 5
         me string:         hrStr <- "10"
         me string:        minStr <- "20"
-        me string:       dataStr <- toString(minOffset)
+        me string:       dataStr <- toString(minuteOffset)
         me GUI_Scalar:   YOffset <- posY+padding
         /- BACKGROUND
         me cdColor: bkCol <- styler.White
@@ -167,7 +168,7 @@ struct TimeDraggerDash: inherits=dash{
         me deltaSize: size <- getTextSize(cr, dataStr, styler.fontDefault)
         YOffset <- YOffset+size.height+padding
         renderText(cr, dataStr, styler.fontDefault, posX+padding+radius*2+(btnSpan-size.width)/2, YOffset)
-        dataStr <- hrStr+":"+minStr
+        dataStr <- unicodeMgr.customPatternDateTime(timeData,"h:mm a","en")
         size <- getTextSize(cr, dataStr, styler.fontSmall)
         YOffset <- YOffset+size.height+padding
         renderText(cr, dataStr, styler.fontSmall, posX+padding+radius*2+(btnSpan-size.width)/2, YOffset)
@@ -175,13 +176,16 @@ struct TimeDraggerDash: inherits=dash{
         rightDecrBtn.drawCircleBtn(cr)
     }
     void: incrValue() <- {
-       minOffset <- minOffset + 1
+       minuteOffset <- minuteOffset + 1
+       timeData     <- timeData + 60000
     }
     void: decrValue() <- {
-        minOffset <- minOffset - 1
+        minuteOffset <- minuteOffset - 1
+	timeData     <- timeData - 60000
     }
     void: applyDelta(me int: val) <- {
-        minOffset <- minOffset + val
+        minuteOffset <- minuteOffset + val
+	timeData     <- timeData + val * 60000
     }
 }
 struct TimeDraggerWidget: inherits=DashboardWidget{

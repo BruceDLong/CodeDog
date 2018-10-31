@@ -71,6 +71,8 @@ class structAsProteusWriter(structProcessor):
             if not(structTypeName in classesEncoded):
               #  classesEncoded[structTypeName]=1
                 classesToProcess.append(structTypeName)
+        elif(fldCat=='timeValue'):
+            valStr='toString('+fieldName+')'
         if(fldCat=='struct'):
             S='S <- S + indent2 + "'+label+'" + " =\\n" + '+valStr+' + "\\n"\n'
         else:
@@ -99,6 +101,7 @@ class structAsProteusWriter(structProcessor):
         self.textFuncBody = '        me string: S <- indent + "{\\n"\n' + '        me string: indent2 <- indent + "    "\n' +self.textFuncBody + '        S <- S + indent + "}\\n"\n'
         Code='    me string: asProteus(me string:indent <- "") <- {\n'+self.textFuncBody+"        return(S)\n    }"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
+        #print"Code=",Code
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.asProteus()')
 
 #---------------------------------------------------------------  WRITE: .toString()
