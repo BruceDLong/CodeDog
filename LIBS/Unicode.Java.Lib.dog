@@ -50,5 +50,15 @@ struct UnicodeMgr {
         String hour = simpleDateFormat.format(date);
         return hour;
     }%>
+
+    me string: customPatternDateTime(me timeValue: time, me UnicodeStr: pattern, me string: locPat) <- <%{
+        Date date = new Date(time);
+        ULocale loc = new ULocale(locPat);
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
+        String uniLabel = simpleDateFormat.format(date);
+        return uniLabel;
+    }%>
+
+
 }
 
