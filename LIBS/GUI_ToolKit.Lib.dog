@@ -58,7 +58,7 @@ struct wizardWidget:inherits=appComponentGUI{
     me string[list]:  children
 
     their GUI_Frame: makeWizardWidget(me string: name) <- {
-	widgetID        <- name
+        widgetID        <- name
         activeScreenIdx <- 0
         box             <- makeYStack("")
         ZStack          <- makeZStack("")
@@ -302,10 +302,12 @@ struct appComponentGUI{
     their appComponentGUI: parentGuiMgr
     me string: title
     void: setActiveChild(me int: N) <-{print ("setActiveChild BASE: \n")}
-    void: getValue() <- {print ("getValue BASE: \n")}
-    bool: isComplete() <- {print ("isComplete BASE: \n");return(true)}
-    void: clickNext() <-{print("clickNext BASE:\n")}
-    void: clickBack() <-{print("clickBack BASE:\n")}
+    void: getValue()   <- {print("getValue BASE: \n")}
+    bool: isComplete() <- {print("isComplete BASE: \n");return(true)}
+    void: save()       <- {print("save BASE:\n")}
+    void: clickNext()  <- {print("clickNext BASE:\n")}
+    void: clickBack()  <- {print("clickBack BASE:\n")}
+    void: load()       <- {print("load BASE:\n")}
 }
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 
