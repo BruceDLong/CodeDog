@@ -29,7 +29,7 @@ struct IntDraggerDash: inherits=dash{
         posY                 <- PosY
         radius               <- Radius
         btnSpan              <- 100
-        intData              <- 44       
+        intData              <- 60    
     }
     void: requestRedraw() <- {
         if(dashParent==NULL){log("In IntDraggerDash.requestRedraw() dashParent was NULL")}

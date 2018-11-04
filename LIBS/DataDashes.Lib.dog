@@ -365,13 +365,60 @@ struct GraphDataStreamSources{
 
 }
 
+struct datum{
+    me GUI_Scalar: value
+    me double:     confidenceLvl
+}
+
+struct dataPlotter {
+    me datum:      prevY
+    me GUI_Scalar: prevX
+    me cdColor:    plotColor
+    
+    void: moveTo(me GUI_ctxt: cr, me GUI_Scalar: toX, me datum:toY) <- {
+	prevY <- toY
+	prevX <- toX
+	if(prevY.confidenceLvl == 0){cr.moveTo(prevX, prevY.value)}
+    }
+    void: lineTo(me GUI_ctxt: cr, me GUI_Scalar:toX, me datum: toY) <- {
+	if(prevY.confidenceLvl == 0){cr.lineTo(toX, toY.value)}
+	else{
+	    me double: maxConfLvl   <- max(prevY.confidenceLvl, toY.confidenceLvl)
+	    me double: minConfLvl   <- min(prevY.confidenceLvl, toY.confidenceLvl)
+	    me int: numOfSegs       <- convertToIntVal(maxConfLvl/3)
+	    me double: maxAlpha     <- 1/(maxConfLvl/10)*256
+	    me double: alphaDelta   <- maxAlpha/numOfSegs*2
+	    me double: alpha        <- alphaDelta
+	    me int: widthOfLftSegs  <- convertToIntVal(toY.confidenceLvl/numOfSegs)
+	    me int: widthOfRtSegs   <- convertToIntVal(prevY.confidenceLvl/numOfSegs)
+	    me GUI_Scalar: crntLftY <- prevY.value - convertToGUIScalar(prevY.confidenceLvl/2)
+	    me GUI_Scalar: crntRtY  <- toY.value - convertToGUIScalar(toY.confidenceLvl/2)
+	    withEach seg in RANGE(0..numOfSegs){
+		cr.setRGBA(plotColor.red, plotColor.green, plotColor.blue, alpha)
+		cr.moveTo(prevX, crntLftY)
+		cr.lineTo(toX, crntRtY)
+		cr.lineTo(toX, crntRtY+widthOfRtSegs)
+		cr.lineTo(prevX, crntLftY+widthOfLftSegs)
+		cr.lineTo(prevX, crntLftY)
+		cr.fillNow()
+		crntLftY <- crntLftY + widthOfLftSegs
+		crntRtY  <- crntRtY + widthOfRtSegs
+		if (seg < numOfSegs/2){alpha <- alpha+alphaDelta}
+		else {alpha <- alpha-alphaDelta}
+	    }
+	}
+	prevY <- toY
+	prevX <- toX
+    } 
+}
 struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
     our GraphDataStreamSources: dataStreamSrcs
     me string[list]: dataStreamsTitleTable <- ["None"]
-    me int64: screenDataTotal
-    me int: screenDataCount
-    me timeValue: timeInterval
-    me timeValue: crntRightSide
+    me int64:        screenDataTotal
+    me int:          screenDataCount
+    me timeValue:    timeInterval
+    me timeValue:    crntRightSide
+    me dataPlotter:  plotter
 
     me graphTitleWidget: graphTitle
     me verticalScale:   leftScale
@@ -408,8 +455,8 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
         me timeValue:  rightGraphTime
         me timeValue:  leftGraphTime
         me bool:       firstTime
-        me GUI_Scalar:     XPoint
-        me GUI_Scalar:     YPoint
+        me GUI_Scalar: XPoint
+        me datum:      YPoint
         me GUI_Scalar: YOrig <- posY + height
 
         withEach ii in RANGE(0.. dataStreamSrcs.dataStreams.size()) {
@@ -423,7 +470,7 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
             screenDataTotal <- 0
             screenDataCount <- 0
             XPoint          <- 0
-            YPoint          <- 0
+            YPoint.value    <- 0
 
             if (dataStream.isVisible) {
                 me double: dblWidth <- width
@@ -439,13 +486,13 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
                 if (dataStream.hasGradient) {
                     withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
                         XPoint <- (point_key-leftGraphTime)*dblWidth/timeInterval + posX
-                        YPoint <- (point - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
+                        YPoint.value <- YOrig - (point - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
                         if(firstTime){
                             cr.setColor(styler.bkGndColor)
                             cr.moveTo(XPoint, YOrig)
-                            cr.lineTo(XPoint, YOrig - YPoint)
+                            cr.lineTo(XPoint, YPoint)
                             firstTime<-false
-                        } else {cr.lineTo(XPoint, YOrig - YPoint)}
+                        } else {cr.lineTo(XPoint, YPoint)}
                     }
                     cr.lineTo(XPoint, YOrig)
                     their guiFillPattern: linGrad
@@ -462,13 +509,14 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
                 firstTime <- true
 		if (dataStream.dataMap != NULL) {
 		    withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-			XPoint <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
-			YPoint <- convertToGUIScalar((point - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
+			XPoint        <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
+			YPoint.value  <- YOrig - convertToGUIScalar((point - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
+			YPoint.confidenceLvl <- 20
 			if(firstTime){
-			    cr.setColor(dataStream.lineColor)
-			    cr.moveTo(XPoint, YOrig - YPoint)
+			    plotter.plotColor <- dataStream.lineColor
+			    plotter.moveTo(cr, XPoint, YPoint)
 			    firstTime<-false
-			} else {cr.lineTo(XPoint, YOrig - YPoint)}
+			} else {plotter.lineTo(cr, XPoint, YPoint)}
 			screenDataTotal <- screenDataTotal + convertToLongVal(point)
 			screenDataCount <- screenDataCount + 1
 		    }
