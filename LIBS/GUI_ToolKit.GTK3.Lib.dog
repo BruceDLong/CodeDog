@@ -159,11 +159,11 @@ struct dateWidget{
 
     me timeValue: getValue() <- <%{
         guint year;
-	guint month;
-	guint day;
-	gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
-	int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
-	return(retVal);
+    guint month;
+    guint day;
+    gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
+    int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
+    return(retVal);
     }%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->dataValue, %1)%>
 
@@ -283,8 +283,8 @@ struct TimeWidget{
         tmpHour              <- tmpHour*60*60*1000
         me int: tmpMinute    <- minuteBox.comboBoxGetActive()+1
         tmpMinute            <- tmpMinute*60*1000
-        me int: milisecondsSinceMidnight <- tmpHour + tmpMinute
-        return(milisecondsSinceMidnight)
+        me int: millisecondsSinceMidnight <- tmpHour + tmpMinute
+        return(millisecondsSinceMidnight)
     }
     void: setValue() <- {}
 }
@@ -511,7 +511,7 @@ struct GLOBAL{
         gtk_entry_completion_set_text_column(completion, column);
         return(completion);
     }%>
-    their GUI_CompleterBox: makeCompleterBox(me string: label) 
+    their GUI_CompleterBox: makeCompleterBox(me string: label)
         <- <%!%Ggtk_entry_new()%>
     me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
     me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
@@ -686,27 +686,27 @@ struct GLOBAL{
         clickWidget->clickBack();
     }%>
     void: clickNext_CB(their GtkWidget: btn, their appComponentGUI: wid) <- <%{
-	appComponentGUI* clickWidget = (appComponentGUI*)wid;
+    appComponentGUI* clickWidget = (appComponentGUI*)wid;
         clickWidget->clickNext();
     }%>
     void: clickRemove_CB(their GtkWidget: wid, their FoodDataWidget: food) <- <%{
-	FoodDataWidget* clickWidget = (FoodDataWidget*)food;
+    FoodDataWidget* clickWidget = (FoodDataWidget*)food;
         clickWidget->clickRemove();
     }%>
     void: clickRemoveMed_CB(their GtkWidget: wid, their MedItemDataWidget: food) <- <%{
-	MedItemDataWidget* clickWidget = (MedItemDataWidget*)food;
+    MedItemDataWidget* clickWidget = (MedItemDataWidget*)food;
         clickWidget->clickRemoveMed();
     }%>
     void: clickAdd_CB(their GtkWidget: wid, their MealDataWidget: meal) <- <%{
-	MealDataWidget* clickWidget = (MealDataWidget*)meal;
+    MealDataWidget* clickWidget = (MealDataWidget*)meal;
         clickWidget->clickAdd();
     }%>
     void: clickAddMed_CB(their GtkWidget: wid, their MedBunchDataWidget: meal) <- <%{
-	MedBunchDataWidget* clickWidget = (MedBunchDataWidget*)meal;
+    MedBunchDataWidget* clickWidget = (MedBunchDataWidget*)meal;
         clickWidget->clickAddMed();
     }%>
     /*void: clickSave_CB(their GtkWidget: wid, their MealDataWidget: meal) <- <%{
-	MealDataWidget* clickWidget = (MealDataWidget*)meal;
+    MealDataWidget* clickWidget = (MealDataWidget*)meal;
         clickWidget->clickSave();
     }%>*/
 }
