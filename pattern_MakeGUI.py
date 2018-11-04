@@ -349,10 +349,12 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += '        Allocate(_data.'+fieldName+')\n'
         widgetInitFuncCode   += '        Allocate('+guiMgrName+')\n'
         makeTypeNameCall      = widgetName+' <- '+guiMgrName+'.make'+structTypeName+'Widget(_data.'+fieldName+')\n'
-        makeTypeNameCall     +=  guiMgrName + '.parentGuiMgr <- self\n'
+        makeTypeNameCall     += guiMgrName + '.parentGuiMgr <- self\n'
         newWidgetFields      += '    our ' + guiStructName + ': '+ guiMgrName+'\n'
         widgetFromVarsCode   += '        ' + guiMgrName+ '.setValue(var.'+fieldName+')\n'
         varsFromWidgetCode   += '        ' + guiMgrName + '.getValue()\n'
+        if dialogStyle == 'WizardChild':
+            makeTypeNameCall     += guiMgrName + '.load()\n'
     elif fieldSpec=='enum':
         typeName = 'enumWidget'
         EnumItems=[]
@@ -623,7 +625,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         }\n'''
         newWidgetFields    += '''    void: clickBack() <-{
             me int: size <- wiz.children.size()
-	        if (wiz.activeScreenIdx > 0){wiz.activeScreenIdx <- wiz.activeScreenIdx-1}
+            if (wiz.activeScreenIdx > 0){wiz.activeScreenIdx <- wiz.activeScreenIdx-1}
             wiz.setActiveChild(wiz.activeScreenIdx)
         }\n'''
         containerWidget     = 'Allocate(wiz)\n'
@@ -646,7 +648,12 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         if makeNextBtn:
             newWidgetFields    += '    their GUI_button: nextBtn\n'
             #newWidgetFields    += '    void: clickNext() <-{parentGuiMgr.clickNext()}\n'
-            newWidgetFields    += '    void: clickNext() <-{if(isComplete()){parentGuiMgr.clickNext()}}\n'
+            newWidgetFields    += '''    void: clickNext() <-{
+                if(isComplete()){
+                    save()
+                    parentGuiMgr.clickNext()
+                }
+            }\n'''
             boxFooterCode      += '        nextBtn         <- makeButtonWidget("'+clickNextLabel+'")\n'
             boxFooterCode      += '        GUI.setBtnCallback(nextBtn, "clicked", clickNext, this)\n'
             boxFooterCode      += '        addToContainer(boxFooter, nextBtn)\n'   
