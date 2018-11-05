@@ -127,7 +127,7 @@ struct IntDraggerWidget: inherits=DashboardWidget{
         return(true)
     }
     me int: getValue() <- {return(intDraggerDash.intData)}
-    me void: setValue(me int: val) <- {}
+    me void: setValue(me int: val) <- {intDraggerDash.intData <- val}
 }
 struct TimeDraggerDash: inherits=dash{
     me circleButton: leftIncrBtn

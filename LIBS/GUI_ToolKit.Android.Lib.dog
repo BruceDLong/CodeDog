@@ -250,7 +250,7 @@ struct enumWidget{
         return retVal;
     }%>
     me void: setValue(me int: val) <- <%{
-        
+	dataValue.setSelection((int)val);
     }%>
     their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
         options   = Options;

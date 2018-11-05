@@ -159,13 +159,19 @@ struct dateWidget{
 
     me timeValue: getValue() <- <%{
         guint year;
-    guint month;
-    guint day;
-    gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
-    int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
-    return(retVal);
+	guint month;
+	guint day;
+	gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
+	int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
+	return(retVal);
     }%>
-    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->dataValue, %1)%>
+    me void: setValue(me timeValue: val) <- <%{
+	//guint month = 8;
+	//guint year = 1970;
+	//guint day = 12;
+	//gtk_calendar_select_month((GtkCalendar*)dataValue, month, year);
+	//gtk_calendar_select_day((GtkCalendar*)dataValue, day);
+    }%>
 
     their GUI_Frame: makeDateWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -185,7 +191,7 @@ struct enumWidget{
     me string[list]: options
 
     me int: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
-    me void: setValue(me int: val) <- {}
+    me void: setValue(me int: val) <- <%!gtk_combo_box_set_active((GtkComboBox*)%0->dataValue, %1)%>
 
     their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
         options = Options;
@@ -224,7 +230,6 @@ struct DateWidget{
         /-/// MONTH //////////////////////////////////
         their GUI_Label: monthLabel <- makeLabelWidget("Month");
         monthBox <- makeComboBox()
-        monthBox.setAndroidAdapter(monthArrayAdapter, String, months)
         me int: count <-0
         withEach monthName in months{
             monthBox.appendStringComboBox(toString(count),monthName, monthArrayAdapter)
@@ -233,7 +238,6 @@ struct DateWidget{
         /-/// DAY ////////////////////////////////////
         their GUI_Label: dayLabel <- makeLabelWidget("Day")
         dayBox <- makeComboBox()
-        dayBox.setAndroidAdapter(dayArrayAdapter, Integer, days)
         withEach i in RANGE(1..31){
             dayBox.appendComboBox(i, i, dayArrayAdapter)
         }
@@ -259,14 +263,12 @@ struct TimeWidget{
         /-/// HOUR //////////////////////////////////
         their GUI_Label: hourLabel <- makeLabelWidget("Hour");
         hourBox <- makeComboBox()
-        hourBox.setAndroidAdapter(hourArrayAdapter, Integer, hours)
         withEach i in RANGE(1..13){
             hourBox.appendComboBox(i, i, hourArrayAdapter)
         }
         /-/// MINUTE //////////////////////////////////
         their GUI_Label: minuteLabel <- makeLabelWidget("Minute");
         minuteBox <- makeComboBox()
-        minuteBox.setAndroidAdapter(minuteArrayAdapter, Integer, minutes)
         withEach i in RANGE(1..25){
             minuteBox.appendComboBox(i,i, minuteArrayAdapter)
         }

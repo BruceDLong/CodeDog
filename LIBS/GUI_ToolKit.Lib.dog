@@ -437,6 +437,6 @@ struct AgreeWidget{
         return(box)
     }
     me bool: getValue()            <- {agreeCheckBox.getValue()}
-    void: setValue(me bool: value) <- {}
+    void: setValue(me bool: value) <- {agreeCheckBox.setValue(value)}
     void: setText(me string: text) <- {}
 }
