@@ -353,8 +353,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         newWidgetFields      += '    our ' + guiStructName + ': '+ guiMgrName+'\n'
         widgetFromVarsCode   += '        ' + guiMgrName+ '.setValue(var.'+fieldName+')\n'
         varsFromWidgetCode   += '        ' + guiMgrName + '.getValue()\n'
-        if dialogStyle == 'WizardChild':
-            makeTypeNameCall     += guiMgrName + '.load()\n'
+        makeTypeNameCall     += guiMgrName + '.load()\n'
     elif fieldSpec=='enum':
         typeName = 'enumWidget'
         EnumItems=[]
