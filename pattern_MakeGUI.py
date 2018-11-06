@@ -607,7 +607,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         newWidgetFields   += '    }\n'
         containerWidget    = 'Zbox <- makeZStack("'+className+'")\n'
         retrunCode         = 'setActiveChild(0)\n'
-        retrunCode        = '        onLoaded()\n'
+        retrunCode        += '        onLoaded()\n'
         retrunCode        += '        return(Zbox)\n'
         # addToContainer or 
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
