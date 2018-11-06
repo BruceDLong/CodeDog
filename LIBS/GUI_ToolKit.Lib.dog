@@ -308,6 +308,7 @@ struct appComponentGUI{
     void: clickNext()  <- {print("clickNext BASE:\n")}
     void: clickBack()  <- {print("clickBack BASE:\n")}
     void: load()       <- {print("load BASE:\n")}
+    void: onLoaded()   <- {print("onLoaded BASE:\n")}
 }
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 

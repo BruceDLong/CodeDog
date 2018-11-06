@@ -263,63 +263,63 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
     elif fieldType=='Agreement':
         typeName              = 'AgreeWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeAgreeWidget("'+fieldName+'")\n'
         widgetFromVarsCode   += ''
         varsFromWidgetCode   += ''
     elif fieldType=='DateValue':
         typeName              = 'DateWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrnt("'+label+'")\n'
         widgetFromVarsCode   += ''
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='timeOfDay':
         typeName              = 'TimeWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrnt("'+label+'")\n'
         widgetFromVarsCode   += ''
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='DateTime':
         typeName              = 'DateTimeWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initCrnt("'+label+'")\n'
         widgetFromVarsCode   += ''
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='FoodData':
         typeName              = 'FoodDataWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeFoodDataWidget("'+label+'", _data.'+fieldName+')\n'
         #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='MealData':
         typeName              = 'MealDataWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeMealDataWidget("'+label+'", _data.'+fieldName+')\n'
         #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='MedItemData':
         typeName              = 'MedItemDataWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeMedItemDataWidget("'+label+'", _data.'+fieldName+')\n'
         #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='MedBunchData':
         typeName              = 'MedBunchDataWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeMedBunchDataWidget("'+label+'", _data.'+fieldName+')\n'
         #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='matterTerm':
         typeName              = 'MatterTermWidget'
         widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeMatterTermWidget("'+label+'", _data.'+fieldName+')\n'
         widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
@@ -338,7 +338,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
             widgetBoxName         = fieldName+'Canvas'
             localWidgetVarName    = fieldName
             dataType = changeDataFieldType(classes, structTypeName, typeSpec)
-            makeTypeNameCall      = '        Allocate('+widgetName+')\n'
+            makeTypeNameCall      = 'Allocate('+widgetName+')\n'
             makeTypeNameCall     += '        their GUI_canvas:    '+fieldName+'Canvas <- ' + widgetName+'.init("'+label+'")\n'
             #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
             varsFromWidgetCode   += '        _data.' + fieldName + ' <- ' +widgetName+'.getValue()\n'
@@ -347,13 +347,13 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         guiStructName         = structTypeName + '_Dialog_GUI'
         guiMgrName            = fieldType + '_GUI_Mgr'
         if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += '        Allocate(_data.'+fieldName+')\n'
-        widgetInitFuncCode   += '        Allocate('+guiMgrName+')\n'
+        widgetInitFuncCode   += 'Allocate('+guiMgrName+')\n'
         makeTypeNameCall      = widgetName+' <- '+guiMgrName+'.make'+structTypeName+'Widget(_data.'+fieldName+')\n'
-        makeTypeNameCall     += guiMgrName + '.parentGuiMgr <- self\n'
+        makeTypeNameCall     += '        ' + guiMgrName + '.parentGuiMgr <- self\n'
         newWidgetFields      += '    our ' + guiStructName + ': '+ guiMgrName+'\n'
         widgetFromVarsCode   += '        ' + guiMgrName+ '.setValue(var.'+fieldName+')\n'
         varsFromWidgetCode   += '        ' + guiMgrName + '.getValue()\n'
-        makeTypeNameCall     += guiMgrName + '.load()\n'
+        makeTypeNameCall     += '        ' + guiMgrName + '.load()\n'
     elif fieldSpec=='enum':
         typeName = 'enumWidget'
         EnumItems=[]
@@ -403,7 +403,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
 
         widgetListEditorName  = widgetName+'_Editor'
         localWidgetVarName    = widgetListEditorName
-        if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += '        Allocate(_data.'+fieldName+')\n'
+        if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += 'Allocate(_data.'+fieldName+')\n'
         widgetInitFuncCode   += '        their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget(_data.'+fieldName+')\n'
         if classPrimaryGuiItem==fieldName: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetListEditorName+')\n'
         else: widgetInitFuncCode   += '        addToContainer(box, '+widgetListEditorName+')\n'
@@ -591,8 +591,9 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, classPrimaryGuiItem, '')
 
     # Parse everything
-    initFuncName        = 'make'+className[0].upper() + className[1:]+'Widget'
-    retrunCode          = 'return(box)'
+    initFuncName           = 'make'+className[0].upper() + className[1:]+'Widget'
+    retrunCode             = 'onLoaded()\n'
+    retrunCode            += '        return(box)'
     if dialogStyle   == 'Z_stack':     
         newWidgetFields   += '    their GUI_ZStack: Zbox\n'
         newWidgetFields   += '    me string[list]: children\n'
@@ -605,8 +606,9 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         newWidgetFields   += '        }\n'
         newWidgetFields   += '    }\n'
         containerWidget    = 'Zbox <- makeZStack("'+className+'")\n'
-        retrunCode         = '    setActiveChild(0)\n'
-        retrunCode        += '    return(Zbox)\n'
+        retrunCode         = 'setActiveChild(0)\n'
+        retrunCode        = '        onLoaded()\n'
+        retrunCode        += '        return(Zbox)\n'
         # addToContainer or 
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
     elif dialogStyle == 'WizardStack':
@@ -631,13 +633,14 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         containerWidget    += '        box <- wiz.makeWizardWidget("'+currentClassName+'")\n'
         containerWidget    += '        wiz._data <- _data\n'
         containerWidget    += '        wiz.parentGuiMgr <- self\n'
-        widgetInitFuncCode += '        wiz.setActiveChild(0)\n'
+        widgetInitFuncCode += '        wiz.activeScreenIdx <- 0\n'
+        widgetInitFuncCode += '        wiz.setActiveChild(wiz.activeScreenIdx)\n'
     else: 
         newWidgetFields    += '    their GUI_Frame:box\n'
         containerWidget     ='box <- makeYStack("")'
     if makeBoxFooter:
         newWidgetFields    += '    their GUI_Frame:  boxFooter\n'
-        boxFooterCode      += '        boxFooter       <- makeXStack("")\n'
+        boxFooterCode      += 'boxFooter       <- makeXStack("")\n'
         if makeBackBtn:
             newWidgetFields    += '    their GUI_button: backBtn\n'
             newWidgetFields    += '    void: clickBack() <-{parentGuiMgr.clickBack()}\n'
