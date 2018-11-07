@@ -318,8 +318,9 @@ struct GUI_Completer{
 struct GUI_ComboBox{
     me void: appendComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)std::to_string(%1).data(),(gchar*)std::to_string(%2).data())%>
     me void: appendStringComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)%1.data(),(gchar*)%2.data())%>
-    me int: comboBoxGetActive() <- <%!gtk_combo_box_get_active((GtkComboBox *)%0)%>
+    me int: comboBoxGetActive()  <- <%!gtk_combo_box_get_active((GtkComboBox *)%0)%>
     me void: setAndroidAdapter() <- <%!%G %>
+    me string: getValue()        <- <%!gtk_combo_box_get_active((GtkComboBox*)%0)%>
 }
 struct GUI_SpinBox{
     me double: getValue()               <- <%!gtk_spin_button_get_value((GtkSpinButton *)%0)%>
