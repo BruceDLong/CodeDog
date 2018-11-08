@@ -308,6 +308,7 @@ struct appComponentGUI{
     void: clickNext()  <- {print("clickNext BASE:\n")}
     void: clickBack()  <- {print("clickBack BASE:\n")}
     void: load()       <- {print("load BASE:\n")}
+    void: onLoaded()   <- {print("onLoaded BASE:\n")}
 }
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 
@@ -437,6 +438,6 @@ struct AgreeWidget{
         return(box)
     }
     me bool: getValue()            <- {agreeCheckBox.getValue()}
-    void: setValue(me bool: value) <- {}
+    void: setValue(me bool: value) <- {agreeCheckBox.setValue(value)}
     void: setText(me string: text) <- {}
 }
