@@ -347,9 +347,14 @@ struct graphTitleWidget: inherits=dash{
 
 struct timeStepInterval{their graph: parentWidget me timeValue: start me timeValue: end me timeValue: stepSize}
 
+struct datum{
+    me GUI_Scalar: value
+    me double:     confidenceLvl
+}
+
 struct GraphDataStream {
     me string: title
-    me double[our map timeValue]:: dataMap
+    me datum[our map timeValue]:: dataMap
     me cdColor: lineColor
     me cdColor: fillColor
     me bool: isVisible <- false
@@ -365,51 +370,46 @@ struct GraphDataStreamSources{
 
 }
 
-struct datum{
-    me GUI_Scalar: value
-    me double:     confidenceLvl
-}
-
 struct dataPlotter {
     me datum:      prevY
     me GUI_Scalar: prevX
     me cdColor:    plotColor
-    
+
     void: moveTo(me GUI_ctxt: cr, me GUI_Scalar: toX, me datum:toY) <- {
-	prevY <- toY
-	prevX <- toX
-	if(prevY.confidenceLvl == 0){cr.moveTo(prevX, prevY.value)}
+        prevY <- toY
+        prevX <- toX
+        if(prevY.confidenceLvl == 0){cr.moveTo(prevX, prevY.value)}
     }
     void: lineTo(me GUI_ctxt: cr, me GUI_Scalar:toX, me datum: toY) <- {
-	if(prevY.confidenceLvl == 0){cr.lineTo(toX, toY.value)}
-	else{
-	    me double: maxConfLvl   <- max(prevY.confidenceLvl, toY.confidenceLvl)
-	    me double: minConfLvl   <- min(prevY.confidenceLvl, toY.confidenceLvl)
-	    me int: numOfSegs       <- convertToIntVal(maxConfLvl/3)
-	    me double: maxAlpha     <- 1/(maxConfLvl/10)*256
-	    me double: alphaDelta   <- maxAlpha/numOfSegs*2
-	    me double: alpha        <- alphaDelta
-	    me int: widthOfLftSegs  <- convertToIntVal(toY.confidenceLvl/numOfSegs)
-	    me int: widthOfRtSegs   <- convertToIntVal(prevY.confidenceLvl/numOfSegs)
-	    me GUI_Scalar: crntLftY <- prevY.value - convertToGUIScalar(prevY.confidenceLvl/2)
-	    me GUI_Scalar: crntRtY  <- toY.value - convertToGUIScalar(toY.confidenceLvl/2)
-	    withEach seg in RANGE(0..numOfSegs){
-		cr.setRGBA(plotColor.red, plotColor.green, plotColor.blue, alpha)
-		cr.moveTo(prevX, crntLftY)
-		cr.lineTo(toX, crntRtY)
-		cr.lineTo(toX, crntRtY+widthOfRtSegs)
-		cr.lineTo(prevX, crntLftY+widthOfLftSegs)
-		cr.lineTo(prevX, crntLftY)
-		cr.fillNow()
-		crntLftY <- crntLftY + widthOfLftSegs
-		crntRtY  <- crntRtY + widthOfRtSegs
-		if (seg < numOfSegs/2){alpha <- alpha+alphaDelta}
-		else {alpha <- alpha-alphaDelta}
-	    }
-	}
-	prevY <- toY
-	prevX <- toX
-    } 
+        if(prevY.confidenceLvl == 0){cr.lineTo(toX, toY.value)}
+        else{
+            me double: maxConfLvl   <- max(prevY.confidenceLvl, toY.confidenceLvl)
+            me double: minConfLvl   <- min(prevY.confidenceLvl, toY.confidenceLvl)
+            me int: numOfSegs       <- convertToIntVal(maxConfLvl/3)
+            me double: maxAlpha     <- 1/(maxConfLvl/10)*256
+            me double: alphaDelta   <- maxAlpha/numOfSegs*2
+            me double: alpha        <- alphaDelta
+            me int: widthOfLftSegs  <- convertToIntVal(toY.confidenceLvl/numOfSegs)
+            me int: widthOfRtSegs   <- convertToIntVal(prevY.confidenceLvl/numOfSegs)
+            me GUI_Scalar: crntLftY <- prevY.value - convertToGUIScalar(prevY.confidenceLvl/2)
+            me GUI_Scalar: crntRtY  <- toY.value - convertToGUIScalar(toY.confidenceLvl/2)
+            withEach seg in RANGE(0..numOfSegs){
+            cr.setRGBA(plotColor.red, plotColor.green, plotColor.blue, alpha)
+            cr.moveTo(prevX, crntLftY)
+            cr.lineTo(toX, crntRtY)
+            cr.lineTo(toX, crntRtY+widthOfRtSegs)
+            cr.lineTo(prevX, crntLftY+widthOfLftSegs)
+            cr.lineTo(prevX, crntLftY)
+            cr.fillNow()
+            crntLftY <- crntLftY + widthOfLftSegs
+            crntRtY  <- crntRtY + widthOfRtSegs
+            if (seg < numOfSegs/2){alpha <- alpha+alphaDelta}
+            else {alpha <- alpha-alphaDelta}
+            }
+        }
+        prevY <- toY
+        prevX <- toX
+    }
 }
 struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
     our GraphDataStreamSources: dataStreamSrcs
@@ -486,7 +486,7 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
                 if (dataStream.hasGradient) {
                     withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
                         XPoint <- (point_key-leftGraphTime)*dblWidth/timeInterval + posX
-                        YPoint.value <- YOrig - (point - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
+                        YPoint.value <- YOrig - (point.value - leftScale.lowVal)*dblHeight/(leftScale.hiVal - leftScale.lowVal)
                         if(firstTime){
                             cr.setColor(styler.bkGndColor)
                             cr.moveTo(XPoint, YOrig)
@@ -507,20 +507,20 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
 
                 /-/// Visible data plot
                 firstTime <- true
-		if (dataStream.dataMap != NULL) {
-		    withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
-			XPoint        <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
-			YPoint.value  <- YOrig - convertToGUIScalar((point - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
-			YPoint.confidenceLvl <- 20
-			if(firstTime){
-			    plotter.plotColor <- dataStream.lineColor
-			    plotter.moveTo(cr, XPoint, YPoint)
-			    firstTime<-false
-			} else {plotter.lineTo(cr, XPoint, YPoint)}
-			screenDataTotal <- screenDataTotal + convertToLongVal(point)
-			screenDataCount <- screenDataCount + 1
-		    }
-		}
+                if (dataStream.dataMap != NULL) {
+                    withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
+                    XPoint        <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
+                    YPoint.value  <- YOrig - convertToGUIScalar((point.value - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
+                    YPoint.confidenceLvl <- 20
+                    if(firstTime){
+                        plotter.plotColor <- dataStream.lineColor
+                        plotter.moveTo(cr, XPoint, YPoint)
+                        firstTime<-false
+                    } else {plotter.lineTo(cr, XPoint, YPoint)}
+                    screenDataTotal <- screenDataTotal + convertToLongVal(point.value)
+                    screenDataCount <- screenDataCount + 1
+                    }
+                }
                 cr.strokeNow()
 
                 if (screenDataCount > 0) {dataStream.screenDataAvg <- screenDataTotal / screenDataCount}
@@ -557,9 +557,9 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
     void: requestDataRange(me timeValue: start, me timeValue: end, me timeValue: stepSize) <-{
         dataStreamSrcs.requestedInterval.parentWidget <- self
         dataStreamSrcs.requestedInterval.start        <- start
-	dataStreamSrcs.requestedInterval.end          <- end
-	dataStreamSrcs.requestedInterval.stepSize     <- stepSize
-	if (stepSize==0) {print("\nInvalid Step size in graph.requestDataRange()\n"); exit(1);}
+        dataStreamSrcs.requestedInterval.end          <- end
+        dataStreamSrcs.requestedInterval.stepSize     <- stepSize
+        if (stepSize==0) {print("\nInvalid Step size in graph.requestDataRange()\n"); exit(1);}
         dataStreamSrcs.dataRangeChangeRequested       <- true
     }
     void: applyDataRange(me timeStepInterval: req) <- {
@@ -654,7 +654,7 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
 }
 struct graphWidget: inherits=DashboardWidget{
     void: requestRedraw() <- {
-	markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
+        markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
     }
     their GUI_canvas: init(me string: label) <- {
         title   <- 'DashboardWidget.'+label
@@ -675,23 +675,23 @@ struct graphWidget: inherits=DashboardWidget{
     void: draw(me GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)
     }
-    
+
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         return(dashboardDBW.primaryClick(event))
     }
-    
+
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
         return(dashboardDBW.secondaryClick(event))
     }
-    
+
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
         return(dashboardDBW.primaryDn(event))
     }
-    
+
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
         return(dashboardDBW.primaryUp(event))
     }
-    
+
     me bool: mouseMoved(their GUI_MotionEvent: event) <- {
         return(dashboardDBW.mouseMoved(event))
     }
