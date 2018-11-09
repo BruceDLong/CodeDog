@@ -399,6 +399,7 @@ struct GUI_ComboBox{
     me int: comboBoxGetActive() <- <%!%0.getSelectedItemPosition()%>
     /- TODO: fix android ArrayAdapter after dynamic types working
     me void: setAndroidAdapter() <- <%!ArrayAdapter<%2> %1 = new ArrayAdapter<%2>(GLOBAL.static_Global, android.R.layout.simple_spinner_dropdown_item, %3); %0.setAdapter(%1)%>
+    me string: getValue()        <- <%!%0.getSelectedItemPosition()%>
 }
 struct GUI_SpinBox{
     me double: getValue()               <- <%!%0.getSelectedItemPosition()%>

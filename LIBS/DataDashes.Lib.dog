@@ -348,8 +348,8 @@ struct graphTitleWidget: inherits=dash{
 struct timeStepInterval{their graph: parentWidget me timeValue: start me timeValue: end me timeValue: stepSize}
 
 struct datum{
-    me GUI_Scalar: value
-    me double:     confidenceLvl
+    me double: value
+    me double: confidenceLvl
 }
 
 struct GraphDataStream {
@@ -517,7 +517,7 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
                         plotter.moveTo(cr, XPoint, YPoint)
                         firstTime<-false
                     } else {plotter.lineTo(cr, XPoint, YPoint)}
-                    screenDataTotal <- screenDataTotal + convertToLongVal(point.value)
+                    screenDataTotal <- screenDataTotal + point.value
                     screenDataCount <- screenDataCount + 1
                     }
                 }
