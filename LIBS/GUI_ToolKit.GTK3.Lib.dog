@@ -703,6 +703,7 @@ struct GLOBAL{
     void: clickAdd_CB(their GtkWidget: wid, their MealDataWidget: meal) <- <%{
     MealDataWidget* clickWidget = (MealDataWidget*)meal;
         clickWidget->clickAdd();
+	clickWidget->searchUsdaForFoods();
     }%>
     void: clickAddMed_CB(their GtkWidget: wid, their MedBunchDataWidget: meal) <- <%{
     MedBunchDataWidget* clickWidget = (MedBunchDataWidget*)meal;
