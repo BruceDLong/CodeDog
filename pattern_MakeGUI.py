@@ -67,7 +67,7 @@ def changeDataFieldType(classes, structTypeName, typeSpec):
 def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
     global classesEncoded
     if guiStructName == 'timeValue_Dialog_GUI': return
-    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='Agreement' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm' or structTypeName=='FoodData' or structTypeName=='MealData' or structTypeName=='MedItemData' or structTypeName=='MedBunchData'):
+    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='Agreement' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm' or structTypeName=='FoodData' or structTypeName=='MealData' or structTypeName=='MedItemData' or structTypeName=='MedData'):
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
 
@@ -310,7 +310,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.makeMedItemDataWidget("'+label+'", _data.'+fieldName+')\n'
         #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
-    elif fieldType=='MedBunchData':
+    elif fieldType=='MedData':
         typeName              = 'MedBunchDataWidget'
         widgetBoxName         =  widgetName +'.box'
         makeTypeNameCall      = 'Allocate('+widgetName+')\n'
@@ -326,7 +326,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldSpec=='widget':
-        if fieldType=='graphWidget': 
+        if fieldType=='graphWidget':
             print 'widget: ', fieldType
             typeName              = fieldType
             widgetName            = fieldName +'Widget'
@@ -416,7 +416,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetInitFuncCode   += '        '+makeTypeNameCall
         widgetInitFuncCode   += '        addToZStack(wiz.ZStack, '+widgetBoxName+', "'+CasedFieldName+'")\n'
         widgetInitFuncCode   += '        wiz.children.pushLast("'+CasedFieldName+'")\n'
-    elif dialogStyle   == 'Z_stack': 
+    elif dialogStyle   == 'Z_stack':
         widgetBoxName         =  guiMgrName +'.box'
         newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall+'\n'
@@ -537,7 +537,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         guiStyleTag = guiStyleTag[0]
         if guiStyleTag == 'WizardStack': dialogStyle = 'WizardStack'
         if guiStyleTag == 'Z_stack':     dialogStyle = 'Z_stack'
-        if guiStyleTag == 'WizardChild': 
+        if guiStyleTag == 'WizardChild':
             dialogStyle    = 'WizardChild'
             makeBoxFooter  = True
             makeBackBtn    = True
@@ -548,12 +548,12 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             makeBoxFooter  = True
             makeBackBtn    = True
             makeNextBtn    = True
-            clickNextLabel = "Done" 
+            clickNextLabel = "Done"
         if guiStyleTag == 'WizardChildFirst':
             dialogStyle    = 'WizardChild'
             makeBoxFooter  = True
             makeNextBtn    = True
-            clickNextLabel = "Next" 
+            clickNextLabel = "Next"
 
     ### Write code for each field
     for field in modelRef['fields']:
@@ -596,7 +596,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     initFuncName           = 'make'+className[0].upper() + className[1:]+'Widget'
     retrunCode             = 'onLoaded()\n'
     retrunCode            += '        return(box)'
-    if dialogStyle   == 'Z_stack':     
+    if dialogStyle   == 'Z_stack':
         newWidgetFields   += '    their GUI_ZStack: Zbox\n'
         newWidgetFields   += '    me string[list]: children\n'
         newWidgetFields   += '    me int: activeScreenIdx <-1\n'
@@ -611,7 +611,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         retrunCode         = 'setActiveChild(0)\n'
         retrunCode        += '        onLoaded()\n'
         retrunCode        += '        return(Zbox)\n'
-        # addToContainer or 
+        # addToContainer or
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
     elif dialogStyle == 'WizardStack':
         newWidgetFields    += '    our wizardWidget: wiz\n'
@@ -637,7 +637,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         containerWidget    += '        wiz.parentGuiMgr <- self\n'
         widgetInitFuncCode += '        wiz.activeScreenIdx <- 0\n'
         widgetInitFuncCode += '        wiz.setActiveChild(wiz.activeScreenIdx)\n'
-    else: 
+    else:
         newWidgetFields    += '    their GUI_Frame:box\n'
         containerWidget     ='box <- makeYStack("")'
     if makeBoxFooter:
@@ -660,7 +660,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             }\n'''
             boxFooterCode      += '        nextBtn         <- makeButtonWidget("'+clickNextLabel+'")\n'
             boxFooterCode      += '        GUI.setBtnCallback(nextBtn, "clicked", clickNext, this)\n'
-            boxFooterCode      += '        addToContainer(boxFooter, nextBtn)\n'   
+            boxFooterCode      += '        addToContainer(boxFooter, nextBtn)\n'
         boxFooterCode      += '        addToContainer(box, boxFooter)\n'
 
     CODE =  '''

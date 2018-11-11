@@ -159,18 +159,18 @@ struct dateWidget{
 
     me timeValue: getValue() <- <%{
         guint year;
-	guint month;
-	guint day;
-	gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
-	int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
-	return(retVal);
+    guint month;
+    guint day;
+    gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
+    int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
+    return(retVal);
     }%>
     me void: setValue(me timeValue: val) <- <%{
-	//guint month = 8;
-	//guint year = 1970;
-	//guint day = 12;
-	//gtk_calendar_select_month((GtkCalendar*)dataValue, month, year);
-	//gtk_calendar_select_day((GtkCalendar*)dataValue, day);
+    //guint month = 8;
+    //guint year = 1970;
+    //guint day = 12;
+    //gtk_calendar_select_month((GtkCalendar*)dataValue, month, year);
+    //gtk_calendar_select_day((GtkCalendar*)dataValue, day);
     }%>
 
     their GUI_Frame: makeDateWidget(me string: name)  <- <%{
@@ -216,10 +216,11 @@ struct DateWidget{
     their GUI_ComboBox: dayBox
 
     me timeValue: getValue() <- {
-        me timeValue: tempyear  <- yearBox.getValueAsInt()
+        me timeValue: tempYear  <- yearBox.getValueAsInt()
         me timeValue: tempMonth <- monthBox.comboBoxGetActive()+1
         me timeValue: tempDay   <- dayBox.comboBoxGetActive()+1
-        me timeValue: dateVal   <- unicodeMgr.epocTimeFromDateTime(tempyear, tempMonth, tempDay, 0, 0, 0)
+        me timeValue: dateVal   <- unicodeMgr.epocTimeFromDateTime(tempYear, tempMonth, tempDay, 0, 0, 0)
+        print ("GET-DATE Y/M/D = TOTAL: ", tempYear, " / ", tempMonth, " / ", tempDay, " / ", dateVal, "\n")
         return(dateVal)
     }
     void: setValue(me timeValue: setDate) <- {}
@@ -263,13 +264,13 @@ struct TimeWidget{
         /-/// HOUR //////////////////////////////////
         their GUI_Label: hourLabel <- makeLabelWidget("Hour");
         hourBox <- makeComboBox()
-        withEach i in RANGE(1..13){
+        withEach i in RANGE(1..25){
             hourBox.appendComboBox(i, i, hourArrayAdapter)
         }
         /-/// MINUTE //////////////////////////////////
         their GUI_Label: minuteLabel <- makeLabelWidget("Minute");
         minuteBox <- makeComboBox()
-        withEach i in RANGE(1..25){
+        withEach i in RANGE(0..60){
             minuteBox.appendComboBox(i,i, minuteArrayAdapter)
         }
         /-/// RETURN BOX //////////////////////////////
@@ -281,11 +282,11 @@ struct TimeWidget{
         return(box)
     }
     me timeValue: getValue() <- {
-        me int: tmpHour      <- hourBox.comboBoxGetActive()+1
+        me int: tmpHour      <- hourBox.comboBoxGetActive()
         tmpHour              <- tmpHour*60*60*1000
-        me int: tmpMinute    <- minuteBox.comboBoxGetActive()+1
+        me int: tmpMinute    <- minuteBox.comboBoxGetActive()
         tmpMinute            <- tmpMinute*60*1000
-        me int: millisecondsSinceMidnight <- tmpHour + tmpMinute
+        me timeValue: millisecondsSinceMidnight <- tmpHour + tmpMinute
         return(millisecondsSinceMidnight)
     }
     void: setValue() <- {}

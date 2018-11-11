@@ -59,13 +59,13 @@ class structAsProteusWriter(structProcessor):
         if(fldCat=='int' or fldCat=='double'):
             valStr='toString('+fieldName+')'
         elif(fldCat=='string' or fldCat=='char'):
-            valStr= fieldName
+            valStr= "\"'\" + "+fieldName+" + \"'\""
         elif(fldCat=='flag' or fldCat=='bool'):
             valStr='dispBool(('+fieldName+')!=0)'
         elif(fldCat=='mode'):
             valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
         elif(fldCat=='struct'):
-            valStr=fieldName+'.asProteus(indent)'
+            valStr=fieldName+'.asProteus(indent2)'
 
             structTypeName=progSpec.getFieldType(field['typeSpec'])[0]
             if not(structTypeName in classesEncoded):
@@ -74,7 +74,7 @@ class structAsProteusWriter(structProcessor):
         elif(fldCat=='timeValue'):
             valStr='toString('+fieldName+')'
         if(fldCat=='struct'):
-            S='S <- S + indent2 + "'+label+'" + " =\\n" + '+valStr+' + "\\n"\n'
+            S='S <- S + indent2 + "'+label+'" + " = " + '+valStr+' + "\\n"\n'
         else:
             S='S <- S + indent2 + "'+label+'" + " = " +'+valStr+' + "\\n"\n'
         return S
@@ -98,7 +98,7 @@ class structAsProteusWriter(structProcessor):
         self.textFuncBody += S
 
     def addOrAmendClasses(self, classes, className, modelRef):
-        self.textFuncBody = '        me string: S <- indent + "{\\n"\n' + '        me string: indent2 <- indent + "    "\n' +self.textFuncBody + '        S <- S + indent + "}\\n"\n'
+        self.textFuncBody = '        me string: S <- "{\\n"\n' + '        me string: indent2 <- indent + "    "\n' +self.textFuncBody + '        S <- S + indent + "}\\n"\n'
         Code='    me string: asProteus(me string:indent <- "") <- {\n'+self.textFuncBody+"        return(S)\n    }"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
         #print"Code=",Code
