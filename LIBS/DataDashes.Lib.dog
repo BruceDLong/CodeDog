@@ -394,8 +394,8 @@ struct dataPlotter {
             me double: alpha        <- alphaDelta
             me int: widthOfLftSegs  <- convertToIntVal(toY.confidenceLvl/numOfSegs)
             me int: widthOfRtSegs   <- convertToIntVal(prevY.confidenceLvl/numOfSegs)
-            me GUI_Scalar: crntLftY <- prevY.value - convertToGUIScalar(prevY.confidenceLvl/2)
-            me GUI_Scalar: crntRtY  <- toY.value - convertToGUIScalar(toY.confidenceLvl/2)
+            me GUI_Scalar: crntLftY <- convertToGUIScalar(prevY.value - prevY.confidenceLvl/2)
+            me GUI_Scalar: crntRtY  <- convertToGUIScalar(toY.value - toY.confidenceLvl/2)
             withEach seg in RANGE(0..numOfSegs){
             cr.setRGBA(plotColor.red, plotColor.green, plotColor.blue, alpha)
             cr.moveTo(prevX, crntLftY)
@@ -417,7 +417,7 @@ struct dataPlotter {
 struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
     our GraphDataStreamSources: dataStreamSrcs
     me string[list]: dataStreamsTitleTable <- ["None"]
-    me int64:        screenDataTotal
+    me double:        screenDataTotal
     me int:          screenDataCount
     me timeValue:    timeInterval
     me timeValue:    crntRightSide

@@ -704,6 +704,7 @@ struct GLOBAL{
     void: clickAdd_CB(their GtkWidget: wid, their MealDataWidget: meal) <- <%{
     MealDataWidget* clickWidget = (MealDataWidget*)meal;
         clickWidget->clickAdd();
+	clickWidget->searchUsdaForFoods();
     }%>
     void: clickAddMed_CB(their GtkWidget: wid, their MedBunchDataWidget: meal) <- <%{
     MedBunchDataWidget* clickWidget = (MedBunchDataWidget*)meal;
@@ -828,6 +829,7 @@ struct timeStringer{
 /-///////////////////////////////  G L O B A L
 struct GLOBAL{
     me APP: thisApp
+    me float: displayDensity
 
     /- //TIME ROUTINES:
     me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
@@ -978,7 +980,9 @@ me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
 
   return SubMenu;
 } %>
-
+me void: getMetrics() <- <%{
+    displayDensity   = 1;
+}%>
 me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(GTK_WIDGET(%1))%>
 me void: hideWidget(their GUI_item: widget) <- <%!gtk_widget_hide(GTK_WIDGET(%1))%>
 me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
@@ -1032,7 +1036,7 @@ their GtkWidget: window
 
 me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     GtkWidget *topBox;
-
+    getMetrics();
     window = gtk_application_window_new (app);
     gtk_window_set_title (GTK_WINDOW (window), "Window");
     gtk_window_set_default_size (GTK_WINDOW (window), 1000, 700);

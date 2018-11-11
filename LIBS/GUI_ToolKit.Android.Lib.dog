@@ -213,7 +213,7 @@ struct dateWidget{
         dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
         dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue.setInputType(InputType.TYPE_NULL);
-	dataValue.setWidth(GLOBAL.static_Global.styler.widgetValueBoxWidth);
+        dataValue.setWidth(GLOBAL.static_Global.styler.widgetValueBoxWidth);
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
@@ -250,7 +250,7 @@ struct enumWidget{
         return retVal;
     }%>
     me void: setValue(me int: val) <- <%{
-	dataValue.setSelection((int)val);
+        dataValue.setSelection((int)val);
     }%>
     their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
         options   = Options;
@@ -575,14 +575,14 @@ struct GLOBAL{
     void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
         <- <%!%G%1.setAdapter(%2);%2.setNotifyOnChange(true)%>
     their GUI_Completer: makeCompleter(me string: label, me string[list]: completerList)  <- <%{
-	ArrayAdapter<String> suggestAdapter = new ArrayAdapter<>(this, android.R.layout.select_dialog_item, completerList);
-	return suggestAdapter;
+        ArrayAdapter<String> suggestAdapter = new ArrayAdapter<>(this, android.R.layout.select_dialog_item, completerList);
+        return suggestAdapter;
     }%>
     their GUI_CompleterBox: makeCompleterBox(me string: label)  <- <%{
-	AutoCompleteTextView autoCompleter = new AutoCompleteTextView(GLOBAL.static_Global);
-	autoCompleter.setThreshold(1);
-	autoCompleter.setWidth(100);
-	return autoCompleter;
+        AutoCompleteTextView autoCompleter = new AutoCompleteTextView(GLOBAL.static_Global);
+        autoCompleter.setThreshold(1);
+        autoCompleter.setWidth(100);
+        return autoCompleter;
     }%>
     their GUI_Frame: makeFloatWidget(me string: label)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
@@ -748,7 +748,7 @@ struct GUI_eventDispatcher{
             returnVal= true;
             break;
         default:
-                return false;
+            return false;
         }
 
         return returnVal;
@@ -1141,7 +1141,7 @@ struct GLOBAL: inherits=AppCompatActivity{
 
     me void: addToolbar() <- <%{
         GLOBAL.static_Global.toolbar = new Toolbar(GLOBAL.static_Global);
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 80);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, (int)(50*displayDensity));
         GLOBAL.static_Global.toolbar.setLayoutParams(layoutParams);
         GLOBAL.static_Global.toolbar.setBackgroundColor(Color.rgb(100, 149, 237));
         GLOBAL.static_Global.toolbar.setTitle(filename);
