@@ -514,7 +514,7 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
                     withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
                     XPoint        <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
                     YPoint.value  <- YOrig - convertToGUIScalar((point.value - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
-                 /-   YPoint.confidenceLvl <- 20
+                    YPoint.confidenceLvl <- point.confidenceLvl
                     if(firstTime){
                         plotter.plotColor <- dataStream.lineColor
                         plotter.moveTo(cr, XPoint, YPoint)

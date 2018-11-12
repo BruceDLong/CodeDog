@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description ='JSON parser'
     features    =[JSON]
     platforms   =[Linux, OS-X_Devices, Windows]
@@ -216,17 +216,17 @@ struct JSON {
         } else{}
         return (retVal)
     }
-    
+
     me string: query(their JSONValue: JV, me string: key) <- {
-	me string: JV_key <- ""
-	me int: cc <- 0
-	while(key[cc] != "." and cc < key.size()){
-	    JV_key <- JV_key + key[cc]
-	    cc <- cc + 1
-	}
-	me string: restOfKey 
-	if(cc < key.size()) {restOfKey <- key.subStr(cc+1, 1000)}
-	me int: type <- JV.getType()
+        me string: JV_key <- ""
+        me int: cc <- 0
+        while(key[cc] != "." and cc < key.size()){
+            JV_key <- JV_key + key[cc]
+            cc <- cc + 1
+        }
+        me string: restOfKey
+        if(cc < key.size()) {restOfKey <- key.subStr(cc+1, 1000)}
+        me int: type <- JV.getType()
         if(type == 0){          return("null")}
         else if(type == 1){     return(toString(JV.getAsInt()))}
         else if(type == 2){}   /- UintType
@@ -240,11 +240,11 @@ struct JSON {
             their JSONValue[their map string]: JV_Map <- JV.getAsMap()
             me int: arraySize <- JV_Map.size()
             withEach count in RANGE(0..arraySize) {
-		if(toString(count) == JV_key) {
-		    their JSONValue: node <- JV_Map.at(toString(count))
-		    if(restOfKey != ""){return(query(node, restOfKey))
-		    } else {return(JVtoString(node))}
-		}
+                if(toString(count) == JV_key) {
+                    their JSONValue: node <- JV_Map.at(toString(count))
+                    if(restOfKey != ""){return(query(node, restOfKey))
+                    } else {return(JVtoString(node))}
+                }
             }
         }
         else if(type == 7){    /- objectType
@@ -252,10 +252,10 @@ struct JSON {
             me int: count <- 0
             withEach node in JV_Map {
                 count <- count +1
-		if(node_key == "\"" + JV_key + "\"") {
-		    if(restOfKey != ""){return(query(node, restOfKey))
-		    } else {return(JVtoString(node))}
-		}
+                if(node_key == "\"" + JV_key + "\"") {
+                    if(restOfKey != ""){return(query(node, restOfKey))
+                    } else {return(JVtoString(node))}
+                }
             }
         } else{}
         return ("NOT_FOUND")
