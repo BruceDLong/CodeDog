@@ -665,7 +665,7 @@ struct graphWidget: inherits=DashboardWidget{
         canvas.setParent(self)
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas <- canvas
-        thisApp.gui.setWidgetSize(canvas, 310, 220)
+        thisApp.gui.setWidgetSize(canvas, 400, 500)  /- This is to make ANdroid canvas size
         /-    their scrollerWidget:: scrollView  <- ()
         /-    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
         /-    managedWidget <- scrollerFrame

@@ -24,7 +24,7 @@ def getContainerType(typeSpec, actionOrField):
         if(datastructID=='list'):       datastructID = 'ArrayList'
         elif(datastructID=='map'):      datastructID = 'TreeMap'
         elif(datastructID=='multimap'): datastructID = 'TreeMap'  # TODO: Implement true multmaps in java
-    else: 
+    else:
         owner = typeSpec['owner']
         datastructID = 'None'
     return [datastructID, idxType, owner]
@@ -388,7 +388,12 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
                     S2 = "'" + S2[1:-1] + "'"
             if i[0] == '===':
                 S = S + " == "+ S2
-            else:S+= op+S2
+            else:
+                if retType2 == "String" and item[1][0][0]=="==" and S2 != '""' and retTypeSpec['fieldType']=='string':
+                    S+= '.equals('+S2+')'
+                    print '      IsEq :', S2, ':::::', retTypeSpec
+                else:
+                    S+= op+S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
@@ -450,7 +455,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 if(count!=0): S+=" + "
                 count+=1
                 [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
-                if 'fieldType' in argTypeSpec: 
+                if 'fieldType' in argTypeSpec:
                     fieldType = argTypeSpec['fieldType']
                     if not isinstance(fieldType, basestring):
                         fieldType=fieldType[0]
