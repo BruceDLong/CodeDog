@@ -354,7 +354,7 @@ struct datum{
 
 struct GraphDataStream {
     me string: title
-    me datum[our map timeValue]:: dataMap
+    me datum[our map timeValue]: dataMap
     me cdColor: lineColor
     me cdColor: fillColor
     me bool: isVisible <- false
@@ -514,7 +514,7 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
                     withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
                     XPoint        <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
                     YPoint.value  <- YOrig - convertToGUIScalar((point.value - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
-                 /-   YPoint.confidenceLvl <- 20
+                    YPoint.confidenceLvl <- 20
                     if(firstTime){
                         plotter.plotColor <- dataStream.lineColor
                         plotter.moveTo(cr, XPoint, YPoint)
@@ -665,7 +665,7 @@ struct graphWidget: inherits=DashboardWidget{
         canvas.setParent(self)
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas <- canvas
-        thisApp.gui.setWidgetSize(canvas, 310, 220)
+        thisApp.gui.setWidgetSize(canvas, 400, 500)  /- This is to make ANdroid canvas size
         /-    their scrollerWidget:: scrollView  <- ()
         /-    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
         /-    managedWidget <- scrollerFrame

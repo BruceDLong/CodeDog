@@ -40,13 +40,13 @@ def apply(classes, tags, proxyStyle, className, funcName, platformTag):
                 argOwner     = argTypeSpec['owner']
                 argFieldType = progSpec.getFieldType(argTypeSpec)
                 if not isinstance(argFieldType, basestring): argFieldType=argFieldType[0]
-                if count > 0: 
+                if count > 0:
                     runParams      = runParams+', '
                     newParamFields = newParamFields+ '    '
                 runParams      = runParams+' bundle.'+argName
                 newParamFields = newParamFields + argOwner+' '+ argFieldType+': '+ argName + '\n'
                 count = count + 1
-        
+
         CODE =  '''
 struct GLOBAL {
     bool: '''+callbackName+'''(their '''+bundleName+''': bundle) <- {
@@ -70,23 +70,23 @@ struct '''+bundleName+''' {
                 argOwner     = argTypeSpec['owner']
                 argFieldType = progSpec.getFieldType(argTypeSpec)
                 if not isinstance(argFieldType, basestring): argFieldType=argFieldType[0]
-                if count > 0: 
+                if count > 0:
                     runParams      = runParams+', '
                     newParamFields = newParamFields+ '    '
                 runParams=runParams+argName
                 newParamFields = newParamFields + argOwner+' '+ argFieldType+': '+ argName + '\n'
                 count = count + 1
-    
+
         CODE =  '''
 struct '''+bundleName+''': implements=Runnable{
     their '''+className+''': objToCall
     '''+newParamFields+'''
 
     void: run() <- {
-       /- objToCall.'''+funcName+'''('''+runParams+''')
+        objToCall.'''+funcName+'''('''+runParams+''')
     }
 }\n'''
-        
+
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
     elif proxyStyle == "widgetData" and platformTag == "Linux":
         #print "Linux widgetData: ", callbackName, funcSpec
@@ -104,4 +104,3 @@ struct GLOBAL {
     else: print "###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag; exit(1)
     #print '==========================================================\n'+CODE
 
-    
