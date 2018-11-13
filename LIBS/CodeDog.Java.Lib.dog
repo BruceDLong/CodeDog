@@ -29,34 +29,62 @@ struct FileStream{
     me void: open(me string: filename) <- <%{
         /-Log.d("GLOBAL", "    >>FileStream::open \n");
         try{
-            RAFileStream = new  RandomAccessFile(filename, "rw"); 
+            File usrFile = new File(GLOBAL.static_Global.getFilesDirAsString(), filename);
+            RAFileStream = new  RandomAccessFile(usrFile, "rw");
             failureFlag=false;
-        }catch(IOException e){failureFlag=true;}
+        }catch(IOException e){
+            failureFlag=true;
+            Log.e("GLOBAL", "    ERROR open("+filename+")\n");
+        }
     }%>
     me void: openAppend(me string: filename) <- <%{
-    /-Log.d("GLOBAL", "    >>FileStream::openAppend \n");
-    try{RAFileStream = new  RandomAccessFile(filename, "rw"); 
-        RAFileStream.seek(RAFileStream.length()); 
-        failureFlag=false;}
-    catch(IOException e){failureFlag=true;}
+        /-Log.d("GLOBAL", "    >>FileStream::openAppend "+filename+"\n");
+        try{
+            File usrFile = new File(GLOBAL.static_Global.getFilesDirAsString(), filename);
+            RAFileStream = new  RandomAccessFile(usrFile, "rw");
+            RAFileStream.seek(RAFileStream.length());
+            failureFlag=false;
+        }
+        catch(IOException e){
+            failureFlag=true;
+            Log.e("GLOBAL", "    ERROR openAppend("+filename+")\n");
+        }
     }%>
     me void: close() <- <%{try{RAFileStream.close();}catch(IOException e){failureFlag=true;}}%>
     me int:  getChar() <- <%{char ch=' '; try{ch = RAFileStream.readChar();}catch(IOException e){failureFlag=true;} return(ch);}%>
-    me void: getLine(me string: S) <- <%{try{S = RAFileStream.readLine();}catch(IOException e){failureFlag=true;}}%>
-    me void: write(me string: S) <- <%{try{RAFileStream.writeChars(S);}catch(IOException e){failureFlag=true;}}%>
-    me bool: EOF() <- <%{boolean result=false; try{result=(RAFileStream.getFilePointer() < RAFileStream.length());}catch(IOException e){failureFlag=true;} return(result);}%>
+    me void: getLine(me string: S) <- <%{
+        try{S = RAFileStream.readLine();}
+        catch(IOException e){failureFlag=true;}
+    }%>
+    me void: write(me string: S) <- <%{
+        try{RAFileStream.writeBytes(S);}
+        catch(IOException e){failureFlag=true;}
+    }%>
+    me bool: EOF() <- <%{
+        boolean result=false;
+        try{
+            result=(RAFileStream.getFilePointer() >= RAFileStream.length());
+        }catch(IOException e){
+            failureFlag=true;
+            result = true;
+        }
+        return(result);
+    }%>
     me bool: failure() <- <%{return(failureFlag);}%>
 }
 
 struct sessionFile{
     our FileStream: session <- NULL
     me void: openSession(me string: filename) <-{
-    /-Log.d("GLOBAL", "    >>sessionFile::openSession \n");
-    Allocate(session)
-    session.openAppend(filename)
+        /-Log.d("GLOBAL", "    >>sessionFile::openSession "+filename+"\n");
+        Allocate(session)
+        session.openAppend(filename)
     }
     me void: closeSession() <- {session.close()}
-    me void: writeEntry(me string: entry) <- {entry<-entry+"\n"; session.write(entry)}
+    me void: writeEntry(me string: entry) <- {
+        entry<-entry+"\n";
+        session.write(entry)
+    }
 
     me bool: openToRead(me string: filename) <- {
         /-Log.d("GLOBAL", "    >>sessionFile::openToRead \n");
@@ -65,7 +93,11 @@ struct sessionFile{
         if(session.failure()){print("Creating session file "+filename+"\n"); return(true)}
         return(false)
     }
-    me string: readEntry() <- {me string: retVal; session.getLine(retVal); return(retVal)}
+    me string: readEntry() <- {
+        me string: retVal;
+        session.getLine(retVal);
+        return(retVal)
+    }
     me bool: eof() <- <%{
         boolean result = session.EOF();
         return(result);
