@@ -92,7 +92,7 @@ struct intWidget{
     me double: climbRate     <- 1
     me int:    decimalPlaces <- 0
 
-    me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
+    me int: getValue() <- <%!atoi(gtk_entry_get_text((GtkEntry*)%0->dataValue))%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
 
     their GUI_Frame: initWidget(me string: name)  <- <%{
@@ -119,7 +119,7 @@ struct intRangeWidget{
     me double: climbRate     <- 1
     me int:    decimalPlaces <- 0
 
-    me string: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
+    me int: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
 
     their GUI_Frame: initWidget(me string: name)  <- <%{
