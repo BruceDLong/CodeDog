@@ -78,7 +78,7 @@ struct boolWidget{
 
     me bool: getValue()            <- {dataValue.getValue()}
     void: setValue(me bool: value) <- {dataValue.setValue(value)}
-    their GUI_Frame: makeBoolWidget(me string: label)  <- <%{
+    their GUI_Frame: initWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
@@ -104,7 +104,7 @@ struct intWidget{
     me void: setValue(me int: value) <- <%{
         dataValue.setText(value, TextView.BufferType.EDITABLE);
     }%>
-    their GUI_Frame: makeIntWidget(me string: label)  <- <%{
+    their GUI_Frame: initWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
@@ -138,7 +138,7 @@ struct intRangeWidget{
     me void: setValue(me int: value) <- <%{
 
     }%>
-    their GUI_Frame: makeIntRangeWidget(me string: label)  <- <%{
+    their GUI_Frame: initWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
@@ -172,7 +172,7 @@ struct stringWidget{
     me void: setValue(me string: value) <- <%{
         dataValue.setText(value, TextView.BufferType.EDITABLE);
     }%>
-    their GUI_Frame: makeStringWidget(me string: label) <- <%{
+    their GUI_Frame: initWidget(me string: label) <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
@@ -203,7 +203,7 @@ struct dateWidget{
     me void: setValue(me timeValue: value) <- <%{
         dataValue.setText(dateFormatter.format(value));
     }%>
-    their GUI_Frame: makeDateWidget(me string: label)  <- <%{
+    their GUI_Frame: initWidget(me string: label)  <- <%{
         dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
         calendar      = Calendar.getInstance();
         box           = new LinearLayout(GLOBAL.static_Global);
@@ -252,7 +252,7 @@ struct enumWidget{
     me void: setValue(me int: val) <- <%{
         dataValue.setSelection((int)val);
     }%>
-    their GUI_Frame: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
+    their GUI_Frame: initWidget(me string: label, me string[list]: Options)  <- <%{
         options   = Options;
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
