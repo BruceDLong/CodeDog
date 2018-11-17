@@ -74,7 +74,7 @@ class structAsProteusWriter(structProcessor):
         elif(fldCat=='timeValue'):
             valStr='toString('+fieldName+')'
         if(fldCat=='struct'):
-            S='S <- S + indent2 + "'+label+'" + " = " + '+valStr+' + "\\n"\n'
+            S='S <- S + indent2 + '+valStr+' + "\\n"\n'       #+label+'" + " = " + '+valStr+' + "\\n"\n'
         else:
             S='S <- S + indent2 + "'+label+'" + " = " +'+valStr+' + "\\n"\n'
         return S

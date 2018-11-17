@@ -79,7 +79,7 @@ NOTES:
     1. If one of the always available fields is not given in the tags, its "sysDefaultxxxxx" value is given.
        This value is platform dependent if the platform as a value, otherwise the value is a standard CodeDog value.
 
-    2. ISO color cames are constants and cannot be changed. But the others are variables and can be assigned.
+    2. ISO color names are constants and cannot be changed. But the others are variables and can be assigned.
 
 '''
 import progSpec
@@ -217,7 +217,7 @@ struct Styler{
 
     /- FONT SIZE MODES
     me mode[pp, dp, sp]: pixelMode <- pp
-    
+
     me int: widgetLabelBoxWidth <- 100
     me int: widgetValueBoxWidth <- 100
 

@@ -349,7 +349,7 @@ struct timeStepInterval{their graph: parentWidget me timeValue: start me timeVal
 
 struct datum{
     me double: value
-    me double: confidenceLvl
+    me double: confidenceInterval
 }
 
 struct GraphDataStream {
@@ -378,24 +378,24 @@ struct dataPlotter {
     void: moveTo(me GUI_ctxt: cr, me GUI_Scalar: toX, me datum:toY) <- {
         prevY <- toY
         prevX <- toX
-        if(prevY.confidenceLvl == 0){cr.moveTo(prevX, prevY.value)}
+        if(prevY.confidenceInterval == 0){cr.moveTo(prevX, prevY.value)}
     }
     void: lineTo(me GUI_ctxt: cr, me GUI_Scalar:toX, me datum: toY) <- {
-        if(prevY.confidenceLvl == 0){
+        if(prevY.confidenceInterval == 0){
             cr.setColor(plotColor)
             cr.lineTo(toX, toY.value)
         }
         else{
-            me double: maxConfLvl   <- max(prevY.confidenceLvl, toY.confidenceLvl)
-            me double: minConfLvl   <- min(prevY.confidenceLvl, toY.confidenceLvl)
+            me double: maxConfLvl   <- max(prevY.confidenceInterval, toY.confidenceInterval)
+            me double: minConfLvl   <- min(prevY.confidenceInterval, toY.confidenceInterval)
             me int: numOfSegs       <- convertToIntVal(maxConfLvl/3)
             me double: maxAlpha     <- 1/(maxConfLvl/10)*256
             me double: alphaDelta   <- maxAlpha/numOfSegs*2
             me double: alpha        <- alphaDelta
-            me int: widthOfLftSegs  <- convertToIntVal(toY.confidenceLvl/numOfSegs)
-            me int: widthOfRtSegs   <- convertToIntVal(prevY.confidenceLvl/numOfSegs)
-            me GUI_Scalar: crntLftY <- convertToGUIScalar(prevY.value - prevY.confidenceLvl/2)
-            me GUI_Scalar: crntRtY  <- convertToGUIScalar(toY.value - toY.confidenceLvl/2)
+            me int: widthOfLftSegs  <- convertToIntVal(toY.confidenceInterval/numOfSegs)
+            me int: widthOfRtSegs   <- convertToIntVal(prevY.confidenceInterval/numOfSegs)
+            me GUI_Scalar: crntLftY <- convertToGUIScalar(prevY.value - prevY.confidenceInterval/2)
+            me GUI_Scalar: crntRtY  <- convertToGUIScalar(toY.value - toY.confidenceInterval/2)
             withEach seg in RANGE(0..numOfSegs){
             cr.setRGBA(plotColor.red, plotColor.green, plotColor.blue, alpha)
             cr.moveTo(prevX, crntLftY)
@@ -514,7 +514,7 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
                     withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
                     XPoint        <- convertToGUIScalar((point_key-leftGraphTime)*dblWidth/timeInterval) + posX
                     YPoint.value  <- YOrig - convertToGUIScalar((point.value - leftScale.lowVal)*dblHeight)/convertToGUIScalar(leftScale.hiVal - leftScale.lowVal)
-                    YPoint.confidenceLvl <- point.confidenceLvl
+                    YPoint.confidenceInterval <- point.confidenceInterval
                     if(firstTime){
                         plotter.plotColor <- dataStream.lineColor
                         plotter.moveTo(cr, XPoint, YPoint)
