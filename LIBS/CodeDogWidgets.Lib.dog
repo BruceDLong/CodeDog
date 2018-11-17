@@ -65,6 +65,7 @@ struct IntDraggerDash: inherits=dash{
     }
 }
 struct IntDraggerWidget: inherits=DashboardWidget{
+    their GUI_Frame:     box
     our LabelDash:       labelDash
     our IntDraggerDash:  intDraggerDash
     me int:              lowVal
@@ -74,24 +75,25 @@ struct IntDraggerWidget: inherits=DashboardWidget{
     me int:              moveThreshold <- 2
     me bool:             isBtnDown     <- false
     me bool:             isDragging    <- false
-    their GUI_canvas: initWidget(me string: label)      <- {
+    their GUI_Frame: initWidget(me string: label)      <- {
         /-/// CANVAS AND EVENTS
         title                   <- 'IntDraggerWidget.'+label
         me int: radius          <- 20
         dashboardDBW.init(title)
+        box                     <- makeYStack(title)
         canvas                  <- thisApp.gui.newCanvas()
         canvas.setParent(self)
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas     <- canvas
         thisApp.gui.setWidgetSize(canvas,320,50)
-        managedWidget           <- canvas
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         /-/// CHILDREN
         intDraggerDash.initIntDraggerDash(120,0,radius,label)
         dashboardDBW.addChild(intDraggerDash)
         labelDash.initLabelDash(120,6,label)
         dashboardDBW.addChild(labelDash)
-        return(managedWidget)
+        addToContainer(box, canvas)
+        return(box)
     }
     void: draw(me GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)
@@ -195,6 +197,7 @@ struct TimeDraggerDash: inherits=dash{
     }
 }
 struct TimeDraggerWidget: inherits=DashboardWidget{
+    their GUI_Frame: box
     our LabelDash:       labelDash
     our TimeDraggerDash: timeDraggerDash
     me int:              lowVal
@@ -204,24 +207,25 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
     me int:              moveThreshold <- 2
     me bool:             isBtnDown     <- false
     me bool:             isDragging    <- false
-    their GUI_canvas: initWidget(me string: label)      <- {
+    their GUI_Frame: initWidget(me string: label)      <- {
         /-/// CANVAS AND EVENTS
         title                   <- 'TimeDraggerWidget.'+label
         me int: radius          <- 20
         dashboardDBW.init(title)
+        box                     <- makeYStack(title)
         canvas                  <- thisApp.gui.newCanvas()
         canvas.setParent(self)
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas     <- canvas
         thisApp.gui.setWidgetSize(canvas,320,65)
-        managedWidget           <- canvas
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         /-/// CHILDREN
         timeDraggerDash.initTimeDraggerDash(120,0,radius,label)
         dashboardDBW.addChild(timeDraggerDash)
         labelDash.initLabelDash(120,15,label)
         dashboardDBW.addChild(labelDash)
-        return(managedWidget)
+        addToContainer(box, canvas)
+        return(box)
     }
     void: draw(me GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)

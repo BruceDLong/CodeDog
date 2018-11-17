@@ -301,7 +301,7 @@ def searchATagStore(tagStore, tagToFind):
     return [item]
 
 def doesClassHaveProperty(classes, fieldType, propToFind):
-    if isinstance(fieldType, basestring): return False
+    if isinstance(fieldType, basestring) or fieldType == None: return False
     structName=fieldType[0]
     modelSpec = findSpecOf(classes[0], structName, 'struct')
     if modelSpec == None: return False
