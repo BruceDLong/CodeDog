@@ -166,11 +166,15 @@ struct dateWidget{
     return(retVal);
     }%>
     me void: setValue(me timeValue: val) <- <%{
-    //guint month = 8;
-    //guint year = 1970;
-    //guint day = 12;
-    //gtk_calendar_select_month((GtkCalendar*)dataValue, month, year);
-    //gtk_calendar_select_day((GtkCalendar*)dataValue, day);
+        DateTimeFields dateTimeFields;
+        unicodeMgr.dateTimeFromEpocTime(val, &dateTimeFields);
+    //guint year = dateTimeFields.year;
+    //guint month = dateTimeFields.month;
+    //guint day = dateTimeFields.day;
+    //guint hour = dateTimeFields.hour;
+    //guint minute = dateTimeFields.minute;
+    //guint second = dateTimeFields.second;
+    //guint millisecond = dateTimeFields.millisecond;
     }%>
 
     their GUI_Frame: makeDateWidget(me string: name)  <- <%{

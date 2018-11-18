@@ -65,7 +65,7 @@ struct GLOBAL{
 struct UnicodeMgr {
     me string: dateToIntlString(me UDate: date, me UDate: interval, me Locale: loc) <- <%{
         UErrorCode success = U_ZERO_ERROR;
-	UnicodeString dateUniStr, pattern;
+    UnicodeString dateUniStr, pattern;
         string uniLabel;
 
         pattern = chooseFormatPattern(interval);
@@ -77,7 +77,7 @@ struct UnicodeMgr {
 
     me string: getHour(me UDate: date, me Locale: loc) <- <%{
         UErrorCode success = U_ZERO_ERROR;
-	UnicodeString pattern = "k";   /- k: hour in day (1~24)
+    UnicodeString pattern = "k";   /- k: hour in day (1~24)
         UnicodeString uniStrHr;
         string hour;
 
@@ -141,6 +141,20 @@ struct UnicodeMgr {
         UDate retval = cal->getTime(status);
         delete cal;
         return retval;
+    }%>
+
+   void: dateTimeFromEpocTime(me timeValue: epocTime, their DateTimeFields: dateTimeFields) <- <%{
+        UErrorCode status=U_ZERO_ERROR;
+        Calendar* cal = new GregorianCalendar(status);
+        cal->setTime(epocTime, status);
+        dateTimeFields->year = cal->get(UCAL_YEAR, status);
+        dateTimeFields->month = cal->get(UCAL_MONTH, status);
+        dateTimeFields->day = cal->get(UCAL_DATE, status);
+        dateTimeFields->hour = cal->get(UCAL_HOUR_OF_DAY, status);
+        dateTimeFields->minute = cal->get(UCAL_MINUTE, status);
+        dateTimeFields->second = cal->get(UCAL_SECOND, status);
+        dateTimeFields->millisecond = cal->get(UCAL_MILLISECOND, status);
+        delete cal;
     }%>
 
     me string: customPatternDateTime(me UDate: dt, me UnicodeStr: pattern, me string: locPat) <- <%{

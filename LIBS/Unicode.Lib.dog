@@ -5,7 +5,7 @@ requirements = [
 ]
 
 LibDescription  ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description ='Library for Unicode'
     features    =[Unicode]
     platforms   =[Linux, OS-X_Devices, Windows]
@@ -15,19 +15,29 @@ struct GLOBAL {
     me UnicodeMgr: unicodeMgr
 }
 
+struct DateTimeFields{
+    me int: year
+    me int: month
+    me int: day
+    me int: hour
+    me int: minute
+    me int: second
+    me int: millisecond
+}
+
 struct DateFormat {me SimpleDateFormat: DateFormat}
 struct Normalizer {their Normalizer2: Normalizer}
 struct USpoofChecker {me USpoofChecker: USpoofChecker}
 
 struct UnicodeMgr {
     me UnicodeStr: chooseFormatPattern(me double: graphInterval) <- {
-	me UnicodeStr: dateFormat
-	me double: level1 <- 1000.0*60*60
-	me double: level2 <- 1000.0*60*60*24*7
-	
-	if(graphInterval >= level2) {dateFormat <- "MMM d"}
-	else if (graphInterval >= level1) {dateFormat <- "E h:mm a"}
-	else {dateFormat <- "yyyy.MM.dd HH:mm:ss"}
-	return(dateFormat)
+    me UnicodeStr: dateFormat
+    me double: level1 <- 1000.0*60*60
+    me double: level2 <- 1000.0*60*60*24*7
+
+    if(graphInterval >= level2) {dateFormat <- "MMM d"}
+    else if (graphInterval >= level1) {dateFormat <- "E h:mm a"}
+    else {dateFormat <- "yyyy.MM.dd HH:mm:ss"}
+    return(dateFormat)
     }
 }

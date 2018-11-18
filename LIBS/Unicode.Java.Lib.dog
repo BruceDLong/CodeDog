@@ -16,7 +16,7 @@ LibDescription  ={
     platforms   =[Java]
     bindings    =[Java]
     CPUs        =[JavaVM]
-    Lang	=[Java]
+    Lang    =[Java]
 }
 
 struct UnicodeStr {me String: UnicodeStr}
@@ -26,29 +26,41 @@ struct Udate {me Date: Udate}
 struct UnicodeMgr {
     /- form "pt", "BR" is Java compatible while form "pt_BR" is not
     me sysLocale: SetLocale(me string: code) <- <%{
-	ULocale location = new ULocale(code);
-	return location;
+    ULocale location = new ULocale(code);
+    return location;
     }%>
-    
+
     me string: dateToIntlString(me timeValue: time, me double: interval, me sysLocale: loc) <- <%{
-	Date date = new Date(time);
-	String pattern = chooseFormatPattern(interval);
-	SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
-	String uniLabel = simpleDateFormat.format(date);
-	return uniLabel;
+    Date date = new Date(time);
+    String pattern = chooseFormatPattern(interval);
+    SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
+    String uniLabel = simpleDateFormat.format(date);
+    return uniLabel;
     }%>
-    
+
     me timeValue: epocTimeFromDateTime(me int: year, me int: month, me int: date, me int: hour, me int: minute, me int: second) <- <%{
         Calendar cal = new GregorianCalendar(year, month, date, hour, minute, second);
         long retval = cal.getTimeInMillis();
         return retval;
     }%>
-    
+
     me string: getHour(me long: date, me sysLocale: loc) <- <%{
-	String pattern = "k";   /- k: hour in day (1~24)
+    String pattern = "k";   /- k: hour in day (1~24)
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
         String hour = simpleDateFormat.format(date);
         return hour;
+    }%>
+
+   void: dateTimeFromEpocTime(me timeValue: epocTime, their DateTimeFields: dateTimeFields) <- <%{
+        Calendar cal = new GregorianCalendar();
+        cal.setTime(epocTime);
+        dateTimeFields.year = cal.get(Calendar.YEAR);
+        dateTimeFields.month = cal.get(Calendar.MONTH);
+        dateTimeFields.day = cal.get(Calendar.DATE);
+        dateTimeFields.hour = cal.get(Calendar.HOUR_OF_DAY);
+        dateTimeFields.minute = cal.get(Calendar.MINUTE);
+        dateTimeFields.second = cal.get(Calendar.SECOND);
+        dateTimeFields.millisecond = cal.get(Calendar.MILLISECOND);
     }%>
 
     me string: customPatternDateTime(me timeValue: time, me UnicodeStr: pattern, me string: locPat) <- <%{
