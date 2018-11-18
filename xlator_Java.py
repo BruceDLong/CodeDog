@@ -53,21 +53,15 @@ def convertToJavaType(fieldType, isContainer):
             else: javaType=progSpec.flattenObjectName(fieldType)
     return javaType
 
-def convertType(classes, TypeSpec, varMode, actionOrField, xlator):
-    owner=TypeSpec['owner']
-    fieldType=TypeSpec['fieldType']
-    #print "fieldType: ", fieldType
-    if not isinstance(fieldType, basestring):
-        #if len(fieldType)>1: exit(2)
-        fieldType=fieldType[0]
+def convertType(classes, typeSpec, varMode, actionOrField, xlator):
+    owner=typeSpec['owner']
+    fieldType=typeSpec['fieldType']
+    if not isinstance(fieldType, basestring): fieldType=fieldType[0]
+    fieldType2 = progSpec.unwrapClass(classes, fieldType)
     baseType = progSpec.isWrappedType(classes, fieldType)
-    if(baseType!=None):
-        owner=baseType['owner']
-        fieldType=baseType['fieldType']
-
-    langType="TYPE ERROR"
-    if(fieldType=='<%'): return fieldType[1][0]
-    return xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator)
+    if(baseType!=None): owner=baseType['owner']
+    retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, actionOrField, xlator)
+    return retVal
 
 def codeIteratorOperation(itrCommand):
     result = ''

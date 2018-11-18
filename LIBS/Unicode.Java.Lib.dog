@@ -53,7 +53,7 @@ struct UnicodeMgr {
 
    void: dateTimeFromEpocTime(me timeValue: epocTime, their DateTimeFields: dateTimeFields) <- <%{
         Calendar cal = new GregorianCalendar();
-        cal.setTime(epocTime);
+        cal.setTimeInMillis(epocTime);
         dateTimeFields.year = cal.get(Calendar.YEAR);
         dateTimeFields.month = cal.get(Calendar.MONTH);
         dateTimeFields.day = cal.get(Calendar.DATE);

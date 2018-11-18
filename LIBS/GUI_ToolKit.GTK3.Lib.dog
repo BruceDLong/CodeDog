@@ -159,22 +159,21 @@ struct dateWidget{
 
     me timeValue: getValue() <- <%{
         guint year;
-    guint month;
-    guint day;
-    gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
-    int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
-    return(retVal);
+        guint month;
+        guint day;
+        gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
+        int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
+        return(retVal);
     }%>
     me void: setValue(me timeValue: val) <- <%{
         DateTimeFields dateTimeFields;
         unicodeMgr.dateTimeFromEpocTime(val, &dateTimeFields);
-    //guint year = dateTimeFields.year;
-    //guint month = dateTimeFields.month;
-    //guint day = dateTimeFields.day;
-    //guint hour = dateTimeFields.hour;
-    //guint minute = dateTimeFields.minute;
-    //guint second = dateTimeFields.second;
-    //guint millisecond = dateTimeFields.millisecond;
+        guint year = dateTimeFields.year;
+        guint month = dateTimeFields.month;
+        guint day = dateTimeFields.day;
+        gtk_calendar_select_month((GtkCalendar*)dataValue, month, year);
+        gtk_calendar_select_day((GtkCalendar*)dataValue, day);
+        //cout<<"Set DATE:"<< year << " / " <<  month+1 << " / " << day  <<"\n"<<flush;
     }%>
 
     their GUI_Frame: initWidget(me string: name)  <- <%{

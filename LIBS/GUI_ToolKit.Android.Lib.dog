@@ -35,6 +35,10 @@ initCode = `
    /- GUI_threads_messagePasser <- workerThread.threadsMesgPasser()
 `
 
+embedHigh = `
+class gui_str_list extends ArrayList<String>{};
+`
+
 /-///////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
@@ -60,6 +64,7 @@ struct GUI_SpinBox{their Spinner: GUI_SpinBox}
 struct GUI_Bool{their CheckBox: GUI_Bool}
 struct GUI_Text{their EditText: GUI_Text}
 struct GUI_Entry{their TextView: GUI_Entry}
+struct GUI_CompleterList {their gui_str_list: GUI_CompleterList}
 struct GUI_CompleterBox{their AutoCompleteTextView: GUI_CompleterBox}
 struct GUI_Completer{their ArrayAdapter<String>: GUI_Completer}
 struct GUI_TextViewer{their TextView: GUI_TextViewer}
