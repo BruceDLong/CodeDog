@@ -44,7 +44,7 @@ struct numRangeWidget {}
 struct CGContext {}
 struct CGPoint {}
 
-struct intWidget{}
+struct intWidget: properties = [metaClass]{}
 struct stringWidget{}
 struct enumWidget{}
 struct timeWidget{}
@@ -57,7 +57,7 @@ struct wizardWidget:inherits=appComponentGUI{
     me int:           activeScreenIdx
     me string[list]:  children
 
-    their GUI_Frame: makeWizardWidget(me string: name) <- {
+    their GUI_Frame: initWidget(me string: name) <- {
         widgetID        <- name
         activeScreenIdx <- 0
         box             <- makeYStack("")
@@ -89,7 +89,7 @@ struct MatterTermWidget{
     me double: maxValue      <- 1000
     me int:    decimalPlaces <- 0
 
-    their GUI_Frame: makeMatterTermWidget(me string: name, our matterTerm: dataInit) <- {
+    their GUI_Frame: initWidget(me string: name, our matterTerm: dataInit) <- {
         /-/// DATA //////////////////////////////////////
         data <- dataInit
         me string: units <- data.units
@@ -419,7 +419,7 @@ struct AgreeWidget{
     me Agreement:               agreement
     me string:                  bodyTxt
 
-    their GUI_Frame: makeAgreeWidget(me string: fileName) <- {
+    their GUI_Frame: initWidget(me string: fileName) <- {
         agreement.fileName <- fileName
         bodyTxt            <- readAssetAsString(agreement.fileName)
         textScroller       <- makeVerticalScroller(1000,500)

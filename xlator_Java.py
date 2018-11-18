@@ -132,6 +132,7 @@ def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
     elif name == "subStr":
         typeSpec['codeConverter']='%0.substring(%1, %1+%2)'
+        typeSpec['fieldType']='String'
     elif name == "append":
         typeSpec['codeConverter']='%0 += %1'
 
@@ -383,15 +384,28 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
+            if 'fieldType' in retType2:
+                rightFieldType = retType2['fieldType']
+            else:
+                rightFieldType =  retType2
+                if not isinstance(rightFieldType, basestring):
+                    rightFieldType = rightFieldType[0]
+            if 'fieldType' in retTypeSpec:
+                leftFieldType = retTypeSpec['fieldType']
+            else:
+                leftFieldType =  retTypeSpec
+                if not isinstance(leftFieldType, basestring):
+                    leftFieldType = leftFieldType[0]
+            if rightFieldType == "string":rightFieldType = "String"
+            if leftFieldType == "string":leftFieldType = "String"
             if not isinstance(retTypeSpec, basestring) and isinstance(retTypeSpec['fieldType'], basestring) and isinstance(retType2, basestring):
                 if retTypeSpec['fieldType'] == "char" and retType2 == 'String'and S2[0] == '"':
                     S2 = "'" + S2[1:-1] + "'"
             if i[0] == '===':
                 S = S + " == "+ S2
             else:
-                if retType2 == "String" and item[1][0][0]=="==" and S2 != '""' and retTypeSpec['fieldType']=='string':
+                if rightFieldType == "String" and item[1][0][0]=="==" and leftFieldType=='String':
                     S+= '.equals('+S2+')'
-                    print '      IsEq :', S2, ':::::', retTypeSpec
                 else:
                     S+= op+S2
             retTypeSpec='bool'

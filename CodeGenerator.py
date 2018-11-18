@@ -113,7 +113,7 @@ def CheckObjectVars(className, itemName):
     # TODO: Need to complete but fix, should search callableStructFields
     #       by inheritance hierarchy.  Currently searches child class
     #       then all other fields returned.  Should find hierarchy then
-    #       search child, parent, grandparent etc.  
+    #       search child, parent, grandparent etc.
     #       commit 2111d27664f99c2b4aad289586438efa1846e355 (HEAD -> master, origin/master, origin/HEAD, patternMakeGUI)
     for field in callableStructFields:
         fieldID=field['fieldID']
@@ -153,9 +153,17 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     global currentObjName
     global StaticMemberVars
+    global globalTagStore
     RefType=""
+    useClassTag=""
     itemName=segSpec[0]
     #print "FETCHING TYPESPEC OF:", currentObjName+'::'+itemName
+    if currentObjName != "":
+        fieldID = currentObjName+'::'+itemName
+        tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
+        classOptionsTag = progSpec.fetchTagValue([globalTagStore], tagToFind)
+        if classOptionsTag != None and "useClass" in classOptionsTag:
+            useClassTag     = classOptionsTag["useClass"]
     REF=CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator)
     if (REF): # RefType="BUILTIN"
         return REF
@@ -166,6 +174,10 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
         else:
             REF=CheckObjectVars(currentObjName, itemName)
             if (REF):
+                if useClassTag != "":
+                    fieldType=progSpec.getFieldType(REF['typeSpec'])
+                    if progSpec.doesClassHaveProperty(globalClassStore, fieldType, 'metaClass'):
+                        REF['typeSpec']['fieldType'][0] = useClassTag
                 RefType="OBJVAR"
                 if(currentObjName=='GLOBAL'): RefType="GLOBAL"
                 if xlator['LanguageName']=='Swift':  #TODO Make this part of xlators
@@ -931,6 +943,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
 def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     global currentObjName
     global ForwardDeclsForGlobalFuncs
+    global globalClassStore
     cdlog(3, "Coding fields for {}...".format(className))
     ####################################################################
     global localArgsAllocated
@@ -950,13 +963,19 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         structCode=""
         globalFuncs=""
         funcText=""
+        fieldID   =field['fieldID']
         typeSpec =field['typeSpec']
-        fieldType=typeSpec['fieldType']
+        fieldType=progSpec.getFieldType(typeSpec)
+        if progSpec.doesClassHaveProperty(globalClassStore, fieldType, 'metaClass'):
+            tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
+            classOptionsTag = progSpec.fetchTagValue(tags, tagToFind)
+            if classOptionsTag != None and "useClass" in classOptionsTag:
+                useClassTag     = classOptionsTag["useClass"]
+                fieldType[0] = useClassTag
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
         isAllocated = field['isAllocated']
-        fieldID   =field['fieldID']
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
@@ -970,10 +989,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             fieldName='operator='
             #print "                         opAssign: ", fieldType, fieldName
 
-        # CALCULATE RHS          
+        # CALCULATE RHS
         if(fieldValue == None):
             if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
-                isAllocated = False 
+                isAllocated = False
                 paramList = None
             fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, xlator)
            # print "                            RHS none: ", fieldValueText
@@ -1174,7 +1193,7 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         if (className in structsNeedingModification):
             cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[className])))
             [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[className]
-            if modificationMode == 'implement': 
+            if modificationMode == 'implement':
                 if classImplements is None:
                     classImplements=[]
                 classImplements.append( [interfaceImplemented])
@@ -1356,11 +1375,11 @@ def appendGLOBALInitCode(classes, tags, xlator):
             #if paramList != None:
                 #if(len(paramList)>0 ):
                     #for param in paramList:
-                        # TODO: grab base parameter in codeDog, similar to codeExpr but through codeDog xlator 
+                        # TODO: grab base parameter in codeDog, similar to codeExpr but through codeDog xlator
                     #paramStr = ' <- (' + paramStr + ')'
             allocStr = '    Allocate('+fieldName+')' + paramStr
             progSpec.addCodeToInit(tags[0], allocStr)
-        
+
 def addGLOBALSpecialCode(classes, tags, xlator):
     global libInitCodeAcc
     global libDeinitCodeAcc
@@ -1480,7 +1499,7 @@ def generate(classes, tags, libsToUse, langName, xlator):
     fileSpecs=codeAllNonGlobalStructs(classes, tags, xlator)
     topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
-    
+
     fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, fileSpecs, [], topBottomStrings, xlator)
    # print "\n\n##########################################################\n"
     print "\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:"
