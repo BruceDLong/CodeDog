@@ -444,23 +444,18 @@ struct ListManagerBox{
     void: handleOnListClick(me int: idx) <- <% {
 
     } %>
-
     void: handleAdd() <- <%{
         listWidgetMgr.handleAdd();
     }%>
-
     void: handleDelete() <- <% {
         listWidgetMgr.handleDelete();
     }%>
-
     void: handleEdit() <- <%{
         listWidgetMgr.handleEdit();
     }%>
-
     void: setButtonsActive(me int: L) <- <%{
 
     }%>
-
     their RelativeLayout: init_dialog(their ListWidgetManager: LEWM) <- <% {
         listWidgetMgr = LEWM;
         // EDITOR FRAME
@@ -510,9 +505,7 @@ struct ListManagerBox{
         editorFrame.addView(editBtn);
         return editorFrame;
     } %>
-
 }
-
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
     their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
@@ -628,7 +621,7 @@ struct GLOBAL{
         box.addView(spinner);
         return box;
     }%>
-    me void: setLabelWidth(their GUI_Frame: labelWidget, me int: width) <- <%{
+    me void: setLabelWidth(their GUI_Label: labelWidget, me int: width) <- <%{
         LayoutParams params = new LayoutParams(width, LayoutParams.WRAP_CONTENT);
         params.width = width;
         labelWidget.setLayoutParams(params);
