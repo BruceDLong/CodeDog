@@ -144,21 +144,20 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
 
 ###############
     CODE = 'struct '+listManagerStructName+''': inherits=ListWidgetManager{
-    our <STRUCTNAME>:           crntRecord
-    our <STRUCTNAME>[our list]: <STRUCTNAME>_ListData
-    me <STRUCTNAME>_Dialog_GUI: dialog
+    our <STRUCTNAME>:               crntRecord
+    our <STRUCTNAME>[our list]:     <STRUCTNAME>_ListData
+    me <STRUCTNAME>_Dialog_GUI:     dialog
     their GUI_Frame:            box
     their GUI_Frame:            listViewWidget
     their GUI_Frame[their list]:rows
     their GUI_Frame:            crntRow
-    their ListManagerBox:       ListEdBox
+    their ListManagerBox:       listMgrBox
 
     their GUI_Frame: makeListHeader() <- {
-        box                        <- makeYStack("")
         their GUI_Frame: headerBox <- makeXStack("")
         <ROWHEADERCODE>
         addToContainer(box, headerBox)
-        return(box)
+        return(headerBox)
     }
 
     their GUI_Frame: makeRowView(our <STRUCTNAME>: item) <- {
@@ -205,7 +204,7 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     }
 
     void: updateViewableWidget() <- {<funcTextToUpdateViewWidget>}
-    their GUI_item: makeEditableWidget() <- {return(dialog.initWidget(crntRecord))}
+    their GUI_Frame: makeEditableWidget() <- {return(dialog.initWidget(crntRecord))}
     void: updateEditableWidget(me int: N) <- {<funcTextToUpdateEditWidget>}
     void: updateCrntFromEdited(me int: N) <- {<funcTextToUpdateCrntFromWidget>}
     void: allocateNewCurrentItem() <- {Allocate(crntRecord)}
@@ -217,11 +216,11 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     void: setValue(our <STRUCTNAME>[our list]: ListData) <- {<STRUCTNAME>_ListData <- ListData}
     me int: getListLength() <- {return(<STRUCTNAME>_ListData.size())}
 
-    their GUI_item: initWidget(our <STRUCTNAME>[our list]: Data) <- {
+    their GUI_Frame: initWidget(our <STRUCTNAME>[our list]: Data) <- {
         <STRUCTNAME>_ListData <- Data
         Allocate(rows)
-        Allocate(ListEdBox)
-        return(ListEdBox.init_dialog(self))
+        Allocate(listMgrBox)
+        return(listMgrBox.makeListBox(self))
     }
 }
 '''
@@ -405,7 +404,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetListEditorName  = widgetName+'_Editor'
         localWidgetVarName    = widgetListEditorName
         if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += 'Allocate(_data.'+fieldName+')\n'
-        widgetInitFuncCode   += '        their GUI_item: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget(_data.'+fieldName+')\n'
+        widgetInitFuncCode   += '        their GUI_Frame: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget(_data.'+fieldName+')\n'
         if classPrimaryGuiItem==fieldName: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetListEditorName+')\n'
         else: widgetInitFuncCode   += '        addToContainer(box, '+widgetListEditorName+')\n'
 #        widgetFromVarsCode   += '        ' + listWidMgrName + '.setValue(var.'+ fieldName +')\n'

@@ -434,9 +434,12 @@ struct GUI_ZStack: inherits=LinearLayout{
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
-    their ListWidgetManager: listWidgetMgr
-    their RelativeLayout: editorFrame
-    their View: listWidget
+    their ListWidgetManager:    listWidgetMgr
+    their GUI_Frame:            box
+    their GUI_Frame:            boxHeader
+    their GUI_Frame:            boxBody
+    their GUI_Frame:            boxFooter
+    their View:                 listWidget
     their FloatingActionButton: addBtn
     their FloatingActionButton: deleteBtn
     their FloatingActionButton: editBtn
@@ -456,16 +459,17 @@ struct ListManagerBox{
     void: setButtonsActive(me int: L) <- <%{
 
     }%>
-    their RelativeLayout: init_dialog(their ListWidgetManager: LEWM) <- <% {
+    their GUI_Frame: makeListBox(their ListWidgetManager: LEWM) <- <% {
         listWidgetMgr = LEWM;
-        // EDITOR FRAME
-        editorFrame = new RelativeLayout(GLOBAL.static_Global);
-        RelativeLayout.LayoutParams editorFrameParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
-        editorFrame.setLayoutParams(editorFrameParams);
-        // LIST WIDGET
+        // BOX
+        box = new LinearLayout(GLOBAL.static_Global);
+        LinearLayout.LayoutParams editorFrameParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
+        box.setLayoutParams(editorFrameParams);
+        // HEADER
+        // BODY
         listWidget = listWidgetMgr.makeListViewWidget();
-        editorFrame.addView(listWidget);
-        // ADD BUTTON
+        box.addView(listWidget);
+        // FOOTER
         addBtn = new FloatingActionButton(GLOBAL.static_Global);
         addBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleAdd();}});
         addBtn.setImageResource(android.R.drawable.ic_menu_add );
@@ -476,8 +480,7 @@ struct ListManagerBox{
         addBtnParams.topMargin = 550;
         addBtnParams.rightMargin = 40;
         addBtn.setLayoutParams(addBtnParams);
-        editorFrame.addView(addBtn);
-        // DELETE BUTTON
+        box.addView(addBtn);
         deleteBtn = new FloatingActionButton(GLOBAL.static_Global);
         deleteBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleDelete();}});
         //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_delete);
@@ -489,8 +492,7 @@ struct ListManagerBox{
         deleteBtnParams.topMargin = 550;
         deleteBtnParams.leftMargin = 40;
         deleteBtn.setLayoutParams(deleteBtnParams);
-        editorFrame.addView(deleteBtn);
-        // EDIT BUTTON
+        box.addView(deleteBtn);
         editBtn = new FloatingActionButton(GLOBAL.static_Global);
         editBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleEdit();}});
         //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_edit);
@@ -502,8 +504,8 @@ struct ListManagerBox{
         editBtnParams.topMargin = 550;
         //editBtnParams.leftMargin = 40;
         editBtn.setLayoutParams(editBtnParams);
-        editorFrame.addView(editBtn);
-        return editorFrame;
+        box.addView(editBtn);
+        return box;
     } %>
 }
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS

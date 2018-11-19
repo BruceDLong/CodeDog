@@ -318,7 +318,7 @@ struct ListWidgetManager{
 
     /- Override all these for each new list editing widget
     their listWidget: makeListViewWidget()  <- {return(NULL)}
-    their GUI_item: makeListHeader()        <- {return(NULL)}
+    their GUI_Frame: makeListHeader()       <- {return(NULL)}
     void: updateViewableWidget()            <- {}
     their GUI_item: makeEditableWidget()    <- {return(NULL)}
     void: updateEditableWidget(me int: N)   <- {}
