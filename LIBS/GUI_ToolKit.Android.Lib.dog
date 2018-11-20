@@ -887,10 +887,10 @@ struct GUI_ctxt: inherits=Canvas{
     me void: closePath()      <- <%!GPath.close()%>
     me void: rectangle()      <- <%!%0.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
     me void: paintNow()       <- <%!paint.setStyle(Paint.Style.FILL);cr.GCanvas.drawPaint(cr.paint)%>
-    me void: strokeNow()      <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
-    me void: fillNow()        <- <%!GCanvas.drawPath(cr.GPath, cr.paint)%>
-    me void: strokeKeep()     <- <%!draw(cr.GPath)%>
-    me void: fillKeep()       <- <%!paint.setStyle(Paint.Style.FILL_AND_STROKE)%>
+    me void: strokeNow()      <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
+    me void: fillNow()        <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
+    me void: strokeKeep()     <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
+    me void: fillKeep()       <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: renderFrame()    <- <%!repaint()%>
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
     me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!%0.paint.setStyle(Paint.Style.STROKE);%0.paint.setStrokeWidth(2);%0.GCanvas.drawCircle(%1, %2, %3, cr.paint)%>
@@ -973,6 +973,7 @@ struct GLOBAL: inherits=AppCompatActivity{
 
     /- //DRAWING ROUTINES:
     me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
+        cr.paint.setStyle(Paint.Style.FILL);
         cr.paint.setTextSize(font.size);
         cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
         cr.GCanvas.drawText(text, (float)x, (float)y, cr.paint);

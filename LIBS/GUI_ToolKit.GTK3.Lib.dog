@@ -171,7 +171,7 @@ struct dateWidget{
         guint year = dateTimeFields.year;
         guint month = dateTimeFields.month;
         guint day = dateTimeFields.day;
-        gtk_calendar_select_month((GtkCalendar*)dataValue, month, year);
+        gtk_calendar_select_month((GtkCalendar*)dataValue, month+1, year);
         gtk_calendar_select_day((GtkCalendar*)dataValue, day);
         //cout<<"Set DATE:"<< year << " / " <<  month+1 << " / " << day  <<"\n"<<flush;
     }%>
