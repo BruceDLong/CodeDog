@@ -86,12 +86,6 @@ def getButtonHandlingCode(classes, buttonLabel, fieldName):
 
 def getListWidgetMgrCode(classes, listManagerStructName, structTypeName):
     # New listWidgetMgr code generator
-    funcTextToUpdateViewWidget      = ''
-    funcTextToUpdateEditWidget      = ''
-    funcTextToUpdateCrntFromWidget  = ''
-    funcTextToPushCrntToListView    = ''
-    rowHeaderCode                   = ''
-
     # Find the model
     modelRef = findModelRef(classes[0], structTypeName)
     currentModelSpec = modelRef
@@ -103,7 +97,6 @@ def getListWidgetMgrCode(classes, listManagerStructName, structTypeName):
         label           = deCamelCase(fieldName)
         CasedFieldName  = fieldName[0].upper() + fieldName[1:]
         widgetName      = CasedFieldName + 'Widget'
-
 ###############
     CODE = 'struct '+listManagerStructName+''': inherits=ListWidgetManager{
     our <STRUCTNAME>:               crntRecord
@@ -119,13 +112,11 @@ def getListWidgetMgrCode(classes, listManagerStructName, structTypeName):
         their GUI_Frame: headerBox <- makeXStack("")
         return(headerBox)
     }
-
     their GUI_Frame: makeRowView(our <STRUCTNAME>: item) <- {
         their GUI_Frame: rowBox <- rowView.initWidget(item)
         showWidget(rowBox)
         return(rowBox)
     }
-
     their listWidget: makeListViewWidget() <- {
         listViewWidget <- makeListWidget('')
         setListWidgetSelectionMode (listViewWidget, SINGLE)
@@ -135,45 +126,48 @@ def getListWidgetMgrCode(classes, listManagerStructName, structTypeName):
         }
         return(listViewWidget)
     }
-
     me int: pushCrntToList(me int: N) <- {
         <STRUCTNAME>_ListData.pushLast(crntRecord);
         me int: listLength <- getListLength()
-        print('listLength: ', listLength, "\\n")
         their GUI_Frame: row <- makeRowView(crntRecord)
         rows.pushLast(row)
         addToContainer(listViewWidget, row)
         return(listLength)
     }
-
     void: deleteNthRow(me int: N) <- {
         rows.deleteNth(N)
     }
-
     their GUI_Frame: getNthRow(me int: N) <-{
         crntRow <- rows[N]
         return(crntRow)
     }
-
     me int: deleteNthItem(me int: N) <- {
         <STRUCTNAME>_ListData.deleteNth(N)
         me int: retVal <- getListLength()
         return(retVal)
     }
-
-    void: updateViewableWidget() <- {<funcTextToUpdateViewWidget>}
-    their GUI_Frame: makeEditableWidget() <- {return(dialog.initWidget(crntRecord))}
-    void: updateEditableWidget(me int: N) <- {<funcTextToUpdateEditWidget>}
-    void: updateCrntFromEdited(me int: N) <- {<funcTextToUpdateCrntFromWidget>}
-    void: allocateNewCurrentItem() <- {Allocate(crntRecord)}
-    void: copyCrntBackToList(me int: N) <- {<STRUCTNAME>_ListData[N] <- crntRecord}
-    void: copyCrntBackToListView(me int: N) <- {
-        print('copyCrntBackToListView ', N)
+    their GUI_Frame: makeEditableWidget() <- {
+        return(dialog.initWidget(crntRecord))
     }
-    void: setCurrentItem(me int: idx) <- {crntRecord <- <STRUCTNAME>_ListData[idx]}
-    void: setValue(our <STRUCTNAME>[our list]: ListData) <- {<STRUCTNAME>_ListData <- ListData}
-    me int: getListLength() <- {return(<STRUCTNAME>_ListData.size())}
-
+    void: updateCrntFromEdited(me int: N) <- {
+        dialog.getValue()
+        crntRecord <- dialog._data
+    }
+    void: allocateNewCurrentItem() <- {
+        Allocate(crntRecord)
+    }
+    void: copyCrntBackToList(me int: N) <- {
+        <STRUCTNAME>_ListData[N] <- crntRecord
+    }
+    void: setCurrentItem(me int: idx) <- {
+        crntRecord <- <STRUCTNAME>_ListData[idx]
+    }
+    void: setValue(our <STRUCTNAME>[our list]: ListData) <- {
+        <STRUCTNAME>_ListData <- ListData
+    }
+    me int: getListLength() <- {
+        return(<STRUCTNAME>_ListData.size())
+    }
     their GUI_Frame: initWidget(our <STRUCTNAME>[our list]: Data) <- {
         <STRUCTNAME>_ListData <- Data
         Allocate(rows)
@@ -183,11 +177,6 @@ def getListWidgetMgrCode(classes, listManagerStructName, structTypeName):
 }
 '''
     CODE = CODE.replace('<STRUCTNAME>', structTypeName)
-    CODE = CODE.replace('<funcTextToUpdateViewWidget>', funcTextToUpdateViewWidget)
-    CODE = CODE.replace('<funcTextToUpdateEditWidget>', funcTextToUpdateEditWidget)
-    CODE = CODE.replace('<funcTextToUpdateCrntFromWidget>', funcTextToUpdateCrntFromWidget)
-    CODE = CODE.replace('<funcTextToPushCrntToListView>', funcTextToPushCrntToListView)
-    CODE = CODE.replace('<ROWHEADERCODE>', rowHeaderCode)
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, listManagerStructName)
 
@@ -685,7 +674,7 @@ struct <NEWSTRUCTNAME>:inherits=appComponentGUI{
     CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
     CODE = CODE.replace('<CONTAINERWIDGET>', containerWidget)
     CODE = CODE.replace('<RETURNCODE>', retrunCode)
-    #print '==========================================================\n'+CODE
+    if newStructName == "Event_Dialog_GUI": print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 def apply(classes, tags, topClassName):
