@@ -433,8 +433,7 @@ struct GUI_ZStack: inherits=LinearLayout{
     }%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
-struct ListManagerBox{
-    their ListWidgetManager:    listWidgetMgr
+struct ListWidgetManager{
     their GUI_Frame:            box
     their GUI_Frame:            boxHeader
     their GUI_Frame:            boxBody
@@ -448,26 +447,25 @@ struct ListManagerBox{
 
     } %>
     void: handleAdd() <- <%{
-        listWidgetMgr.handleAdd();
+        handleAdd();
     }%>
     void: handleDelete() <- <% {
-        listWidgetMgr.handleDelete();
+        handleDelete();
     }%>
     void: handleEdit() <- <%{
-        listWidgetMgr.handleEdit();
+        handleEdit();
     }%>
     void: setButtonsActive(me int: L) <- <%{
 
     }%>
-    their GUI_Frame: makeListBox(their ListWidgetManager: LEWM) <- <% {
-        listWidgetMgr = LEWM;
+    their GUI_Frame: makeListBox() <- <% {
         // BOX
         box = new LinearLayout(GLOBAL.static_Global);
         LinearLayout.LayoutParams editorFrameParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
         box.setLayoutParams(editorFrameParams);
         // HEADER
         // BODY
-        listWidget = listWidgetMgr.makeListViewWidget();
+        listWidget = makeListViewWidget();
         box.addView(listWidget);
         // FOOTER
         addBtn = new FloatingActionButton(GLOBAL.static_Global);

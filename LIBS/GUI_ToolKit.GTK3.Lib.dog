@@ -340,8 +340,7 @@ struct GUI_TextViewer{
     me void: setEditable(me bool: isEditable)                 <- <%!gtk_text_view_set_editable(GTK_TEXT_VIEW(%0), %1)%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
-struct ListManagerBox{
-    their ListWidgetManager: listWidgetMgr
+struct ListWidgetManager{
     their GUI_Frame:         box
     their GUI_Frame:         boxHeader
     their GUI_Frame:         boxBody
@@ -357,12 +356,12 @@ struct ListManagerBox{
     void: handleOnListClick(me int: idx) <- <%{
         cout << "List Clicked at index: "<< to_string(idx)<<"\n";
         crntIndex = idx;
-        listWidgetMgr->setCurrentItem(crntIndex);
+        setCurrentItem(crntIndex);
     }%>
     void: handleAdd() <- <%{
         cout << "Add Btn Clicked\n";
-        listWidgetMgr->allocateNewCurrentItem();
-        GtkWidget* itemWidget = listWidgetMgr->makeEditableWidget();
+        allocateNewCurrentItem();
+        GtkWidget* itemWidget = makeEditableWidget();
         GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
         GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Add", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
         GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
@@ -371,15 +370,15 @@ struct ListManagerBox{
         int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
         if(result==1){
             cout<<"ACCEPTED "<<result<<"\n";
-            listWidgetMgr->updateCrntFromEdited(crntIndex);
-            listLength = listWidgetMgr->pushCrntToList(crntIndex);
+            updateCrntFromEdited(crntIndex);
+            listLength = pushCrntToList(crntIndex);
             setButtonsActive(listLength);
         } else {cout<<"CANCELED "<<result<<"\n";}
         gtk_widget_destroy(AddItemDialog);
     }%>
     void: handleDelete() <- <%{
         crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
-        crntRow = listWidgetMgr->getNthRow(crntIndex);
+        crntRow = getNthRow(crntIndex);
         cout << "Delete Btn Clicked at idx: "<< crntIndex <<"\n";
         if (crntIndex >= 0) {
             GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
@@ -389,7 +388,7 @@ struct ListManagerBox{
             int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
             if(result==1){
             cout<<"ACCEPTED "<<result<<"\n";
-            listLength = listWidgetMgr->deleteNthItem(crntIndex);
+            listLength = deleteNthItem(crntIndex);
             setButtonsActive(listLength);
             gtk_container_remove((GtkContainer*)listWidgetView, crntRow);
             gtk_widget_show_all(listWidgetView);
@@ -403,9 +402,9 @@ struct ListManagerBox{
         crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
         cout << "Edit Btn Clicked at idx: "<< crntIndex <<"\n";
         if (crntIndex >= 0) {
-            listWidgetMgr->allocateNewCurrentItem();
-            GtkWidget* itemWidget = listWidgetMgr->makeEditableWidget();
-            listWidgetMgr->updateEditableWidget(crntIndex);
+            allocateNewCurrentItem();
+            GtkWidget* itemWidget = makeEditableWidget();
+            updateEditableWidget(crntIndex);
             GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
             GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Edit", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
             GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
@@ -414,9 +413,9 @@ struct ListManagerBox{
             int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
             if(result==1){
             cout<<"ACCEPTED "<<result<<"\n";
-            listWidgetMgr->updateCrntFromEdited(crntIndex);
-            listWidgetMgr->copyCrntBackToList(crntIndex);
-            listWidgetMgr->copyCrntBackToListView(crntIndex);
+            updateCrntFromEdited(crntIndex);
+            copyCrntBackToList(crntIndex);
+            copyCrntBackToListView(crntIndex);
             } else {cout<<"CANCELED "<<result<<"\n";}
             gtk_widget_destroy(AddItemDialog);
         }
@@ -430,15 +429,14 @@ struct ListManagerBox{
             gtk_widget_set_sensitive (editBtn, FALSE);
         }
     }%>
-    their GtkWidget: makeListBox(their ListWidgetManager: LEWM) <- <% {
-        listWidgetMgr = LEWM;
+    their GtkWidget: makeListBox() <- <% {
         // BOX
         box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         // HEADER
-        boxHeader = listWidgetMgr->makeListHeader();
+        boxHeader = makeListHeader();
         // BODY
         boxBody = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-        listWidgetView = listWidgetMgr->makeListViewWidget();
+        listWidgetView = makeListViewWidget();
         gtk_box_pack_start(GTK_BOX(box), boxHeader, false, true, 0);
         gtk_box_pack_start(GTK_BOX(box), boxBody, true, true, 0);
         gtk_box_pack_start(GTK_BOX(boxBody), listWidgetView, true, true, 0);
@@ -447,7 +445,7 @@ struct ListManagerBox{
         addBtn = gtk_button_new_with_label("Add");
         deleteBtn = gtk_button_new_with_label("Remove");
         editBtn = gtk_button_new_with_label("Edit");
-        listLength <- listWidgetMgr->getListLength();
+        listLength <- getListLength();
         setButtonsActive(listLength);
         gtk_box_pack_start(GTK_BOX(boxFooter), addBtn, true, true, 10);
         gtk_box_pack_start(GTK_BOX(boxFooter), deleteBtn, true, true, 10);
@@ -552,18 +550,18 @@ struct GLOBAL{
 }
 struct GLOBAL{
     void: ListEditorHandleListClick(their GtkListBox: box, their GtkListBoxRow: row, their void: user_data) <- <% {
-        ListManagerBox *listMgrBox =(ListManagerBox *)user_data;
+        ListWidgetManager *listMgr =(ListWidgetManager *)user_data;
         int idx = gtk_list_box_row_get_index(gtk_list_box_get_selected_row(box));
-        listMgrBox->handleOnListClick(idx);
+        listMgr->handleOnListClick(idx);
     } %>
-    void: ListEditorHandleAdd(their GtkWidget: wid, their ListManagerBox: listMgrBox) <- {
-        listMgrBox.handleAdd()
+    void: ListEditorHandleAdd(their GtkWidget: wid, their ListWidgetManager: listMgr) <- {
+        listMgr.handleAdd()
     }
-    void: ListEditorHandleDelete(their GtkWidget: wid, their ListManagerBox: listMgrBox) <- {
-        listMgrBox.handleDelete()
+    void: ListEditorHandleDelete(their GtkWidget: wid, their ListWidgetManager: listMgr) <- {
+        listMgr.handleDelete()
     }
-    void: ListEditorHandleEdit(their GtkWidget: wid, their ListManagerBox: listMgrBox) <- {
-        listMgrBox.handleEdit()
+    void: ListEditorHandleEdit(their GtkWidget: wid, their ListWidgetManager: listMgr) <- {
+        listMgr.handleEdit()
     }
 }
 /-///////////////////////////////  HANDLE EVENTS

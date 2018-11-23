@@ -84,13 +84,13 @@ def getButtonHandlingCode(classes, buttonLabel, fieldName):
     # onClick() should call this.callback()
     #   GTK: void EntryPad_Dialog__EnterBtnCB(GtkWidget* wid, EntryPad* EPad){EPad->enter_btn();}
 
-def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTypeName):
+def getListWidgetMgrCode(classes, listManagerStructName, structTypeName):
+    # New listWidgetMgr code generator
     funcTextToUpdateViewWidget      = ''
     funcTextToUpdateEditWidget      = ''
     funcTextToUpdateCrntFromWidget  = ''
     funcTextToPushCrntToListView    = ''
     rowHeaderCode                   = ''
-    rowViewCode                     = ''
 
     # Find the model
     modelRef = findModelRef(classes[0], structTypeName)
@@ -104,66 +104,24 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
         CasedFieldName  = fieldName[0].upper() + fieldName[1:]
         widgetName      = CasedFieldName + 'Widget'
 
-        if not progSpec.isAContainer(typeSpec):
-            if(fldCat!='struct'):
-                rowHeaderCode   += '        their GUI_Label: '+fieldName + '_header <- makeLabelWidget("'+fieldName+'")\n'
-                rowHeaderCode   += '        setLabelWidth('+fieldName+'_header, 15)\n'
-                rowHeaderCode   += '        addToContainer(headerBox, '+fieldName+'_header)\n'
-
-            if fldCat=='struct':
-                funcTextToUpdateViewWidget     += ''
-                funcTextToUpdateEditWidget     += '   /- updateWidgetFromVars()\n'
-                funcTextToUpdateCrntFromWidget += '   /- updateVarsFromWidget()\n'
-            elif fldCat=='enum' or fldCat=='mode':
-                funcTextToUpdateViewWidget     += ''
-                funcTextToUpdateEditWidget     += ''
-                funcTextToUpdateCrntFromWidget += ''#  crntRecord.'+fieldName+' <- dialog.' + widgetName + '.getValue()\n'
-            elif fldCat=='bool':
-                funcTextToUpdateViewWidget     += ''
-                funcTextToUpdateEditWidget     += ''
-                funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dialog.' + widgetName + '.getValue()\n'
-            elif fldCat=='string':
-                funcTextToUpdateViewWidget     += ''
-                funcTextToUpdateEditWidget     += '    dialog.' + widgetName + '.setValue('+structTypeName+'_ListData[N].'+fieldName+')\n'
-                funcTextToUpdateCrntFromWidget += '    me string: '+widgetName+'Str <- dialog.' + widgetName + '.getValue()\n'
-                funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- '+widgetName+'Str\n'
-                rowViewCode                    += '        their GUI_Label: '+fieldName + '_value <- makeLabelWidget2(crntRecord.'+fieldName+')\n'
-                rowViewCode                    += '        setLabelWidth('+fieldName+'_value, 15)\n'
-                rowViewCode                    += '        addToContainer(rowBox, '+fieldName+'_value)\n'
-                rowViewCode                    += '        showWidget('+fieldName+'_value)\n'
-            elif fldCat=='int':
-                funcTextToUpdateViewWidget     += ''
-                funcTextToUpdateEditWidget     += '    dialog.' + widgetName + '.setValue('+structTypeName+'_ListData[N].'+fieldName+')\n'
-                #funcTextToUpdateCrntFromWidget += '    me string: '+widgetName+'Str <- string(dialog.' + widgetName + '.getValue())\n'
-                #funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dataStr\n'
-                rowViewCode                    += '        their GUI_Label: '+fieldName + '_value <- makeLabelWidget2(toString(crntRecord.'+fieldName+'))\n'
-                rowViewCode                    += '        setLabelWidth('+fieldName+'_value, 15)\n'
-                rowViewCode                    += '        addToContainer(rowBox, '+fieldName+'_value)\n'
-                rowViewCode                    += '        showWidget('+fieldName+'_value)\n'
-            else: print'pattern_MakeGUI.codeListWidgetManagerClassOverride fldCat not specified: ', fldCat;  exit(2)
-
 ###############
     CODE = 'struct '+listManagerStructName+''': inherits=ListWidgetManager{
     our <STRUCTNAME>:               crntRecord
     our <STRUCTNAME>[our list]:     <STRUCTNAME>_ListData
     me <STRUCTNAME>_Dialog_GUI:     dialog
+    our <STRUCTNAME>_ROW_View:      rowView
     their GUI_Frame:            box
     their GUI_Frame:            listViewWidget
     their GUI_Frame[their list]:rows
     their GUI_Frame:            crntRow
-    their ListManagerBox:       listMgrBox
 
     their GUI_Frame: makeListHeader() <- {
         their GUI_Frame: headerBox <- makeXStack("")
-        <ROWHEADERCODE>
-        addToContainer(box, headerBox)
         return(headerBox)
     }
 
     their GUI_Frame: makeRowView(our <STRUCTNAME>: item) <- {
-        crntRecord <- item
-        their GUI_Frame: rowBox <- makeXStack("")
-        <ROWVIEWCODE>
+        their GUI_Frame: rowBox <- rowView.initWidget(item)
         showWidget(rowBox)
         return(rowBox)
     }
@@ -219,8 +177,8 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     their GUI_Frame: initWidget(our <STRUCTNAME>[our list]: Data) <- {
         <STRUCTNAME>_ListData <- Data
         Allocate(rows)
-        Allocate(listMgrBox)
-        return(listMgrBox.makeListBox(self))
+        Allocate(rowView)
+        return(makeListBox())
     }
 }
 '''
@@ -230,7 +188,6 @@ def codeListWidgetManagerClassOverride(classes, listManagerStructName, structTyp
     CODE = CODE.replace('<funcTextToUpdateCrntFromWidget>', funcTextToUpdateCrntFromWidget)
     CODE = CODE.replace('<funcTextToPushCrntToListView>', funcTextToPushCrntToListView)
     CODE = CODE.replace('<ROWHEADERCODE>', rowHeaderCode)
-    CODE = CODE.replace('<ROWVIEWCODE>', rowViewCode)
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, listManagerStructName)
 
@@ -396,7 +353,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
 
         # If it hasn't already been added, make a struct <ItemType>_ListWidgetManager:ListWidgetManager{}
         listManagerStructName = structTypeName+'_ListWidgetManager'
-        codeListWidgetManagerClassOverride(classes, listManagerStructName, structTypeName)
+        getListWidgetMgrCode(classes, listManagerStructName, structTypeName)
 
         listWidMgrName        = 'LEWM'
         newWidgetFields      += '    me '+listManagerStructName+': '+listWidMgrName+'\n'
@@ -428,7 +385,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
     if dialogStyle == 'TabbedStack':
         widgetInitFuncCode+='             '+'setTabLabelText(box, '+ localWidgetVarName+', "'+label+'")\n'
 
-def BuildGuiForList(classes, className, dialogStyle, newStructName):
+def buildListRowView(classes, className, dialogStyle, newStructName):
     # This makes 4 types of changes to the class:
     #   It adds a widget variable for items in model // newWidgetFields: '    their '+typeName+': '+widgetName
     #   It adds a set Widget from Vars function      // widgetFromVarsCode: Func UpdateWidgetFromVars()
@@ -454,6 +411,9 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
     widgetInitFuncCode=''
     widgetFromVarsCode=''
     varsFromWidgetCode=''
+    funcTextToUpdateViewWidget= ''
+    funcTextToUpdateEditWidget= ''
+    funcTextToUpdateCrntFromWidget= ''
 
     # Find the model
     modelRef            = findModelRef(classes[0], className)
@@ -475,21 +435,53 @@ def BuildGuiForList(classes, className, dialogStyle, newStructName):
 
         if progSpec.isAContainer(typeSpec):# Add a new list to be processed
             structTypeName = typeSpec['fieldType'][0]
-            guiStructName  = structTypeName+'_LIST_View'
+            guiStructName  = structTypeName+'_ROW_View'
             addNewStructToProcess(guiStructName, structTypeName, 'list', 'Dialog')
+        else:
+            print "field::", fieldName, fldCat
+            if(fldCat!='struct'):
+                rowHeaderCode   += '        their GUI_Label: '+fieldName + '_header <- makeLabelWidget("'+fieldName+'")\n'
+                rowHeaderCode   += '        setLabelWidth('+fieldName+'_header, 15)\n'
+                rowHeaderCode   += '        addToContainer(headerBox, '+fieldName+'_header)\n'
+            if fldCat=='struct':
+                funcTextToUpdateViewWidget     += ''
+            elif fldCat=='enum' or fldCat=='mode':
+                funcTextToUpdateViewWidget     += ''
+                #funcTextToUpdateEditWidget     += ''
+                funcTextToUpdateCrntFromWidget += ''#  crntRecord.'+fieldName+' <- dialog.' + widgetName + '.getValue()\n'
+            elif fldCat=='bool':
+                funcTextToUpdateViewWidget     += ''
+            elif fldCat=='string':
+                #funcTextToUpdateViewWidget     += ''
+                #funcTextToUpdateEditWidget     += '    dialog.' + widgetName + '.setValue('+structTypeName+'_ListData[N].'+fieldName+')\n'
+                #funcTextToUpdateCrntFromWidget += '    me string: '+widgetName+'Str <- dialog.' + widgetName + '.getValue()\n'
+                #funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- '+widgetName+'Str\n'
+                rowViewCode                    += '        their GUI_Label: '+fieldName + '_value <- makeLabelWidget2(Data.'+fieldName+')\n'
+                rowViewCode                    += '        setLabelWidth('+fieldName+'_value, 15)\n'
+                rowViewCode                    += '        addToContainer(box, '+fieldName+'_value)\n'
+                rowViewCode                    += '        showWidget('+fieldName+'_value)\n'
+            elif fldCat=='int':
+                funcTextToUpdateViewWidget     += ''
+                #funcTextToUpdateEditWidget     += '    dialog.' + widgetName + '.setValue('+structTypeName+'_ListData[N].'+fieldName+')\n'
+                #funcTextToUpdateCrntFromWidget += '    me string: '+widgetName+'Str <- string(dialog.' + widgetName + '.getValue())\n'
+                #funcTextToUpdateCrntFromWidget += '    crntRecord.'+fieldName+' <- dataStr\n'
+                rowViewCode                    += '        their GUI_Label: '+fieldName + '_value <- makeLabelWidget2(toString(Data.'+fieldName+'))\n'
+                rowViewCode                    += '        setLabelWidth('+fieldName+'_value, 15)\n'
+                rowViewCode                    += '        addToContainer(box, '+fieldName+'_value)\n'
+                rowViewCode                    += '        showWidget('+fieldName+'_value)\n'
+            else: print'pattern_MakeGUI.codeListWidgetManagerClassOverride fldCat not specified: ', fldCat;  exit(2)
 
 
-    CODE =  '''struct <NEWSTRUCTNAME>{
-    our <CLASSNAME>[our list]: <CLASSNAME>_ListData
-    our <CLASSNAME>:   crntRecord
+    CODE =  '''struct '''+newStructName+'''{
+    their GUI_Frame:            box
+    their GUI_Frame: initWidget(our '''+className+''': Data) <- {
+        box <- makeXStack("")
+        '''+rowViewCode+'''
+        showWidget(box)
+        return(box)
+    }
 }
 '''
-
-    CODE = CODE.replace('<NEWSTRUCTNAME>', newStructName)
-    CODE = CODE.replace('<CLASSNAME>', className)
-    CODE = CODE.replace('<NEWWIDGETFIELDS>', newWidgetFields)
-    CODE = CODE.replace('<WIDGETFROMVARSCODE>', widgetFromVarsCode)
-    CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
@@ -578,7 +570,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         if fldCat != 'widget' and progSpec.isAContainer(typeSpec):# Add a new list to be processed
             if not isinstance(fieldType, basestring): fieldType=fieldType[0]
             structTypeName = fieldType
-            guiStructName  = structTypeName+'_LIST_View'
+            guiStructName  = structTypeName+'_ROW_View'
             addNewStructToProcess(guiStructName, structTypeName, 'list', 'Dialog')
 
         #TODO: make actions for each function
@@ -719,7 +711,7 @@ def apply(classes, tags, topClassName):
         if widgetType == 'struct':
             BuildGuiForStruct(classes, className, dialogStyle, newStructName)
         elif widgetType == 'list':
-            BuildGuiForList(classes, className, dialogStyle, newStructName)
+            buildListRowView(classes, className, dialogStyle, newStructName)
 
     # Fill createAppArea()
     primaryGUIName = 'primary_GUI_Mgr'
