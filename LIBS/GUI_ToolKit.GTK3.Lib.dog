@@ -351,7 +351,7 @@ struct ListWidgetManager{
     their GtkWidget:         editBtn
     me int:                  crntIndex <- 0
     me int:                  listLength
-    their GtkWidget:         crntRow
+    their GtkListBoxRow:         crntRow
 
     void: handleOnListClick(me int: idx) <- <%{
         cout << "List Clicked at index: "<< to_string(idx)<<"\n";
@@ -359,7 +359,6 @@ struct ListWidgetManager{
         setCurrentItem(crntIndex);
     }%>
     void: handleAdd() <- <%{
-        cout << "Add Btn Clicked\n";
         allocateNewCurrentItem();
         GtkWidget* itemWidget = makeEditableWidget();
         GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
@@ -369,7 +368,6 @@ struct ListWidgetManager{
         gtk_widget_show_all(AddItemDialog);
         int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
         if(result==1){
-            cout<<"ACCEPTED "<<result<<"\n";
             updateCrntFromEdited(crntIndex);
             listLength = pushCrntToList(crntIndex);
             setButtonsActive(listLength);
@@ -377,25 +375,25 @@ struct ListWidgetManager{
         gtk_widget_destroy(AddItemDialog);
     }%>
     void: handleDelete() <- <%{
-        crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
-        crntRow = getNthRow(crntIndex);
+        crntRow = gtk_list_box_get_selected_row((GtkListBox*)listWidgetView);
+        crntIndex = gtk_list_box_row_get_index(crntRow);
         cout << "Delete Btn Clicked at idx: "<< crntIndex <<"\n";
         if (crntIndex >= 0) {
             GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
-            GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Delete Item", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
-            GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
-            gtk_widget_show_all(AddItemDialog);
-            int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+            GtkWidget* DeleteItemDialog = gtk_dialog_new_with_buttons ("Delete Item", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+            GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)DeleteItemDialog);
+            gtk_widget_show_all(DeleteItemDialog);
+            int result = gtk_dialog_run ((GtkDialog*)DeleteItemDialog);
             if(result==1){
-            cout<<"ACCEPTED "<<result<<"\n";
-            listLength = deleteNthItem(crntIndex);
-            setButtonsActive(listLength);
-            gtk_container_remove((GtkContainer*)listWidgetView, crntRow);
-            gtk_widget_show_all(listWidgetView);
-            gtk_widget_queue_draw (listWidgetView);
-            gtk_widget_show_all(listWidgetView);
+                cout<<"ACCEPTED "<<result<<"\n";
+                listLength = deleteNthItem(crntIndex);
+                setButtonsActive(listLength);
+                gtk_container_remove((GtkContainer*)boxBody, listWidgetView);
+                listWidgetView = makeListViewWidget();
+                gtk_box_pack_start(GTK_BOX(boxBody), listWidgetView, true, true, 0);
+                gtk_widget_show_all(listWidgetView);
             } else {cout<<"CANCELED "<<result<<"\n";}
-            gtk_widget_destroy(AddItemDialog);
+            gtk_widget_destroy(DeleteItemDialog);
         }
     }%>
     void: handleEdit() <- <%{
@@ -412,10 +410,13 @@ struct ListWidgetManager{
             gtk_widget_show_all(AddItemDialog);
             int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
             if(result==1){
-            cout<<"ACCEPTED "<<result<<"\n";
-            updateCrntFromEdited(crntIndex);
-            copyCrntBackToList(crntIndex);
-            copyCrntBackToListView(crntIndex);
+                cout<<"ACCEPTED "<<result<<"\n";
+                updateCrntFromEdited(crntIndex);
+                copyCrntBackToList(crntIndex);
+                gtk_container_remove((GtkContainer*)boxBody, listWidgetView);
+                listWidgetView = makeListViewWidget();
+                gtk_box_pack_start(GTK_BOX(boxBody), listWidgetView, true, true, 0);
+                gtk_widget_show_all(listWidgetView);
             } else {cout<<"CANCELED "<<result<<"\n";}
             gtk_widget_destroy(AddItemDialog);
         }
