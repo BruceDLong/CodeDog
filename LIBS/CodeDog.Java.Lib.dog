@@ -52,9 +52,11 @@ struct FileStream{
     }%>
     me void: close() <- <%{try{RAFileStream.close();}catch(IOException e){failureFlag=true;}}%>
     me int:  getChar() <- <%{char ch=' '; try{ch = RAFileStream.readChar();}catch(IOException e){failureFlag=true;} return(ch);}%>
-    me void: getLine(me string: S) <- <%{
+    me string: getLine() <- <%{
+        String S="";
         try{S = RAFileStream.readLine();}
         catch(IOException e){failureFlag=true;}
+        return(S);
     }%>
     me void: write(me string: S) <- <%{
         try{RAFileStream.writeBytes(S);}
@@ -94,8 +96,7 @@ struct sessionFile{
         return(false)
     }
     me string: readEntry() <- {
-        me string: retVal;
-        session.getLine(retVal);
+        me string: retVal <- session.getLine();
         return(retVal)
     }
     me bool: eof() <- <%{

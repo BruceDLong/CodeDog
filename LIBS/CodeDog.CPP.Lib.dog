@@ -25,7 +25,7 @@ struct FileStream{
     me void: openAppend(me string: filename) <- <%!open(%1, ios_base::in | ios_base::out | ios_base::app)%>
     me void: close() <- <%!close()%>
     me int:  getChar() <- <%!get()%>
-    me void: getLine(me string: S) <- <%!getline(%0, %1)%>
+    me string: getLine() <- <%{string S; getline(%0, &S); return(S);}%>
     me void: write(me string: S) <- <%!write(%1.data(), %1.size())%>
     me bool: EOF() <- <%!eof()%>
     me bool: failure() <- <%!fail()%>
@@ -42,7 +42,7 @@ struct sessionFile{
         if(session.failure()){print("Creating session file "+filename+"\n"); return(true)}
         return(false)
     }
-    me string: readEntry() <- {me string: retVal; session.getLine(retVal); return(retVal)}
+    me string: readEntry() <- {me string: retVal <- session.getLine(retVal); return(retVal)}
     me bool: eof() <- {return(session.EOF())}
     me void: closeReading() <- {session.close()}
 }
