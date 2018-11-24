@@ -109,7 +109,7 @@ def getListWidgetMgrCode(classes, listManagerStructName, structTypeName):
     their GUI_Frame:            crntRow
 
     their GUI_Frame: makeListHeader() <- {
-        their GUI_Frame: headerBox <- makeXStack("")
+        their GUI_Frame: headerBox <- rowView.makeHeaderView()
         return(headerBox)
     }
     their GUI_Frame: makeRowView(our <STRUCTNAME>: item) <- {
@@ -161,6 +161,7 @@ def getListWidgetMgrCode(classes, listManagerStructName, structTypeName):
     }
     void: setCurrentItem(me int: idx) <- {
         crntRecord <- <STRUCTNAME>_ListData[idx]
+        crntRow    <- rows[idx]
     }
     void: setValue(our <STRUCTNAME>[our list]: ListData) <- {
         <STRUCTNAME>_ListData <- ListData
@@ -460,9 +461,14 @@ def buildListRowView(classes, className, dialogStyle, newStructName):
                 rowViewCode                    += '        showWidget('+fieldName+'_value)\n'
             else: print'pattern_MakeGUI.codeListWidgetManagerClassOverride fldCat not specified: ', fldCat;  exit(2)
 
-
     CODE =  '''struct '''+newStructName+'''{
     their GUI_Frame:            box
+    their GUI_Frame: makeHeaderView() <- {
+        their GUI_Frame: headerBox <- makeXStack("")
+        '''+rowHeaderCode+'''
+        showWidget(headerBox)
+        return(headerBox)
+    }
     their GUI_Frame: initWidget(our '''+className+''': Data) <- {
         box <- makeXStack("")
         '''+rowViewCode+'''
