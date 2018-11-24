@@ -351,7 +351,7 @@ struct ListWidgetManager{
     their GtkWidget:         editBtn
     me int:                  crntIndex <- 0
     me int:                  listLength
-    their GtkListBoxRow:         crntRow
+    their GtkListBoxRow:     crntRow
 
     void: handleOnListClick(me int: idx) <- <%{
         cout << "List Clicked at index: "<< to_string(idx)<<"\n";
@@ -430,15 +430,15 @@ struct ListWidgetManager{
             gtk_widget_set_sensitive (editBtn, FALSE);
         }
     }%>
-    their GtkWidget: makeListBox() <- <% {
+    their GUI_Frame: makeListBox() <- <% {
         // BOX
         box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         // HEADER
         boxHeader = makeListHeader();
+        gtk_box_pack_start(GTK_BOX(box), boxHeader, false, true, 0);
         // BODY
         boxBody = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
         listWidgetView = makeListViewWidget();
-        gtk_box_pack_start(GTK_BOX(box), boxHeader, false, true, 0);
         gtk_box_pack_start(GTK_BOX(box), boxBody, true, true, 0);
         gtk_box_pack_start(GTK_BOX(boxBody), listWidgetView, true, true, 0);
         // FOOTER

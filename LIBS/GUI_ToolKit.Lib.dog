@@ -319,7 +319,7 @@ struct ListWidgetManager{
     their listWidget: makeListViewWidget()  <- {return(NULL)}
     their GUI_Frame: makeListHeader()       <- {return(NULL)}
     void: updateViewableWidget()            <- {}
-    their GUI_item: makeEditableWidget()    <- {return(NULL)}
+    their GUI_Frame: makeEditableWidget()    <- {return(NULL)}
     void: updateEditableWidget(me int: N)   <- {}
     void: updateCrntFromEdited(me int: N)   <- {}
     void: allocateNewCurrentItem()          <- {}
