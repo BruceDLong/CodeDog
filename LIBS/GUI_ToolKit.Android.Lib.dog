@@ -433,77 +433,90 @@ struct GUI_ZStack: inherits=LinearLayout{
     }%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
-struct ListManagerBox{
-    their ListWidgetManager: listWidgetMgr
-    their RelativeLayout: editorFrame
-    their View: listWidget
+struct ListWidgetManager{
+    their GUI_Frame:            box
+    their GUI_Frame:            boxHeader
+    their GUI_Frame:            boxBody
+    their GUI_Frame:            boxFooter
+    their View:                 listWidgetView
     their FloatingActionButton: addBtn
     their FloatingActionButton: deleteBtn
     their FloatingActionButton: editBtn
+    me int:                  crntIndex <- 0
+    me int:                  listLength
 
     void: handleOnListClick(me int: idx) <- <% {
-
+       Log.v("GLOBAL", "handleOnListClick\n");
     } %>
     void: handleAdd() <- <%{
-        listWidgetMgr.handleAdd();
+       allocateNewCurrentItem();
+       LinearLayout itemWidget = makeEditableWidget();
+       AlertDialog.Builder builder = new AlertDialog.Builder(GLOBAL.static_Global);
+       builder.setView(itemWidget);
+       builder.setMessage("Add To List:")
+           .setPositiveButton("Add", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    updateCrntFromEdited(crntIndex);
+                    listLength = pushCrntToList(crntIndex);
+                    setButtonsActive(listLength);
+                }
+           })
+           .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+               public void onClick(DialogInterface dialog, int id) {}
+           });
+        builder.show();
     }%>
     void: handleDelete() <- <% {
-        listWidgetMgr.handleDelete();
+       Log.v("GLOBAL", "handleDelete\n");
     }%>
     void: handleEdit() <- <%{
-        listWidgetMgr.handleEdit();
+       Log.v("GLOBAL", "handleEdit\n");
     }%>
     void: setButtonsActive(me int: L) <- <%{
 
     }%>
-    their RelativeLayout: init_dialog(their ListWidgetManager: LEWM) <- <% {
-        listWidgetMgr = LEWM;
-        // EDITOR FRAME
-        editorFrame = new RelativeLayout(GLOBAL.static_Global);
-        RelativeLayout.LayoutParams editorFrameParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
-        editorFrame.setLayoutParams(editorFrameParams);
-        // LIST WIDGET
-        listWidget = listWidgetMgr.makeListViewWidget();
-        editorFrame.addView(listWidget);
-        // ADD BUTTON
+    their GUI_Frame: makeListBox() <- <% {
+        // BOX
+        box = GLOBAL.static_Global.makeAndroidVerticalLayout("");
+        // HEADER
+        boxHeader = makeListHeader();
+        box.addView(boxHeader);
+        // BODY
+        boxBody = GLOBAL.static_Global.makeAndroidVerticalLayout("");
+        listWidgetView = makeListViewWidget();
+        boxBody.addView(listWidgetView);
+        box.addView(boxBody);
+        // FOOTER
+        boxFooter = GLOBAL.static_Global.makeAndroidHorizontalLayout("");
         addBtn = new FloatingActionButton(GLOBAL.static_Global);
         addBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleAdd();}});
         addBtn.setImageResource(android.R.drawable.ic_menu_add );
         addBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
         addBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
         RelativeLayout.LayoutParams addBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
-        addBtnParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-        addBtnParams.topMargin = 550;
         addBtnParams.rightMargin = 40;
         addBtn.setLayoutParams(addBtnParams);
-        editorFrame.addView(addBtn);
-        // DELETE BUTTON
+        boxFooter.addView(addBtn);
         deleteBtn = new FloatingActionButton(GLOBAL.static_Global);
         deleteBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleDelete();}});
-        //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_delete);
         deleteBtn.setImageResource(android.R.drawable.ic_menu_delete);
         deleteBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
         deleteBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
         RelativeLayout.LayoutParams deleteBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
-        deleteBtnParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-        deleteBtnParams.topMargin = 550;
-        deleteBtnParams.leftMargin = 40;
+        deleteBtnParams.rightMargin = 40;
         deleteBtn.setLayoutParams(deleteBtnParams);
-        editorFrame.addView(deleteBtn);
-        // EDIT BUTTON
+        boxFooter.addView(deleteBtn);
         editBtn = new FloatingActionButton(GLOBAL.static_Global);
         editBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleEdit();}});
-        //Drawable trashIcon = ContextCompat.getDrawable(GLOBAL.static_Global, android.R.drawable.ic_menu_edit);
         editBtn.setImageResource(android.R.drawable.ic_menu_edit);
         editBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
         editBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
         RelativeLayout.LayoutParams editBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
-        editBtnParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
-        editBtnParams.topMargin = 550;
-        //editBtnParams.leftMargin = 40;
+        editBtnParams.rightMargin = 40;
         editBtn.setLayoutParams(editBtnParams);
-        editorFrame.addView(editBtn);
-        return editorFrame;
+        boxFooter.addView(editBtn);
+        box.addView(boxFooter);
+        return box;
     } %>
 }
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
@@ -548,7 +561,7 @@ struct GLOBAL{
         return box;
     }%>
     their GUI_Frame: makeListWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        LinearLayout box = GLOBAL.static_Global.makeAndroidVerticalLayout("");
         TextView textView = new TextView(GLOBAL.static_Global);
         textView.setText(label);
         box.addView(textView);

@@ -313,14 +313,13 @@ struct appComponentGUI{
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 
 struct ListWidgetManager{
-    me ListManagerBox: ListEdBox
     their GUI_Frame[their list]: rows
 
     /- Override all these for each new list editing widget
     their listWidget: makeListViewWidget()  <- {return(NULL)}
-    their GUI_item: makeListHeader()        <- {return(NULL)}
+    their GUI_Frame: makeListHeader()       <- {return(NULL)}
     void: updateViewableWidget()            <- {}
-    their GUI_item: makeEditableWidget()    <- {return(NULL)}
+    their GUI_Frame: makeEditableWidget()    <- {return(NULL)}
     void: updateEditableWidget(me int: N)   <- {}
     void: updateCrntFromEdited(me int: N)   <- {}
     void: allocateNewCurrentItem()          <- {}
@@ -332,11 +331,6 @@ struct ListWidgetManager{
     void: setCurrentItem(me int: idx)       <- {}
     me int: getListLength()                 <- {return(0)}
     their GUI_Frame: getNthRow(me int: N)   <- {return(NULL)}
-    void: handleAdd()    <- {}
-    void: handleDelete() <- {}
-    void: handleEdit()   <- {}
-
-
     /- Also, add their GUI_item: initWidget(<listType>)
 }
 
