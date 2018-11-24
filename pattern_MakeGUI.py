@@ -507,9 +507,12 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     varsFromWidgetCode = ''
     containerWidget    = ''
     boxFooterCode      = ''
+    scrollerCode       = ''
+    onLoadedCode       = ''
     makeBoxFooter      = False
     makeBackBtn        = False
     makeNextBtn        = False
+    makeVScroller      = False
 
     # Find the model
     modelRef         = findModelRef(classes[0], className)
@@ -539,7 +542,10 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             makeBoxFooter  = True
             makeNextBtn    = True
             clickNextLabel = "Next"
-
+    classProperties = progSpec.searchATagStore(modelRef['tags'], 'properties')
+    if classProperties != None:
+        for classProperty in classProperties:
+            if classProperty[0] == 'vScroller': makeVScroller = True
     ### Write code for each field
     for field in modelRef['fields']:
         typeSpec     = field['typeSpec']
@@ -581,8 +587,8 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
 
     # Parse everything
     initFuncName           = 'initWidget'
-    retrunCode             = 'onLoaded()\n'
-    retrunCode            += '        return(box)'
+    onLoadedCode           = 'onLoaded()\n'
+    returnCode             = '        return(box)'
     if dialogStyle   == 'Z_stack':
         newWidgetFields   += '    their GUI_ZStack: Zbox\n'
         newWidgetFields   += '    me string[list]: children\n'
@@ -595,9 +601,9 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         newWidgetFields   += '        }\n'
         newWidgetFields   += '    }\n'
         containerWidget    = 'Zbox <- makeZStack("'+className+'")\n'
-        retrunCode         = 'setActiveChild(0)\n'
-        retrunCode        += '        onLoaded()\n'
-        retrunCode        += '        return(Zbox)\n'
+        onLoadedCode       = 'setActiveChild(0)\n'
+        onLoadedCode      += '        onLoaded()\n'
+        returnCode         = '        return(Zbox)\n'
         # addToContainer or
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
     elif dialogStyle == 'WizardStack':
@@ -649,38 +655,40 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             boxFooterCode      += '        GUI.setBtnCallback(nextBtn, "clicked", clickNext, this)\n'
             boxFooterCode      += '        addToContainer(boxFooter, nextBtn)\n'
         boxFooterCode      += '        addToContainer(box, boxFooter)\n'
+    if makeVScroller:
+        scrollerCode  = 'their GUI_VerticalScroller: scroller <- makeVerticalScroller(1000,800)\n'
+        scrollerCode += 'addToContainer(scroller, box)\n'
+        scrollerCode += 'their GUI_Frame: scrollerBox <- makeYStack("")\n'
+        scrollerCode += 'addToContainer(scrollerBox, scroller)\n'
+        returnCode    = 'return (scrollerBox)'
 
     CODE =  '''
 struct <CLASSNAME>:inherits=appComponentData{}
 struct <NEWSTRUCTNAME>:inherits=appComponentGUI{
-    <NEWWIDGETFIELDS>
+    '''+newWidgetFields+'''
     our <CLASSNAME>: _data
     their GUI_Frame: <INITFUNCNAME>(our <CLASSNAME>: Data) <- {
         _data <- Data
         _data.guiMgr <- self
-        <CONTAINERWIDGET>
-        <WIDGETINITFUNCCODE>
+        '''+containerWidget+'''
+        '''+widgetInitFuncCode+'''
         '''+boxFooterCode+'''
-        <RETURNCODE>
+        '''+scrollerCode+'''
+        '''+onLoadedCode+'''
+        '''+returnCode+'''
     }
     void: setValue(our <CLASSNAME>: var) <- {
-        <WIDGETFROMVARSCODE>
+        '''+widgetFromVarsCode+'''
     }
     void: getValue() <- {
-        <VARSFROMWIDGETCODE>
+        '''+varsFromWidgetCode+'''
     }
 }\n'''  # TODO: add <VARSFROMWIDGETCODE>
 
     CODE = CODE.replace('<NEWSTRUCTNAME>', newStructName)
-    CODE = CODE.replace('<NEWWIDGETFIELDS>', newWidgetFields)
     CODE = CODE.replace('<CLASSNAME>', className)
-    CODE = CODE.replace('<WIDGETINITFUNCCODE>', widgetInitFuncCode)
     CODE = CODE.replace('<INITFUNCNAME>', initFuncName)
-    CODE = CODE.replace('<WIDGETFROMVARSCODE>', widgetFromVarsCode)
-    CODE = CODE.replace('<VARSFROMWIDGETCODE>', varsFromWidgetCode)
-    CODE = CODE.replace('<CONTAINERWIDGET>', containerWidget)
-    CODE = CODE.replace('<RETURNCODE>', retrunCode)
-    if newStructName == "Event_Dialog_GUI": print '==========================================================\n'+CODE
+    #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 def apply(classes, tags, topClassName):
