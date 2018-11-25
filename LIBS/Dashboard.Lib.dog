@@ -78,9 +78,9 @@ struct Dashboard: inherits=dash{
     }
 
     void: requestRedraw() <- {
-	if(dashParent==NULL){log("In Dashboard.requestRedraw() dashParent was NULL")}
-	isDirty<-true; 
-	dashParent.requestRedraw()
+    if(dashParent==NULL){log("In Dashboard.requestRedraw() dashParent was NULL")}
+    isDirty<-true;
+    dashParent.requestRedraw()
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
@@ -99,7 +99,7 @@ struct Dashboard: inherits=dash{
         requestRedraw()
         return(true)
     }
-    
+
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
         width <- widgetWidth(canvas);
         height <- widgetHeight(canvas)
@@ -116,7 +116,7 @@ struct Dashboard: inherits=dash{
         requestRedraw()
         return(true)
     }
-    
+
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
         width <- widgetWidth(canvas);
         height <- widgetHeight(canvas)
@@ -133,7 +133,7 @@ struct Dashboard: inherits=dash{
         requestRedraw()
         return(true)
     }
-    
+
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
         width <- widgetWidth(canvas);
         height <- widgetHeight(canvas)
@@ -150,7 +150,7 @@ struct Dashboard: inherits=dash{
         requestRedraw()
         return(true)
     }
-    
+
     me bool: mouseMoved(their GUI_MotionEvent: event) <- {
         width <- widgetWidth(canvas);
         height <- widgetHeight(canvas)
@@ -178,8 +178,8 @@ struct Dashboard: inherits=dash{
     /-me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
 
     void: init(me string: label) <- {
-	title <- label+".Dashboard"
-	isHidden <- false
+    title <- label+".Dashboard"
+    isHidden <- false
     }
 
     void: update() <- {}
@@ -213,8 +213,8 @@ struct Dashboard: inherits=dash{
     void: layoutChildDashes() <- {
         if(sizingMode==accomodateContent){return()}
         if(layoutMode==singleDash){
-            dashChildren[0].width <- widgetWidth(canvas)-100;
-            dashChildren[0].height <- widgetHeight(canvas)-100;
+            dashChildren[0].width <- widgetWidth(canvas)
+            dashChildren[0].height <- widgetHeight(canvas)
         } else if(layoutMode==verticalStack){
         } else if(layoutMode==userArranges){
         }
@@ -421,7 +421,7 @@ struct DashboardWidget: inherits=dash{
     their GUI_canvas: managedWidget
     me GUI_eventDispatcher: EventDispatcher
     void: requestRedraw() <- {
-	markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
+    markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
     }
     their GUI_canvas: init(me string: label) <- {
         title   <- 'DashboardWidget.'+label

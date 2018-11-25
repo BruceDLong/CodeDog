@@ -527,7 +527,7 @@ struct GLOBAL{
     their GUI_Frame: makeYStack(me string: label)                               <- <%!makeAndroidVerticalLayout(%1)%>
     their GUI_Frame: makeZStack(me string: label)                               <- <%!%G new GUI_ZStack()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget)   <- <%!%G%1.addView(%2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.setWeightSum(1.0f); %2.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.75f)); %1.addView(%2)%>
     me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G%1.addZStackChild(%2,%3)%>
     me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G%1.setZStackChild(%2)%>
     their GUI_button: makeButtonWidget(me string: label)                        <- <%!makeAndroidButton(%1)%>
@@ -1168,7 +1168,7 @@ struct GLOBAL: inherits=AppCompatActivity{
         displayWidthPx   = metrics.widthPixels;
         GLOBAL.static_Global.styler.widgetLabelBoxWidth = (int)Math.round((double)displayWidthPx*0.38);
         GLOBAL.static_Global.styler.widgetValueBoxWidth = displayWidthPx - GLOBAL.static_Global.styler.widgetLabelBoxWidth;
-        displayDensity   = metrics.density;
+        displayDensity   = 1; //metrics.density;
     }%>
     me void: setFontScale() <- <%{
         Configuration configuration = getResources().getConfiguration();

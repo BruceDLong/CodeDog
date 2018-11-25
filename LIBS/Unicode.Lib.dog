@@ -31,13 +31,21 @@ struct USpoofChecker {me USpoofChecker: USpoofChecker}
 
 struct UnicodeMgr {
     me UnicodeStr: chooseFormatPattern(me double: graphInterval) <- {
-    me UnicodeStr: dateFormat
-    me double: level1 <- 1000.0*60*60
-    me double: level2 <- 1000.0*60*60*24*7
+        me UnicodeStr: dateFormat
+        me double: minutes<-1000.0
+        me double: hours <- 1000.0*60*60
+        me double: days  <- 1000.0*60*60*24
+        me double: weeks <- 1000.0*60*60*24*7
+        me double: months<- 1000.0*60*60*24*30
+        me double: years <- 1000.0*60*60*24*300
 
-    if(graphInterval >= level2) {dateFormat <- "MMM d"}
-    else if (graphInterval >= level1) {dateFormat <- "E h:mm a"}
-    else {dateFormat <- "yyyy.MM.dd HH:mm:ss"}
-    return(dateFormat)
+        if (graphInterval >= years) {dateFormat <- "yyyy/MMM/dd"}
+        else if (graphInterval >= months) {dateFormat <- "MMM d"}
+        else if (graphInterval >= weeks) {dateFormat <- "MMM d, h:mm a"}
+        else if (graphInterval >= days) {dateFormat <- "E h:mm a"}
+        else if(graphInterval >= hours) {dateFormat <- "E h:mm a"}
+        else if(graphInterval >= minutes) {dateFormat <- "h:mm:ss a"}
+        else {dateFormat <- "H:mm:sss"}
+        return(dateFormat)
     }
 }
