@@ -206,7 +206,10 @@ struct dateWidget{
         return data;
     }%>
     me void: setValue(me timeValue: value) <- <%{
-        dataValue.setText(dateFormatter.format(value));
+        Calendar cal= Calendar.getInstance();
+        dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
+        String dateStr=dateFormatter.format(cal.getTime());
+        dataValue.setText(dateStr);
     }%>
     their GUI_Frame: initWidget(me string: label)  <- <%{
         dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
