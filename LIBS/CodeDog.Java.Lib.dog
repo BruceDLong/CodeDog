@@ -153,6 +153,7 @@ struct GLOBAL{
     me long: getCurrentTimeStamp() <- <%!%Gnew Date().getTime()%>
     me timeOutID: callPeriodically(me string: varClass, me string: funcToCall, me int:microSecs): COMMAND_addImplements="Runnable:ToClass:%1" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%2, 0, %3, TimeUnit.MILLISECONDS)%>
     me string: toString(me double: val) <- <%!%GDouble.toString(%1)%>
+    me string: longToString(me long: val) <- <%!%GLong.toString(%1)%>
     me string: toString(me int: val) <- <%!%GInteger.toString(%1)%>
     me void: endFunc(me int: val) <- <%!%G %>
     me int: uniqueObjectID(their any:obj)  <- <%!%GSystem.identityHashCode(%1)%>
