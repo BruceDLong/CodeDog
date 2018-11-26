@@ -367,26 +367,29 @@ struct TimeWidget{
 
 struct DateTimeWidget{
     their GUI_Frame:  box
+    their GUI_Label:  dataLabel
+    their GUI_Frame:  dateBox
     their DateWidget: dateWidget
+    their GUI_Frame:  timeBox
     their TimeWidget: timeWidget
     me timeValue:     data
 
     their GUI_Frame: initCrnt(me string: label) <- {
         me timeValue: crntTime <- getCurrentTimeStamp()
-        box <- initialize(crntTime)
+        box <- initialize(label, crntTime)
         return(box)
     }
-    their GUI_Frame: initialize(me timeValue: defaultTime) <- {
+    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
+        dataLabel <- makeLabelWidget2(label);
         /-/// DATE ////////////////////////////////////
         Allocate(dateWidget)
-        their GUI_Frame: dateBox <- makeYStack("")
-        dateBox <- dateWidget.initCrnt("")
+        dateBox <- dateWidget.initCrnt("Date")
         /-/// TIME ////////////////////////////////////
         Allocate(timeWidget)
-        their GUI_Frame: timeBox <- makeYStack("")
-        timeBox <- timeWidget.initCrnt("")
+        timeBox <- timeWidget.initCrnt("Time")
         /-/// RETURN BOX //////////////////////////////
         box <- makeXStack("")
+        addToContainer(box, dataLabel)
         addToContainer(box, dateBox)
         addToContainer(box, timeBox)
         return(box)
