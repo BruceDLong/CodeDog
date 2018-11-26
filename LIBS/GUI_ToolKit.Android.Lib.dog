@@ -13,7 +13,7 @@ interface={
         android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
         android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment, android.support.v4.app.DialogFragment,
         android.util.Log, android.content.res.AssetManager, android.content.Context, android.graphics.Rect, android.os.Looper,  android.os.HandlerThread,
-        android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.LinearGradient,
+        android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.LinearGradient, android.view.Gravity,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.graphics.Shader, android.graphics.Shader.TileMode,
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
         android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup, android.widget.TimePicker, android.app.TimePickerDialog, android.app.TimePickerDialog.OnTimeSetListener,
@@ -296,10 +296,10 @@ struct DateWidget{
         calendar      = Calendar.getInstance();
         box           = new LinearLayout(GLOBAL.static_Global);
         dataLabel     = new TextView(GLOBAL.static_Global);
-        dataValue     = new EditText(GLOBAL.static_Global);
         dataLabel.setText(label);
-        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
         dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataLabel.setVisibility(View.VISIBLE);
+        dataValue     = new EditText(GLOBAL.static_Global);
         dataValue.setInputType(InputType.TYPE_NULL);
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
@@ -327,7 +327,6 @@ struct DateWidget{
     }%>
 }
 struct TimeWidget{
-    their GUI_Frame:         box
     their GUI_Text:          dataValue
     me timeValue:            data
     their Calendar:          calendar
@@ -340,7 +339,6 @@ struct TimeWidget{
         dataLabel     = new TextView(GLOBAL.static_Global);
         dataValue     = new EditText(GLOBAL.static_Global);
         dataLabel.setText(label);
-        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
         dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue.setInputType(InputType.TYPE_NULL);
         timeListener = new TimePickerDialog.OnTimeSetListener() {
@@ -361,7 +359,7 @@ struct TimeWidget{
                 dialog.show();
             }
         });
-
+        dataLabel.setVisibility(View.VISIBLE);
         box.addView(dataLabel);
         box.addView(dataValue);
         return box;
@@ -665,6 +663,12 @@ struct GLOBAL{
     }%>
     their GUI_VerticalScroller: makeAndroidVerticalScroller(me int: width, me int: height) <- <%{
         ScrollView  scroller = new  ScrollView(GLOBAL.static_Global);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+        //params.setMargins(0,0,0,100);
+        //params.gravity=Gravity.CENTER;
+        //scroller.setPadding(0,0,0,100);
+        scroller.setFillViewport(true);
+        scroller.setLayoutParams(params);
         scroller.setLayoutParams(new ViewGroup.LayoutParams(width, height));
         return(scroller);
     }%>
