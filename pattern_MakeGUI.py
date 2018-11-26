@@ -103,8 +103,8 @@ def getListWidgetMgrCode(classes, listManagerStructName, structTypeName):
     our <STRUCTNAME>[our list]:     <STRUCTNAME>_ListData
     me <STRUCTNAME>_Dialog_GUI:     dialog
     our <STRUCTNAME>_ROW_View:      rowView
-    their GUI_Frame:            box
-    their GUI_Frame:            listViewWidget
+    their GUI_YStack:            box
+    their GUI_XStack:           listViewWidget
     their GUI_Frame[their list]:rows
     their GUI_Frame:            crntRow
 
@@ -371,7 +371,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
         if classPrimaryGuiItem==fieldName: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetBoxName+')\n'
-        else: widgetInitFuncCode   += '        addToContainer(box, '+widgetBoxName+')\n'
+        else: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetBoxName+')\n'
     if dialogStyle == 'TabbedStack':
         widgetInitFuncCode+='             '+'setTabLabelText(box, '+ localWidgetVarName+', "'+label+'")\n'
 
@@ -483,8 +483,8 @@ def buildListRowView(classes, className, dialogStyle, newStructName):
 def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     # This makes 4 types of changes to the class:
     #   It adds a widget variable for items in model // newWidgetFields: '    their '+typeName+': '+widgetName
-    #   It adds a set Widget from Vars function      // widgetFromVarsCode: Func UpdateWidgetFromVars()
-    #   It adds a set Vars from Widget function      // varsFromWidgetCode: Func UpdateVarsFromWidget()
+    #   It adds a set Widget from Vars function      // widgetFromVarsCode: Func setValue()
+    #   It adds a set Vars from Widget function      // varsFromWidgetCode: Func getValue()
     #   It add an initialize Widgets function.       // widgetInitFuncCode: widgetName+' <- '+makeTypeNameCall+'\n    addToContainer(box, '+widgetName+')\n'
 
     # dialogStyles: 'Z_stack', 'X_stack', 'Y_stack', 'TabbedStack', 'FlowStack', 'WizardStack', 'Dialog', 'SectionedDialogStack', 'V_viewable'
@@ -585,7 +585,6 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         else: # Here is the main case where code to edit this field is written
             getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dialogStyle, classPrimaryGuiItem, '')
 
-    # Parse everything
     initFuncName           = 'initWidget'
     onLoadedCode           = 'onLoaded()\n'
     returnCode             = '        return(box)'
@@ -604,7 +603,6 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         onLoadedCode       = 'setActiveChild(0)\n'
         onLoadedCode      += '        onLoaded()\n'
         returnCode         = '        return(Zbox)\n'
-        # addToContainer or
     elif dialogStyle == 'TabbedStack': containerWidget='their GUI_Frame:box <- makeTabbedWidget("makeTabbedWidget")'
     elif dialogStyle == 'WizardStack':
         newWidgetFields    += '    our wizardWidget: wiz\n'
@@ -644,7 +642,6 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             boxFooterCode      += '        addToContainer(boxFooter, backBtn)\n'
         if makeNextBtn:
             newWidgetFields    += '    their GUI_button: nextBtn\n'
-            #newWidgetFields    += '    void: clickNext() <-{parentGuiMgr.clickNext()}\n'
             newWidgetFields    += '''    void: clickNext() <-{
                 if(isComplete()){
                     save()
@@ -656,11 +653,9 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             boxFooterCode      += '        addToContainer(boxFooter, nextBtn)\n'
         boxFooterCode      += '        addToContainer(box, boxFooter)\n'
     if makeVScroller:
-        scrollerCode  = 'their GUI_VerticalScroller: scroller <- makeVerticalScroller(1000,800)\n'
-        scrollerCode += 'addToContainer(scroller, box)\n'
-        scrollerCode += 'their GUI_Frame: scrollerBox <- makeYStack("")\n'
-        scrollerCode += 'addToContainer(scrollerBox, scroller)\n'
-        returnCode    = 'return (scrollerBox)'
+        scrollerCode  = 'their GUI_VerticalScroller: scroller <- makeVerticalScroller()\n'
+        scrollerCode += 'addToContainerAndExpand(scroller, box)\n'
+        returnCode    = 'return (scroller)'
 
     CODE =  '''
 struct <CLASSNAME>:inherits=appComponentData{}
@@ -718,25 +713,21 @@ def apply(classes, tags, topClassName):
 
     # Fill createAppArea()
     primaryGUIName = 'primary_GUI_Mgr'
-    primaryMakerFuncName = 'initWidget'
 
     CODE ='''
 struct APP{
-    our <TOPCLASSNAME>: primary
-    our <GUI_STRUCTNAME>: <PRIMARY_GUI>
+    our '''+topClassName+''': primary
+    our '''+guiStructName+''': <PRIMARY_GUI>
     me void: createAppArea(me GUI_Frame: frame) <- {
         Allocate(primary)
         Allocate(<PRIMARY_GUI>)
-        their GUI_storyBoard: appStoryBoard <- <PRIMARY_GUI>.<PRIMARY_MAKERFUNCNAME>(primary)
+        their GUI_container: appStoryBoard <- <PRIMARY_GUI>.initWidget(primary)
         initializeAppGui()
         gui.addToContainerAndExpand (frame, appStoryBoard)
     }
 }'''
 
     CODE = CODE.replace('<PRIMARY_GUI>', primaryGUIName)
-    CODE = CODE.replace('<TOPCLASSNAME>', topClassName)
-    CODE = CODE.replace('<GUI_STRUCTNAME>', guiStructName)
-    CODE = CODE.replace('<PRIMARY_MAKERFUNCNAME>', primaryMakerFuncName)
     #print '==========================================================\n'+CODE
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'APP')
 

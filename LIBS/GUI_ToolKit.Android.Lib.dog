@@ -8,11 +8,11 @@ interface={
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
         android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.ScrollView, android.widget.TextView,
-        android.widget.RelativeLayout, android.widget.FrameLayout, android.util.DisplayMetrics, android.os.Handler, android.content.res.Configuration,
+        android.widget.RelativeLayout, android.widget.FrameLayout, android.util.DisplayMetrics, android.os.Handler, android.content.res.Configuration, android.content.res.Resources,
         android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface, android.support.v4.content.ContextCompat,
         android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
         android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment, android.support.v4.app.DialogFragment,
-        android.util.Log, android.content.res.AssetManager, android.content.Context, android.graphics.Rect, android.os.Looper,  android.os.HandlerThread,
+        android.util.Log, android.content.res.AssetManager, android.content.Context, android.content.ContextWrapper, android.graphics.Rect, android.os.Looper,  android.os.HandlerThread,
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.LinearGradient,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.graphics.Shader, android.graphics.Shader.TileMode,
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
@@ -37,18 +37,38 @@ initCode = `
 
 embedHigh = `
 class gui_str_list extends ArrayList<String>{};
+
+class ScaledContextWrapper extends ContextWrapper {
+
+    public ScaledContextWrapper(Context base) {
+        super(base);
+    }
+
+    @SuppressWarnings("deprecation")
+    public static ScaledContextWrapper wrap(Context context) {
+        Resources resources = context.getResources();
+        Configuration configuration = resources.getConfiguration();
+        DisplayMetrics metrics = resources.getDisplayMetrics();
+        float sScaleRatio = 0.75f;
+        configuration.densityDpi = (int) (metrics.densityDpi * sScaleRatio);
+        configuration.fontScale = sScaleRatio;
+
+        context = context.createConfigurationContext(configuration);
+        return new ScaledContextWrapper(context);
+    }
+}
 `
 
 /-///////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me View: GUI_item}
-struct GUI_Frame{me LinearLayout:GUI_Frame}
+struct GUI_Frame{me ViewGroup:GUI_Frame}
 struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
 struct GUI_menu{me ourSubMenu: GUI_menu}
 struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me CanvasView: GUI_canvas}
-struct GUI_container{me LinearLayout:GUI_container}
+struct GUI_container{me ViewGroup:GUI_container}
 struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
 struct GUI_VerticalScroller{me ScrollView: GUI_VerticalScroller}
 struct INK_Image{their Paint: INK_Image}      /- How will the ink look?
@@ -431,7 +451,7 @@ struct GUI_ZStack: inherits=LinearLayout{
     }%>
     me void: setZStackChild(me string: childName)                         <- <%{
         removeAllViews();
-        LinearLayout childView = children.get(childName);
+        ViewGroup childView = children.get(childName);
         addView(childView);
     }%>
 }
@@ -453,7 +473,7 @@ struct ListWidgetManager{
     } %>
     void: handleAdd() <- <%{
        allocateNewCurrentItem();
-       LinearLayout itemWidget = makeEditableWidget();
+       ViewGroup itemWidget = makeEditableWidget();
        AlertDialog.Builder builder = new AlertDialog.Builder(GLOBAL.static_Global);
        builder.setView(itemWidget);
        builder.setMessage("Add To List:")
@@ -526,11 +546,11 @@ struct ListWidgetManager{
 struct GLOBAL{
     their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     their rangeWidget: makeRangeWidget(me string: label)                        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_Frame: makeXStack(me string: label)                               <- <%!makeAndroidHorizontalLayout(%1)%>
-    their GUI_Frame: makeYStack(me string: label)                               <- <%!makeAndroidVerticalLayout(%1)%>
+    their GUI_XStack: makeXStack(me string: label)                               <- <%!makeAndroidHorizontalLayout(%1)%>
+    their GUI_YStack: makeYStack(me string: label)                               <- <%!makeAndroidVerticalLayout(%1)%>
     their GUI_Frame: makeZStack(me string: label)                               <- <%!%G new GUI_ZStack()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget)   <- <%!%G%1.addView(%2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.setWeightSum(1.0f); %2.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.75f)); %1.addView(%2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%2.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f)); %1.addView(%2)%>
     me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G%1.addZStackChild(%2,%3)%>
     me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G%1.setZStackChild(%2)%>
     their GUI_button: makeButtonWidget(me string: label)                        <- <%!makeAndroidButton(%1)%>
@@ -538,7 +558,7 @@ struct GLOBAL{
     me void: setTabLabelText()                                                  <- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
     me GUI_Scalar: convertToGUIScalar()                                         <- <%!%G (float)(%1)%>
     their GUI_Bool: makeCheckBox()                                              <- <%!%G new CheckBox(GLOBAL.static_Global)%>
-    their GUI_VerticalScroller: makeVerticalScroller(me int: width, me int: height) <- <%!makeAndroidVerticalScroller(%1,%2)%>
+    their GUI_VerticalScroller: makeVerticalScroller() <- <%!makeAndroidVerticalScroller()%>
     their GUI_TextViewer: makeTextViewer(me string: text)                       <- <%!makeAndroidTextViewer(%1)%>
     me void: setButtonLabel(their GtkButton: btn, me string: label)
         <- <%!%G%1.setText(%2)%>
@@ -563,7 +583,7 @@ struct GLOBAL{
         box.addView(timePicker);
         return box;
     }%>
-    their GUI_Frame: makeListWidget(me string: label)      <- <%{
+    their GUI_YStack: makeListWidget(me string: label)      <- <%{
         LinearLayout box = GLOBAL.static_Global.makeAndroidVerticalLayout("");
         TextView textView = new TextView(GLOBAL.static_Global);
         textView.setText(label);
@@ -648,13 +668,15 @@ struct GLOBAL{
 }
 /-///////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
-    their GUI_Frame: makeAndroidHorizontalLayout(me string: label) <- <%{
+    their GUI_XStack: makeAndroidHorizontalLayout(me string: label) <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        box.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f));
         box.setOrientation(LinearLayout.HORIZONTAL);
         return box;
     }%>
-    their GUI_Frame: makeAndroidVerticalLayout(me string: label)   <- <%{
+    their GUI_YStack: makeAndroidVerticalLayout(me string: label)   <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
+        box.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f));
         box.setOrientation(LinearLayout.VERTICAL);
         return box;
     }%>
@@ -663,9 +685,9 @@ struct GLOBAL{
         textViewer.setText(text);
         return textViewer;
     }%>
-    their GUI_VerticalScroller: makeAndroidVerticalScroller(me int: width, me int: height) <- <%{
+    their GUI_VerticalScroller: makeAndroidVerticalScroller() <- <%{
         ScrollView  scroller = new  ScrollView(GLOBAL.static_Global);
-        scroller.setLayoutParams(new ViewGroup.LayoutParams(width, height));
+        scroller.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f));
         return(scroller);
     }%>
     their GUI_button: makeAndroidButton(me string: label)           <- <%{
@@ -972,6 +994,12 @@ struct GLOBAL: inherits=AppCompatActivity{
     me int: displayHeightPx
     me int: displayWidthPx
     me float: displayDensity
+
+
+    void: attachBaseContext(me Context: newBase) <- <%{
+        Context context = ScaledContextWrapper.wrap(newBase);
+        super.attachBaseContext(context);
+    }%>
 
     me string: getFilesDirAsString()<- <%{
         File file = GLOBAL.static_Global.getFilesDir();
