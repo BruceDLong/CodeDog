@@ -61,7 +61,7 @@ struct GUI_storyBoard{
     me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
 }
 
-struct boolWidget{
+struct boolWidget: COMMAND_addCallProxy="widgetData:onChanged"{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GUI_Bool:  dataValue
@@ -79,7 +79,7 @@ struct boolWidget{
         return box;
     }%>
 }
-struct intWidget{
+struct intWidget: COMMAND_addCallProxy="widgetData:onChanged"{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GUI_Text:  dataValue
@@ -106,7 +106,7 @@ struct intWidget{
         return box;
     }%>
 }
-struct intRangeWidget{
+struct intRangeWidget: COMMAND_addCallProxy="widgetData:onChanged"{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GUI_Text:  dataValue
@@ -134,7 +134,7 @@ struct intRangeWidget{
         return box;
     }%>
 }
-struct stringWidget{
+struct stringWidget: COMMAND_addCallProxy="widgetData:onChanged"{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GUI_Text:  dataValue
@@ -148,11 +148,12 @@ struct stringWidget{
         gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
         gtk_container_add(GTK_CONTAINER (box), dataLabel);
         dataValue = gtk_entry_new();
+        g_signal_connect(G_OBJECT(dataValue), "changed", G_CALLBACK(stringWidget_onChanged_CB), this);
         gtk_container_add(GTK_CONTAINER (box), dataValue);
         return box;
     } %>
 }
-struct dateWidget{
+struct dateWidget: COMMAND_addCallProxy="widgetData:onChanged"{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GtkWidget:  dataValue
@@ -183,11 +184,12 @@ struct dateWidget{
         gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
         gtk_container_add(GTK_CONTAINER (box), dataLabel);
         dataValue = gtk_calendar_new();
+        g_signal_connect(G_OBJECT(dataValue), "day-selected", G_CALLBACK(dateWidget_onChanged_CB), this);
         gtk_container_add(GTK_CONTAINER (box), dataValue);
         return box;
     }%>
 }
-struct enumWidget{
+struct enumWidget: COMMAND_addCallProxy="widgetData:onChanged"{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GtkWidget: dataValue
@@ -204,6 +206,7 @@ struct enumWidget{
         gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
         gtk_container_add(GTK_CONTAINER (box), dataLabel);
         dataValue = gtk_combo_box_text_new();
+        g_signal_connect(G_OBJECT(dataValue), "changed", G_CALLBACK(enumWidget_onChanged_CB), this);
         int idx=0;
         for (string option : options){
             gtk_combo_box_text_append((GtkComboBoxText*)dataValue, to_string(idx).data(), option.data());
@@ -213,7 +216,7 @@ struct enumWidget{
         return box;
     }%>
 }
-struct DateWidget{
+struct DateWidget: COMMAND_addCallProxy="widgetData:onChanged"{
     their GUI_Entry:    yearBox
     their GUI_ComboBox: monthBox
     their GUI_ComboBox: dayBox
@@ -256,7 +259,7 @@ struct DateWidget{
         return(box)
     }
 }
-struct TimeWidget{
+struct TimeWidget: COMMAND_addCallProxy="widgetData:onChanged"{
     their GUI_ComboBox: hourBox
     their GUI_ComboBox: minuteBox
     me timeValue:       data
@@ -338,6 +341,9 @@ struct GUI_Label{
 }
 struct GUI_TextViewer{
     me void: setEditable(me bool: isEditable)                 <- <%!gtk_text_view_set_editable(GTK_TEXT_VIEW(%0), %1)%>
+}
+struct GUI_button{
+    me void: setWidgetActive            <- <%!gtk_widget_set_sensitive ((GtkWidget* )%0, %1)%>
 }
 /-///////////////////////////////  LIST EDITOR WIDGET
 struct ListWidgetManager{
@@ -465,6 +471,7 @@ struct GUI_CompleterList {their GtkListStore: GUI_CompleterList}
 
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
+    me void: setBtnProxy()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
     their GtkWidget: makeBoolWidget(me string: label)           <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeFloatWidget(me string: label)          <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Ggtk_spin_button_new(gtk_adjustment_new(%1,%2,%3,1,10,10),1,%4)%>
@@ -511,7 +518,7 @@ struct GLOBAL{
     me void: setTabLabelText() <- <%!%Ggtk_notebook_set_tab_label_text(GTK_NOTEBOOK(%1), %2, %3)%>
     me GUI_Scalar: convertToGUIScalar()                                    <- <%!%G%1%>
     their GUI_Bool: makeCheckBox()                                         <- <%!%Ggtk_check_button_new()%>
-    their GUI_VerticalScroller: makeVerticalScroller(me int: width, me int: height) <- <%!%GmakeGTKVerticalScroller(%1,%2)%>
+    their GUI_VerticalScroller: makeVerticalScroller()                     <- <%!%GmakeGTKVerticalScroller()%>
     their GUI_TextViewer: makeTextViewer(me string: text)                  <- <%!%GmakeGTKTextViewer(%1)%>
     me void: setButtonLabel(their GtkButton: btn, me string: label)
         <- <%!%Ggtk_button_set_label(%1,%2)%>
@@ -526,10 +533,10 @@ struct GLOBAL{
         gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(textViewer),GTK_WRAP_WORD);
         return textViewer;
     }%>
-    their GUI_VerticalScroller: makeGTKVerticalScroller(me int: width, me int: height) <- <%{
+    their GUI_VerticalScroller: makeGTKVerticalScroller() <- <%{
         GtkWidget* scroller = gtk_scrolled_window_new(NULL, NULL);
-        gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroller),height);
-        gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(scroller),width);
+        //gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroller),height);
+        //gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(scroller),width);
         gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
         return(scroller);
     }%>
@@ -736,7 +743,7 @@ struct GUI{
     me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
-    me void: setCallback() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4)%>
+    me void: setCallback()     <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4)%>
     me void: setBtnCallback()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_CB), %4)%>
     me void: setBtnCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4.get())%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
