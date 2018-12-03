@@ -32,7 +32,7 @@ LibDescription ={
 }
 
 initCode = `
-   /- GUI_threads_messagePasser <- workerThread.threadsMesgPasser()
+   GUI_threads_messagePasser <- GUIsMesgPasser()
 `
 
 embedHigh = `
@@ -92,7 +92,7 @@ struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
 
 /-///////////////////////////////  WIDGET STRUCTS
 struct GUI_storyBoard: inherits=FragmentActivity{
-    their LinearLayout: GUI_storyBoard
+    their ViewGroup: GUI_storyBoard
     me void: addPane(their GUI_Frame: frame) <- <%!%1.addView(%2)%>
 }
 
@@ -824,7 +824,6 @@ struct CanvasView: inherits=View implements=OnTouchListener{
         cr.GPath.reset();
         parent.EventDispatcher.topWidget.draw(cr);
         canvas.restore();
-        invalidate();
     }%>
     me void: setParent(our DashboardWidget: wid) <- {parent <- wid}
 }
@@ -916,8 +915,8 @@ struct GUI_ctxt: inherits=Canvas{
     me void: closePath()      <- <%!GPath.close()%>
     me void: rectangle()      <- <%!%0.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
     me void: paintNow()       <- <%!paint.setStyle(Paint.Style.FILL);cr.GCanvas.drawPaint(cr.paint)%>
-    me void: strokeNow()      <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
-    me void: fillNow()        <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
+    me void: strokeNow()      <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
+    me void: fillNow()        <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
     me void: strokeKeep()     <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: fillKeep()       <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: renderFrame()    <- <%!repaint()%>
@@ -1209,25 +1208,31 @@ struct GLOBAL: inherits=AppCompatActivity{
     }%>
     me void: showWidget(me GUI_item: widget) <-  <%!%G%1.setVisibility(0)%>
     me void: hideWidget(their GUI_item: widget) <- <%!%G%1.setVisibility(1)%>
-    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G;%>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.invalidate()%>
     me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
    /- me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setLayoutParams(%2, %3)%>
 }
 
 /-///////////////////////////////  INTER-THREAD COMMUNICATION
 struct MessagePasser {their Looper: MessagePasser}
-struct workerMsgThread{their HandlerThread: workerMsgThread}
-struct workerMsgThread{
+
+struct workerMsgThread: inherits=HandlerThread{
     their MessagePasser: threadsMesgPasser()         <- <%!getLooper()%>
     void: start()                                    <- <%!start()%>
+    void: onLooperPrepared() <- <%{
+        GLOBAL.static_Global.workerThreadMessagePasser = Looper.myLooper();
+    }%>
+    none: workerMsgThread(me string: threadName) <- <%{
+        super(threadName);
+    }%>
 }
 struct GLOBAL{
     their MessagePasser: GUI_threads_messagePasser   <- NULL   /- Set this at beginning of the program
     their MessagePasser: workerThreadMessagePasser   <- NULL   /- Set this at beginning of the program
     their MessagePasser: threadsMesgPasser()         <- <%!%G%0.getLooper()%>
-    their MessagePasser: GUIsMesgPasser()            <- <%!Looper.getMainLooper()%>
+    their MessagePasser: GUIsMesgPasser()            <- <%!%GLooper.getMainLooper()%>
     void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: objToCall, their void: classToCall, their void: funcToCall, their void: arguments)
-        <- <%!%Gnew Handler(%1.getMainLooper()).post(%5)%>
+        <- <%!%Gnew Handler(%1).post(%5)%>
 }
 struct APP: inherits=LinearLayout{
     me LinearLayout: thisFrame

@@ -288,6 +288,7 @@ struct streamToggle: inherits=dash{
         labelSize <- getTextSize(cr, label, styler.fontSmall)
         renderTextCentered(cr, label, styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + labelSize.height)
         right.drawCircleBtn(cr)
+        cr.strokeNow()
     }
 
     void: initStreamToggle(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string[list]: DataStreamsTitleTbl, me int: State) <- {
@@ -364,7 +365,18 @@ struct GraphDataStreamSources{
     me bool: dataRangeChangeRequested
 
 }
-
+struct dataCacheStream {  /- Use this to gather data and transfer it to the GUI thread
+    me string: title
+    me datum[me map timeValue]: dataMap
+}
+struct dataCacheStreams {
+    our dataCacheStream[me list]: dataStreams
+    void: addNewStream(me string: ID) <- {
+        our dataCacheStream:: dcStream
+        dcStream.title <- ID
+        dataStreams.pushLast(dcStream)
+    }
+}
 struct dataPlotter {
     me datum:      prevY
     me GUI_Scalar: prevX
@@ -383,7 +395,7 @@ struct dataPlotter {
         else{
             me double: maxConfLvl   <- max(prevY.confidenceInterval, toY.confidenceInterval)
             me double: minConfLvl   <- min(prevY.confidenceInterval, toY.confidenceInterval)
-            me int: numOfSegs       <- convertToIntVal(maxConfLvl/3)
+            me int: numOfSegs       <- convertToIntVal(maxConfLvl/15)
             me double: maxAlpha     <- 1/(maxConfLvl/10)*256
             me double: alphaDelta   <- maxAlpha/numOfSegs*2
             me double: alpha        <- alphaDelta
@@ -392,17 +404,17 @@ struct dataPlotter {
             me GUI_Scalar: crntLftY <- convertToGUIScalar(prevY.value - prevY.confidenceInterval/2)
             me GUI_Scalar: crntRtY  <- convertToGUIScalar(toY.value - toY.confidenceInterval/2)
             withEach seg in RANGE(0..numOfSegs){
-            cr.setRGBA(plotColor.red, plotColor.green, plotColor.blue, alpha)
-            cr.moveTo(prevX, crntLftY)
-            cr.lineTo(toX, crntRtY)
-            cr.lineTo(toX, crntRtY+widthOfRtSegs)
-            cr.lineTo(prevX, crntLftY+widthOfLftSegs)
-            cr.lineTo(prevX, crntLftY)
-            cr.fillNow()
-            crntLftY <- crntLftY + widthOfLftSegs
-            crntRtY  <- crntRtY + widthOfRtSegs
-            if (seg < numOfSegs/2){alpha <- alpha+alphaDelta}
-            else {alpha <- alpha-alphaDelta}
+                cr.setRGBA(plotColor.red, plotColor.green, plotColor.blue, alpha)
+                cr.moveTo(prevX, crntLftY)
+                cr.lineTo(toX, crntRtY)
+                cr.lineTo(toX, crntRtY+widthOfRtSegs)
+                cr.lineTo(prevX, crntLftY+widthOfLftSegs)
+                cr.lineTo(prevX, crntLftY)
+                cr.fillNow()
+                crntLftY <- crntLftY + widthOfLftSegs
+                crntRtY  <- crntRtY + widthOfRtSegs
+                if (seg < numOfSegs/2){alpha <- alpha+alphaDelta}
+                else {alpha <- alpha-alphaDelta}
             }
         }
         prevY <- toY
@@ -564,6 +576,7 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
                 else if(streamToggle2.label == dataStream.title) {streamToggle2.latest <- dataStream.screenDataAvg}
             }
         }
+        cr.setColor(styler.highlight2Color)
         zoomToggle.draw(cr)
         streamToggle1.draw(cr)
         streamToggle2.draw(cr)
@@ -578,7 +591,18 @@ struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
         if (stepSize==0) {print("\nInvalid Step size in graph.requestDataRange()\n"); exit(1);}
         dataStreamSrcs.dataRangeChangeRequested       <- true
     }
-    void: applyDataRange(me timeStepInterval: req) <- {
+    void: applyDataRange(me timeStepInterval: req, our dataCacheStreams: newData) <- {
+        withEach dcStream in newData.dataStreams{
+            me string: streamID <- dcStream.title
+            withEach graphDataCache in dataStreamSrcs.dataStreams{
+                if(streamID == graphDataCache.title){
+                    withEach dataPnt in dcStream.dataMap{
+                        graphDataCache.dataMap[dataPnt_key] <- dataPnt
+                    }
+                    break()
+                }
+            }
+        }
         crntRightSide <- req.end
         timeInterval  <- req.stepSize
         requestRedraw()

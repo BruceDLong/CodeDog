@@ -721,7 +721,7 @@ struct APP{
     me void: createAppArea(me GUI_Frame: frame) <- {
         Allocate(primary)
         Allocate(<PRIMARY_GUI>)
-        their GUI_container: appStoryBoard <- <PRIMARY_GUI>.initWidget(primary)
+        their GUI_storyBoard: appStoryBoard <- <PRIMARY_GUI>.initWidget(primary)
         initializeAppGui()
         gui.addToContainerAndExpand (frame, appStoryBoard)
     }
