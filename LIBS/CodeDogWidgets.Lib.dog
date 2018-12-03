@@ -65,6 +65,7 @@ struct IntDraggerDash: inherits=dash{
     }
 }
 struct IntDraggerWidget: inherits=DashboardWidget{
+    their appComponentGUI: parentGuiMgr
     their GUI_Frame:     box
     our LabelDash:       labelDash
     our IntDraggerDash:  intDraggerDash
@@ -113,6 +114,7 @@ struct IntDraggerWidget: inherits=DashboardWidget{
         isDragging    <- false
         deltaX        <- 0
         prevX         <- 0
+        onChanged()
         return(true)
     }
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
@@ -134,6 +136,7 @@ struct IntDraggerWidget: inherits=DashboardWidget{
     }
     me int: getValue() <- {return(intDraggerDash.intData)}
     me void: setValue(me int: val) <- {intDraggerDash.intData <- val}
+    void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
 struct TimeDraggerDash: inherits=dash{
     me circleButton: leftIncrBtn
@@ -197,7 +200,8 @@ struct TimeDraggerDash: inherits=dash{
     }
 }
 struct TimeDraggerWidget: inherits=DashboardWidget{
-    their GUI_Frame: box
+    their appComponentGUI: parentGuiMgr
+    their GUI_Frame:     box
     our LabelDash:       labelDash
     our TimeDraggerDash: timeDraggerDash
     me int:              lowVal
@@ -263,4 +267,5 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
     }
     me timeValue: getValue() <- {return(timeDraggerDash.timeData)}
     me void: setValue(me timeValue: val) <- {}
+    void: onChanged()  <- {parentGuiMgr.onChanged()}
 }

@@ -18,7 +18,8 @@ interface={
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
         android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup, android.widget.TimePicker, android.app.TimePickerDialog, android.app.TimePickerDialog.OnTimeSetListener,
         android.support.design.widget.FloatingActionButton, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
-        android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable, android.widget.AutoCompleteTextView
+        android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable, android.widget.AutoCompleteTextView,
+        android.widget.AdapterView.OnItemSelectedListener, android.text.TextWatcher, android.text.Editable
     ]
 }
 
@@ -101,7 +102,10 @@ struct boolWidget{
     their GUI_Label: dataLabel
     their GUI_Bool:  dataValue
 
-    me bool: getValue()            <- {dataValue.getValue()}
+    me bool: getValue()            <- <%{
+        if (dataValue.isChecked()){return true;}
+        return false;
+    }%>
     void: setValue(me bool: value) <- {dataValue.setValue(value)}
     their GUI_Frame: initWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
@@ -208,6 +212,15 @@ struct stringWidget{
         dataValue.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue.setWidth(GLOBAL.static_Global.styler.widgetValueBoxWidth);
         dataValue.setInputType(InputType.TYPE_CLASS_TEXT);
+        dataValue.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                onChanged();
+            }
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+        });
         box.addView(dataValue);
         return box;
     }%>
@@ -250,6 +263,7 @@ struct dateWidget{
                 month = month + 1;
                 String dateStr = month + "/" + day + "/" + year;
                 dataValue.setText(dateStr);
+                onChanged();
             }
         };
         dataValue.setOnClickListener(new View.OnClickListener() {
@@ -290,6 +304,14 @@ struct enumWidget{
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, android.R.layout.simple_spinner_item, options);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         dataValue.setAdapter(adapter);
+        dataValue.setOnItemSelectedListener(new OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
+                onChanged();
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> arg0) {}
+        });
         /-//////////////  BOX
         box = new LinearLayout(GLOBAL.static_Global);
         box.addView(dataLabel);
@@ -432,10 +454,13 @@ struct GUI_SpinBox{
 }
 struct GUI_Bool{
     void: setValue(me bool: value)      <- <%!setChecked(%1)%>
-    me bool: getValue()                 <- <%!if (%0.isChecked()){return true;} return false%>
+    me bool: getValue()                 <- <%!%0.isChecked()%>
 }
 struct GUI_Label{
     void: setValue(me string: text)     <- <%!setText(%1)%>
+}
+struct GUI_button{
+    me void: setWidgetActive            <- <%!%0.setEnabled (%1)%>
 }
 struct GUI_ZStack: inherits=LinearLayout{
     their GUI_Frame[map string]: children
@@ -542,6 +567,7 @@ struct ListWidgetManager{
 }
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
+    me void: setBtnProxy()  <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%4();}})%>
     their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     their rangeWidget: makeRangeWidget(me string: label)                        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
     their GUI_XStack: makeXStack(me string: label)                               <- <%!makeAndroidHorizontalLayout(%1)%>

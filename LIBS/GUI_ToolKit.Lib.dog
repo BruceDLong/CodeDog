@@ -37,18 +37,19 @@ struct INK_Image{}
 struct GUI_button{}
 
 /- GUI Widgets
-struct boolWidget{}
-struct floatWidget{}
-struct rangeWidget{}
-struct numRangeWidget {}
+struct boolWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
+struct floatWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
+struct rangeWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
+struct numRangeWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
 struct CGContext {}
 struct CGPoint {}
 
-struct intWidget: properties = [metaClass]{}
-struct stringWidget{}
-struct enumWidget{}
-struct timeWidget{}
-struct dateWidget{}
+struct intWidget: inherits=baseTypeWidget properties = [metaClass]{void: onChanged()  <- {parentGuiMgr.onChanged()}}
+struct intRangeWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
+struct stringWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
+struct enumWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
+struct timeWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
+struct dateWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
 struct wizardWidget:inherits=appComponentGUI{
     me string: widgetID
     our appComponentData: _data
@@ -70,13 +71,14 @@ struct wizardWidget:inherits=appComponentGUI{
         setZStackActive(ZStack, childStr)
     }
 }
-struct matterTerm{
+struct matterTerm: inherits=baseTypeWidget{
     me string[list]: matterTypes <- ["a", "b"]
     me int:          matterIdx   <- 0
     me double:       term        <- 0
     me string:       units       <- ""
+    void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
-struct MatterTermWidget{
+struct MatterTermWidget: inherits=baseTypeWidget{
     their GUI_Frame:    box
     their GUI_Label:    label
     their GUI_ComboBox: matterBox
@@ -127,6 +129,7 @@ struct MatterTermWidget{
         data.term          <- setVal.term
         data.units         <- setVal.units
     }
+    void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
 struct GUI{
     me void: showWidget(me GUI_item: widget)
@@ -309,6 +312,11 @@ struct appComponentGUI{
     void: clickBack()  <- {print("clickBack BASE:\n")}
     void: load()       <- {} /- {print("load BASE:\n")}
     void: onLoaded()   <- {} /- {print("onLoaded BASE:\n")}
+    void: onChanged()  <- {print("onChanged BASE:\n")}
+}
+struct baseTypeWidget{
+    their appComponentGUI: parentGuiMgr
+    void: onChanged()  <- {print("onChanged BASE:\n")}
 }
 /-///////////////////////////////  HIGHER LEVEL WIDGETS
 
@@ -335,7 +343,7 @@ struct ListWidgetManager{
 }
 
 /-//////////////////////////////////// MISC WIDGETS
-struct DateWidget{
+struct DateWidget: inherits=baseTypeWidget{
     their GUI_Frame:    box
     their GUI_Label:    dataLabel
     me timeValue:       data
@@ -347,9 +355,10 @@ struct DateWidget{
         box <- initialize(label, crntTime)
         return(box)
     }
+    void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
 
-struct TimeWidget{
+struct TimeWidget: inherits=baseTypeWidget{
     their GUI_Frame:    box
     their GUI_Label:    dataLabel
     their GUI_ComboBox: hourBox
@@ -363,9 +372,10 @@ struct TimeWidget{
         box <- initialize(label, crntTime)
         return(box)
     }
+    void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
 
-struct DateTimeWidget{
+struct DateTimeWidget: inherits=baseTypeWidget{
     their GUI_Frame:  box
     their GUI_Label:  dataLabel
     their GUI_Frame:  dateBox
@@ -401,30 +411,33 @@ struct DateTimeWidget{
         return(retVal)
     }
     void: setValue() <- {}
+    void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
-struct Agreement{
+struct Agreement:inherits=appComponentData{
     me string: fileName
     me bool:   doesAgree
 }
-struct AgreeWidget{
+struct AgreeWidget:inherits=appComponentGUI COMMAND_addCallProxy="widgetData:onChanged" {
     their GUI_Frame:            box
     their GUI_VerticalScroller: textScroller
     their GUI_TextViewer:       textBox
     their GUI_Frame:            agreeFrame
     their GUI_Label:            agreeLabel
     their GUI_Bool:             agreeCheckBox
-    me Agreement:               agreement
+    me Agreement:               _data
     me string:                  bodyTxt
 
     their GUI_Frame: initWidget(me string: fileName) <- {
-        agreement.fileName <- fileName
-        bodyTxt            <- readAssetAsString(agreement.fileName)
+        _data.fileName     <- fileName
+        _data.guiMgr       <- self
+        bodyTxt            <- readAssetAsString(_data.fileName)
         textScroller       <- makeVerticalScroller(1000,500)
         textBox            <- makeTextViewer(bodyTxt)
         /-/// CHECKBOX ////////////////////////////////
         agreeFrame         <- makeXStack("")
         agreeLabel         <- makeLabelWidget("I Accept")
         agreeCheckBox      <- makeCheckBox()
+        setBtnProxy(agreeCheckBox, "clicked",AgreeWidget, onChanged, self)
         /-/// RETURN BOX //////////////////////////////
         box                <- makeYStack("")
         addToContainer(textScroller, textBox)
@@ -434,7 +447,8 @@ struct AgreeWidget{
         addToContainer(box, agreeFrame)
         return(box)
     }
-    me bool: getValue()            <- {agreeCheckBox.getValue()}
+    void: getValue()               <- {_data.doesAgree <- agreeCheckBox.getValue()}
     void: setValue(me bool: value) <- {agreeCheckBox.setValue(value)}
     void: setText(me string: text) <- {}
+    void: onChanged()              <- {parentGuiMgr.onChanged()}
 }
