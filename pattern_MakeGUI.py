@@ -67,7 +67,7 @@ def changeDataFieldType(classes, structTypeName, typeSpec):
 def addNewStructToProcess(guiStructName, structTypeName, structOrList, widgetStyle):
     global classesEncoded
     if guiStructName == 'timeValue_Dialog_GUI': return
-    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='Agreement' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm' or structTypeName=='FoodData' or structTypeName=='MealData' or structTypeName=='MedItemData' or structTypeName=='MedData'):
+    if not(guiStructName in classesEncoded)and not(structTypeName=='DateValue' or structTypeName=='Agreement' or structTypeName=='timeOfDay' or structTypeName=='DateTime' or structTypeName=='matterTerm' or structTypeName=='MedItemData' or structTypeName=='MedData'):
         classesEncoded[guiStructName]=1
         classesToProcess.append([structTypeName, structOrList, widgetStyle, guiStructName])
 
@@ -166,14 +166,6 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initWidget("'+label+'", _data.'+fieldName+')\n'
         #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         #varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
-    elif fieldType=='MealData':
-        typeName              = 'MealDataWidget'
-        widgetBoxName         =  widgetName +'.box'
-        makeTypeNameCall      = 'Allocate('+widgetName+')\n'
-        makeTypeNameCall     += 'Allocate(_data.'+fieldName+')\n'
-        makeTypeNameCall     += '        ' + widgetBoxName + ' <- '+ widgetName+'.initWidget("'+label+'", _data.'+fieldName+')\n'
-        #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
-        varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldType=='MedItemData':
         typeName              = 'MedItemDataWidget'
         widgetBoxName         =  widgetName +'.box'
