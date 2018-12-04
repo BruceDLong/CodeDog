@@ -421,7 +421,7 @@ struct dataPlotter {
         prevX <- toX
     }
 }
-struct graph: inherits=dash COMMAND_addCallProxy="bundledArgs:applyDataRange"{
+struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
     our GraphDataStreamSources: dataStreamSrcs
     me string[list]: dataStreamsTitleTable <- ["None"]
     me double:        screenDataTotal

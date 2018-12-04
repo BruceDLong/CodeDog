@@ -1285,12 +1285,14 @@ def codeStructureCommands(classes, tags, xlator):
         if (command[3] == 'addCallProxy'):
             className       = command[0]
             funcBundle      = command[2]
-            funcArgs        = funcBundle.split(":")
-            proxyStyle      = funcArgs[0]
-            funcName        = funcArgs[1]
             platformTag      = tags[1]['Platform']
-            print '     addCallProxy:', className, funcName, proxyStyle, platformTag
-            pattern_WriteCallProxy.apply(classes, tags, proxyStyle, className, funcName, platformTag)
+            for itm in funcBundle:
+                itm = itm[1:-1]
+                funcArgs        = itm.split(":")
+                proxyStyle      = funcArgs[0]
+                funcName        = funcArgs[1]
+                #print '     addCallProxy:', className, funcName, proxyStyle, platformTag
+                pattern_WriteCallProxy.apply(classes, tags, proxyStyle, className, funcName, platformTag)
 
 
 def makeTagText(tags, tagName):

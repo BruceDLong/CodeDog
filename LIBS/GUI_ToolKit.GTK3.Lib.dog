@@ -61,7 +61,7 @@ struct GUI_storyBoard{
     me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
 }
 
-struct boolWidget: COMMAND_addCallProxy="widgetData:onChanged"{
+struct boolWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GUI_Bool:  dataValue
@@ -79,7 +79,7 @@ struct boolWidget: COMMAND_addCallProxy="widgetData:onChanged"{
         return box;
     }%>
 }
-struct intWidget: COMMAND_addCallProxy="widgetData:onChanged"{
+struct intWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GUI_Text:  dataValue
@@ -103,10 +103,11 @@ struct intWidget: COMMAND_addCallProxy="widgetData:onChanged"{
         gtk_container_add(GTK_CONTAINER (box), dataLabel);
         dataValue = gtk_entry_new();
         gtk_container_add(GTK_CONTAINER (box), dataValue);
+        gtk_widget_show_all (box);
         return box;
     }%>
 }
-struct intRangeWidget: COMMAND_addCallProxy="widgetData:onChanged"{
+struct intRangeWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GUI_Text:  dataValue
@@ -134,7 +135,7 @@ struct intRangeWidget: COMMAND_addCallProxy="widgetData:onChanged"{
         return box;
     }%>
 }
-struct stringWidget: COMMAND_addCallProxy="widgetData:onChanged"{
+struct stringWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GUI_Text:  dataValue
@@ -150,10 +151,11 @@ struct stringWidget: COMMAND_addCallProxy="widgetData:onChanged"{
         dataValue = gtk_entry_new();
         g_signal_connect(G_OBJECT(dataValue), "changed", G_CALLBACK(stringWidget_onChanged_CB), this);
         gtk_container_add(GTK_CONTAINER (box), dataValue);
+        gtk_widget_show_all (box);
         return box;
     } %>
 }
-struct dateWidget: COMMAND_addCallProxy="widgetData:onChanged"{
+struct dateWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GtkWidget:  dataValue
@@ -189,7 +191,7 @@ struct dateWidget: COMMAND_addCallProxy="widgetData:onChanged"{
         return box;
     }%>
 }
-struct enumWidget: COMMAND_addCallProxy="widgetData:onChanged"{
+struct enumWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GtkWidget: dataValue
@@ -216,7 +218,7 @@ struct enumWidget: COMMAND_addCallProxy="widgetData:onChanged"{
         return box;
     }%>
 }
-struct DateWidget: COMMAND_addCallProxy="widgetData:onChanged"{
+struct DateWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Entry:    yearBox
     their GUI_ComboBox: monthBox
     their GUI_ComboBox: dayBox
@@ -259,7 +261,7 @@ struct DateWidget: COMMAND_addCallProxy="widgetData:onChanged"{
         return(box)
     }
 }
-struct TimeWidget: COMMAND_addCallProxy="widgetData:onChanged"{
+struct TimeWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_ComboBox: hourBox
     their GUI_ComboBox: minuteBox
     me timeValue:       data
