@@ -633,7 +633,7 @@ struct GLOBAL{
     }%>
     their GtkWidget: makeComboBox(me string: label)          <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     me void: addToComboBox(me GUI_item: box, me string: val) <- <%!%G%>
-    their GtkWidget: makeEntryBox(me string: label)          <- <%!%Gnew TextView(GLOBAL.static_Global)%>
+    their GtkWidget: makeEntryBox(me string: label)          <- <%!%Gnew EditText(GLOBAL.static_Global)%>
     void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
         <- <%!%G%1.setAdapter(%2);%2.setNotifyOnChange(true)%>
     their GUI_Completer: makeCompleter(me string: label, me string[list]: completerList)  <- <%{
@@ -696,6 +696,10 @@ struct GLOBAL{
 }
 /-///////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
+    me void: addToContainerAndShowWidget (their GUI_container: parentContainer, their GUI_item: childWidget) <- <%{
+        parentContainer.addView(childWidget);
+        childWidget.setVisibility(View.VISIBLE);
+    }%>
     their GUI_XStack: makeAndroidHorizontalLayout(me string: label) <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         box.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f));
@@ -910,12 +914,9 @@ struct GUI: inherits=LinearLayout{
 }
 
 struct GUI {
-    me void: showWidget(me GUI_item: widget) <-  <%!%1.setVisible(true)%>
     their GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(Math.round(%2*GLOBAL.static_Global.displayDensity), Math.round(%3*GLOBAL.static_Global.displayDensity)))%>
     their GUI_item: newScrollingWindow() <- <%!newScrollingView()%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%1.addView(%2)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G%>
     me void: setCallback() <- <%!%G %>
     me void: setBtnCallback()  <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%3();}})%>

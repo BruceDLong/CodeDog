@@ -558,6 +558,14 @@ struct GLOBAL{
         return box;
     }%>
 }
+/-///////////////////////////////  GLOBAL WIDGET FUNCTIONS
+struct GLOBAL{
+    me void: addToContainerAndShowWidget (their GUI_container: parentContainer, their GUI_item: childWidget) <- <%{
+        gtk_container_add(parentContainer, childWidget);
+        gtk_widget_show(childWidget);
+    }%>
+}
+/-/////////////////////////////// GLOBAL CALLBACKS
 struct GLOBAL{
     void: ListEditorHandleListClick(their GtkListBox: box, their GtkListBoxRow: row, their void: user_data) <- <% {
         ListWidgetManager *listMgr =(ListWidgetManager *)user_data;
@@ -721,14 +729,10 @@ struct GUI{
     }
 }
 
-
 struct GUI{
-    me void: showWidget(their GUI_item: widget) <- <%!gtk_widget_show(%1)%>
     their GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
     me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
     their GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
-    me void: addToContainer(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
@@ -973,7 +977,7 @@ me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: 
 me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
 me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
 me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
-me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), (GtkWidget*)%2)%>
+me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!addToContainerAndShowWidget(GTK_CONTAINER (%1), (GtkWidget*)%2)%>
 me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
 me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_stack_add_named(GTK_STACK(%1), %2, %3)%>
 me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack_set_visible_child_name(GTK_STACK(%1), %2.data())%>
