@@ -313,6 +313,7 @@ struct appComponentGUI{
     void: load()       <- {} /- {print("load BASE:\n")}
     void: onLoaded()   <- {} /- {print("onLoaded BASE:\n")}
     void: onChanged()  <- {print("onChanged BASE:\n")}
+    void: deleteIndex(me int: N) <- {print("deleteIndex BASE:\n")}
 }
 struct baseTypeWidget{
     their appComponentGUI: parentGuiMgr
@@ -417,7 +418,7 @@ struct Agreement:inherits=appComponentData{
     me string: fileName
     me bool:   doesAgree
 }
-struct AgreeWidget:inherits=appComponentGUI COMMAND_addCallProxy="widgetData:onChanged" {
+struct AgreeWidget:inherits=appComponentGUI COMMAND_addCallProxy=["widgetData:onChanged"] {
     their GUI_Frame:            box
     their GUI_VerticalScroller: textScroller
     their GUI_TextViewer:       textBox

@@ -287,6 +287,7 @@ def extractListFromTagList(tagVal):
 
 def searchATagStore(tagStore, tagToFind):
     #print "SEARCHING for tag", tagToFind
+    if tagStore == None: return None
     tagSegs=tagToFind.split(r'.')
     crntStore=tagStore
     item=''

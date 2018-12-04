@@ -137,14 +137,16 @@ struct intWidget{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
-        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setWidth(50);
         dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         box.addView(dataLabel);
         dataValue = new EditText(GLOBAL.static_Global);
-        dataValue.setWidth(GLOBAL.static_Global.styler.widgetValueBoxWidth);
+        dataValue.setWidth(50);
         dataValue.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         dataValue.setInputType(InputType.TYPE_CLASS_NUMBER);
         box.addView(dataValue);
+        box.setVisibility(View.VISIBLE);
+        dataValue.setVisibility(View.VISIBLE);
         return box;
     }%>
 }
@@ -205,12 +207,12 @@ struct stringWidget{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
-        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
+        dataLabel.setWidth(50);
         dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
         box.addView(dataLabel);
         dataValue = new EditText(GLOBAL.static_Global);
         dataValue.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
-        dataValue.setWidth(GLOBAL.static_Global.styler.widgetValueBoxWidth);
+        dataValue.setWidth(50);
         dataValue.setInputType(InputType.TYPE_CLASS_TEXT);
         dataValue.addTextChangedListener(new TextWatcher() {
             @Override
@@ -222,6 +224,8 @@ struct stringWidget{
             public void onTextChanged(CharSequence s, int start, int before, int count) {}
         });
         box.addView(dataValue);
+        box.setVisibility(View.VISIBLE);
+        dataValue.setVisibility(View.VISIBLE);
         return box;
     }%>
 }
@@ -1232,8 +1236,8 @@ struct GLOBAL: inherits=AppCompatActivity{
         metrics.scaledDensity = configuration.fontScale * metrics.density;
         getBaseContext().getResources().updateConfiguration(configuration, metrics);
     }%>
-    me void: showWidget(me GUI_item: widget) <-  <%!%G%1.setVisibility(0)%>
-    me void: hideWidget(their GUI_item: widget) <- <%!%G%1.setVisibility(1)%>
+    me void: showWidget(me GUI_item: widget) <-  <%!%G%1.setVisibility(View.VISIBLE)%>
+    me void: hideWidget(their GUI_item: widget) <- <%!%G%1.setVisibility(View.GONE)%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.invalidate()%>
     me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
    /- me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setLayoutParams(%2, %3)%>
