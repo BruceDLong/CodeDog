@@ -274,11 +274,11 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetListEditorName  = widgetName+'_Editor'
         localWidgetVarName    = widgetListEditorName
         if progSpec.typeIsPointer(typeSpec): widgetInitFuncCode += 'Allocate(_data.'+fieldName+')\n'
-        widgetInitFuncCode   += '        their GUI_YStack: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget(_data.'+fieldName+', "'+fieldName+'")\n'
+        widgetInitFuncCode   += '        their GUI_YStack: '+widgetListEditorName+' <- '+listWidMgrName+'.initWidget(_data.'+fieldName+', "'+label+'")\n'
         if classPrimaryGuiItem==fieldName: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetListEditorName+')\n'
         else: widgetInitFuncCode   += '        addToContainer(box, '+widgetListEditorName+')\n'
 #        widgetFromVarsCode   += '        ' + listWidMgrName + '.setValue(var.'+ fieldName +')\n'
-#        varsFromWidgetCode   += '        ' + listWidMgrName + ' <- ' + widgetName + '.getValue()\n'
+        varsFromWidgetCode   += '        ' + listWidMgrName + '.getValue()\n'
     elif dialogStyle == 'WizardStack':
         newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
@@ -660,7 +660,7 @@ struct APP{
         Allocate(<PRIMARY_GUI>)
         their GUI_storyBoard: appStoryBoard <- <PRIMARY_GUI>.initWidget(primary)
         initializeAppGui()
-        gui.addToContainerAndExpand (frame, appStoryBoard)
+        addToContainerAndExpand (frame, appStoryBoard)
     }
 }'''
 

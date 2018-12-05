@@ -35,7 +35,7 @@ struct testWidget: inherits = 'widget'{
         cr.strokeNow()
 
         cr.setColor(Styler.DarkSlateBlue)
-	our fontSpec:: testFont <- ("Ariel", 20, 0)
+    our fontSpec:: testFont <- ("Ariel", 20, 0)
         renderText(cr, "Hello World!", testFont, 150, 100)
         cr.strokeNow()
 
@@ -83,6 +83,6 @@ struct APP{
         gui.setWidgetSize(drawing_area, 1200, 1200)
         Allocate(drawAnX)
         EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
-        gui.addToContainerAndExpand (frame, drawing_area)
+        addToContainerAndExpand (frame, drawing_area)
     }
 }
