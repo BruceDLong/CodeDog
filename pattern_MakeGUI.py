@@ -278,7 +278,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         if classPrimaryGuiItem==fieldName: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetListEditorName+')\n'
         else: widgetInitFuncCode   += '        addToContainer(box, '+widgetListEditorName+')\n'
 #        widgetFromVarsCode   += '        ' + listWidMgrName + '.setValue(var.'+ fieldName +')\n'
-#        varsFromWidgetCode   += '        ' + listWidMgrName + ' <- ' + widgetName + '.getValue()\n'
+        varsFromWidgetCode   += '        ' + listWidMgrName + '.getValue()\n'
     elif dialogStyle == 'WizardStack':
         newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
