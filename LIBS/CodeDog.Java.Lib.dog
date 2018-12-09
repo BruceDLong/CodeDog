@@ -27,9 +27,8 @@ struct FileStream{
     me RandomAccessFile: RAFileStream <- NULL
     me bool: failureFlag <- false
     me void: open(me string: filename) <- <%{
-        /-Log.d("GLOBAL", "    >>FileStream::open \n");
         try{
-            File usrFile = new File(GLOBAL.static_Global.getFilesDirAsString(), filename);
+            File usrFile = new File(filename);
             RAFileStream = new  RandomAccessFile(usrFile, "rw");
             failureFlag=false;
         }catch(IOException e){
@@ -40,7 +39,7 @@ struct FileStream{
     me void: openAppend(me string: filename) <- <%{
         /-Log.d("GLOBAL", "    >>FileStream::openAppend "+filename+"\n");
         try{
-            File usrFile = new File(GLOBAL.static_Global.getFilesDirAsString(), filename);
+            File usrFile = new File(filename);
             RAFileStream = new  RandomAccessFile(usrFile, "rw");
             RAFileStream.seek(RAFileStream.length());
             failureFlag=false;
@@ -92,7 +91,7 @@ struct sessionFile{
         /-Log.d("GLOBAL", "    >>sessionFile::openToRead \n");
         Allocate(session)
         session.open(filename)
-        if(session.failure()){print("Creating session file "+filename+"\n"); return(true)}
+        if(session.failure()){Log.d("GLOBAL", "ERROR session file "+filename+"\n"); return(true)}
         return(false)
     }
     me string: readEntry() <- {

@@ -497,18 +497,18 @@ struct GLOBAL{
     their GtkWidget: makeEntryBox(me string: label)             <- <%!%Ggtk_entry_new()%>
     void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
         <- <%!%Ggtk_entry_set_completion((GtkEntry*)%1, %2)%>
-    their GtkEntryCompletion: makeCompleter(me string: label, their GUI_CompleterList: list_store) <- <%{
+    their GtkEntryCompletion: makeCompleter(me string: label, their GUI_CompleterList: list_store, me string[list]: items) <- <%{
         GtkEntryCompletion* completion = gtk_entry_completion_new();
         list_store = gtk_list_store_new(1, G_TYPE_STRING);
         GtkTreeIter iter;
-        gtk_list_store_append(list_store, &iter);
         gint column = 0;
-        gtk_list_store_append(list_store, &iter);
-        gtk_list_store_set(list_store, &iter, column, "banana", -1);
         gtk_entry_completion_set_model(completion, (GtkTreeModel*)list_store);
         gtk_entry_completion_set_text_column(completion, column);
-        gtk_list_store_append(list_store, &iter);
-        gtk_list_store_set(list_store, &iter, column, "orange", -1);
+        for( uint64_t itemIdx = 0; itemIdx < items.size(); ++itemIdx ){
+            string item = items[itemIdx];
+            gtk_list_store_append(list_store, &iter);
+            gtk_list_store_set(list_store, &iter, column, item.data(), -1);
+        }
         return(completion);
     }%>
     their GUI_CompleterBox: makeCompleterBox(me string: label)
@@ -929,7 +929,7 @@ struct GLOBAL{
     } %>
     me string: readAssetAsString(me string: filename) <- <%{
         string text = "";
-        string fileDir = getFilesDirAsString()+"/"+filename;
+        string fileDir = getAssetsDir()+"/"+filename;
         text = readFileAsString(fileDir);
         return text;
    }%>

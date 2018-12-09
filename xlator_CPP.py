@@ -658,14 +658,16 @@ def addSpecialCode(filename):
     }
 
     string getFilesDirAsString(){
-        //string fileDir = "~/."+filename ";
-        string fileDir = "./assets";
-
+        string fileDir = "./";
         mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 // WINDOWS: _mkdir(fileDir.data());
         return (fileDir);
     }
-
+    string getAssetsDir(){
+        string fileDir = "./assets";
+        mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        return (fileDir);
+    }
     bool doesFileExist(string filePath){
         ifstream ifile(filename);
         return (bool)ifile;

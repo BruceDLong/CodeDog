@@ -636,7 +636,7 @@ struct GLOBAL{
     their GtkWidget: makeEntryBox(me string: label)          <- <%!%Gnew EditText(GLOBAL.static_Global)%>
     void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
         <- <%!%G%1.setAdapter(%2);%2.setNotifyOnChange(true)%>
-    their GUI_Completer: makeCompleter(me string: label, me string[list]: completerList)  <- <%{
+    their GUI_Completer: makeCompleter(me string: label, me string[list]: completerList, me string[list]: items)  <- <%{
         ArrayAdapter<String> suggestAdapter = new ArrayAdapter<>(this, android.R.layout.select_dialog_item, completerList);
         return suggestAdapter;
     }%>
@@ -1033,7 +1033,10 @@ struct GLOBAL: inherits=AppCompatActivity{
         File file = GLOBAL.static_Global.getFilesDir();
         return file.getAbsolutePath();
     }%>
-
+    me string: getAssetsDir()<- <%{
+        File file = GLOBAL.static_Global.getFilesDir();
+        return file.getAbsolutePath();
+    }%>
     /- TIME ROUTINES:
 
     /- //DRAWING ROUTINES:
