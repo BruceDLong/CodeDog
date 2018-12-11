@@ -103,10 +103,13 @@ struct stringScanner{
             ch <- S[p]
             if(isdigit(ch)){}
             else{if(p==pos){return(-1)}
-            else{pos <- p; return(pos-1)}}
-            pos <- p
+            else{
+                me int: retVal <- p-pos
+                pos <- p;
+                return(retVal)}
+            }
         }
-        return(pos)
+        return(txtSize-pos)
     }
 
     me int: chkStr(me string: s) <- {

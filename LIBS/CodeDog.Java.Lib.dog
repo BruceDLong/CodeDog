@@ -26,7 +26,35 @@ deinitCode = ""
 struct FileStream{
     me RandomAccessFile: RAFileStream <- NULL
     me bool: failureFlag <- false
+    me AssetManager: assetMgr
+    void: copyFile(me InputStream: inStream, me OutputStream: outStream) <- <%{
+        try {
+            byte[] buffer = new byte[1024];
+            int read;
+            while((read = inStream.read(buffer)) != -1){
+               outStream.write(buffer, 0, read);
+            }
+        }
+        catch(IOException e){Log.e("GLOBAL", "Failed to copyFile: ");}
+   }%>
     me void: open(me string: filename) <- <%{
+        /-Log.d("GLOBAL", "    >>FileStream::open "+filename+"\n");
+        if(filename.startsWith("assets/",0)){
+            String inFileName = filename.substring(7, filename.length());
+            File outputDir = GLOBAL.static_Global.getCacheDir();
+            String dirStr = outputDir.getAbsolutePath();
+            filename = dirStr +"/"+ inFileName;
+            assetMgr = GLOBAL.static_Global.getAssets();
+            try {
+                InputStream inStream = assetMgr.open(inFileName);
+                OutputStream outStream = new FileOutputStream(filename);
+                copyFile(inStream, outStream);
+                inStream.close();
+                outStream.flush();
+                outStream.close();
+            }
+            catch(IOException e){Log.e("GLOBAL", "    ERROR:Failed to copy asset file: " + filename);}
+        }
         try{
             File usrFile = new File(filename);
             RAFileStream = new  RandomAccessFile(usrFile, "rw");
@@ -54,7 +82,10 @@ struct FileStream{
     me string: getLine() <- <%{
         String S="";
         try{S = RAFileStream.readLine();}
-        catch(IOException e){failureFlag=true;}
+        catch(IOException e){
+            failureFlag=true;
+            Log.e("GLOBAL", "    ERROR getLine()\n");
+        }
         return(S);
     }%>
     me void: write(me string: S) <- <%{
