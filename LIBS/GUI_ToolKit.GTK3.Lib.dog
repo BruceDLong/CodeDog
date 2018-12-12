@@ -474,6 +474,7 @@ struct GUI_CompleterList {their GtkListStore: GUI_CompleterList}
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
     me void: setBtnProxy()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
+    me void: setItmSelectedProxy()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
     their GtkWidget: makeBoolWidget(me string: label)           <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeFloatWidget(me string: label)          <- <%!%Ggtk_entry_new()%>
     their GtkWidget: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Ggtk_spin_button_new(gtk_adjustment_new(%1,%2,%3,1,10,10),1,%4)%>

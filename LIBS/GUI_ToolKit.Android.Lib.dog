@@ -19,7 +19,7 @@ interface={
         android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup, android.widget.TimePicker, android.app.TimePickerDialog, android.app.TimePickerDialog.OnTimeSetListener,
         android.support.design.widget.FloatingActionButton, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
         android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable, android.widget.AutoCompleteTextView,
-        android.widget.AdapterView.OnItemSelectedListener, android.text.TextWatcher, android.text.Editable
+        android.widget.AdapterView.OnItemSelectedListener, android.text.TextWatcher, android.text.Editable, android.widget.AdapterView.OnItemSelectedListener
     ]
 }
 
@@ -572,6 +572,7 @@ struct ListWidgetManager{
 /-///////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
     me void: setBtnProxy()  <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%4();}})%>
+    me void: setItmSelectedProxy()  <- <%!%G%1.setOnItemClickListener(new AdapterView.OnItemClickListener(){@Override public void onItemClick(AdapterView<?> parent, View view, int position, long id){%4();}})%>
     their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
     their rangeWidget: makeRangeWidget(me string: label)                        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
     their GUI_XStack: makeXStack(me string: label)                               <- <%!makeAndroidHorizontalLayout(%1)%>
@@ -636,8 +637,8 @@ struct GLOBAL{
     their GtkWidget: makeEntryBox(me string: label)          <- <%!%Gnew EditText(GLOBAL.static_Global)%>
     void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
         <- <%!%G%1.setAdapter(%2);%2.setNotifyOnChange(true)%>
-    their GUI_Completer: makeCompleter(me string: label, me string[list]: completerList, me string[list]: items)  <- <%{
-        ArrayAdapter<String> suggestAdapter = new ArrayAdapter<>(this, android.R.layout.select_dialog_item, completerList);
+    their GUI_Completer: makeCompleter(me string: label, me string[list]: completerList, me string[list]: itemsList)  <- <%{
+        ArrayAdapter<String> suggestAdapter = new ArrayAdapter<String>(GLOBAL.static_Global, android.R.layout.select_dialog_item, itemsList);
         return suggestAdapter;
     }%>
     their GUI_CompleterBox: makeCompleterBox(me string: label)  <- <%{
@@ -1034,8 +1035,7 @@ struct GLOBAL: inherits=AppCompatActivity{
         return file.getAbsolutePath();
     }%>
     me string: getAssetsDir()<- <%{
-        File file = GLOBAL.static_Global.getFilesDir();
-        return file.getAbsolutePath();
+        return "assets";
     }%>
     /- TIME ROUTINES:
 

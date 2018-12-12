@@ -101,7 +101,19 @@ struct GLOBAL {
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
     elif proxyStyle == "widgetData" and platformTag == "Android":
         pass
-        #print "Android widgetData: ", callbackName, funcSpec
+    elif proxyStyle == "widgetEventData" and platformTag == "Linux":
+        #print "Linux widgetEventData: ", callbackName, funcSpec
+
+        CODE =  '''
+struct GLOBAL {
+    void: '''+callbackName+'''(their GtkWidget: wid, their GdkEvent: event, their '''+className+''': _obj) <- {
+       _obj.'''+funcName+'''()
+    }
+}\n'''
+
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
+    elif proxyStyle == "widgetEventData" and platformTag == "Android":
+        pass
     else: print "###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag; exit(1)
     #print '==========================================================\n'+CODE
 
