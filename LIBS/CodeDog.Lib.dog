@@ -96,6 +96,22 @@ struct stringScanner{
         else {return(-1)}
     }
 
+    me int: scrapeUintSeq() <- {
+        me char: ch
+        me int: txtSize <- S.size()
+        withEach p in RANGE(pos .. txtSize){
+            ch <- S[p]
+            if(isdigit(ch)){}
+            else{if(p==pos){return(-1)}
+            else{
+                me int: retVal <- p-pos
+                pos <- p;
+                return(retVal)}
+            }
+        }
+        return(txtSize-pos)
+    }
+
     me int: chkStr(me string: s) <- {
         me int: L <- s.size()
         if(pos+L > S.size()){return(-1)}
