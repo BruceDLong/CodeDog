@@ -39,7 +39,7 @@ struct sessionFile{
 
     me bool: openToRead(me string: filename) <- {
         session.open(filename)
-        if(session.failure()){print("Creating session file "+filename+"\n"); return(true)}
+        if(session.failure()){print("ERROR: session file "+filename+"\n"); return(true)}
         return(false)
     }
     me string: readEntry() <- {me string: retVal <- session.getLine(); return(retVal)}
