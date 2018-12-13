@@ -1108,20 +1108,7 @@ struct GLOBAL: inherits=AppCompatActivity{
             Log.v("TAG", "display image: " + filename);
         } catch (IOException e) {Log.e("TAG", e.getMessage());}
     }%>
-    me string: readAssetAsString(me string: filename) <- <%{
-        String text = "";
-        try {
-            InputStream inputStream = getAssets().open(filename);
-            int size = inputStream.available();
-            byte[] buffer = new byte[size];
-            inputStream.read(buffer);
-            inputStream.close();
-            text = new String(buffer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return text;
-   }%>
+
     /- //GUI INTERFACE:
     me void: onCreate(me Bundle: savedInstanceState) <- <%{
         super.onCreate(savedInstanceState);

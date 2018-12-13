@@ -76,6 +76,13 @@ struct GLOBAL{
        return nanosleep(&req , &rem);
    }%>
 
+    me string: readAssetAsString(me string: filename) <- <%{
+        string text = "";
+        string fileDir = getFilesDirAsString()+"/"+filename;
+        text = readFileAsString(fileDir);
+        return text;
+   }%>
+
     me string: execCmd(me string: command) <- <%{
       FILE* pipe;
       std::array<char, 128> buffer;

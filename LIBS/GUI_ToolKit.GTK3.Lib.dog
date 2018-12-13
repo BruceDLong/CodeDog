@@ -927,12 +927,6 @@ struct GLOBAL{
         cairo_paint(cr);
         cairo_restore(cr);
     } %>
-    me string: readAssetAsString(me string: filename) <- <%{
-        string text = "";
-        string fileDir = getFilesDirAsString()+"/"+filename;
-        text = readFileAsString(fileDir);
-        return text;
-   }%>
     /- //GUI INTERFACE:
     /* Surface to store current scribbles */
     their cairo_surface_t: surface <- 0

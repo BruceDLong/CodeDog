@@ -12,10 +12,23 @@ interface={
 
 
 LibDescription ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description = 'Built in routines for Java'
 }
 
 struct GLOBAL{
-
+    me string: readAssetAsString(me string: filename) <- <%{
+        String text = "";
+        try {
+            InputStream inputStream = getAssets().open(filename);
+            int size = inputStream.available();
+            byte[] buffer = new byte[size];
+            inputStream.read(buffer);
+            inputStream.close();
+            text = new String(buffer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return text;
+   }%>
 }
