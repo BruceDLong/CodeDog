@@ -78,7 +78,7 @@ struct GLOBAL{
 
     me string: readAssetAsString(me string: filename) <- <%{
         string text = "";
-        string fileDir = getFilesDirAsString()+"/"+filename;
+        string fileDir = getAssetsDir()+"/"+filename;
         text = readFileAsString(fileDir);
         return text;
    }%>
