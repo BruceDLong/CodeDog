@@ -205,7 +205,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
             dataType = changeDataFieldType(classes, structTypeName, typeSpec)
             makeTypeNameCall      = 'Allocate('+widgetName+')\n'
             makeTypeNameCall     += '        '+widgetBoxName+' <- '+widgetName+'.initWidget("'+label+'")\n'
-            #makeTypeNameCall     += '        ' + widgetName + '.parentGuiMgr <- self\n'
+            makeTypeNameCall     += '        ' + widgetName + '.parentGuiMgr <- self\n'
             #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
             varsFromWidgetCode   += '        _data.' + fieldName + ' <- ' +widgetName+'.getValue()\n'
     elif fieldSpec=='struct':
