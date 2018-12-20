@@ -241,13 +241,10 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         makeTypeNameCall      = 'Allocate('+widgetName+')\n'
         makeTypeNameCall     += '        ' + widgetName + '.parentGuiMgr <- self\n'
         if progSpec.typeIsNumRange(innerFieldType):
-            typeName = 'intRangeWidget'
             range1 = innerFieldType[0]
             range2 = innerFieldType[2]
             makeTypeNameCall += '        '+widgetName+'.minValue <- '+range1+'\n        '+widgetName+'.maxValue <- '+range2+'\n'
-            makeTypeNameCall += '        '+widgetBoxName+' <- '+ widgetName+'.initWidget("'+label+'")\n'
-        else:
-            makeTypeNameCall += '        '+widgetBoxName+' <- '+widgetName+'.initWidget("'+label+'")\n'
+        makeTypeNameCall += '        '+widgetBoxName+' <- '+widgetName+'.initWidget("'+label+'")\n'
         widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        _data.'+fieldName+' <- '+widgetName+'.getValue()\n'
     elif fieldSpec=='bool':
