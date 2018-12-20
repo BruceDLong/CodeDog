@@ -24,6 +24,8 @@ struct IntDraggerDash: inherits=dash{
     me int:          intData
     me int:          startData
     me GUI_Scalar:   btnSpan
+    me int:              minValue
+    me int:              maxValue
     void: initIntDraggerDash(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me GUI_Scalar: Radius, me string: Label) <- {
         title                <- "IntDraggerDash."+Label
         posX                 <- PosX
@@ -54,14 +56,31 @@ struct IntDraggerDash: inherits=dash{
         rightDecrBtn.initCircleBtn(posX+padding+radius*2+btnSpan, posY+padding, radius, ">")
         rightDecrBtn.drawCircleBtn(cr)
     }
+    bool: rangeActive() <- {return(minValue!=0 or maxValue!=0)}
     void: incrValue() <- {
-        intData <- intData + 1
+        me int: calcVal <- intData + 1
+        if (rangeActive()){
+            if(calcVal > maxValue){intData <- maxValue}
+            else{intData <- calcVal}
+        }
+        else{intData <- calcVal}
     }
     void: decrValue() <- {
-        intData <- intData - 1
+        me int: calcVal <- intData - 1
+        if (rangeActive()){
+            if(calcVal < minValue){intData <- minValue}
+            else{intData <- calcVal}
+        }
+        else{intData <- calcVal}
     }
     void: applyDelta(me int: val) <- {
-        intData <- startData + val
+        me int: calcVal <- startData + val
+        if (rangeActive()){
+            if(calcVal > maxValue){intData <- maxValue}
+            else if (calcVal < minValue){intData <- minValue}
+            else {intData <- calcVal}
+        }
+        else{intData <- calcVal}
     }
 }
 struct IntDraggerWidget: inherits=DashboardWidget{
@@ -69,8 +88,8 @@ struct IntDraggerWidget: inherits=DashboardWidget{
     their GUI_Frame:     box
     our LabelDash:       labelDash
     our IntDraggerDash:  intDraggerDash
-    me int:              lowVal
-    me int:              highVal
+    me int:              minValue <- 0
+    me int:              maxValue <- 0
     me GUI_Scalar:       prevX
     me GUI_Scalar:       deltaX <- 0
     me int:              moveThreshold <- 2
@@ -91,6 +110,8 @@ struct IntDraggerWidget: inherits=DashboardWidget{
         /-/// CHILDREN
         intDraggerDash.initIntDraggerDash(120,0,radius,label)
         dashboardDBW.addChild(intDraggerDash)
+        intDraggerDash.minValue <- minValue
+        intDraggerDash.maxValue <- maxValue
         labelDash.initLabelDash(120,6,label)
         dashboardDBW.addChild(labelDash)
         addToContainer(box, canvas)
