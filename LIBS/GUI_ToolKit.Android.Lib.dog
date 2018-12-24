@@ -1218,7 +1218,7 @@ struct GLOBAL: inherits=AppCompatActivity{
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, (int)(50*displayDensity));
         GLOBAL.static_Global.toolbar.setLayoutParams(layoutParams);
         GLOBAL.static_Global.toolbar.setBackgroundColor(Color.rgb(100, 149, 237));
-        GLOBAL.static_Global.toolbar.setTitle(filename);
+        GLOBAL.static_Global.toolbar.setTitle(GLOBAL.static_Global.thisApp.gui.title);
         GLOBAL.static_Global.toolbar.setVisibility(View.VISIBLE);
         setSupportActionBar(GLOBAL.static_Global.toolbar);
         GLOBAL.static_Global.thisApp.gui.frame.addView(GLOBAL.static_Global.toolbar, 0);

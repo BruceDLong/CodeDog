@@ -95,11 +95,11 @@ def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     makeDir(buildName + os.sep + "assets")
     copyTree("Resources", buildName + os.sep + "assets")
-    
+
     for libFile in libFiles:
         libStr += "-l"+libFile+ " "
         #print "libStr: " + libStr
-    
+
     currentDirectory = currentWD = os.getcwd()
     #TODO check if above is typo
     workingDirectory = currentDirectory + os.sep + buildName
@@ -172,7 +172,7 @@ def printResults(workingDirectory, buildStr, runStr):
         exit(2)
     else: cdlog(1, "SUCCESS!")
 
-def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
     if platform == 'Linux':
         [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
@@ -181,7 +181,7 @@ def build(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fi
         [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
         printResults(workingDirectory, buildStr, runStr)
     elif platform == 'Android':
-        buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'IOS':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
         printResults(workingDirectory, buildStr, runStr)

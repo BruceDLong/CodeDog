@@ -36,14 +36,19 @@ def makeDir(dirToGen):
 
 def copyTree(src, dst):
     for item in os.listdir(src):
-        print "item: ", item
         s = os.path.join(src, item)
         d = os.path.join(dst, item)
         if os.path.isdir(s):
             shutil.copytree(s, d, False, None)
         else:
-            print"else"
             shutil.copy2(s, d)
+def copyFile(fileName, src, dst):
+    s = os.path.join(src, fileName)
+    d = os.path.join(dst, fileName)
+    if os.path.isdir(s):
+        shutil.copytree(s, d, False, None)
+    else:
+        shutil.copy2(s, d)
 
 def pathAndroid(workingDir, dirsToGen):
     print '--------------------------------   G e n e r a t i n g   F o l d e r   S t r u c t u r e \n'
@@ -71,7 +76,8 @@ def gradleFile(topDomain, domain, appName, workingDir):
                 '    defaultConfig {\n' \
                 '        targetSdkVersion 26\n' \
                 '        minSdkVersion 20\n' \
-                '  }\n' \
+                '    }\n' \
+                '    sourceSets {main{res.srcDirs = [\'res\']}}\n'\
                 '    buildTypes {\n' \
                 '        release {\n' \
                 '            minifyEnabled false\n' \
@@ -97,18 +103,17 @@ def gradleFile(topDomain, domain, appName, workingDir):
     fo=open(workingDir + os.sep + fileName, 'w')
     fo.write(outStr)
     fo.close()
-    
-def androidManifest(topDomain, domain, appName, workingDir):
+
+def androidManifest(topDomain, domain, appName, labelName, launchIconName, workingDir):
     print '--------------------------------   G e n e r a t i n g   M a n i f e s t \n'
     fileName = "AndroidManifest.xml"
 
     outStr = '<?xml version="1.0" encoding="utf-8"?>\n' \
             '<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n' \
             '    package="' + topDomain + '.' + domain + '.' + appName + '">\n' \
-            '    <application android:label="' + appName + '"\n' \
+            '    <application android:icon="@drawable/' + launchIconName + '" android:label="' + labelName + '"\n' \
             '        android:theme="@style/Theme.AppCompat.Light.NoActionBar">\n' \
-            '        <activity android:name="' + appName + '"\n' \
-            '            android:label="' + appName + '">\n' \
+            '        <activity android:name="' + appName + '">\n' \
             '            <intent-filter>\n' \
             '                <action android:name="android.intent.action.MAIN" />\n' \
             '                <category android:name="android.intent.category.LAUNCHER" />\n' \
@@ -121,7 +126,7 @@ def androidManifest(topDomain, domain, appName, workingDir):
     fo.write(outStr)
     fo.close()
 
-def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, outStr):
+def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, outStr):
     fileExt        = '.java'
     topDomain      = "com"
     domain         = "infomage"
@@ -130,15 +135,18 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     fileName       = 'GLOBAL'
     packageDir     = '/src/main/java/'+topDomain+'/'+domain+'/'+fileName
     assetsDir      = '/src/main/assets'
+    drawableDir    = '/res/drawable'
+    drawablePath   = workingDir + drawableDir
     packageName    = topDomain+'.'+domain+'.'+fileName
     targetPlatform = ""
-    dirsToGen = [assetsDir, packageDir]
-    print 'Building for Android'
+    dirsToGen = [assetsDir, packageDir, drawableDir]
+    print 'Building for Android: ', drawablePath
     pathAndroid(workingDir, dirsToGen)
     copyTree("Resources", buildName+assetsDir)
+    copyFile(launchIconName+'.png', currentDir, drawablePath)
     writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName)
     gradleFile(topDomain, domain, fileName, workingDir)
-    androidManifest(topDomain, domain, fileName, workingDir+'/src/main')
+    androidManifest(topDomain, domain, fileName, labelName, launchIconName, workingDir+'/src/main')
     [out, err] = runCMD( 'gradle tasks ', workingDir)
     [out, err] = runCMD( 'gradle assembleDebug --stacktrace', workingDir)
     [out, err] = runCMD( 'gradle installDebug ', workingDir)
