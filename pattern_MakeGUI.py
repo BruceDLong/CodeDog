@@ -518,6 +518,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
         newWidgetFields   += '            me string: childName <- children[N]\n'
         #newWidgetFields   += '            print("^^^setZStackActive: ",N)\n'
         newWidgetFields   += '            setZStackActive(Zbox, childName)\n'
+        newWidgetFields   += '            activeScreenIdx <- N\n'
         newWidgetFields   += '        }\n'
         newWidgetFields   += '    }\n'
         containerWidget    = 'Zbox <- makeZStack("'+className+'")\n'
