@@ -1020,7 +1020,8 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     GtkWidget *topBox;
     getMetrics();
     window = gtk_application_window_new (app);
-    gtk_window_set_title (GTK_WINDOW (window), "Window");
+    const gchar* titleStr = thisApp.gui->title.data();
+    gtk_window_set_title (GTK_WINDOW (window), titleStr);
     gtk_window_set_default_size (GTK_WINDOW (window), 1000, 700);
     g_signal_connect (window, "destroy", G_CALLBACK (close_window), NULL);
     gtk_container_set_border_width (GTK_CONTAINER (window), 0);
