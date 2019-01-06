@@ -169,6 +169,7 @@ struct Styler{
         our fontSpec:: fontDefault <- ("Ariel", 10, 0)
         our fontSpec:: fontTitle <- ("Ariel", 16, 0)
         our fontSpec:: fontSmall <- ("Ariel", 8, 0)
+        our fontSpec:: fontVerySmall <- ("Ariel", 5, 0)
 
     void: setCustomColor(me string: ID, me cdColor: color) <- {
         our cdColor:: tmpColor <- color
@@ -226,6 +227,7 @@ struct Styler{
         Allocate(fontDefault, "ariel", "14")
         Allocate(fontTitle, "ariel", "20")
         Allocate(fontSmall, "ariel", "10")
+        Allocate(fontVerySmall, "ariel", "5")
     }
 
 
