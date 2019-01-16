@@ -908,7 +908,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
             if(fieldOwner != 'my'):
                 defaultVal = "NULL"
         elif (isinstance(fieldType, basestring)):
-            if(fieldType[0:3]=="int" or fieldType[0:4]=="uint"):
+            if(fieldType=="int" or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32"):
                 defaultVal = "0"
             elif(fieldType=="string"):
                 defaultVal = '""'
