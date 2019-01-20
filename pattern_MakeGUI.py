@@ -190,24 +190,19 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
         varsFromWidgetCode   += '        '+widgetName+'.getValue()\n'
     elif fieldSpec=='widget':
+        typeName              = fieldType
+        localWidgetVarName    = fieldName
         if fieldType=='graphWidget':
-            print 'widget: ', fieldType
-            typeName              = fieldType
             widgetName            = fieldName +'Widget'
             widgetBoxName         = fieldName
-            localWidgetVarName    = fieldName
             newWidgetFields      += '    their GUI_item' + ': ' + fieldName + '\n'
             makeTypeNameCall      = widgetName+' <- Data.' + fieldName + '\n' + fieldName + '<- '+widgetName+'.init("'+label+'")\n'
         else:
-            typeName              = fieldType
             widgetBoxName         = widgetName +'.box'
-            localWidgetVarName    = fieldName
             dataType = changeDataFieldType(classes, structTypeName, typeSpec)
             makeTypeNameCall      = 'Allocate('+widgetName+')\n'
             makeTypeNameCall     += '        '+widgetBoxName+' <- '+widgetName+'.initWidget("'+label+'")\n'
             makeTypeNameCall     += '        ' + widgetName + '.parentGuiMgr <- self\n'
-            #widgetFromVarsCode   += '        '+widgetName+'.setValue(var.'+ fieldName +')\n'
-            varsFromWidgetCode   += '        _data.' + fieldName + ' <- ' +widgetName+'.getValue()\n'
     elif fieldSpec=='struct':
         typeName              = 'GUI_Frame'
         guiStructName         = structTypeName + '_Dialog_GUI'
