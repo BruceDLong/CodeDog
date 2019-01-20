@@ -840,8 +840,11 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n"
-                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+        if isBackward:
+            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'rbegin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'rend()' +"; ++"+ repName + "Itr ){\n")
+        else:
+            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n")
+        actionText += indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n"
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
@@ -849,8 +852,11 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
 
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         lvName=repName+"Idx"
-        actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+RDeclP+'size();' +" ++"+lvName+" ){\n"
-                    + indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n")
+        if isBackward:
+            actionText += (indent + "for( int64_t " + lvName+' = '+repContainer+RDeclP+'size()-1; ' + lvName+" >= 0; "+" --"+lvName+" ){\n")
+        else:
+            actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+RDeclP+'size();' +" ++"+lvName+" ){\n")
+        actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n"
     else:
         cdErr("DSID:" + datastructID + ', ' +containerType)
 
