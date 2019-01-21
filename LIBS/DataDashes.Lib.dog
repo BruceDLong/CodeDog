@@ -371,6 +371,9 @@ struct dataCacheStreams {
         dcStream.title <- ID
         dataStreams.pushLast(dcStream)
     }
+    void: setDataPoint(me int: streamID, me timeValue: timeStamp, me datum: value) <- {
+        dataStreams[streamID].dataMap[timeStamp] <- value
+    }
 }
 struct dataPlotter {
     me datum:      prevY
