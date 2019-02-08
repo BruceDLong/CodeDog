@@ -68,7 +68,7 @@ def codeIteratorOperation(itrCommand):
     if itrCommand=='goNext':  result='%0.next()'
     elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
     elif itrCommand=='key':   result='%0.getKey()'
-    elif itrCommand=='val':   result='%0.next().getValue()'
+    elif itrCommand=='val':   result='%0'
     return result
 
 def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
@@ -84,7 +84,7 @@ def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
     elif owner=='their':
         langType = langType
     elif owner=='itr':
-        langType = langType="Iterator<Map.Entry<"+idxType+', '+innerType+"> >"
+        langType = innerType
     elif owner=='we':
         langType = 'static '+langType
     else:
@@ -187,14 +187,16 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         print"getContainerTypeInfo DblLinkedList"
         return(name, typeSpecOut, paramList, convertedIdxType)
     if containerType=='ArrayList':
-        if name=='at': pass
+        if name=='at'         : name='get'
         elif name=='erase'    : name='remove'
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='add';
+        elif name=='insertIdx': typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':{'owner':'itr'}}, {'typeSpec':typeSpecIn}]}; typeSpecOut['codeConverter']='%0.add(%1, %2)'
+        elif name=='InsertIdx': typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':{'owner':'itr'}}, {'typeSpec':typeSpecIn}]}; typeSpecOut['codeConverter']='%0.add(%1, %2)'
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
         elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='end'      : name='end()';    typeSpecOut['owner']='itr'; paramList=None;
+        elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
         elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
         elif name=='nthItr'   : typeSpecOut['codeConverter']='%0.listIterator(%1)';  typeSpecOut['owner']='itr';
         elif name=='first'    : name='get(0)';   paramList=None;
@@ -203,18 +205,21 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
         elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
         elif name=='pushFirst': typeSpecOut['codeConverter']='%0.add(0, %1)';  typeSpecOut['owner']='itr';
         elif name=='pushLast' : name='add'
-        elif name=='isEmpty'  : name='isEmpty'
+        elif name=='isEmpty'  : name='isEmpty';  typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         elif name=='deleteNth': name='remove'
         else: print "Unknown ArrayList command:", name; exit(2);
     elif containerType=='TreeMap':
         convertedIdxType=idxType
         [convertedItmType, innerType]=xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
-        if name=='at': pass
+        if name=='at'         : name='get'
         elif name=='containsKey'   : name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
         elif name=='insert'   : name='put';
         elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='find'     : typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;  typeSpecOut['codeConverter']='tailMap(%1).entrySet().iterator()';
+        elif name=='find'     :
+            typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;
+            typeSpecOut['codeConverter']='get(%1)';
+            print "convertedItmType:",convertedItmType
         elif name=='get'      : name='get';      typeSpecOut['owner']='me';  typeSpecOut['fieldType']=convertedItmType;
         elif name=='front'    : name='firstEntry().getValue()';  typeSpecOut['owner']='itr'; paramList=None;
         elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
