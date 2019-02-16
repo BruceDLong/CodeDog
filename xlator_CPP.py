@@ -628,7 +628,7 @@ def produceTypeDefs(typeDefMap, xlator):
 
 def addSpecialCode(filename):
     S='\n\n//////////// C++ specific code:\n'
-    S += "\n\nusing namespace std;\nusing namespace icu;\n\n"
+    S += "\n\nusing namespace std;\n\n"
     S += 'const string filename = "' + filename + '";\n'
     S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
 
