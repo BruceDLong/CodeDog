@@ -698,14 +698,6 @@ struct GLOBAL{
     appComponentGUI* clickWidget = (appComponentGUI*)wid;
         clickWidget->clickNext();
     }%>
-    void: clickRemoveMed_CB(their GtkWidget: wid, their MedItemDataWidget: food) <- <%{
-    MedItemDataWidget* clickWidget = (MedItemDataWidget*)food;
-        clickWidget->clickRemoveMed();
-    }%>
-    void: clickAddMed_CB(their GtkWidget: wid, their MedBunchDataWidget: meal) <- <%{
-    MedBunchDataWidget* clickWidget = (MedBunchDataWidget*)meal;
-        clickWidget->clickAddMed();
-    }%>
 }
 /-///////////////////////////////  HANDLE GUI
 struct GUI_canvas{
@@ -741,6 +733,7 @@ struct GUI{
     me void: setCallback()     <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4)%>
     me void: setBtnCallback()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_CB), %4)%>
     me void: setBtnCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4.get())%>
+    me void: setBtnCallback3()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
