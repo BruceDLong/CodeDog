@@ -563,6 +563,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             boxFooterCode      += '        backBtn         <- makeButtonWidget("Back")\n'
             boxFooterCode      += '        GUI.setBtnCallback(backBtn, "clicked", clickBack, this)\n'
             boxFooterCode      += '        addToContainer(boxFooter, backBtn)\n'
+            tagCode            += ''
         if makeNextBtn:
             newWidgetFields    += '    their GUI_button: nextBtn\n'
             newWidgetFields    += '''    void: clickNext() <-{
@@ -582,6 +583,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             boxFooterCode      += '        nextBtn.setWidgetActive(false)\n'
             boxFooterCode      += '        GUI.setBtnCallback(nextBtn, "clicked", clickNext, this)\n'
             boxFooterCode      += '        addToContainer(boxFooter, nextBtn)\n'
+            tagCode            += ''
         boxFooterCode      += '        addToContainer(box, boxFooter)\n'
     if makeVScroller:
         scrollerCode  = 'their GUI_VerticalScroller: scroller <- makeVerticalScroller()\n'
