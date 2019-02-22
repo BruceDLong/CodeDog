@@ -413,15 +413,57 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             retType='bool'
     return [S, retType]
 
-def codeLogAnd(item, objsRefed, returnType, xlator):
-    #print '   And item:', item
+def codeIOR(item, objsRefed, returnType, xlator):
+    #print '   iOR item:', item
     [S, retType] = codeIsEQ(item[0], objsRefed, returnType, xlator)
     if len(item) > 1 and len(item[1])>0:
         S=derefPtr(S, retType)
         for i in item[1]:
             #print '   AND ', i
-            if (i[0] == 'and'):
+            if (i[0] == '&'):
                 [S2, retType] = codeIsEQ(i[1], objsRefed, returnType, xlator)
+                S2=derefPtr(S2, retType)
+                S+=' & ' + S2
+            else: print "ERROR: '&' expected in code generator."; exit(2)
+    return [S, retType]
+
+def codeXOR(item, objsRefed, returnType, xlator):
+    #print '   xOR item:', item
+    [S, retType] = codeIsEQ(item[0], objsRefed, returnType, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retType)
+        for i in item[1]:
+            #print '   AND ', i
+            if (i[0] == '^'):
+                [S2, retType] = codeIsEQ(i[1], objsRefed, returnType, xlator)
+                S2=derefPtr(S2, retType)
+                S+=' ^ ' + S2
+            else: print "ERROR: '^' expected in code generator."; exit(2)
+    return [S, retType]
+
+def codeBar(item, objsRefed, returnType, xlator):
+    #print '   Bar item:', item
+    [S, retType] = codeXOR(item[0], objsRefed, returnType, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retType)
+        for i in item[1]:
+            #print '   AND ', i
+            if (i[0] == '|'):
+                [S2, retType] = codeXOR(i[1], objsRefed, returnType, xlator)
+                S2=derefPtr(S2, retType)
+                S+=' | ' + S2
+            else: print "ERROR: '|' expected in code generator."; exit(2)
+    return [S, retType]
+
+def codeLogAnd(item, objsRefed, returnType, xlator):
+    #print '   And item:', item
+    [S, retType] = codeBar(item[0], objsRefed, returnType, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retType)
+        for i in item[1]:
+            #print '   AND ', i
+            if (i[0] == 'and'):
+                [S2, retType] = codeBar(i[1], objsRefed, returnType, xlator)
                 S2=derefPtr(S2, retType)
                 S+=' && ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)
