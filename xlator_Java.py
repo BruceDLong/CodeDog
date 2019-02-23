@@ -410,15 +410,51 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
+def codeIOR(item, objsRefed, returnType, xlator):
+    #print '      iOR item:', item
+    [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        for i in item[1]:
+            #print '   AND ', i
+            if (i[0] == '&'):
+                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, xlator)
+                S+=' & ' + S2
+            else: print "ERROR: '&' expected in code generator."; exit(2)
+    return [S, retTypeSpec]
+
+def codeXOR(item, objsRefed, returnType, xlator):
+    #print '      xOR item:', item
+    [S, retTypeSpec]=codeIOR(item[0], objsRefed, returnType, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        for i in item[1]:
+            #print '   AND ', i
+            if (i[0] == '^'):
+                [S2, retTypeSpec] = codeIOR(i[1], objsRefed, returnType, xlator)
+                S+=' ^ ' + S2
+            else: print "ERROR: '^' expected in code generator."; exit(2)
+    return [S, retTypeSpec]
+
+def codeBar(item, objsRefed, returnType, xlator):
+    #print '      Bar item:', item
+    [S, retTypeSpec]=codeXOR(item[0], objsRefed, returnType, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        for i in item[1]:
+            #print '   AND ', i
+            if (i[0] == '|'):
+                [S2, retTypeSpec] = codeXOR(i[1], objsRefed, returnType, xlator)
+                S+=' | ' + S2
+            else: print "ERROR: 'and' expected in code generator."; exit(2)
+    return [S, retTypeSpec]
+
 def codeLogAnd(item, objsRefed, returnType, xlator):
     #print '   And item:', item
-    [S, retTypeSpec] = codeIsEQ(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
                 S = checkForTypeCastNeed('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, xlator)
+                [S2, retTypeSpec] = codeBar(i[1], objsRefed, returnType, xlator)
                 S2= checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' && ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)

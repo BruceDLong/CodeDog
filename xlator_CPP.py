@@ -462,15 +462,57 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
+def codeIOR(item, objsRefed, returnType, xlator):
+    #print '      iOR item:', item
+    [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+        leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
+        S_derefd = derefPtr(S, retTypeSpec)
+        for i in item[1]:
+            #print '      IsEq ', i
+            [S2, retType2] = codeIsEQ(i[1], objsRefed, returnType, xlator)
+            rightOwner=progSpec.getTypeSpecOwner(retType2)
+            S+= ' & '+S2
+    return [S, retTypeSpec]
+
+def codeXOR(item, objsRefed, returnType, xlator):
+    #print '      xOR item:', item
+    [S, retTypeSpec]=codeIOR(item[0], objsRefed, returnType, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+        leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
+        S_derefd = derefPtr(S, retTypeSpec)
+        for i in item[1]:
+            #print '      IsEq ', i
+            [S2, retType2] = codeIOR(i[1], objsRefed, returnType, xlator)
+            rightOwner=progSpec.getTypeSpecOwner(retType2)
+            S+= ' ^ '+S2
+    return [S, retTypeSpec]
+
+def codeBar(item, objsRefed, returnType, xlator):
+    #print '      Bar item:', item
+    [S, retTypeSpec]=codeXOR(item[0], objsRefed, returnType, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+        leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
+        S_derefd = derefPtr(S, retTypeSpec)
+        for i in item[1]:
+            #print '      IsEq ', i
+            [S2, retType2] = codeXOR(i[1], objsRefed, returnType, xlator)
+            rightOwner=progSpec.getTypeSpecOwner(retType2)
+            S+= ' | '+S2
+    return [S, retTypeSpec]
+    
 def codeLogAnd(item, objsRefed, returnType, xlator):
     #print '   And item:', item
-    [S, retTypeSpec] = codeIsEQ(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, xlator)
     if len(item) > 1 and len(item[1])>0:
         S=derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
-                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, xlator)
+                [S2, retTypeSpec] = codeBar(i[1], objsRefed, returnType, xlator)
                 S2=derefPtr(S2, retTypeSpec)
                 S+=' && ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)
