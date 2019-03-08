@@ -922,6 +922,7 @@ struct GUI {
     me void: setCallback() <- <%!%G %>
     me void: setBtnCallback()  <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%3();}})%>
     me void: setBtnCallback2() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%5;}})%>
+    me void: setBtnCallback3() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%4();}})%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 /-    me GUI_Frame: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
