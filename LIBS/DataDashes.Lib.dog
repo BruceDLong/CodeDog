@@ -148,9 +148,9 @@ struct horizontalScale: inherits=graphScale{
 
         /- SCALE TITLE
         size <- getTextSize(cr, title, styler.fontDefault)
-        if(tickOffset > 0){YPoint <- yOrig+tickHeight+labelHeight+titlePadding+size.height}
+        if(tickOffset > 0){YPoint <- yOrig+tickHeight+labelHeight+titlePadding+titlePadding}
         else              {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
-        renderText(cr, title, styler.fontDefault, xOrig+span/2, YPoint)
+        renderText(cr, title, styler.fontDefault, span/2, YPoint)
         cr.strokeNow()
         height <- 30
     }

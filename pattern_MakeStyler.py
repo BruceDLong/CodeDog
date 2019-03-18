@@ -166,10 +166,14 @@ struct Styler{
     me cdColor:  highlight2Color <- Cornflower
     me cdColor:  highlight3Color <- OrangeRed
 
-        our fontSpec:: fontDefault <- ("Ariel", 10, 0)
-        our fontSpec:: fontTitle <- ("Ariel", 16, 0)
-        our fontSpec:: fontSmall <- ("Ariel", 8, 0)
-        our fontSpec:: fontVerySmall <- ("Ariel", 5, 0)
+    our fontSpec:: fontDefault <- ("Ariel", 10, 0)
+    our fontSpec:: fontTitle <- ("Ariel", 16, 0)
+    our fontSpec:: fontSmall <- ("Ariel", 8, 0)
+    our fontSpec: fontVerySmall
+    our fontSpec: fontLabelWidgetAndroid
+    our fontSpec: fontEntryWidgetAndroid
+    our fontSpec: fontTitleAndroid
+    our fontSpec: fontTextAndroid
 
     void: setCustomColor(me string: ID, me cdColor: color) <- {
         our cdColor:: tmpColor <- color
@@ -228,6 +232,10 @@ struct Styler{
         Allocate(fontTitle, "ariel", "20")
         Allocate(fontSmall, "ariel", "10")
         Allocate(fontVerySmall, "ariel", "5")
+        Allocate(fontLabelWidgetAndroid, "ariel", "25")
+        Allocate(fontEntryWidgetAndroid, "ariel", "25")
+        Allocate(fontTitleAndroid, "ariel", "25")
+        Allocate(fontTextAndroid, "ariel", "20")
     }
 
 
