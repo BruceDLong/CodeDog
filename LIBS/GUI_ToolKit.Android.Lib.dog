@@ -112,7 +112,7 @@ struct boolWidget{
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
         dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         box.addView(dataLabel);
         dataValue = new CheckBox(GLOBAL.static_Global);
         box.addView(dataValue);
@@ -138,11 +138,11 @@ struct intWidget{
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
         dataLabel.setWidth(50);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         box.addView(dataLabel);
         dataValue = new EditText(GLOBAL.static_Global);
         dataValue.setWidth(50);
-        dataValue.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
         dataValue.setInputType(InputType.TYPE_CLASS_NUMBER);
         box.addView(dataValue);
         box.setVisibility(View.VISIBLE);
@@ -174,7 +174,7 @@ struct intRangeWidget{
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
         dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         box.addView(dataLabel);
         dataValue = new NumberPicker(GLOBAL.static_Global);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(100, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -207,12 +207,12 @@ struct stringWidget{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
-        dataLabel.setWidth(50);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataLabel.setWidth(100);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         box.addView(dataLabel);
         dataValue = new EditText(GLOBAL.static_Global);
-        dataValue.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
-        dataValue.setWidth(50);
+        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
+        dataValue.setWidth(100);
         dataValue.setInputType(InputType.TYPE_CLASS_TEXT);
         dataValue.addTextChangedListener(new TextWatcher() {
             @Override
@@ -256,9 +256,10 @@ struct dateWidget{
         dataValue     = new EditText(GLOBAL.static_Global);
         dataLabel.setText(label);
         dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         dataValue.setInputType(InputType.TYPE_NULL);
-        dataValue.setWidth(GLOBAL.static_Global.styler.widgetValueBoxWidth);
+        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
+        dataValue.setWidth(120);
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
@@ -303,8 +304,9 @@ struct enumWidget{
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
         dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         dataValue = new Spinner(GLOBAL.static_Global);
+        dataValue.setDropDownWidth(100);
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, android.R.layout.simple_spinner_item, options);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         dataValue.setAdapter(adapter);
@@ -343,10 +345,12 @@ struct DateWidget{
         box           = new LinearLayout(GLOBAL.static_Global);
         dataLabel     = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         dataLabel.setVisibility(View.VISIBLE);
         dataValue     = new EditText(GLOBAL.static_Global);
         dataValue.setInputType(InputType.TYPE_NULL);
+        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
+        dataValue.setWidth(120);
         dateListener = new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker datePicker, int year, int month, int day) {
@@ -385,8 +389,10 @@ struct TimeWidget{
         dataLabel     = new TextView(GLOBAL.static_Global);
         dataValue     = new EditText(GLOBAL.static_Global);
         dataLabel.setText(label);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontDefault.size);
+        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         dataValue.setInputType(InputType.TYPE_NULL);
+        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
+        dataValue.setWidth(80);
         timeListener = new TimePickerDialog.OnTimeSetListener() {
             @Override
             public void onTimeSet(TimePicker view, int hour, int minute) {
@@ -625,11 +631,13 @@ struct GLOBAL{
     their GUI_Label: makeLabelWidget(me string: label)      <- <%{
         TextView textBox = new TextView(GLOBAL.static_Global);
         textBox.setText(label);
+        textBox.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         return textBox;
     }%>
     their GUI_Label: makeLabelWidget2(me string: label)      <- <%{
         TextView textBox = new TextView(GLOBAL.static_Global);
         textBox.setText(label);
+        textBox.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         return textBox;
     }%>
     their GtkWidget: makeComboBox(me string: label)          <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
@@ -651,6 +659,7 @@ struct GLOBAL{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         EditText editBox = new EditText(GLOBAL.static_Global);
         editBox.setInputType(InputType.TYPE_CLASS_NUMBER);
+        editBox.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
         editBox.setHint(label);
         box.addView(editBox);
         return box;
@@ -660,6 +669,7 @@ struct GLOBAL{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         EditText editText = new EditText(GLOBAL.static_Global);
         editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+        editText.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
         editText.setHint(label);
         /-editWidget = editText;
         box.addView(editText);
@@ -670,6 +680,7 @@ struct GLOBAL{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         EditText editText = new EditText(GLOBAL.static_Global);
         editText.setInputType(InputType.TYPE_CLASS_TEXT);
+        editText.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
         editText.setHint(label);
         /-editWidget = editText;
         box.addView(editText);
@@ -716,6 +727,7 @@ struct GLOBAL{
     their GUI_TextViewer: makeAndroidTextViewer(me string: text)   <- <%{
         TextView textViewer = new TextView(GLOBAL.static_Global);
         textViewer.setText(text);
+        textViewer.setTextSize(GLOBAL.static_Global.styler.fontTextAndroid.size);
         return textViewer;
     }%>
     their GUI_VerticalScroller: makeAndroidVerticalScroller() <- <%{
