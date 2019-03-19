@@ -58,6 +58,48 @@ class ScaledContextWrapper extends ContextWrapper {
         return new ScaledContextWrapper(context);
     }
 }
+
+class Spinner_String_View extends ArrayAdapter<String> {
+    ArrayList<String> _data;
+
+    public Spinner_String_View(Context context, ArrayList<String> Data) {
+       super(context, 0, Data);
+       _data = Data;
+    }
+
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+        return getCustomView(position, convertView, parent);
+    }
+    @Override
+    public View getDropDownView(int position, View convertView, ViewGroup parent) {
+        return getCustomView(position, convertView, parent);
+    }
+    public View getCustomView(int position, View convertView, ViewGroup parent) {
+        TextView rowView = new TextView(GLOBAL.static_Global);
+        String rowItem = getItem(position);
+        LayoutParams stringView = new LayoutParams(350,50);
+        rowView.setLayoutParams(stringView);
+        rowView.setText(rowItem);
+        rowView.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
+       return rowView;
+   }
+
+    @Override
+    public int getCount() {
+        return _data.size();
+    }
+
+    @Override
+    public String getItem(int position) {
+        return _data.get(position);
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return position;
+    }
+};
 `
 
 /-///////////////////////////////  STRUCT CONVERTERS
@@ -306,9 +348,8 @@ struct enumWidget{
         dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
         dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
         dataValue = new Spinner(GLOBAL.static_Global);
-        dataValue.setDropDownWidth(100);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, android.R.layout.simple_spinner_item, options);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        dataValue.setDropDownWidth(150);
+        Spinner_String_View adapter = new Spinner_String_View(GLOBAL.static_Global, options);
         dataValue.setAdapter(adapter);
         dataValue.setOnItemSelectedListener(new OnItemSelectedListener() {
             @Override
