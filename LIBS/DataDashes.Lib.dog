@@ -478,7 +478,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         rightGraphTime <- crntRightSide
         leftGraphTime  <- crntRightSide - timeInterval
 
-        cr.setColor(styler.highlight2Color)
+        cr.setColor(styler.primaryTextColor)
         if(graphTitle.isVisible) {
             graphTitle.draw(cr, curX + curW/2, curY)
             curY <- curY + graphTitle.height
@@ -574,7 +574,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
                 else if(streamToggle2.label == dataStream.title) {streamToggle2.latest <- dataStream.screenDataAvg}
             }
         }
-        cr.setColor(styler.highlight2Color)
+        cr.setColor(styler.primaryTextColor)
         zoomToggle.draw(cr)
         streamToggle1.draw(cr)
         streamToggle2.draw(cr)
