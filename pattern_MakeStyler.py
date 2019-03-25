@@ -49,7 +49,7 @@ Examples:
 mainStyle = {
     colors = {
         frGndColor = sysDefaultFrGndColor
-        bkGndColor = [45, 100, 220]   /- RGB
+        /-bkGndColor = [0, 0, 0]   /- RGB
         highlight1Color = LightGreen
 
         MySpecialColor = SlateBlue
@@ -160,11 +160,19 @@ struct GLOBAL{
 }
 struct Styler{
     our cdColor[map string]: userColors
-    me cdColor:  frGndColor      <- White
-    me cdColor:  bkGndColor      <- Black
-    me cdColor:  highlight1Color <- White
+    me cdColor:  frGndColor      <- Black
+    me cdColor:  bkGndColor      <- White
+    me cdColor:  highlight1Color <- Black
     me cdColor:  highlight2Color <- Cornflower
     me cdColor:  highlight3Color <- OrangeRed
+    me cdColor:  primaryTextColor <- Black
+    me cdColor:  data1Color <- Cornflower
+    me cdColor:  data2Color <- Turquoise
+    me cdColor:  data3Color <- Magenta
+    me cdColor:  data4Color <- MediumVioletRed
+    me cdColor:  data5Color <- OrangeRed
+    me cdColor:  data6Color <- Gold
+
 
     our fontSpec:: fontDefault <- ("Ariel", 10, 0)
     our fontSpec:: fontTitle <- ("Ariel", 16, 0)
