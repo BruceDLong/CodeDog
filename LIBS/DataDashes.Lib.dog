@@ -426,6 +426,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
     me int:          screenDataCount
     me timeValue:    timeInterval
     me timeValue:    crntRightSide
+    me timeValue:    prevTimeGap
     me dataPlotter:  plotter
 
     me graphTitleWidget: graphTitle
@@ -472,11 +473,12 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         me GUI_Scalar: curW <- width
         me GUI_Scalar: curH <- height
 
-
-        if (crntRightSide > getCurrentTimeStamp()) {scrollMode <- sAutomatic}
-        if (scrollMode==sAutomatic) {crntRightSide  <- getCurrentTimeStamp()}
+        me timeValue: crntTimeStamp <- getCurrentTimeStamp()
+        if (crntRightSide > crntTimeStamp) {scrollMode <- sAutomatic}
+        if (scrollMode==sAutomatic) {crntRightSide  <- crntRightSide + (crntTimeStamp-prevTimeGap) }
         rightGraphTime <- crntRightSide
         leftGraphTime  <- crntRightSide - timeInterval
+        prevTimeGap  <- crntTimeStamp
 
         cr.setColor(styler.primaryTextColor)
         if(graphTitle.isVisible) {
@@ -613,6 +615,8 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         zoomLevel    <- 0
         title        <- 'Graph'
 
+        prevTimeGap  <- 0
+
         withEach dataStream in dataStreamSrcs.dataStreams {
             dataStreamsTitleTable.pushLast(dataStream.title)
         }
@@ -686,6 +690,10 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         if (scrollState==pullScrolling) {
             me timeValue: tmpCrntRightSide <- crntRightSide - convertToTimeVal(deltaX)*timeInterval/convertToTimeVal(width)
             requestDataRange(tmpCrntRightSide-timeInterval, tmpCrntRightSide, timeInterval)
+
+            crntRightSide <- tmpCrntRightSide
+            timeInterval  <- timeInterval
+            requestRedraw()
         }
         return(true)
     }
