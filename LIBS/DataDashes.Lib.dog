@@ -474,11 +474,16 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         me GUI_Scalar: curH <- height
 
         me timeValue: crntTimeStamp <- getCurrentTimeStamp()
-        if (crntRightSide > crntTimeStamp) {scrollMode <- sAutomatic}
-        if (scrollMode==sAutomatic) {crntRightSide  <- crntRightSide + (crntTimeStamp-prevTimeGap) }
+        if (crntRightSide > crntTimeStamp and scrollMode != sAutomatic){
+            prevTimeGap  <- crntTimeStamp
+            scrollMode <- sAutomatic
+        }
+        if (scrollMode==sAutomatic) {
+            crntRightSide  <- crntRightSide + (crntTimeStamp-prevTimeGap)
+            prevTimeGap  <- crntTimeStamp
+        }
         rightGraphTime <- crntRightSide
         leftGraphTime  <- crntRightSide - timeInterval
-        prevTimeGap  <- crntTimeStamp
 
         cr.setColor(styler.primaryTextColor)
         if(graphTitle.isVisible) {
@@ -624,6 +629,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         timeInterval <- zoomTable[zoomLevel]
         zoomToggle.initZoomWidget(90, 5, labelTable[zoomLevel], 10, 75)
         crntRightSide <- getCurrentTimeStamp()
+        prevTimeGap  <- crntRightSide
 
             leftScale.initScale("Blood Glucose Level (ml/dl)", true, 1, false, false)
             rightScale.initScale("rightScale!", false, 1, false, false)
