@@ -152,7 +152,7 @@ struct horizontalScale: inherits=graphScale{
         else              {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
         renderText(cr, title, styler.fontDefault, span/2, YPoint)
         cr.strokeNow()
-        height <- 30
+        height <- tickHeight+labelHeight+titlePadding+titlePadding
     }
 
     void: setScale(me GUI_Scalar: Span, me timeValue: LowVal, me timeValue: HiVal, me int: ZoomLvl, me GUI_Scalar: xPos, me GUI_Scalar: yPos, me int: TickOffset) <- {
@@ -581,7 +581,18 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
                 else if(streamToggle2.label == dataStream.title) {streamToggle2.latest <- dataStream.screenDataAvg}
             }
         }
+
+        if (leftGraphTime < crntTimeStamp and rightGraphTime > crntTimeStamp){
+            cr.setRGBA(125, 125, 200, 180)
+            cr.setLineWidth(0.75)
+            me GUI_Scalar: nowX <- convertToGUIScalar((crntTimeStamp-leftGraphTime)*curW/timeInterval) + curX
+            cr.moveTo(nowX, curY)
+            cr.lineTo(nowX, curY+curH)
+            cr.strokeNow()
+        }
+
         cr.setColor(styler.primaryTextColor)
+        cr.setLineWidth(1)
         zoomToggle.draw(cr)
         streamToggle1.draw(cr)
         streamToggle2.draw(cr)
