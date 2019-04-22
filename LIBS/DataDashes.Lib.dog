@@ -351,6 +351,12 @@ struct GraphDataStream {
     me bool: isVisible <- false
     me bool: hasGradient <- true
     me double: screenDataAvg
+
+    void: clearInterval(me double: start, me double: end) <- {
+        me datum[itr map timeValue]: startItr <- dataMap.find(start)
+        me datum[itr map timeValue]: endItr   <- dataMap.find(end)
+        dataMap.erase(startItr, endItr)
+    }
 }
 
 struct GraphDataStreamSources{
@@ -358,6 +364,12 @@ struct GraphDataStreamSources{
     their DataGen: parentDataSource
     me timeStepInterval: requestedInterval
     me bool: dataRangeChangeRequested
+
+    void: clearInterval(me double: start, me double: end) <- {
+        withEach dataStream in dataStreams {
+            dataStream.clearInterval(start, end)
+        }
+    }
 
 }
 struct dataCacheStream {  /- Use this to gather data and transfer it to the GUI thread
@@ -393,7 +405,7 @@ struct dataPlotter {
         else{
             me double: maxConfLvl   <- max(prevY.confidenceInterval, toY.confidenceInterval)
             me double: minConfLvl   <- min(prevY.confidenceInterval, toY.confidenceInterval)
-            me int: numOfSegs       <- convertToIntVal(maxConfLvl/15)
+            me int: numOfSegs       <- convertToIntVal(maxConfLvl/5)
             me double: maxAlpha     <- 1/(maxConfLvl/10)*256
             me double: alphaDelta   <- maxAlpha/numOfSegs*2
             me double: alpha        <- alphaDelta
@@ -628,7 +640,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         posX         <- PosX
         posY         <- PosY
         gradients    <- Gradients
-        zoomLevel    <- 0
+        zoomLevel    <- 1
         title        <- 'Graph'
 
         prevTimeGap  <- 0
