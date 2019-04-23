@@ -271,6 +271,7 @@ struct streamToggle: inherits=dash{
     me circleButton: left
     me circleButton: right
     me string[list]: dataStreamsTitleTbl
+    me string: dispMode
     me int: state
     me string: label
     me deltaSize: labelSize
@@ -281,7 +282,7 @@ struct streamToggle: inherits=dash{
     void: draw(me GUI_ctxt: cr) <- {
         if (state != 0) {
             renderTextCentered(cr, dblToString(latest, 0), styler.fontTitle, posX + 3*radius + maxLabelLength/2, posY + 45)
-            renderTextCentered(cr, "Avg", styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
+            renderTextCentered(cr, dispMode, styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
         }
         label <- dataStreamsTitleTbl[state]
         left.drawCircleBtn(cr)
@@ -298,6 +299,7 @@ struct streamToggle: inherits=dash{
         maxLabelLength <- 75
         dataStreamsTitleTbl <- DataStreamsTitleTbl
         state <- State
+        dispMode<-"Now"
         label <- dataStreamsTitleTbl[state]
         latest <- 0
 
@@ -312,12 +314,19 @@ struct streamToggle: inherits=dash{
         if (state == otherState) {incrementStreamState(Increment, otherState)}
     }
 
+    void: nextDispMode() <- {
+        if(dispMode=="Avg"){dispMode<-"Now"}
+        else if(dispMode=="Now"){dispMode<-"Avg"}
+    }
+
     /- Click functionality is inside graph clicks
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
         if (isTouchingMe(event.x, event.y)) {return(true)}
         else {return(false)}
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+    print("UP-DISP-MODE:", dispMode, " event.x:", event.x, " event.y:", event.y, "\n")
+    print("      TARGET:", " posX:", posX, " posY:", posY, " width:", width, " height:", height, "\n")
         if (isTouchingMe(event.x, event.y)) {return(true)}
         else {return(false)}
     }
@@ -370,7 +379,6 @@ struct GraphDataStreamSources{
             dataStream.clearInterval(start, end)
         }
     }
-
 }
 struct dataCacheStream {  /- Use this to gather data and transfer it to the GUI thread
     me string: title
@@ -702,8 +710,10 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         else if (zoomToggle.zoomOutBtn.primaryUp(event)) {incrementZoomLevel(1)}
         else if (streamToggle1.left.primaryUp(event)) {streamToggle1.incrementStreamState(-1, streamToggle2.state)}
         else if (streamToggle1.right.primaryUp(event)) {streamToggle1.incrementStreamState(1, streamToggle2.state)}
+        else if (streamToggle1.primaryUp(event)) {print("CLICK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n"); streamToggle1.nextDispMode()}
         else if (streamToggle2.left.primaryUp(event)) {streamToggle2.incrementStreamState(-1, streamToggle1.state)}
         else if (streamToggle2.right.primaryUp(event)) {streamToggle2.incrementStreamState(1, streamToggle1.state)}
+        else if (streamToggle2.primaryUp(event)) {streamToggle2.nextDispMode()}
         else {scrollState <- still}
         return(true)
     }
