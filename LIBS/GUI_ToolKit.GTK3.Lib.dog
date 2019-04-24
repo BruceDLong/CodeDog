@@ -68,6 +68,9 @@ struct boolWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
 
     me bool: getValue()            <- {dataValue.getValue()}
     void: setValue(me bool: value) <- {dataValue.setValue(value)}
+    me void: clear() <- {
+        dataValue.setValue(true)
+    }
     their GUI_Frame: initWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
@@ -128,6 +131,7 @@ struct intRangeWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
 
     me int: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
+    /-me void: clear() <- <%{}%>
 
     their GUI_Frame: initWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -191,7 +195,9 @@ struct dateWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
         gtk_calendar_select_day((GtkCalendar*)dataValue, day);
         //cout<<"Set DATE:"<< year << " / " <<  month+1 << " / " << day  <<"\n"<<flush;
     }%>
-
+    me void: clear() <- <%{
+        gtk_calendar_clear_marks ((GtkCalendar*)dataValue);
+    }%>
     their GUI_Frame: initWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
@@ -212,7 +218,7 @@ struct enumWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
 
     me int: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_combo_box_set_active((GtkComboBox*)%0->dataValue, %1)%>
-
+    me void: clear() <- <%{}%>
     their GUI_Frame: initWidget(me string: label, me string[list]: Options)  <- <%{
         options = Options;
         box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -245,6 +251,9 @@ struct DateWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
         return(dateVal)
     }
     void: setValue(me timeValue: setDate) <- {}
+    me void: clear() <- <%{
+        gtk_entry_set_text((GtkEntry*)yearBox, "");
+    }%>
     their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
         /-/// YEAR ///////////////////////////////////
         their GUI_Label: yearLabel <- makeLabelWidget("Year");
@@ -311,6 +320,7 @@ struct TimeWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
         return(millisecondsSinceMidnight)
     }
     void: setValue() <- {}
+    me void: clear() <- <%{}%>
 }
 struct scrollerWidget{
     their GUI_Frame: layoutArea
