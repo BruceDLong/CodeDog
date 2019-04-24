@@ -347,6 +347,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         codeCvrtText = xlator['codeIteratorOperation'](name)
         if codeCvrtText!='':
             typeSpecOut['codeConverter'] = codeCvrtText
+            if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
 
     elif IsAContainer and (not isStructLikeContainer or name[0]=='['):
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')

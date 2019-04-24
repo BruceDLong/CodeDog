@@ -603,11 +603,11 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
                 else {dataStream.screenDataAvg <- 0}
                 if(streamToggle1.label == dataStream.title) {
                     if(streamToggle1.dispMode == "Avg"){streamToggle1.dataValue <- dataStream.screenDataAvg}
-                    else if(streamToggle1.dispMode == "Now"){streamToggle1.dataValue <- dataStream.dataMap[crntTimeStamp].value}
+                    else if(streamToggle1.dispMode == "Now"){streamToggle1.dataValue <- dataStream.dataMap.lower_bound(crntTimeStamp-1000).val.value}
                 }
                 else if(streamToggle2.label == dataStream.title) {
                     if(streamToggle2.dispMode == "Avg"){streamToggle2.dataValue <- dataStream.screenDataAvg}
-                    else if(streamToggle2.dispMode == "Now"){streamToggle2.dataValue <- dataStream.dataMap[crntTimeStamp].value}
+                    else if(streamToggle2.dispMode == "Now"){streamToggle2.dataValue <- dataStream.dataMap.lower_bound(crntTimeStamp-1000).val.value}
                 }
             }
         }
