@@ -306,6 +306,7 @@ struct appComponentGUI{
     void: save()       <- {print("save BASE:\n")}
     void: clickNext()  <- {print("clickNext BASE:\n")}
     void: clickBack()  <- {print("clickBack BASE:\n")}
+    void: clear()      <- {print("clear BASE:\n")}
     void: load()       <- {} /- {print("load BASE:\n")}
     void: onLoaded()   <- {} /- {print("onLoaded BASE:\n")}
     void: onChanged()  <- {print("onChanged BASE:\n")}

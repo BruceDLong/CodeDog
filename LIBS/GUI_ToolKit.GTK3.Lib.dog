@@ -92,9 +92,15 @@ struct intWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     me double: climbRate     <- 1
     me int:    decimalPlaces <- 0
 
-    me int: getValue() <- <%!atoi(gtk_entry_get_text((GtkEntry*)%0->dataValue))%>
-    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
-
+    me int: getValue() <- <%{
+        return(atoi(gtk_entry_get_text((GtkEntry*)dataValue)));
+    }%>
+    me void: setValue(me int: value) <- <%{
+        gtk_entry_set_text((GtkEntry*)dataValue, to_string(value).data());
+    }%>
+    me void: clear() <- <%{
+        gtk_entry_set_text((GtkEntry*)dataValue, "");
+    }%>
     their GUI_Frame: initWidget(me string: name)  <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
@@ -140,8 +146,15 @@ struct stringWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Label: dataLabel
     their GUI_Text:  dataValue
 
-    me string: getValue() <- <%!gtk_entry_get_text((GtkEntry*)%0->dataValue)%>
-    me void: setValue(me string: val) <- <%!gtk_entry_set_text((GtkEntry*)%0->dataValue, %1.data())%>
+    me string: getValue() <- <%{
+        return(gtk_entry_get_text((GtkEntry*)dataValue));
+    }%>
+    me void: setValue(me string: value) <- <%{
+        gtk_entry_set_text((GtkEntry*)dataValue, value.data());
+    }%>
+    me void: clear() <- <%{
+        gtk_entry_set_text((GtkEntry*)dataValue, "");
+    }%>
     their GUI_Frame: initWidget(me string: name) <- <%{
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(name.data());
