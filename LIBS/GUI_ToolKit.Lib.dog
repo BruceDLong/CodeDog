@@ -409,6 +409,10 @@ struct DateTimeWidget: inherits=baseTypeWidget{
         return(retVal)
     }
     void: setValue() <- {}
+    void: clear() <- {
+        dateWidget.clear()
+        timeWidget.clear()
+    }
     void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
 struct Agreement:inherits=appComponentData{
