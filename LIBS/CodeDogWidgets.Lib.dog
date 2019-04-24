@@ -158,6 +158,10 @@ struct IntDraggerWidget: inherits=DashboardWidget{
     }
     me int: getValue() <- {return(intDraggerDash.intData)}
     me void: setValue(me int: val) <- {intDraggerDash.intData <- val}
+    me void: clear() <- {
+        intDraggerDash.intData <- 0
+        intDraggerDash.requestRedraw()
+    }
     void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
 /-// INT - height
@@ -176,6 +180,7 @@ struct IntLengthDraggerDash: inherits=dash{
         posY                 <- PosY
         radius               <- Radius
         btnSpan              <- 100
+        _data                <- 0
     }
     void: requestRedraw() <- {
         if(dashParent==NULL){log("In IntLengthDraggerDash.requestRedraw() dashParent was NULL")}
@@ -303,6 +308,10 @@ struct IntLengthDraggerWidget: inherits=DashboardWidget{
     }
     me int: getValue() <- {return(childDraggerDash._data)}
     me void: setValue(me int: val) <- {childDraggerDash._data <- val}
+    me void: clear() <- {
+        childDraggerDash._data <- 0
+        childDraggerDash.requestRedraw()
+        }
     void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
 /-// TIME
@@ -433,5 +442,11 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
     }
     me timeValue: getValue() <- {return(timeDraggerDash.timeData)}
     me void: setValue(me timeValue: val) <- {}
+    me void: clear() <- {
+        timeDraggerDash.minuteOffset         <- 0
+        timeDraggerDash.timeData             <- getCurrentTimeStamp()
+        timeDraggerDash.startTime            <- timeDraggerDash.timeData
+        requestRedraw()
+    }
     void: onChanged()  <- {parentGuiMgr.onChanged()}
 }

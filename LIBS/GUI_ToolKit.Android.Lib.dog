@@ -149,6 +149,7 @@ struct boolWidget{
         return false;
     }%>
     void: setValue(me bool: value) <- {dataValue.setValue(value)}
+    me void: clear() <- <%{}%>
     their GUI_Frame: initWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
@@ -174,6 +175,9 @@ struct intWidget{
     }%>
     me void: setValue(me int: value) <- <%{
         dataValue.setText(value, TextView.BufferType.EDITABLE);
+    }%>
+    me void: clear() <- <%{
+        dataValue.setText("", TextView.BufferType.EDITABLE);
     }%>
     their GUI_Frame: initWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
@@ -211,6 +215,7 @@ struct intRangeWidget{
     me void: setValue(me int: value) <- <%{
 
     }%>
+    me void: clear() <- <%{}%>
     their GUI_Frame: initWidget(me string: label)  <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
         dataLabel = new TextView(GLOBAL.static_Global);
@@ -244,6 +249,9 @@ struct stringWidget{
     }%>
     me void: setValue(me string: value) <- <%{
         dataValue.setText(value, TextView.BufferType.EDITABLE);
+    }%>
+    me void: clear() <- <%{
+        dataValue.setText("", TextView.BufferType.EDITABLE);
     }%>
     their GUI_Frame: initWidget(me string: label) <- <%{
         box = new LinearLayout(GLOBAL.static_Global);
@@ -290,6 +298,7 @@ struct dateWidget{
         String dateStr=dateFormatter.format(cal.getTime());
         dataValue.setText(dateStr);
     }%>
+    me void: clear() <- <%{}%>
     their GUI_Frame: initWidget(me string: label)  <- <%{
         dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
         calendar      = Calendar.getInstance();
@@ -341,6 +350,7 @@ struct enumWidget{
     me void: setValue(me int: val) <- <%{
         dataValue.setSelection((int)val);
     }%>
+    me void: clear() <- <%{}%>
     their GUI_Frame: initWidget(me string: label, me string[list]: Options)  <- <%{
         options   = Options;
         dataLabel = new TextView(GLOBAL.static_Global);
@@ -380,6 +390,7 @@ struct DateWidget{
     me void: setValue(me timeValue: value) <- <%{
         dataValue.setText(dateFormatter.format(value));
     }%>
+    me void: clear() <- <%{}%>
     their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- <%{
         dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
         calendar      = Calendar.getInstance();
@@ -461,6 +472,7 @@ struct TimeWidget{
         return(data)
     }
     void: setValue() <- {}
+    me void: clear() <- <%{}%>
 }
 struct scrollerWidget{
     their NestedScrollView: scroller
