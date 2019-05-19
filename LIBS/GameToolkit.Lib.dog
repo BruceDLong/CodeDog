@@ -1,0 +1,104 @@
+/----- Game loops and modes
+/- See https://dewitters.com/dewitters-gameloop/
+
+struct GameMode{
+    void: handleEvents(){}
+    void: update(){}
+    void: draw(me double: interpolation){}
+    void: pause(){}
+    void: resume(){}
+    void: init(our GameLooper: ourLooper){looper <- ourLooper}
+    void: deInit(){}
+    our gameLooper: looper
+}
+
+struct GameLooper{
+    me int: FramesOrTicksPerSec <- 40  /- Change this as needed
+
+    me bool: running
+    our GameMode: crntGameMode
+    void: setGameMode(our GameMode: gameMode){crntGameMode <- gameMode}
+    void: pushMode(our GameMode: gameMode){modeStack.pushLast(gameMode); setGameMode(gameMode);}
+    void: popMode(){if(!modeStack.isEmpty()){setGameMode(modeStack.last()); modeStack.popLast();}}
+    void: quitGame(){running <- false}
+    void: init(){}
+    void: deInit(){}
+    me int: FPS(){}
+    our GameMode[list]: modeStack
+
+    void: runNoWait(){
+        while(running){
+            crntGameMode.handleEvents()
+            crntGameMode.update()
+            crntGameMode.draw(0)
+            sleep(1)  /- With no sleep CPU will go to 100%
+        }
+    }
+
+    void: runConstFPS(){
+        me int: ticksToSkip <- FramesOrTicksPerSec / 1000
+        me int: timeToSleep <- 0
+        while(running){
+            crntGameMode.handleEvents()
+            crntGameMode.update()
+            crntGameMode.draw(0)
+
+            nextTick <- nextTick + ticksToSkip
+            timeToSleep <- nextTick - getTickCount()
+            if(timeToSleep > 0){
+                sleep(timeToSleep)
+            } else {log("FRAMES MISSED")}
+        }
+    }
+
+    void: runMaxFPS(){ /- Constant Game speed, max FPS
+        me int: ticksToSkip = 1000 / FramesOrTicksPerSec
+        me int: MAX_FRAMESKIP = 10
+
+        me double: nextTick = GetTickCount()
+        int loops
+        while(running){
+            loops <- 0
+            while(GetTickCount() > nextTick and loops < MAX_FRAMESKIP){
+                crntGameMode.handleEvents()
+                crntGameMode.update()
+
+                nextTick <- nextTick + ticksToSkip
+                loops <- loops + 1
+            }
+            crntGameMode.draw(0)
+        }
+    }
+
+    void: runVarFPS(){ /- Constant Game speed, variable FPS
+        me int: ticksToSkip = 1000 / FramesOrTicksPerSec
+        me int: MAX_FRAMESKIP = 5
+
+        me double: nextTick = GetTickCount()
+        int loops
+        me double: interpolation
+        while(running){
+            loops <- 0
+            while(GetTickCount() > nextTick and loops < MAX_FRAMESKIP){
+                crntGameMode.handleEvents()
+                crntGameMode.update()
+
+                nextTick <- nextTick + ticksToSkip
+                loops <- loops + 1
+            }
+            interpolation <- (getTickCount() + ticksToSkip - nextTick) / ticksToSkip
+            crntGameMode.draw(interpolation)
+        }
+    }
+
+    void: play(me int: playMode){
+        init()
+        running<-true
+        if(playMode==0){runNoWait()}
+        else if(playMode==1){runConstFPS()}
+        else if(playMode==2){runMaxFPS()}
+        else if(playMode==3){runVarFPS()}
+        print("Frames/sec:", FPS(), "\n")
+        deInit()
+    }
+}
