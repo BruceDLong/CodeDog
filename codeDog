@@ -27,7 +27,7 @@ from os.path import abspath
 from timeit import default_timer as timer
 
 atexit.register(progSpec.whenExit)
-sys.setrecursionlimit(2000)
+sys.setrecursionlimit(3000)
 startTime = timer()
 
 def GenerateProgram(classes, buildTags, tagsList, libsToUse):
