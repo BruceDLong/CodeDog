@@ -712,7 +712,7 @@ def TypeSpecsMinimumBaseType(classes, typeSpec):
 
 def innerTypeCategory(fieldType):
     typeKey = fieldTypeKeyword(fieldType)
-    if typeKey=='flag' or typeKey=='mode' or typeKey=='timeValue' or typeKey=='void' or typeKey=='char' or typeKey=='double' or typeKey=='float' or typeKey=='string' or typeKey=='bool': return typeKey
+    if typeKey=='flag' or typeKey=='mode' or typeKey=='timeValue' or typeKey=='void' or typeKey=='char' or typeKey=='double' or typeKey=='float' or typeKey=='string' or typeKey=='bool' or typeKey=='BigInt' or typeKey=='BigFloat' or typeKey=='BigFrac': return typeKey
     if typeIsInteger(fieldType): return 'int'
     if isStruct(fieldType): return 'struct'
     return 'ERROR'

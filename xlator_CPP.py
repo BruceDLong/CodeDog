@@ -134,8 +134,17 @@ def LanguageSpecificDecorations(S, segType, owner):
 
 
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
-    #LHS_KeyType = progSpec.varTypeKeyWord(lhsTypeSpec)
-    #RHS_KeyType = progSpec.varTypeKeyWord(rhsTypeSpec)
+    LHS_KeyType = progSpec.varTypeKeyWord(LHS_Type)
+    RHS_KeyType = progSpec.varTypeKeyWord(RHS_Type)
+    if LHS_KeyType == "BigInt":
+        codeStr += "_mpz"
+        print "%%%"+ codeStr
+    elif LHS_KeyType == "BigFloat":
+        codeStr += "_mpf"
+        print "%%%"+ codeStr
+    elif LHS_KeyType == "BigFrac":
+        codeStr += "_mpq"
+        print "%%%"+ codeStr
     return codeStr
 
 def getTheDerefPtrMods(itemTypeSpec):

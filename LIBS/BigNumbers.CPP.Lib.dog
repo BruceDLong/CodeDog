@@ -1,0 +1,23 @@
+/-///////// Add routines for C++
+requirements = [
+    [tagOneOf, Lang, [CPP]]
+]
+
+interface={
+    provides = [BigNumbers_implementation]
+    libFiles = [gmp, gmpxx]
+    headers  = [gmp.h, gmpxx.h]
+}
+
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in routines for CPP'
+}
+
+embedHigh = `
+typedef mpz_class BigInt;
+typedef mpf_class BigFloat;
+typedef mpq_class BigFrac;
+
+`
