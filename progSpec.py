@@ -728,7 +728,8 @@ def fieldsTypeCategory(typeSpec):
     return varsTypeCategory(typeSpec)
 
 def varTypeKeyWord(typeSpec):
-    if isinstance(typeSpec, basestring): varType=typeSpec
+    if typeSpec == None: varType=None
+    elif isinstance(typeSpec, basestring): varType=typeSpec
     elif typeSpec==None or typeSpec==0: varType='ERROR'
     elif typeSpec['owner']=='PTR': varType='PTR'
     else:
