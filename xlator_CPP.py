@@ -359,6 +359,17 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                 tmp+=S2
             tmp+="}"
             S+=tmp
+        elif item0=='{':
+            tmp="{"
+            idx=1
+            while idx <  len(item)-1:
+                valExpr = item[idx+2]
+                [S2, retTypeSpec] = codeExpr(valExpr, objsRefed, returnType, expectedTypeSpec, xlator)
+                if len(tmp)>1: tmp+=", "
+                tmp+="{" + item[idx] + ", " + S2 + "}"
+                idx += 3
+            tmp+="}"
+            S+=tmp
         else:
             expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
             #print "CHECK FOR CHAR", item, expected_KeyType
@@ -515,7 +526,7 @@ def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             S+= ' | '+S2
     return [S, retTypeSpec]
-    
+
 def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '   And item:', item
     [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
