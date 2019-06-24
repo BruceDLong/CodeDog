@@ -1143,7 +1143,8 @@ def sortClassesForDependancies(classes, classList):
     newList=[]
     searchList=[]
     for item in classList:
-        searchList.append([item, 0])
+        if(item=="GLOBAL"): searchList.insert(0, [item, 0])
+        else: searchList.append([item, 0])
     for itemIdx in range(0, len(searchList)):
         processDependancies(classes, itemIdx, searchList, newList)
 
