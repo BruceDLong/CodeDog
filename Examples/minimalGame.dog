@@ -1,0 +1,69 @@
+/- minimalGame.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "minimalGame"
+FileName = "minimalGame"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is an example of a very minimal game"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [GameToolkit, Logger]
+
+LicenseText = `Public Domain`
+
+runCode=`
+    their GUI_ctxt: cr <- initializeGraphics()
+    setUpGame()
+    gameLooper.play(cr, 1)
+    deinitGraphics()
+`
+/-//////////   A p p l i c a t i o n   a n d   G l o b a l s
+struct GameMenuScreen: inherits=GameMode{
+    void: update() <- {}
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
+        cr.setColor(Styler.DarkMagenta)
+        cr.moveTo(0, 0)
+        cr.lineTo(1200, 1200)
+        cr.moveTo(1200, 0)
+        cr.lineTo(0, 1200)
+        cr.strokeNow()
+
+        cr.setColor(Styler.DarkSlateBlue)
+        our fontSpec:: testFont <- ("Ariel", 20, 0)
+        renderText(cr, "Press Space to Play!", testFont, 150, 100)
+        cr.strokeNow()
+        window.requestRedraw()
+    }
+    void: pause() <- {}
+    void: resume() <- {}
+    void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
+    void: deInit() <- {}
+}
+struct GamePlayScreen: inherits=GameMode{
+    void: update() <- {}
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {}
+    void: pause() <- {}
+    void: resume() <- {}
+    void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
+    void: deInit() <- {}
+}
+struct GLOBAL{
+    their GUI_canvas: drawing_area
+    me int: fontSize
+    me GameLooper: gameLooper
+    void: setUpGame() <- {
+        our GameMenuScreen:: gameMenuScreen
+        our GamePlayScreen:: gamePlayScreen
+        gameLooper.setGameMode(gameMenuScreen)
+    }
+}
+
+struct APP{
+    my GUI: gui
+}

@@ -1,15 +1,65 @@
-/----- Game loops and modes
+/- CodeDog GameToolkit
+/- Set up a game application: fonts, colors, a window/frame, app area.
+/- Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
 /- See https://dewitters.com/dewitters-gameloop/
+requirements = [
+    [require, GameToolkit_implementation]
+]
 
 struct GameMode{
-    void: handleEvents(){}
-    void: update(){}
-    void: draw(me double: interpolation){}
-    void: pause(){}
-    void: resume(){}
-    void: init(our GameLooper: ourLooper){looper <- ourLooper}
-    void: deInit(){}
-    our gameLooper: looper
+    void: update() <- {}
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {}
+    void: pause() <- {}
+    void: resume() <- {}
+    void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
+    void: deInit() <- {}
+    void: userEventHandler(their GameEvent: event) <- {
+        switch(event.user.code){
+            case 0:{}
+        }
+    }
+    void: windowEventHandler(their GameEvent: event) <- {
+        switch (event.window.event) {
+            case SDL_WINDOWEVENT_MOVED:{}
+            case SDL_WINDOWEVENT_RESIZED:{}
+            case SDL_WINDOWEVENT_MINIMIZED:{}    /- Stop rendering
+            case SDL_WINDOWEVENT_MAXIMIZED:{}
+            case SDL_WINDOWEVENT_RESTORED:{}     /- Resume rendering
+            case SDL_WINDOWEVENT_FOCUS_GAINED:{} /- Move window to front position
+            case SDL_WINDOWEVENT_FOCUS_LOST:{}
+            case SDL_WINDOWEVENT_CLOSE:{}
+            case SDL_WINDOWEVENT_ENTER:{}        /- Mouse enters window
+            case SDL_WINDOWEVENT_LEAVE:{}       /- Mouse leaves window
+        }
+    }
+    void: keyDownEventHandler(their GameEvent: event) <- {
+    }
+    void: keyUpEventHandler(their GameEvent: event) <- {
+    }
+    void: mouseMotionEventHandler(their GameEvent: event) <- {
+    }
+    void: mouseButtonDownEventHandler(their GameEvent: event) <- {
+    }
+    void: mouseButtonUpEventHandler(their GameEvent: event) <- {
+    }
+    void: mouseWheelEventHandler(their GameEvent: event) <- {
+    }
+    void: quitEventHandler(their GameEvent: event) <- {
+    }
+    void: handleEvent(their GameEvent: event) <- {
+        switch(event.type){
+            case SDL_USEREVENT:{}
+            case SDL_WINDOWEVENT:{}
+            case SDL_KEYDOWN:{}
+            case SDL_KEYUP:{}
+            case SDL_MOUSEMOTION:{}
+            case SDL_MOUSEBUTTONDOWN:{}
+            case SDL_MOUSEBUTTONUP:{}
+            case SDL_MOUSEWHEEL:{}
+            case SDL_QUIT:{}
+        }
+    }
+    our GameLooper: looper
 }
 
 struct GameLooper{
@@ -17,31 +67,49 @@ struct GameLooper{
 
     me bool: running
     our GameMode: crntGameMode
-    void: setGameMode(our GameMode: gameMode){crntGameMode <- gameMode}
-    void: pushMode(our GameMode: gameMode){modeStack.pushLast(gameMode); setGameMode(gameMode);}
-    void: popMode(){if(!modeStack.isEmpty()){setGameMode(modeStack.last()); modeStack.popLast();}}
-    void: quitGame(){running <- false}
-    void: init(){}
-    void: deInit(){}
-    me int: FPS(){}
+
+    void: setGameMode(our GameMode: gameMode) <- {
+        crntGameMode <- gameMode
+    }
+    void: pushMode(our GameMode: gameMode) <- {
+        modeStack.pushLast(gameMode)
+        setGameMode(gameMode)
+    }
+    void: popMode() <- {
+        if(! modeStack.isEmpty()){
+            setGameMode(modeStack.last())
+            modeStack.popLast()
+        }
+    }
+    void: quitGame() <- {running <- false}
+    void: init() <- {}
+    void: deInit() <- {}
+    me int: FPS() <- {}
+    void: handleEvents() <- {
+        their GameEvent:: event
+        while(SDL_PollEvent(event)){
+            crntGameMode.handleEvent(event);
+        }
+    }
     our GameMode[list]: modeStack
 
-    void: runNoWait(){
+    void: runNoWait(their GUI_ctxt: cr) <- {
         while(running){
-            crntGameMode.handleEvents()
+            handleEvents()
             crntGameMode.update()
-            crntGameMode.draw(0)
+            crntGameMode.draw(cr, 0)
             sleep(1)  /- With no sleep CPU will go to 100%
         }
     }
 
-    void: runConstFPS(){
+    void: runConstFPS(their GUI_ctxt: cr) <- {
         me int: ticksToSkip <- FramesOrTicksPerSec / 1000
         me int: timeToSleep <- 0
+        me double: nextTick <- 0
         while(running){
-            crntGameMode.handleEvents()
+            handleEvents()
             crntGameMode.update()
-            crntGameMode.draw(0)
+            crntGameMode.draw(cr, 0)
 
             nextTick <- nextTick + ticksToSkip
             timeToSleep <- nextTick - getTickCount()
@@ -51,54 +119,128 @@ struct GameLooper{
         }
     }
 
-    void: runMaxFPS(){ /- Constant Game speed, max FPS
-        me int: ticksToSkip = 1000 / FramesOrTicksPerSec
-        me int: MAX_FRAMESKIP = 10
+    void: runMaxFPS(their GUI_ctxt: cr) <- { /- Constant Game speed, max FPS
+        /*me int: ticksToSkip   <- 1000 / FramesOrTicksPerSec
+        me int: MAX_FRAMESKIP <- 10
 
-        me double: nextTick = GetTickCount()
-        int loops
+        me double: nextTick <- getTickCount()
+        me int: loops
         while(running){
             loops <- 0
             while(GetTickCount() > nextTick and loops < MAX_FRAMESKIP){
-                crntGameMode.handleEvents()
+                handleEvents()
                 crntGameMode.update()
 
                 nextTick <- nextTick + ticksToSkip
                 loops <- loops + 1
             }
-            crntGameMode.draw(0)
-        }
+            crntGameMode.draw(cr, 0)
+        }*/
     }
 
-    void: runVarFPS(){ /- Constant Game speed, variable FPS
-        me int: ticksToSkip = 1000 / FramesOrTicksPerSec
-        me int: MAX_FRAMESKIP = 5
+    void: runVarFPS(their GUI_ctxt: cr) <- { /- Constant Game speed, variable FPS
+        /*me int: ticksToSkip   <- 1000 / FramesOrTicksPerSec
+        me int: MAX_FRAMESKIP <- 5
 
-        me double: nextTick = GetTickCount()
-        int loops
+        me double: nextTick <- getTickCount()
+        me int: loops
         me double: interpolation
         while(running){
             loops <- 0
             while(GetTickCount() > nextTick and loops < MAX_FRAMESKIP){
-                crntGameMode.handleEvents()
+                handleEvents()
                 crntGameMode.update()
 
                 nextTick <- nextTick + ticksToSkip
                 loops <- loops + 1
             }
             interpolation <- (getTickCount() + ticksToSkip - nextTick) / ticksToSkip
-            crntGameMode.draw(interpolation)
-        }
+            crntGameMode.draw(cr, interpolation)
+        }*/
     }
 
-    void: play(me int: playMode){
+    void: play(their GUI_ctxt: cr, me int: playMode) <- {
         init()
-        running<-true
-        if(playMode==0){runNoWait()}
-        else if(playMode==1){runConstFPS()}
-        else if(playMode==2){runMaxFPS()}
-        else if(playMode==3){runVarFPS()}
+        running <- true
+        if(playMode==0){runNoWait(cr)}
+        else if(playMode==1){runConstFPS(cr)}
+        else if(playMode==2){runMaxFPS(cr)}
+        else if(playMode==3){runVarFPS(cr)}
         print("Frames/sec:", FPS(), "\n")
         deInit()
     }
 }
+
+struct cdColor{
+    me uint: red
+    me uint: green
+    me uint: blue
+}
+
+struct ColorScheme{}
+/- struct FontSpec{}
+/- struct FontScheme{}
+struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
+struct GUI_offset{}
+struct GUI_ctxt{}
+struct GUI_item{}
+struct GUI_canvas{}
+struct GUI_container{}
+struct INK_Image{}
+struct CGContext {}
+struct CGPoint {}
+struct deltaSize{me int: width    me int: height}
+
+struct GUI{
+    me GUI_item: newCanvas()
+}
+
+struct fontSpec{
+    me string: name
+    me int: size
+    me mode[pp, dp, sp]: pixelMode
+
+   /* none: fontSpec(me string: initName, me string: initSize) <- {
+        name      <- initName
+        size      <- stoi(initSize)
+    }*/
+}
+
+struct Styler{
+    #include LIBS/x11ColorsRGB.txt
+}
+
+struct GLOBAL{
+    their GRWindow: window
+    void: deinitGraphics() <- {
+        deallocateWindow(window)
+        deallocateGraphicsSystem()
+    }
+}
+struct GUI_ctxt {
+    /-me void: fetchAreaToBeDrawn(me GUI_rect: area)
+   /* me void: reset()
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
+    me void: setRGB (me double: red, me double: green, me double: blue)
+    me void: setColor(me cdColor: color)
+    me void: setLineWidth(me double: width)
+    me void: setScale()
+    me void: moveTo(me double: x, me double: y)
+    me void: lineTo(me double: x, me double: y)
+    me void: moveRel(me double: dx, me double: dy)
+    me void: lineRel(me double: dx, me double: dy)
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3)
+    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3)
+    me void: closePath()
+    me void: rectangle()
+    me void: paintNow()
+    me void: strokeNow()
+    me void: fillNow()
+    me void: strokeKeep()
+    me void: fillKeep()
+    me void: setFillPattern()
+    me void: circle(me int: centerX, me int: centerY, me int: radius)*/
+}
+
+struct GUI_Scalar{}
+
