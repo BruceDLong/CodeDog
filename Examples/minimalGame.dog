@@ -27,29 +27,53 @@ runCode=`
 struct GameMenuScreen: inherits=GameMode{
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
-        cr.setColor(Styler.DarkMagenta)
-        cr.moveTo(0, 0)
-        cr.lineTo(1200, 1200)
-        cr.moveTo(1200, 0)
-        cr.lineTo(0, 1200)
-        cr.strokeNow()
-
         cr.setColor(Styler.DarkSlateBlue)
+        cr.rectangle(0,0,screenWidth, screenHeight)
+        cr.fillNow()
+
+        cr.setColor(Styler.White)
         our fontSpec:: testFont <- ("Ariel", 20, 0)
         renderText(cr, "Press Space to Play!", testFont, 150, 100)
+        renderText(cr, "Press Escape to Exit!", testFont, 150, 200)
         cr.strokeNow()
         window.requestRedraw()
     }
     void: pause() <- {}
     void: resume() <- {}
-    void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
+    void: keyDownEventHandler(their KeyInfo: event) <- {
+        switch (event.sym){
+            case SDLK_SPACE:{
+                gameLooper.setGameMode(gamePlayScreen)
+            }
+            case SDLK_ESCAPE:{
+                gameLooper.quitGame()
+            }
+        }
+    }
+    void: init(our GameLooper: ourLooper) <- {gameLooper <- ourLooper}
     void: deInit() <- {}
 }
 struct GamePlayScreen: inherits=GameMode{
     void: update() <- {}
-    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {}
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
+        displayImage(cr, "assets/level1Background.png", 0, 0, 1)
+        cr.setColor(Styler.White)
+        our fontSpec:: testFont <- ("Ariel", 20, 0)
+        renderText(cr, "GamePlayScreen!", testFont, 150, 100)
+        cr.strokeNow()
+        window.requestRedraw()
+    }
     void: pause() <- {}
     void: resume() <- {}
+    void: keyDownEventHandler(their KeyInfo: event) <- {
+        switch (event.sym){
+            case SDLK_SPACE:{}
+            case SDLK_ESCAPE:{
+                pause()
+                gameLooper.setGameMode(gameMenuScreen)
+            }
+        }
+    }
     void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
     void: deInit() <- {}
 }
@@ -57,9 +81,9 @@ struct GLOBAL{
     their GUI_canvas: drawing_area
     me int: fontSize
     me GameLooper: gameLooper
+    our GameMenuScreen:: gameMenuScreen
+    our GamePlayScreen:: gamePlayScreen
     void: setUpGame() <- {
-        our GameMenuScreen:: gameMenuScreen
-        our GamePlayScreen:: gamePlayScreen
         gameLooper.setGameMode(gameMenuScreen)
     }
 }

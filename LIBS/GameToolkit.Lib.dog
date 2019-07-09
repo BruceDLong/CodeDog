@@ -32,9 +32,26 @@ struct GameMode{
             case SDL_WINDOWEVENT_LEAVE:{}       /- Mouse leaves window
         }
     }
-    void: keyDownEventHandler(their GameEvent: event) <- {
+    void: keyDownEventHandler(their KeyInfo: event) <- {
+        switch (event.sym){
+            case SDLK_PRINTSCREEN:{}
+            case SDLK_SPACE:{}
+            case SDLK_a:{}
+            case SDLK_z:{}
+            case SDLK_RETURN:{}
+            case SDL_SCANCODE_ESCAPE:{}
+            case SDLK_ESCAPE:{}
+            case SDLK_UP:{}
+            case SDLK_DOWN:{}
+            case SDLK_LEFT:{}
+            case SDLK_RIGHT:{}
+            case SDLK_PAGEUP:{}
+            case SDLK_PAGEDOWN:{}
+            case SDLK_KP_PLUS:{}
+            case SDLK_KP_MINUS:{}
+        }
     }
-    void: keyUpEventHandler(their GameEvent: event) <- {
+    void: keyUpEventHandler(their KeyInfo: event) <- {
     }
     void: mouseMotionEventHandler(their GameEvent: event) <- {
     }
@@ -44,19 +61,26 @@ struct GameMode{
     }
     void: mouseWheelEventHandler(their GameEvent: event) <- {
     }
-    void: quitEventHandler(their GameEvent: event) <- {
+    void: quitEventHandler() <- {
+        gameLooper.quitGame()
     }
     void: handleEvent(their GameEvent: event) <- {
         switch(event.type){
             case SDL_USEREVENT:{}
             case SDL_WINDOWEVENT:{}
-            case SDL_KEYDOWN:{}
-            case SDL_KEYUP:{}
+            case SDL_KEYDOWN:{
+                keyDownEventHandler(event.key.keysym)
+            }
+            case SDL_KEYUP:{
+                keyUpEventHandler(event.key.keysym)
+            }
             case SDL_MOUSEMOTION:{}
             case SDL_MOUSEBUTTONDOWN:{}
             case SDL_MOUSEBUTTONUP:{}
             case SDL_MOUSEWHEEL:{}
-            case SDL_QUIT:{}
+            case SDL_QUIT:{
+                quitEventHandler()
+            }
         }
     }
     our GameLooper: looper
@@ -216,6 +240,27 @@ struct GLOBAL{
         deallocateWindow(window)
         deallocateGraphicsSystem()
     }
+
+    /-//////////////////////
+    their INK_Image[map string]: picCache
+
+    void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
+        cairo_surface_t* pic=0;
+        map<string, cairo_surface_t*>::iterator picPtr=picCache.find(filename);
+        if (picPtr==picCache.end()) {picCache[filename]=pic=cairo_image_surface_create_from_png(filename.data());}
+        else pic=picPtr->second;
+        //pic=cairo_image_surface_create_from_png(filename);
+      /*int w = cairo_image_surface_get_width (pic);
+        int h = cairo_image_surface_get_height (pic);
+        double pw = portal->surface->w;
+        double ph = portal->surface->h;  */
+        cairo_save(cr);
+
+        cairo_scale(cr,1/scale,1/scale);
+        cairo_set_source_surface(cr,pic,x*scale,y*scale);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }%>
 }
 struct GUI_ctxt {
     /-me void: fetchAreaToBeDrawn(me GUI_rect: area)

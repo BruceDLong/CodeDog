@@ -26,6 +26,10 @@ struct GUI_ctxt{their cairo_t:GUI_ctxt}
 struct GameEvent{their SDL_Event:GameEvent}
 struct UserEvent{their SDL_UserEvent:UserEvent}
 struct WindowEvent{their SDL_WindowEvent:WindowEvent}
+struct KeyboardEvent{their SDL_KeyboardEvent:KeyboardEvent}
+struct KeyInfo{their SDL_Keysym:KeyInfo}
+struct Keycode{their SDL_Keycode:Keycode}
+struct INK_Image{their cairo_surface_t: INK_Image}
 /-///////////////////////////////  GLOBAL
 struct GLOBAL{
     void: deallocateWindow(their GRWindow: window)      <- <%!%GSDL_DestroyWindow(%1)%>
@@ -101,10 +105,10 @@ struct GUI_ctxt{
     /-me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
     /-me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
     /-me void: closePath() <- <%!cairo_close_path(%0)%>
-    /-me void: rectangle(me double: leftX, me double: topY, me double: width, me double: height) <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
+    me void: rectangle(me double: leftX, me double: topY, me double: width, me double: height) <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
     /-me void: paintNow() <- <%!cairo_paint(%0)%>
     me void: strokeNow() <- <%!cairo_stroke(%0)%>
-    /-me void: fillNow() <- <%!cairo_fill(%0)%>
+    me void: fillNow() <- <%!cairo_fill(%0)%>
     /-me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
     /-me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
     /-me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
@@ -118,11 +122,18 @@ struct GameEvent{
     me int32: type
     me UserEvent: user
     me WindowEvent: window
+    me KeyboardEvent: key
 }
 struct UserEvent{
     me int32: code
 }
 struct WindowEvent{
     me int32: event
+}
+struct KeyboardEvent{
+    me KeyInfo: keysym
+}
+struct KeyInfo{
+    me Keycode: sym
 }
 
