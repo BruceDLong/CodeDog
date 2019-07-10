@@ -31,6 +31,7 @@ struct AlienShip{
 struct AlienArmada{
     our AlienShip[list]: aliens
     me int: alien1Width
+    me int: alien1Height
     me int: leftMostPos
     me int: rightMostPos
     me mode [goingLeft, goingRight]: direction
@@ -96,7 +97,8 @@ struct AlienArmada{
     }
     void: init() <-{
         alien1Img.loadFromFile("assets/greenAlien.png")
-        alien1Width <- alien1Img.width/scaleFactor
+        alien1Width  <- alien1Img.width/scaleFactor
+        alien1Height <- alien1Img.height/scaleFactor
         addAliens(1)
     }
 }
@@ -117,6 +119,15 @@ struct Bullet{
             deleteIt <- true
         }
         return(deleteIt)
+    }
+    me bool: draw(their GUI_ctxt: cr) <- {
+        if(owner == ourBullet){
+            cr.setColor(Styler.White)
+            cr.setLineWidth(4)
+            cr.moveTo(x, y)
+            cr.lineTo(x, y+10)
+        }
+        cr.strokeNow()
     }
 }
 struct GameMenuScreen: inherits=GameMode{
@@ -149,11 +160,12 @@ struct GameMenuScreen: inherits=GameMode{
     void: deInit() <- {}
 }
 struct GamePlayScreen: inherits=GameMode{
+    me GameSound: playerFires
+    me GameSound: explosion1
     me int: playerPosition
     me int: shipWidth
     our Bullet[list]: bullets
     me AlienArmada: armada
-
 
     void: update() <- {
         me int: bulletIdx <- 0
@@ -166,21 +178,45 @@ struct GamePlayScreen: inherits=GameMode{
             }
         }
         armada.update()
+        detectCollisions()
     }
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         displayImage(cr, "assets/level1Background.png", 0, 0, 1)
         displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, screenHeight-100, scaleFactor)
         armada.draw(cr)
         withEach bullet in bullets{
-            if(bullet.owner == ourBullet){
-                cr.setColor(Styler.White)
-                cr.setLineWidth(4)
-                cr.moveTo(bullet.x, bullet.y)
-                cr.lineTo(bullet.x, bullet.y+10)
-            }
-            cr.strokeNow()
+            bullet.draw(cr)
         }
+        cr.setColor(Styler.White)
+        our fontSpec:: scoreFont <- ("Ariel", 20, 0)
+        renderText(cr, "Score: " + toString(playerScore), scoreFont, 10, 40)
         window.requestRedraw()
+    }
+    bool: pointIsInRectangle(me int: ptX, me int: ptY, me int: RectX, me int: rectY, me int: rectHeight, me int: rectWidth)<- {
+        return ((ptX >= RectX) and (ptX <= RectX + rectWidth) and (ptY >= rectY) and (ptY <= rectY + rectHeight))
+    }
+    void: detectCollisions() <- {
+        me int: bulletIdx <- 0
+        while (bulletIdx < bullets.size()){
+            our Bullet: bullet <- bullets[bulletIdx]
+            if(bullet.owner == ourBullet){
+                me int: alienIdx <- 0
+                while(alienIdx < armada.aliens.size()){
+                    our AlienShip: alien <- armada.aliens[alienIdx]
+                    if(pointIsInRectangle(bullet.x, bullet.y, alien.x, alien.y, armada.alien1Height, armada.alien1Width)){
+                        explosion1.play()
+                        bullets.DeleteNth(bulletIdx)
+                        armada.aliens.DeleteNth(alienIdx)
+                        playerScore <- playerScore + 1
+                        bulletIdx <- bulletIdx - 1
+                        alienIdx  <- alienIdx  - 1
+                    }
+                    alienIdx  <- alienIdx  + 1
+                }
+            }else if(bullet.owner == theirBullet){
+            }
+            bulletIdx <- bulletIdx + 1
+        }
     }
     void: pause() <- {}
     void: resume() <- {}
@@ -192,6 +228,7 @@ struct GamePlayScreen: inherits=GameMode{
                 newBullet.y <- screenHeight - 100
                 newBullet.owner <- ourBullet
                 bullets.pushFirst(newBullet)
+                playerFires.play()
             }
             case SDLK_ESCAPE:{
                 pause()
@@ -209,7 +246,8 @@ struct GamePlayScreen: inherits=GameMode{
         looper <- ourLooper
         playerPosition <- screenWidth/2
         shipWidth      <- 136/scaleFactor
-
+        playerFires.loadFromFile("assets/fire1.wav")
+        explosion1.loadFromFile("assets/explosion1.wav")
         armada.init()
     }
     void: deInit() <- {}
@@ -221,7 +259,9 @@ struct GLOBAL{
     our GameLooper:: gameLooper
     our GameMenuScreen:: gameMenuScreen
     our GamePlayScreen:: gamePlayScreen
+    me int: playerScore
     void: setUpGame() <- {
+        playerScore <- 0
         gameMenuScreen.init(gameLooper)
         gamePlayScreen.init(gameLooper)
         gameLooper.setGameMode(gameMenuScreen)

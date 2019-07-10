@@ -1,12 +1,12 @@
 /-############  Add Game-Toolkit features using GTK3
 requirements = [
-    [tagOneOf, Platform, [Linux]]
+    [tagOneOf, Lang, [CPP]]
 ]
 
 interface={
     provides=[GameToolkit_implementation]
-    libFiles=[`pkg-config --cflags --libs sdl2`, `pkg-config --cflags --libs cairo`, `pkg-config --cflags --libs pangocairo`]
-    headers=[SDL.h, cairo.h, pango/pangocairo.h]
+    libFiles=[`pkg-config --cflags --libs sdl2`, SDL2_mixer, `pkg-config --cflags --libs cairo`, `pkg-config --cflags --libs pangocairo`]
+    headers=[SDL.h, SDL_mixer.h, cairo.h, pango/pangocairo.h]
 }
 
 LibDescription ={
@@ -30,6 +30,7 @@ struct KeyboardEvent{their SDL_KeyboardEvent:KeyboardEvent}
 struct KeyInfo{their SDL_Keysym:KeyInfo}
 struct Keycode{their SDL_Keycode:Keycode}
 struct INK_Image{their cairo_surface_t: INK_Image}
+struct SoundData{their Mix_Chunk: SoundData}
 /-///////////////////////////////  GLOBAL
 struct GLOBAL{
     void: deallocateWindow(their GRWindow: window)      <- <%!%GSDL_DestroyWindow(%1)%>
@@ -44,9 +45,10 @@ struct GLOBAL{
         //The surface contained by the window
         SDL_Surface* screenSurface = NULL;
         //Initialize SDL
-        if( SDL_Init( SDL_INIT_VIDEO ) < 0 ){
+        if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0 ){
             printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         }else{
+            Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 );
             //Create window
             window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
             SDL_GetWindowSize(window, &screenWidth, &screenHeight);

@@ -305,6 +305,25 @@ struct GameImage{
         cairo_paint(cr);
         cairo_restore(cr);
     }%>
+    void: deInit() <- {
+        /- TODO: free image memory
+    }
+}
+struct GameSound{
+    me string: name
+    their SoundData: data
+
+    void: loadFromFile(me string: fileName) <- <%{
+        name = fileName;
+        data=Mix_LoadWAV(name.data());
+        if(!data) {
+            printf("Mix_LoadWAV: %s\n", Mix_GetError());
+            // handle error
+        }
+    }%>
+    void: play() <-  <%{
+        Mix_PlayChannel(-1, data, 0);
+    }%>
 }
 struct GUI_Scalar{}
 
