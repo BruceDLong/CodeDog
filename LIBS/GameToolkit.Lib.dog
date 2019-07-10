@@ -62,7 +62,7 @@ struct GameMode{
     void: mouseWheelEventHandler(their GameEvent: event) <- {
     }
     void: quitEventHandler() <- {
-        gameLooper.quitGame()
+        looper.quitGame()
     }
     void: handleEvent(their GameEvent: event) <- {
         switch(event.type){
@@ -262,7 +262,7 @@ struct GLOBAL{
         cairo_restore(cr);
     }%>
 }
-struct GUI_ctxt {
+struct GUI_ctxt{
     /-me void: fetchAreaToBeDrawn(me GUI_rect: area)
    /* me void: reset()
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
@@ -286,6 +286,25 @@ struct GUI_ctxt {
     me void: setFillPattern()
     me void: circle(me int: centerX, me int: centerY, me int: radius)*/
 }
+struct GameImage{
+    me string: name
+    their INK_Image: img
+    me int: height
+    me int: width
 
+    void: loadFromFile(me string: fileName) <- <%{
+        name = fileName;
+        img=cairo_image_surface_create_from_png(name.data());
+        width=cairo_image_surface_get_width(img);
+        height=cairo_image_surface_get_height(img);
+    }%>
+    void: draw(their GUI_ctxt: cr, me double: x, me double: y, me double: scale) <- <%{
+        cairo_save(cr);
+        cairo_scale(cr,1/scale,1/scale);
+        cairo_set_source_surface(cr,img,x*scale,y*scale);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }%>
+}
 struct GUI_Scalar{}
 

@@ -24,6 +24,101 @@ runCode=`
     deinitGraphics()
 `
 /-//////////   A p p l i c a t i o n   a n d   G l o b a l s
+struct AlienShip{
+    me double: x
+    me double: y
+}
+struct AlienArmada{
+    our AlienShip[list]: aliens
+    me int: alien1Width
+    me int: leftMostPos
+    me int: rightMostPos
+    me mode [goingLeft, goingRight]: direction
+    me GameImage: alien1Img
+
+    void: update() <- {
+        leftMostPos  <- screenWidth
+        rightMostPos <- 0
+        me double: xToMove
+        me double: yToMove <- 0
+        withEach alien in aliens{
+            if(alien.x > rightMostPos){
+                rightMostPos <- alien.x
+            }
+            if(alien.x < leftMostPos){
+                leftMostPos  <- alien.x
+            }
+        }
+        if(direction == goingLeft){
+            if(leftMostPos < 10){
+                direction <- goingRight
+                yToMove   <- 30
+
+            }
+        }else if(direction == goingRight){
+            if(rightMostPos > screenWidth - alien1Width - 10){
+                direction <- goingLeft
+                yToMove   <- 30
+            }
+        }
+        if(direction == goingLeft){
+            xToMove <- -0.3
+        }else if(direction == goingRight){
+            xToMove <- 0.3
+        }
+        withEach ship in aliens{
+            ship.x <- ship.x + xToMove
+            ship.y <- ship.y + yToMove
+        }
+    }
+    void: draw(their GUI_ctxt: cr) <- {
+        withEach alien in aliens{
+            alien1Img.draw(cr, alien.x, alien.y, scaleFactor)
+        }
+    }
+    void: addAlienRow(me int: yPos, me int: numAliens)<-{
+        me int: rowWidth <- numAliens * (alien1Width + 15)
+        me int: rowStart; rowStart <- (screenWidth - rowWidth) / 2
+        me int: crntPos  <- rowStart
+        withEach pos in RANGE (0..numAliens){
+            our AlienShip:: alien
+            alien.x <- crntPos
+            alien.y <- yPos
+            crntPos <- crntPos + alien1Width + 15
+            aliens.pushLast(alien)
+        }
+    }
+    void: addAliens(me int: level)<-{
+        if(level == 1){
+            addAlienRow(10, 5)
+            addAlienRow(100, 6)
+        }
+    }
+    void: init() <-{
+        alien1Img.loadFromFile("assets/greenAlien.png")
+        alien1Width <- alien1Img.width/scaleFactor
+        addAliens(1)
+    }
+}
+struct Bullet{
+    me int: x
+    me int: y
+    mode[ourBullet, theirBullet]: owner
+
+    me bool: update() <- {
+        me bool: deleteIt <- false
+        if(owner == ourBullet){
+            y <- y - 1
+        }
+        else if(owner == theirBullet){
+            y <- y + 1
+        }
+        if(y < 0 or y > screenWidth){
+            deleteIt <- true
+        }
+        return(deleteIt)
+    }
+}
 struct GameMenuScreen: inherits=GameMode{
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
@@ -43,47 +138,92 @@ struct GameMenuScreen: inherits=GameMode{
     void: keyDownEventHandler(their KeyInfo: event) <- {
         switch (event.sym){
             case SDLK_SPACE:{
-                gameLooper.setGameMode(gamePlayScreen)
+                looper.setGameMode(gamePlayScreen)
             }
             case SDLK_ESCAPE:{
-                gameLooper.quitGame()
-            }
-        }
-    }
-    void: init(our GameLooper: ourLooper) <- {gameLooper <- ourLooper}
-    void: deInit() <- {}
-}
-struct GamePlayScreen: inherits=GameMode{
-    void: update() <- {}
-    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
-        displayImage(cr, "assets/level1Background.png", 0, 0, 1)
-        cr.setColor(Styler.White)
-        our fontSpec:: testFont <- ("Ariel", 20, 0)
-        renderText(cr, "GamePlayScreen!", testFont, 150, 100)
-        cr.strokeNow()
-        window.requestRedraw()
-    }
-    void: pause() <- {}
-    void: resume() <- {}
-    void: keyDownEventHandler(their KeyInfo: event) <- {
-        switch (event.sym){
-            case SDLK_SPACE:{}
-            case SDLK_ESCAPE:{
-                pause()
-                gameLooper.setGameMode(gameMenuScreen)
+                looper.quitGame()
             }
         }
     }
     void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
     void: deInit() <- {}
 }
+struct GamePlayScreen: inherits=GameMode{
+    me int: playerPosition
+    me int: shipWidth
+    our Bullet[list]: bullets
+    me AlienArmada: armada
+
+
+    void: update() <- {
+        me int: bulletIdx <- 0
+        while (bulletIdx < bullets.size()){
+            our Bullet: bullet <- bullets[bulletIdx]
+            if(bullet.update()){
+                bullets.DeleteNth(bulletIdx)
+            }else{
+                bulletIdx <- bulletIdx + 1
+            }
+        }
+        armada.update()
+    }
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
+        displayImage(cr, "assets/level1Background.png", 0, 0, 1)
+        displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, screenHeight-100, scaleFactor)
+        armada.draw(cr)
+        withEach bullet in bullets{
+            if(bullet.owner == ourBullet){
+                cr.setColor(Styler.White)
+                cr.setLineWidth(4)
+                cr.moveTo(bullet.x, bullet.y)
+                cr.lineTo(bullet.x, bullet.y+10)
+            }
+            cr.strokeNow()
+        }
+        window.requestRedraw()
+    }
+    void: pause() <- {}
+    void: resume() <- {}
+    void: keyDownEventHandler(their KeyInfo: event) <- {
+        switch (event.sym){
+            case SDLK_SPACE:{
+                our Bullet:: newBullet
+                newBullet.x <- playerPosition
+                newBullet.y <- screenHeight - 100
+                newBullet.owner <- ourBullet
+                bullets.pushFirst(newBullet)
+            }
+            case SDLK_ESCAPE:{
+                pause()
+                looper.setGameMode(gameMenuScreen)
+            }
+            case SDLK_LEFT:{
+                playerPosition <- max(shipWidth/2, playerPosition - 10)
+            }
+            case SDLK_RIGHT:{
+                playerPosition <- min(screenWidth-shipWidth/2, playerPosition + 10)
+            }
+        }
+    }
+    void: init(our GameLooper: ourLooper) <- {
+        looper <- ourLooper
+        playerPosition <- screenWidth/2
+        shipWidth      <- 136/scaleFactor
+
+        armada.init()
+    }
+    void: deInit() <- {}
+}
 struct GLOBAL{
     their GUI_canvas: drawing_area
+    const int: scaleFactor    <- 2
     me int: fontSize
-    me GameLooper: gameLooper
+    our GameLooper:: gameLooper
     our GameMenuScreen:: gameMenuScreen
     our GamePlayScreen:: gamePlayScreen
     void: setUpGame() <- {
+        gameMenuScreen.init(gameLooper)
+        gamePlayScreen.init(gameLooper)
         gameLooper.setGameMode(gameMenuScreen)
     }
 }

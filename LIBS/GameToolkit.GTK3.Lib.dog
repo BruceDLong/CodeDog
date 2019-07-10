@@ -95,7 +95,7 @@ struct GUI_ctxt{
     /-me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
     /-me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
     me void: setColor(me cdColor: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
-    /-me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
+    me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
     /-me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
     /-me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
     me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(%0, %1, %2)%>
