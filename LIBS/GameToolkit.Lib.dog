@@ -21,7 +21,10 @@ struct GameMode{
     void: windowEventHandler(their GameEvent: event) <- {
         switch (event.window.event) {
             case SDL_WINDOWEVENT_MOVED:{}
-            case SDL_WINDOWEVENT_RESIZED:{}
+            case SDL_WINDOWEVENT_SIZE_CHANGED:{
+                resetWindowSize(event.window.data1, event.window.data2)
+                window.requestRedraw()
+            }
             case SDL_WINDOWEVENT_MINIMIZED:{}    /- Stop rendering
             case SDL_WINDOWEVENT_MAXIMIZED:{}
             case SDL_WINDOWEVENT_RESTORED:{}     /- Resume rendering
@@ -67,7 +70,9 @@ struct GameMode{
     void: handleEvent(their GameEvent: event) <- {
         switch(event.type){
             case SDL_USEREVENT:{}
-            case SDL_WINDOWEVENT:{}
+            case SDL_WINDOWEVENT:{
+                windowEventHandler(event)
+            }
             case SDL_KEYDOWN:{
                 keyDownEventHandler(event.key.keysym)
             }
@@ -117,22 +122,24 @@ struct GameLooper{
     }
     our GameMode[list]: modeStack
 
-    void: runNoWait(their GUI_ctxt: cr) <- {
+    void: runNoWait() <- {
         while(running){
             handleEvents()
             crntGameMode.update()
+            their GUI_ctxt: cr  <- createGUI_ctxt()
             crntGameMode.draw(cr, 0)
             sleep(1)  /- With no sleep CPU will go to 100%
         }
     }
 
-    void: runConstFPS(their GUI_ctxt: cr) <- {
+    void: runConstFPS() <- {
         me int: ticksToSkip <- FramesOrTicksPerSec / 1000
         me int: timeToSleep <- 0
         me double: nextTick <- 0
         while(running){
             handleEvents()
             crntGameMode.update()
+            their GUI_ctxt: cr  <- createGUI_ctxt()
             crntGameMode.draw(cr, 0)
 
             nextTick <- nextTick + ticksToSkip
@@ -143,7 +150,7 @@ struct GameLooper{
         }
     }
 
-    void: runMaxFPS(their GUI_ctxt: cr) <- { /- Constant Game speed, max FPS
+    void: runMaxFPS() <- { /- Constant Game speed, max FPS
         /*me int: ticksToSkip   <- 1000 / FramesOrTicksPerSec
         me int: MAX_FRAMESKIP <- 10
 
@@ -158,11 +165,12 @@ struct GameLooper{
                 nextTick <- nextTick + ticksToSkip
                 loops <- loops + 1
             }
+            their GUI_ctxt: cr  <- createGUI_ctxt()
             crntGameMode.draw(cr, 0)
         }*/
     }
 
-    void: runVarFPS(their GUI_ctxt: cr) <- { /- Constant Game speed, variable FPS
+    void: runVarFPS() <- { /- Constant Game speed, variable FPS
         /*me int: ticksToSkip   <- 1000 / FramesOrTicksPerSec
         me int: MAX_FRAMESKIP <- 5
 
@@ -179,17 +187,18 @@ struct GameLooper{
                 loops <- loops + 1
             }
             interpolation <- (getTickCount() + ticksToSkip - nextTick) / ticksToSkip
+            their GUI_ctxt: cr  <- createGUI_ctxt()
             crntGameMode.draw(cr, interpolation)
         }*/
     }
 
-    void: play(their GUI_ctxt: cr, me int: playMode) <- {
+    void: play(me int: playMode) <- {
         init()
         running <- true
-        if(playMode==0){runNoWait(cr)}
-        else if(playMode==1){runConstFPS(cr)}
-        else if(playMode==2){runMaxFPS(cr)}
-        else if(playMode==3){runVarFPS(cr)}
+        if(playMode==0){runNoWait()}
+        else if(playMode==1){runConstFPS()}
+        else if(playMode==2){runMaxFPS()}
+        else if(playMode==3){runVarFPS()}
         print("Frames/sec:", FPS(), "\n")
         deInit()
     }

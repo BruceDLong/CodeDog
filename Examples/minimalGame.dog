@@ -18,9 +18,9 @@ featuresNeeded = [GameToolkit, Logger]
 LicenseText = `Public Domain`
 
 runCode=`
-    their GUI_ctxt: cr <- initializeGraphics()
+    initializeGraphics(true)
     setUpGame()
-    gameLooper.play(cr, 1)
+    gameLooper.play(1)
     deinitGraphics()
 `
 /-//////////   A p p l i c a t i o n   a n d   G l o b a l s
@@ -240,6 +240,7 @@ struct GamePlayScreen: inherits=GameMode{
             case SDLK_RIGHT:{
                 playerPosition <- min(screenWidth-shipWidth/2, playerPosition + 10)
             }
+            case SDLK_f:{toggleFullScreen()}
         }
     }
     void: init(our GameLooper: ourLooper) <- {
@@ -266,8 +267,30 @@ struct GLOBAL{
         gamePlayScreen.init(gameLooper)
         gameLooper.setGameMode(gameMenuScreen)
     }
+    void: toggleFullScreen() <- {
+        if(getFullScreenMode()){
+            fullScreenModeOff()
+        }else{
+            fullScreenModeOn()
+        }
+    }
 }
 
 struct APP{
     my GUI: gui
 }
+
+/- TODO: ________________________
+/- detect when aliens hit the ship
+/- detect lose/win
+/- clean opening screen
+
+/---
+/- Music playing
+/- Mouse Events
+/- Animations
+/- ANDROID
+
+/----
+/- * Multiple Levels
+/- * Multiple lives

@@ -31,41 +31,68 @@ struct KeyInfo{their SDL_Keysym:KeyInfo}
 struct Keycode{their SDL_Keycode:Keycode}
 struct INK_Image{their cairo_surface_t: INK_Image}
 struct SoundData{their Mix_Chunk: SoundData}
+struct GameSurface{their SDL_Surface: GameSurface}
 /-///////////////////////////////  GLOBAL
 struct GLOBAL{
     void: deallocateWindow(their GRWindow: window)      <- <%!%GSDL_DestroyWindow(%1)%>
     void: deallocateGraphicsSystem()                    <- <%!%GSDL_Quit()%>
     void: getTickCount()                                <- <%!%GSDL_GetTicks()%>
+    their GUI_ctxt: createGUI_ctxt() <- <%!%Gcairo_create(canvas)%>
+    their GameSurface: screenSurface
+    their INK_Image:   canvas
     me int: screenWidth
     me int: screenHeight
     const int: SCREEN_WIDTH  <- 900
     const int: SCREEN_HEIGHT <- 700
-    their GUI_ctxt: initializeGraphics() <- <%{
+
+    me bool: getFullScreenMode() <- <%{
+        return(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN);
+    }%>
+
+    void: fullScreenModeOn() <- <%{
+        SDL_SetWindowFullscreen(window, SDL_TRUE);
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    }%>
+
+    void: fullScreenModeOff() <- <%{
+        SDL_SetWindowFullscreen(window, SDL_FALSE);
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+    }%>
+
+    void: initializeGraphics(me bool: startFullScreen) <- <%{
         cairo_t *cr;
         //The surface contained by the window
-        SDL_Surface* screenSurface = NULL;
+        screenSurface = NULL;
         //Initialize SDL
         if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0 ){
             printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         }else{
             Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 );
             //Create window
-            window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+            Uint32 fullScreenFlag = (startFullScreen)?SDL_WINDOW_FULLSCREEN_DESKTOP:0;
+            window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN|fullScreenFlag);
+            SDL_SetWindowResizable(window, SDL_TRUE);
             SDL_GetWindowSize(window, &screenWidth, &screenHeight);
             if( window == NULL ){
                 printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError());
             }else{
                 //Get window surface
                 screenSurface = SDL_GetWindowSurface(window);
-                cairo_surface_t *surface = cairo_image_surface_create_for_data((unsigned char*) screenSurface->pixels,CAIRO_FORMAT_RGB24,screenSurface->w,screenSurface->h,screenSurface->pitch);
-                //Fill the surface white
-                SDL_FillRect( screenSurface, NULL, SDL_MapRGB(screenSurface->format, 210, 210, 210));
-                cr = cairo_create(surface);
-                // set background color 0.9=light gray, (0.0=black, 1.0=white)
-                cairo_set_source_rgb(cr, 0.9, 0.9, 0.9);
+                canvas = cairo_image_surface_create_for_data((unsigned char*) screenSurface->pixels,CAIRO_FORMAT_RGB24,screenSurface->w,screenSurface->h,screenSurface->pitch);
             }
         }
-        return(cr);
+    }%>
+
+    void: resetWindowSize(me int: width, me int: height) <- <%{
+        screenWidth  = width;
+        screenHeight = height;
+        if(canvas) cairo_surface_destroy(canvas);
+        if(screenSurface) {
+            SDL_FreeSurface(screenSurface);
+            screenSurface=0;
+        }
+        screenSurface = SDL_GetWindowSurface(window);
+        canvas = cairo_image_surface_create_for_data((unsigned char*) screenSurface->pixels,CAIRO_FORMAT_RGB24, width, height, screenSurface->pitch);
     }%>
 
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
@@ -131,6 +158,8 @@ struct UserEvent{
 }
 struct WindowEvent{
     me int32: event
+    me int32: data1
+    me int32: data2
 }
 struct KeyboardEvent{
     me KeyInfo: keysym
