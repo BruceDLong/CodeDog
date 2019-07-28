@@ -757,7 +757,7 @@ struct GUI{
     me void: setBtnCallback()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_CB), %4)%>
     me void: setBtnCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4.get())%>
     me void: setBtnCallback3()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
-    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
+    their GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
 struct GUI_ctxt {
@@ -840,7 +840,7 @@ struct GLOBAL{
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()/1000%>
 
     /- //DRAWING ROUTINES:
-    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
+    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         cairo_move_to(cr,x,y);
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
@@ -861,13 +861,13 @@ struct GLOBAL{
         return(size);
     }%>
 
-    me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
+    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         deltaSize size = getTextSize(cr, text, font);
     renderText(cr, text, font, x-size.width/2, y);
         return(size);
     }%>
 
-    me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
+    me deltaSize: renderTextRotate(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
         double radians    = degrees*(M_PI/180.);
         deltaSize size    = getTextSize(cr, text, font);
         double hypotenuse = size.width;
@@ -890,7 +890,7 @@ struct GLOBAL{
         return(tmpSize);
     }%>
 
-    me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
+    me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
     double radians = degrees*(M_PI/180.);
     cairo_save(cr);
     cairo_translate(cr,x,y);
@@ -900,7 +900,7 @@ struct GLOBAL{
 
     me void: restore() <- <%!cairo_restore(cr)%>
 
-    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
 
@@ -915,7 +915,7 @@ struct GLOBAL{
         return(size);
     } %>
 
-    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
+    me void: roundedRectangle(their GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
         cairo_move_to(cr,x+r,y);                      /-# Move to A
         cairo_line_to(cr,x+w-r,y);                    /-# Straight line to B
         cairo_curve_to(cr,x+w,y,x+w,y,x+w,y+r);       /-# Curve to C, Control points are both at Q
@@ -928,7 +928,7 @@ struct GLOBAL{
     } %>
 
     me INK_Image[map string]: InkImgCache
-    me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
+    me void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         filename = "./assets/" + filename;
         map< string, cairo_surface_t* >::iterator picPtr=InkImgCache.find(filename);
         cairo_surface_t* pic=0;

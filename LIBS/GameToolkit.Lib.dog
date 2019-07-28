@@ -56,20 +56,36 @@ struct GameMode{
     }
     void: keyUpEventHandler(their KeyInfo: event) <- {
     }
-    void: mouseMotionEventHandler(their GameEvent: event) <- {
+    void: mouseMotionEventHandler(their MouseMotionEvent: event) <- {
     }
-    void: mouseButtonDownEventHandler(their GameEvent: event) <- {
+    void: mouseButtonDownEventHandler(their MouseButtonEvent: event) <- {
+        me int: mouseX <- event.x
+        me int: mouseY <- event.y
+        switch (event.type){
+            case SDL_BUTTON_LEFT:{}
+            case SDL_BUTTON_MIDDLE:{}
+            case SDL_BUTTON_RIGHT:{}
+        }
     }
-    void: mouseButtonUpEventHandler(their GameEvent: event) <- {
+    void: mouseButtonUpEventHandler(their MouseButtonEvent: event) <- {
+        me int: mouseX <- event.x
+        me int: mouseY <- event.y
+        switch (event.type){
+            case SDL_BUTTON_LEFT:{}
+            case SDL_BUTTON_MIDDLE:{}
+            case SDL_BUTTON_RIGHT:{}
+        }
     }
-    void: mouseWheelEventHandler(their GameEvent: event) <- {
+    void: mouseWheelEventHandler(their MouseWheelEvent: event) <- {
     }
     void: quitEventHandler() <- {
         looper.quitGame()
     }
     void: handleEvent(their GameEvent: event) <- {
         switch(event.type){
-            case SDL_USEREVENT:{}
+            case SDL_USEREVENT:{
+                userEventHandler(event)
+            }
             case SDL_WINDOWEVENT:{
                 windowEventHandler(event)
             }
@@ -79,10 +95,18 @@ struct GameMode{
             case SDL_KEYUP:{
                 keyUpEventHandler(event.key.keysym)
             }
-            case SDL_MOUSEMOTION:{}
-            case SDL_MOUSEBUTTONDOWN:{}
-            case SDL_MOUSEBUTTONUP:{}
-            case SDL_MOUSEWHEEL:{}
+            case SDL_MOUSEMOTION:{
+                mouseMotionEventHandler(event.motion)
+            }
+            case SDL_MOUSEBUTTONDOWN:{
+                mouseButtonDownEventHandler(event.button)
+            }
+            case SDL_MOUSEBUTTONUP:{
+                mouseButtonUpEventHandler(event.button)
+            }
+            case SDL_MOUSEWHEEL:{
+                mouseWheelEventHandler(event.wheel)
+            }
             case SDL_QUIT:{
                 quitEventHandler()
             }
@@ -113,7 +137,7 @@ struct GameLooper{
     void: quitGame() <- {running <- false}
     void: init() <- {}
     void: deInit() <- {}
-    me int: FPS() <- {}
+    me int: FPS() <- {return(0)}
     void: handleEvents() <- {
         their GameEvent:: event
         while(SDL_PollEvent(event)){
