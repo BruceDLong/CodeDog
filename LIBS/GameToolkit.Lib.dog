@@ -1,7 +1,7 @@
-/- CodeDog GameToolkit
-/- Set up a game application: fonts, colors, a window/frame, app area.
-/- Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
-/- See https://dewitters.com/dewitters-gameloop/
+// CodeDog GameToolkit
+// Set up a game application: fonts, colors, a window/frame, app area.
+// Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
+// See https://dewitters.com/dewitters-gameloop/
 requirements = [
     [require, GameToolkit_implementation]
 ]
@@ -25,14 +25,14 @@ struct GameMode{
                 resetWindowSize(event.window.data1, event.window.data2)
                 window.requestRedraw()
             }
-            case SDL_WINDOWEVENT_MINIMIZED:{}    /- Stop rendering
+            case SDL_WINDOWEVENT_MINIMIZED:{}    // Stop rendering
             case SDL_WINDOWEVENT_MAXIMIZED:{}
-            case SDL_WINDOWEVENT_RESTORED:{}     /- Resume rendering
-            case SDL_WINDOWEVENT_FOCUS_GAINED:{} /- Move window to front position
+            case SDL_WINDOWEVENT_RESTORED:{}     // Resume rendering
+            case SDL_WINDOWEVENT_FOCUS_GAINED:{} // Move window to front position
             case SDL_WINDOWEVENT_FOCUS_LOST:{}
             case SDL_WINDOWEVENT_CLOSE:{}
-            case SDL_WINDOWEVENT_ENTER:{}        /- Mouse enters window
-            case SDL_WINDOWEVENT_LEAVE:{}       /- Mouse leaves window
+            case SDL_WINDOWEVENT_ENTER:{}        // Mouse enters window
+            case SDL_WINDOWEVENT_LEAVE:{}       // Mouse leaves window
         }
     }
     void: keyDownEventHandler(their KeyInfo: event) <- {
@@ -116,7 +116,7 @@ struct GameMode{
 }
 
 struct GameLooper{
-    me int: FramesOrTicksPerSec <- 40  /- Change this as needed
+    me int: FramesOrTicksPerSec <- 40  // Change this as needed
 
     me bool: running
     our GameMode: crntGameMode
@@ -152,7 +152,7 @@ struct GameLooper{
             crntGameMode.update()
             their GUI_ctxt: cr  <- createGUI_ctxt()
             crntGameMode.draw(cr, 0)
-            sleep(1)  /- With no sleep CPU will go to 100%
+            sleep(1)  // With no sleep CPU will go to 100%
         }
     }
 
@@ -174,7 +174,7 @@ struct GameLooper{
         }
     }
 
-    void: runMaxFPS() <- { /- Constant Game speed, max FPS
+    void: runMaxFPS() <- { // Constant Game speed, max FPS
         /*me int: ticksToSkip   <- 1000 / FramesOrTicksPerSec
         me int: MAX_FRAMESKIP <- 10
 
@@ -194,7 +194,7 @@ struct GameLooper{
         }*/
     }
 
-    void: runVarFPS() <- { /- Constant Game speed, variable FPS
+    void: runVarFPS() <- { // Constant Game speed, variable FPS
         /*me int: ticksToSkip   <- 1000 / FramesOrTicksPerSec
         me int: MAX_FRAMESKIP <- 5
 
@@ -235,8 +235,8 @@ struct cdColor{
 }
 
 struct ColorScheme{}
-/- struct FontSpec{}
-/- struct FontScheme{}
+// struct FontSpec{}
+// struct FontScheme{}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{}
 struct GUI_ctxt{}
@@ -274,7 +274,7 @@ struct GLOBAL{
         deallocateGraphicsSystem()
     }
 
-    /-//////////////////////
+    ////////////////////////
     their INK_Image[map string]: picCache
 
     void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
@@ -296,7 +296,7 @@ struct GLOBAL{
     }%>
 }
 struct GUI_ctxt{
-    /-me void: fetchAreaToBeDrawn(me GUI_rect: area)
+    //me void: fetchAreaToBeDrawn(me GUI_rect: area)
    /* me void: reset()
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
     me void: setRGB (me double: red, me double: green, me double: blue)
@@ -339,7 +339,7 @@ struct GameImage{
         cairo_restore(cr);
     }%>
     void: deInit() <- {
-        /- TODO: free image memory
+        // TODO: free image memory
     }
 }
 struct GameSound{

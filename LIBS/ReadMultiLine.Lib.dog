@@ -1,4 +1,4 @@
-/- CodeDog Read MultiLine Library
+// CodeDog Read MultiLine Library
 
 ProgramOrLibrary = "library"
 featuresNeeded = [Terminal]
@@ -23,9 +23,9 @@ struct charX {
 struct lineX{
     me charX[list]: chars
     me string: printable
-    me bool: dirty            /- True if this line needs redisplay.
-    me uint: startAttrs       /- Attributes inherited from the previous line.
-    me uint: width            /- Width of this line in some unit.
+    me bool: dirty            // True if this line needs redisplay.
+    me uint: startAttrs       // Attributes inherited from the previous line.
+    me uint: width            // Width of this line in some unit.
 
     void: fillPrintable(me bool: showColors) <- {
         printable <- ""
@@ -41,8 +41,8 @@ struct EntryX {
 }
 
 struct lineIterator {
-    me uint: entriesIdx            /- Index in a "their EntryX[list]"
-    me uint: linesIdx             /- Index into an EntryX.lines, which is a "their lineX[list]"
+    me uint: entriesIdx            // Index in a "their EntryX[list]"
+    me uint: linesIdx             // Index into an EntryX.lines, which is a "their lineX[list]"
 }
 
 #define linesChars(LINE) <%entries[LINE.entriesIdx].lines[LINE.linesIdx].chars%>
@@ -54,7 +54,7 @@ struct linesMngr {
     their EntryX[their list]: entries
     me uint: widthToCur
     me uint: charsToCur
-    me uint: curMax         /- Most recent width to cursor
+    me uint: curMax         // Most recent width to cursor
     me uint: totalLines
     me uint: linesDeleted
     me lineIterator: currentLine
@@ -64,7 +64,7 @@ struct linesMngr {
     me uint: wndEndY
     me uint: wndHeight
     me uint: wndWidth
-    me bool: insertMode      /- True <- insert, false <- overwrite
+    me bool: insertMode      // True <- insert, false <- overwrite
     me bool: allDirty
 
 
@@ -106,7 +106,7 @@ struct linesMngr {
         withEach ln in entries{
             accum <- accum + ln.lines.size()
             if(accum>=n){
-                /- not finished BDL
+                // not finished BDL
             }
         }
         return(0)
@@ -207,13 +207,13 @@ struct linesMngr {
             while(i>0 and moveDown()){i <- i-1}
         }
     }
-    void: doInsertKey() <- {}  /- {insertMode <- !insertMode; change cursor: line <-> block}
+    void: doInsertKey() <- {}  // {insertMode <- !insertMode; change cursor: line <-> block}
     void: backspc()     <- {if(charsToCur>0 or !isFirstInSet(currentLine)){moveLeft(); doDelete();}}
     void: backTab()     <- {}
     void: doTab()       <- {}
     void: clearAll()    <- {}
     void: clearToEOL()  <- {crntLine().erase(crntLine().front()+charsToCur, crntLine().end()); entries[currentLine.entriesIdx].lines[currentLine.linesIdx].dirty <- true}
-    void: occludeHist() <- {} /- Toggle
+    void: occludeHist() <- {} // Toggle
     void: prevHist()    <- {}
     void: nextHist()    <- {}
     void: copyAll()     <- {}
@@ -226,7 +226,7 @@ struct linesMngr {
             line.chars.insert(line.chars.front()+charsToCur, ch)
             charsToCur <- charsToCur+1
             widthToCur <- widthToCur+ch.chWidth
-        } else {} /- TODO: Overwrite mode
+        } else {} // TODO: Overwrite mode
         curMax<-widthToCur
         line.dirty<-true
     }
@@ -251,7 +251,7 @@ struct linesMngr {
     }
 
     void: doDelete() <- {
-        if(charsToCur==crntLine().size()){ /- Combine this line with next one.
+        if(charsToCur==crntLine().size()){ // Combine this line with next one.
             if(isLastInSet(currentLine)){return()}
             me lineIterator: nxtLine <- currentLine
             nextLine(nxtLine)
@@ -279,11 +279,11 @@ struct linesMngr {
     }
 }
 
-struct posRec{ /- Use this to store the position of infons in a parsed string.
+struct posRec{ // Use this to store the position of infons in a parsed string.
     me bool: isStart
     me bool: isEnd
     their void: itemParsed
-    /- posRec(bool IsStart=0, bool IsEnd=0, infonPtr inf=0):isStart(IsStart),isEnd(IsEnd),itemParsed(inf){};
+    // posRec(bool IsStart=0, bool IsEnd=0, infonPtr inf=0):isStart(IsStart),isEnd(IsEnd),itemParsed(inf){};
 }
 
 struct posRecStore{
@@ -327,7 +327,7 @@ struct readMultiLine {
         entry.lines.pushLast(lx)
         mgr.totalLines <- mgr.totalLines + 1
         mgr.crntRowInWnd <- mgr.crntRowInWnd +1
-        /-if(mgr.currentLine.entriesIdx==entry) {mgr.currentLine.linesIdx<-mgr.currentLine.entriesIdx.begin()}    /- BDL: mgr.currentLine.entriesIdx==entry.lines.linesIdx
+        //if(mgr.currentLine.entriesIdx==entry) {mgr.currentLine.linesIdx<-mgr.currentLine.entriesIdx.begin()}    // BDL: mgr.currentLine.entriesIdx==entry.lines.linesIdx
     }
 
     void: appendTextToEntry(their EntryX: entry, their posRecStore: text) <- {
@@ -338,12 +338,12 @@ struct readMultiLine {
         me uint: ch
         me uint: q <- 0
         me uint: p <- 0
-        me uint: nextColor <- 4096 /- 0x1000
-        me uint: colorCode <- 0         /-Color 0=default for this entry.
+        me uint: nextColor <- 4096 // 0x1000
+        me uint: colorCode <- 0         //Color 0=default for this entry.
         if(text.s[0]!=0){
             withEach count in WHILE(getUTF8c(text.s.c_str(),p,ch)){
                 if(count>2000){print("Infinite loop!\n"); exit(2);}
-                if(ch==charConsts[1]){      /- '\n'
+                if(ch==charConsts[1]){      // '\n'
                     lx.dirty<-true
                     entry.lines.pushLast(lx)
                     Allocate(lx)
@@ -351,7 +351,7 @@ struct readMultiLine {
                 } else {
                      if(text.colorCodes){
                         me posRec[itr map int]: posRecsItr <- text.ps.find(q)
-                        if(posRecsItr!=text.ps.end()){ /- We need to change colors.
+                        if(posRecsItr!=text.ps.end()){ // We need to change colors.
                             pr<-posRecsItr.val
                             me int[itr map their void]: colorCodeItr <- text.colorCodes.find(pr.itemParsed)
                             me bool: colorCodeExists <- colorCodeItr!=text.colorCodes.end()
@@ -409,18 +409,18 @@ struct readMultiLine {
         if(mgr.crntRowInWnd < 0) {mgr.crntRowInWnd <- 0}
         me uint: rowInt <- mgr.crntRowInWnd
         while(rowInt>0 and !mgr.isFirstLine(rowItr)){rowInt <- rowInt-1; mgr.prevLine(rowItr)}
-        mgr.crntRowInWnd <- mgr.crntRowInWnd-rowInt                       /- Don't let the first line be below the top line.
+        mgr.crntRowInWnd <- mgr.crntRowInWnd-rowInt                       // Don't let the first line be below the top line.
         rowInt <- 0
         their EntryX: prevEntrySetID <- 0
         while(rowInt<winHeight){
             EntryAttrs <- mgr.entries[rowItr.entriesIdx].attrs
             if(rowItr.entriesIdx==mgr.currentLine.entriesIdx) {attrOn(A_BOLD)}
-            else {attrOff(A_BOLD)}                                       /- Highlight the current EntryX
+            else {attrOff(A_BOLD)}                                       // Highlight the current EntryX
             if(mgr.allDirty or mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx].dirty){
                 mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx].dirty <- false
                 attrOn(getColorPair(6) + A_REVERSE)
                 if(promptWidth>0){
-                    /- this sets the margin
+                    // this sets the margin
                     if(!(prevEntrySetID === mgr.entries[rowItr.entriesIdx])){
                         movePutChar(0, rowInt+mgr.wndStartY, promptChars[shiftRight(AndBits(EntryAttrs, 240), 4)])
                         prevEntrySetID <- mgr.entries[rowItr.entriesIdx]
@@ -430,7 +430,7 @@ struct readMultiLine {
                 if(Mode==1) {attrOn(getColorPair(8))}
                 else if(EntryAttrs>0) {attrOn(getColorPair(AndBits(EntryAttrs, 7)))}
                 else {attrOn(getColorPair(1))}
-                /- Print each character
+                // Print each character
                 their lineX: lx <- mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx]
                 withEach ch in lx.chars{
                     colorCode <- ch.colorCode
@@ -451,7 +451,7 @@ struct readMultiLine {
             clearToBottom()
             mgr.linesDeleted <- false
         }
-/- message <- message + "  crntRowInWnd:" + toString(mgr.crntRowInWnd) + "   crntEntry:" + toString(mgr.currentLine.entriesIdx) +  "   crntLine:" + toString(mgr.currentLine.linesIdx) +  "   EntryAttr:" + toString(EntryAttrs)
+// message <- message + "  crntRowInWnd:" + toString(mgr.crntRowInWnd) + "   crntEntry:" + toString(mgr.currentLine.entriesIdx) +  "   crntLine:" + toString(mgr.currentLine.linesIdx) +  "   EntryAttr:" + toString(EntryAttrs)
         moveCursor(0,0)
         attrOff(A_BOLD)
         attrOn(A_REVERSE)
@@ -481,7 +481,7 @@ struct readMultiLine {
         mgr.charsToCur <- 0
         mgr.widthToCur <- 0
         mgr.curMax <- 0
-        me uint: chg <- 0               /- Change status - return from onChangeCallBack()
+        me uint: chg <- 0               // Change status - return from onChangeCallBack()
         refreshDisplay(chg)
         me bool: done <- false
         while(!done){
@@ -509,45 +509,45 @@ struct readMultiLine {
                     case KEY_END:       {mgr.moveEnd()}
                     case KEY_DC:        {chkEd(mgr.doDelete())}
                     case KEY_IC:        {mgr.doInsertKey()}
-                    case KEY_SF:        {}       /- Shift down
-                    case KEY_SR:        {}       /- Shift up
-                    case KEY_SLEFT:     {}       /- Shift Left
-                    case KEY_SRIGHT:    {}       /- Shift Right
-                    /-case CTRL_PGUP:case ALT_PGUP:     { mgr.moveToTop()}   /- BDL
-                    /-case CTRL_PGDN:case ALT_PGDN:     { mgr.moveToBottom()}
+                    case KEY_SF:        {}       // Shift down
+                    case KEY_SR:        {}       // Shift up
+                    case KEY_SLEFT:     {}       // Shift Left
+                    case KEY_SRIGHT:    {}       // Shift Right
+                    //case CTRL_PGUP:case ALT_PGUP:     { mgr.moveToTop()}   // BDL
+                    //case CTRL_PGDN:case ALT_PGDN:     { mgr.moveToBottom()}
 
                     case KEY_MOUSE:     {}
                     case KEY_RESIZE:    {}
-                    /-case KEY_ENTER:     {if((chg==1) and (mgr.charsToCur==linesChars(mgr.currentLine).size()) and isLastInSet(mgr.currentLine)) {return(submitText())}chkEd(mgr.doEnter())}
+                    //case KEY_ENTER:     {if((chg==1) and (mgr.charsToCur==linesChars(mgr.currentLine).size()) and isLastInSet(mgr.currentLine)) {return(submitText())}chkEd(mgr.doEnter())}
 
-                    case 1: {}                                /- CTRL-A - Select all
-                    case 2: {mgr.moveLeft()}                  /- CTRL-B - Move back/left
-                    case 3: {}                                /- CTRL-C - Copy
-                    case 4: {done <- true; return(submitText())}                    /- CTRL-D - Done/quit (EOF)
-                    case 5: {mgr.moveEnd()}                   /- CTRL-E - Go to end of line
-                    case 6: {mgr.moveRight()}                 /- CTRL-F - Move forward/right
-                    case 7: {return(submitText())}            /- CTRL-G - GO. Submit this text for processing.
-                    case 8: {mgr.moveHome()}                  /- CTRL-H - Home
-                    case 9: {mgr.doTab()}                     /- CTRL-I
-                    case 10: {mgr.cycleSaveModes()}           /- CTRL-J
-                    case 11: {chkEd(mgr.clearToEOL())}        /- CTRL-K - Kill to end-of-line
-                    case 12: {}                               /- CTRL-L - Clear screen
-                    case 14: {mgr.nextHist()}                 /- CTRL-N - Next in history
-                    case 15: {mgr.occludeHist()}              /- CTRL-O - Occlude this from history (toggle)
-                    case 16: {mgr.prevHist()}                 /- CTRL-P - Previous in history
-                    case 17: {}                               /- CTRL-Q - Ctrl Q doesn't work on all systems outside raw Mode.
-                 /- case 18: {onChangeCallback(cmd)}          /- CTRL-R - Recompile and Refresh screen
-                    case 19: {}                               /- CTRL-S - Ctrl S doesn't work on all systems outside raw Mode.
-                    case 20: {mgr.moveHome(); return(submitText())}  /- CTRL-T - Normalize in step-Mode
-                    case 21: {mgr.clearAll()}                 /- CTRL-U - Clear entire line / unclear
-                    case 22: {}                               /- CTRL-V - Paste
-                    case 23: {}                               /- CTRL-W - Toggle word-wrap Mode
-                    case 24: {}                               /- CTRL-X - Cut
-                    case 25: {}                               /- CTRL-Y - Redo
-                    case 26: {}                               /- CTRL-Z - Undo
-                    case 27: {}                               /- ESC
-                    case 127: {chkEd(mgr.backspc())}          /- Backspace
-                    case 13:{                                 /- CTRL-M  - Enter
+                    case 1: {}                                // CTRL-A - Select all
+                    case 2: {mgr.moveLeft()}                  // CTRL-B - Move back/left
+                    case 3: {}                                // CTRL-C - Copy
+                    case 4: {done <- true; return(submitText())}                    // CTRL-D - Done/quit (EOF)
+                    case 5: {mgr.moveEnd()}                   // CTRL-E - Go to end of line
+                    case 6: {mgr.moveRight()}                 // CTRL-F - Move forward/right
+                    case 7: {return(submitText())}            // CTRL-G - GO. Submit this text for processing.
+                    case 8: {mgr.moveHome()}                  // CTRL-H - Home
+                    case 9: {mgr.doTab()}                     // CTRL-I
+                    case 10: {mgr.cycleSaveModes()}           // CTRL-J
+                    case 11: {chkEd(mgr.clearToEOL())}        // CTRL-K - Kill to end-of-line
+                    case 12: {}                               // CTRL-L - Clear screen
+                    case 14: {mgr.nextHist()}                 // CTRL-N - Next in history
+                    case 15: {mgr.occludeHist()}              // CTRL-O - Occlude this from history (toggle)
+                    case 16: {mgr.prevHist()}                 // CTRL-P - Previous in history
+                    case 17: {}                               // CTRL-Q - Ctrl Q doesn't work on all systems outside raw Mode.
+                 // case 18: {onChangeCallback(cmd)}          // CTRL-R - Recompile and Refresh screen
+                    case 19: {}                               // CTRL-S - Ctrl S doesn't work on all systems outside raw Mode.
+                    case 20: {mgr.moveHome(); return(submitText())}  // CTRL-T - Normalize in step-Mode
+                    case 21: {mgr.clearAll()}                 // CTRL-U - Clear entire line / unclear
+                    case 22: {}                               // CTRL-V - Paste
+                    case 23: {}                               // CTRL-W - Toggle word-wrap Mode
+                    case 24: {}                               // CTRL-X - Cut
+                    case 25: {}                               // CTRL-Y - Redo
+                    case 26: {}                               // CTRL-Z - Undo
+                    case 27: {}                               // ESC
+                    case 127: {chkEd(mgr.backspc())}          // Backspace
+                    case 13:{                                 // CTRL-M  - Enter
                         me uint: attrs <- shiftRight(AndBits((mgr.entries[mgr.currentLine.entriesIdx].attrs), 240), 4)
                         if(attrs>1 and attrs<=5){
                             me string: entryText
@@ -561,7 +561,7 @@ struct readMultiLine {
                             appendTextToEntry(LastEntry, textStore)
                             mgr.moveToBottom()
                             break()
-                        } else if(1){ /- or (chg==1) and (mgr.charsToCur==linesChars(mgr.currentLine).size()) and isLastInSet(mgr.currentLine)) {
+                        } else if(1){ // or (chg==1) and (mgr.charsToCur==linesChars(mgr.currentLine).size()) and isLastInSet(mgr.currentLine)) {
                             if(attrs>5){message <- "Item cannot be edited."}
                             else {return(submitText())}
                         }
@@ -569,7 +569,7 @@ struct readMultiLine {
                     }
                 }
             }else{
-                ch.chWidth <- 1 /- wcwidth(ch.ch)
+                ch.chWidth <- 1 // wcwidth(ch.ch)
                 ch.ch <- cmd
                 chkEd(mgr.insertChar(ch))
             }
@@ -579,19 +579,19 @@ struct readMultiLine {
     }
 
     void: initNCurses() <- {
-        /-std::setlocale(LC_CTYPE, "en_US.UTF-8");
+        //std::setlocale(LC_CTYPE, "en_US.UTF-8");
         initTerminalControls()
-        setColorPair(0, -1, -1)                    /- Fgnd/Bgnd for un-parsed entries, etc.  (~$Ss>)
-        setColorPair(1, COLOR_BLUE,   -1)          /- FGnd/BGnd for parsed entries
-        setColorPair(2, COLOR_GREEN,  -1)          /- Colors for result - good     (=)
-        setColorPair(3, COLOR_MAGENTA,-1)          /- Colors for result - error    (?)
-        setColorPair(4, COLOR_CYAN,   -1)          /- Colors for messages for user (#)
-        setColorPair(5, COLOR_BLUE,   -1)          /- Colors for context prompt    (:)
-        setColorPair(6, COLOR_BLUE,   -1)          /- Colors for prompt bar
-        setColorPair(7, COLOR_GREEN,  -1)          /- Colors for enter = submit
+        setColorPair(0, -1, -1)                    // Fgnd/Bgnd for un-parsed entries, etc.  (~$Ss>)
+        setColorPair(1, COLOR_BLUE,   -1)          // FGnd/BGnd for parsed entries
+        setColorPair(2, COLOR_GREEN,  -1)          // Colors for result - good     (=)
+        setColorPair(3, COLOR_MAGENTA,-1)          // Colors for result - error    (?)
+        setColorPair(4, COLOR_CYAN,   -1)          // Colors for messages for user (#)
+        setColorPair(5, COLOR_BLUE,   -1)          // Colors for context prompt    (:)
+        setColorPair(6, COLOR_BLUE,   -1)          // Colors for prompt bar
+        setColorPair(7, COLOR_GREEN,  -1)          // Colors for enter = submit
         setColorPair(8, COLOR_YELLOW, -1)
         setColorPair(9, COLOR_RED,    -1)
-        setColorPair(10, -1,  COLOR_BLUE)          /- Colors for list items
+        setColorPair(10, -1,  COLOR_BLUE)          // Colors for list items
         attrOn(getColorPair(1))
 
         setScrollingOK(true)

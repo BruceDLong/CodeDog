@@ -1,4 +1,4 @@
-/-############  Add GUI-Toolkit features using Java Swing
+//############  Add GUI-Toolkit features using Java Swing
 requirements = [
     [tagOneOf, Platform, [Java]]
 ]
@@ -15,7 +15,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus  = dynamic 
+    useStatus  = dynamic
     description='Swing is a GUI widget toolkit for Java '
     features   =[]
     platforms  =[]
@@ -23,7 +23,7 @@ LibDescription ={
     CPUs       =[]
 }
 
-/-///////////////////////////////  STRUCT CONVERTERS
+/////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me Object: GUI_item}
@@ -39,7 +39,7 @@ struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_ctxt{their JavaGUI_ctxt:GUI_ctxt}
 struct GUI_Scalar{me int: GUI_Scalar}
 
-/-///////////////////////////////  HANDLE EVENTS
+/////////////////////////////////  HANDLE EVENTS
 
 struct GUI_MouseEvent{
     their MouseEvent: GUI_MouseEvent
@@ -72,7 +72,7 @@ struct GUI_PointerEvent{
     me uint: button
 }
 
-/-///////////////////////////////  HANDLE LISTENERS
+/////////////////////////////////  HANDLE LISTENERS
 struct MasterMouseListener: implements=MouseListener{
     me void: mouseClicked(me GUI_MouseEvent: e)<-     {
         me int: eventX <- e.x
@@ -82,7 +82,7 @@ struct MasterMouseListener: implements=MouseListener{
     me void: mousePressed(me GUI_MouseEvent: e)<-     {
         me int: eventX <- e.x
         me int: eventY <- e.y
-        /-GLOBAL.static_Global.thisApp.gui.pointerDown(GLOBAL.static_Global.drawing_area, eventX, eventY)
+        //GLOBAL.static_Global.thisApp.gui.pointerDown(GLOBAL.static_Global.drawing_area, eventX, eventY)
     }
     me void: mouseReleased(me GUI_MouseEvent: e)<-     {
         me int: eventX <- e.x
@@ -109,7 +109,7 @@ struct MasterMouseMotionListener: implements=MouseMotionListener{
     }
 }
 
-/-///////////////////////////////  HANDLE LISTENERS
+/////////////////////////////////  HANDLE LISTENERS
 struct Swing_eventDispatcher{
     their widget: topWidget
 
@@ -135,9 +135,9 @@ struct Swing_eventDispatcher{
         }
         return false;
     } %>
-  /-  me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
-  /-  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
-    /- Also: timer, data and user events
+  //  me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n")}
+  //  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+    // Also: timer, data and user events
 
     me void: registerWidgetForEventDispatcher(me JavaGUI_ctxt: appWidget, their widget: masterWidget) <- <%{
         appWidget.addMouseListener(mouseListener);
@@ -146,14 +146,14 @@ struct Swing_eventDispatcher{
     } %>
 }
 
-/-///////////////////////////////   Event callbacks for GTK3
+/////////////////////////////////   Event callbacks for GTK3
 struct GLOBAL{
     me Swing_eventDispatcher: EventDispatcher
 
 }
 
 
-/-///////////////////////////////  HANDLE GUI
+/////////////////////////////////  HANDLE GUI
 struct GUI {
     me uint32: GUI_Init() <- <%{return(0);}%>
 
@@ -252,7 +252,7 @@ struct JavaGUI_ctxt: inherits=JPanel{
     }%>
 }
 
-/-/////////////////////////////// TIME
+///////////////////////////////// TIME
 struct tm{
     me Calendar: tm
 }
@@ -262,7 +262,7 @@ struct timeStringer{
         Calendar timeRec = Calendar.getInstance();
         String AmPm = "am";
         int hours = timeRec.get(Calendar.HOUR);
-        /-if (hours>=12) {hours = hours-12; AmPm="pm";}
+        //if (hours>=12) {hours = hours-12; AmPm="pm";}
         if (timeRec.get(Calendar.AM_PM)==Calendar.PM){AmPm="pm";}
         if (hours==0) {hours = 12;}
         String SH = (Integer.toString(hours)+":");
@@ -279,10 +279,10 @@ struct timeStringer{
     } %>
 }
 
-/-///////////////////////////////  G L O B A L
+/////////////////////////////////  G L O B A L
 struct GLOBAL{
     me APP: thisApp
-    /- DRAWING ROUTINES:
+    // DRAWING ROUTINES:
 
     me void: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
         cr.gr.setFont(new Font(font.na/me, Font.PLAIN, (int)(font.size*1.4)));
@@ -305,12 +305,12 @@ struct GLOBAL{
     } %>
 
     me void: close_window() <- {
-         /- gtk_main_quit()
+         // gtk_main_quit()
     }
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.repaint(%2, %3, %4, %5)%>
     me long: ticksPerSec() <- <%!%G1000%>
     me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
-        /-TODO finish this if need to package swing build
+        //TODO finish this if need to package swing build
     }%>
     me string: getFilesDirAsString()<- <%{
         String s = Paths.get(".").toAbsolutePath().normalize().toString();

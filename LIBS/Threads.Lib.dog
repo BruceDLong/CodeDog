@@ -1,4 +1,4 @@
-/- CodeDog Thread Library
+// CodeDog Thread Library
 
 requirements = [
     [require, threads_implementation]
@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[Threads]
     libFiles=[]
-    headers=[] /-threads
+    headers=[] //threads
 }
 
 LibDescription  ={

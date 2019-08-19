@@ -1,4 +1,4 @@
-/-############  Add JSON Object Implementation
+//############  Add JSON Object Implementation
 requirements = [
     [tagOneOf, Platform, [Linux, OS-X_Devices, Windows]]
 ]
@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description ='JSON Object Implementation'
     features    =[JSON]
     platforms   =[Linux, OS-X_Devices, Windows]

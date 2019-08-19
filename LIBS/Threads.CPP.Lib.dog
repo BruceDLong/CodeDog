@@ -1,4 +1,4 @@
-/- CodeDog Threads Library
+// CodeDog Threads Library
 
 requirements = [
    [tagOneOf, Lang, [CPP]]
@@ -11,7 +11,7 @@ interface={
 }
 
 LibDescription  ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description ='Library for Webmulti-thread programming'
     features    =[Threads]
     Lang    =[CPP]
@@ -19,7 +19,7 @@ LibDescription  ={
 
 struct Threads{
     me bool: notDone <- true
-    me uint: ID()           <- {return(5);}     /- TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
+    me uint: ID()           <- {return(5);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
     bool: isActive()        <- {return(true);}
     void: start()           <- <%{ T = std::thread(&Threads::run, this); }%>
     void: waitForExit()     <- <%{T.join();}%>

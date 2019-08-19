@@ -1,4 +1,4 @@
-/- CodeDog Unicode Library
+// CodeDog Unicode Library
 requirements = [
     [tagOneOf, Lang, [Java]]
 ]
@@ -24,7 +24,7 @@ struct sysLocale {me ULocale: sysLocale}
 struct Udate {me Date: Udate}
 
 struct UnicodeMgr {
-    /- form "pt", "BR" is Java compatible while form "pt_BR" is not
+    // form "pt", "BR" is Java compatible while form "pt_BR" is not
     me sysLocale: SetLocale(me string: code) <- <%{
     ULocale location = new ULocale(code);
     return location;
@@ -45,7 +45,7 @@ struct UnicodeMgr {
     }%>
 
     me string: getHour(me long: date, me sysLocale: loc) <- <%{
-    String pattern = "k";   /- k: hour in day (1~24)
+    String pattern = "k";   // k: hour in day (1~24)
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
         String hour = simpleDateFormat.format(date);
         return hour;

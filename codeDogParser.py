@@ -631,7 +631,7 @@ def comment_remover(text):
         else:
             return s
     pattern = re.compile(
-        r'/-.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
+        r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"',
         re.DOTALL | re.MULTILINE
     )
     return re.sub(pattern, replacer, text)

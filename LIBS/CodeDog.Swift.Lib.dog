@@ -1,4 +1,4 @@
-/-///////// Add routines for Swift
+/////////// Add routines for Swift
 requirements = [
     [tagOneOf, Lang, [Swift]]
 ]
@@ -11,7 +11,7 @@ interface={
 
 
 LibDescription ={
-    useStatus   =  dynamic 
+    useStatus   =  dynamic
     description = 'Built in routines for Swift'
 }
 
@@ -60,7 +60,7 @@ struct GLOBAL{
     me int: randInt(me int: val) <- <%!(rand() % %1)%>
     me string: toString(me int: val) <- <%!String(%1)%>
     me int: stoi(me string: S) <- <%!Int(%1)!%>
-    /-///////////////////////////////////////////////////
+    /////////////////////////////////////////////////////
 
 
 }

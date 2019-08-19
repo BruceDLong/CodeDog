@@ -155,12 +155,15 @@ class structToStringWriter(structProcessor):
         if fldCat=='func': return ''
         typeSpec=field['typeSpec']
         if progSpec.isAContainer(typeSpec):
-            innerFieldType=progSpec.getFieldType(typeSpec)
-            #print "ARRAYSPEC:",innerFieldType, field
-            fldCatInner=progSpec.innerTypeCategory(innerFieldType)
-            calcdName=fieldName+'["+toString(_item_key)+"]'
-            S+="    withEach _item in "+fieldName+"{\n"
-            S+="        "+self.displayTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
+            if(progSpec.getDatastructID(typeSpec) == "list"):
+                innerFieldType=progSpec.getFieldType(typeSpec)
+                #print "ARRAYSPEC:",innerFieldType, field
+                fldCatInner=progSpec.innerTypeCategory(innerFieldType)
+                calcdName=fieldName+'["+toString(_item_key)+"]'
+                S+="    withEach _item in "+fieldName+"{\n"
+                S+="        "+self.displayTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
+            else:
+                cdlog(2, "Map not supported")
         else: S+=self.displayTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
             T ="    if("+fieldName+' == NULL){SRet_ <- SRet_ + '+'indent + dispFieldAsText("'+fieldName+'", 15)+"NULL\\n"}\n'

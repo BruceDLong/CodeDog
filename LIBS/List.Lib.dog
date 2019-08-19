@@ -1,4 +1,4 @@
-/- CodeDog List model
+// CodeDog List model
 
 requirements = [
     [require, listImplementation]
@@ -9,7 +9,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description ='List Model'
     features    =[]
 }

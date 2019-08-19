@@ -1,5 +1,5 @@
-/-//////// Add routines for Java
-/-TODO: make conversion for rand to GLOBAL.getRandInt & main return(0)
+////////// Add routines for Java
+//TODO: make conversion for rand to GLOBAL.getRandInt & main return(0)
 requirements = [
     [tagOneOf, Lang, [Java]]
 ]

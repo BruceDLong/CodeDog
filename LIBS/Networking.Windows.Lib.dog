@@ -1,4 +1,4 @@
-/- CodeDog HTTP Networking Library
+// CodeDog HTTP Networking Library
 requirements = [
     [tagOneOf, Platform, [Windows]]
 ]
@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus  = dynamic 
+    useStatus  = dynamic
     description='Networking for Windows'
     features    =[]
     platforms   =[Windows]
@@ -30,11 +30,11 @@ struct MemoryStruct {
 struct NetConnection{
     me bool: isNotFirstVisit
     their CURL: curl_handle
-    /-void: setupGlobalNetworking() <- <%!%Gcurl_global_init(CURL_GLOBAL_ALL)%>
-    /-void: openSimpleSession() <- <%!%Gcurl_easy_init()%>
-    /-void: setURL(me string: URL) <- <%!%Gcurl_easy_setopt(curl_handle, CURLOPT_URL, %1);%>
-    /-void: performFetch() <- <%!%Gcurl_easy_perform(curl_handle)%>
-    /-void: cleanSimpleSession() <- <%!%Gcurl_easy_cleanup(curl_handle)%>
+    //void: setupGlobalNetworking() <- <%!%Gcurl_global_init(CURL_GLOBAL_ALL)%>
+    //void: openSimpleSession() <- <%!%Gcurl_easy_init()%>
+    //void: setURL(me string: URL) <- <%!%Gcurl_easy_setopt(curl_handle, CURLOPT_URL, %1);%>
+    //void: performFetch() <- <%!%Gcurl_easy_perform(curl_handle)%>
+    //void: cleanSimpleSession() <- <%!%Gcurl_easy_cleanup(curl_handle)%>
     void: cleanGlobalNetworking() <- <%!%Gcurl_global_cleanup()%>
 
     we uint: WriteMemoryCallback(their void: contents, me uint: size, me uint: nmemb, their void: userPtr) <- <%{

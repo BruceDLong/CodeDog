@@ -1,16 +1,16 @@
-/-############  Add GUI-Toolkit features for IOS
+//############  Add GUI-Toolkit features for IOS
 requirements = [
     [tagOneOf, Platform, [IOS]]
 ]
 
 interface={
     provides=[GUI_ToolKit_implementation]
-/-    libFiles=[`pkg-config --cflags --libs gtk-3.0`]
+//    libFiles=[`pkg-config --cflags --libs gtk-3.0`]
     headers=[UIKit]
 }
 
 LibDescription ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description ='Provides a GUI Toolkit or iPhone, iPad, etc.'
     features    =[GUI_ToolKit, Mouse, Keyboard, Audio]
     platforms   =[Linux, OS-X_Devices, Windows]
@@ -33,11 +33,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate{
     func applicationWillResignActive(_ application: UIApplication) -> Void {
         var application = application
     }
-    
+
     func applicationDidEnterBackground(_ application: UIApplication) -> Void {
         var application = application
     }
-    
+
     func applicationWillEnterForeground(_ application: UIApplication) -> Void {
         var application = application
     }
@@ -157,7 +157,7 @@ class topAppWidget: UIView {
 
 `
 
-/-///////////////////////////////  STRUCT CONVERTERS
+/////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{their UIView: GUI_item}
@@ -168,14 +168,14 @@ struct GUI_menuItem{their UIView: GUI_menuItem}
 struct GUI_canvas{their UIView: GUI_canvas}
 struct GUI_container{their UIView:GUI_container}
 struct GUI_ScrollingWindow{their UIView: GUI_ScrollingWindow}
-struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
+struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_Scalar{me Int: GUI_Scalar}
-/-struct GUI_Label{their textView: GUI_Label}
+//struct GUI_Label{their textView: GUI_Label}
 struct listWidget{their HWND: listWidget}
 
 
-/-///////////////////////////////  HANDLE GUI
+/////////////////////////////////  HANDLE GUI
 struct GUI{
     me uint32: GUI_Init() <- {
         return(0)
@@ -197,10 +197,10 @@ struct GUI{
     me GUI_item: newScrollingWindow() <- <%!%Gscroller()%>
     me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%G%1.addSubview(%2)%>
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
-    /-me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
-    /-me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
-    /-me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_TopSubMenu(%1, %2)%>
-    /-me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+    //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
+    //me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
+    //me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_TopSubMenu(%1, %2)%>
+    //me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
     me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
@@ -235,8 +235,8 @@ struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIAp
 
 {
     their UIWindow: window
-    /-struct AppDelegate: implements='UIResponder, UIApplicationDelegate' {
-    /-their UIWindow: window
+    //struct AppDelegate: implements='UIResponder, UIApplicationDelegate' {
+    //their UIWindow: window
 
     me bool: application(me UIApplication: application, their Any[list UIApplicationLaunchOptionsKey]:launchOptions) <- <%{
 
@@ -260,41 +260,41 @@ window = UIWindow(frame: UIScreen.main.bounds)
     }%>
 
     void: applicationWillResignActive(UIApplication: application) <- {
-        /- Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        /- Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
+        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
     }
 
     void: applicationDidEnterBackground(UIApplication: application) <- {
-        /- Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        /- If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
+        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
     }
 
     void: applicationWillEnterForeground(UIApplication: application) <- {
-        /- Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
+        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
     }
 
     void: applicationDidBecomeActive(UIApplication: application) <- {
-        /- Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
     }
 
     void: applicationWillTerminate(UIApplication: application) <- {
-        /- Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
+        // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
 }
 */
-/-///////////////////////////////  HANDLE EVENTS
-/-///////////////////////////////  EVENT DISPATCHER
+/////////////////////////////////  HANDLE EVENTS
+/////////////////////////////////  EVENT DISPATCHER
 struct IOS_eventDispatcher{
 their widget: topWidget
 me bool: dispatchPointerMotionEvent(me UIView: event) <- {return(false)}
-/- me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
-/- me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
-/- Also: timer, data and user events
+// me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
+// me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+// Also: timer, data and user events
 me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{topWidget = masterWidget;}%>
 }
 
-/-///////////////////////////////   Event callbacks
+/////////////////////////////////   Event callbacks
 struct GLOBAL{
 me IOS_eventDispatcher: EventDispatcher
 }
@@ -304,15 +304,15 @@ struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
 struct GUI_ButtonEvent{
 me uint: type
-/- GdkWindow *window;
-/- gint8 send_event;
-/- guint32 time;
+// GdkWindow *window;
+// gint8 send_event;
+// guint32 time;
 me double: x
 me double: y
 me uint: state
 me uint: button
 }
-/-/////////////////////////////// TIME
+///////////////////////////////// TIME
 struct tm{
     me tm: tm
     me int: tm_hour
@@ -323,9 +323,9 @@ struct tm{
 struct timeStringer{
     me tm: timeRec
     me none: timeStringer() <- <%{
-        /-var rawtime: time_t
-        /-time(rawtime);
-        /-timeRec = localtime(rawtime);
+        //var rawtime: time_t
+        //time(rawtime);
+        //timeRec = localtime(rawtime);
 
     } %>
 

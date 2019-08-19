@@ -1,4 +1,4 @@
-/-####### Logger library
+//####### Logger library
 
 requirements = [
     [require, Logger_implementation]
@@ -23,11 +23,11 @@ struct logManager{
     me mode [ONone, OConsole, OFile, OBoth]: outputMode
     me bool: useLogFile
     me bool: useConsole
-    /-me void: assert(me string: condition)
+    //me void: assert(me string: condition)
 
-    /-ShowLogs(InfoLogs | MesgLogs | ...) // ALL_LOGS = the OR of all of them
-    /-HideLogs(InfoLogs | MesgLogs | ...)
-    /-RouteLogs(FILE) // Options: stdOut, A file, the platform's system logs, a string
+    //ShowLogs(InfoLogs | MesgLogs | ...) // ALL_LOGS = the OR of all of them
+    //HideLogs(InfoLogs | MesgLogs | ...)
+    //RouteLogs(FILE) // Options: stdOut, A file, the platform's system logs, a string
 
     me void: init(me int: outMode) <- {
         outputMode <- outMode
@@ -41,5 +41,5 @@ struct logManager{
 struct GLOBAL{
     me logManager: logMgr
 
-    /-me void: assert(me string: condition) <- {}
+    //me void: assert(me string: condition) <- {}
 }

@@ -1,15 +1,15 @@
-/- CodeDog GUI DashBoard
+// CodeDog GUI DashBoard
 
-/- Widgets for constructing a dashboard
+// Widgets for constructing a dashboard
 
 featuresNeeded = [GUI_ToolKit]
 
 
 struct dash: inherits=widget{
     me string: title
-    me GUI_Scalar: extX        /- Dashes right-most extent
-    me GUI_Scalar: extY        /- Dashes lowest extent
-    me GUI_Scalar: extC        /- The current position where the next external item should be drawn
+    me GUI_Scalar: extX        // Dashes right-most extent
+    me GUI_Scalar: extY        // Dashes lowest extent
+    me GUI_Scalar: extC        // The current position where the next external item should be drawn
     their dash: dashParent
     me bool: isNullLike
     me bool: posIsSet
@@ -175,7 +175,7 @@ struct Dashboard: inherits=dash{
         PDF.finishPDF()*/
     }
 
-    /-me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
+    //me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
 
     void: init(me string: label) <- {
     title <- label+".Dashboard"
@@ -209,7 +209,7 @@ struct Dashboard: inherits=dash{
         width <- width +30
         height <- height +30
     }
-    /- TODO: Support other layouts: verticalStack and userArranges
+    // TODO: Support other layouts: verticalStack and userArranges
     void: layoutChildDashes() <- {
         if(sizingMode==accomodateContent){return()}
         if(layoutMode==singleDash){
@@ -225,7 +225,7 @@ struct Dashboard: inherits=dash{
         layoutChildDashes()
         me cdColor: bkCol <- styler.bkGndColor
         me cdColor: fgCol <- styler.frGndColor
-        /-displayImage(cr, "blue-sky.png", 0, 0, 1.0)
+        //displayImage(cr, "blue-sky.png", 0, 0, 1.0)
         cr.setColor(bkCol)
         cr.paintNow()
 
@@ -358,7 +358,7 @@ struct listOfItems: inherits=dash{
                 }
                 height <- y-posY
             } else if(orientation==horizontal){
-                me GUI_Scalar: listX <- posX + header.width+30    /- This 30 should really be calculated to compensate for nested items. Actual distance should be 40.
+                me GUI_Scalar: listX <- posX + header.width+30    // This 30 should really be calculated to compensate for nested items. Actual distance should be 40.
                 me GUI_Scalar: listY <- extC
                 me GUI_Scalar: listC <- extC+40;
                 withEach element in elements{
@@ -430,11 +430,11 @@ struct DashboardWidget: inherits=dash{
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas <- canvas
         thisApp.gui.setWidgetSize(canvas, 310, 220)
-        /-    their scrollerWidget:: scrollView  <- ()
-        /-    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
-        /-    managedWidget <- scrollerFrame
-        /-    managedWidget <- makeYStack("")
-        /-    addToContainer(managedWidget, canvas)
+        //    their scrollerWidget:: scrollView  <- ()
+        //    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
+        //    managedWidget <- scrollerFrame
+        //    managedWidget <- makeYStack("")
+        //    addToContainer(managedWidget, canvas)
         managedWidget <- canvas
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         return(managedWidget)

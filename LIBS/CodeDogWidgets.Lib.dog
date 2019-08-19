@@ -1,4 +1,4 @@
-/- CodeDog IntDraggerWidget
+// CodeDog IntDraggerWidget
 featuresNeeded = [GUI_ToolKit]
 struct LabelDash: inherits=dash{
     me string:          label
@@ -17,7 +17,7 @@ struct LabelDash: inherits=dash{
         renderText(cr, label, styler.fontDefault, posX-rightJustifyOffset, posY+padding+size.height)
     }
 }
-/-// INT
+//// INT
 struct IntDraggerDash: inherits=dash{
     me circleButton: leftIncrBtn
     me circleButton: rightDecrBtn
@@ -42,11 +42,11 @@ struct IntDraggerDash: inherits=dash{
     }
     void: draw(me GUI_ctxt: cr) <- {
         me GUI_Scalar:   padding <- 5
-        /- BACKGROUND
+        // BACKGROUND
         me cdColor: bkCol <- styler.White
         cr.setColor(bkCol)
         cr.paintNow()
-        /- FOREGROUND
+        // FOREGROUND
         cr.setColor(Styler.Black)
         leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
         leftIncrBtn.drawCircleBtn(cr)
@@ -97,7 +97,7 @@ struct IntDraggerWidget: inherits=DashboardWidget{
     me bool:             isBtnDown     <- false
     me bool:             isDragging    <- false
     their GUI_Frame: initWidget(me string: label)      <- {
-        /-/// CANVAS AND EVENTS
+        ///// CANVAS AND EVENTS
         title                   <- 'IntDraggerWidget.'+label
         me int: radius          <- 20
         dashboardDBW.init(title)
@@ -108,7 +108,7 @@ struct IntDraggerWidget: inherits=DashboardWidget{
         dashboardDBW.canvas     <- canvas
         thisApp.gui.setWidgetSize(canvas,320,50)
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
-        /-/// CHILDREN
+        ///// CHILDREN
         intDraggerDash.initIntDraggerDash(120,0,radius,label)
         dashboardDBW.addChild(intDraggerDash)
         intDraggerDash.minValue <- minValue
@@ -164,7 +164,7 @@ struct IntDraggerWidget: inherits=DashboardWidget{
     }
     void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
-/-// INT - height
+//// INT - height
 struct IntLengthDraggerDash: inherits=dash{
     me circleButton: leftIncrBtn
     me circleButton: rightDecrBtn
@@ -189,11 +189,11 @@ struct IntLengthDraggerDash: inherits=dash{
     }
     void: draw(me GUI_ctxt: cr) <- {
         me GUI_Scalar:   padding <- 5
-        /- BACKGROUND
+        // BACKGROUND
         me cdColor: bkCol <- styler.White
         cr.setColor(bkCol)
         cr.paintNow()
-        /- FOREGROUND
+        // FOREGROUND
         cr.setColor(Styler.Black)
         leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
         leftIncrBtn.drawCircleBtn(cr)
@@ -246,7 +246,7 @@ struct IntLengthDraggerWidget: inherits=DashboardWidget{
     me bool:             isBtnDown     <- false
     me bool:             isDragging    <- false
     their GUI_Frame: initWidget(me string: label)      <- {
-        /-/// CANVAS AND EVENTS
+        ///// CANVAS AND EVENTS
         title                   <- 'IntLengthDraggerWidget.'+label
         me int: radius          <- 20
         dashboardDBW.init(title)
@@ -257,7 +257,7 @@ struct IntLengthDraggerWidget: inherits=DashboardWidget{
         dashboardDBW.canvas     <- canvas
         thisApp.gui.setWidgetSize(canvas,320,50)
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
-        /-/// CHILDREN
+        ///// CHILDREN
         childDraggerDash.init(120,0,radius,label)
         dashboardDBW.addChild(childDraggerDash)
         childDraggerDash._data    <- 0
@@ -314,7 +314,7 @@ struct IntLengthDraggerWidget: inherits=DashboardWidget{
         }
     void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
-/-// TIME
+//// TIME
 struct TimeDraggerDash: inherits=dash{
     me circleButton: leftIncrBtn
     me circleButton: rightDecrBtn
@@ -342,11 +342,11 @@ struct TimeDraggerDash: inherits=dash{
         me GUI_Scalar:   padding <- 5
         me string:       dataStr <- toString(minuteOffset)
         me GUI_Scalar:   YOffset <- posY+padding
-        /- BACKGROUND
+        // BACKGROUND
         me cdColor: bkCol <- styler.White
         cr.setColor(bkCol)
         cr.paintNow()
-        /- FOREGROUND
+        // FOREGROUND
         cr.setColor(Styler.Black)
         leftIncrBtn.initCircleBtn(posX+padding, posY+padding, radius, "<")
         leftIncrBtn.drawCircleBtn(cr)
@@ -387,7 +387,7 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
     me bool:             isBtnDown     <- false
     me bool:             isDragging    <- false
     their GUI_Frame: initWidget(me string: label)      <- {
-        /-/// CANVAS AND EVENTS
+        ///// CANVAS AND EVENTS
         title                   <- 'TimeDraggerWidget.'+label
         me int: radius          <- 20
         dashboardDBW.init(title)
@@ -398,7 +398,7 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
         dashboardDBW.canvas     <- canvas
         thisApp.gui.setWidgetSize(canvas,320,65)
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
-        /-/// CHILDREN
+        ///// CHILDREN
         timeDraggerDash.initTimeDraggerDash(120,0,radius,label)
         dashboardDBW.addChild(timeDraggerDash)
         labelDash.initLabelDash(120,15,label)

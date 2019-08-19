@@ -1,5 +1,5 @@
-/-///////// Add routines for Java
-/-TODO: make conversion for rand to GLOBAL.getRandInt & main return(0)
+/////////// Add routines for Java
+//TODO: make conversion for rand to GLOBAL.getRandInt & main return(0)
 requirements = [
     [tagOneOf, Lang, [Java]]
 ]
@@ -38,7 +38,7 @@ struct FileStream{
         catch(IOException e){Log.e("GLOBAL", "Failed to copyFile: ");}
    }%>
     me void: open(me string: filename) <- <%{
-        /-Log.d("GLOBAL", "    >>FileStream::open "+filename+"\n");
+        //Log.d("GLOBAL", "    >>FileStream::open "+filename+"\n");
         if(filename.startsWith("assets/",0)){
             String inFileName = filename.substring(7, filename.length());
             File outputDir = GLOBAL.static_Global.getCacheDir();
@@ -65,7 +65,7 @@ struct FileStream{
         }
     }%>
     me void: openAppend(me string: filename) <- <%{
-        /-Log.d("GLOBAL", "    >>FileStream::openAppend "+filename+"\n");
+        //Log.d("GLOBAL", "    >>FileStream::openAppend "+filename+"\n");
         try{
             File usrFile = new File(filename);
             RAFileStream = new  RandomAccessFile(usrFile, "rw");
@@ -108,7 +108,7 @@ struct FileStream{
 struct sessionFile{
     our FileStream: session <- NULL
     me void: openSession(me string: filename) <-{
-        /-Log.d("GLOBAL", "    >>sessionFile::openSession "+filename+"\n");
+        //Log.d("GLOBAL", "    >>sessionFile::openSession "+filename+"\n");
         Allocate(session)
         session.openAppend(filename)
     }
@@ -119,7 +119,7 @@ struct sessionFile{
     }
 
     me bool: openToRead(me string: filename) <- {
-        /-Log.d("GLOBAL", "    >>sessionFile::openToRead \n");
+        //Log.d("GLOBAL", "    >>sessionFile::openToRead \n");
         Allocate(session)
         session.open(filename)
         if(session.failure()){Log.d("GLOBAL", "ERROR session file "+filename+"\n"); return(true)}

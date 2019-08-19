@@ -1,4 +1,4 @@
-/-####### Native CodeDog library
+//####### Native CodeDog library
 
 requirements = [
     [require, CodeDog_implementation]
@@ -11,8 +11,8 @@ struct GLOBAL{
         if(tf){return("true")} else {return("false")}
     }
 
-    /- Convert doubles to strings w/ a specified number of significant figures. (Pretty axes labels)
-    /- TODO: Rounding, trailing 0's, leading 0's, track decimal point, tolerance range test, clean integers, move label w/ high sigfigs
+    // Convert doubles to strings w/ a specified number of significant figures. (Pretty axes labels)
+    // TODO: Rounding, trailing 0's, leading 0's, track decimal point, tolerance range test, clean integers, move label w/ high sigfigs
     me string: dblToString(me double: val, me int: sigFigs) <- {
         me string: S <- toString(val)
         me string: S2 <- ""
@@ -22,17 +22,17 @@ struct GLOBAL{
         me char: S2last
         me bool: hasDecimal <- false
 
-        /- Limit sig figs to length of double minus possible "." and "-"
+        // Limit sig figs to length of double minus possible "." and "-"
         if(sizeS < sigFigs) {sigFigs <- sizeS-2}
 
-        /- Zero is 0
+        // Zero is 0
         if(val==0) {return(" 0")}
 
         withEach Pos in RANGE(0..sizeS) {
             me char: ch <- S[Pos]
             if(ch != "." and ch != "-") {
                 digits <- digits + 1
-                /-print("digits is ", digits, ". Pos is ", Pos, ". S is ", S, "\n")
+                //print("digits is ", digits, ". Pos is ", Pos, ". S is ", S, "\n")
                 if(digits >= sigFigs+1 and hasDecimal == true) {
                     S2 <- S.subStr(0, Pos)
                     break()
@@ -40,7 +40,7 @@ struct GLOBAL{
             } else if(ch == ".") {hasDecimal <- true}
         }
 
-        /- Trim trailing period
+        // Trim trailing period
         sizeS2 <- S2.size()
         S2last <- S2[sizeS2-1]
         if(S2last == ".") { S2 <- S2.subStr(0, sizeS2-1) }
@@ -71,7 +71,7 @@ struct stringScanner{
     void: initialize(me string: str) <- {S<-str  reset()}
     void: reset() <- {pos<-0}
 
-    me int: skipWS() <- {       /- Skip past 0 or more whitespace characters.  Return the new pos
+    me int: skipWS() <- {       // Skip past 0 or more whitespace characters.  Return the new pos
         me char: ch
         me int: txtSize <- S.size()
         withEach p in RANGE(pos .. txtSize){
@@ -81,12 +81,12 @@ struct stringScanner{
         return(pos)
     }
 
-    me int: skipPast(me string: findStr) <- {       /- Skip past <txt>.  Return pos or -1 if End-of-string reached
+    me int: skipPast(me string: findStr) <- {       // Skip past <txt>.  Return pos or -1 if End-of-string reached
         me int: txtSize <- S.size()
         me int: fs <- findStr.size()
         withEach p in RANGE(pos .. txtSize){
             withEach i in RANGE(0 .. fs){
-                /-print(">> fs/p/i:", fs, " ", p, " ", i, ", findStr[i]:", findStr[i], " S[p+i]:", S[p+i], "\n")
+                //print(">> fs/p/i:", fs, " ", p, " ", i, ", findStr[i]:", findStr[i], " S[p+i]:", S[p+i], "\n")
                 if( findStr[i] != S[p+i]) {
                     break()
                 } else {if(i==(fs-1)) {pos <- p+fs return(pos)}}
@@ -95,7 +95,7 @@ struct stringScanner{
         return(-1)
     }
 
-    me int: skipTo(me string: findStr) <- {       /- Skip up to <txt>.  Return pos or -1 if End-of-string reached
+    me int: skipTo(me string: findStr) <- {       // Skip up to <txt>.  Return pos or -1 if End-of-string reached
         me int: foundPos <- skipPast(findStr)
         if(foundPos > 0) {return(foundPos-findStr.size())}
         else {return(-1)}

@@ -1,18 +1,18 @@
-/- CodeDog DataManager
+// CodeDog DataManager
 
-/- Widgets for constructing a DataManager
+// Widgets for constructing a DataManager
 
 featuresNeeded = [Networking, Websockets]
 
 struct DataManager{
-    /-me string[list]: queryDataCatList() <- {
-        /- Returns list of keyWords labeling each member of TypesOfInfoSources_Views that are supported on this device or a co-device.
-        /-me string[list]: dataCats
-        /-return (dataCats)
-    /-}
+    //me string[list]: queryDataCatList() <- {
+        // Returns list of keyWords labeling each member of TypesOfInfoSources_Views that are supported on this device or a co-device.
+        //me string[list]: dataCats
+        //return (dataCats)
+    //}
 
     our dataSourceDetails: querySourceDetails(me string: dataSourceTag) <- {
-        /- returns struct for dataCatTag
+        // returns struct for dataCatTag
         our dataSourceDetails: sourceDetails
         return (sourceDetails)
     }
@@ -36,7 +36,7 @@ struct DataManager{
     }
 
     void: initialize() <- {
-        initTypesOfInfoSources_Views()     /- Load the supported types of infon tracking from literals
+        initTypesOfInfoSources_Views()     // Load the supported types of infon tracking from literals
     }
 
     me void: deinitialize() <- {    }

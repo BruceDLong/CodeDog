@@ -1,4 +1,4 @@
-/- CodeDog HTTP Networking Library
+// CodeDog HTTP Networking Library
 requirements = [
     [tagOneOf, Platform, [Android]]
 ]
@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus  = dynamic 
+    useStatus  = dynamic
     description='Networking for Java'
     features    =[]
     platforms   =[IOS]
