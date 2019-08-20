@@ -1,5 +1,5 @@
-/-############  Add GUI-Toolkit features using Windows API (previously
-/-                  known as Win32)
+//############  Add GUI-Toolkit features using Windows API (previously
+//                  known as Win32)
 requirements = [
     [tagOneOf, Platform, [Windows]]
 ]
@@ -19,7 +19,7 @@ LibDescription ={
     CPUs        =[i386, amd64, arm7]
 }
 
-/- Injecting some Windows specific code at the top
+// Injecting some Windows specific code at the top
 embedHigh = `
 POINT _tagPOINT;
 HPEN hPen;
@@ -32,27 +32,27 @@ GRADIENT_RECT gRect;
 int penWidth = 1;
 
 wstring s2ws(const string& s) {
-		int len;
-		int slength = (int)s.length() + 1;
-		len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
-		wchar_t* buf = new wchar_t[len];
-		MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
-		wstring r(buf);
-		delete[] buf;
-		return r;
-	}
+        int len;
+        int slength = (int)s.length() + 1;
+        len = MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, 0, 0);
+        wchar_t* buf = new wchar_t[len];
+        MultiByteToWideChar(CP_ACP, 0, s.c_str(), slength, buf, len);
+        wstring r(buf);
+        delete[] buf;
+        return r;
+    }
 `
 
-/- Injecting some GUI minimal test code here
+// Injecting some GUI minimal test code here
 embedLow = `
 
-/-const char g_szClassName[] = "myWindowClass";
+//const char g_szClassName[] = "myWindowClass";
 
 
-/- The main window class name.
+// The main window class name.
 static TCHAR szWindowClass[] = _T("DesktopApp");
 
-/- The string that appears in the application's title bar.
+// The string that appears in the application's title bar.
 static TCHAR szTitle[] = _T("MinimalGUI - Windows Version");
 
 HINSTANCE hInst;
@@ -61,134 +61,134 @@ HINSTANCE hInst;
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 int CALLBACK WinMain(
-	_In_ HINSTANCE hInstance,
-	_In_ HINSTANCE hPrevInstance,
-	_In_ LPSTR     lpCmdLine,
-	_In_ int       nCmdShow
+    _In_ HINSTANCE hInstance,
+    _In_ HINSTANCE hPrevInstance,
+    _In_ LPSTR     lpCmdLine,
+    _In_ int       nCmdShow
 )
 {
-	WNDCLASSEX wcex;
+    WNDCLASSEX wcex;
 
-	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style = CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc = WndProc;
-	wcex.cbClsExtra = 0;
-	wcex.cbWndExtra = 0;
-	wcex.hInstance = hInstance;
-	wcex.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
-	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wcex.lpszMenuName = NULL;
-	wcex.lpszClassName = szWindowClass;
-	wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
+    wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc = WndProc;
+    wcex.cbClsExtra = 0;
+    wcex.cbWndExtra = 0;
+    wcex.hInstance = hInstance;
+    wcex.hIcon = LoadIcon(hInstance, IDI_APPLICATION);
+    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.lpszMenuName = NULL;
+    wcex.lpszClassName = szWindowClass;
+    wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
 
-	if (!RegisterClassEx(&wcex))
-	{
-		MessageBox(NULL,
-			_T("Call to RegisterClassEx failed!"),
-			_T("Windows Desktop Guided Tour"),
-			NULL);
+    if (!RegisterClassEx(&wcex))
+    {
+        MessageBox(NULL,
+            _T("Call to RegisterClassEx failed!"),
+            _T("Windows Desktop Guided Tour"),
+            NULL);
 
-		return 1;
-	}
-	initialize("");
-	
-	// Store instance handle in our global variable
-	hInst = hInstance;
+        return 1;
+    }
+    initialize("");
 
-	// The parameters to CreateWindow explained:
-	// szWindowClass: the name of the application
-	// szTitle: the text that appears in the title bar
-	// WS_OVERLAPPEDWINDOW: the type of window to create
-	// CW_USEDEFAULT, CW_USEDEFAULT: initial position (x, y)
-	// 500, 100: initial size (width, length)
-	// NULL: the parent of this window
-	// NULL: this application does not have a menu bar
-	// hInstance: the first parameter from WinMain
-	// NULL: not used in this application
-	hWnd = CreateWindow(
-		szWindowClass,
-		szTitle,
-		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT,
-		GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
-		NULL,
-		NULL,
-		hInstance,
-		NULL
-	);
+    // Store instance handle in our global variable
+    hInst = hInstance;
 
-	if (!hWnd)
-	{
-		MessageBox(NULL, _T("Call to CreateWindow failed!"), _T("Windows Desktop Guided Tour"), NULL);
-		return 1;
-	}
-	
-	activate(hWnd);
+    // The parameters to CreateWindow explained:
+    // szWindowClass: the name of the application
+    // szTitle: the text that appears in the title bar
+    // WS_OVERLAPPEDWINDOW: the type of window to create
+    // CW_USEDEFAULT, CW_USEDEFAULT: initial position (x, y)
+    // 500, 100: initial size (width, length)
+    // NULL: the parent of this window
+    // NULL: this application does not have a menu bar
+    // hInstance: the first parameter from WinMain
+    // NULL: not used in this application
+    hWnd = CreateWindow(
+        szWindowClass,
+        szTitle,
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+        NULL,
+        NULL,
+        hInstance,
+        NULL
+    );
 
-	// The parameters to ShowWindow explained:
-	// hWnd: the value returned from CreateWindow
-	// nCmdShow: the fourth parameter from WinMain
-	ShowWindow(hWnd,
-		nCmdShow);
-	UpdateWindow(hWnd);
+    if (!hWnd)
+    {
+        MessageBox(NULL, _T("Call to CreateWindow failed!"), _T("Windows Desktop Guided Tour"), NULL);
+        return 1;
+    }
 
-	// Main message loop:
-	MSG msg;
-	while (GetMessage(&msg, NULL, 0, 0))
-	{
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-	}
-	deinitialize();
-	return (int)msg.wParam;
+    activate(hWnd);
+
+    // The parameters to ShowWindow explained:
+    // hWnd: the value returned from CreateWindow
+    // nCmdShow: the fourth parameter from WinMain
+    ShowWindow(hWnd,
+        nCmdShow);
+    UpdateWindow(hWnd);
+
+    // Main message loop:
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0))
+    {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    deinitialize();
+    return (int)msg.wParam;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	PAINTSTRUCT ps;
-	HDC hdc;
+    PAINTSTRUCT ps;
+    HDC hdc;
 
-	switch (message)
-	{
-	case WM_PAINT: {
-		hdc = BeginPaint(hWnd, &ps);
-		BeginPath(hdc);
-		EventDispatcher.topWidget->draw(hdc);
-		EndPath(hdc);
-		EndPaint(hWnd, &ps);
-		break; }
-	case WM_DESTROY: {
-		PostQuitMessage(0);
-		break; }
-	case WM_LBUTTONDOWN: {
-		POINT winEvent;
-		GUI_ButtonEvent event;
-		GetCursorPos(&winEvent);
-		event.x = winEvent.x;
-		event.y = winEvent.y;
-		EventDispatcher.topWidget->primaryClick(&event);
-		break; }
-	case WM_RBUTTONDOWN: {
-		POINT winEvent;
-		GUI_ButtonEvent event;
-		GetCursorPos(&winEvent);
-		event.x = winEvent.x;
-		event.y = winEvent.y;
-		EventDispatcher.topWidget->secondaryClick(&event);
-		break; }
-	case WM_CHAR:
-		return 0L;
-	default:
-		return DefWindowProc(hWnd, message, wParam, lParam);
-		break;
-	}
-	return 0;
+    switch (message)
+    {
+    case WM_PAINT: {
+        hdc = BeginPaint(hWnd, &ps);
+        BeginPath(hdc);
+        EventDispatcher.topWidget->draw(hdc);
+        EndPath(hdc);
+        EndPaint(hWnd, &ps);
+        break; }
+    case WM_DESTROY: {
+        PostQuitMessage(0);
+        break; }
+    case WM_LBUTTONDOWN: {
+        POINT winEvent;
+        GUI_ButtonEvent event;
+        GetCursorPos(&winEvent);
+        event.x = winEvent.x;
+        event.y = winEvent.y;
+        EventDispatcher.topWidget->primaryClick(&event);
+        break; }
+    case WM_RBUTTONDOWN: {
+        POINT winEvent;
+        GUI_ButtonEvent event;
+        GetCursorPos(&winEvent);
+        event.x = winEvent.x;
+        event.y = winEvent.y;
+        EventDispatcher.topWidget->secondaryClick(&event);
+        break; }
+    case WM_CHAR:
+        return 0L;
+    default:
+        return DefWindowProc(hWnd, message, wParam, lParam);
+        break;
+    }
+    return 0;
 }
 
 `
 
-/-///////////////////////////////  STRUCT CONVERTERS
+/////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{their HWND: GUI_item}
@@ -199,14 +199,14 @@ struct GUI_menuItem{their HWND: GUI_menuItem}
 struct GUI_canvas{their HWND: GUI_canvas}
 struct GUI_container{their HWND:GUI_container}
 struct GUI_ScrollingWindow{their HWND: GUI_ScrollingWindow}
-struct INK_Image{their cairo_surface_t: INK_Image}      /- How will the ink look?
+struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_Scalar{me int: GUI_Scalar}
-/-struct GUI_Label{their textView: GUI_Label}
+//struct GUI_Label{their textView: GUI_Label}
 struct listWidget{their HWND: listWidget}
 
 /*
-/-///////////////////////////////  WIDGETS
+/////////////////////////////////  WIDGETS
 struct GUI_storyBoard{
     their HWND: GUI_storyBoard
     me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (HWND*)%1, %2)%>
@@ -282,7 +282,7 @@ struct boolWidget{
 */
 
 /*
-/-///////////////////////////////  LIST EDITOR WIDGET
+/////////////////////////////////  LIST EDITOR WIDGET
 struct ListManagerBox{
     their ListWidgetManager: listWidgetMgr
     their HWND:         editorFrame
@@ -352,9 +352,9 @@ struct ListManagerBox{
 */
 
 /*
-/-///////////////////////////////  HIGHER LEVEL WIDGETS
+/////////////////////////////////  HIGHER LEVEL WIDGETS
 struct GLOBAL{
-    /- Widgets
+    // Widgets
     their HWND: makeBoolWidget(me string: label)        <- <%!%Ggtk_entry_new()%>
     their HWND: makeFloatWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
     their HWND: makeNumRangeWidget(me string: label)    <- <%!%Ggtk_entry_new()%>
@@ -409,207 +409,207 @@ struct GLOBAL{
 }
 */
 
-/-///////////////////////////////  HANDLE EVENTS
+/////////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-/- struct GUI_ButtonEvent{me HWND: GUI_ButtonEvent}
+// struct GUI_ButtonEvent{me HWND: GUI_ButtonEvent}
 struct GUI_ButtonEvent{
   me uint32: type
- /- GdkWindow *window;
- /- gint8 send_event;
- /- guint32 time;
+ // GdkWindow *window;
+ // gint8 send_event;
+ // guint32 time;
   me double: x
   me double: y
   me uint32: state
   me uint32: button
 }
 
-/-struct GUI_PointerEvent{me HWND: GUI_PointerEvent}
+//struct GUI_PointerEvent{me HWND: GUI_PointerEvent}
 struct GUI_PointerEvent{
   me uint32: type
- /- GdkWindow *window;
- /- gint8 send_event;
- /- guint32 time;
+ // GdkWindow *window;
+ // gint8 send_event;
+ // guint32 time;
   me double: x
   me double: y
   me uint32: state
   me uint32: button
 }
 
-/-///////////////////////////////  EVENT DISPATCHER
+/////////////////////////////////  EVENT DISPATCHER
 struct Windows_eventDispatcher{
     their widget: topWidget
     me bool: dispatchPointerMotionEvent(me HWND: event) <- {return(false)}
-    /- me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
-    /- me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
-    /- Also: timer, data and user events
+    // me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
+    // me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+    // Also: timer, data and user events
     me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{topWidget = masterWidget;}%>
 }
 
-/-///////////////////////////////   Event callbacks
+/////////////////////////////////   Event callbacks
 struct GLOBAL{
     me Windows_eventDispatcher: EventDispatcher
 }
 
-/-///////////////////////////////  HANDLE GUI
+/////////////////////////////////  HANDLE GUI
 
 struct GUI{
-    /-their GtkApplication: app
+    //their GtkApplication: app
 
     me uint32: GUI_Init() <- {
-        /-app <- gtk_application_new (0, G_APPLICATION_FLAGS_NONE)
-        /-g_signal_connect (app, "activate", G_CALLBACK(activate), NULL)
+        //app <- gtk_application_new (0, G_APPLICATION_FLAGS_NONE)
+        //g_signal_connect (app, "activate", G_CALLBACK(activate), NULL)
         return(0)
     }
     me uint32: GUI_Run() <- <% {
         uint32_t status=0;
-        /-status = g_application_run( G_APPLICATION(app), 0, 0);
+        //status = g_application_run( G_APPLICATION(app), 0, 0);
         return(status);
     } %>
     me void: GUI_Deinit() <- {
-        /-g_object_unref(app)
+        //g_object_unref(app)
     }
 }
 
-/- TURNING ON GUI w/ newCanvas and newScrollingWindow but commenting out everything else
-/- TODO: newCanvas
-/- TODO: newScrollingWindow
+// TURNING ON GUI w/ newCanvas and newScrollingWindow but commenting out everything else
+// TODO: newCanvas
+// TODO: newScrollingWindow
 struct GUI{
-    /-me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
+    //me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
     me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
     me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
-    /-me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
-    /-me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
-    /-me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
-    /-me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
-    /-me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
-    /-me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
-    /-me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, %4)%>
-    /-me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
+    //me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
+    //me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
+    //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
+    //me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
+    //me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+    //me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+    //me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, %4)%>
+    //me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
 struct GUI_ctxt {
     me HDC:GUI_ctxt
     me void: reset() <- <%!BeginPath(%0)%>
-    /- me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!Color(%3, %0, %1, %2)%>			/- Input RGBA, Color(alpha, red, green, blue)
+    // me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!Color(%3, %0, %1, %2)%>          // Input RGBA, Color(alpha, red, green, blue)
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%GobjectColor = RGB(%1, %2, %3)%>
     me void: setColor(me cdColor: color) <- <%!RGB(%1.red, %1.green, %1.blue)%>
     me void: setLineWidth(me double: width) <- <%!%G
-		penWidth = %1;
-		hPen = CreatePen(PS_SOLID, penWidth, objectColor);
-		SelectObject(cr, hPen);
-	%>		/- maybe separate out an updatePen function?
-    me void: moveTo(me double: x, me double: y) <- <%!MoveToEx(%0, %1, %2, NULL)%>			/- (x, y, [speed])
-    me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, %1, %2)%>			/- (hdc, xEnd, yEnd) , uses current pen
+        penWidth = %1;
+        hPen = CreatePen(PS_SOLID, penWidth, objectColor);
+        SelectObject(cr, hPen);
+    %>      // maybe separate out an updatePen function?
+    me void: moveTo(me double: x, me double: y) <- <%!MoveToEx(%0, %1, %2, NULL)%>          // (x, y, [speed])
+    me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, %1, %2)%>          // (hdc, xEnd, yEnd) , uses current pen
     me void: moveRel(me double: dx, me double: dy) <- <%!
-		GetCurrentPositionEx(cr, &_tagPOINT);
-		MoveToEx(%0, _tagPOINT.x + %1, _tagPOINT.y + %2, NULL)
+        GetCurrentPositionEx(cr, &_tagPOINT);
+        MoveToEx(%0, _tagPOINT.x + %1, _tagPOINT.y + %2, NULL)
     %>
     me void: lineRel(me double: dx, me double: dy) <- <%!
-		GetCurrentPositionEx(cr, &_tagPOINT);
-		LineTo(%0, _tagPOINT.x + %1, _tagPOINT.y + %2)
-	%>
-	me void: closePath() <- <%!CloseFigure(%0)%>
+        GetCurrentPositionEx(cr, &_tagPOINT);
+        LineTo(%0, _tagPOINT.x + %1, _tagPOINT.y + %2)
+    %>
+    me void: closePath() <- <%!CloseFigure(%0)%>
     me void: rectangle() <- <%!Rectangle(%0, %1, %2, %1+%3, %2+%4)%>
     me void: paintNow() <- <%!
-		RECT clientSize;
-		HBRUSH backgroundBrush;
-		GetClientRect(hWnd, &clientSize);
-		backgroundBrush = CreateSolidBrush(RGB(122,122,0));
-		FillRect(%0, &clientSize, backgroundBrush);%>
+        RECT clientSize;
+        HBRUSH backgroundBrush;
+        GetClientRect(hWnd, &clientSize);
+        backgroundBrush = CreateSolidBrush(RGB(122,122,0));
+        FillRect(%0, &clientSize, backgroundBrush);%>
     me void: strokePath() <- <%!
-		EndPath(%0);
-		hPen = CreatePen(PS_SOLID, penWidth, objectColor);
-		SelectObject(cr, hPen);
-		StrokePath(%0);
-		DeleteObject(hPen);
-		BeginPath(%0)
-	%>
+        EndPath(%0);
+        hPen = CreatePen(PS_SOLID, penWidth, objectColor);
+        SelectObject(cr, hPen);
+        StrokePath(%0);
+        DeleteObject(hPen);
+        BeginPath(%0)
+    %>
     me void: fillPath() <- <%!
-		EndPath(%0);
-		hBrush = CreateSolidBrush(objectColor);
-		SelectObject(cr, hBrush);
-		FillPath(%0);
-		DeleteObject(hBrush);
-		BeginPath(%0)
-	%>					/- Don't need CloseFigure
+        EndPath(%0);
+        hBrush = CreateSolidBrush(objectColor);
+        SelectObject(cr, hBrush);
+        FillPath(%0);
+        DeleteObject(hBrush);
+        BeginPath(%0)
+    %>                  // Don't need CloseFigure
     me void: strokeAndFillPath() <- <%!
-		EndPath(%0);;
-		hBrush = CreateSolidBrush(objectColor);
-		SelectObject(cr, hBrush);
-		StrokeAndFillPath(%0);
-		DeleteObject(hBrush);
-		BeginPath(%0)
-	%>
-	/- GRADIENT IS NOT YET FUNCTIONAL
-	me void: setFillPattern() <- <%!
-		vertex[0].x = 900;
-		vertex[0].y = 100;
-		vertex[0].Red = 0x0000;
-		vertex[0].Green = 0x8000;
-		vertex[0].Blue = 0x8000;
-		vertex[0].Alpha = 0x0000;
-		vertex[1].x = 1300;
-		vertex[1].y = 500;
-		vertex[1].Red = 0x0000;
-		vertex[1].Green = 0xd000;
-		vertex[1].Blue = 0xd000;
-		vertex[1].Alpha = 0x0000;
-		
-		gRect.UpperLeft = 0;
-		gRect.LowerRight = 1;
+        EndPath(%0);;
+        hBrush = CreateSolidBrush(objectColor);
+        SelectObject(cr, hBrush);
+        StrokeAndFillPath(%0);
+        DeleteObject(hBrush);
+        BeginPath(%0)
+    %>
+    // GRADIENT IS NOT YET FUNCTIONAL
+    me void: setFillPattern() <- <%!
+        vertex[0].x = 900;
+        vertex[0].y = 100;
+        vertex[0].Red = 0x0000;
+        vertex[0].Green = 0x8000;
+        vertex[0].Blue = 0x8000;
+        vertex[0].Alpha = 0x0000;
+        vertex[1].x = 1300;
+        vertex[1].y = 500;
+        vertex[1].Red = 0x0000;
+        vertex[1].Green = 0xd000;
+        vertex[1].Blue = 0xd000;
+        vertex[1].Alpha = 0x0000;
 
-		GradientFill(%0, vertex, 2, &gRect, 1, GRADIENT_FILL_RECT_V);
-	%>
+        gRect.UpperLeft = 0;
+        gRect.LowerRight = 1;
+
+        GradientFill(%0, vertex, 2, &gRect, 1, GRADIENT_FILL_RECT_V);
+    %>
 }
 /* GRADIENT BRIEFLY WORKED ON, PUT OFF AS FROTH
 struct guiFillPattern{
-	/- their
-	me void: init() <- <%!
-		vertex[0].x = %1;
-		vertex[0].y = %2;
-		vertex[1].x = %3;
-		vertex[1].y = %4;
-	%>
-	me void: AddColorStop(me double: offset, their cdColor: color) <- <%!
-		if(%1 == 0) {
-			vertex[0].red = %2.red;
-			vertex[0].green = %2.green;
-			vertex[0].blue = %2.blue;
-			vertex[0].alpha = 0x0000;
-		} else {
-			vertex[1].red = $2.red;
-			vertex[1].green = %2.green;
-			vertex[1].blue = %2.blue;
-			vertex[1].alpha = 0x0000;
-		}
-	%>
+    // their
+    me void: init() <- <%!
+        vertex[0].x = %1;
+        vertex[0].y = %2;
+        vertex[1].x = %3;
+        vertex[1].y = %4;
+    %>
+    me void: AddColorStop(me double: offset, their cdColor: color) <- <%!
+        if(%1 == 0) {
+            vertex[0].red = %2.red;
+            vertex[0].green = %2.green;
+            vertex[0].blue = %2.blue;
+            vertex[0].alpha = 0x0000;
+        } else {
+            vertex[1].red = $2.red;
+            vertex[1].green = %2.green;
+            vertex[1].blue = %2.blue;
+            vertex[1].alpha = 0x0000;
+        }
+    %>
 }*/
 
 /* GTK VERSION FOR REFERENCE
-    /- FROTH me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
-    /- --- me void: reset() <- <%!%G %>
-    /- ** me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
-    /- --- +++ me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
-    /- --- me void: setColor(me cdColor: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
-    /- --- +++ me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%> 		/- Why two inputs?
-    /- FROTH me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
-    /- FROTH me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
-    /- --- +++ me void: lineTo(me double: x, me double: y) <- <%!cairo_line_to(%0, %1, %2)%>
-    /- --- +++ me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(%0, %1, %2)%>
-    /- --- +++ me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(%0, %1, %2)%>
-    /- --- +++ me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(%0, %1, %2)%>
-    /- ** me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
-    /- ** me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
-    /- --- +++ me void: closePath() <- <%!cairo_close_path(%0)%>
-    /- --- me void: rectangle() <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
-    /- --- +++ me void: paintNow() <- <%!cairo_paint(%0)%>
-    /- --- +++ me void: strokeNow() <- <%!cairo_stroke(%0)%>		
-    /- --- +++ me void: fillNow() <- <%!cairo_fill(%0)%>			
-    /- CUT me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
-    /- CUT me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
-    /- ** me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
+    // FROTH me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
+    // --- me void: reset() <- <%!%G %>
+    // ** me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
+    // --- +++ me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
+    // --- me void: setColor(me cdColor: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
+    // --- +++ me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>         // Why two inputs?
+    // FROTH me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
+    // FROTH me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
+    // --- +++ me void: lineTo(me double: x, me double: y) <- <%!cairo_line_to(%0, %1, %2)%>
+    // --- +++ me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(%0, %1, %2)%>
+    // --- +++ me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(%0, %1, %2)%>
+    // --- +++ me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(%0, %1, %2)%>
+    // ** me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
+    // ** me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
+    // --- +++ me void: closePath() <- <%!cairo_close_path(%0)%>
+    // --- me void: rectangle() <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
+    // --- +++ me void: paintNow() <- <%!cairo_paint(%0)%>
+    // --- +++ me void: strokeNow() <- <%!cairo_stroke(%0)%>
+    // --- +++ me void: fillNow() <- <%!cairo_fill(%0)%>
+    // CUT me void: strokeKeep() <- <%!cairo_stroke_preserve(%0)%>
+    // CUT me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
+    // ** me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
 
 struct guiFillPattern{
     their cairo_pattern_t: guiFillPattern
@@ -620,7 +620,7 @@ struct guiFillPattern{
 */
 
 /*
-/-/////////////////////////////// TIME
+///////////////////////////////// TIME
 struct tm{
     me tm: tm
     me int: tm_hour
@@ -656,30 +656,30 @@ struct timeStringer{
 }
 */
 
-/-///////////////////////////////  G L O B A L
+/////////////////////////////////  G L O B A L
 struct GLOBAL{
-	me APP: thisApp
+    me APP: thisApp
 
-	/- DRAWING ROUTINES:
+    // DRAWING ROUTINES:
     me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         HFONT hFont;
 
-		std::wstring stemp = s2ws(fontName);
-		LPCWSTR fontNamePtr = stemp.c_str();
-		std::wstring stemp2 = s2ws(text);
-		LPCWSTR outputTextPtr = stemp2.c_str();
+        std::wstring stemp = s2ws(fontName);
+        LPCWSTR fontNamePtr = stemp.c_str();
+        std::wstring stemp2 = s2ws(text);
+        LPCWSTR outputTextPtr = stemp2.c_str();
 
-		BeginPath(cr);
-		hFont = CreateFont(fontSize, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
-			CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, fontNamePtr);
-		SelectObject(cr, hFont);
+        BeginPath(cr);
+        hFont = CreateFont(fontSize, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
+            CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, fontNamePtr);
+        SelectObject(cr, hFont);
 
-		SetBkMode(cr, TRANSPARENT);
-		//SetTextColor(cr, RGB(0, 0, 0));
+        SetBkMode(cr, TRANSPARENT);
+        //SetTextColor(cr, RGB(0, 0, 0));
 
-		EndPath(cr);
-		TextOut(cr, 50, 50, outputTextPtr, text.length());
-		DeleteObject(hFont);
+        EndPath(cr);
+        TextOut(cr, 50, 50, outputTextPtr, text.length());
+        DeleteObject(hFont);
         return 0;
     } %>
     /*
@@ -700,10 +700,10 @@ struct GLOBAL{
 }
 
 /*
-    /- TIME ROUTINES:
+    // TIME ROUTINES:
     me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
-    /- DRAWING ROUTINES:
+    // DRAWING ROUTINES:
 
     me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         cairo_move_to(cr,x,y);
@@ -718,7 +718,7 @@ struct GLOBAL{
         cairo_set_line_width(cr, 0.5);
         pango_cairo_update_layout(cr, layout);
         pango_cairo_show_layout_line (cr, pango_layout_get_line (layout, 0));
-       /- pango_cairo_layout_path(cr, layout);
+       // pango_cairo_layout_path(cr, layout);
         deltaSize size;
         pango_layout_get_pixel_size(layout, &size.width, &size.height);
         g_object_unref(layout);
@@ -743,15 +743,15 @@ struct GLOBAL{
     } %>
 
     me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
-        cairo_move_to(cr,x+r,y);                      /-# Move to A
-        cairo_line_to(cr,x+w-r,y);                    /-# Straight line to B
-        cairo_curve_to(cr,x+w,y,x+w,y,x+w,y+r);       /-# Curve to C, Control points are both at Q
-        cairo_line_to(cr,x+w,y+h-r);                  /-# Move to D
-        cairo_curve_to(cr,x+w,y+h,x+w,y+h,x+w-r,y+h); /-# Curve to E
-        cairo_line_to(cr,x+r,y+h);                    /-# Line to F
-        cairo_curve_to(cr,x,y+h,x,y+h,x,y+h-r);       /-# Curve to G
-        cairo_line_to(cr,x,y+r);                      /-# Line to H
-        cairo_curve_to(cr,x,y,x,y,x+r,y);             /-# Curve to A;
+        cairo_move_to(cr,x+r,y);                      //# Move to A
+        cairo_line_to(cr,x+w-r,y);                    //# Straight line to B
+        cairo_curve_to(cr,x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
+        cairo_line_to(cr,x+w,y+h-r);                  //# Move to D
+        cairo_curve_to(cr,x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cairo_line_to(cr,x+r,y+h);                    //# Line to F
+        cairo_curve_to(cr,x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cairo_line_to(cr,x,y+r);                      //# Line to H
+        cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
     } %>
 
     me INK_Image[map string]: InkImgCache
@@ -769,12 +769,12 @@ struct GLOBAL{
         cairo_scale(cr,1/scale,1/scale);
         cairo_set_source_surface(cr,pic,x*scale,y*scale);
         cairo_paint(cr);
-		cairo_restore(cr);
+        cairo_restore(cr);
     } %>
 
-/- GUI INTERFACE:
+// GUI INTERFACE:
 
-/- Surface to store current scribbles
+// Surface to store current scribbles
 their cairo_surface_t: surface <- 0
 
 me void: close_window() <- {
@@ -789,7 +789,7 @@ me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <
     HWND *menuitem;
 
     menuitem = gtk_menu_item_new_with_label (label.data());
-    /-gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
+    //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
     gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
     gtk_widget_show (menuitem);
 
@@ -821,12 +821,12 @@ me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
 
 
-/--------------- Application areas
+//-------------- Application areas
 
 their HWND: window
 void: setMasterWidget(their widget: masterWidget) <- {EventDispatcher.topWidget<-masterWidget}
 */
 
 struct GLOBAL {
-	me void: activate(me HWND: frame) <- <%{thisApp.createAppArea(frame);}%>
+    me void: activate(me HWND: frame) <- <%{thisApp.createAppArea(frame);}%>
 }

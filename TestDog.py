@@ -54,6 +54,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             if(verboseMode=="1"){
                 print("TESTING ",testName,"...   \t\t")
             }
+            log("TESTING "+testName+"________")
             /- clear failFlag and mesg_buff; setTimer
             <TEST-CASES-HERE>
             else {Tstat <- "?"}

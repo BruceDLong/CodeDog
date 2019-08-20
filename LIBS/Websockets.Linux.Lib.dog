@@ -1,4 +1,4 @@
-/-############  Add JSON Object Implementation
+//############  Add JSON Object Implementation
 requirements = [
     [tagOneOf, Platform, [Linux]]
 ]
@@ -13,7 +13,7 @@ interface={
 
 
 LibDescription ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description ='Library for Websockets'
     features    =[Websockets]
     platforms   =[Linux, OS-X_Devices, Windows]
@@ -325,7 +325,7 @@ static int webSockets_generic_callback(struct lws *wsi, enum lws_callback_reason
 
 struct GLOBAL{
     me bool: webSocketLibIsGoing <- false
-   /- their webSocketProtocol: firstServer
+   // their webSocketProtocol: firstServer
 }
 
 struct webSocketConnection{

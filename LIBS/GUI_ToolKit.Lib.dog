@@ -1,10 +1,10 @@
-/- CodeDog GUI toolikt
+// CodeDog GUI toolikt
 requirements = [
     [require, GUI_ToolKit_implementation]
 ]
 
-/- Set up a complete application: fonts, colors, a window/frame with a menu, toolbar, app area and optionally a statusbar.
-/- Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
+// Set up a complete application: fonts, colors, a window/frame with a menu, toolbar, app area and optionally a statusbar.
+// Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
 
 struct cdColor{
     me uint: red
@@ -36,7 +36,7 @@ struct INK_Image{}
 
 struct GUI_button{}
 
-/- GUI Widgets
+// GUI Widgets
 struct boolWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
 struct floatWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
 struct rangeWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.onChanged()}}
@@ -92,23 +92,23 @@ struct MatterTermWidget: inherits=baseTypeWidget{
     me int:    decimalPlaces <- 0
 
     their GUI_Frame: initWidget(me string: name, our matterTerm: dataInit) <- {
-        /-/// DATA //////////////////////////////////////
+        ///// DATA //////////////////////////////////////
         data <- dataInit
         me string: units <- data.units
-        /-/// MAKE WIDGETS //////////////////////////////
+        ///// MAKE WIDGETS //////////////////////////////
         box              <- makeXStack("")
         label            <- makeLabelWidget2(name)
         matterBox        <- makeComboBox()
         termBox          <- makeSpinBox(initialValue, minValue, maxValue, decimalPlaces)
         unitsBox         <- makeLabelWidget2(units)
-        /-/// FILL WIDGETS //////////////////////////////
+        ///// FILL WIDGETS //////////////////////////////
         matterBox.setAndroidAdapter(matterTermArrayAdapter, String, data.matterTypes)
         me int: count <-0
         withEach matterType in data.matterTypes{
             matterBox.appendStringComboBox(toString(count),matterType, matterTermArrayAdapter)
             count <- count +1
         }
-        /-/// ADD WIDGETS //////////////////////////////
+        ///// ADD WIDGETS //////////////////////////////
         addToContainer(box, label)
         addToContainer(box, matterBox)
         addToContainer(box, termBox)
@@ -164,7 +164,7 @@ struct GLOBAL{
     me dateWidget:      makeDateWidget(me string: label)
 }
 struct GUI_ctxt {
-    /-me void: fetchAreaToBeDrawn(me GUI_rect: area)
+    //me void: fetchAreaToBeDrawn(me GUI_rect: area)
     me void: reset()
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
     me void: setRGB (me double: red, me double: green, me double: blue)
@@ -190,7 +190,7 @@ struct GUI_ctxt {
 }
 
 
-/------------------------ Widgets and events
+//----------------------- Widgets and events
 
 struct GUI_PointerEvent{}
 struct GUI_ButtonEvent{}
@@ -203,7 +203,7 @@ struct GUI_DrawEvent{}
 struct GUI_Scalar{}
 
 
-/- decor(ations) are like light weight widgets. They have only draw().
+// decor(ations) are like light weight widgets. They have only draw().
 
 struct decor{
     void: draw(me GUI_ctxt: cr) <- {}
@@ -245,10 +245,10 @@ struct arrow: inherits=decor{
 }
 
 struct widget{
-    me GUI_Scalar: posX    /- x position of top left corner
-    me GUI_Scalar: posY    /- y position of top left corner
-    me GUI_Scalar: width   /- width of widget
-    me GUI_Scalar: height  /- height of widget
+    me GUI_Scalar: posX    // x position of top left corner
+    me GUI_Scalar: posY    // y position of top left corner
+    me GUI_Scalar: width   // width of widget
+    me GUI_Scalar: height  // height of widget
     me int: scale
     bool: isHidden
 
@@ -274,9 +274,9 @@ struct widget{
     me bool: keyUp(their GUI_KeyboardEvent: event) <- {return(false)}
 
     me bool: windowChange(their GUI_WindowEvent: event) <- {return(false)}
-    me bool: dataUpdated(their GUI_DataEvent: event) <- {return(false)}         /- This widget's data has been updated
-    me bool: timerTick(their GUI_TimeEvent: event) <- {return(false)}           /- Timer to change data
-    me bool: tweenTick(their GUI_TimeEvent: event) <- {return(false)}           /- Timer for state-change animation frame
+    me bool: dataUpdated(their GUI_DataEvent: event) <- {return(false)}         // This widget's data has been updated
+    me bool: timerTick(their GUI_TimeEvent: event) <- {return(false)}           // Timer to change data
+    me bool: tweenTick(their GUI_TimeEvent: event) <- {return(false)}           // Timer for state-change animation frame
     me bool: userEvent(their GUI_UserEvent: event) <- {return(false)}
     me bool: focused(their GUI_PointerEvent: event) <- {return(false)}
     me bool: unfocused(their GUI_PointerEvent: event) <- {return(false)}
@@ -307,8 +307,8 @@ struct appComponentGUI{
     void: clickNext()  <- {print("clickNext BASE:\n")}
     void: clickBack()  <- {print("clickBack BASE:\n")}
     void: clear()      <- {print("clear BASE:\n")}
-    void: load()       <- {} /- {print("load BASE:\n")}
-    void: onLoaded()   <- {} /- {print("onLoaded BASE:\n")}
+    void: load()       <- {} // {print("load BASE:\n")}
+    void: onLoaded()   <- {} // {print("onLoaded BASE:\n")}
     void: onChanged()  <- {print("onChanged BASE:\n")}
     void: deleteIndex(me int: N) <- {print("deleteIndex BASE:\n")}
 }
@@ -316,12 +316,12 @@ struct baseTypeWidget{
     their appComponentGUI: parentGuiMgr
     void: onChanged()  <- {print("onChanged BASE:\n")}
 }
-/-///////////////////////////////  HIGHER LEVEL WIDGETS
+/////////////////////////////////  HIGHER LEVEL WIDGETS
 
 struct ListWidgetManager{
     their GUI_Frame[their list]: rows
 
-    /- Override all these for each new list editing widget
+    // Override all these for each new list editing widget
     their listWidget: makeListViewWidget()  <- {return(NULL)}
     their GUI_Frame: makeListHeader()       <- {return(NULL)}
     void: updateViewableWidget()            <- {}
@@ -337,10 +337,10 @@ struct ListWidgetManager{
     void: setCurrentItem(me int: idx)       <- {}
     me int: getListLength()                 <- {return(0)}
     their GUI_Frame: getNthRow(me int: N)   <- {return(NULL)}
-    /- Also, add their GUI_item: initWidget(<listType>)
+    // Also, add their GUI_item: initWidget(<listType>)
 }
 
-/-//////////////////////////////////// MISC WIDGETS
+////////////////////////////////////// MISC WIDGETS
 struct DateWidget: inherits=baseTypeWidget{
     their GUI_Frame:    box
     their GUI_Label:    dataLabel
@@ -389,13 +389,13 @@ struct DateTimeWidget: inherits=baseTypeWidget{
     }
     their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
         dataLabel <- makeLabelWidget2(label);
-        /-/// DATE ////////////////////////////////////
+        ///// DATE ////////////////////////////////////
         Allocate(dateWidget)
         dateBox <- dateWidget.initCrnt("Date")
-        /-/// TIME ////////////////////////////////////
+        ///// TIME ////////////////////////////////////
         Allocate(timeWidget)
         timeBox <- timeWidget.initCrnt("Time")
-        /-/// RETURN BOX //////////////////////////////
+        ///// RETURN BOX //////////////////////////////
         box <- makeXStack("")
         addToContainer(box, dataLabel)
         addToContainer(box, dateBox)
@@ -435,12 +435,12 @@ struct AgreeWidget:inherits=appComponentGUI COMMAND_addCallProxy=["widgetData:on
         bodyTxt            <- readAssetAsString(_data.fileName)
         textScroller       <- makeVerticalScroller(1000,500)
         textBox            <- makeTextViewer(bodyTxt)
-        /-/// CHECKBOX ////////////////////////////////
+        ///// CHECKBOX ////////////////////////////////
         agreeFrame         <- makeXStack("")
         agreeLabel         <- makeLabelWidget("I Accept")
         agreeCheckBox      <- makeCheckBox()
         setBtnProxy(agreeCheckBox, "clicked",AgreeWidget, onChanged, self)
-        /-/// RETURN BOX //////////////////////////////
+        ///// RETURN BOX //////////////////////////////
         box                <- makeYStack("")
         addToContainer(textScroller, textBox)
         addToContainer(agreeFrame, agreeLabel)

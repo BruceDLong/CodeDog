@@ -1,8 +1,8 @@
-/- CodeDog graph dash for DashBoard
+// CodeDog graph dash for DashBoard
 
 featuresNeeded = [Dashboard]
 
-/- //// GRAPH SCALES
+// //// GRAPH SCALES
 struct graphScale: inherits=dash{
     me bool:      isVisible
     me int:       ticksPerStep
@@ -39,7 +39,7 @@ struct verticalScale: inherits=graphScale{
         me string:    label
         me string:    justify <- ""
 
-        /- AXIS VALUE LABELS
+        // AXIS VALUE LABELS
         withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
             label <- dblToString(val*step+lowVal, 2)
             size <- getTextSize(cr, label, styler.fontSmall)
@@ -56,7 +56,7 @@ struct verticalScale: inherits=graphScale{
             if(size.width > labelWidth){labelWidth <- size.width}
         }
 
-        /- AXIS TICK MARKS
+        // AXIS TICK MARKS
         if(ticksPerStep>0){
             tickStep <- step/ticksPerStep
             cr.setLineWidth(1)
@@ -70,7 +70,7 @@ struct verticalScale: inherits=graphScale{
             cr.strokeNow()
         }
 
-        /- SCALE TITLE
+        // SCALE TITLE
         me int: degree
         if (tickOffset > 0){XPoint <- xOrig+labelWidth+tickOffset+tickPadding+titlePadding; degree <- 90}
         else               {XPoint <- xOrig-labelWidth+tickOffset-tickPadding-titlePadding; degree <- -90}
@@ -82,7 +82,7 @@ struct verticalScale: inherits=graphScale{
     }
 
     void: setScale(me GUI_Scalar: Span, me timeValue: LowVal, me timeValue: HiVal, me int: Step, me GUI_Scalar: xPos, me GUI_Scalar: yPos, me int: TickOffset) <- {
-        span         <- Span    /- length of axis (width or height of graph)
+        span         <- Span    // length of axis (width or height of graph)
         lowVal       <- LowVal
         hiVal        <- HiVal
         step         <- Step
@@ -117,7 +117,7 @@ struct horizontalScale: inherits=graphScale{
             }
         }
 
-        /- AXIS VALUE LABELS
+        // AXIS VALUE LABELS
         withEach val in RANGE(0.. (hiVal-lowVal)/step){
             if(isDate){label <- unicodeMgr.dateToIntlString(val*step+firstTick, hiVal-lowVal, loc)}
             else      {label <- dblToString(val*step+firstTick, 2)}
@@ -146,7 +146,7 @@ struct horizontalScale: inherits=graphScale{
 
 
 
-        /- SCALE TITLE
+        // SCALE TITLE
         size <- getTextSize(cr, title, styler.fontDefault)
         if(tickOffset > 0){YPoint <- yOrig+tickHeight+labelHeight+titlePadding+titlePadding}
         else              {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
@@ -156,7 +156,7 @@ struct horizontalScale: inherits=graphScale{
     }
 
     void: setScale(me GUI_Scalar: Span, me timeValue: LowVal, me timeValue: HiVal, me int: ZoomLvl, me GUI_Scalar: xPos, me GUI_Scalar: yPos, me int: TickOffset) <- {
-        span         <- Span    /- length of axis (width or height of graph)
+        span         <- Span    // length of axis (width or height of graph)
         lowVal       <- LowVal
         hiVal        <- HiVal
         zoomLvl      <- ZoomLvl
@@ -182,7 +182,7 @@ struct horizontalScale: inherits=graphScale{
         divisor <- divisorTable[zoomLvl]
     }
 }
-/- //// TOP BAR TOGGLES
+// //// TOP BAR TOGGLES
 struct circleButton: inherits=dash{
     me GUI_Scalar:    radius
     me string: symbol
@@ -229,7 +229,7 @@ struct circleButton: inherits=dash{
         stickLen <- radius/3
     }
 
-    /- Click functionality is inside graph clicks
+    // Click functionality is inside graph clicks
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
         if (isTouchingMe(event.x, event.y)) {return(true)}
         else {return(false)}
@@ -325,7 +325,7 @@ struct streamToggle: inherits=dash{
         else if(dispMode=="Now"){dispMode<-"Avg"}
     }
 
-    /- Click functionality is inside graph clicks
+    // Click functionality is inside graph clicks
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
         if (isTouchingMe(event.x, event.y)) {return(true)}
         else {return(false)}
@@ -350,7 +350,7 @@ struct graphTitleWidget: inherits=dash{
     void: initGraphTitle(me string: TitleTxt, me bool: IsVisible) <- {
         titleTxt  <- TitleTxt
         isVisible <- IsVisible
-        height <- 20    /- This should be text height + padding
+        height <- 20    // This should be text height + padding
     }
 }
 
@@ -384,7 +384,7 @@ struct GraphDataStreamSources{
         }
     }
 }
-struct dataCacheStream {  /- Use this to gather data and transfer it to the GUI thread
+struct dataCacheStream {  // Use this to gather data and transfer it to the GUI thread
     me string: title
     me datum[me map timeValue]: dataMap
 }
@@ -558,7 +558,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
                 cr.setLineWidth(2)
          /*       firstTime      <- true
 
-                /-/// Gradient - requires duplicate 'invisible' data plot as boundary
+                ///// Gradient - requires duplicate 'invisible' data plot as boundary
                 if (dataStream.hasGradient) {
                     withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
                         XPoint <- (point_key-leftGraphTime)*dblWidth/timeInterval + curX
@@ -581,7 +581,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
                     linGrad.destroy()
                 }*/
 
-                /-/// Visible data plot
+                ///// Visible data plot
                 firstTime <- true
                 if (dataStream.dataMap != NULL) {
                     withEach point in dataStream.dataMap from leftGraphTime to rightGraphTime {
@@ -692,7 +692,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         }
     }
 
-    /- Click and drag data horizontally
+    // Click and drag data horizontally
     me mode[still, fingerPressed, pullScrolling]: scrollState
     me GUI_Scalar: prevX
     me GUI_Scalar: deltaX <- 0
@@ -758,12 +758,12 @@ struct graphWidget: inherits=DashboardWidget{
         canvas.setParent(self)
         dashboardDBW.dashParent <- self
         dashboardDBW.canvas <- canvas
-        thisApp.gui.setWidgetSize(canvas, 400, 500)  /- This is to make ANdroid canvas size
-        /-    their scrollerWidget:: scrollView  <- ()
-        /-    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
-        /-    managedWidget <- scrollerFrame
-        /-    managedWidget <- makeYStack("")
-        /-    addToContainer(managedWidget, canvas)
+        thisApp.gui.setWidgetSize(canvas, 400, 500)  // This is to make ANdroid canvas size
+        //    their scrollerWidget:: scrollView  <- ()
+        //    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
+        //    managedWidget <- scrollerFrame
+        //    managedWidget <- makeYStack("")
+        //    addToContainer(managedWidget, canvas)
         managedWidget <- canvas
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         return(managedWidget)

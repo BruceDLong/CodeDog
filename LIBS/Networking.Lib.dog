@@ -1,11 +1,11 @@
-/- CodeDog HTTP Networking Library
+// CodeDog HTTP Networking Library
 
 requirements = [
     [require, Networking_implementation]
 ]
 
 LibDescription  ={
-    useStatus   = dynamic 
+    useStatus   = dynamic
     description ='Library for HTTP transactions'
     features    =[Networking]
     platforms   =[Linux, OS-X_Devices, Windows]
@@ -13,12 +13,12 @@ LibDescription  ={
 
 
 struct NetConnection{
-    /-void: setupGlobalNetworking() <- {}
-    /-void: openSimpleSession() <- {}
-    /-void: setURL(me string: URL) <- {}
-    /-void: performFetch() <- {}
-    /-void: cleanSimpleSession() <- {}
-    /-void: cleanGlobalNetworking() <- {}
+    //void: setupGlobalNetworking() <- {}
+    //void: openSimpleSession() <- {}
+    //void: setURL(me string: URL) <- {}
+    //void: performFetch() <- {}
+    //void: cleanSimpleSession() <- {}
+    //void: cleanGlobalNetworking() <- {}
 
-    /-me string: retrieve(me string: URL) <- {}
+    //me string: retrieve(me string: URL) <- {}
 }

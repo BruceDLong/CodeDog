@@ -1,4 +1,4 @@
-/- CodeDog HTTP Networking Library
+// CodeDog HTTP Networking Library
 requirements = [
     [tagOneOf, Platform, [IOS]]
 ]
@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus  = dynamic 
+    useStatus  = dynamic
     description='Networking for IOS'
     features    =[]
     platforms   =[IOS]
@@ -18,7 +18,7 @@ LibDescription ={
     CPUs        =[i386, amd64, arm7]
 }
 
-/- struct HTTPRetCode{their CURLcode: HTTPRetCode}
+// struct HTTPRetCode{their CURLcode: HTTPRetCode}
 
 struct MemoryStruct {
   their void: memory

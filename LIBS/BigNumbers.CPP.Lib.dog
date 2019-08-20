@@ -1,4 +1,4 @@
-/-///////// Add routines for C++
+/////////// Add routines for C++
 requirements = [
     [tagOneOf, Lang, [CPP]]
 ]

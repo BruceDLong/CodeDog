@@ -1,4 +1,4 @@
-/- CodeDog Unicode Library
+// CodeDog Unicode Library
 
 requirements = [
     [require, Unicode_implementation]

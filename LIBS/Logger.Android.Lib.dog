@@ -1,4 +1,4 @@
-/-///////// Add routines for C++
+/////////// Add routines for C++
 requirements = [
     [tagOneOf, Lang, [Java]]
 ]
@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   =  dynamic 
+    useStatus   =  dynamic
     description = 'Logger for Android'
 }
 

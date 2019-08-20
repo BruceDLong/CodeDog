@@ -1,4 +1,4 @@
-/- CodeDog Unicode Library
+// CodeDog Unicode Library
 requirements = [
     [tagOneOf, Lang, [CPP]]
 ]
@@ -78,7 +78,7 @@ struct UnicodeMgr {
 
     me string: getHour(me UDate: date, me Locale: loc) <- <%{
         UErrorCode success = U_ZERO_ERROR;
-    UnicodeString pattern = "k";   /- k: hour in day (1~24)
+    UnicodeString pattern = "k";   // k: hour in day (1~24)
         UnicodeString uniStrHr;
         string hour;
 
@@ -110,8 +110,8 @@ struct UnicodeMgr {
         return locale;
     }%>
 
-    /- Optionally pass in a display language. For example:
-    /- to display "French, Italian, English" in successive calls to relevant locales, pass "en"
+    // Optionally pass in a display language. For example:
+    // to display "French, Italian, English" in successive calls to relevant locales, pass "en"
     me UnicodeStr: getDisplayLanguage(me Locale: loc, me string: langNameLangDisplayedIn <- "") <- <%{
         UnicodeString langName;
         if (langNameLangDisplayedIn != "") {
@@ -123,8 +123,8 @@ struct UnicodeMgr {
         return(langName);
     }%>
 
-    /- Optionally pass in a display language. For example:
-    /- to display "France, Italy, England" in successive calls to relevant locales, pass "en"
+    // Optionally pass in a display language. For example:
+    // to display "France, Italy, England" in successive calls to relevant locales, pass "en"
     me UnicodeStr: getDisplayCountry(me Locale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{
         UnicodeString dispCountry;
         if (countryNameLangDisplayedIn != "") {

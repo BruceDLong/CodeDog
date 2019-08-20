@@ -1,4 +1,4 @@
-/-///////// Add routines for C++
+/////////// Add routines for C++
 requirements = [
     [tagOneOf, Lang, [CPP]]
 ]
@@ -10,7 +10,7 @@ interface={
 }
 
 LibDescription ={
-    useStatus   =  dynamic 
+    useStatus   =  dynamic
     description = 'Logger for CPP'
 }
 
@@ -23,7 +23,7 @@ struct logger{
 
 struct logManager{
     me ofstream: logfile
-    
+
     me void: openLogFile() <- <%{logfile.open ("codeDog.log");}%>
     me void: writeToLog (me string: txt) <- <%{
         if (useConsole){cout<<txt<<"\n";}
