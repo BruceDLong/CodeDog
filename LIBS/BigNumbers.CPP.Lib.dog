@@ -15,9 +15,7 @@ LibDescription ={
     description = 'Built in routines for CPP'
 }
 
-embedHigh = `
-typedef mpz_class BigInt;
-typedef mpf_class BigFloat;
-typedef mpq_class BigFrac;
+struct BigInt{me mpz_class: BigInt}
+struct BigFloat{me mpf_class: BigFloat}
+struct BigInt{me BigFrac: BigFrac}
 
-`
