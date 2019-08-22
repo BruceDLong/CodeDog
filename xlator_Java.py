@@ -264,7 +264,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     else: print "Unknown container type:", containerType; exit(2);
     return(name, typeSpecOut, paramList, convertedIdxType)
 
-def codeFactor(item, objsRefed, returnType, xlator):
+def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
     #print '                  factor: ', item
     S=''
@@ -273,23 +273,23 @@ def codeFactor(item, objsRefed, returnType, xlator):
     #print "ITEM0=", item0, ">>>>>", item
     if (isinstance(item0, basestring)):
         if item0=='(':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, xlator)
             S+='(' + S2 +')'
         elif item0=='!':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, xlator)
             if(progSpec.typeIsPointer(retTypeSpec)):
                 S= '('+S2+' == null)'
                 retTypeSpec='bool'
             else: S+='!' + S2
         elif item0=='-':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, xlator)
             S+='-' + S2
         elif item0=='[':
             count=0
             tmp="(Arrays.asList("
             for expr in item[1:-1]:
                 count+=1
-                [S2, exprTypeSpec] = codeExpr(expr, objsRefed, returnType, xlator)
+                [S2, exprTypeSpec] = codeExpr(expr, objsRefed, returnType, expectedTypeSpec, xlator)
                 if not exprTypeSpec=='noType':
                     retTypeSpec = convertToJavaType(exprTypeSpec, True)
                 if count>1: tmp+=', '
@@ -325,9 +325,9 @@ def codeFactor(item, objsRefed, returnType, xlator):
             S+=codeStr                                # Code variable reference or function call
     return [S, retTypeSpec]
 
-def codeTerm(item, objsRefed, returnType, xlator):
+def codeTerm(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '               term item:', item
-    [S, retTypeSpec]=codeFactor(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeFactor(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if (not(isinstance(item, basestring))) and (len(item) > 1) and len(item[1])>0:
         for i in item[1]:
             #print '               term:', i
@@ -335,26 +335,26 @@ def codeTerm(item, objsRefed, returnType, xlator):
             elif (i[0] == '/'): S+=' / '
             elif (i[0] == '%'): S+=' % '
             else: print "ERROR: One of '*', '/' or '%' expected in code generator."; exit(2)
-            [S2, retType2] = codeFactor(i[1], objsRefed, returnType, xlator)
+            [S2, retType2] = codeFactor(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             S+=S2
     return [S, retTypeSpec]
 
-def codePlus(item, objsRefed, returnType, xlator):
+def codePlus(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '            plus item:', item
-    [S, retTypeSpec]=codeTerm(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeTerm(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for  i in item[1]:
             #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
             elif (i[0] == '-'): S+=' - '
             else: print "ERROR: '+' or '-' expected in code generator."; exit(2)
-            [S2, retType2] = codeTerm(i[1], objsRefed, returnType, xlator)
+            [S2, retType2] = codeTerm(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             S+=S2
     return [S, retTypeSpec]
 
-def codeComparison(item, objsRefed, returnType, xlator):
+def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '         Comp item', item
-    [S, retTypeSpec]=codePlus(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codePlus(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for  i in item[1]:
             #print '         comp ', i
@@ -363,14 +363,14 @@ def codeComparison(item, objsRefed, returnType, xlator):
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
             else: print "ERROR: One of <, >, <= or >= expected in code generator."; exit(2)
-            [S2, retTypeSpec] = codePlus(i[1], objsRefed, returnType, xlator)
+            [S2, retTypeSpec] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             S+=S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
-def codeIsEQ(item, objsRefed, returnType, xlator):
+def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '      IsEq item:', item
-    [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print "Error: Chained == or !=.\n"; exit(1);
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
@@ -381,7 +381,7 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             elif (i[0] == '!='): op=' != '
             elif (i[0] == '==='): op=' == '
             else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
-            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, xlator)
+            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             if 'fieldType' in retType2:
                 rightFieldType = retType2['fieldType']
@@ -410,66 +410,66 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
-def codeIOR(item, objsRefed, returnType, xlator):
+def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '      iOR item:', item
-    [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == '&'):
-                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, xlator)
+                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S+=' & ' + S2
             else: print "ERROR: '&' expected in code generator."; exit(2)
     return [S, retTypeSpec]
 
-def codeXOR(item, objsRefed, returnType, xlator):
+def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '      xOR item:', item
-    [S, retTypeSpec]=codeIOR(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeIOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == '^'):
-                [S2, retTypeSpec] = codeIOR(i[1], objsRefed, returnType, xlator)
+                [S2, retTypeSpec] = codeIOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S+=' ^ ' + S2
             else: print "ERROR: '^' expected in code generator."; exit(2)
     return [S, retTypeSpec]
 
-def codeBar(item, objsRefed, returnType, xlator):
+def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '      Bar item:', item
-    [S, retTypeSpec]=codeXOR(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeXOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == '|'):
-                [S2, retTypeSpec] = codeXOR(i[1], objsRefed, returnType, xlator)
+                [S2, retTypeSpec] = codeXOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S+=' | ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)
     return [S, retTypeSpec]
 
-def codeLogAnd(item, objsRefed, returnType, xlator):
+def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '   And item:', item
-    [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
                 S = checkForTypeCastNeed('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeBar(i[1], objsRefed, returnType, xlator)
+                [S2, retTypeSpec] = codeBar(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S2= checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' && ' + S2
             else: print "ERROR: 'and' expected in code generator."; exit(2)
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
-def codeExpr(item, objsRefed, returnType, xlator):
+def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print 'Or item:', item
-    [S, retTypeSpec]=codeLogAnd(item[0], objsRefed, returnType, xlator)
+    [S, retTypeSpec]=codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if not isinstance(item, basestring) and len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             #print 'OR ', i
             if (i[0] == 'or'):
                 S = checkForTypeCastNeed('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, xlator)
+                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S2= checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' || ' + S2
             else: print "ERROR: 'or' expected in code generator."; exit(2)
@@ -503,7 +503,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             for P in paramList:
                 if(count!=0): S+=" + "
                 count+=1
-                [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
+                [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, None, xlator)
                 if 'fieldType' in argTypeSpec:
                     fieldType = argTypeSpec['fieldType']
                     if not isinstance(fieldType, basestring):
@@ -514,10 +514,10 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 S+=S2
             S+=")"
         elif(funcName=='AllocateOrClear'):
-            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
+            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, None, xlator)
             S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
-            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, xlator)
+            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, None, xlator)
             fieldType = progSpec.getFieldType(varTypeSpec)
             if not isinstance(fieldType, basestring):
                 fieldType = fieldType[0]
@@ -528,7 +528,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             else:
                 for P in paramList[1:]:
                     if(count>0): S+=', '
-                    [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, xlator)
+                    [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, None, xlator)
                     S+=S2
                     count=count+1
             S+=")"
@@ -540,7 +540,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             if len(paramList)==0: S+='this'
         elif(funcName=='toStr'):
             if len(paramList)==1:
-                [S2, argTypeSpec]=xlator['codeExpr'](P[0][0], objsRefed, None, xlator)
+                [S2, argTypeSpec]=xlator['codeExpr'](P[0][0], objsRefed, None, None, xlator)
                 S2=derefPtr(S2, argTypeSpec)
                 S+='String.valueOf('+S2+')'
                 fieldType='String'
@@ -639,13 +639,13 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
     fieldType = convertToJavaType(fieldTypeSpec, progSpec.isAContainer(typeSpec))
     if isinstance(containerSpec, basestring) and containerSpec == None:
         if(fieldDef['value']):
-            [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
+            [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, xlator)
             RHS = S2
             assignValue=' = '+ RHS
             #TODO: make test case
         else: assignValue=''
     elif(fieldDef['value']):
-        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, xlator)
+        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, xlator)
         S2=checkForTypeCastNeed(fieldTypeSpec, rhsTypeSpec, S2)
         RHS = S2
         if varTypeIsValueType(fieldType):

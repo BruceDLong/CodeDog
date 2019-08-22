@@ -104,16 +104,18 @@ def gradleFile(topDomain, domain, appName, workingDir):
     fo.write(outStr)
     fo.close()
 
-def androidManifest(topDomain, domain, appName, labelName, launchIconName, workingDir):
+def androidManifest(topDomain, domain, moduleName, labelName, launchIconName, mainDir):
     print '--------------------------------   G e n e r a t i n g   M a n i f e s t \n'
     fileName = "AndroidManifest.xml"
+    if launchIconName: iconTag = 'android:icon="@drawable/' + launchIconName + '"'
+    else: iconTag = ''
 
     outStr = '<?xml version="1.0" encoding="utf-8"?>\n' \
             '<manifest xmlns:android="http://schemas.android.com/apk/res/android"\n' \
-            '    package="' + topDomain + '.' + domain + '.' + appName + '">\n' \
-            '    <application android:icon="@drawable/' + launchIconName + '" android:label="' + labelName + '"\n' \
+            '    package="' + topDomain + '.' + domain + '.' + moduleName + '">\n' \
+            '    <application ' + iconTag + ' android:label="' + labelName + '"\n' \
             '        android:theme="@style/Theme.AppCompat.Light.NoActionBar">\n' \
-            '        <activity android:name="' + appName + '">\n' \
+            '        <activity android:name="' + moduleName + '">\n' \
             '            <intent-filter>\n' \
             '                <action android:name="android.intent.action.MAIN" />\n' \
             '                <category android:name="android.intent.category.LAUNCHER" />\n' \
@@ -122,7 +124,7 @@ def androidManifest(topDomain, domain, appName, labelName, launchIconName, worki
             '    </application>\n' \
             '</manifest>\n' \
 
-    fo=open(workingDir + os.sep + fileName, 'w')
+    fo=open(mainDir + os.sep + fileName, 'w')
     fo.write(outStr)
     fo.close()
 
@@ -132,21 +134,23 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconNam
     domain         = "infomage"
     currentDir     = os.getcwd()
     workingDir     = currentDir + '/' + buildName
-    fileName       = 'GLOBAL'
-    packageDir     = '/src/main/java/'+topDomain+'/'+domain+'/'+fileName
+    moduleName     = 'GLOBAL'
+    packageDir     = '/src/main/java/'+topDomain+'/'+domain+'/'+moduleName
     assetsDir      = '/src/main/assets'
     drawableDir    = '/res/drawable'
     drawablePath   = workingDir + drawableDir
-    packageName    = topDomain+'.'+domain+'.'+fileName
+    packageName    = topDomain+'.'+domain+'.'+moduleName
     targetPlatform = ""
     dirsToGen = [assetsDir, packageDir, drawableDir]
     print 'Building for Android: ', drawablePath
     pathAndroid(workingDir, dirsToGen)
     copyTree("Resources", buildName+assetsDir)
-    copyFile(launchIconName+'.png', currentDir, drawablePath)
-    writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName)
-    gradleFile(topDomain, domain, fileName, workingDir)
-    androidManifest(topDomain, domain, fileName, labelName, launchIconName, workingDir+'/src/main')
+    if launchIconName:
+        launchIconName = launchIconName+'.png'
+        copyFile(launchIconName, currentDir, drawablePath)
+    writeFile(workingDir, packageDir, moduleName, outStr, fileExt, packageName)
+    gradleFile(topDomain, domain, moduleName, workingDir)
+    androidManifest(topDomain, domain, moduleName, labelName, launchIconName, workingDir+'/src/main')
     [out, err] = runCMD( 'gradle tasks ', workingDir)
     [out, err] = runCMD( 'gradle assembleDebug --stacktrace', workingDir)
     [out, err] = runCMD( 'gradle installDebug ', workingDir)

@@ -1,9 +1,9 @@
-/- HelloWorld.dog
+// HelloWorld.dog
 
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
-/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
-/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
-/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
 Title = "Hello World"
 FileName = "helloworld"

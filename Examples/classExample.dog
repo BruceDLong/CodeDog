@@ -1,9 +1,9 @@
-/- classExample.dog
+// classExample.dog
 
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
-/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
-/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
-/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
 Title = "Infomage - classExample"
 FileName = "classExample"
@@ -22,7 +22,7 @@ runCode=`runTest()`
 struct shape {
     me int: H
     me int: W
-    
+
     void: draw()<-{print("inside shape draw(): PASS\n")}
     void: INIT()<-{print("inside shape INIT(): PASS\n")}
 }
@@ -40,15 +40,15 @@ struct square: inherits='rectangle'{
 struct triangle: inherits='shape'{
     me int: baseHeight
     me int: baseWidth
-    
+
     void: draw()<-{print("inside triangle draw(): PASS\n")}
     void: INIT()<-{print("inside triangle INIT(): PASS\n")}
 }
 
 struct GLOBAL{
     me square: sqr
-    
+
     void: runTest()<-{
-	me triangle: tri
+    me triangle: tri
     }
 }
