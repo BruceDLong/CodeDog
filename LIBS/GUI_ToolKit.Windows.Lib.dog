@@ -821,7 +821,7 @@ me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
 
 
 
-//-------------- Application areas
+/////////// Application areas
 
 their HWND: window
 void: setMasterWidget(their widget: masterWidget) <- {EventDispatcher.topWidget<-masterWidget}

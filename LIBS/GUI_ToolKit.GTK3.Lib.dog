@@ -1028,7 +1028,7 @@ struct GLOBAL{
         <- <%!g_main_context_invoke(%1, GSourceFunc(%3_%4_CB), %5)%>
 }
 
-//-------------- Application areas
+///////// Application areas
 struct GLOBAL {
 their GtkWidget: window
 

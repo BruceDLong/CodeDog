@@ -843,14 +843,14 @@ def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldVal
         defn = indent + "var "+ fieldName + ": " +  intermediateType + fieldTypeMod + fieldValueText + '\n'
         decl = ''
     return [defn, decl]
-    
+
 def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody):
     if callSuperConstructor != '':
         callSuperConstructor = ':' + callSuperConstructor
         if constructorInit != '':
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
-		constructorInit = ': ' + constructorInit
+        constructorInit = ': ' + constructorInit
     S = "    " + "init" + "(" + constructorArgs + ")" + " {\n" + funcBody + "    };\n"
     return (S)
 
@@ -859,7 +859,7 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
     if constructorArgs != '':
         S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
     S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
-    return S    
+    return S
     #TODO: Swift should only have constructors if they are called somewhere.
     if callSuperConstructor != "":
         S="    override init(){\n"+callSuperConstructor+funcBody+"    }\n"
@@ -968,9 +968,9 @@ def generateMainFunctionality(classes, tags):
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     mainFuncCode="""
     me void: runCode() <- {
-        /-initialize()
+        //initialize()
         """ + runCode + """
-        /-deinitialize()
+        //deinitialize()
     }
 
 """

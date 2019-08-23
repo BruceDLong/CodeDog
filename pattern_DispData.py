@@ -287,7 +287,7 @@ struct display_'''+className+": inherits=dash"+'''{
         extX <- header.extX
         extY <- max(y, extC)
         if(displayMode!=headerOnly){
-            x <- x+10    /- Indent fields in a struct
+            x <- x+10    // Indent fields in a struct
 '''+self.setPosFuncTextAcc+'''
             width <- width+10
         }

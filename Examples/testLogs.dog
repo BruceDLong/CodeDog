@@ -1,8 +1,8 @@
-/- testLogging.dog
+// testLogging.dog
 
-/-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
-/-SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed';
-/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//SwiftBuild: Platform='XCODE' CPU='Apple' Lang='Swift' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 
 BuildCmd = ""
@@ -29,4 +29,4 @@ runCode=`
     logFatalError(helloStr)
 `
 
-/-//////////   A p p l i c a t i o n   a n d   G l o b a l s
+////////////   A p p l i c a t i o n   a n d   G l o b a l s
