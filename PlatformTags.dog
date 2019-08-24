@@ -1,10 +1,10 @@
-/- PlatformTags.dog
+// PlatformTags.dog
 
 platforms = {
     Linux={
 
-        /- List typical libs; Versions / sub-versions list exceptions
-        /- Also, spec packaging and app-distribution details
+        // List typical libs; Versions / sub-versions list exceptions
+        // Also, spec packaging and app-distribution details
         description='An easy to use, highly reliable and powerful operating system that is free and open.'
         V-Legacy={}
         V-2015_onward={

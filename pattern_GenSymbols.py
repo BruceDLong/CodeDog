@@ -14,10 +14,10 @@ def apply(classes, tags, classesToTrack):
     struct <CLASSNAME> {
         we uint: symbolCount
         me uint[we map int]: ptrToUint
-    /-    me <CLASSNAME>[their map]: uintToPtr
+    //    me <CLASSNAME>[their map]: uintToPtr
         we string: classTag <- "<CLASSNAME>"
 
-    we string: mySymbol(their <CLASSNAME>: obj) <- {  /- find or generate symbol
+    we string: mySymbol(their <CLASSNAME>: obj) <- {  // find or generate symbol
         if(obj==NULL){return("NULL")}
         me int: objID <- uniqueObjectID(obj)
         if(! ptrToUint.containsKey(objID)){
@@ -32,8 +32,8 @@ def apply(classes, tags, classesToTrack):
         }
     }
 
-    /- their <CLASSNAME>: classPtrFromSymbol(me string: symbol) <- {}  /- what about our, my, me, ...?
-    /- void: clearSymbol(me string: symbol) <- {}
+    // their <CLASSNAME>: classPtrFromSymbol(me string: symbol) <- {}  // what about our, my, me, ...?
+    // void: clearSymbol(me string: symbol) <- {}
 
         '''.replace("<CLASSNAME>", className)
 

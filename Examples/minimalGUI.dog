@@ -1,9 +1,9 @@
-/- minimalGUI2.dog
+// minimalGUI2.dog
 
-/-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
-/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
-/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
 Title = "minimalGUI2"
 FileName = "minimalGUI2"
@@ -19,9 +19,33 @@ LicenseText = `Public Domain`
 
 runCode=``
 
+mainStyle = {
+    colors = {
+        //frGndColor = sysDefaultFrGndColor
+        //bkGndColor = [45, 100, 220]   // RGB
+        //highlight1Color = LightGreen
+        MySpecialColor = SlateBlue
+    }
+    fontNames = {
+        //titleFont = 'Ariel Bold'
+        //normalFont = 'Ariel'
+        //H1_font = sysDefaultH1_font
+
+        //LogoFont = 'CompanyFont'
+    }
+    fontSizes = {
+        //fontSizeVerySmall = sysDefaultFontSizeVerySmall
+        fontSizeSmall     = 8
+        fontSizeLarge     = 20
+        LogoFontSize      = 18
+    }
+    fontSizeMode = pp
+}
+
+do makeStyler(mainStyle)
 do makeGUI(GUI_Spec)
 
-/-//////////   A p p l i c a t i o n   a n d   G l o b a l s
+////////////   A p p l i c a t i o n   a n d   G l o b a l s
 
 struct testWidget: inherits = 'widget'{
 
@@ -39,16 +63,16 @@ struct testWidget: inherits = 'widget'{
         renderText(cr, "Hello World!", testFont, 150, 100)
         cr.strokeNow()
 
-        /- Here you can add tests for other drawing functions:
-        /-    setRGB(), setRGBA()
-        /-    setLineWidth()
-        /-    setScale()
-        /-    moveRel(), lineRel()
-        /-    curveTo(), curveRel()
-        /-    closePath()
-        /-    rectangle()
-        /-    fillNow(), etc
-        /-    setFillPattern() and gradient control functions.
+        // Here you can add tests for other drawing functions:
+        //    setRGB(), setRGBA()
+        //    setLineWidth()
+        //    setScale()
+        //    moveRel(), lineRel()
+        //    curveTo(), curveRel()
+        //    closePath()
+        //    rectangle()
+        //    fillNow(), etc
+        //    setFillPattern() and gradient control functions.
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {

@@ -190,7 +190,7 @@ struct GUI_ctxt {
 }
 
 
-//----------------------- Widgets and events
+///////// Widgets and events
 
 struct GUI_PointerEvent{}
 struct GUI_ButtonEvent{}

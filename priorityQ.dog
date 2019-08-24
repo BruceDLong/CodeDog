@@ -1,9 +1,9 @@
-/- priorityQ.dog
+// priorityQ.dog
 
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
-/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
-/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
-/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
 BuildCmd = "g++ -g -std=gnu++14 `pkg-config --cflags gtk+-3.0` priorityQ.cpp `pkg-config --libs gtk+-3.0` -o priorityQ"
 Title = "priorityQ"
@@ -36,10 +36,10 @@ struct priorityQ{
         our queueItem: tmp <- theHeap[i/2]
         theHeap[i/2] <-theHeap[i]
         theHeap[i] <- tmp
-        i <- i/2 /- i is now the parent
+        i <- i/2 // i is now the parent
     }
     }
-    
+
     our queueItem: pop() <- {
     if(theHeap.size()==0){return(NULL)}
     if(theHeap.size()==1){
@@ -53,7 +53,7 @@ struct priorityQ{
         minHeapify(0)
         return(root)
     }
-    
+
     me void: minHeapify(me int: i) <- {
         me int: left <- 2*i+1
         me int: right <- 2*i+2
@@ -71,7 +71,7 @@ struct priorityQ{
             minHeapify(smallest)
         }
     }
-    
+
     me bool: isEmpty() <- {
         return(theHeap.size() == 0)
     }
@@ -79,7 +79,7 @@ struct priorityQ{
 
 struct GLOBAL{
     me GUI_canvas: drawing_area
-    me bool: drawAppArea_cb (me View: Widget, me GUI_ctxt: cr)  <- { /-, me gpointer: data)  <- {
+    me bool: drawAppArea_cb (me View: Widget, me GUI_ctxt: cr)  <- { //, me gpointer: data)  <- {
         return(false)
     }
 }

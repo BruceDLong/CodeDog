@@ -49,7 +49,7 @@ Examples:
 mainStyle = {
     colors = {
         frGndColor = sysDefaultFrGndColor
-        /-bkGndColor = [0, 0, 0]   /- RGB
+        //bkGndColor = [0, 0, 0]   // RGB
         highlight1Color = LightGreen
 
         MySpecialColor = SlateBlue
@@ -192,7 +192,7 @@ struct Styler{
     }
 
 
-    /- FONT NAMES
+    // FONT NAMES
     me string[map string]: userFontNames
     me string: titleFont
     me string: normalFont
@@ -213,7 +213,7 @@ struct Styler{
     }
     me string: font(me string: ID) <- {return(userFontNames.get(ID))}
 
-    /- FONT SIZES
+    // FONT SIZES
     me int[map string]: userFontSizes
     me int: fontSizeVerySmall
     me int: fontSizeSmall
@@ -228,7 +228,7 @@ struct Styler{
         return(userFontSizes.get(ID))
     }
 
-    /- FONT SIZE MODES
+    // FONT SIZE MODES
     me mode[pp, dp, sp]: pixelMode <- pp
 
     me int: widgetLabelBoxWidth <- 100

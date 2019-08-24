@@ -1,9 +1,9 @@
-/- minimalGame.dog
+// minimalGame.dog
 
-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
-/-SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
-/-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
-/-iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
 Title = "minimalGame"
 FileName = "minimalGame"
@@ -23,7 +23,7 @@ runCode=`
     gameLooper.play(1)
     deinitGraphics()
 `
-/-//////////   A p p l i c a t i o n   a n d   G l o b a l s
+////////////   A p p l i c a t i o n   a n d   G l o b a l s
 struct AlienShip{
     me double: x
     me double: y
@@ -280,17 +280,13 @@ struct APP{
     my GUI: gui
 }
 
-/- TODO: ________________________
-/- detect when aliens hit the ship
-/- detect lose/win
-/- clean opening screen
-
-/---
-/- Music playing
-/- Mouse Events
-/- Animations
-/- ANDROID
-
-/----
-/- * Multiple Levels
-/- * Multiple lives
+// TODO:
+// detect when aliens hit the ship
+// detect lose/win
+// clean opening screen
+// Music playing
+// Mouse Events
+// Animations
+// ANDROID
+// * Multiple Levels
+// * Multiple lives
