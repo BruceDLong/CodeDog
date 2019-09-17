@@ -87,9 +87,10 @@ class structAsProteusWriter(structProcessor):
             innerFieldType=progSpec.getFieldType(typeSpec)
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
-            calcdName=fieldName+'["+toString(_item_key)+"]'
-            S+="        withEach _item in "+fieldName+"{\n"
-            S+="            "+self.toProteusTextFieldAction(calcdName, '_item', field, fldCatInner)+"        }\n"
+            itemName = '_'+fieldName+'_item'
+            calcdName=fieldName+'["+toString('+itemName+'_key)+"]'
+            S+="        withEach "+itemName+" in "+fieldName+"{\n"
+            S+="            "+self.toProteusTextFieldAction(calcdName, itemName, field, fldCatInner)+"        }\n"
         else: S+="            "+self.toProteusTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
             T ="            if("+fieldName+' == NULL){S <- S + '+'indent2 + dispFieldAsText("'+fieldName+'", 10, " = ")+"NULL\\n"}\n'
@@ -159,9 +160,10 @@ class structToStringWriter(structProcessor):
                 innerFieldType=progSpec.getFieldType(typeSpec)
                 #print "ARRAYSPEC:",innerFieldType, field
                 fldCatInner=progSpec.innerTypeCategory(innerFieldType)
-                calcdName=fieldName+'["+toString(_item_key)+"]'
-                S+="    withEach _item in "+fieldName+"{\n"
-                S+="        "+self.displayTextFieldAction(calcdName, '_item', field, fldCatInner)+"    }\n"
+                itemName = '_'+fieldName+'_item'
+                calcdName=fieldName+'["+toString('+itemName+'_key)+"]'
+                S+="    withEach "+itemName+" in "+fieldName+"{\n"
+                S+="        "+self.displayTextFieldAction(calcdName, itemName, field, fldCatInner)+"    }\n"
             else:
                 cdlog(2, "Map not supported")
         else: S+=self.displayTextFieldAction(fieldName, fieldName, field, fldCat)
