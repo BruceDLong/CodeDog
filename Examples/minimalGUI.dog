@@ -49,7 +49,7 @@ do makeGUI(GUI_Spec)
 
 struct testWidget: inherits = 'widget'{
 
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         print("In DRAW()\n")
         cr.setColor(Styler.DarkMagenta)
         cr.moveTo(0, 0)

@@ -17,6 +17,7 @@ struct dash: inherits=widget{
 
     void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {print("SETPOS BASE!!\n")}
     void: addDependent(me string: key, their dash: dashPtr) <- {
+        log("dash::addDependent:"+ title)
         if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
         dashParent.addDependent(key, dashPtr)
     }
@@ -53,7 +54,8 @@ struct Dashboard: inherits=dash{
 
     me void: addChild(our dash: child) <- {child.dashParent<-self; dashChildren.pushLast(child)}
 
-    me void: addDependent(me string: key, their dash: dashPtr) <- {
+    void: addDependent(me string: key, their dash: dashPtr) <- {
+        log("Dashboard::addDependent:"+ title)
         if(! dependentItems.containsKey(key)){
             dashPtr.isHidden <- true
             dependentItems[key] <- dashPtr
@@ -178,8 +180,8 @@ struct Dashboard: inherits=dash{
     //me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
 
     void: init(me string: label) <- {
-    title <- label+".Dashboard"
-    isHidden <- false
+        title <- label+".Dashboard"
+        isHidden <- false
     }
 
     void: update() <- {}
@@ -220,7 +222,7 @@ struct Dashboard: inherits=dash{
         }
     }
 
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
         layoutChildDashes()
         me cdColor: bkCol <- styler.bkGndColor
@@ -265,7 +267,7 @@ struct dataField: inherits=dash{
         extY <- posY+height
     }
 
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
         renderText(cr, label, styler.fontDefault, posX, posY+15)
         renderText(cr, value, styler.fontDefault, posX+midPos, posY+15)
@@ -307,7 +309,7 @@ struct ptrToItem: inherits=dash{
         return(true)
     }
 
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
         header.isHidden <- false
         header.draw(cr)
@@ -391,7 +393,7 @@ struct listOfItems: inherits=dash{
         return(true)
     }
 
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
         header.isHidden <- false
         header.draw(cr)
@@ -439,7 +441,7 @@ struct DashboardWidget: inherits=dash{
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         return(managedWidget)
     }
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)
     }
     void: INIT() <- {Allocate(dashboardDBW)}

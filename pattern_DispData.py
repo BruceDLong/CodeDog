@@ -153,6 +153,7 @@ class structToStringWriter(structProcessor):
 
     def processField(self, fieldName, field, fldCat):
         S=""
+        itemName = '_'+fieldName+'_item'
         if fldCat=='func': return ''
         typeSpec=field['typeSpec']
         if progSpec.isAContainer(typeSpec):
@@ -313,7 +314,7 @@ struct display_'''+className+": inherits=dash"+'''{
         return(true)
     }
 
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         header.isHidden <- false
         me cdColor: hedrColor <- styler.frGndColor
         cr.setColor(hedrColor)
@@ -339,6 +340,9 @@ struct display_'''+className+": inherits=dash"+'''{
     def getDashDeclAndUpdateCode(self, owner, fieldLabel, fieldRef, fieldName, field, skipFlags, indent):
         global classesToProcess
         global classesEncoded
+        itemName = '_'+fieldName+'_item'
+        dashKeyName = '_'+fieldName+'_dash_key'
+        OldElementsName = '_'+fieldName+'OldElements'
         [structText, updateFuncText, setPosFuncText, drawFuncText, handleClicksFuncText]=['', '', '', '', '']
         typeSpec=field['typeSpec']
         fldCat=progSpec.fieldsTypeCategory(typeSpec)
@@ -347,7 +351,7 @@ struct display_'''+className+": inherits=dash"+'''{
             fieldName+='Ptr'
             if fieldRef=='data.itmItr': innerUpdateFuncStr = '"ItmItr"' # TODO: unhard code this reference to itmItr
             else: innerUpdateFuncStr = fieldRef+'.mySymbol('+fieldRef+')'
-            updateFuncText+="        "+fieldName+'.dashParent <- self\n'
+            updateFuncText+='        '+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'))\n'
             structText += "    "+owner+" ptrToItem: "+fieldName+"\n"
 
@@ -355,29 +359,29 @@ struct display_'''+className+": inherits=dash"+'''{
             dispStructTypeName= "display_"+progSpec.getFieldType(field['typeSpec'])[0]
             innerUpdateFuncStr = '"Size:"+toString(data.'+fieldName+'.size())'
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'
-            updateFuncText+="        "+ "our dash[our list]: oldElements <- "+fieldName+".elements\n"
+            updateFuncText+='        '+ 'our dash[our list]: '+OldElementsName+' <- '+fieldName+'.elements\n'
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'), true)\n'
              ## Now push each item
             innerFieldType = progSpec.getFieldType(typeSpec)
             #print "ARRAYSPEC:",innerFieldType, field
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
-            if fieldRef=='data.itmItr' or fieldRef=='data.items': newFieldRef='_item' # TODO: unhard code this reference to itmItr
-            else: newFieldRef='data.'+fieldName+'[_item_key]'
-            newFieldLabel='"["+toString(_item_key)+"]  "+ _item.mySymbol(_item)'
-            updateFuncText+="\n        "+"me int64: dash_key <- 0"
-            updateFuncText+="\n        withEach _item in data."+fieldName+"{\n"
+            if fieldRef=='data.itmItr' or fieldRef=='data.items': newFieldRef=itemName+'' # TODO: unhard code this reference to itmItr
+            else: newFieldRef='data.'+fieldName+'['+itemName+'_key]'
+            newFieldLabel='"["+toString('+itemName+'_key)+"]  "+ '+itemName+'.mySymbol('+itemName+')'
+            updateFuncText+='\n        '+'me int64: '+dashKeyName+' <- 0'
+            updateFuncText+="\n        withEach "+itemName+" in data."+fieldName+"{\n"
             [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '        ')
-            updateFuncText+="            "+innerStructText
-            updateFuncText+="            "+"if(oldElements==NULL or (oldElements!=NULL and !(asClass("+dispStructTypeName+", oldElements[dash_key]).data === _item))){\n"
+            updateFuncText+='            '+innerStructText
+            updateFuncText+='            '+'if('+OldElementsName+'==NULL or ('+OldElementsName+'!=NULL and !(asClass('+dispStructTypeName+', '+OldElementsName+'['+dashKeyName+']).data === '+itemName+'))){\n'
             updateFuncText+='                Allocate(newItem)\n'
             updateFuncText+='                newItem.dashParent <- self\n'
-            updateFuncText+='               '+'addDependent(_item.mySymbol(_item), newItem)'
-            updateFuncText+='\n            } else {\n               newItem <- asClass('+dispStructTypeName+', oldElements[dash_key])\n            dash_key <- dash_key + 1'
+            updateFuncText+='               '+'addDependent('+itemName+'.mySymbol('+itemName+'), newItem)'
+            updateFuncText+='\n            } else {\n               newItem <- asClass('+dispStructTypeName+', '+OldElementsName+'['+dashKeyName+'])\n            '+dashKeyName+' <- '+dashKeyName+' + 1'
             updateFuncText+='\n            }'
             updateFuncText+='\n            '+innerUpdateFuncText
             updateFuncText+='            '+fieldName+'.updatePush(newItem)'
             updateFuncText+='\n        }\n'
-            structText += "    "+owner+" listOfItems: "+fieldName+"\n"
+            structText += '    '+owner+' listOfItems: '+fieldName+'\n'
         elif(fldCat=='struct'):  # Header for a STRUCT
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', ">", '+fieldRef+')\n'

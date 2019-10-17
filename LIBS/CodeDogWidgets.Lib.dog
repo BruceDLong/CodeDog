@@ -8,7 +8,7 @@ struct LabelDash: inherits=dash{
         posX                 <- PosX
         posY                 <- PosY
     }
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         me GUI_Scalar: padding <- 5
         cr.setColor(Styler.Black)
         cr.setLineWidth(convertToFloatVal(0.5))
@@ -40,7 +40,7 @@ struct IntDraggerDash: inherits=dash{
         isDirty<-true;
         dashParent.requestRedraw()
     }
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         me GUI_Scalar:   padding <- 5
         // BACKGROUND
         me cdColor: bkCol <- styler.White
@@ -118,7 +118,7 @@ struct IntDraggerWidget: inherits=DashboardWidget{
         addToContainer(box, canvas)
         return(box)
     }
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)
     }
     void: INIT()                <- {
@@ -187,7 +187,7 @@ struct IntLengthDraggerDash: inherits=dash{
         isDirty<-true;
         dashParent.requestRedraw()
     }
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         me GUI_Scalar:   padding <- 5
         // BACKGROUND
         me cdColor: bkCol <- styler.White
@@ -268,7 +268,7 @@ struct IntLengthDraggerWidget: inherits=DashboardWidget{
         addToContainer(box, canvas)
         return(box)
     }
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)
     }
     void: INIT()                <- {
@@ -338,7 +338,7 @@ struct TimeDraggerDash: inherits=dash{
         isDirty<-true;
         dashParent.requestRedraw()
     }
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         me GUI_Scalar:   padding <- 5
         me string:       dataStr <- toString(minuteOffset)
         me GUI_Scalar:   YOffset <- posY+padding
@@ -406,7 +406,7 @@ struct TimeDraggerWidget: inherits=DashboardWidget{
         addToContainer(box, canvas)
         return(box)
     }
-    void: draw(me GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)
     }
     void: INIT()                <- {

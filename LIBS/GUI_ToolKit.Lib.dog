@@ -206,7 +206,7 @@ struct GUI_Scalar{}
 // decor(ations) are like light weight widgets. They have only draw().
 
 struct decor{
-    void: draw(me GUI_ctxt: cr) <- {}
+    void: draw(their GUI_ctxt: cr) <- {}
 }
 
 struct arrow: inherits=decor{
@@ -215,7 +215,7 @@ struct arrow: inherits=decor{
     me double: endX
     me double: endY
 
-    me void: draw(me GUI_ctxt: cr) <- {
+    me void: draw(their GUI_ctxt: cr) <- {
         me double: tipLength <- 10
         me double: tipAngle <- 0.35
 
@@ -252,7 +252,7 @@ struct widget{
     me int: scale
     bool: isHidden
 
-    void: draw(me GUI_ctxt: cr) <- {}
+    void: draw(their GUI_ctxt: cr) <- {}
     me bool: handleAllClicks(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: primaryDblClick(their GUI_ButtonEvent: event) <- {return(false)}
