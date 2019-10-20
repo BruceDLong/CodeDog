@@ -17,7 +17,6 @@ struct dash: inherits=widget{
 
     void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {print("SETPOS BASE!!\n")}
     void: addDependent(me string: key, their dash: dashPtr) <- {
-        log("dash::addDependent:"+ title)
         if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
         dashParent.addDependent(key, dashPtr)
     }
@@ -55,7 +54,6 @@ struct Dashboard: inherits=dash{
     me void: addChild(our dash: child) <- {child.dashParent<-self; dashChildren.pushLast(child)}
 
     void: addDependent(me string: key, their dash: dashPtr) <- {
-        log("Dashboard::addDependent:"+ title)
         if(! dependentItems.containsKey(key)){
             dashPtr.isHidden <- true
             dependentItems[key] <- dashPtr
@@ -423,7 +421,7 @@ struct DashboardWidget: inherits=dash{
     their GUI_canvas: managedWidget
     me GUI_eventDispatcher: EventDispatcher
     void: requestRedraw() <- {
-    markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
+        markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
     }
     their GUI_canvas: init(me string: label) <- {
         title   <- 'DashboardWidget.'+label
@@ -443,6 +441,14 @@ struct DashboardWidget: inherits=dash{
     }
     void: draw(their GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)
+    }
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+        dashboardDBW.primaryUp(event)
+        return(true)
+    }
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+        dashboardDBW.primaryDn(event)
+        return(true)
     }
     void: INIT() <- {Allocate(dashboardDBW)}
 }
