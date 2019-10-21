@@ -1066,7 +1066,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 inheritMode = 'pure-virtual'
                 classes[0][className]['attrList'].append('abstract')
             # TODO: this is hard coded to compensate for when virtual func class has base class and child class
-            if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'dependentIsRegistered'):inheritMode = 'virtual'
+            if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):inheritMode = 'virtual'
             # ####################################################################
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent)
 
