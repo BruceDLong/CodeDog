@@ -182,7 +182,7 @@ struct Dashboard: inherits=dash{
         isHidden <- false
     }
 
-    void: update() <- {}
+    void: update() <- {log("base::update")}
 
     void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {
         me GUI_Scalar: YCursor <- y
@@ -256,19 +256,19 @@ struct dataField: inherits=dash{
 
    void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {
         posIsSet <- true
-        posX <- x;
-        posY <- y;
-        extC <- extCursor
+        posX   <- x
+        posY   <- y
+        extC   <- extCursor
         height <- 15
-        width <- 180
-        extX <- posX+width
-        extY <- posY+height
+        width  <- 180
+        extX   <- posX+width
+        extY   <- posY+height
     }
 
     void: draw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
-        renderText(cr, label, styler.fontDefault, posX, posY+15)
-        renderText(cr, value, styler.fontDefault, posX+midPos, posY+15)
+        renderText(cr, label, styler.fontSmall, posX, posY+15)
+        renderText(cr, value, styler.fontSmall, posX+midPos, posY+15)
     }
 }
 
@@ -441,6 +441,10 @@ struct DashboardWidget: inherits=dash{
     }
     void: draw(their GUI_ctxt: cr) <- {
         dashboardDBW.draw(cr)
+    }
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        dashboardDBW.primaryClick(event)
+        return(true)
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
         dashboardDBW.primaryUp(event)
