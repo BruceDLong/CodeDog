@@ -129,8 +129,6 @@ struct Dashboard: inherits=dash{
                 Dash.primaryDn(event)
             }
         }
-        setPos(15, 15, 35)
-        requestRedraw()
         return(true)
     }
 
@@ -146,8 +144,6 @@ struct Dashboard: inherits=dash{
                 Dash.primaryUp(event)
             }
         }
-        setPos(15, 15, 35)
-        requestRedraw()
         return(true)
     }
 
@@ -163,16 +159,14 @@ struct Dashboard: inherits=dash{
                 Dash.mouseMoved(event)
             }
         }
-        setPos(15, 15, 35)
-        requestRedraw()
         return(true)
     }
 
     me void: drawToPDF(me string: filename, me double: inchesWide, me double: inchesHigh, me double: scale) <- {
-  /*      me GUI_ctxt: PDF <- gui_tk.newPDF_ctxt(filename, inchesWide, inchesHigh)
+        their GUI_ctxt: PDF <- gui_tk.newPDF_ctxt(filename, inchesWide, inchesHigh)
         PDF.setScale(scale, scale)
         draw(PDF)
-        PDF.finishPDF()*/
+        PDF.finishPDF()
     }
 
     //me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
@@ -190,7 +184,7 @@ struct Dashboard: inherits=dash{
         width <- 10
         height <- 10
         withEach Dash in dependentItems{
-            Dash.isHidden<-false
+            Dash.isHidden<-true
             Dash.posIsSet<-false
         }
         withEach Dash in dashChildren{
@@ -350,6 +344,7 @@ struct listOfItems: inherits=dash{
                 x <- x+8
                 withEach element in elements{
                     element.dashParent <- self
+                    element.isHidden <- false
                     element.setPos(x,y,extC)
                     y <- y+element.height
                     width <- max(width, element.width+8)
