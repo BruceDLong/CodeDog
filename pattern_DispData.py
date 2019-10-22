@@ -264,6 +264,7 @@ struct display_'''+className+": inherits=dash"+'''{
 '''+self.structTextAcc+'''
 
     void: update(me string: _label, me string: textValue, their '''+className+''': _Data) <- {
+        title <- "'''+className+''':" + _label
         isChanged <- !(data === _Data)
         data <- _Data
         if(data==NULL){

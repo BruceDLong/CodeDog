@@ -645,10 +645,14 @@ struct GUI_eventDispatcher{
     their widget: topWidget
 
     me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- <%{
+        event->x = event->x / scaleFactor;
+        event->y = event->y / scaleFactor;
         topWidget->mouseMoved(event);
         return false;
     } %>
     me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
+        event->x = event->x / scaleFactor;
+        event->y = event->y / scaleFactor;
         if(event->type==GDK_BUTTON_PRESS){
             if(event->button==1){
                 topWidget->primaryDn(event);
@@ -710,6 +714,7 @@ struct GLOBAL{
     } %>
     me bool: drawAppArea_cb(their GtkWidget: gtk_top_widget, their GUI_ctxt: cr, their void: data) <- <%{
         widget* DBW = (widget*)data;
+        cairo_scale(cr, scaleFactor, scaleFactor);
         DBW->draw(cr);
         return(true);
     }%>
@@ -834,6 +839,7 @@ struct timeStringer{
 struct GLOBAL{
     me APP: thisApp
     me float: displayDensity
+    me double: scaleFactor <- 1.0
 
     // //TIME ROUTINES:
     me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
