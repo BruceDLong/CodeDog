@@ -132,7 +132,7 @@ class structToStringWriter(structProcessor):
         elif(fldCat=='mode'):
             valStr=fieldName+'Strings['+fieldName+'] ' #'toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
         elif(fldCat=='struct'):
-            valStr=fieldName+'.to_string(indent+"|   ")\n'
+            valStr=fieldName+'.toString(indent+"|   ")\n'
 
             structTypeName=progSpec.getFieldType(field['typeSpec'])[0]
             if not(structTypeName in classesEncoded):
@@ -175,7 +175,7 @@ class structToStringWriter(structProcessor):
         self.textFuncBody += S
 
     def addOrAmendClasses(self, classes, className, modelRef):
-        Code='me string: to_string(me string:indent) <- {\n    me string: SRet_ <- ""\n'+self.textFuncBody+"        return(SRet_)\n    }\n"
+        Code='me string: toString(me string:indent) <- {\n    me string: SRet_ <- ""\n'+self.textFuncBody+"        return(SRet_)\n    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
         codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.toString()')
 
@@ -364,11 +364,15 @@ struct display_'''+className+": inherits=dash"+'''{
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'), true)\n'
              ## Now push each item
             innerFieldType = progSpec.getFieldType(typeSpec)
-            #print "ARRAYSPEC:",innerFieldType, field
+            containerSpec = progSpec.getContainerSpec(typeSpec)
+            if len(containerSpec) > 3 and (containerSpec[1]== 'map' or containerSpec[1]== 'multimap') and containerSpec[2][0] =='string':
+                itemKeyCode = itemName+'_key'
+            else:
+                itemKeyCode = 'toString('+itemName+'_key)'
             fldCatInner=progSpec.innerTypeCategory(innerFieldType)
             if fieldRef=='data.itmItr' or fieldRef=='data.items': newFieldRef=itemName+'' # TODO: unhard code this reference to itmItr
             else: newFieldRef='data.'+fieldName+'['+itemName+'_key]'
-            newFieldLabel='"["+toString('+itemName+'_key)+"]  "+ '+itemName+'.mySymbol('+itemName+')'
+            newFieldLabel='"["+'+itemKeyCode+'+"]  "+ '+itemName+'.mySymbol('+itemName+')'
             updateFuncText+='\n        '+'me int64: '+dashKeyName+' <- 0'
             updateFuncText+="\n        withEach "+itemName+" in data."+fieldName+"{\n"
             [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '        ')
