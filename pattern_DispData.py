@@ -377,7 +377,14 @@ struct display_'''+className+": inherits=dash"+'''{
             updateFuncText+="\n        withEach "+itemName+" in data."+fieldName+"{\n"
             [innerStructText, innerUpdateFuncText, innerDrawFuncText, innerSetPosFuncText, innerHandleClicksFuncText] = self.getDashDeclAndUpdateCode('our', newFieldLabel, newFieldRef, 'newItem', field, 'skipLists', '        ')
             updateFuncText+='            '+innerStructText
-            updateFuncText+='            '+'if('+OldElementsName+'==NULL or ('+OldElementsName+'!=NULL and !(asClass('+dispStructTypeName+', '+OldElementsName+'['+dashKeyName+']).data === '+itemName+'))){\n'
+            updateFuncText+='            me bool: _elementExists <- false\n'
+            updateFuncText+='            '+'if('+OldElementsName+'!=NULL){\n'
+            updateFuncText+='                '+'withEach _ElItem in '+OldElementsName+'{\n'
+            updateFuncText+='                    '+'if(asClass('+dispStructTypeName+', _ElItem).data === '+itemName+'){\n'
+            updateFuncText+='                        '+'_elementExists <- true; break();\n'
+
+            updateFuncText+='            '+'}}}\n'
+            updateFuncText+='            '+'if(!_elementExists){\n'
             updateFuncText+='                Allocate(newItem)\n'
             updateFuncText+='                newItem.dashParent <- self\n'
             updateFuncText+='               '+'addDependent('+itemName+'.mySymbol('+itemName+'), newItem)'
