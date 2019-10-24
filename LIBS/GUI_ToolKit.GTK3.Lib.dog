@@ -639,7 +639,12 @@ struct GUI_PointerEvent{
   me uint: state
   me uint: button
 }
-
+struct GUI_KeyboardEvent{
+    their GdkEventKey: GUI_KeyboardEvent
+    me uint: type
+    me uint: state
+    me uint: keyval
+}
 /////////////////////////////////  EVENT DISPATCHER
 struct GUI_eventDispatcher{
     their widget: topWidget
@@ -669,7 +674,10 @@ struct GUI_eventDispatcher{
         }
         return false;
     } %>
-    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
+    me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- <%{
+        topWidget->keyTyped(event);
+        return(true);
+    }%>
   //  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     // Also: timer, data and user events
 
@@ -682,13 +690,17 @@ struct GUI_eventDispatcher{
         g_signal_connect (Widget, "motion_notify_event", G_CALLBACK(motion_notify_event), topWidget);
         g_signal_connect (Widget, "button_press_event",  G_CALLBACK(button_press_event), topWidget);
         g_signal_connect (Widget, "button_release_event",  G_CALLBACK(button_release_event), topWidget);
+        g_signal_connect (window, "key_press_event",  G_CALLBACK(keypress_event), topWidget);
 
         gtk_widget_set_events (Widget, GDK_EXPOSURE_MASK
              | GDK_LEAVE_NOTIFY_MASK
              | GDK_BUTTON_PRESS_MASK
              | GDK_BUTTON_RELEASE_MASK
              | GDK_POINTER_MOTION_MASK
-             | GDK_POINTER_MOTION_HINT_MASK);
+             | GDK_POINTER_MOTION_HINT_MASK
+             | GDK_KEY_PRESS_MASK
+             | GDK_KEY_RELEASE_MASK
+        );
     } %>
 }
 
@@ -790,6 +802,7 @@ struct GUI_ctxt {
     me void: fillKeep() <- <%!cairo_fill_preserve(%0)%>
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
     me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!cairo_arc(%0, %1, %2, %3, 0, 2 * M_PI)%>
+    their GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
 struct guiFillPattern{

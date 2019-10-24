@@ -43,6 +43,7 @@ struct Dashboard: inherits=dash{
     mode[accomodateParent, accomodateContent]: sizingMode
     mode[singleDash, verticalStack, userArranges]: layoutMode
     their GUI_canvas: canvas
+    their GUI_ctxt: myGUI_ctxt
 
     their dash: dependentIsRegistered(me string: key) <- {
         if(dependentItems.containsKey(key)){
@@ -163,7 +164,7 @@ struct Dashboard: inherits=dash{
     }
 
     me void: drawToPDF(me string: filename, me double: inchesWide, me double: inchesHigh, me double: scale) <- {
-        their GUI_ctxt: PDF <- gui_tk.newPDF_ctxt(filename, inchesWide, inchesHigh)
+        their GUI_ctxt: PDF <- myGUI_ctxt.newPDF_ctxt(filename, inchesWide, inchesHigh)
         PDF.setScale(scale, scale)
         draw(PDF)
         PDF.finishPDF()
@@ -215,6 +216,7 @@ struct Dashboard: inherits=dash{
     }
 
     void: draw(their GUI_ctxt: cr) <- {
+        myGUI_ctxt <- cr
         if (isHidden){return()}
         layoutChildDashes()
         me cdColor: bkCol <- styler.bkGndColor
