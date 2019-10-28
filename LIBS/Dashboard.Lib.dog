@@ -39,7 +39,6 @@ struct Dashboard: inherits=dash{
     our dash[list]: dashChildren
     their dash[map string]: dependentItems
     our decor[list]: decorations
-
     mode[accomodateParent, accomodateContent]: sizingMode
     mode[singleDash, verticalStack, userArranges]: layoutMode
     their GUI_canvas: canvas
@@ -206,13 +205,22 @@ struct Dashboard: inherits=dash{
     }
     // TODO: Support other layouts: verticalStack and userArranges
     void: layoutChildDashes() <- {
-        if(sizingMode==accomodateContent){return()}
+        me GUI_Scalar: verticalOffset   <- 0
+        me GUI_Scalar: horizontalOffset <- 0
+        if(sizingMode==accomodateContent){}
         if(layoutMode==singleDash){
             dashChildren[0].width <- widgetWidth(canvas)
             dashChildren[0].height <- widgetHeight(canvas)
-        } else if(layoutMode==verticalStack){
-        } else if(layoutMode==userArranges){
+        }else if(layoutMode==verticalStack){
+            verticalOffset <- 15
+            withEach childDash in dashChildren{
+                childDash.setPos(15, verticalOffset, 0)
+                verticalOffset <- childDash.extY+ 10
+                horizontalOffset <- max(horizontalOffset, childDash.extX)
+            }
+        }else if(layoutMode==userArranges){
         }
+        thisApp.gui.setWidgetSize(canvas,max(horizontalOffset, widgetWidth(window)),max(verticalOffset, widgetHeight(window)))
     }
 
     void: draw(their GUI_ctxt: cr) <- {

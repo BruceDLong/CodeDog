@@ -14,7 +14,7 @@ styler.highlight2Color
 styler.highlight3Color
 
 styler.setCustomColor(me string: ID, me cdColor: C)
-styler.color(me string: ID)
+styler.color(me string: ID, me cdColor: default)
 
 styler.titleFont
 styler.normalFont
@@ -187,8 +187,13 @@ struct Styler{
         our cdColor:: tmpColor <- color
         userColors.insert(ID, tmpColor)
     }
-    me cdColor: color(me string: ID) <- {
-        return(userColors.get(ID))
+    me cdColor: color(me string: ID, me cdColor: defaultColor) <- {
+        our cdColor[itr map string]: colorItr <- userColors.find(ID)
+        if(colorItr == userColors.end()){
+            return(defaultColor)
+        }else{
+            return(colorItr.val)
+        }
     }
 
 

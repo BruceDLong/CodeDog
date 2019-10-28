@@ -765,7 +765,6 @@ struct GUI{
 struct GUI{
     their GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
     me void: setWidgetSize(their GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
-    their GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
     me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
     me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
     me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
@@ -774,7 +773,6 @@ struct GUI{
     me void: setBtnCallback()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_CB), %4)%>
     me void: setBtnCallback2() <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3), %4.get())%>
     me void: setBtnCallback3()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
-    their GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
 }
 
 struct GUI_ctxt {
@@ -787,6 +785,7 @@ struct GUI_ctxt {
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
     me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
     me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
+    me void: setOffset() <- <%!cairo_translate(%0, %1, %2)%>
     me void: moveTo(me double: x, me double: y) <- <%!cairo_move_to(%0, %1, %2)%>
     me void: lineTo(me double: x, me double: y) <- <%!cairo_line_to(%0, %1, %2)%>
     me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(%0, %1, %2)%>
@@ -1011,6 +1010,7 @@ me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!
 me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
 me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_stack_add_named(GTK_STACK(%1), %2, %3)%>
 me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack_set_visible_child_name(GTK_STACK(%1), %2.data())%>
+their GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(NULL, NULL)%>
 }
 
 /////////////////////////////////  INTER-THREAD COMMUNICATION

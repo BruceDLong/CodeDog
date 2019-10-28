@@ -325,7 +325,7 @@ struct display_'''+className+": inherits=dash"+'''{
         cr.setColor(hedrColor)
         if(displayMode!=headerOnly){
 '''+self.drawFuncTextAcc+'''
-            me cdColor: rectColor <- styler.frGndColor
+            me cdColor: rectColor <- styler.color(data.mySymbol(data), styler.frGndColor)
             cr.setColor(rectColor)
             cr.rectangle(posX, posY, width, height)
             cr.strokeNow()
