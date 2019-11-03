@@ -132,7 +132,7 @@ class structToStringWriter(structProcessor):
         elif(fldCat=='mode'):
             valStr=fieldName+'Strings['+fieldName+'] ' #'toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
         elif(fldCat=='struct'):
-            valStr=fieldName+'.toString(indent+"|   ")\n'
+            valStr=fieldName+'.makeString(indent+"|   ")\n'
 
             structTypeName=progSpec.getFieldType(field['typeSpec'])[0]
             if not(structTypeName in classesEncoded):
@@ -175,9 +175,9 @@ class structToStringWriter(structProcessor):
         self.textFuncBody += S
 
     def addOrAmendClasses(self, classes, className, modelRef):
-        Code='me string: toString(me string:indent) <- {\n    me string: SRet_ <- ""\n'+self.textFuncBody+"        return(SRet_)\n    }\n"
+        Code='me string: makeString(me string:indent) <- {\n    me string: SRet_ <- ""\n'+self.textFuncBody+"        return(SRet_)\n    }\n"
         Code=progSpec.wrapFieldListInObjectDef(className, Code)
-        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.toString()')
+        codeDogParser.AddToObjectFromText(classes[0], classes[1], Code, className+'.makeString()')
 
 #---------------------------------------------------------------  WRITE CODE TO DRAW STRUCTS
 

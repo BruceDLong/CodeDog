@@ -326,7 +326,7 @@ struct scrollerWidget{
     their GUI_Frame: layoutArea
     their GtkWidget: scroller
 
-    their GUI_ScrollingWindow: makeScrollerWidget(me GUI_canvas: canvas) <- <%{
+    their GUI_ScrollingWindow: makeScrollerWidget(their GUI_canvas: canvas) <- <%{
         scroller = gtk_scrolled_window_new(0, 0);
         //GtkWidget* layoutArea = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         //gtk_container_add(GTK_CONTAINER (scroller), layoutArea);
