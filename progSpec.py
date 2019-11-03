@@ -530,6 +530,15 @@ def doesChildClassImplementFunc(classes, structName, fieldID):
     #if len(childClasses)>0: print '     Childs Result:', result
     return result
 
+def doesClassContainFunc(classes, structName, funcName):
+    #TODO: make this take field ID instead of funcName
+    callableStructFields=[]
+    populateCallableStructFields(callableStructFields, classes, structName)
+    for field in callableStructFields:
+        fieldName=field['fieldName']
+        if fieldName == funcName: return True
+    return False
+
 def getImplementationOptionsFor(fieldType):
     global classImplementationOptions
     if fieldType in classImplementationOptions:

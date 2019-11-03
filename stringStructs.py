@@ -1233,6 +1233,8 @@ def Write_structExtracter(classes, ToStructName, fields, nameForFunc, logLvl):
     S='    me string: tmpStr\n'
     for field in fields: # Extract all the fields in the string version.
         S+=Write_fieldExtracter(classes, ToStructName, field, memObjFields, 'SRec', '', True, '    ', 0, logLvl+1)
+    if progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessing'):
+        S += 'memStruct.postParseProcessing()\n'
     return S
 
 def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
