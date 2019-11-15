@@ -52,9 +52,9 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             T_total <- T_total+1
             T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
             if(verboseMode=="1"){
-                print("TESTING ",testName,"...   \t\t")
+                print("TESTING ",testName," ...   \t\t")
             }
-            log("TESTING "+testName+"________")
+            log("TESTING "+testName+" _________________")
             // clear failFlag and mesg_buff; setTimer
             <TEST-CASES-HERE>
             else {Tstat <- "?"}
@@ -102,8 +102,14 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             me string[list]: testList <- [<TEST-LIST-HERE>]
             if(testListSpec==""){testToRun <- testList}
             else {
-                // TODO: make test selection work with multiple tests and wildcards.
-                testToRun.pushLast(testListSpec)
+                // TODO: make test selection work with multiple tests.
+                me int: strSize <- testListSpec.size()
+                if(testListSpec[strSize-1] == "/"){
+                    withEach item in testList{
+                        if(item.subStr(0,strSize) == testListSpec){testToRun.pushLast(item)}
+                    }
+                }
+                else{testToRun.pushLast(testListSpec)}
             }
             // Sort list as needed
             EXEC_TESTS(verboseMode)
