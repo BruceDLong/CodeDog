@@ -154,8 +154,13 @@ struct GameMenuScreen: inherits=GameMode{
 
         cr.setColor(Styler.White)
         our fontSpec:: testFont <- ("Ariel", 20, 0)
-        renderText(cr, "Press Space to Play!", testFont, 150, 100)
-        renderText(cr, "Press Escape to Exit!", testFont, 150, 200)
+	if (finalScore) {
+	    renderText(cr, "Final Score: " + toString(finalScore), testFont, 150, 100)
+	    renderText(cr, "Press Space to Play Again!", testFont, 150, 200)
+	} else {
+        renderText(cr, "Press Space to Play!", testFont, 150, 200)
+	}
+        renderText(cr, "Press Escape to Exit!", testFont, 150, 300)
         cr.strokeNow()
         window.requestRedraw()
     }
@@ -216,7 +221,7 @@ struct GamePlayScreen: inherits=GameMode{
         me int: bulletIdx <- 0
         while (bulletIdx < bullets.size()){
             our Bullet: bullet <- bullets[bulletIdx]
-            if(bullet.owner == ourBullet){
+            if(bullet.owner == ourBullet){		// alien is hit
                 me int: alienIdx <- 0
                 while(alienIdx < armada.aliens.size()){
                     our AlienShip: alien <- armada.aliens[alienIdx]
@@ -230,8 +235,13 @@ struct GamePlayScreen: inherits=GameMode{
                     }
                     alienIdx  <- alienIdx  + 1
                 }
-            }else if(bullet.owner == theirBullet){
-		// TODO: collision with the protaganist
+            }else if(bullet.owner == theirBullet){	// player is hit
+		// TODO: clean up boundaries
+		if(pointIsInRectangle(bullet.x, bullet.y, playerPosition, screenHeight - shipOffsetY, 100, shipWidth)){
+		    explosion1.play()
+		    finalScore <- playerScore
+		    looper.setGameMode(gameMenuScreen)
+		}
             }
             bulletIdx <- bulletIdx + 1
         }
@@ -281,6 +291,7 @@ struct GLOBAL{
     our GameMenuScreen:: gameMenuScreen
     our GamePlayScreen:: gamePlayScreen
     me int: playerScore
+    me int: finalScore
     void: setUpGame() <- {
         playerScore <- 0
         gameMenuScreen.init(gameLooper)
