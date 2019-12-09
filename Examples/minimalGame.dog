@@ -34,6 +34,7 @@ struct AlienArmada{
     me int: alien1Height
     me int: leftMostPos
     me int: rightMostPos
+    me int: alienShotOdds
     me mode [goingLeft, goingRight]: direction
     me GameImage: alien1Img
 
@@ -70,7 +71,7 @@ struct AlienArmada{
         withEach ship in aliens{
             ship.x <- ship.x + xToMove
             ship.y <- ship.y + yToMove
-	    if (randInt(1000) == 0) {
+	    if (randInt(alienShotOdds) == 0) {
 		our Bullet:: newBullet
 		newBullet.x <- ship.x
 		newBullet.y <- ship.y
@@ -108,6 +109,7 @@ struct AlienArmada{
         alien1Width  <- alien1Img.width/scaleFactor
         alien1Height <- alien1Img.height/scaleFactor
         addAliens(1)
+	alienShotOdds <- 1000  // the lower the number, the more they shoot
     }
 }
 struct Bullet{
@@ -176,7 +178,9 @@ struct GamePlayScreen: inherits=GameMode{
     me GameSound: playerFires
     me GameSound: explosion1
     me int: playerPosition
+    me int: playerMovement
     me int: shipWidth
+    me int: shipOffsetY
     our Bullet[list]: bullets
     me AlienArmada: armada
 
@@ -195,7 +199,7 @@ struct GamePlayScreen: inherits=GameMode{
     }
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         displayImage(cr, "assets/level1Background.png", 0, 0, 1)
-        displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, screenHeight-100, scaleFactor)
+        displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, screenHeight-shipOffsetY, scaleFactor)
         armada.draw(cr)
         withEach bullet in bullets{
             bullet.draw(cr)
@@ -239,7 +243,7 @@ struct GamePlayScreen: inherits=GameMode{
             case SDLK_SPACE:{
                 our Bullet:: newBullet
                 newBullet.x <- playerPosition
-                newBullet.y <- screenHeight - 100
+                newBullet.y <- screenHeight - shipOffsetY
                 newBullet.owner <- ourBullet
                 bullets.pushFirst(newBullet)
                 playerFires.play()
@@ -249,10 +253,10 @@ struct GamePlayScreen: inherits=GameMode{
                 looper.setGameMode(gameMenuScreen)
             }
             case SDLK_LEFT:{
-                playerPosition <- max(shipWidth/2, playerPosition - 10)
+                playerPosition <- max(shipWidth/2, playerPosition - playerMovement)
             }
             case SDLK_RIGHT:{
-                playerPosition <- min(screenWidth-shipWidth/2, playerPosition + 10)
+                playerPosition <- min(screenWidth-shipWidth/2, playerPosition + playerMovement)
             }
             case SDLK_f:{toggleFullScreen()}
         }
@@ -261,6 +265,8 @@ struct GamePlayScreen: inherits=GameMode{
         looper <- ourLooper
         playerPosition <- screenWidth/2
         shipWidth      <- 136/scaleFactor
+	playerMovement <- 10
+	shipOffsetY <- 100
         playerFires.loadFromFile("assets/fire1.wav")
         explosion1.loadFromFile("assets/explosion1.wav")
         armada.init()
