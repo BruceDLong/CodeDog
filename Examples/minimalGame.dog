@@ -73,8 +73,8 @@ struct AlienArmada{
             ship.y <- ship.y + yToMove
 	    if (randInt(alienShotOdds) == 0) {
 		our Bullet:: newBullet
-		newBullet.x <- ship.x
-		newBullet.y <- ship.y
+		newBullet.x <- ship.x + alien1Width/2
+		newBullet.y <- ship.y + alien1Height
 		newBullet.owner <- theirBullet
 		gamePlayScreen.bullets.pushFirst(newBullet)
 		// playerFires.play()		// TODO: give aliens their own firing sound
