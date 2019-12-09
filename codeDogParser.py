@@ -84,7 +84,7 @@ expr <<= Group( logAnd + Group(Optional(OneOrMore(Group(Keyword('or') + logAnd )
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 # TODO: -= operator, it isn't set up because parser does not handle a middle "-" and closing "-"
-assign = (lValue + Combine(Literal("<") + (Optional((Word(alphas + nums + '_') | '+' | '*' | '/')("assignTag"))) + Literal("-"))("assignID") + rValue)("assign")
+assign = (lValue + Combine(Literal("<") + (Optional((Word(alphas + nums + '_') | '+' | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + Literal("-"))("assignID") + rValue)("assign")
 parameters <<= (Literal("(") + Optional(Group(delimitedList(rValue, ','))) + Literal(")").suppress())("parameters")
 
 ########################################   F U N C T I O N S

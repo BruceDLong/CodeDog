@@ -718,6 +718,18 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
                 actionText = indent + LHS + " *= " + RHS + ";\n"
             elif(assignTag=='/'):
                 actionText = indent + LHS + " /= " + RHS + ";\n"
+            elif(assignTag=='%'):
+                actionText = indent + LHS + " %= " + RHS + ";\n"
+            elif(assignTag=='<<'):
+                actionText = indent + LHS + " <<= " + RHS + ";\n"
+            elif(assignTag=='>>'):
+                actionText = indent + LHS + " >>= " + RHS + ";\n"
+            elif(assignTag=='&'):
+                actionText = indent + LHS + " &= " + RHS + ";\n"
+            elif(assignTag=='^'):
+                actionText = indent + LHS + " ^= " + RHS + ";\n"
+            elif(assignTag=='|'):
+                actionText = indent + LHS + " |= " + RHS + ";\n"
             else:
                 actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='swap'):
