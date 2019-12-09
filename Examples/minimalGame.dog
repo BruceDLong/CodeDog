@@ -1,8 +1,8 @@
 // minimalGame.dog
 
-//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
 Title = "minimalGame"
@@ -70,6 +70,14 @@ struct AlienArmada{
         withEach ship in aliens{
             ship.x <- ship.x + xToMove
             ship.y <- ship.y + yToMove
+	    if (randInt(1000) == 0) {
+		our Bullet:: newBullet
+		newBullet.x <- ship.x
+		newBullet.y <- ship.y
+		newBullet.owner <- theirBullet
+		gamePlayScreen.bullets.pushFirst(newBullet)
+		// playerFires.play()		// TODO: give aliens their own firing sound
+	    }
         }
     }
     void: draw(their GUI_ctxt: cr) <- {
@@ -115,7 +123,7 @@ struct Bullet{
         else if(owner == theirBullet){
             y <- y + 1
         }
-        if(y < 0 or y > screenWidth){
+        if(y < 0 or y > screenHeight){
             deleteIt <- true
         }
         return(deleteIt)
@@ -126,7 +134,12 @@ struct Bullet{
             cr.setLineWidth(4)
             cr.moveTo(x, y)
             cr.lineTo(x, y+10)
-        }
+        } else if(owner == theirBullet) {
+	    cr.setColor(Styler.Red)
+            cr.setLineWidth(4)
+            cr.moveTo(x, y)
+            cr.lineTo(x, y-10)
+	}
         cr.strokeNow()
     }
 }
@@ -214,6 +227,7 @@ struct GamePlayScreen: inherits=GameMode{
                     alienIdx  <- alienIdx  + 1
                 }
             }else if(bullet.owner == theirBullet){
+		// TODO: collision with the protaganist
             }
             bulletIdx <- bulletIdx + 1
         }
@@ -281,8 +295,10 @@ struct APP{
 }
 
 // TODO:
+// everything moves faster
 // detect when aliens hit the ship
 // detect lose/win
+// aliens have their own firing sound
 // clean opening screen
 // Music playing
 // Mouse Events
