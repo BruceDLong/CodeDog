@@ -151,21 +151,32 @@ struct Bullet{
     }
 }
 struct GameMenuScreen: inherits=GameMode{
+    me int: textY
+    
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
-        cr.setColor(Styler.DarkSlateBlue)
+        textY <- 100
+	cr.setColor(Styler.DarkSlateBlue)
         cr.rectangle(0,0,screenWidth, screenHeight)
         cr.fillNow()
 
         cr.setColor(Styler.White)
         our fontSpec:: testFont <- ("Ariel", 20, 0)
-	if (finalScore) {
-	    renderTextCentered(cr, "Final Score: " + toString(finalScore), testFont, screenWidth/2, 100)
-	    renderTextCentered(cr, "Press Space to Play Again!", testFont, screenWidth/2, 200)
-	} else {
-        renderTextCentered(cr, "Press Space to Play!", testFont, screenWidth/2, 200)
+	if (winner) {
+	    renderTextCentered(cr, "WINNER!", testFont, screenWidth/2, textY)
+	    textY <+- 100
 	}
-        renderTextCentered(cr, "Press Escape to Exit!", testFont, screenWidth/2, 300)
+	if (finalScore) {
+	    renderTextCentered(cr, "Final Score: " + toString(finalScore), testFont, screenWidth/2, textY)
+	    textY <+- 100
+	    renderTextCentered(cr, "Press Space to Play Again!", testFont, screenWidth/2, textY)
+	    textY <+- 100
+	} else {
+	    renderTextCentered(cr, "Press Space to Play!", testFont, screenWidth/2, textY)
+	    textY <+- 100
+	}
+        renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, textY)
+	textY <+- 100
         cr.strokeNow()
         window.requestRedraw()
     }
@@ -267,6 +278,11 @@ struct GamePlayScreen: inherits=GameMode{
                         playerScore <- playerScore + 1
                         bulletIdx <- bulletIdx - 1
                         alienIdx  <- alienIdx  - 1
+			if (armada.aliens.size() == 0) {	// last alien is hit
+			    winner <- true
+			    finalScore <- playerScore
+			    looper.setGameMode(gameMenuScreen)
+			}
                     }
                     alienIdx  <- alienIdx  + 1
                 }
@@ -340,9 +356,11 @@ struct GLOBAL{
     our GamePlayScreen:: gamePlayScreen
     me int: playerScore
     me int: finalScore
+    me bool: winner
     me int: bulletSpeed <- 5
     void: setUpGame() <- {
 	playerScore <- 0
+	winner <- false
         gameMenuScreen.init(gameLooper)
 	gamePauseScreen.init(gameLooper)
         gamePlayScreen.init(gameLooper)
