@@ -79,7 +79,7 @@ struct AlienArmada{
 		newBullet.y <- ship.y + alien1Height
 		newBullet.owner <- theirBullet
 		gamePlayScreen.bullets.pushFirst(newBullet)
-		// playerFires.play()		// TODO: give aliens their own firing sound
+		gamePlayScreen.alienFires.play()
 	    }
         }
     }
@@ -214,6 +214,7 @@ struct GamePauseScreen: inherits=GameMode{
 }
 struct GamePlayScreen: inherits=GameMode{
     me GameSound: playerFires
+    me GameSound: alienFires
     me GameSound: explosion1
     me int: playerPosition
     me int: playerMovement
@@ -323,6 +324,7 @@ struct GamePlayScreen: inherits=GameMode{
 	shipOffsetY <- 100
 	bullets.clear()
         playerFires.loadFromFile("assets/fire1.wav")
+	alienFires.loadFromFile("assets/fire2.wav")
         explosion1.loadFromFile("assets/explosion1.wav")
         armada.init()
     }
@@ -361,7 +363,6 @@ struct APP{
 
 // TODO:
 // detect lose/win
-// aliens have their own firing sound
 // clean opening screen
 // Music playing
 // Mouse Events
