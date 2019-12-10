@@ -36,6 +36,7 @@ struct AlienArmada{
     me int: rightMostPos
     me int: alienShotOdds
     me int: alienSpeed
+    me int: alienAdvance
     me mode [goingLeft, goingRight]: direction
     me GameImage: alien1Img
 
@@ -55,13 +56,13 @@ struct AlienArmada{
         if(direction == goingLeft){
             if(leftMostPos < 10){
                 direction <- goingRight
-                yToMove   <- 30
+                yToMove   <- alienAdvance
 
             }
         }else if(direction == goingRight){
             if(rightMostPos > screenWidth - alien1Width - 10){
                 direction <- goingLeft
-                yToMove   <- 30
+                yToMove   <- alienAdvance
             }
         }
         if(direction == goingLeft){
@@ -113,6 +114,7 @@ struct AlienArmada{
 	addAliens(1)
 	alienShotOdds <- 1000  // the lower the number, the more they shoot
 	alienSpeed <- 5
+	alienAdvance <- 30
     }
 }
 struct Bullet{
@@ -249,7 +251,8 @@ struct GamePlayScreen: inherits=GameMode{
         return ((ptX >= RectX) and (ptX <= RectX + rectWidth) and (ptY >= rectY) and (ptY <= rectY + rectHeight))
     }
     void: detectCollisions() <- {
-        me int: bulletIdx <- 0
+        // Bullet on ship collisions
+	me int: bulletIdx <- 0
         while (bulletIdx < bullets.size()){
             our Bullet: bullet <- bullets[bulletIdx]
             if(bullet.owner == ourBullet){		// alien is hit
@@ -267,7 +270,6 @@ struct GamePlayScreen: inherits=GameMode{
                     alienIdx  <- alienIdx  + 1
                 }
             }else if(bullet.owner == theirBullet){	// player is hit
-		// TODO: clean up boundaries
 		if(pointIsInRectangle(bullet.x, bullet.y, playerPosition, screenHeight - shipOffsetY, 100, shipWidth)){
 		    explosion1.play()
 		    finalScore <- playerScore
@@ -276,6 +278,17 @@ struct GamePlayScreen: inherits=GameMode{
             }
             bulletIdx <- bulletIdx + 1
         }
+	// Ship on ship collisions
+	me int: alienIdx <- 0
+	while(alienIdx < armada.aliens.size()){
+	    our AlienShip: alien <- armada.aliens[alienIdx]
+	    if(pointIsInRectangle(alien.x, alien.y, playerPosition, screenHeight - shipOffsetY, 100, shipWidth)){
+		explosion1.play()
+		finalScore <- playerScore
+		looper.setGameMode(gameMenuScreen)
+	    }
+	    alienIdx  <- alienIdx  + 1
+	}
     }
     void: pause() <- {}
     void: resume() <- {}
@@ -347,9 +360,6 @@ struct APP{
 }
 
 // TODO:
-// everything moves faster
-// fix screen size issue
-// detect when aliens hit the ship
 // detect lose/win
 // aliens have their own firing sound
 // clean opening screen
