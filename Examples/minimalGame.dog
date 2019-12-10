@@ -259,7 +259,7 @@ struct GamePlayScreen: inherits=GameMode{
         renderText(cr, "Score: " + toString(playerScore), scoreFont, 10, 40)
         window.requestRedraw()
     }
-    bool: pointIsInRectangle(me int: ptX, me int: ptY, me int: RectX, me int: rectY, me int: rectHeight, me int: rectWidth)<- {
+    bool: pointIsInRectangle(me int: ptX, me int: ptY, me int: RectX, me int: rectY, me int: rectWidth, me int: rectHeight)<- {
         return ((ptX >= RectX) and (ptX <= RectX + rectWidth) and (ptY >= rectY) and (ptY <= rectY + rectHeight))
     }
     void: detectCollisions() <- {
@@ -271,7 +271,7 @@ struct GamePlayScreen: inherits=GameMode{
                 me int: alienIdx <- 0
                 while(alienIdx < armada.aliens.size()){
                     our AlienShip: alien <- armada.aliens[alienIdx]
-                    if(pointIsInRectangle(bullet.x, bullet.y, alien.x, alien.y, armada.alien1Height, armada.alien1Width)){
+                    if(pointIsInRectangle(bullet.x, bullet.y, alien.x, alien.y, armada.alien1Width, armada.alien1Height)){
                         explosion1.play()
                         bullets.DeleteNth(bulletIdx)
                         armada.aliens.DeleteNth(alienIdx)
@@ -287,7 +287,7 @@ struct GamePlayScreen: inherits=GameMode{
                     alienIdx  <- alienIdx  + 1
                 }
             }else if(bullet.owner == theirBullet){	// player is hit
-		if(pointIsInRectangle(bullet.x, bullet.y, playerPosition, screenHeight - shipOffsetY, 100, shipWidth)){
+		if(pointIsInRectangle(bullet.x, bullet.y, playerPosition - shipWidth/2, screenHeight - shipOffsetY, shipWidth, 100)){
 		    explosion1.play()
 		    finalScore <- playerScore
 		    looper.setGameMode(gameMenuScreen)
@@ -299,7 +299,7 @@ struct GamePlayScreen: inherits=GameMode{
 	me int: alienIdx <- 0
 	while(alienIdx < armada.aliens.size()){
 	    our AlienShip: alien <- armada.aliens[alienIdx]
-	    if(pointIsInRectangle(alien.x, alien.y, playerPosition, screenHeight - shipOffsetY, 100, shipWidth)){
+	    if(pointIsInRectangle(alien.x, alien.y, playerPosition, screenHeight - shipOffsetY, shipWidth, 100)){
 		explosion1.play()
 		finalScore <- playerScore
 		looper.setGameMode(gameMenuScreen)
@@ -380,7 +380,7 @@ struct APP{
 }
 
 // TODO:
-// detect lose/win
+// fix screen toggling
 // clean opening screen
 // Music playing
 // Mouse Events
