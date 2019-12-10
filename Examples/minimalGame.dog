@@ -105,10 +105,11 @@ struct AlienArmada{
         }
     }
     void: init() <-{
-        alien1Img.loadFromFile("assets/greenAlien.png")
+        aliens.clear()
+	alien1Img.loadFromFile("assets/greenAlien.png")
         alien1Width  <- alien1Img.width/scaleFactor
         alien1Height <- alien1Img.height/scaleFactor
-        addAliens(1)
+	addAliens(1)
 	alienShotOdds <- 1000  // the lower the number, the more they shoot
     }
 }
@@ -155,12 +156,39 @@ struct GameMenuScreen: inherits=GameMode{
         cr.setColor(Styler.White)
         our fontSpec:: testFont <- ("Ariel", 20, 0)
 	if (finalScore) {
-	    renderText(cr, "Final Score: " + toString(finalScore), testFont, 150, 100)
-	    renderText(cr, "Press Space to Play Again!", testFont, 150, 200)
+	    renderTextCentered(cr, "Final Score: " + toString(finalScore), testFont, screenWidth/2, 100)
+	    renderTextCentered(cr, "Press Space to Play Again!", testFont, screenWidth/2, 200)
 	} else {
-        renderText(cr, "Press Space to Play!", testFont, 150, 200)
+        renderTextCentered(cr, "Press Space to Play!", testFont, screenWidth/2, 200)
 	}
-        renderText(cr, "Press Escape to Exit!", testFont, 150, 300)
+        renderTextCentered(cr, "Press Escape to Exit!", testFont, screenWidth/2, 300)
+        cr.strokeNow()
+        window.requestRedraw()
+    }
+    void: pause() <- {}
+    void: resume() <- {}
+    void: keyDownEventHandler(their KeyInfo: event) <- {
+        switch (event.sym){
+            case SDLK_SPACE:{
+		setUpGame()
+		looper.setGameMode(gamePlayScreen)
+            }
+            case SDLK_ESCAPE:{
+                looper.quitGame()
+            }
+        }
+    }
+    void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
+    void: deInit() <- {}
+}
+struct GamePauseScreen: inherits=GameMode{
+    void: update() <- {}
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
+        cr.setColor(Styler.White)
+        our fontSpec:: testFont <- ("Ariel", 20, 0)
+        renderTextCentered(cr, "PAUSED", testFont, screenWidth/2, 200)
+        renderTextCentered(cr, "Press Space to Continue Playing", testFont, screenWidth/2, 300)
+	renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, 400)
         cr.strokeNow()
         window.requestRedraw()
     }
@@ -172,7 +200,8 @@ struct GameMenuScreen: inherits=GameMode{
                 looper.setGameMode(gamePlayScreen)
             }
             case SDLK_ESCAPE:{
-                looper.quitGame()
+                finalScore <- playerScore
+		looper.setGameMode(gameMenuScreen)
             }
         }
     }
@@ -260,7 +289,7 @@ struct GamePlayScreen: inherits=GameMode{
             }
             case SDLK_ESCAPE:{
                 pause()
-                looper.setGameMode(gameMenuScreen)
+                looper.setGameMode(gamePauseScreen)
             }
             case SDLK_LEFT:{
                 playerPosition <- max(shipWidth/2, playerPosition - playerMovement)
@@ -277,6 +306,7 @@ struct GamePlayScreen: inherits=GameMode{
         shipWidth      <- 136/scaleFactor
 	playerMovement <- 10
 	shipOffsetY <- 100
+	bullets.clear()
         playerFires.loadFromFile("assets/fire1.wav")
         explosion1.loadFromFile("assets/explosion1.wav")
         armada.init()
@@ -289,12 +319,14 @@ struct GLOBAL{
     me int: fontSize
     our GameLooper:: gameLooper
     our GameMenuScreen:: gameMenuScreen
+    our GamePauseScreen:: gamePauseScreen
     our GamePlayScreen:: gamePlayScreen
     me int: playerScore
     me int: finalScore
     void: setUpGame() <- {
-        playerScore <- 0
+	playerScore <- 0
         gameMenuScreen.init(gameLooper)
+	gamePauseScreen.init(gameLooper)
         gamePlayScreen.init(gameLooper)
         gameLooper.setGameMode(gameMenuScreen)
     }
