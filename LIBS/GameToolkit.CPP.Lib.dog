@@ -208,11 +208,11 @@ struct GLOBAL{
 	
 	double picWidth = cairo_image_surface_get_width(pic);
 	double picHeight = cairo_image_surface_get_height(pic);
-	double xScale = picWidth / screenWidth;
-	double yScale = picHeight / screenHeight;
+	double xScale = screenWidth / picWidth;
+	double yScale = screenHeight / picHeight;
 	
         cairo_save(cr);
-        cairo_scale(cr, 1/xScale, 1/yScale);
+        cairo_scale(cr, xScale, yScale);
         cairo_set_source_surface(cr,pic,0,0);
         cairo_paint(cr);
         cairo_restore(cr);

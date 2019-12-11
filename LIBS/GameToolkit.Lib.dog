@@ -116,7 +116,6 @@ struct GameMode{
 }
 
 struct GameLooper{
-    me int: FramesPerSec
 
     me bool: running
     our GameMode: crntGameMode
@@ -156,8 +155,7 @@ struct GameLooper{
         }
     }
 
-    void: runConstFPS() <- {
-        FramesPerSec <- 40  // Change this as needed
+    void: runConstFPS(me int: FramesPerSec) <- {
         me int: ticksToSkip <- 1000 / FramesPerSec
         me int: timeToSleep <- 0
         me double: nextTick <- 0
@@ -217,14 +215,14 @@ struct GameLooper{
         }*/
     }
 
-    void: play(me int: playMode) <- {
+    void: play(me int: playMode, me int: FPS) <- {
         init()
         running <- true
         if(playMode==0){runNoWait()}
-        else if(playMode==1){runConstFPS()}
+        else if(playMode==1){runConstFPS(FPS)}
         else if(playMode==2){runMaxFPS()}
         else if(playMode==3){runVarFPS()}
-        print("Frames/sec:", FPS(), "\n")
+        //print("Frames/sec:", FPS(), "\n")
         deInit()
     }
 }
