@@ -7,6 +7,8 @@ requirements = [
 ]
 
 struct GameMode{
+    our GameLooper: looper
+    
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {}
     void: pause() <- {}
@@ -112,7 +114,6 @@ struct GameMode{
             }
         }
     }
-    our GameLooper: looper
 }
 
 struct GameLooper{
@@ -120,6 +121,12 @@ struct GameLooper{
     me bool: running
     me bool: printFPS <- true
     our GameMode: crntGameMode
+    
+    me int: framesDrawnCount
+    me double: latestTickCount
+    me double: lastTickLog
+    me double: recentFPS
+    me int: framesLog
 
     void: setGameMode(our GameMode: gameMode) <- {
         crntGameMode <- gameMode
@@ -156,15 +163,21 @@ struct GameLooper{
         }
     }
 
+    void: outputFPS() <- {
+	latestTickCount <- getTickCount()
+	if ((latestTickCount - lastTickLog) >= 3000) {
+	    recentFPS <- (framesDrawnCount - framesLog) / 3
+	    print("\nIn the last three seconds: ", recentFPS, " FPS\n")
+	    lastTickLog <- latestTickCount
+	    framesLog <- framesDrawnCount
+	}
+    }
+    
     void: runConstFPS(me int: FramesPerSec) <- {	// Constant game speed and FPS
         me int: ticksToSkip <- 1000 / FramesPerSec
         me int: timeToSleep <- 0
         me double: nextTick <- 0
-	me int: framesDrawnCount <- 0
-	me double: latestTickCount <- 0
-	me double: lastTickLog <- 0
-	me double: recentFPS <- 0
-	me int: framesLog <- 0
+	
         while(running){
             handleEvents()
             crntGameMode.update()
@@ -172,79 +185,55 @@ struct GameLooper{
 	    framesDrawnCount <+- 1
             crntGameMode.draw(cr, 0)
             nextTick <+- ticksToSkip
-	    latestTickCount <- getTickCount()
-            timeToSleep <- nextTick - latestTickCount
-	    
-	    if (printFPS) {
-		if ((latestTickCount - lastTickLog) >= 3000) {
-		    recentFPS <- (framesDrawnCount - framesLog) / 3
-		    print("\nIn the last three seconds: ", recentFPS, " FPS\n")
-		    lastTickLog <- latestTickCount
-		    framesLog <- framesDrawnCount
-		}
-	    }
-            if(timeToSleep > 0){
-                sleep(timeToSleep)
-            } else {log("FRAMES MISSED")}
+            timeToSleep <- nextTick - getTickCount()
+	    if (printFPS) {outputFPS()}
+            if(timeToSleep > 0) {sleep(timeToSleep)}
+	    else {log("FRAMES MISSED")}
         }
     }
 
-    void: runMaxFPS(me int: gameSpeed) <- { // Constant Game speed, max FPS
+    void: runMaxFPS(me int: gameSpeed) <- { 	// Constant Game speed, max FPS
         me int: ticksToSkip   <- 1000 / gameSpeed
         me int: MAX_FRAMESKIP <- 10
-	
-	me int: framesDrawnCount <- 0
-	me double: latestTickCount <- 0
-	me double: lastTickLog <- 0
-	me double: recentFPS <- 0
-	me int: framesLog <- 0
-
         me double: nextTick <- getTickCount()
         me int: loops
+	
         while(running){
             loops <- 0
-            while(getTickCount() > nextTick and loops < MAX_FRAMESKIP){
+            while(getTickCount() >= nextTick and loops < MAX_FRAMESKIP){
                 handleEvents()
                 crntGameMode.update()
-
                 nextTick <- nextTick + ticksToSkip
                 loops <+- 1
             }
             their GUI_ctxt: cr  <- createGUI_ctxt()
             framesDrawnCount <+- 1
 	    crntGameMode.draw(cr, 0)
-	    if (printFPS) {
-		latestTickCount <- getTickCount()
-		if ((latestTickCount - lastTickLog) >= 3000) {
-		    recentFPS <- (framesDrawnCount - framesLog) / 3
-		    print("\nIn the last three seconds: ", recentFPS, " FPS\n")
-		    lastTickLog <- latestTickCount
-		    framesLog <- framesDrawnCount
-		}
-	    }
+	    if (printFPS) {outputFPS()}
         }
     }
 
-    void: runVarFPS() <- { // Constant Game speed, variable FPS
-        /*me int: ticksToSkip   <- 1000 / FramesPerSec
+    void: runVarFPS(me int: gameSpeed) <- { 	// Constant Game speed, variable FPS
+        me int: ticksToSkip   <- 1000 / gameSpeed
         me int: MAX_FRAMESKIP <- 5
-
         me double: nextTick <- getTickCount()
         me int: loops
         me double: interpolation
+	
         while(running){
             loops <- 0
-            while(GetTickCount() > nextTick and loops < MAX_FRAMESKIP){
+            while(getTickCount() >= nextTick and loops < MAX_FRAMESKIP){
                 handleEvents()
                 crntGameMode.update()
-
                 nextTick <- nextTick + ticksToSkip
                 loops <- loops + 1
             }
             interpolation <- (getTickCount() + ticksToSkip - nextTick) / ticksToSkip
             their GUI_ctxt: cr  <- createGUI_ctxt()
-            crntGameMode.draw(cr, interpolation)
-        }*/
+            framesDrawnCount <+- 1
+	    crntGameMode.draw(cr, interpolation)
+	    if (printFPS) {outputFPS()}
+        }
     }
 
     void: play(me int: playMode, me int: gameFPS) <- {
@@ -253,7 +242,7 @@ struct GameLooper{
         if(playMode==0){runNoWait()}
         else if(playMode==1){runConstFPS(gameFPS)}
         else if(playMode==2){runMaxFPS(gameFPS)}
-        else if(playMode==3){runVarFPS()}
+        else if(playMode==3){runVarFPS(gameFPS)}
         //print("Frames/sec:", FPS(), "\n")
         deInit()
     }
