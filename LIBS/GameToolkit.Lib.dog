@@ -116,7 +116,7 @@ struct GameMode{
 }
 
 struct GameLooper{
-    me int: FramesOrTicksPerSec <- 40  // Change this as needed
+    me int: FramesPerSec
 
     me bool: running
     our GameMode: crntGameMode
@@ -157,7 +157,8 @@ struct GameLooper{
     }
 
     void: runConstFPS() <- {
-        me int: ticksToSkip <- FramesOrTicksPerSec / 1000
+        FramesPerSec <- 40  // Change this as needed
+        me int: ticksToSkip <- 1000 / FramesPerSec
         me int: timeToSleep <- 0
         me double: nextTick <- 0
         while(running){
@@ -166,7 +167,7 @@ struct GameLooper{
             their GUI_ctxt: cr  <- createGUI_ctxt()
             crntGameMode.draw(cr, 0)
 
-            nextTick <- nextTick + ticksToSkip
+            nextTick <+- ticksToSkip
             timeToSleep <- nextTick - getTickCount()
             if(timeToSleep > 0){
                 sleep(timeToSleep)
@@ -175,7 +176,7 @@ struct GameLooper{
     }
 
     void: runMaxFPS() <- { // Constant Game speed, max FPS
-        /*me int: ticksToSkip   <- 1000 / FramesOrTicksPerSec
+        /*me int: ticksToSkip   <- 1000 / FramesPerSec
         me int: MAX_FRAMESKIP <- 10
 
         me double: nextTick <- getTickCount()
@@ -195,7 +196,7 @@ struct GameLooper{
     }
 
     void: runVarFPS() <- { // Constant Game speed, variable FPS
-        /*me int: ticksToSkip   <- 1000 / FramesOrTicksPerSec
+        /*me int: ticksToSkip   <- 1000 / FramesPerSec
         me int: MAX_FRAMESKIP <- 5
 
         me double: nextTick <- getTickCount()
