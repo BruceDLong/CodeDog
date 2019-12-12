@@ -53,7 +53,7 @@ struct GLOBAL{
     }%>
 
     void: fullScreenModeOn() <- <%{
-        SDL_SetWindowFullscreen(window, SDL_TRUE);
+	SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         SDL_SetRelativeMouseMode(SDL_TRUE);
     }%>
 
@@ -186,6 +186,37 @@ struct GLOBAL{
         cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
     } %>
 
+    // WARNING: if displayImage is changed, you may also need to change displayBackgroundImage
+    void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: xScale, me double: yScale) <- <%{
+        cairo_surface_t* pic=0;
+        map<string, cairo_surface_t*>::iterator picPtr=picCache.find(filename);
+        if (picPtr==picCache.end()) {picCache[filename]=pic=cairo_image_surface_create_from_png(filename.data());}
+        else pic=picPtr->second;
+	
+        cairo_save(cr);
+        cairo_scale(cr, 1/xScale, 1/yScale);
+        cairo_set_source_surface(cr,pic,x*xScale,y*yScale);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }%>
+    // WARNING: if displayBackgroundImage is changed, you may also need to change displayImage
+    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
+	cairo_surface_t* pic=0;
+        map<string, cairo_surface_t*>::iterator picPtr=picCache.find(filename);
+        if (picPtr==picCache.end()) {picCache[filename]=pic=cairo_image_surface_create_from_png(filename.data());}
+        else pic=picPtr->second;
+	
+	double picWidth = cairo_image_surface_get_width(pic);
+	double picHeight = cairo_image_surface_get_height(pic);
+	double xScale = screenWidth / picWidth;
+	double yScale = screenHeight / picHeight;
+	
+        cairo_save(cr);
+        cairo_scale(cr, xScale, yScale);
+        cairo_set_source_surface(cr,pic,0,0);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }%>
 }
 /////////////////////////////////  GUI_ctxt
 struct GUI_ctxt{

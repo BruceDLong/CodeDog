@@ -1,8 +1,8 @@
 // minimalGame.dog
 
-//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
 Title = "minimalGame"
@@ -20,7 +20,7 @@ LicenseText = `Public Domain`
 runCode=`
     initializeGraphics(true)
     setUpGame()
-    gameLooper.play(1)
+    gameLooper.play(1, 40)
     deinitGraphics()
 `
 ////////////   A p p l i c a t i o n   a n d   G l o b a l s
@@ -34,6 +34,8 @@ struct AlienArmada{
     me int: alien1Height
     me int: leftMostPos
     me int: rightMostPos
+    me int: alienSpeed
+    me int: alienAdvance
     me mode [goingLeft, goingRight]: direction
     me GameImage: alien1Img
 
@@ -53,23 +55,31 @@ struct AlienArmada{
         if(direction == goingLeft){
             if(leftMostPos < 10){
                 direction <- goingRight
-                yToMove   <- 30
+                yToMove   <- alienAdvance
 
             }
         }else if(direction == goingRight){
             if(rightMostPos > screenWidth - alien1Width - 10){
                 direction <- goingLeft
-                yToMove   <- 30
+                yToMove   <- alienAdvance
             }
         }
         if(direction == goingLeft){
-            xToMove <- -0.3
+            xToMove <- -alienSpeed
         }else if(direction == goingRight){
-            xToMove <- 0.3
+            xToMove <- alienSpeed
         }
         withEach ship in aliens{
             ship.x <- ship.x + xToMove
             ship.y <- ship.y + yToMove
+	    if (randInt(alienShotOdds) == 0) {
+		our Bullet:: newBullet
+		newBullet.x <- ship.x + alien1Width/2
+		newBullet.y <- ship.y + alien1Height
+		newBullet.owner <- theirBullet
+		gamePlayScreen.bullets.pushFirst(newBullet)
+		gamePlayScreen.alienFires.play()
+	    }
         }
     }
     void: draw(their GUI_ctxt: cr) <- {
@@ -96,10 +106,13 @@ struct AlienArmada{
         }
     }
     void: init() <-{
-        alien1Img.loadFromFile("assets/greenAlien.png")
+        aliens.clear()
+	alien1Img.loadFromFile("assets/greenAlien.png")
         alien1Width  <- alien1Img.width/scaleFactor
         alien1Height <- alien1Img.height/scaleFactor
-        addAliens(1)
+	addAliens(1)
+	alienSpeed <- 5
+	alienAdvance <- 30
     }
 }
 struct Bullet{
@@ -110,12 +123,12 @@ struct Bullet{
     me bool: update() <- {
         me bool: deleteIt <- false
         if(owner == ourBullet){
-            y <- y - 1
+            y <- y - bulletSpeed
         }
         else if(owner == theirBullet){
-            y <- y + 1
+            y <- y + bulletSpeed
         }
-        if(y < 0 or y > screenWidth){
+        if(y < 0 or y > screenHeight){
             deleteIt <- true
         }
         return(deleteIt)
@@ -126,21 +139,69 @@ struct Bullet{
             cr.setLineWidth(4)
             cr.moveTo(x, y)
             cr.lineTo(x, y+10)
-        }
+        } else if(owner == theirBullet) {
+	    cr.setColor(Styler.Red)
+            cr.setLineWidth(4)
+            cr.moveTo(x, y)
+            cr.lineTo(x, y-10)
+	}
         cr.strokeNow()
     }
 }
 struct GameMenuScreen: inherits=GameMode{
+    me int: textY
+    
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
-        cr.setColor(Styler.DarkSlateBlue)
+        textY <- 100
+	cr.setColor(Styler.DarkSlateBlue)
         cr.rectangle(0,0,screenWidth, screenHeight)
         cr.fillNow()
 
         cr.setColor(Styler.White)
         our fontSpec:: testFont <- ("Ariel", 20, 0)
-        renderText(cr, "Press Space to Play!", testFont, 150, 100)
-        renderText(cr, "Press Escape to Exit!", testFont, 150, 200)
+	if (winner) {
+	    renderTextCentered(cr, "WINNER!", testFont, screenWidth/2, textY)
+	    textY <+- 100
+	}
+	if (finalScore) {
+	    renderTextCentered(cr, "Final Score: " + toString(finalScore), testFont, screenWidth/2, textY)
+	    textY <+- 100
+	    renderTextCentered(cr, "Press Space to Play Again!", testFont, screenWidth/2, textY)
+	    textY <+- 100
+	} else {
+	    renderTextCentered(cr, "Press Space to Play!", testFont, screenWidth/2, textY)
+	    textY <+- 100
+	}
+        renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, textY)
+	textY <+- 100
+        cr.strokeNow()
+        window.requestRedraw()
+    }
+    void: pause() <- {}
+    void: resume() <- {}
+    void: keyDownEventHandler(their KeyInfo: event) <- {
+        switch (event.sym){
+            case SDLK_SPACE:{
+		setUpGame()
+		looper.setGameMode(gamePlayScreen)
+            }
+            case SDLK_ESCAPE:{
+                looper.quitGame()
+            }
+        }
+    }
+    void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
+    void: deInit() <- {}
+}
+struct GamePauseScreen: inherits=GameMode{
+    void: update() <- {}
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
+        cr.setColor(Styler.White)
+        our fontSpec:: testFont <- ("Ariel", 20, 0)
+        renderTextCentered(cr, "PAUSED", testFont, screenWidth/2, 200)
+        renderTextCentered(cr, "Press Space to Continue Playing", testFont, screenWidth/2, 300)
+	renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, 400)
         cr.strokeNow()
         window.requestRedraw()
     }
@@ -152,7 +213,8 @@ struct GameMenuScreen: inherits=GameMode{
                 looper.setGameMode(gamePlayScreen)
             }
             case SDLK_ESCAPE:{
-                looper.quitGame()
+                finalScore <- playerScore
+		looper.setGameMode(gameMenuScreen)
             }
         }
     }
@@ -161,9 +223,11 @@ struct GameMenuScreen: inherits=GameMode{
 }
 struct GamePlayScreen: inherits=GameMode{
     me GameSound: playerFires
+    me GameSound: alienFires
     me GameSound: explosion1
     me int: playerPosition
     me int: shipWidth
+    me int: shipOffsetY
     our Bullet[list]: bullets
     me AlienArmada: armada
 
@@ -181,8 +245,9 @@ struct GamePlayScreen: inherits=GameMode{
         detectCollisions()
     }
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
-        displayImage(cr, "assets/level1Background.png", 0, 0, 1)
-        displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, screenHeight-100, scaleFactor)
+        displayBackgroundImage(cr, "assets/level1Background.png")
+        shipOffsetY <- screenHeight/10
+	displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, screenHeight-shipOffsetY, scaleFactor, scaleFactor)
         armada.draw(cr)
         withEach bullet in bullets{
             bullet.draw(cr)
@@ -192,31 +257,53 @@ struct GamePlayScreen: inherits=GameMode{
         renderText(cr, "Score: " + toString(playerScore), scoreFont, 10, 40)
         window.requestRedraw()
     }
-    bool: pointIsInRectangle(me int: ptX, me int: ptY, me int: RectX, me int: rectY, me int: rectHeight, me int: rectWidth)<- {
+    bool: pointIsInRectangle(me int: ptX, me int: ptY, me int: RectX, me int: rectY, me int: rectWidth, me int: rectHeight)<- {
         return ((ptX >= RectX) and (ptX <= RectX + rectWidth) and (ptY >= rectY) and (ptY <= rectY + rectHeight))
     }
     void: detectCollisions() <- {
-        me int: bulletIdx <- 0
+        // Bullet on ship collisions
+	me int: bulletIdx <- 0
         while (bulletIdx < bullets.size()){
             our Bullet: bullet <- bullets[bulletIdx]
-            if(bullet.owner == ourBullet){
+            if(bullet.owner == ourBullet){		// alien is hit
                 me int: alienIdx <- 0
                 while(alienIdx < armada.aliens.size()){
                     our AlienShip: alien <- armada.aliens[alienIdx]
-                    if(pointIsInRectangle(bullet.x, bullet.y, alien.x, alien.y, armada.alien1Height, armada.alien1Width)){
+                    if(pointIsInRectangle(bullet.x, bullet.y, alien.x, alien.y, armada.alien1Width, armada.alien1Height)){
                         explosion1.play()
                         bullets.DeleteNth(bulletIdx)
                         armada.aliens.DeleteNth(alienIdx)
                         playerScore <- playerScore + 1
                         bulletIdx <- bulletIdx - 1
                         alienIdx  <- alienIdx  - 1
+			if (armada.aliens.size() == 0) {	// last alien is hit
+			    winner <- true
+			    finalScore <- playerScore
+			    looper.setGameMode(gameMenuScreen)
+			}
                     }
                     alienIdx  <- alienIdx  + 1
                 }
-            }else if(bullet.owner == theirBullet){
+            }else if(bullet.owner == theirBullet){	// player is hit
+		if(pointIsInRectangle(bullet.x, bullet.y, playerPosition - shipWidth/2, screenHeight - shipOffsetY, shipWidth, 100)){
+		    explosion1.play()
+		    finalScore <- playerScore
+		    looper.setGameMode(gameMenuScreen)
+		}
             }
             bulletIdx <- bulletIdx + 1
         }
+	// Ship on ship collisions
+	me int: alienIdx <- 0
+	while(alienIdx < armada.aliens.size()){
+	    our AlienShip: alien <- armada.aliens[alienIdx]
+	    if(pointIsInRectangle(alien.x, alien.y, playerPosition, screenHeight - shipOffsetY, shipWidth, 100)){
+		explosion1.play()
+		finalScore <- playerScore
+		looper.setGameMode(gameMenuScreen)
+	    }
+	    alienIdx  <- alienIdx  + 1
+	}
     }
     void: pause() <- {}
     void: resume() <- {}
@@ -225,20 +312,20 @@ struct GamePlayScreen: inherits=GameMode{
             case SDLK_SPACE:{
                 our Bullet:: newBullet
                 newBullet.x <- playerPosition
-                newBullet.y <- screenHeight - 100
+                newBullet.y <- screenHeight - shipOffsetY
                 newBullet.owner <- ourBullet
                 bullets.pushFirst(newBullet)
                 playerFires.play()
             }
             case SDLK_ESCAPE:{
                 pause()
-                looper.setGameMode(gameMenuScreen)
+                looper.setGameMode(gamePauseScreen)
             }
             case SDLK_LEFT:{
-                playerPosition <- max(shipWidth/2, playerPosition - 10)
+                playerPosition <- max(shipWidth/2, playerPosition - playerMovement)
             }
             case SDLK_RIGHT:{
-                playerPosition <- min(screenWidth-shipWidth/2, playerPosition + 10)
+                playerPosition <- min(screenWidth-shipWidth/2, playerPosition + playerMovement)
             }
             case SDLK_f:{toggleFullScreen()}
         }
@@ -247,7 +334,9 @@ struct GamePlayScreen: inherits=GameMode{
         looper <- ourLooper
         playerPosition <- screenWidth/2
         shipWidth      <- 136/scaleFactor
+	bullets.clear()
         playerFires.loadFromFile("assets/fire1.wav")
+	alienFires.loadFromFile("assets/fire2.wav")
         explosion1.loadFromFile("assets/explosion1.wav")
         armada.init()
     }
@@ -255,15 +344,27 @@ struct GamePlayScreen: inherits=GameMode{
 }
 struct GLOBAL{
     their GUI_canvas: drawing_area
-    const int: scaleFactor    <- 2
     me int: fontSize
     our GameLooper:: gameLooper
     our GameMenuScreen:: gameMenuScreen
+    our GamePauseScreen:: gamePauseScreen
     our GamePlayScreen:: gamePlayScreen
+    
+    // SETTINGS
+    const int: scaleFactor <- 2
+    const int: bulletSpeed <- 5
+    const int: playerMovement <- 15
+    const int: alienShotOdds <- 1000	// the lower the number, the more they shoot
+    
     me int: playerScore
+    me int: finalScore
+    me bool: winner
+    
     void: setUpGame() <- {
-        playerScore <- 0
+	playerScore <- 0
+	winner <- false
         gameMenuScreen.init(gameLooper)
+	gamePauseScreen.init(gameLooper)
         gamePlayScreen.init(gameLooper)
         gameLooper.setGameMode(gameMenuScreen)
     }
@@ -281,8 +382,6 @@ struct APP{
 }
 
 // TODO:
-// detect when aliens hit the ship
-// detect lose/win
 // clean opening screen
 // Music playing
 // Mouse Events

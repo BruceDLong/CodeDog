@@ -709,6 +709,27 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         else:
             if(assignTag=='deep'):
                 actionText = indent + LHS + " = " + RHS + ";\n"
+            elif(assignTag=='+'):
+                actionText = indent + LHS + " += " + RHS + ";\n"
+            # -= operator, it isn't set up because parser does not handle a middle "-" and closing "-"
+            #elif(assignTag=='-'):
+                #actionText = indent + LHS + " -= " + RHS + ";\n"
+            elif(assignTag=='*'):
+                actionText = indent + LHS + " *= " + RHS + ";\n"
+            elif(assignTag=='/'):
+                actionText = indent + LHS + " /= " + RHS + ";\n"
+            elif(assignTag=='%'):
+                actionText = indent + LHS + " %= " + RHS + ";\n"
+            elif(assignTag=='<<'):
+                actionText = indent + LHS + " <<= " + RHS + ";\n"
+            elif(assignTag=='>>'):
+                actionText = indent + LHS + " >>= " + RHS + ";\n"
+            elif(assignTag=='&'):
+                actionText = indent + LHS + " &= " + RHS + ";\n"
+            elif(assignTag=='^'):
+                actionText = indent + LHS + " ^= " + RHS + ";\n"
+            elif(assignTag=='|'):
+                actionText = indent + LHS + " |= " + RHS + ";\n"
             else:
                 actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
     elif (typeOfAction =='swap'):
