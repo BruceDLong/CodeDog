@@ -153,16 +153,6 @@ struct GameLooper{
     }
     our GameMode[list]: modeStack
 
-    void: runNoWait() <- {
-        while(running){
-            handleEvents()
-            crntGameMode.update()
-            their GUI_ctxt: cr  <- createGUI_ctxt()
-            crntGameMode.draw(cr, 0)
-            sleep(1)  // With no sleep CPU will go to 100%
-        }
-    }
-
     void: outputFPS() <- {
 	latestTickCount <- getTickCount()
 	if ((latestTickCount - lastTickLog) >= 3000) {
@@ -172,7 +162,15 @@ struct GameLooper{
 	    framesLog <- framesDrawnCount
 	}
     }
-    
+    void: runNoWait() <- {
+        while(running){
+            handleEvents()
+            crntGameMode.update()
+            their GUI_ctxt: cr  <- createGUI_ctxt()
+            crntGameMode.draw(cr, 0)
+            sleep(1)  // With no sleep CPU will go to 100%
+        }
+    }
     void: runConstFPS(me int: FramesPerSec) <- {	// Constant game speed and FPS
         me int: ticksToSkip <- 1000 / FramesPerSec
         me int: timeToSleep <- 0
@@ -191,7 +189,6 @@ struct GameLooper{
 	    else {log("FRAMES MISSED")}
         }
     }
-
     void: runMaxFPS(me int: gameSpeed) <- { 	// Constant Game speed, max FPS
         me int: ticksToSkip   <- 1000 / gameSpeed
         me int: MAX_FRAMESKIP <- 10
@@ -212,7 +209,6 @@ struct GameLooper{
 	    if (printFPS) {outputFPS()}
         }
     }
-
     void: runVarFPS(me int: gameSpeed) <- { 	// Constant Game speed, variable FPS
         me int: ticksToSkip   <- 1000 / gameSpeed
         me int: MAX_FRAMESKIP <- 5
@@ -243,7 +239,6 @@ struct GameLooper{
         else if(playMode==1){runConstFPS(gameFPS)}
         else if(playMode==2){runMaxFPS(gameFPS)}
         else if(playMode==3){runVarFPS(gameFPS)}
-        //print("Frames/sec:", FPS(), "\n")
         deInit()
     }
 }

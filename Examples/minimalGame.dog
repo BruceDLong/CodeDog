@@ -382,7 +382,6 @@ struct APP{
 }
 
 // TODO:
-// fix screen toggling
 // clean opening screen
 // Music playing
 // Mouse Events

@@ -53,7 +53,7 @@ struct GLOBAL{
     }%>
 
     void: fullScreenModeOn() <- <%{
-        SDL_SetWindowFullscreen(window, SDL_TRUE);
+	SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         SDL_SetRelativeMouseMode(SDL_TRUE);
     }%>
 
