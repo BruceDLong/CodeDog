@@ -397,7 +397,7 @@ struct display_'''+className+": inherits=dash"+'''{
         elif(fldCat=='struct'):  # Header for a STRUCT
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', ">", '+fieldRef+')\n'
-            if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList':structTypeName = 'infon'
+            if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':structTypeName = 'infon'
             else: structTypeName = progSpec.getFieldType(typeSpec)[0]
             structText += "    "+owner+" display_"+structTypeName+': '+fieldName+"\n"
 

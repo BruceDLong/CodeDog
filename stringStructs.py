@@ -26,7 +26,7 @@ def codeDogTypeToString(classes, tags, field):
         #S+='const '+fieldType+': ' + fieldName + ' <- '+fieldValue+'\n'
         pass
     elif fieldOwner=='const':
-        print "Finish This"
+        print("Finish This")
 
     return S
 
@@ -736,7 +736,7 @@ def appendRule(ruleName, termOrNot, pFlags, prodData):
         ruleSet[ruleName]+=1
     else:
         thisIDX=len(rules)
-        if not isinstance(ruleName, basestring):
+        if not isinstance(ruleName, str):
             ruleName="rule"+str(thisIDX)
         constDefs.append([ruleName, str(thisIDX)])
         #print "PRODDATA:", prodData
@@ -802,7 +802,7 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
         elif fieldType[0:4]=='char':   nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn, "term", "parseSEQ",  fieldValue)
         else:
-            print "Unusable const type in fetchOrWriteTerminalParseRule():", fieldType; exit(2);
+            print("Unusable const type in fetchOrWriteTerminalParseRule():", fieldType); exit(2);
 
     elif fieldOwner=='me' or  fieldOwner=='their' or  fieldOwner=='our':
         if fieldType=='string':        nameOut='quotedStr1'
@@ -817,7 +817,7 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
                 nameOut=objName
             else:
                 if objName=='[' or objName=='{': # This is an ALT or SEQ sub structure
-                    print "ERROR: These should be handled in writeNonTermParseRule().\n"
+                    print("ERROR: These should be handled in writeNonTermParseRule().\n")
                     exit(1)
                 else: nameOut=objName+'_str'
         elif progSpec.isAlt(fieldType):
@@ -825,8 +825,8 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
         elif progSpec.isCofactual(fieldType):
             pass
         else:
-            print "Unusable type in fetchOrWriteTerminalParseRule():", fieldType; exit(2);
-    else: print "Pointer types not yet handled in fetchOrWriteTerminalParseRule():", fieldType; exit(2);
+            print("Unusable type in fetchOrWriteTerminalParseRule():", fieldType); exit(2);
+    else: print("Pointer types not yet handled in fetchOrWriteTerminalParseRule():", fieldType); exit(2);
 
     if progSpec.isAContainer(typeSpec):
         global rules
@@ -944,7 +944,7 @@ def Write_ALT_Extracter(classes, parentStructName, fields, VarTagBase, VarTagSuf
     for altField in fields:
         if(altField['isNext']!=True): continue; # This field isn't in the parse stream.
         cdlog(logLvl+1, "ALT: {}".format(altField['parseRule']))
-        if not 'parseRule' in altField: print "Error: Is syntax missing a '>'?"; exit(2);
+        if not 'parseRule' in altField: print("Error: Is syntax missing a '>'?"); exit(2);
         S+=indent2+"    case " + altField['parseRule'] + ":{\n"
         coFactualCode=''
         if 'coFactuals' in altField:
@@ -969,7 +969,7 @@ def CodeRValExpr(toFieldType, VarTag):
     elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
     elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
     elif toFieldType[0:4]=='flag':       CODE_RVAL=''
-    else: print "TOFIELDTYPE:", toFieldType; exit(2);
+    else: print("TOFIELDTYPE:", toFieldType); exit(2);
     return CODE_RVAL
 
 
@@ -985,8 +985,8 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     typeSpec   = field['typeSpec']
     fieldType  = progSpec.getFieldType(typeSpec)
     fieldOwner =typeSpec['owner']
-    fromIsEmbeddedAlt = (not isinstance(fieldType, basestring) and fieldType[0]=='[')
-    fromIsEmbeddedSeq = (not isinstance(fieldType, basestring) and fieldType[0]=='{')
+    fromIsEmbeddedAlt = (not isinstance(fieldType, str) and fieldType[0]=='[')
+    fromIsEmbeddedSeq = (not isinstance(fieldType, str) and fieldType[0]=='{')
     fromIsEmbedded    = fromIsEmbeddedAlt or fromIsEmbeddedSeq
 
     if(fieldIsNext!=True): return '' # This field isn't in the parse stream.
@@ -1007,7 +1007,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         if toTypeSpec['fieldType'][0]=='DblLinkedList': toFieldOwner='our'  # Because the list stores 'our infon'
 
         if debugTmp:
-            print '        toFieldType:', toFieldType
+            print('        toFieldType:', toFieldType)
 
     LHS_IsPointer=progSpec.typeIsPointer(toTypeSpec)
 
@@ -1034,15 +1034,15 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         if datastructID != 'opt': toIsList=True
 
     if debugTmp:
-        print '        fromIsOPT:', fromIsOPT
-        print '        fromIsList:', fromIsList
-        print '        toIsList:', toIsList
-        print '        fromIsStruct:', fromIsStruct
-        print '        toIsStruct:', toIsStruct
-        print '        fieldType:', fieldType
-        print '        ToIsEmbedded:', ToIsEmbedded
-        print '        ToStructName:', ToStructName
-        print '        memVersionName:', memVersionName, "\n"
+        print('        fromIsOPT:', fromIsOPT)
+        print('        fromIsList:', fromIsList)
+        print('        toIsList:', toIsList)
+        print('        fromIsStruct:', fromIsStruct)
+        print('        toIsStruct:', toIsStruct)
+        print('        fieldType:', fieldType)
+        print('        ToIsEmbedded:', ToIsEmbedded)
+        print('        ToStructName:', ToStructName)
+        print('        memVersionName:', memVersionName, "\n")
     ###################   W r i t e   L V A L   R e f e r e n c e
     finalCodeStr=''
     CodeLVAR_Alloc=''
@@ -1056,7 +1056,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             CODE_LVAR_v2 = 'S'+str(globalFieldCount)
             CodeLVAR_Alloc='    me string: '+CODE_LVAR_v2
             CODE_LVAR = CodeLVAR_Alloc
-            if debugTmp: print '        CODE_LVARS:', CODE_LVAR
+            if debugTmp: print('        CODE_LVARS:', CODE_LVAR)
         else:
             CODE_LVAR = VarName+'.'+fieldName
             if fieldName=='inf': CODE_LVAR = VarName
@@ -1083,7 +1083,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
 
     else:
         if toIsStruct:
-            if debugTmp: print '        toFieldType:', toFieldType
+            if debugTmp: print('        toFieldType:', toFieldType)
             if not ToIsEmbedded:
                 objName=toFieldType[0]
                 if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
@@ -1147,10 +1147,10 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
 
         gatherFieldCode+='\n'+indent+'}\n'
         if(fromIsOPT):
-            print "Handle when the optional item is a list.";
+            print("Handle when the optional item is a list.");
             exit(2)
     else:
-        if toIsList: print "Error: parsing a non-list to a list is not supported.\n"; exit(1);
+        if toIsList: print("Error: parsing a non-list to a list is not supported.\n"); exit(1);
         levelSuffix=''
         assignerCode=''
         oldIndent=indent
@@ -1158,7 +1158,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             setTrueCode=''
             assignerCode+='\n'+indent+'if('+VarTag+'.child.next' +' == NULL){'
             if toFieldOwner=='me':
-                if debugTmp: print '        toFieldOwner:', toFieldOwner
+                if debugTmp: print('        toFieldOwner:', toFieldOwner)
                 ## if fieldName==None and a model of fromFieldType has no cooresponding model But we are in EXTRACT_ mode:
                         ## Make a special form of Extract_fromFieldType_to_ToFieldType()
                         ## Call that function instead of the one in Code_LVAR
@@ -1174,7 +1174,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             elif LHS_IsPointer: # If owner is my, our or their
                 assignerCode+='\n'+indent+'    '+CODE_LVAR+' <- NULL'
             else:
-                print"ERROR: OPTional fields must not be '"+toFieldOwner+"'.\n"
+                print("ERROR: OPTional fields must not be '"+toFieldOwner+"'.\n")
                 exit(1)
             assignerCode+='\n'+indent+'} else {\n'
             levelSuffix='.child.next'
@@ -1199,7 +1199,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 assignerCode+=Write_fieldExtracter(classes, ToStructName, innerField, memObjFields, childRecNameBase, '', True, '    ', level, logLvl+1)
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr.replace("<LVL_SUFFIX>", levelSuffix);
-            if debugTmp: print '        assignerCode:', assignerCode
+            if debugTmp: print('        assignerCode:', assignerCode)
         else:
            # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
             if CODE_RVAL!="":

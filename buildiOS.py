@@ -18,13 +18,13 @@ def writeFile(path, fileName, fileSpecs, fileExtension):
     fo.close()
 
 def runCMD(myCMD, myDir):
-    print "        COMMAND: ", myCMD, "\n"
+    print("        COMMAND: ", myCMD, "\n")
     pipe = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
     if out:
-        print "        Result: ",out
+        print("        Result: ",out)
     if err:
-        print "\n", err
+        print("\n", err)
         if (err.find("ERROR")) >= 0:
             exit(1)
     return [out, err]
@@ -66,7 +66,7 @@ def swiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     return [workingDirectory, buildStr, runStr]
 
 def pbxprojFileCreate(workingDir):
-    print '--------------------------------   Generating project.pbxproj \n'
+    print('--------------------------------   Generating project.pbxproj \n')
     fileName = "project.pbxproj"
     outStr = '// !$*UTF8*$!\n'\
              '{\n'\
@@ -94,7 +94,7 @@ def createProject(workingDirectory, fileName, fileSpecs):
 
 
 def xCodeCompile(fileName, workingDirectory):
-    print"    Generating .app file"
+    print("    Generating .app file")
     outputTag = 'OBJROOT='+workingDirectory+'/Obj.root SYMROOT='+workingDirectory+'/sym.root '
     buildStr = "xcodebuild -target "+ fileName+outputTag
     runCMD(buildStr, workingDirectory)
@@ -114,7 +114,7 @@ def iOSBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platfor
     makeDir(buildName)
     makeDir(buildName + "/" + fileName)
 
-    print 'Building for iOS'
+    print('Building for iOS')
 
     [osStr, err]=runCMD("uname", currentDirectory)
     if osStr[:6]=='Darwin':
@@ -125,7 +125,7 @@ def iOSBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platfor
 
 
     else:
-        print"buildDog.iosBuilder: unknown OS: '", osStr, "'"
+        print("buildDog.iosBuilder: unknown OS: '", osStr, "'")
         exit(1)
 
-    print 'Finished Building for iOS'
+    print('Finished Building for iOS')

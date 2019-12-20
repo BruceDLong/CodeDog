@@ -89,7 +89,7 @@ def stringifyList(theList):
     S=''
     count=0
     for item in theList:
-        if not(isinstance(item, basestring)):cdErr("List item not basesring")
+        if not(isinstance(item, str)):cdErr("List item not basesring")
         if count >0: S = S+', '
         S = S + item
         count = count +1
@@ -99,7 +99,7 @@ def processStylerMap(stylerTags, varOwner, varType, setFunc, defaultVars):
     S=''
     for varName in stylerTags:
         varValue = stylerTags[varName]
-        if isinstance(varValue, basestring):
+        if isinstance(varValue, str):
             RHS=' <- '+varValue
         elif isinstance(varValue, list):
             RHS=stringifyList(varValue)
@@ -138,17 +138,17 @@ def processStyler(stylerTagValue):
             defaultVars = []
             RHS      = ' <- '+ stylerTagValue[tag]
         else:
-            print '    tag not found'
+            print('    tag not found')
 
         if isinstance(stylerTagValue[tag], dict):
             S = S + processStylerMap(stylerTagValue[tag], varOwner, varType, setFunc, defaultVars)
-        elif isinstance(stylerTagValue[tag], basestring):
+        elif isinstance(stylerTagValue[tag], str):
             S = S + '        ' + varType + RHS +'\n'
-        else: print"!!!!!!!!!!!!!!!!!!styler not map or basestring", stylerTagValue[tag]
+        else: print("!!!!!!!!!!!!!!!!!!styler not map or basestring", stylerTagValue[tag])
     return S
 
 def apply(classes, tags, stylerTagName):
-    if not(isinstance(stylerTagName,basestring)):
+    if not(isinstance(stylerTagName,str)):
         cdErr("Styler tag name must be a string")
     stylerTagValue = progSpec.fetchTagValue(tags, stylerTagName)
     initCode = processStyler(stylerTagValue)

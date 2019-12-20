@@ -213,7 +213,7 @@ def ExecCodeDogTest(testSpec, buildSpec):
     if(len(testSpec)>1):
         colonPos = testSpec[1].find(':')
     else:
-        print"Missing Test Spec"
+        print("Missing Test Spec")
         exit(0)
     willRun = False
     if(colonPos):
@@ -225,12 +225,12 @@ def ExecCodeDogTest(testSpec, buildSpec):
         willRun = True
         testString += tags.replace('<runCodeGoesHere>', '`\nme testClass: TC\nTC.runTest()\n`') + "\n"
     else:
-        print "Unknown test spec: ",testSpec[1]
+        print("Unknown test spec: ",testSpec[1])
         exit(0)
 
     testString += testSpec[0] + "\n"
     out, err = RunCodeDogPrg(testString)
-    print "out: ", out
+    print("out: ", out)
     if out:
         if(out.find('Marker: Parse Successful')==-1):
             return "***Parse Fail***"
@@ -269,7 +269,7 @@ def runListedTests(testsToRun):
     global testDefinitions
     reportText = ""
     for testKey in testsToRun:
-        print "Running test: ", testKey
+        print("Running test: ", testKey)
         testResult = ExecCodeDogTest(testDefinitions[testKey], buildSpec)
         #print "testResult: ", testKey, ":  ", testResult
         reportText+= testKey + ": "+testResult+  "\n"
@@ -292,7 +292,7 @@ def gatherListOfTestsToRun(keywordList):
 ###################################
 # Get command line: tests and xlator name
 if len(sys.argv)==1:
-    print "\nUsage:", sys.argv[0], "<xlatorName> [test-names...]\n"
+    print("\nUsage:", sys.argv[0], "<xlatorName> [test-names...]\n")
     exit(0)
 
 xlatorName = sys.argv[1]
@@ -312,12 +312,12 @@ elif(xlatorName == "swift"):
     runSpec = ".build/debug/testXlator"
     runDirectory = workingDirectory + "/SwiftBuild/testXlator"
 else:
-    print "UNKNOWN XLATOR: ", xlatorName
+    print("UNKNOWN XLATOR: ", xlatorName)
     exit(0)
 
 testsToRun = gatherListOfTestsToRun(testListSpec)
 #print "testsToRun: ",testsToRun
 reportText = runListedTests(testsToRun)
-print "********** T E S T    R E S U L T S **********"
-print reportText
-print "**********************************************"
+print("********** T E S T    R E S U L T S **********")
+print(reportText)
+print("**********************************************")

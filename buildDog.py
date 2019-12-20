@@ -13,13 +13,13 @@ from progSpec import cdlog, cdErr
 #TODO: error handling
 
 def runCMD(myCMD, myDir):
-    print "        COMMAND: ", myCMD, "\n"
+    print("        COMMAND: ", myCMD, "\n")
     pipe = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
     if out:
-        print "        Result: ",out
+        print("        Result: ",out)
     if err:
-        print "\n", err
+        print("\n", err)
         if (err.find("ERROR")) >= 0:
             exit(1)
     return [out, err]
@@ -160,15 +160,15 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 
 def printResults(workingDirectory, buildStr, runStr):
     cdlog(1, "Compiling From: {}".format(workingDirectory))
-    print "     NOTE: Build Command is: ", buildStr, "\n"
-    print "     NOTE: Run Command is: ", runStr, "\n"
+    print("     NOTE: Build Command is: ", buildStr, "\n")
+    print("     NOTE: Run Command is: ", runStr, "\n")
     #print "workingDirectory: ", workingDirectory
     pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
-    if out: print "Result: ",out
+    if out: print("Result: ",out)
     if err:
-        print "Error Messages:\n--------------------------\n", err,
-        print "--------------------------",
+        print("Error Messages:\n--------------------------\n", err, end=' ')
+        print("--------------------------", end=' ')
         exit(2)
     else: cdlog(1, "SUCCESS!")
 
@@ -188,7 +188,7 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     elif platform == 'Windows':
         [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     else:
-        print "buildDog.py error: build string not generated for "+ buildName
+        print("buildDog.py error: build string not generated for "+ buildName)
         exit(2)
-    print "--------------------------"
+    print("--------------------------")
     return

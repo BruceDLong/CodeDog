@@ -16,7 +16,7 @@ def getContainerType(typeSpec, actionOrField):
     return [datastructID, idxType, owner]
 
 def adjustBaseTypes(fieldType):
-    if(isinstance(fieldType, basestring)):
+    if(isinstance(fieldType, str)):
         #print"adjustBaseTypes:basestring",fieldType
         if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='uint32'): fieldType='UInt32'
         elif(fieldType=='int8' or fieldType=='int16' or fieldType=='int32'): fieldType='Int32'
@@ -88,7 +88,7 @@ def convertType(classes, TypeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=TypeSpec['owner']
     fieldType=TypeSpec['fieldType']
-    if not isinstance(fieldType, basestring):
+    if not isinstance(fieldType, str):
         #if len(fieldType)>1: exit(2)
         fieldType=fieldType[0]
     baseType = progSpec.isWrappedType(classes, fieldType)
@@ -142,8 +142,8 @@ def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     # Returns left and right text decorations for RHS of function arguments, return values, etc.
-    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['',''] # This happens e.g., string.size() # TODO: fix this.
-    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['', '']
+    if RVAL==0 or RVAL==None or isinstance(RVAL, str): return ['',''] # This happens e.g., string.size() # TODO: fix this.
+    if LVAL==0 or LVAL==None or isinstance(LVAL, str): return ['', '']
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if LeftOwner == RightOwner: return ["", ""]
@@ -156,8 +156,8 @@ def chooseVirtualRValOwner(LVAL, RVAL):
 def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     #TODO: make test case
     # Returns left and right text decorations for both LHS and RHS of assignment
-    if RVAL==0 or RVAL==None or isinstance(RVAL, basestring): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
-    if LVAL==0 or LVAL==None or isinstance(LVAL, basestring): return ['','',  '','']
+    if RVAL==0 or RVAL==None or isinstance(RVAL, str): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
+    if LVAL==0 or LVAL==None or isinstance(LVAL, str): return ['','',  '','']
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):
@@ -196,9 +196,9 @@ def getCodeAllocStr(varTypeStr, owner):
     if(owner=='our'): S=varTypeStr
     elif(owner=='my'): S=varTypeStr
     elif(owner=='their'): S=varTypeStr
-    elif(owner=='me'): print "ERROR: Cannot allocate a 'me' variable."; exit(1);
-    elif(owner=='const'): print "ERROR: Cannot allocate a 'const' variable."; exit(1);
-    else: print "ERROR: Cannot allocate variable because owner is", owner+"."; exit(1);
+    elif(owner=='me'): print("ERROR: Cannot allocate a 'me' variable."); exit(1);
+    elif(owner=='const'): print("ERROR: Cannot allocate a 'const' variable."); exit(1);
+    else: print("ERROR: Cannot allocate variable because owner is", owner+"."); exit(1);
     return S
 
 def getCodeAllocSetStr(varTypeStr, owner, value):
@@ -240,7 +240,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='erase'    : name='xlator_Swift.getContainerTypeInfo'
         elif name=='deleteNth': name='xlator_Swift.getContainerTypeInfo'
         elif name=='nthItr'   : name='xlator_Swift.getContainerTypeInfo'
-        else: print "xlator_Swift.getContainerTypeInfo Unknown list command:", name; exit(2);
+        else: print("xlator_Swift.getContainerTypeInfo Unknown list command:", name); exit(2);
     elif containerType=='map':
         # https://developer.apple.com/documentation/foundation/nsmutableorderedset
         if idxType=='timeValue': convertedIdxType = 'Int64'
@@ -260,7 +260,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
         elif name=='get'      : name='xlator_Swift.getContainerTypeInfo'
-        else: print "xlator_Swift.getContainerTypeInfo Unknown map command:", name; exit(2);
+        else: print("xlator_Swift.getContainerTypeInfo Unknown map command:", name); exit(2);
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'Int64'
         else: convertedIdxType=idxType
@@ -276,20 +276,20 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
         elif name=='last'     : name='rbegin()->second'; paramList=None;
         elif name=='popFirst' : name='pop_front'
         elif name=='popLast'  : name='pop_back'
-        else: print "xlator_Swift.getContainerTypeInfo Unknown multimap command:", name; exit(2);
+        else: print("xlator_Swift.getContainerTypeInfo Unknown multimap command:", name); exit(2);
     elif containerType=='tree': # TODO: Make trees work
         if name=='size' : name='count'; typeSpecOut={'owner':'me', 'fieldType': 'Int'}; paramList=None;
         elif name=='clear': name='removeAll'
-        else: print "xlator_Swift.getContainerTypeInfo Unknown tree command:", name; exit(2)
+        else: print("xlator_Swift.getContainerTypeInfo Unknown tree command:", name); exit(2)
     elif containerType=='graph': # TODO: Make graphs work
         if name=='size' : name='count'; typeSpecOut={'owner':'me', 'fieldType': 'Int'}; paramList=None;
         elif name=='clear': name='removeAll'
-        else: print "xlator_Swift.getContainerTypeInfo Unknown graph command:", name; exit(2);
+        else: print("xlator_Swift.getContainerTypeInfo Unknown graph command:", name); exit(2);
     elif containerType=='stream': # TODO: Make stream work
         pass
     elif containerType=='filesystem': # TODO: Make filesystem work
         pass
-    else: print "Unknown container type:", containerType; exit(2);
+    else: print("Unknown container type:", containerType); exit(2);
     return(name, typeSpecOut, paramList, convertedIdxType)
 
 def codeFactor(item, objsRefed, returnType, xlator):
@@ -299,7 +299,7 @@ def codeFactor(item, objsRefed, returnType, xlator):
     retType='noType'
     item0 = item[0]
     #print "ITEM0=", item0, ">>>>>", item
-    if (isinstance(item0, basestring)):
+    if (isinstance(item0, str)):
         if item0=='(':
             [S2, retType] = codeExpr(item[1], objsRefed, returnType, xlator)
             S+='(' + S2 +')'
@@ -327,7 +327,7 @@ def codeFactor(item, objsRefed, returnType, xlator):
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
             else: S+=item0;
     else:
-        if isinstance(item0[0], basestring):
+        if isinstance(item0[0], str):
             S+=item0[0]
         else:
             [codeStr, retType, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, xlator)
@@ -340,14 +340,14 @@ def codeFactor(item, objsRefed, returnType, xlator):
 def codeTerm(item, objsRefed, returnType, xlator):
     #print '               term item:', item
     [S, retType]=codeFactor(item[0], objsRefed, returnType, xlator)
-    if (not(isinstance(item, basestring))) and (len(item) > 1) and len(item[1])>0:
+    if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
         S=derefPtr(S, retType)
         for i in item[1]:
             #print '               term:', i
             if   (i[0] == '*'): S+=' * '
             elif (i[0] == '/'): S+=' / '
             elif (i[0] == '%'): S+=' % '
-            else: print "ERROR: One of '*', '/' or '%' expected in code generator."; exit(2)
+            else: print("ERROR: One of '*', '/' or '%' expected in code generator."); exit(2)
             [S2, retType2] = codeFactor(i[1], objsRefed, returnType, xlator)
             S2=derefPtr(S2, retType2)
             S+=S2
@@ -362,7 +362,7 @@ def codePlus(item, objsRefed, returnType, xlator):
             #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
             elif (i[0] == '-'): S+=' - '
-            else: print "ERROR: '+' or '-' expected in code generator."; exit(2)
+            else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
             [S2, retType2] = codeTerm(i[1], objsRefed, returnType, xlator)
             S2=derefPtr(S2, retType2)
             if i[0]=='+' and 'fieldType' in retType2 and retType2['fieldType']=='char': S2='String('+S2+')'
@@ -374,7 +374,7 @@ def codeComparison(item, objsRefed, returnType, xlator):
     #print '         Comp item', item
     [S, retType]=codePlus(item[0], objsRefed, returnType, xlator)
     if len(item) > 1 and len(item[1])>0:
-        if len(item[1])>1: print "Error: Chained comparisons.\n"; exit(1);
+        if len(item[1])>1: print("Error: Chained comparisons.\n"); exit(1);
         S=derefPtr(S, retType)
         for  i in item[1]:
             #print '         comp ', i
@@ -382,7 +382,7 @@ def codeComparison(item, objsRefed, returnType, xlator):
             elif (i[0] == '>'): S+=' > '
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
-            else: print "ERROR: One of <, >, <= or >= expected in code generator."; exit(2)
+            else: print("ERROR: One of <, >, <= or >= expected in code generator."); exit(2)
             [S2, retType] = codePlus(i[1], objsRefed, returnType, xlator)
             S2=derefPtr(S2, retType)
             S+=S2
@@ -393,7 +393,7 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
     #print '      IsEq item:', item
     [S, retType]=codeComparison(item[0], objsRefed, returnType, xlator)
     if len(item) > 1 and len(item[1])>0:
-        if len(item[1])>1: print "Error: Chained == or !=.\n"; exit(1);
+        if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
         if (isinstance(retType, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retType)
         S_derefd = derefPtr(S, retType)
@@ -402,7 +402,7 @@ def codeIsEQ(item, objsRefed, returnType, xlator):
             if   (i[0] == '=='): op=' == '
             elif (i[0] == '!='): op=' != '
             elif (i[0] == '==='): op=' == '
-            else: print "ERROR: '==' or '!=' or '===' expected."; exit(2)
+            else: print("ERROR: '==' or '!=' or '===' expected."); exit(2)
             [S2, retType] = codeComparison(i[1], objsRefed, returnType, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType)
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
@@ -424,7 +424,7 @@ def codeIOR(item, objsRefed, returnType, xlator):
                 [S2, retType] = codeIsEQ(i[1], objsRefed, returnType, xlator)
                 S2=derefPtr(S2, retType)
                 S+=' & ' + S2
-            else: print "ERROR: '&' expected in code generator."; exit(2)
+            else: print("ERROR: '&' expected in code generator."); exit(2)
     return [S, retType]
 
 def codeXOR(item, objsRefed, returnType, xlator):
@@ -438,7 +438,7 @@ def codeXOR(item, objsRefed, returnType, xlator):
                 [S2, retType] = codeIsEQ(i[1], objsRefed, returnType, xlator)
                 S2=derefPtr(S2, retType)
                 S+=' ^ ' + S2
-            else: print "ERROR: '^' expected in code generator."; exit(2)
+            else: print("ERROR: '^' expected in code generator."); exit(2)
     return [S, retType]
 
 def codeBar(item, objsRefed, returnType, xlator):
@@ -452,7 +452,7 @@ def codeBar(item, objsRefed, returnType, xlator):
                 [S2, retType] = codeXOR(i[1], objsRefed, returnType, xlator)
                 S2=derefPtr(S2, retType)
                 S+=' | ' + S2
-            else: print "ERROR: '|' expected in code generator."; exit(2)
+            else: print("ERROR: '|' expected in code generator."); exit(2)
     return [S, retType]
 
 def codeLogAnd(item, objsRefed, returnType, xlator):
@@ -466,14 +466,14 @@ def codeLogAnd(item, objsRefed, returnType, xlator):
                 [S2, retType] = codeBar(i[1], objsRefed, returnType, xlator)
                 S2=derefPtr(S2, retType)
                 S+=' && ' + S2
-            else: print "ERROR: 'and' expected in code generator."; exit(2)
+            else: print("ERROR: 'and' expected in code generator."); exit(2)
             retType='bool'
     return [S, retType]
 
 def codeExpr(item, objsRefed, returnType, xlator):
     #print 'Or item:', item
     [S, retType]=codeLogAnd(item[0], objsRefed, returnType, xlator)
-    if not isinstance(item, basestring) and len(item) > 1 and len(item[1])>0:
+    if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
         S=derefPtr(S, retType)
         for i in item[1]:
             #print 'OR ', i
@@ -481,13 +481,13 @@ def codeExpr(item, objsRefed, returnType, xlator):
                 [S2, retType] = codeLogAnd(i[1], objsRefed, returnType, xlator)
                 S2=derefPtr(S2, retType)
                 S+=' || ' + S2
-            else: print "ERROR: 'or' expected in code generator."; exit(2)
+            else: print("ERROR: 'or' expected in code generator."); exit(2)
             retType='bool'
     #print "S:",S
     return [S, retType]
 
 def adjustConditional(S2, conditionType):
-    if conditionType!=None and not isinstance(conditionType, basestring):
+    if conditionType!=None and not isinstance(conditionType, str):
         #print "ADJUST IF:", S2, conditionType
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):
             if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
@@ -565,10 +565,10 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType):
 
 ############################################
 def codeMain(classes, tags, objsRefed, xlator):
-    print "\n            Generating GLOBAL..."
+    print("\n            Generating GLOBAL...")
     if("GLOBAL" in classes[1]):
         if(classes[0]["GLOBAL"]['stateType'] != 'struct'):
-            print "ERROR: GLOBAL must be a 'struct'."
+            print("ERROR: GLOBAL must be a 'struct'.")
             exit(2)
         [structCode, funcCode, globalFuncs]=codeStructFields(classes, "GLOBAL", tags, '', objsRefed, xlator)
         if(funcCode==''): funcCode="// No main() function.\n"
@@ -708,13 +708,13 @@ def codeNewVarStr (classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, a
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
-                    print "\nPROBLEM: The return type of the parameter '", CPL, "' cannot be found and is needed. Try to define it.\n"
+                    print("\nPROBLEM: The return type of the parameter '", CPL, "' cannot be found and is needed. Try to define it.\n")
                     exit(1)
 
                 theParam=paramTypeList[0]['fieldType']
 
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                if True or not isinstance(theParam, basestring) and fieldType==theParam[0]:
+                if True or not isinstance(theParam, str) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
         else:
             assignValue = ' = '+variableDefaultValueString(allocFieldType)
@@ -754,7 +754,7 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
     elif datastructID=='list' and willBeModifiedDuringTraversal:
         pass;
     else:
-        print "DSID:",datastructID,containerType
+        print("DSID:",datastructID,containerType)
         exit(2)
 
     return [actionText, loopCounterName]
@@ -797,7 +797,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         actionText += ( indent + "for " + lvName + " in 0..<" +  repContainer+".count {\n"
                     + indent+"var "+repName + ':' + containerType + " = "+repContainer+"["+lvName+"];\n")
     else:
-        print "DSID:",datastructID,containerType
+        print("DSID:",datastructID,containerType)
         exit(2)
 
     return [actionText, loopCounterName]
@@ -867,7 +867,7 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
         S="    init(){\n"+callSuperConstructor+funcBody+"    }\n"
     if constructorArgs != "":
         S += "    init(" + constructorArgs+"){\n"+callSuperConstructor+constructorInit+funcBody+"    }\n"
-    print "S: ", S
+    print("S: ", S)
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -876,7 +876,7 @@ def codeConstructorInit(fieldName, count, defaultVal, xlator):
     elif(count == 0):
         return "        self." + fieldName +" = arg_"+fieldName+";\n"
     else:
-        print "Error in codeConstructorInit."
+        print("Error in codeConstructorInit.")
         exit(2)
 
 
