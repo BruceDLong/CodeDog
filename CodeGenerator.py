@@ -362,6 +362,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if name=="return":
             SRC = "RETURN_TYPE"
             typeSpecOut['argList'] = [{'typeSpec':returnType}]
+        elif(name=='resetFlagsAndModes'):
+            typeSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
+            # TODO: if flags or modes have a non-zero default this should account for that.
         else:
             [typeSpecOut, SRC]=fetchItemsTypeSpec(segSpec, objsRefed, xlator) # Possibly adds a codeConversion to typeSpecOut
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
@@ -372,6 +375,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
+        elif(name=='resetFlagsAndModes'):
+            typeSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
+            # TODO: if flags or modes have a non-zero default this should account for that.
         elif(name[0]=='[' and fType=='string'):
             typeSpecOut={'owner':owner, 'fieldType': 'char'}
             [S2, idxTypeSpec] = xlator['codeExpr'](name[1], objsRefed, None, None, xlator)
