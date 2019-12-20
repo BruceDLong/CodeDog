@@ -169,7 +169,7 @@ def parseInput(inputStr):
     try:
         localResults = progSpecParser.parseString(inputStr, parseAll = True)
 
-    except ParseException , pe:
+    except ParseException as pe:
         cdErr( "Error parsing: {}".format( pe))
         exit(1)
     return localResults
@@ -179,7 +179,7 @@ def extractTagDefs(tagResults):
 
     for tagSpec in tagResults:
         tagVal = tagSpec.tagValue
-        if ((not isinstance(tagVal, basestring)) and len(tagVal)>=2):
+        if ((not isinstance(tagVal, str)) and len(tagVal)>=2):
             if(tagVal[0]=='['):
                 tagValues=[]
                 for multiVal in tagVal[1]:
@@ -217,7 +217,7 @@ def packFieldDef(fieldResult, className, indent):
 
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType;
-        if not isinstance(fieldType, basestring) and (fieldType[0]=='[' or fieldType[0]=='{'):
+        if not isinstance(fieldType, str) and (fieldType[0]=='[' or fieldType[0]=='{'):
             #print "FIELDTYPE is an inline SEQ or ALT:"
 
             if   fieldType[0]=='{': fieldList=fieldType[1:-1]
@@ -254,7 +254,7 @@ def packFieldDef(fieldResult, className, indent):
         else: fieldName=None;
 
         if(nameAndVal.allocDoubleColon):
-            if varOwner == 'me' or varOwner == 'we': print "Error: unable to allocate variable with owner me or we: ", fieldName; exit(1)
+            if varOwner == 'me' or varOwner == 'we': print("Error: unable to allocate variable with owner me or we: ", fieldName); exit(1)
             else: isAllocated = True
 
         if(nameAndVal.givenValue):
@@ -274,7 +274,7 @@ def packFieldDef(fieldResult, className, indent):
         else: argList=None;
         if 'parameters' in nameAndVal:
             if('deprecateDoubleColon'in nameAndVal):
-                print "            ***deprecated doubleColon in nameAndVal at: ", fieldName
+                print("            ***deprecated doubleColon in nameAndVal at: ", fieldName)
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
             else: prmList=nameAndVal.parameters[1]
             for param in prmList:
@@ -377,7 +377,7 @@ def extractActItem(funcName, actionItem):
         repBodyOut = extractActSeqToActSeq(funcName, repBodyIn)
         traversalMode=None
         if actionItem.optionalColon:
-            print "            optionalColon in repeatedAction is deprecated."
+            print("            optionalColon in repeatedAction is deprecated.")
         if actionItem.traversalMode:
             traversalMode = actionItem.traversalMode
         whileSpec=None
@@ -416,7 +416,7 @@ def extractActItem(funcName, actionItem):
         thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS, 'assignTag':assignTag}
     # Swap
     elif (actionItem.swap):
-        print"swap: ", actionItem[0][0][0]
+        print("swap: ", actionItem[0][0][0])
         RHS = actionItem[0][2][0]
         LHS = actionItem[0][0][0]
         thisActionItem = {'typeOfAction':"swap", 'LHS':LHS, 'RHS':RHS}
@@ -521,7 +521,7 @@ def extractMacroDefs(macroDefMap, inputString):
     for macroStr in macroDefs:
         try:
             localResults = macroDef.parseString(macroStr, parseAll = True)
-        except ParseException , pe:
+        except ParseException as pe:
             cdErr("Error Extracting Macro: {} In: {}".format(pe, macroStr))
             exit(1)
         extractMacroSpec(macroDefMap, localResults[0])
@@ -579,7 +579,7 @@ def doMacroSubstitutions(macros, inputString):
                 #print "     START TEXT:", newText
                 StartPosOfParens = match.start()+len(match.group(1)) + len(match.group(2)) + len(match.group(3))
                 EndPos=findMacroEnd(inputString, StartPosOfParens)
-                if EndPos==-1: print"\nERROR: Parentheses problem in macro", thisMacro, "\n"; exit(2);
+                if EndPos==-1: print("\nERROR: Parentheses problem in macro", thisMacro, "\n"); exit(2);
                 paramStr=inputString[StartPosOfParens+1 : EndPos-1] #match.group(4)
                 params=paramStr.split(',')
                # print '     PARAMS:', params
@@ -647,7 +647,7 @@ def parseCodeDogLibTags(inputString):
     try:
         localResults = libTagParser.parseString(inputString, parseAll = False)
 
-    except ParseException , pe:
+    except ParseException as pe:
         cdErr( "Error parsing lib tags: {}".format( pe))
 
     tagStore = extractTagDefs(localResults.tagDefList)
@@ -677,7 +677,7 @@ def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
     # (map of classes, array of objectNames, string to parse)
     try:
         results = objectList.parseString(inputStr, parseAll = True)
-    except ParseException , pe:
+    except ParseException as pe:
         cdErr( "Error parsing generated class {}: {}".format(description, pe))
     cdlog(errLevl, 'Completed parsing: '+description)
     extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0])

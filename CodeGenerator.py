@@ -41,7 +41,7 @@ def bitsNeeded(n):
     if n <= 1:
         return 0
     else:
-        return 1 + bitsNeeded((n + 1) / 2)
+        return 1 + bitsNeeded((n + 1) // 2)
 ###### Routines to track types of identifiers and to look up type based on identifier.
 
 globalClassStore=[]
@@ -60,7 +60,7 @@ def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
         if 'typeSpec' in classDef:
             typeSpecOut = classDef['typeSpec']
             typeSpecOut['owner']='their' # Does this work correctly on containers?
-            print "SHOULDNT MATCH:", typeSpecOut['owner'],classDef['typeSpec']['owner']
+            print("SHOULDNT MATCH:", typeSpecOut['owner'],classDef['typeSpec']['owner'])
         else: typeSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
     else: typeSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
     typeSpecOut['codeConverter']=code
@@ -92,7 +92,7 @@ def CheckObjectVars(className, itemName):
     wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, className)
     if(wrappedTypeSpec != None):
         actualFieldType=progSpec.getFieldType(wrappedTypeSpec)
-        if not isinstance(actualFieldType, basestring):
+        if not isinstance(actualFieldType, str):
             #print "'actualFieldType", wrappedTypeSpec, actualFieldType, className
             retVal = CheckObjectVars(actualFieldType[0], itemName)
             if retVal!=0:
@@ -274,8 +274,8 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
 
 def chooseStructImplementationToUse(typeSpec):
     fieldType = progSpec.getFieldType(typeSpec)
-    if not isinstance(fieldType, basestring) and  len(fieldType) >1:
-        print "TYPESPEC:", progSpec.getFieldType(typeSpec)
+    if not isinstance(fieldType, str) and  len(fieldType) >1:
+        print("TYPESPEC:", progSpec.getFieldType(typeSpec))
         if ('chosenType' in fieldType): return
         implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
      #   for option in implementationOptions:
@@ -287,7 +287,7 @@ def codeAllocater(typeSpec, xlator):
     owner           = progSpec.getTypeSpecOwner(typeSpec)
     fType               = progSpec.getFieldType(typeSpec)
     containerSpec   = progSpec.getContainerSpec(typeSpec)
-    if isinstance(fType, basestring): varTypeStr1=fType;
+    if isinstance(fType, str): varTypeStr1=fType;
     else: varTypeStr1=fType[0]
 
     [varTypeStr, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'alloc', '', xlator)
@@ -301,7 +301,7 @@ def convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator):
         for P in paramList:
             oldTextTag='%'+str(count)
             [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, None, xlator)
-            if(isinstance(newName, basestring)):
+            if(isinstance(newName, str)):
                 newName=newName.replace(oldTextTag, S2)
             else: exit(2)
             count+=1
@@ -334,10 +334,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
 
     isStructLikeContainer = False
-    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], basestring)) and typeSpecIn['fieldType'][0]=='DblLinkedList': isStructLikeContainer = True
+    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], str)) and typeSpecIn['fieldType'][0]=='DblLinkedList': isStructLikeContainer = True
 
     IsAContainer = progSpec.isAContainer(typeSpecIn)
-    if (fieldTypeIn!=None and isinstance(fieldTypeIn, basestring) and not IsAContainer):
+    if (fieldTypeIn!=None and isinstance(fieldTypeIn, str) and not IsAContainer):
         if fieldTypeIn=="string":
             [name, typeSpecOut] = xlator['recodeStringFunctions'](name, typeSpecOut)
 
@@ -378,7 +378,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             S += xlator['codeArrayIndex'](S2, 'string', LorR_Val, previousSegName)
             return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
         elif(name[0]=='[' and (fType=='uint' or fType=='int')):
-            print"Error: integers can't be indexed: ", previousSegName,  ":", name
+            print("Error: integers can't be indexed: ", previousSegName,  ":", name)
             exit(2)
         else:
             if fType!='string':
@@ -386,7 +386,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 if typeSpecOut!=0:
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
-                else: print "typeSpecOut = 0 for", name
+                else: print("typeSpecOut = 0 for", name)
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
@@ -430,7 +430,7 @@ def codeUnknownNameSeg(segSpec, objsRefed, xlator):
         else:
             [CPL, paramTypeList] = codeParameterList("", paramList, None, objsRefed, xlator)
             S+= CPL
-    print "UNKNOWN NAME SEGMENT:", S
+    print("UNKNOWN NAME SEGMENT:", S)
     return S;
 
 def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
@@ -484,7 +484,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
             cdErr("Segment '{}' in the name '{}' is not recognized.".format(segSpec[0], dePythonStr(name)))
 
         # Record canonical name for record keeping
-        if not isinstance(segName, basestring):
+        if not isinstance(segName, str):
             if segName[0]=='[': canonicalName+='[...]'
             else: cdErr('Odd segment name:'+str(segName))
         else: canonicalName+='.'+segName
@@ -636,7 +636,7 @@ def encodeConditionalStatement(action, indent, objsRefed, returnType, xlator):
             elseAction = elseBody[1]['actionList']
             elseText = codeActionSeq(elseAction, indent, objsRefed, returnType, xlator)
             actionText += indent + "else " + elseText.lstrip()
-        else:  print"Unrecognized item after else"; exit(2);
+        else:  print("Unrecognized item after else"); exit(2);
     return actionText
 
 def codeAction(action, indent, objsRefed, returnType, xlator):
@@ -673,7 +673,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         RHS = xlator['checkForTypeCastNeed'](lhsTypeSpec, rhsTypeSpec, RHS)
         if not isinstance (lhsTypeSpec, dict):
             #TODO: make test case
-            print 'Problem: lhsTypeSpec is', lhsTypeSpec, '\n';
+            print('Problem: lhsTypeSpec is', lhsTypeSpec, '\n');
             LHS_FieldType='string'
         else: LHS_FieldType=progSpec.getFieldType(lhsTypeSpec)
 
@@ -736,9 +736,9 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         LHS = action['LHS']
         RHS =  action['RHS']
         typeSpec   = fetchItemsTypeSpec(LHS, objsRefed, xlator)
-        print"swap LHS RHS: ", LHS, RHS,typeSpec
+        print("swap LHS RHS: ", LHS, RHS,typeSpec)
         [typeLHS, innerTypeLHS] = xlator['convertType'](globalClassStore, typeSpec[0], 'var', 'action', xlator)
-        print "typeLHS: ", typeLHS, " --- ", innerTypeLHS
+        print("typeLHS: ", typeLHS, " --- ", innerTypeLHS)
         typeSpec   = fetchItemsTypeSpec(RHS, objsRefed, xlator)
         [typeRHS, innerTypeRHS] = xlator['convertType'](globalClassStore, typeSpec[0], 'var', 'action', xlator)
         #print "typeLHS: ", typeLHS
@@ -748,7 +748,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         actionText = indent + typeLHS + " tmp = " + LHS + ";\n"
         actionText += indent + LHS + " = " + RHS + ";\n"
         actionText += indent + RHS + " = " + "tmp;\n"
-        print "actionText: ", actionText
+        print("actionText: ", actionText)
     elif (typeOfAction =='conditional'):
         cdlog(5, "If-statement...")
         [S2, conditionTypeSpec] =  xlator['codeExpr'](action['ifCondition'][0], objsRefed, None, None, xlator)
@@ -770,7 +770,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
                 elseAction = elseBody[1]['actionList']
                 elseText = codeActionSeq(elseAction, indent, objsRefed, returnType, xlator)
                 actionText += indent + "else " + elseText.lstrip()
-            else:  print"Unrecognized item after else"; exit(2);
+            else:  print("Unrecognized item after else"); exit(2);
     elif (typeOfAction =='repetition'):
         repBody = action['repBody']
         repName = action['repName']
@@ -799,7 +799,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
             [filenameExpr, filenameTypeSpec] = xlator['codeExpr'](fileSpec[2], objsRefed, None, None, xlator)
             if filenameTypeSpec!='string':
                 cdErr("Filename must be a string.\n")
-            print "File iteration not implemeted yet.\n"
+            print("File iteration not implemeted yet.\n")
             exit(2)
         elif(keyRange):
             [repContainer, containerTypeSpec] = xlator['codeExpr'](keyRange[0][0], objsRefed, None, None, xlator)
@@ -845,7 +845,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
     elif (typeOfAction =='funcCall'):
         calledFunc = action['calledFunc']
         if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':
-            print "\nERROR: It is not allowed to name a function", calledFunc[0][0]
+            print("\nERROR: It is not allowed to name a function", calledFunc[0][0])
             exit(2)
         cdlog(5, "Function Call: {}()".format(str(calledFunc[0][0])))
         funcCallText = codeFuncCall(calledFunc, objsRefed, returnType, xlator)
@@ -882,7 +882,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         blockPrefix = xlator['blockPrefix']
         actionText += indent + blockPrefix + "{\n" + actionListText + indent + '}\n'
     else:
-        print "error in codeAction: ", action
+        print("error in codeAction: ", action)
         exit(2)
  #   print "actionText", actionText
     return actionText
@@ -924,12 +924,12 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
         fieldName=field['fieldName']
 
         cdlog(4, "Coding Constructor: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
-        if not isinstance(fieldType, basestring): fieldType=fieldType[0]
+        if not isinstance(fieldType, str): fieldType=fieldType[0]
         defaultVal=''
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
                 defaultVal = "NULL"
-        elif (isinstance(fieldType, basestring)):
+        elif (isinstance(fieldType, str)):
             if(fieldType=="int" or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32"):
                 defaultVal = "0"
             elif(fieldType=="string"):
@@ -1019,7 +1019,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, xlator)
            # print "                            RHS none: ", fieldValueText
         elif(fieldOwner=='const'):
-            if isinstance(fieldValue, basestring):
+            if isinstance(fieldValue, str):
                 fieldValueText = ' = "'+ fieldValue + '"'
                 #TODO:  make test case
             else:
@@ -1155,7 +1155,7 @@ def processDependancies(classes, item, searchList, newList):
         newList.append(className)
         searchList[item][1]=2
     elif searchList[item][1]==1:
-        print "WARNING: Dependancy cycle detected including class "+searchList[item][0]
+        print("WARNING: Dependancy cycle detected including class "+searchList[item][0])
 
 def findIDX(classList, className):
     # Returns the index in classList of className or -1
@@ -1530,9 +1530,9 @@ def generate(classes, tags, libsToUse, langName, xlator):
 
     fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, fileSpecs, [], topBottomStrings, xlator)
    # print "\n\n##########################################################\n"
-    print "\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:"
-    for funcName in listOfFuncsWithUnknownArgTypes: print funcName,
-    print "\n";
+    print("\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:")
+    for funcName in listOfFuncsWithUnknownArgTypes: print(funcName, end=' ')
+    print("\n");
     return fileSpecStrings
 
 ###############  Load a file to progspec, processing include files, string-structs, and patterns.
@@ -1553,7 +1553,7 @@ def GroomTags(tags):
     # Find any needed features based on types used
     for typeName in progSpec.storeOfBaseTypesUsed:
         if(typeName=='BigNum' or typeName=='BigFrac'):
-            print 'NOTE: Need Large Numbers'
+            print('NOTE: Need Large Numbers')
             progSpec.setFeatureNeeded(TopLevelTags, 'largeNumbers', progSpec.storeOfBaseTypesUsed[typeName])
 
 def ScanAndApplyPatterns(classes, topTags, newTags):

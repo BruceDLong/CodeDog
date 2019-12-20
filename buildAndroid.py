@@ -16,13 +16,13 @@ def writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName):
     fo.close()
 
 def runCMD(myCMD, myDir):
-    print "        COMMAND: ", myCMD, "\n"
+    print("        COMMAND: ", myCMD, "\n")
     pipe = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
     if out:
-        print "        Result: ",out
+        print("        Result: ",out)
     if err:
-        print "\n", err
+        print("\n", err)
         if (err.find("ERROR")) >= 0:
             exit(1)
     return [out, err]
@@ -51,13 +51,13 @@ def copyFile(fileName, src, dst):
         shutil.copy2(s, d)
 
 def pathAndroid(workingDir, dirsToGen):
-    print '--------------------------------   G e n e r a t i n g   F o l d e r   S t r u c t u r e \n'
+    print('--------------------------------   G e n e r a t i n g   F o l d e r   S t r u c t u r e \n')
     makeDir(workingDir)
     for dirToGen in dirsToGen:
         makeDir(workingDir + dirToGen)
 
 def gradleFile(topDomain, domain, appName, workingDir):
-    print '--------------------------------   G e n e r a t i n g   G r a d l e \n'
+    print('--------------------------------   G e n e r a t i n g   G r a d l e \n')
     fileName = "build.gradle"
 
     outStr =    'buildscript {\n' \
@@ -105,7 +105,7 @@ def gradleFile(topDomain, domain, appName, workingDir):
     fo.close()
 
 def androidManifest(topDomain, domain, moduleName, labelName, launchIconName, mainDir):
-    print '--------------------------------   G e n e r a t i n g   M a n i f e s t \n'
+    print('--------------------------------   G e n e r a t i n g   M a n i f e s t \n')
     fileName = "AndroidManifest.xml"
     if launchIconName: iconTag = 'android:icon="@drawable/' + launchIconName + '"'
     else: iconTag = ''
@@ -142,7 +142,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconNam
     packageName    = topDomain+'.'+domain+'.'+moduleName
     targetPlatform = ""
     dirsToGen = [assetsDir, packageDir, drawableDir]
-    print 'Building for Android: ', drawablePath
+    print('Building for Android: ', drawablePath)
     pathAndroid(workingDir, dirsToGen)
     copyTree("Resources", buildName+assetsDir)
     if launchIconName:
@@ -154,4 +154,4 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconNam
     [out, err] = runCMD( 'gradle tasks ', workingDir)
     [out, err] = runCMD( 'gradle assembleDebug --stacktrace', workingDir)
     [out, err] = runCMD( 'gradle installDebug ', workingDir)
-    print 'Finished Building for Android'
+    print('Finished Building for Android')

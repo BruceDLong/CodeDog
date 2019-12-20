@@ -61,7 +61,7 @@ def changeDataFieldType(classes, structTypeName, typeSpec):
     retFieldType = ""
     if structTypeName[:4] == "Time": retFieldType = 'timeValue'; newFieldOwner = 'me'
     elif structTypeName[:3] == "Int": retFieldType = 'int'; newFieldOwner = 'me'
-    else: print "ERROR: UNKNOWN WIDGET DATA TYPE CONVERSION: ", structTypeName
+    else: print("ERROR: UNKNOWN WIDGET DATA TYPE CONVERSION: ", structTypeName)
     if retFieldType != "": typeSpec['fieldType'][0] = retFieldType;typeSpec['owner'] = newFieldOwner
     return retFieldType
 
@@ -93,7 +93,7 @@ def getListWidgetMgrCode(classes, listManagerStructName, rowTypeName, fieldName,
     if listWidgetStyle == None: listWidgetStyle = 'simpleList'
     modelRef = progSpec.findSpecOf(classes[0], rowWidgetName, 'struct')
     if modelRef == None:
-        print "modelRef: ", modelRef, rowTypeName
+        print("modelRef: ", modelRef, rowTypeName)
         addNewStructToProcess(rowWidgetName, rowTypeName, 'struct', 'rowWidget')
     filename = './preDynamicTypes/' + listWidgetStyle + '.dog'
     classSpec = progSpec.stringFromFile(filename)
@@ -262,7 +262,7 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         varsFromWidgetCode   += '        _data.' + fieldName + ' <- ' + widgetName + '.getValue()\n'
         clearWidgetCode      += '        ' + widgetName+ '.clear()\n'
     elif fieldSpec=='list' or fieldSpec=='map': pass
-    else: print'pattern_MakeGUI.getWidgetHandlingCode fieldSpec not specified: ', fieldSpec;  exit(2)
+    else: print('pattern_MakeGUI.getWidgetHandlingCode fieldSpec not specified: ', fieldSpec);  exit(2)
 
     # If this is a list or map, populate it
     if progSpec.isAContainer(typeSpec):
@@ -359,7 +359,7 @@ def buildListRowView(classes, className, dialogStyle, newStructName):
             guiStructName  = structTypeName+'_ROW_View'
             addNewStructToProcess(guiStructName, structTypeName, 'list', 'Dialog')
         else:
-            print "field::", fieldName, fldCat
+            print("field::", fieldName, fldCat)
             if(fldCat!='struct'):
                 rowHeaderCode   += '        their GUI_Label: '+fieldName + '_header <- makeLabelWidget("'+fieldName+'")\n'
                 rowHeaderCode   += '        setLabelWidth('+fieldName+'_header, 15)\n'
@@ -390,7 +390,7 @@ def buildListRowView(classes, className, dialogStyle, newStructName):
                 rowViewCode                    += '        setLabelWidth('+fieldName+'_value, 15)\n'
                 rowViewCode                    += '        addToContainer(box, '+fieldName+'_value)\n'
                 rowViewCode                    += '        showWidget('+fieldName+'_value)\n'
-            else: print'pattern_MakeGUI.codeListWidgetManagerClassOverride fldCat not specified: ', fldCat;  exit(2)
+            else: print('pattern_MakeGUI.codeListWidgetManagerClassOverride fldCat not specified: ', fldCat);  exit(2)
 
     CODE =  '''struct '''+newStructName+'''{
     their GUI_Frame:            box
@@ -504,7 +504,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
                 addNewStructToProcess(guiStructName, structTypeName, 'struct', 'Dialog')
 
         if fldCat != 'widget' and progSpec.isAContainer(typeSpec):# Add a new list to be processed
-            if not isinstance(fieldType, basestring): fieldType=fieldType[0]
+            if not isinstance(fieldType, str): fieldType=fieldType[0]
             structTypeName = fieldType
             guiStructName  = structTypeName+'_ROW_View'
             addNewStructToProcess(guiStructName, structTypeName, 'list', 'Dialog')
@@ -514,7 +514,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
             if fieldName[-4:]== '_btn':
                 buttonLabel = deCamelCase(fieldName[:-4])
                 # Add a button whose click calls this.
-                print 'ADDING BUTTON FOR:', fieldName
+                print('ADDING BUTTON FOR:', fieldName)
                 getButtonHandlingCode(classes, buttonLabel, fieldName)
 
         else: # Here is the main case where code to edit this field is written
@@ -640,7 +640,7 @@ struct <NEWSTRUCTNAME>:inherits=appComponentGUI '''+tagCode+'''{
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 def apply(classes, tags, topClassName):
-    print 'APPLY: in Apply\n'
+    print('APPLY: in Apply\n')
     global classesToProcess
     global classesEncoded
     classesEncoded={}

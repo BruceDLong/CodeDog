@@ -18,7 +18,7 @@ def getFieldSpec(fieldName, structRef):
     cdErr('Field not found in model "'+fieldName+'".')
 
 def apply(classes, tags, proxyStyle, className, funcName, platformTag):
-    print 'APPLY: in pattern_WriteCallProxy.apply: ',proxyStyle, '::', className,'\n'
+    print('APPLY: in pattern_WriteCallProxy.apply: ',proxyStyle, '::', className,'\n')
     newParamFields = ''
     runParams      = ''
     structRef      = findStructRef(classes[0], className)
@@ -39,7 +39,7 @@ def apply(classes, tags, proxyStyle, className, funcName, platformTag):
                 argTypeSpec  = arg['typeSpec']
                 argOwner     = argTypeSpec['owner']
                 argFieldType = progSpec.getFieldType(argTypeSpec)
-                if not isinstance(argFieldType, basestring): argFieldType=argFieldType[0]
+                if not isinstance(argFieldType, str): argFieldType=argFieldType[0]
                 if count > 0:
                     runParams      = runParams+', '
                     newParamFields = newParamFields+ '    '
@@ -69,7 +69,7 @@ struct '''+bundleName+''' {
                 argTypeSpec  = arg['typeSpec']
                 argOwner     = argTypeSpec['owner']
                 argFieldType = progSpec.getFieldType(argTypeSpec)
-                if not isinstance(argFieldType, basestring): argFieldType=argFieldType[0]
+                if not isinstance(argFieldType, str): argFieldType=argFieldType[0]
                 if count > 0:
                     runParams      = runParams+', '
                     newParamFields = newParamFields+ '    '
@@ -114,6 +114,6 @@ struct GLOBAL {
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
     elif proxyStyle == "widgetEventData" and platformTag == "Android":
         pass
-    else: print "###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag; exit(1)
+    else: print("###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag); exit(1)
     #print '==========================================================\n'+CODE
 

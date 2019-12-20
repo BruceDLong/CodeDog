@@ -140,11 +140,11 @@ def clearFeaturesHandled():
     featuresHandled = []
 
 def libListType(libList):
-    if isinstance(libList, basestring): return "STRING"
+    if isinstance(libList, str): return "STRING"
     op=libList[0]
     if (op=='AND' or op=='OR'):
         return op
-    print "WHILE EXAMINING:", libList
+    print("WHILE EXAMINING:", libList)
     cdErr('Invalid type encountered for a library identifier:'+str(op))
 
 def reduceSolutionOptions(options, indent):
@@ -154,9 +154,9 @@ def reduceSolutionOptions(options, indent):
         i=0
         while i<len(options[1]):
             opt=options[1][i]
-            if not isinstance(opt, basestring):
+            if not isinstance(opt, str):
                 reduceSolutionOptions(options[1][i], indent+'|   ')
-                if len(opt[1])==0: del options[1][i]; print "DELETED:", i; continue;
+                if len(opt[1])==0: del options[1][i]; print("DELETED:", i); continue;
                 changesMade=True
                 while changesMade:
                     changesMade=False
@@ -167,7 +167,7 @@ def reduceSolutionOptions(options, indent):
                         options[1][i:i+1]=opt[1]
                         changesMade=True
                     elif optionsOp=='AND' and optOp=='OR':
-                        print "CROSS"
+                        print("CROSS")
 
                    # removeDuplicates(options)  # TODO: Make this line remove duplicates
 
@@ -189,7 +189,7 @@ def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
     for Req in ReqTags:
        # print "REQUIREMENT:", Req[0], Req[1]
         if Req[0]=='feature':
-            print "\n    Nested Features should be implemented. Please implement them. (", Req[1], ")n"; exit(2);
+            print("\n    Nested Features should be implemented. Please implement them. (", Req[1], ")n"); exit(2);
         elif Req[0]=='require':
             Requirements.append(Req)
         elif Req[0]=='tagOneOf':
@@ -215,7 +215,7 @@ def constructORListFromFiles(tags, need, files, indent):
                 solutionOptions[1] = [libFile] + solutionOptions[1]
                 OR_List[1].append(solutionOptions)
             else: OR_List[1].append(libFile)
-    if len(OR_List[1])==1 and isinstance(OR_List[1][0], basestring): return OR_List[1][0]  # Optimization
+    if len(OR_List[1])==1 and isinstance(OR_List[1][0], str): return OR_List[1][0]  # Optimization
     return OR_List
 
 def constructANDListFromNeeds(tags, needs, files, indent):

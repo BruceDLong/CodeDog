@@ -379,7 +379,7 @@ struct RBTree{
 
 
 def apply(classes, tags, keyType, valueType):
-    print "APPLY: in Apply\n"
+    print("APPLY: in Apply\n")
     CODE = classString
     CODE = CODE.replace("<KEY_TYPE>", keyType)
     CODE = CODE.replace("<VALUE_TYPE>", valueType)

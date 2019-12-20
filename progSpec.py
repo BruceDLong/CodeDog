@@ -31,7 +31,7 @@ def rollBack(classes):
     global structsNeedingModification
     global DependanciesMarked
 
-    for ObjToDel in MarkedObjects.keys():
+    for ObjToDel in list(MarkedObjects.keys()):
         del classes[0][ObjToDel]
         classes[1].remove(ObjToDel)
 
@@ -69,7 +69,7 @@ def rollBack(classes):
 #########################
 
 def getTypesBase(typeSpec):
-    if isinstance(typeSpec, basestring):
+    if isinstance(typeSpec, str):
        return typeSpec
     else: return getTypesBase(typeSpec[1])
 
@@ -149,7 +149,7 @@ def appendToAncestorList(objRef, className, subClassMode, parentClassList):
             objRef[subClassMode].append(parentClass)
 
         if subClassMode=='implements':
-            print "ADDING:", className, 'to', parentClass
+            print("ADDING:", className, 'to', parentClass)
             if not (parentClass in classImplementationOptions):
                 classImplementationOptions[parentClass] = [className]
             else: classImplementationOptions[parentClass].append(className)
@@ -193,7 +193,7 @@ def appendToFuncsCalled(funcName,funcParams):
 def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, containerSpec, thisName, thisArgList, paramList, thisValue, isAllocated):
     codeConverter=None
     packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'containerSpec':containerSpec, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
-    if( thisValue!=None and (not isinstance(thisValue, basestring)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
+    if( thisValue!=None and (not isinstance(thisValue, str)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
         # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
         codeConverter = thisValue[1][1:]
         packedField['typeSpec']['codeConverter']=codeConverter
@@ -279,7 +279,7 @@ def markStructAuto(objSpecs, className):
 
 def extractListFromTagList(tagVal):
     tagValues=[]
-    if ((not isinstance(tagVal, basestring)) and len(tagVal)>=2):
+    if ((not isinstance(tagVal, str)) and len(tagVal)>=2):
         if(tagVal[0]=='['):
             for multiVal in tagVal[1]:
                 tagValues.append(multiVal[0])
@@ -302,7 +302,7 @@ def searchATagStore(tagStore, tagToFind):
     return [item]
 
 def doesClassHaveProperty(classes, fieldType, propToFind):
-    if isinstance(fieldType, basestring) or fieldType == None: return False
+    if isinstance(fieldType, str) or fieldType == None: return False
     structName=fieldType[0]
     modelSpec = findSpecOf(classes[0], structName, 'struct')
     if modelSpec == None: return False
@@ -546,22 +546,22 @@ def getImplementationOptionsFor(fieldType):
     return None
 ###############  Various type-handling functions
 def isAContainer(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return True  # TODO: Remove this after Dynamix Types work.
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return True  # TODO: Remove this after Dynamix Types work.
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def getContainerSpec(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return {'owner': 'me', 'datastructID':'list'}
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return {'owner': 'me', 'datastructID':'list'}
     return(typeSpec['arraySpec'])
 
 def getTemplateArg(typeSpec, argIdx):
     return(typeSpec)
 
 def getDatastructID(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return 'list'
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return 'list'
     return(typeSpec['arraySpec']['datastructID'])
 
 def getFieldType(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return ['infon']
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return ['infon']
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
@@ -569,9 +569,9 @@ def getTypeSpecOwner(typeSpec):
     global currentCheckObjectVars
     if (typeSpec == 0):
         cdErr(currentCheckObjectVars)
-    if typeSpec==None or isinstance(typeSpec, basestring): return 'me'
+    if typeSpec==None or isinstance(typeSpec, str): return 'me'
     if isAContainer(typeSpec):
-        if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], basestring)) and typeSpec['fieldType'][0]=='DblLinkedList': return typeSpec['owner']
+        if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return typeSpec['owner']
         if "owner" in typeSpec['arraySpec']:
             owner = typeSpec['arraySpec']['owner']
             return owner
@@ -623,7 +623,7 @@ def wrappedTypeIsPointer(classes, typeSpec, structName):
     return typeIsPointer(baseType)
 
 def createTypedefName(ItmType):
-    if(isinstance(ItmType, basestring)):
+    if(isinstance(ItmType, str)):
         return ItmType
     else:
         return 'BAD-TYPE-NAME'
@@ -646,7 +646,7 @@ def unwrapClass(classes, structName):
     baseType = isWrappedType(classes, structName)
     if(baseType!=None):
         baseType = getFieldType(baseType)
-        if isinstance(baseType, basestring): return baseType
+        if isinstance(baseType, str): return baseType
         return baseType[0]
     else: return structName
 
@@ -658,11 +658,11 @@ def baseStructName(structName):
 def fieldTypeKeyword(fieldType):
     if fieldType==None: return 'NONE'
     if 'fieldType' in fieldType: fieldType = getFieldType(fieldType)
-    if isinstance(fieldType, basestring): return fieldType
+    if isinstance(fieldType, str): return fieldType
     return fieldType[0]
 
 def isStruct(fieldType):
-    if isinstance(fieldType, basestring): return False
+    if isinstance(fieldType, str): return False
     return True
 
 def isAltStruct(classes, fieldType):
@@ -674,7 +674,7 @@ def isAltStruct(classes, fieldType):
     else: return [False, [] ]
 
 def typeIsNumRange(fieldType):
-    if isinstance(fieldType, basestring): return False
+    if isinstance(fieldType, str): return False
     if len(fieldType)==3:
         if fieldType[1]=='..':
             return True
@@ -682,7 +682,7 @@ def typeIsNumRange(fieldType):
 
 def typeIsInteger(fieldType):
     if typeIsNumRange(fieldType): return True
-    if isinstance(fieldType, basestring):
+    if isinstance(fieldType, str):
         if fieldType=="int" or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32": return True
     elif fieldType[0]=="int" or fieldType[0]=="uint" or fieldType[0]=="uint64" or fieldType[0]=="uint32"or fieldType[0]=="int64" or fieldType[0]=="int32":
         return True
@@ -727,7 +727,7 @@ def innerTypeCategory(fieldType):
     return 'ERROR'
 
 def varsTypeCategory(typeSpec):
-    if isinstance(typeSpec, basestring): fieldType=typeSpec
+    if isinstance(typeSpec, str): fieldType=typeSpec
     else:
         fieldType=getFieldType(typeSpec)
     return innerTypeCategory(fieldType)
@@ -738,7 +738,7 @@ def fieldsTypeCategory(typeSpec):
 
 def varTypeKeyWord(typeSpec):
     if typeSpec == None: varType=None
-    elif isinstance(typeSpec, basestring): varType=typeSpec
+    elif isinstance(typeSpec, str): varType=typeSpec
     elif typeSpec==None or typeSpec==0: varType='ERROR'
     elif typeSpec['owner']=='PTR': varType='PTR'
     else:
@@ -802,7 +802,7 @@ def dePythonStr(pyItem):
 
 def printAtLvl(lvl, mesg, indent):
     for i in range(0, lvl): sys.stdout.write(indent)
-    print mesg
+    print(mesg)
 
 
 def resizeLogArray(lvl):
@@ -835,7 +835,7 @@ def whenExit():
     global highestLvl
     global noError
     if(noError): return;
-    print "\n\nAn error occured while:",
+    print("\n\nAn error occured while:", end=' ')
     for i in range(0, highestLvl+1):
         printAtLvl(i, lastLogMesgs[i], '    ')
     print("\n")

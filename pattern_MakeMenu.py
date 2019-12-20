@@ -5,7 +5,7 @@ import codeDogParser
 
 
 def apply(classes, tags, modulesToCheck):
-    print "MODULES:", modulesToCheck
+    print("MODULES:", modulesToCheck)
     S=''
     # Get 'MainMenu' tags from libs and patterns run.
     # fetch all the menuSets
