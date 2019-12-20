@@ -27,10 +27,11 @@ identifier = Word(alphas + nums + "_")("identifier")
 tagID = identifier("tagID")
 tagDefList = Forward()
 tagValue = Forward()
+fullFieldDef = Forward()
 tagMap  = Group('{' + tagDefList + '}')
 tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ','))) + ']')
 backTickString = Literal("`").suppress() + SkipTo("`") + Literal("`").suppress()("backTickString")
-tagValue <<= (quotedString() | backTickString | Word(alphas+nums+'-*_./') | tagList | tagMap)("tagValue")
+tagValue <<= (Group(Literal('<').suppress() + (fullFieldDef)("tagType") + Literal('>').suppress()) | quotedString() | backTickString | Word(alphanums+'-*_./') | tagList | tagMap)("tagValue")
 tagDef = Group(tagID + Literal("=").suppress() + tagValue)("tagDef")
 tagDefList <<= Group(ZeroOrMore(tagDef))("tagDefList")
 
@@ -148,7 +149,7 @@ sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
 alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
 anonModel = (sequenceEl | alternateEl) ("anonModel")
 owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their"))
-fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | classSpec | Group(anonModel) | datastructID)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
+fullFieldDef <<= (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | classSpec | Group(anonModel) | datastructID)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")+Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + classSpec + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
@@ -174,7 +175,9 @@ def parseInput(inputStr):
         exit(1)
     return localResults
 
+autoClassNameIdx = 1
 def extractTagDefs(tagResults):
+    global autoClassNameIdx
     localTagStore = {}
 
     for tagSpec in tagResults:
@@ -187,6 +190,10 @@ def extractTagDefs(tagResults):
 
             elif(tagVal[0]=='{'):
                 tagValues=extractTagDefs(tagVal[1])
+            elif("tagType" in tagVal):
+                autoClassName = "autoClass" + str(autoClassNameIdx)
+                autoClassNameIdx += 1
+                tagValues=packFieldDef(tagVal, autoClassName, '')
             tagVal=tagValues
         # Remove quotes
         elif (len(tagVal)>=2 and (tagVal[0] == '"' or tagVal[0] == "'") and (tagVal[0]==tagVal[-1])):
