@@ -23,6 +23,7 @@ DependanciesUnmarked={}
 DependanciesMarked={}
 classHeirarchyInfo = {}
 currentCheckObjectVars = ""
+templatesDefined={}
 
 def rollBack(classes):
     global MarkedObjects
@@ -176,6 +177,9 @@ def addObjTags(objSpecs, className, stateType, objTags):
             newCommand = objRef['tags'][tag]
             commandArg = tag[8:]
             addModifierCommand(objSpecs, className, commandArg, commandArg, newCommand)
+
+def addTypeArgList(className, typeArgList):
+    templatesDefined[className]=typeArgList
 
 def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems
@@ -577,6 +581,12 @@ def getTypeSpecOwner(typeSpec):
             return owner
         else: return 'me'
     return typeSpec['owner']
+
+def getTypeArgList(className):
+    if(className in templatesDefined):
+        return(templatesDefined[className])
+    else:
+        return(None)
 
 def setCurrentCheckObjectVars(message):
     global currentCheckObjectVars

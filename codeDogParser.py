@@ -64,7 +64,8 @@ parameters = Forward()
 owners = Forward()
 varSpec = (Optional(owners) + varType)("varSpec")
 varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
-classSpec <<= Group(objectName + Optional(Literal("<") + varSpecList + Literal(">")))("objectName")
+typeArgList = Group(Literal("<") + CIDList + Literal(">"))("typeArgList")
+classSpec <<= Group(objectName + Optional(typeArgList))("objectName")
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 firstRefSegment = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
 secondRefSegment = Group((Literal('.').suppress() + CID | arrayRef) + Optional(parameters))
@@ -194,6 +195,12 @@ def extractTagDefs(tagResults):
         #print tagSpec.tagID, " is ", tagVal
         localTagStore[tagSpec.tagID] = tagVal
     return localTagStore
+
+def extractTypeArgList(typeArgList):
+    localListStore = []
+    for typeArg in typeArgList[1]:
+        localListStore.append(typeArg)
+    return(localListStore)
 
 nameIDX=1
 def packFieldDef(fieldResult, className, indent):
@@ -501,6 +508,10 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
     taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType)
     progSpec.addObjTags(ProgSpec, className, stateType, objTags)
     extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
+    ############Grab optional typeArgList
+    if 'typeArgList' in spec[1]:
+        typeArgList = extractTypeArgList(spec[1].typeArgList)
+        progSpec.addTypeArgList(className, typeArgList)
     return taggedName
 
 def extractPatternSpecs(ProgSpec, classNames, spec):
