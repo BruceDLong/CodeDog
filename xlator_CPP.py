@@ -832,6 +832,17 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
                 assignValue = ' = 0'
             elif(fieldTypeCat=='bool'):
                 assignValue = '= false'
+
+    typeArgList = progSpec. getFieldTypeArgList(typeSpec)
+    if(typeArgList != None):
+        typeArgString = "<"
+        count = 0
+        for typeArg in typeArgList[1]:
+            if(count>0):typeArgString += ", "
+            typeArgString += str(typeArg)
+            count += 1
+        typeArgString += ">"
+        fieldType += typeArgString
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 

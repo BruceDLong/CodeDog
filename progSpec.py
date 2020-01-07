@@ -587,6 +587,11 @@ def getTypeArgList(className):
         return(templatesDefined[className])
     else:
         return(None)
+def getFieldTypeArgList(typeSpec):
+    if('fieldType' in typeSpec and 'typeArgList' in typeSpec['fieldType']):
+        return(typeSpec['fieldType']['typeArgList'])
+    else:
+        return(None)
 
 def setCurrentCheckObjectVars(message):
     global currentCheckObjectVars
