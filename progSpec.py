@@ -617,8 +617,6 @@ def isWrappedType(objMap, structname):
         #print "Struct "+structname+" not found"
         return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
     structToSearch=findSpecOf(objMap[0], structname, 'struct')
-    fieldListToSearch = structToSearch["fields"]
-    if not fieldListToSearch: return None
     if('tags' in structToSearch and 'wraps' in structToSearch['tags']):
         if('tags' in structToSearch and 'ownerMe' in structToSearch['tags']):
             retOwner = structToSearch['tags']['ownerMe']
@@ -627,6 +625,9 @@ def isWrappedType(objMap, structname):
         typeSpecRetVal = {'owner':retOwner, 'fieldType':[wrappedStructName], 'arraySpec':None, 'containerSpec':None, 'argList':None}
         #print(typeSpecRetVal)
         return(typeSpecRetVal)
+    fieldListToSearch = structToSearch["fields"]
+    if not fieldListToSearch:
+        return None
     if len(fieldListToSearch)>0:
         for field in fieldListToSearch:
             if field['fieldName']==structname and field['typeSpec']['argList']==None:

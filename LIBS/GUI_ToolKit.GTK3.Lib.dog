@@ -24,24 +24,24 @@ initCode = `
 
 /////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-struct GUI_offset{their GtkAdjustment:GUI_offset}
-struct GUI_item{their GtkWidget: GUI_item}
-struct GUI_Frame{their GtkWidget: GUI_Frame}
-struct GUI_menuBar{their GtkWidget: GUI_menuBar}
-struct GUI_menu{their GtkWidget: GUI_menu}
-struct GUI_menuItem{their GtkWidget: GUI_menuItem}
-struct GUI_container{their GtkContainer:GUI_container}
-struct GUI_ScrollingWindow{their GtkWidget: GUI_ScrollingWindow}
-struct GUI_VerticalScroller{their GtkWidget: GUI_VerticalScroller}
-struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
-struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_Scalar{me int: GUI_Scalar}
-struct listWidget{their GtkWidget: listWidget}
-struct GUI_XStack{their GtkWidget: GUI_XStack}
-struct GUI_YStack{their GtkWidget: GUI_YStack}
-struct GUI_Text{their GtkWidget: GUI_Text}
-struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
-struct GUI_ZStack{their GtkWidget: GUI_ZStack}
+struct GUI_offset: wraps = GtkAdjustment ownerMe = their{}
+struct GUI_item: wraps = GtkWidget ownerMe = their{}
+struct GUI_Frame: wraps = GtkWidget ownerMe = their{}
+struct GUI_menuBar: wraps = GtkWidget ownerMe = their{}
+struct GUI_menu: wraps = GtkWidget ownerMe = their{}
+struct GUI_menuItem: wraps = GtkWidget ownerMe = their{}
+struct GUI_container: wraps = GtkContainer ownerMe = their{}
+struct GUI_ScrollingWindow: wraps = GtkWidget ownerMe = their{}
+struct GUI_VerticalScroller: wraps = GtkWidget ownerMe = their{}
+struct INK_Image: wraps = cairo_surface_t ownerMe = their{}      // How will the ink look?
+struct GUI_callback: wraps = GCallback ownerMe = their{}
+struct GUI_Scalar: wraps = int{}
+struct listWidget: wraps = GtkWidget ownerMe = their{}
+struct GUI_XStack: wraps = GtkWidget ownerMe = their{}
+struct GUI_YStack: wraps = GtkWidget ownerMe = their{}
+struct GUI_Text: wraps = GtkWidget ownerMe = their{}
+struct GDK_KEY_Down: wraps = GtkWidget ownerMe = their{}
+struct GUI_ZStack: wraps = GtkWidget ownerMe = their{}
 /////////////////////////////////  WIDGETS
 struct GUI_storyBoard{
     their GtkWidget: GUI_storyBoard
@@ -479,7 +479,7 @@ struct ListWidgetManager{
     } %>
 }
 
-struct GUI_CompleterList {their GtkListStore: GUI_CompleterList}
+struct GUI_CompleterList: wraps = GtkListStore ownerMe = their{}
 
 /////////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
