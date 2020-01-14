@@ -482,18 +482,19 @@ def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
         fieldDef=packFieldDef(fieldResult, className, '')
         progSpec.addField(ProgSpec, className, stateType, fieldDef)
 
-
-
-def extractBuildSpecs(buildSpecResults):
-    resultBuildSpecs = []
-    #print "buildSpecResults: ", buildSpecResults
+def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a parseResult, often an empty string
+    resultOfExtractBuildSpecs = []
+    print("buildSpecResults: ", buildSpecResults)
     if (len(buildSpecResults)==0):
-        resultBuildSpecs = []
+        return resultOfExtractBuildSpecs
     else:
-        for localBuildSpecs in buildSpecResults:
-            spec = [localBuildSpecs.buildID, extractTagDefs(localBuildSpecs.buildDefList[0])]
-            resultBuildSpecs.append(spec)
-    return resultBuildSpecs
+        for each_buildSpec in buildSpecResults:
+            # If this doesn't loop when expected, it may be a result of a ZeroOrMore/deLimitedList call in parser
+            # chain of buildSpec without trailing * in name, causing each new builSpec to overwrite previous value.
+            # Or it may be that another loop is needed over contents of tagDefList
+            spec = [each_buildSpec.buildID, extractTagDefs(each_buildSpec.buildDefList.tagDefList)]
+            resultOfExtractBuildSpecs.append(spec)
+    return resultOfExtractBuildSpecs
 
 def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
     className=spec.objectName[0]
