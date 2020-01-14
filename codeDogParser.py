@@ -160,8 +160,8 @@ objectDef.setParseAction(logObj)
 fieldDef.setParseAction(logFieldDef)
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
-progSpecParser = (Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + objectList)("progSpecParser")
-libTagParser = (tagDefList.setParseAction(logTags))("libTagParser")
+progSpecParser = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + objectList)("progSpecParser")
+libTagParser = Group(tagDefList.setParseAction(logTags))("libTagParser")
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
@@ -662,7 +662,7 @@ def parseCodeDogLibTags(inputString):
     except ParseException as pe:
         cdErr( "Error parsing lib tags: {}".format( pe))
 
-    tagStore = extractTagDefs(localResults.tagDefList)
+    tagStore = extractTagDefs(localResults.libTagParser.tagDefList)
     return tagStore
 
 def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
@@ -674,9 +674,9 @@ def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
     cdlog(LogLvl, "PARSING: "+description+"...")
     results = parseInput(inputString)
     cdlog(LogLvl, "EXTRACTING: "+description+"...")
-    tagStore = extractTagDefs(results.tagDefList)
-    buildSpecs = extractBuildSpecs(results.buildSpecList)
-    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.objectList)
+    tagStore = extractTagDefs(results.progSpecParser.tagDefList)
+    buildSpecs = extractBuildSpecs(results.progSpecParser.buildSpecList)
+    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.progSpecParser.objectList)
     classes = [ProgSpec, clsNames]
     return[tagStore, buildSpecs, classes, newClasses]
 
