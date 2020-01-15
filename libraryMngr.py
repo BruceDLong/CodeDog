@@ -118,9 +118,14 @@ def getTagsFromLibFiles():
     return tagsFromLibFiles
 
 def filterReqTags(ReqTags):
+    '''Change requirement tags from a list containing one parseResult element to a list of strings. (exceptions)
+    
+    Exceptional case: when requirement is in another list, ie. in cases of tagOneOf,
+    that element is appended to the output list as a parseResult rather than a string.
+    '''
     filteredTags=[]
-    for tag in ReqTags[0][1]:
-        filteredTags.append(tag[0])
+    for each in ReqTags[0].tagListContents:
+        filteredTags.append(each.tagValue)
     return [filteredTags]
 
 def extractLibTags(library):
