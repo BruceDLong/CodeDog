@@ -51,8 +51,10 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             Tstat <- "."
             T_total <- T_total+1
             T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
+            me int: lineLength
             if(verboseMode=="1"){
-                print("TESTING ",testName," ...   \t\t")
+                lineLength <- testName.size() + 13
+                print("TESTING ",testName," ... ")
             }
             log("TESTING "+testName+" _________________")
             // clear failFlag and mesg_buff; setTimer
@@ -61,6 +63,9 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             // readTimer()
             // fetch and return results
             if(verboseMode=="1"){
+                me string: spaces <- ""
+                withEach spc in RANGE(0..40-lineLength){spaces <+- " "}
+                print(spaces)
                 if(Tstat=="."){print("OK\n")}
                 else if(Tstat=="?"){print("TEST NAME NOT RECOGNIZED\n")}
                 else if(Tstat=="F"){print("FAILED\n")}

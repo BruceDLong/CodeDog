@@ -23,6 +23,7 @@ DependanciesUnmarked={}
 DependanciesMarked={}
 classHeirarchyInfo = {}
 currentCheckObjectVars = ""
+templatesDefined={}
 
 def rollBack(classes):
     global MarkedObjects
@@ -176,6 +177,9 @@ def addObjTags(objSpecs, className, stateType, objTags):
             newCommand = objRef['tags'][tag]
             commandArg = tag[8:]
             addModifierCommand(objSpecs, className, commandArg, commandArg, newCommand)
+
+def addTypeArgList(className, typeArgList):
+    templatesDefined[className]=typeArgList
 
 def addModifierCommand(objSpecs, objName, funcName, commandArg, commandStr):
     global MarkItems
@@ -578,6 +582,17 @@ def getTypeSpecOwner(typeSpec):
         else: return 'me'
     return typeSpec['owner']
 
+def getTypeArgList(className):
+    if(className in templatesDefined):
+        return(templatesDefined[className])
+    else:
+        return(None)
+def getFieldTypeArgList(typeSpec):
+    if('fieldType' in typeSpec and 'typeArgList' in typeSpec['fieldType']):
+        return(typeSpec['fieldType']['typeArgList'])
+    else:
+        return(None)
+
 def setCurrentCheckObjectVars(message):
     global currentCheckObjectVars
     currentCheckObjectVars = message
@@ -602,12 +617,21 @@ def isWrappedType(objMap, structname):
         #print "Struct "+structname+" not found"
         return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
     structToSearch=findSpecOf(objMap[0], structname, 'struct')
+    if('tags' in structToSearch and 'wraps' in structToSearch['tags']):
+        if('tags' in structToSearch and 'ownerMe' in structToSearch['tags']):
+            retOwner = structToSearch['tags']['ownerMe']
+        else: retOwner = 'me'
+        wrappedStructName = structToSearch['tags']['wraps']
+        typeSpecRetVal = {'owner':retOwner, 'fieldType':[wrappedStructName], 'arraySpec':None, 'containerSpec':None, 'argList':None}
+        #print(typeSpecRetVal)
+        return(typeSpecRetVal)
     fieldListToSearch = structToSearch["fields"]
-    if not fieldListToSearch: return None
+    if not fieldListToSearch:
+        return None
     if len(fieldListToSearch)>0:
         for field in fieldListToSearch:
             if field['fieldName']==structname and field['typeSpec']['argList']==None:
-                #print "isWrappedType: ", field['typeSpec']['argList'], structname
+                #print ("isWrappedType: ", field['typeSpec']['argList'], structname)
                 return field['typeSpec']
     return None
 

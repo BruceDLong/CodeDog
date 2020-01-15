@@ -832,6 +832,17 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
                 assignValue = ' = 0'
             elif(fieldTypeCat=='bool'):
                 assignValue = '= false'
+
+    typeArgList = progSpec. getFieldTypeArgList(typeSpec)
+    if(typeArgList != None):
+        typeArgString = "<"
+        count = 0
+        for typeArg in typeArgList[1]:
+            if(count>0):typeArgString += ", "
+            typeArgString += str(typeArg)
+            count += 1
+        typeArgString += ">"
+        fieldType += typeArgString
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
@@ -1033,6 +1044,16 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
     return [structCode, funcDefCode, globalFuncs]
 
+def codeTemplateHeader(typeArgList):
+    templateHeader = "\ntemplate<"
+    count = 0
+    for typeArg in typeArgList:
+        if(count>0):templateHeader+=","
+        templateHeader+="typename "+typeArg
+        count+=1
+    templateHeader+=">"
+    return(templateHeader)
+
 def extraCodeForTopOfFuntion(argList):
     return ''
 
@@ -1147,5 +1168,6 @@ def fetchXlators():
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['codeConstructorCall']          = codeConstructorCall
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
+    xlators['codeTemplateHeader']            = codeTemplateHeader
 
     return(xlators)
