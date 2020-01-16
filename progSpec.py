@@ -285,8 +285,8 @@ def extractListFromTagList(tagVal):
     tagValues=[]
     if ((not isinstance(tagVal, str)) and len(tagVal)>=2):
         if(tagVal[0]=='['):
-            for multiVal in tagVal[1]:
-                tagValues.append(multiVal[0])
+            for each in tagVal.tagListContents:
+                tagValues.append(each.tagValue[0])
     return tagValues
 
 def searchATagStore(tagStore, tagToFind):

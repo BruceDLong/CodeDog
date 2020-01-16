@@ -31,7 +31,7 @@ fullFieldDef = Forward()
 tagMap  = Group('{' + tagDefList + '}')
 tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ',')))("tagListContents") + ']')
 backTickString = Suppress("`") + SkipTo("`") + Suppress("`")
-tagValue <<= (Group(Literal('<').suppress() + (fullFieldDef)("tagType") + Literal('>').suppress()) | quotedString() | backTickString | Word(alphanums+'-*_./') | tagList | tagMap)("tagValue")
+tagValue <<= Group((Suppress('<') + Group(fullFieldDef)("tagType") + Suppress('>')) | quotedString | backTickString | Word(alphanums+'-*_./') | tagList | tagMap)("tagValue")
 tagDef = Group(tagID + Suppress("=") + tagValue)("tagDef")
 tagDefList <<= Group(ZeroOrMore(tagDef))("tagDefList")
 
@@ -182,24 +182,25 @@ def extractTagDefs(tagResults):
     localTagStore = {}
 
     for tagSpec in tagResults:
-        tagVal = tagSpec.tagValue
+        tagVal = tagSpec.tagValue[0]
         if ((not isinstance(tagVal, str)) and len(tagVal)>=2):
-            if(tagVal[0]=='['):
+            if(tagVal.tagListContents):
                 tagValues=[]
-                for multiVal in tagVal[1]:
-                    tagValues.append(multiVal[0])
-
-            elif(tagVal[0]=='{'):
+                for each in tagVal.tagListContents:
+                    tagValues.append(each.tagValue[0])
+            elif(tagVal[0]=='{'):   # might need attention after refactoring parser
                 tagValues=extractTagDefs(tagVal[1])
             elif("tagType" in tagVal):
                 autoClassName = "autoClass" + str(autoClassNameIdx)
                 autoClassNameIdx += 1
                 tagValues=packFieldDef(tagVal, autoClassName, '')
+            else:   #tagVal is an empty parseResult
+                tagValues = []
             tagVal=tagValues
         # Remove quotes
         elif (len(tagVal)>=2 and (tagVal[0] == '"' or tagVal[0] == "'") and (tagVal[0]==tagVal[-1])):
             tagVal = tagVal[1:-1]
-        #print tagSpec.tagID, " is ", tagVal
+        #print(tagSpec.tagID, " is ", tagVal)
         localTagStore[tagSpec.tagID] = tagVal
     return localTagStore
 
