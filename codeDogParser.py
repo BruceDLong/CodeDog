@@ -111,14 +111,17 @@ whileAction = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
 fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
 keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID")  - CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + Optional(":")("optionalColon")
+            Keyword("withEach")("repeatedActionID") - CID("repName") + "in" 
+            + Optional(traversalModes("traversalMode")) 
+            + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter')
+            + Optional(":")("optionalColon") 
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
         )("repeatedAction")
 
 action = Group((assign("assign") | swap('swap') | funcCall("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
-actionSeq <<=  Group(Literal("{")("actSeqID") + (ZeroOrMore (switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}") ("actionSeq")
+actionSeq <<=  Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
 funcBody = (actionSeq | rValueVerbatim)("funcBody")
 
@@ -136,10 +139,10 @@ nameAndVal = Group(
     )("nameAndVal")
 
 datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
-arraySpec = Group ('['  + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + ']')("arraySpec")
+arraySpec = Group('[' + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + ']')("arraySpec")
 meOrMy = Keyword("me") | Keyword("my")
 modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - "[" - CIDList("modeList") + "]" + nameAndVal)("modeSpec")
-flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal )("flagDef")
+flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal)("flagDef")
 baseType = (cppType | numRange)("baseType")
 
 #########################################   O B J E C T   D E S C R I P T I O N S
@@ -149,8 +152,8 @@ coFactualEl  = Group("(" + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt
 sequenceEl = ("{" + fieldDefs + "}")("sequenceEl")
 alternateEl  = ("[" + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]")("alternateEl")
 anonModel = (sequenceEl | alternateEl)("anonModel")
-owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their"))
-fullFieldDef <<= (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | classSpec | Group(anonModel) | datastructID)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
+owners <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
+fullFieldDef <<= (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + classSpec + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
@@ -169,7 +172,7 @@ def parseInput(inputStr):
     cdlog(2, "Parsing build-specs...")
     progSpec.saveTextToErrFile(inputStr)
     try:
-        localResults = progSpecParser.parseString(inputStr, parseAll = True)
+        localResults = progSpecParser.parseString(inputStr, parseAll=True)
 
     except ParseException as pe:
         cdErr( "Error parsing: {}".format( pe))
@@ -701,3 +704,4 @@ def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
         cdErr( "Error parsing generated class {}: {}".format(description, pe))
     cdlog(errLevl, 'Completed parsing: '+description)
     extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0])
+
