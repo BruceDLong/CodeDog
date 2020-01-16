@@ -123,7 +123,7 @@ repeatedAction = Group(
 action = Group((assign("assign") | swap('swap') | funcCall("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
 actionSeq <<=  Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
-funcBody = (actionSeq | rValueVerbatim)("funcBody")
+funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
@@ -279,9 +279,9 @@ def packFieldDef(fieldResult, className, indent):
             givenValue = nameAndVal.givenValue
 
         elif(nameAndVal.funcBody):
-            [funcBodyOut, funcTextVerbatim] = extractFuncBody(className, fieldName, nameAndVal.funcBody)
+            [funcBodyOut, funcTextVerbatim] = extractFuncBody(fieldName, nameAndVal.funcBody) 
             givenValue=[funcBodyOut, funcTextVerbatim]
-            #print "\n\n[funcBodyOut, funcTextVerbatim] ", givenValue
+            #print("\n\n[funcBodyOut, funcTextVerbatim] ", givenValue)
 
         elif(nameAndVal.rValueVerbatim):
             givenValue = ['', nameAndVal.rValueVerbatim[1]]
@@ -466,26 +466,23 @@ def extractActSeq(funcName, childActSeq):
         actSeq.append(thisActionItem)
     return actSeq
 
-def extractActSeqToFunc(funcName, funcBodyIn):
-    childActSeq = extractActSeq( funcName, funcBodyIn)
-    return childActSeq
-
-
-def extractFuncBody(ObjectName,funcName, funcBodyIn):
-    if funcBodyIn[0] == "<%":
+def extractFuncBody(funcName, funcBodyIn):
+    '''Extract body of funcName (str) from funcBodyIn (parseResults)
+    
+    Returns two values: funcBodyOut for CodeDog defined body & funcTextVerbatim for verbatim text.
+    If body is verbatim: funcBodyOut is an empty string, funcTextVerbatim is a string
+    If body is CodeDog: funcBodyOut is a list of stuff, funcTextVerbatim is an empty string
+    '''
+    if funcBodyIn.rValueVerbatim:
         funcBodyOut = ""
-        if len(funcBodyIn)== 3: # handles new pyparsing
-            funcTextVerbatim = funcBodyIn[1]
-        elif len(funcBodyIn)== 2: # handles old pyparsing
-            funcTextVerbatim = funcBodyIn[1][0]
-        else:
-            cdErr( "problem in funcTextVerbatim: len(funcBodyIn): {}".format( len(funcBodyIn)))
-            exit(1)
-    else:
-        funcBodyOut = extractActSeqToFunc(funcName, funcBodyIn)
+        funcTextVerbatim = funcBodyIn.rValueVerbatim[1] # opening and closing verbatim symbols are indices 0 and 2
+    elif funcBodyIn.actionSeq:
+        funcBodyOut = extractActSeq(funcName, funcBodyIn.actionSeq)
         funcTextVerbatim = ""
+    else:
+        cdErr("problem in extractFuncBody: funcBodyIn has no rValueVerbatim or actionSeq")
+        exit(1)
     return funcBodyOut, funcTextVerbatim
-
 
 def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
     cdlog(logLvl(), "EXTRACTING {}".format(className))
