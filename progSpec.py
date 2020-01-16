@@ -24,6 +24,7 @@ DependanciesMarked={}
 classHeirarchyInfo = {}
 currentCheckObjectVars = ""
 templatesDefined={}
+classImplementationOptions = {}
 
 def rollBack(classes):
     global MarkedObjects
@@ -135,7 +136,6 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     if MarkItems: MarkedObjects[name]=1
     return name
 
-classImplementationOptions = {}
 def appendToAncestorList(objRef, className, subClassMode, parentClassList):
     global classImplementationOptions
     #subClassMode ="inherits" or "implements"
@@ -150,7 +150,7 @@ def appendToAncestorList(objRef, className, subClassMode, parentClassList):
             objRef[subClassMode].append(parentClass)
 
         if subClassMode=='implements':
-            print("ADDING:", className, 'to', parentClass)
+            print("ADDING:", className, ' implements ', parentClass)
             if not (parentClass in classImplementationOptions):
                 classImplementationOptions[parentClass] = [className]
             else: classImplementationOptions[parentClass].append(className)
@@ -542,6 +542,29 @@ def doesClassContainFunc(classes, structName, funcName):
         fieldName=field['fieldName']
         if fieldName == funcName: return True
     return False
+
+def getReqTags(fieldType):
+    if('optionalTag' in fieldType[1]):
+        reqTags = fieldType[1][3]
+        return(reqTags)
+    else:
+        return None
+
+templateSpecKeyWords = {'verySlow':0, 'slow':1, 'normal':2, 'fast':3, 'veryFast':4, 'polynomial':0, 'exponential':0, 'nLog_n':1, 'linear':2, 'logarithmic':3, 'constant':4}
+def scoreImplementation(optionSpecs, reqTags):
+    returnScore = 0
+    errorStr = ""
+    for reqTag in reqTags:
+        reqID = reqTag[0]
+        reqVal = templateSpecKeyWords[reqTag[1]]
+        if(reqID in optionSpecs):
+            specVal = templateSpecKeyWords[optionSpecs[reqID]]
+            if(specVal < reqVal):return([-1, errorStr])
+            if(specVal > reqVal):returnScore = specVal - reqVal
+        else:
+            errorStr = "Requirement '"+reqID+"' not found in Spec:"+str(optionSpecs)
+            return([-1, errorStr])
+    return [returnScore, errorStr]
 
 def getImplementationOptionsFor(fieldType):
     global classImplementationOptions

@@ -275,11 +275,25 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
 def chooseStructImplementationToUse(typeSpec):
     fieldType = progSpec.getFieldType(typeSpec)
     if not isinstance(fieldType, str) and  len(fieldType) >1:
-        print("TYPESPEC:", progSpec.getFieldType(typeSpec))
-        if ('chosenType' in fieldType): return
-        implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
-     #   for option in implementationOptions:
-            # calculate a score
+        if ('chosenType' in fieldType):
+            return(None)
+        reqTags = progSpec.getReqTags(fieldType)
+        if(reqTags != None):
+            implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
+            if(implementationOptions != None):
+                highestScore = -1
+                highestScoreClassName = None
+                for option in implementationOptions:
+                    optionClassDef =  progSpec.findSpecOf(globalClassStore[0], option, "struct")
+                    if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
+                        optionSpecs = optionClassDef['tags']['specs']
+                        [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
+                        if(errorMsg != ""): cdErr(errorMsg)
+                        if(implScore > highestScore):
+                            highestScore = implScore
+                            highestScoreClassName = optionClassDef['name']
+                return(highestScoreClassName)
+    return(None)
     #    choose highest score and mark the typedef
 
 def codeAllocater(typeSpec, xlator):
@@ -656,7 +670,9 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
     if (typeOfAction =='newVar'):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
-        chooseStructImplementationToUse(typeSpec)
+        structToImplement = chooseStructImplementationToUse(typeSpec)
+        if(structToImplement != None):
+            typeSpec['fieldType'][0] = structToImplement
         varName = fieldDef['fieldName']
         cdlog(5, "Action newVar: {}".format(varName))
         varDeclareStr = xlator['codeNewVarStr'](globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, 'action', xlator)
