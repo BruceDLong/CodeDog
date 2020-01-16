@@ -63,7 +63,7 @@ comment = Suppress(r'//') + restOfLine('comment')
 #######################################   E X P R E S S I O N S
 parameters = Forward()
 owners = Forward()
-varSpec = (Optional(owners) + varType)("varSpec")
+varSpec = Optional(owners) + varType
 varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
 typeArgList = Group(Literal("<") + CIDList + Literal(">"))("typeArgList")
 classSpec <<= Group(objectName + Optional(typeArgList))("objectName")
@@ -86,8 +86,8 @@ expr <<= Group( logAnd + Group(Optional(OneOrMore(Group(Keyword('or') + logAnd )
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 # TODO: -= operator, it isn't set up because parser does not handle a middle "-" and closing "-"
-assign = (lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue)("assign")
-parameters <<= ("(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")"))("parameters")
+assign = lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue
+parameters <<= "(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
 
 ########################################   F U N C T I O N S
 funcCall = varRef("funcCall")
