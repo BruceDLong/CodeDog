@@ -46,18 +46,18 @@ CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
 objectName = CID("objectName")
 classSpec = Forward()
-cppType = (Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
+cppType = Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string")
 HexNums = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
 BinNums = Combine((Literal("0B") | Literal("0b")) + Word("01"))
-intNum = (HexNums | BinNums | Word(nums))("intNum")
+intNum = HexNums | BinNums | Word(nums)
 numRange = Group(intNum + ".." + intNum)("numRange")
-varType = (classSpec | cppType | numRange)("varType")
-boolValue = (Keyword("true") | Keyword("false"))("boolValue")
+varType = classSpec | cppType | numRange
+boolValue = Keyword("true") | Keyword("false")
 floatNum = Combine(intNum + "." + intNum)("floatNum")
 value = Forward()
 listVal = "[" + delimitedList(expr, ",") + "]"
 strMapVal = "{" + delimitedList(quotedString + ":" + expr, ",")  + "}"
-value <<= (boolValue | floatNum | intNum | quotedString | listVal | strMapVal)("value")
+value <<= boolValue | floatNum | intNum | quotedString | listVal | strMapVal
 comment = Suppress(r'//') + restOfLine('comment')
 
 #######################################   E X P R E S S I O N S
