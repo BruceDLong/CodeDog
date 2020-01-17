@@ -93,7 +93,7 @@ parameters <<= "(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
 funcCall = varRef("funcCall")
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 fieldDef = Forward()
-argList =  (verbatim | Group(Optional(delimitedList(Group(fieldDef)))))("argList")
+argList =  Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
 actionSeq = Forward()
 defaultCase = Group(Keyword("default") + Suppress(":") + actionSeq("caseAction"))("defaultCase")
 switchCase= Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValues") - actionSeq("caseAction"))
@@ -266,33 +266,37 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.nameAndVal):
         nameAndVal = fieldResult.nameAndVal
         #print "nameAndVal = ", nameAndVal
+        
         if(nameAndVal.fieldName):
             fieldName = nameAndVal.fieldName
             #print "FIELD NAME", fieldName
         else: fieldName=None;
 
         if(nameAndVal.allocDoubleColon):
-            if varOwner == 'me' or varOwner == 'we': print("Error: unable to allocate variable with owner me or we: ", fieldName); exit(1)
+            if varOwner == 'me' or varOwner == 'we':
+                print("Error: unable to allocate variable with owner me or we: ", fieldName)
+                exit(1)
             else: isAllocated = True
 
         if(nameAndVal.givenValue):
             givenValue = nameAndVal.givenValue
-
         elif(nameAndVal.funcBody):
             [funcBodyOut, funcTextVerbatim] = extractFuncBody(fieldName, nameAndVal.funcBody) 
             givenValue=[funcBodyOut, funcTextVerbatim]
             #print("\n\n[funcBodyOut, funcTextVerbatim] ", givenValue)
-
         elif(nameAndVal.rValueVerbatim):
             givenValue = ['', nameAndVal.rValueVerbatim[1]]
         else: givenValue=None;
+        
         if(nameAndVal.argListTag):
             for argSpec in nameAndVal.argList:
-                argList.append(packFieldDef(argSpec[0], className, indent+"    "))
+                argList.append(packFieldDef(argSpec.fieldDef, className, indent+"    "))
         else: argList=None;
+        
         if 'parameters' in nameAndVal:
             if('deprecateDoubleColon'in nameAndVal):
                 print("            ***deprecated doubleColon in nameAndVal at: ", fieldName)
+            
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
             else: prmList=nameAndVal.parameters[1]
             for param in prmList:
@@ -303,7 +307,6 @@ def packFieldDef(fieldResult, className, indent):
     else:
         givenValue=None;
         fieldName=None;
-
 
 
     if(fieldResult.flagDef):
