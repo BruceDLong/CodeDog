@@ -668,8 +668,11 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
         parentClass=': public '+parentClass+' '
         print("Warning: old style inheritance used: " , parentClass)
     if classImplements!=None:
-        print("Error: Implements found for: " , parentClass)
-        exit(1)
+        #print(structName, "Implements: " , classImplements)
+        for classToImplement in classImplements[0]:
+            [implementsParent, failedFuncName] = progSpec.doesChildImplementParentClass(classes[0], classToImplement, structName)
+            if not implementsParent:
+                cdErr("Template class "+ structName+"{} does not implement " + failedFuncName)
     if classInherits!=None:
         parentClass=': public '
         count =0
@@ -833,16 +836,16 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             elif(fieldTypeCat=='bool'):
                 assignValue = '= false'
 
-    typeArgList = progSpec. getFieldTypeArgList(typeSpec)
-    if(typeArgList != None):
-        typeArgString = "<"
+    reqTagList = progSpec. getReqTagList(typeSpec)
+    if(reqTagList != None):
+        reqTagString = "<"
         count = 0
-        for typeArg in typeArgList[1]:
-            if(count>0):typeArgString += ", "
-            typeArgString += str(typeArg)
+        for reqTag in reqTagList[1]:
+            if(count>0):reqTagString += ", "
+            reqTagString += str(reqTag)
             count += 1
-        typeArgString += ">"
-        fieldType += typeArgString
+        reqTagString += ">"
+        fieldType += reqTagString
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 

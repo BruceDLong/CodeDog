@@ -478,6 +478,19 @@ def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
 
 #### These functions help evaluate parent-class / child-class relations
 
+def doesChildImplementParentClass(classes, parentClassName, childClassName):
+    parentClassDef = findSpecOf(classes, parentClassName, 'model')
+    if(parentClassDef == None):parentClassDef = findSpecOf(classes, parentClassName, 'struct')
+    if(parentClassDef == None):cdErr("Struct to implement not found:"+parentClassName)
+    for field in parentClassDef['fields']:
+        if(field['typeSpec'] and field['typeSpec']['argList'] and field['typeSpec']['argList'] != None): # ArgList exists so this is a FUNCTION
+            parentFieldID = field['fieldID']
+            childFieldID = parentFieldID.replace(parentClassName+"::", childClassName+"::")
+            fieldExists = doesClassDirectlyImlementThisField(classes, childClassName, childFieldID)
+            if not fieldExists:
+                return [False, parentFieldID]
+    return [True, ""]
+
 def doesClassDirectlyImlementThisField(objSpecs, structName, fieldID):
     #print '        ['+structName+']: ', fieldID
     modelSpec=findSpecOf(objSpecs, structName, 'model')
@@ -610,9 +623,9 @@ def getTypeArgList(className):
         return(templatesDefined[className])
     else:
         return(None)
-def getFieldTypeArgList(typeSpec):
-    if('fieldType' in typeSpec and 'typeArgList' in typeSpec['fieldType']):
-        return(typeSpec['fieldType']['typeArgList'])
+def getReqTagList(typeSpec):
+    if('fieldType' in typeSpec and 'reqTagList' in typeSpec['fieldType']):
+        return(typeSpec['fieldType']['reqTagList'])
     else:
         return(None)
 
