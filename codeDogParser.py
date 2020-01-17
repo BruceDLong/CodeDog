@@ -113,7 +113,7 @@ keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Ke
 repeatedAction = Group(
             Keyword("withEach")("repeatedActionID") - CID("repName") + "in" 
             + Optional(traversalModes("traversalMode")) 
-            + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter')
+            + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))
             + Optional(":")("optionalColon") 
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
@@ -137,8 +137,7 @@ nameAndVal = Group(
         | (Literal("::")('deprecateDoubleColon') + CID("fieldName") + Group(parameters)("parameters"))# deprecated
         | (Literal("::")('allocDoubleColon') + CID("fieldName"))
     )("nameAndVal")
-
-datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
+datastructID = Group(Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
 arraySpec = Group('[' + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + ']')("arraySpec")
 meOrMy = Keyword("me") | Keyword("my")
 modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - "[" - CIDList("modeList") + "]" + nameAndVal)("modeSpec")
@@ -236,14 +235,12 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType;
         if not isinstance(fieldType, str) and (fieldType[0]=='[' or fieldType[0]=='{'):
-            #print "FIELDTYPE is an inline SEQ or ALT:"
-
+            #print("FIELDTYPE is an inline SEQ or ALT")
             if   fieldType[0]=='{': fieldList=fieldType[1:-1]
             elif fieldType[0]=='[': fieldList=fieldType[1]
             for innerField in fieldList:
                 innerFieldDef=packFieldDef(innerField, className, indent+'    ')
                 innerDefs.append(innerFieldDef)
-
     else: fieldType=None;
 
     isAContainer = False
@@ -252,6 +249,7 @@ def packFieldDef(fieldResult, className, indent):
         isAContainer = True
         #print"         ****Old ArraySpec found: "
     else: arraySpec=None
+
     if(fieldResult.containerSpec):
         containerSpec=fieldResult.containerSpec
         isAContainer = True

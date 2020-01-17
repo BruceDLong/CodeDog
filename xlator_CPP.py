@@ -17,7 +17,10 @@ def getContainerType(typeSpec, actionOrField):
             idxType=containerSpec['idxBaseType'][0]
             idxType=applyOwner(idxOwner, idxType, '')
         else: idxType=containerSpec['idxBaseType'][0]
-    datastructID = containerSpec['datastructID']
+    if( isinstance(containerSpec['datastructID'], str) ):
+        datastructID = containerSpec['datastructID']
+    else:   # it's a parseResult
+        datastructID = containerSpec['datastructID'][0]
     if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
     if(datastructID=='iterableList'): datastructID = "list"

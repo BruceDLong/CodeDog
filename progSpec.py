@@ -554,15 +554,21 @@ def isAContainer(typeSpec):
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def getContainerSpec(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return {'owner': 'me', 'datastructID':'list'}
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
+        return {'owner': 'me', 'datastructID':'list'}
     return(typeSpec['arraySpec'])
 
 def getTemplateArg(typeSpec, argIdx):
     return(typeSpec)
 
 def getDatastructID(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return 'list'
-    return(typeSpec['arraySpec']['datastructID'])
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
+        # if fieldType is parseResult w/ fieldType whose value is 'DblLinkedList' 
+        return 'list'
+    if(isinstance(typeSpec['arraySpec']['datastructID'], str)):
+        return(typeSpec['arraySpec']['datastructID'])
+    else:   #is a parseResult
+        return(typeSpec['arraySpec']['datastructID'][0])
 
 def getFieldType(typeSpec):
     if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return ['infon']
