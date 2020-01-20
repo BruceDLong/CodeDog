@@ -1032,20 +1032,36 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         else:
             globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
     else:
+        typeArgList = progSpec.getTypeArgList(className)
+        if(typeArgList != None):
+            templateHeader = codeTemplateHeader(typeArgList) +"\n"
+            className = className + codeTypeArgs(typeArgList)
+        else:
+            templateHeader = ""
         if inheritMode=='normal' or inheritMode=='override':
             structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
             objPrefix = progSpec.flattenObjectName(className) +'::'
-            funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+            funcDefCode += templateHeader + typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
         elif inheritMode=='virtual':
             structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +");\n";
             objPrefix = progSpec.flattenObjectName(className) +'::'
-            funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+            funcDefCode += templateHeader + typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
         elif inheritMode=='pure-virtual':
             #print "PARMS: ", "'"+str(fieldName)+"'",  "'"+str(typeDefName)+"'", "'"+str(argListText)+"'"
-            structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
+            structCode +=  indent + 'virtual ' + typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
         else: cdErr("Invalid inherit mode found: "+inheritMode)
         if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
     return [structCode, funcDefCode, globalFuncs]
+
+def codeTypeArgs(typeArgList):
+    typeArgsCode = "<"
+    count = 0
+    for typeArg in typeArgList:
+        if(count>0):typeArgsCode+=", "
+        typeArgsCode+=typeArg
+        count+=1
+    typeArgsCode+=">"
+    return(typeArgsCode)
 
 def codeTemplateHeader(typeArgList):
     templateHeader = "\ntemplate<"
