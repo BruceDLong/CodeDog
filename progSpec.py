@@ -114,7 +114,7 @@ def fieldIdentifierString(className, packedField):
         count=0
         for arg in argList:
             if count>0: fieldID+=','
-            fieldID += fieldTypeKeyword(arg['typeSpec']['fieldType'])
+            fieldID += fieldTypeKeyword(arg['typeSpec']['fieldType'][0])
             count+=1
         fieldID+=')'
     return fieldID
@@ -290,13 +290,13 @@ def extractListFromTagList(tagVal):
     return tagValues
 
 def searchATagStore(tagStore, tagToFind):
-    #print "SEARCHING for tag", tagToFind
+    print("SEARCHING for tag", tagToFind)
     if tagStore == None: return None
     tagSegs=tagToFind.split(r'.')
     crntStore=tagStore
     item=''
     for seg in tagSegs:
-        #print seg
+	#print("seg: ", seg)
         if(seg in crntStore):
             item=crntStore[seg]
             crntStore=item
@@ -391,7 +391,7 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
         insertOrReplaceField(fieldListToUpdate, field)
 
 def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type::subType::subType2'
-    #print "POPULATING-STRUCT:", structName
+    #print("POPULATING-STRUCT:", structName)
     # TODO: fix sometimes will populateCallableStructFields with sibling class fields
     structSpec=findSpecOf(classes[0], structName, 'struct')
     if structSpec==None: return

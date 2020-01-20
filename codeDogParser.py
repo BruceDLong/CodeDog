@@ -23,20 +23,20 @@ def logFieldDef(s, loc, toks):
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
-identifier = Word(alphanums + "_")("identifier")
+identifier = Word(alphanums + "_")
 tagID = identifier("tagID")
 tagDefList = Forward()
 tagValue = Forward()
 fullFieldDef = Forward()
-tagMap  = Group('{' + tagDefList + '}')
+tagMap  = Group('{' + tagDefList + '}')("tagMap")
 tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ',')))("tagListContents") + ']')
 backTickString = Suppress("`") + SkipTo("`") + Suppress("`")
 tagValue <<= Group((Suppress('<') + Group(fullFieldDef)("tagType") + Suppress('>')) | quotedString | backTickString | Word(alphanums+'-*_./') | tagList | tagMap)("tagValue")
-tagDef = Group(tagID + Suppress("=") + tagValue)("tagDef")
+tagDef = Group(tagID + Suppress("=") + tagValue)("tagDef*")
 tagDefList <<= Group(ZeroOrMore(tagDef))("tagDefList")
 
 buildID = identifier("buildID")
-buildDefList = tagDefList("buildDefList")
+buildDefList = Group(tagDefList)("buildDefList")
 buildSpec = Group(buildID + Suppress(":") + buildDefList + ";")("buildSpec")
 buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 
@@ -101,7 +101,7 @@ switchStmt= Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - 
 conditionalAction = Forward()
 conditionalAction <<= Group(
             Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
-            + Optional((Keyword("else") | Keyword("but")) + (actionSeq | conditionalAction)("elseBody"))("optionalElse")
+            + Optional((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse")
         )("conditionalAction")
 traversalModes = Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative")
 rangeSpec = Group(Keyword("RANGE") + '(' + rValue + ".." + rValue + ')')
@@ -152,7 +152,7 @@ sequenceEl = "{" + fieldDefs + "}"
 alternateEl  = "[" + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
 anonModel = sequenceEl("sequenceEl") | alternateEl("alternateEl")
 owners <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
-fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + (baseType | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
+fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + classSpec + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
@@ -186,12 +186,12 @@ def extractTagDefs(tagResults):
     for tagSpec in tagResults:
         tagVal = tagSpec.tagValue[0]
         if ((not isinstance(tagVal, str)) and len(tagVal)>=2):
-            if(tagVal.tagListContents):
+            if(tagVal.tagListContents): #tagVal is tagList
                 tagValues=[]
                 for each in tagVal.tagListContents:
                     tagValues.append(each.tagValue[0])
-            elif(tagVal[0]=='{'):   # might need attention after refactoring parser
-                tagValues=extractTagDefs(tagVal[1])
+            elif(tagVal.tagDefList):   #tagVal is tagMap
+                tagValues=extractTagDefs(tagVal.tagDefList)
             elif("tagType" in tagVal):
                 autoClassName = "autoClass" + str(autoClassNameIdx)
                 autoClassNameIdx += 1
@@ -233,7 +233,7 @@ def packFieldDef(fieldResult, className, indent):
     isAllocated = False
 
     if(fieldResult.fieldType):
-        fieldType=fieldResult.fieldType;
+        fieldType=fieldResult.fieldType[0];
         if not isinstance(fieldType, str) and (fieldType[0]=='[' or fieldType[0]=='{'):
             #print("FIELDTYPE is an inline SEQ or ALT")
             if   fieldType[0]=='{': fieldList=fieldType[1:-1]
@@ -381,7 +381,7 @@ def extractActItem(funcName, actionItem):
         ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
         elseBodyOut = {}
         if (actionItem.optionalElse):
-            elseBodyIn = actionItem.optionalElse
+            elseBodyIn = actionItem.optionalElse.elseBody
             if (elseBodyIn.conditionalAction):
                 elseBodyOut = ['if' , [extractActItem(funcName, elseBodyIn.conditionalAction)] ]
             elif (elseBodyIn.actionSeq):
