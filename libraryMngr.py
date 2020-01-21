@@ -233,7 +233,7 @@ def constructANDListFromNeeds(tags, needs, files, indent):
     global featuresHandled
     AND_List = ['AND', []]
     for need in needs:
-        print(indent, "**need*: ", need)
+        #print(indent, "**need*: ", need)
         if need[0] == 'feature':
             if need[1] in featuresHandled: continue
             cdlog(1, "FEATURE: "+str(need[1]))

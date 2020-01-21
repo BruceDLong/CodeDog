@@ -493,7 +493,7 @@ def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
 
 def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a parseResult, often an empty string
     resultOfExtractBuildSpecs = []
-    print("buildSpecResults: ", buildSpecResults)
+    #print("buildSpecResults: ", buildSpecResults)
     if (len(buildSpecResults)==0):
         return resultOfExtractBuildSpecs
     else:
