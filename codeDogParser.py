@@ -101,7 +101,7 @@ switchStmt= Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - 
 conditionalAction = Forward()
 conditionalAction <<= Group(
             Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
-            + Optional((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse")
+            + Optional(Group((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse"))
         )("conditionalAction")
 traversalModes = Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative")
 rangeSpec = Group(Keyword("RANGE") + '(' + rValue + ".." + rValue + ')')
@@ -138,7 +138,7 @@ nameAndVal = Group(
         | (Literal("::")('allocDoubleColon') + CID("fieldName"))
     )("nameAndVal")
 datastructID = Group(Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
-arraySpec = Group('[' + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + ']')("arraySpec")
+arraySpec = Group('[' + Optional(owners)('owner') + datastructID + Optional(Group(intNum | Optional(Group(owners)('IDXowner')) + varType('idxBaseType'))('indexType')) + ']')("arraySpec")
 meOrMy = Keyword("me") | Keyword("my")
 modeSpec = Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - "[" - CIDList("modeList") + "]" + nameAndVal
 flagDef  = Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal

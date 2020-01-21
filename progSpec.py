@@ -290,13 +290,13 @@ def extractListFromTagList(tagVal):
     return tagValues
 
 def searchATagStore(tagStore, tagToFind):
-    print("SEARCHING for tag", tagToFind)
+    #print("SEARCHING for tag", tagToFind, "     in tagStore: ", tagStore)
     if tagStore == None: return None
     tagSegs=tagToFind.split(r'.')
     crntStore=tagStore
     item=''
     for seg in tagSegs:
-	#print("seg: ", seg)
+        #print("seg: ", seg, "      crntStore: ", crntStore)
         if(seg in crntStore):
             item=crntStore[seg]
             crntStore=item
