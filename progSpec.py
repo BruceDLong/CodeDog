@@ -585,23 +585,35 @@ def getImplementationOptionsFor(fieldType):
         return classImplementationOptions[fieldType]
     return None
 ###############  Various type-handling functions
+def isNewContainerTempFunc(typeSpec):
+    # use only while transitioning to dynamic lists<> then delete
+    # TODO: delete this function when dynamic types working
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
+        return(['infon'])
+    else:
+        reqTagList = getReqTagList(typeSpec)
+        if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='CPP_Deque':
+            return(reqTagList[1])
+    return(None)
 def isAContainer(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return True  # TODO: Remove this after Dynamix Types work.
+    if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def getContainerSpec(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return {'owner': 'me', 'datastructID':'list'}
+    if isNewContainerTempFunc(typeSpec): return {'owner': 'me', 'datastructID':'list'}
     return(typeSpec['arraySpec'])
 
 def getTemplateArg(typeSpec, argIdx):
     return(typeSpec)
 
 def getDatastructID(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return 'list'
+    if isNewContainerTempFunc(typeSpec): return 'list'
     return(typeSpec['arraySpec']['datastructID'])
 
 def getFieldType(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return ['infon']
+    retVal = isNewContainerTempFunc(typeSpec)
+    if retVal != None:
+        return retVal
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
@@ -611,7 +623,7 @@ def getTypeSpecOwner(typeSpec):
         cdErr(currentCheckObjectVars)
     if typeSpec==None or isinstance(typeSpec, str): return 'me'
     if isAContainer(typeSpec):
-        if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return typeSpec['owner']
+        if isNewContainerTempFunc(typeSpec): return typeSpec['owner']
         if "owner" in typeSpec['arraySpec']:
             owner = typeSpec['arraySpec']['owner']
             return owner

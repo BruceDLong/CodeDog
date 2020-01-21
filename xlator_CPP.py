@@ -64,7 +64,7 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
     InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
 
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return [langType, InnerLangType]
+    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
 
     if progSpec.isAContainer(typeSpec):
         containerSpec = progSpec.getContainerSpec(typeSpec)
@@ -140,7 +140,7 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-        if 'fieldType' in itemTypeSpec and not(isinstance(itemTypeSpec['fieldType'], str)) and itemTypeSpec['fieldType'][0]=='DblLinkedList': return ['', '']
+        if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '']
         if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
             if progSpec.isAContainer(itemTypeSpec):
@@ -249,7 +249,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     #print containerType, name
-    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], str)) and typeSpecIn['fieldType'][0]=='DblLinkedList': return(name, typeSpecOut, paramList, convertedIdxType)
+    if progSpec.isNewContainerTempFunc(typeSpecIn): return(name, typeSpecOut, paramList, convertedIdxType)
     if containerType=='deque' or  containerType=='list':
         if name=='at' or name=='resize': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}

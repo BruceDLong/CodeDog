@@ -348,7 +348,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
 
     isStructLikeContainer = False
-    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], str)) and typeSpecIn['fieldType'][0]=='DblLinkedList': isStructLikeContainer = True
+    if progSpec.isNewContainerTempFunc(typeSpecIn): isStructLikeContainer = True
 
     IsAContainer = progSpec.isAContainer(typeSpecIn)
     if (fieldTypeIn!=None and isinstance(fieldTypeIn, str) and not IsAContainer):
