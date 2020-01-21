@@ -67,6 +67,9 @@ def findLibraryFiles():
 
 def findLibrary(feature):
     for item in libDescriptionFileList:
+        if not isinstance(feature, str):
+            if(len(feature)==1):        # convert parseResults of size 1 to a string
+                feature = feature[0]
         if(os.path.basename(item) == feature+".Lib.dog"):
             return item
     return ""
@@ -118,9 +121,14 @@ def getTagsFromLibFiles():
     return tagsFromLibFiles
 
 def filterReqTags(ReqTags):
+    '''Change requirement tags from a list containing one parseResult element to a list of strings. (exceptions)
+    
+    Exceptional case: when requirement is in another list, ie. in cases of tagOneOf,
+    that element is appended to the output list as a parseResult rather than a string.
+    '''
     filteredTags=[]
-    for tag in ReqTags[0][1]:
-        filteredTags.append(tag[0])
+    for each in ReqTags[0].tagListContents:
+        filteredTags.append(each.tagValue[0])
     return [filteredTags]
 
 def extractLibTags(library):
@@ -128,10 +136,13 @@ def extractLibTags(library):
     libTags = loadTagsFromFile(library)
     tagsFromLibFiles[library] = libTags
     ReqTags = progSpec.fetchTagValue([libTags], 'requirements')
-    if ReqTags == None: ReqTags =[]
-    if len(ReqTags)>0: ReqTags = filterReqTags(ReqTags)
+    if ReqTags == None:
+        ReqTags =[]
+    elif len(ReqTags)>0:
+        ReqTags = filterReqTags(ReqTags)
     interfaceTags = progSpec.fetchTagValue([libTags], 'interface')
-    if interfaceTags == None: interfaceTags =[]
+    if interfaceTags == None:
+        interfaceTags =[]
     return [ReqTags,interfaceTags]
 
 featuresHandled = []
@@ -222,7 +233,7 @@ def constructANDListFromNeeds(tags, needs, files, indent):
     global featuresHandled
     AND_List = ['AND', []]
     for need in needs:
-        #print indent + "**need*: ", need
+        print(indent, "**need*: ", need)
         if need[0] == 'feature':
             if need[1] in featuresHandled: continue
             cdlog(1, "FEATURE: "+str(need[1]))

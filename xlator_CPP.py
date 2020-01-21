@@ -12,12 +12,16 @@ def getContainerType(typeSpec, actionOrField):
     idxType=''
     idxOwner=None
     if 'indexType' in containerSpec:
-        if 'IDXowner' in containerSpec:
-            idxOwner=containerSpec['IDXowner']
-            idxType=containerSpec['idxBaseType'][0]
+        if 'IDXowner' in containerSpec['indexType']:
+            idxOwner=containerSpec['indexType']['IDXowner'][0]
+            idxType=containerSpec['indexType']['idxBaseType'][0][0]
             idxType=applyOwner(idxOwner, idxType, '')
-        else: idxType=containerSpec['idxBaseType'][0]
-    datastructID = containerSpec['datastructID']
+        else:
+            idxType=containerSpec['indexType']['idxBaseType'][0][0]
+    if( isinstance(containerSpec['datastructID'], str) ):
+        datastructID = containerSpec['datastructID']
+    else:   # it's a parseResult
+        datastructID = containerSpec['datastructID'][0]
     if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
     if(datastructID=='iterableList'): datastructID = "list"

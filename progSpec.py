@@ -114,7 +114,7 @@ def fieldIdentifierString(className, packedField):
         count=0
         for arg in argList:
             if count>0: fieldID+=','
-            fieldID += fieldTypeKeyword(arg['typeSpec']['fieldType'])
+            fieldID += fieldTypeKeyword(arg['typeSpec']['fieldType'][0])
             count+=1
         fieldID+=')'
     return fieldID
@@ -285,18 +285,18 @@ def extractListFromTagList(tagVal):
     tagValues=[]
     if ((not isinstance(tagVal, str)) and len(tagVal)>=2):
         if(tagVal[0]=='['):
-            for multiVal in tagVal[1]:
-                tagValues.append(multiVal[0])
+            for each in tagVal.tagListContents:
+                tagValues.append(each.tagValue[0])
     return tagValues
 
 def searchATagStore(tagStore, tagToFind):
-    #print "SEARCHING for tag", tagToFind
+    #print("SEARCHING for tag", tagToFind, "     in tagStore: ", tagStore)
     if tagStore == None: return None
     tagSegs=tagToFind.split(r'.')
     crntStore=tagStore
     item=''
     for seg in tagSegs:
-        #print seg
+        #print("seg: ", seg, "      crntStore: ", crntStore)
         if(seg in crntStore):
             item=crntStore[seg]
             crntStore=item
@@ -391,7 +391,7 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
         insertOrReplaceField(fieldListToUpdate, field)
 
 def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type::subType::subType2'
-    #print "POPULATING-STRUCT:", structName
+    #print("POPULATING-STRUCT:", structName)
     # TODO: fix sometimes will populateCallableStructFields with sibling class fields
     structSpec=findSpecOf(classes[0], structName, 'struct')
     if structSpec==None: return
@@ -554,15 +554,21 @@ def isAContainer(typeSpec):
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def getContainerSpec(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return {'owner': 'me', 'datastructID':'list'}
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
+        return {'owner': 'me', 'datastructID':'list'}
     return(typeSpec['arraySpec'])
 
 def getTemplateArg(typeSpec, argIdx):
     return(typeSpec)
 
 def getDatastructID(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return 'list'
-    return(typeSpec['arraySpec']['datastructID'])
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
+        # if fieldType is parseResult w/ fieldType whose value is 'DblLinkedList' 
+        return 'list'
+    if(isinstance(typeSpec['arraySpec']['datastructID'], str)):
+        return(typeSpec['arraySpec']['datastructID'])
+    else:   #is a parseResult
+        return(typeSpec['arraySpec']['datastructID'][0])
 
 def getFieldType(typeSpec):
     if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return ['infon']

@@ -834,13 +834,16 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
         idxType=''
         if 'indexType' in containerSpec:
             idxType=containerSpec['indexType']
-        datastructID = containerSpec['datastructID']
+        if(isinstance(containerSpec['datastructID'], str)):
+            datastructID = containerSpec['datastructID']
+        else:   # it's a parseResult
+            datastructID = containerSpec['datastructID'][0]
         if idxType[0:4]=='uint': pass
         if(datastructID=='list'):
             nameOut=appendRule(nameOut+'_REP', "nonterm", "parseREP", [nameOut, 0, 0])
         elif datastructID=='opt':
             nameOut=appendRule(nameOut+'_OPT', "nonterm", "parseREP", [nameOut, 0, 1])
-           # print "NAMEOUT:", nameOut
+            #print("NAMEOUT:", nameOut)
     field['parseRule']=nameOut
     return nameOut
 
@@ -878,7 +881,10 @@ def writeNonTermParseRule(classes, tags, modelName, fields, SeqOrAlt, nameSuffix
                     idxType=''
                     if 'indexType' in containerSpec:
                         idxType=containerSpec['indexType']
-                    datastructID = containerSpec['datastructID']
+                    if(isinstance(containerSpec['datastructID'], str)):
+                        datastructID = containerSpec['datastructID']
+                    else:   # it's a parseResult
+                        datastructID = containerSpec['datastructID'][0]
                     if idxType[0:4]=='uint': pass
                     if(datastructID=='list'):
                         ruleIdxStr=appendRule(ruleIdxStr+'_REP', "nonterm", "parseREP", [ruleIdxStr, 0, 0])
@@ -1135,7 +1141,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             gatherFieldCode+='\n'+indent+getFunctionName(fieldType[0], toFieldType[0])+'('+childRecName+'.child, tmpVar)\n'
 
         else:
-            CODE_RVAL = CodeRValExpr(toFieldType, childRecName, '')
+            CODE_RVAL = CodeRValExpr(toFieldType, childRecName, '') # TODO: one too many arguments
             #CODE_RVAL=childRecName+'.child'
 
         # Now code to push the chosen alternative into the data field# This is a LIST, not an OPT:

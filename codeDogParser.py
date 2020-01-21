@@ -23,19 +23,20 @@ def logFieldDef(s, loc, toks):
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
-identifier = Word(alphanums + "_")("identifier")
+identifier = Word(alphanums + "_")
 tagID = identifier("tagID")
 tagDefList = Forward()
 tagValue = Forward()
-tagMap  = Group('{' + tagDefList + '}')
-tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ','))) + ']')
+fullFieldDef = Forward()
+tagMap  = Group('{' + tagDefList + '}')("tagMap")
+tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ',')))("tagListContents") + ']')
 backTickString = Suppress("`") + SkipTo("`") + Suppress("`")
-tagValue <<= (quotedString() | backTickString | Word(alphas+nums+'-*_./') | tagList | tagMap)("tagValue")
-tagDef = Group(tagID + Suppress("=") + tagValue)("tagDef")
+tagValue <<= Group((Suppress('<') + Group(fullFieldDef)("tagType") + Suppress('>')) | quotedString | backTickString | Word(alphanums+'-*_./') | tagList | tagMap)("tagValue")
+tagDef = Group(tagID + Suppress("=") + tagValue)("tagDef*")
 tagDefList <<= Group(ZeroOrMore(tagDef))("tagDefList")
 
 buildID = identifier("buildID")
-buildDefList = tagDefList("buildDefList")
+buildDefList = Group(tagDefList)("buildDefList")
 buildSpec = Group(buildID + Suppress(":") + buildDefList + ";")("buildSpec")
 buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 
@@ -45,24 +46,24 @@ CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
 objectName = CID("objectName")
 classSpec = Forward()
-cppType = (Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
+cppType = Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string")
 HexNums = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
 BinNums = Combine((Literal("0B") | Literal("0b")) + Word("01"))
-intNum = (HexNums | BinNums | Word(nums))("intNum")
+intNum = HexNums | BinNums | Word(nums)
 numRange = Group(intNum + ".." + intNum)("numRange")
-varType = (classSpec | cppType | numRange)("varType")
-boolValue = (Keyword("true") | Keyword("false"))("boolValue")
+varType = classSpec | cppType | numRange
+boolValue = Keyword("true") | Keyword("false")
 floatNum = Combine(intNum + "." + intNum)("floatNum")
 value = Forward()
 listVal = "[" + delimitedList(expr, ",") + "]"
 strMapVal = "{" + delimitedList(quotedString + ":" + expr, ",")  + "}"
-value <<= (boolValue | floatNum | intNum | quotedString | listVal | strMapVal)("value")
+value <<= boolValue | floatNum | intNum | quotedString | listVal | strMapVal
 comment = Suppress(r'//') + restOfLine('comment')
 
 #######################################   E X P R E S S I O N S
 parameters = Forward()
 owners = Forward()
-varSpec = (Optional(owners) + varType)("varSpec")
+varSpec = Optional(owners) + varType
 varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
 typeArgList = Group(Literal("<") + CIDList + Literal(">"))("typeArgList")
 classSpec <<= Group(objectName + Optional(typeArgList))("objectName")
@@ -85,14 +86,14 @@ expr <<= Group( logAnd + Group(Optional(OneOrMore(Group(Keyword('or') + logAnd )
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 # TODO: -= operator, it isn't set up because parser does not handle a middle "-" and closing "-"
-assign = (lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue)("assign")
-parameters <<= ("(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")"))("parameters")
+assign = lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue
+parameters <<= "(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
 
 ########################################   F U N C T I O N S
 funcCall = varRef("funcCall")
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 fieldDef = Forward()
-argList =  (verbatim | Group(Optional(delimitedList(Group(fieldDef)))))("argList")
+argList =  Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
 actionSeq = Forward()
 defaultCase = Group(Keyword("default") + Suppress(":") + actionSeq("caseAction"))("defaultCase")
 switchCase= Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValues") - actionSeq("caseAction"))
@@ -100,7 +101,7 @@ switchStmt= Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - 
 conditionalAction = Forward()
 conditionalAction <<= Group(
             Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
-            + Optional((Keyword("else") | Keyword("but")) + (actionSeq | conditionalAction)("elseBody"))("optionalElse")
+            + Optional(Group((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse"))
         )("conditionalAction")
 traversalModes = Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative")
 rangeSpec = Group(Keyword("RANGE") + '(' + rValue + ".." + rValue + ')')
@@ -110,16 +111,19 @@ whileAction = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
 fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
 keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID")  - CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + Optional(":")("optionalColon")
+            Keyword("withEach")("repeatedActionID") - CID("repName") + "in" 
+            + Optional(traversalModes("traversalMode")) 
+            + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))
+            + Optional(":")("optionalColon") 
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
         )("repeatedAction")
 
 action = Group((assign("assign") | swap('swap') | funcCall("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
-actionSeq <<=  Group(Literal("{")("actSeqID") + (ZeroOrMore (switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}") ("actionSeq")
+actionSeq <<=  Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
-funcBody = (actionSeq | rValueVerbatim)("funcBody")
+funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
@@ -133,23 +137,22 @@ nameAndVal = Group(
         | (Literal("::")('deprecateDoubleColon') + CID("fieldName") + Group(parameters)("parameters"))# deprecated
         | (Literal("::")('allocDoubleColon') + CID("fieldName"))
     )("nameAndVal")
-
-datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
-arraySpec = Group ('['  + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + ']')("arraySpec")
+datastructID = Group(Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
+arraySpec = Group('[' + Optional(owners)('owner') + datastructID + Optional(Group(intNum | Optional(Group(owners)('IDXowner')) + varType('idxBaseType'))('indexType')) + ']')("arraySpec")
 meOrMy = Keyword("me") | Keyword("my")
-modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - "[" - CIDList("modeList") + "]" + nameAndVal)("modeSpec")
-flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal )("flagDef")
-baseType = (cppType | numRange)("baseType")
+modeSpec = Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - "[" - CIDList("modeList") + "]" + nameAndVal
+flagDef  = Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal
+baseType = cppType | numRange
 
 #########################################   O B J E C T   D E S C R I P T I O N S
 fieldDefs = ZeroOrMore(fieldDef)("fieldDefs")
 SetFieldStmt = Group(Word(alphanums + "_.") + '=' + Word(alphanums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
 coFactualEl  = Group("(" + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Suppress(';'))))  + ")")("coFactualEl")
-sequenceEl = ("{" + fieldDefs + "}")("sequenceEl")
-alternateEl  = ("[" + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]")("alternateEl")
-anonModel = (sequenceEl | alternateEl)("anonModel")
-owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their"))
-fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
+sequenceEl = "{" + fieldDefs + "}"
+alternateEl  = "[" + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
+anonModel = sequenceEl("sequenceEl") | alternateEl("alternateEl")
+owners <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
+fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + classSpec + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
@@ -168,31 +171,38 @@ def parseInput(inputStr):
     cdlog(2, "Parsing build-specs...")
     progSpec.saveTextToErrFile(inputStr)
     try:
-        localResults = progSpecParser.parseString(inputStr, parseAll = True)
+        localResults = progSpecParser.parseString(inputStr, parseAll=True)
 
     except ParseException as pe:
         cdErr( "Error parsing: {}".format( pe))
         exit(1)
     return localResults
 
+autoClassNameIdx = 1
 def extractTagDefs(tagResults):
+    global autoClassNameIdx
     localTagStore = {}
 
     for tagSpec in tagResults:
-        tagVal = tagSpec.tagValue
+        tagVal = tagSpec.tagValue[0]
         if ((not isinstance(tagVal, str)) and len(tagVal)>=2):
-            if(tagVal[0]=='['):
+            if(tagVal.tagListContents): #tagVal is tagList
                 tagValues=[]
-                for multiVal in tagVal[1]:
-                    tagValues.append(multiVal[0])
-
-            elif(tagVal[0]=='{'):
-                tagValues=extractTagDefs(tagVal[1])
+                for each in tagVal.tagListContents:
+                    tagValues.append(each.tagValue[0])
+            elif(tagVal.tagDefList):   #tagVal is tagMap
+                tagValues=extractTagDefs(tagVal.tagDefList)
+            elif("tagType" in tagVal):
+                autoClassName = "autoClass" + str(autoClassNameIdx)
+                autoClassNameIdx += 1
+                tagValues=packFieldDef(tagVal, autoClassName, '')
+            else:   #tagVal is an empty parseResult
+                tagValues = []
             tagVal=tagValues
         # Remove quotes
         elif (len(tagVal)>=2 and (tagVal[0] == '"' or tagVal[0] == "'") and (tagVal[0]==tagVal[-1])):
             tagVal = tagVal[1:-1]
-        #print tagSpec.tagID, " is ", tagVal
+        #print(tagSpec.tagID, " is ", tagVal)
         localTagStore[tagSpec.tagID] = tagVal
     return localTagStore
 
@@ -223,16 +233,14 @@ def packFieldDef(fieldResult, className, indent):
     isAllocated = False
 
     if(fieldResult.fieldType):
-        fieldType=fieldResult.fieldType;
+        fieldType=fieldResult.fieldType[0];
         if not isinstance(fieldType, str) and (fieldType[0]=='[' or fieldType[0]=='{'):
-            #print "FIELDTYPE is an inline SEQ or ALT:"
-
+            #print("FIELDTYPE is an inline SEQ or ALT")
             if   fieldType[0]=='{': fieldList=fieldType[1:-1]
             elif fieldType[0]=='[': fieldList=fieldType[1]
             for innerField in fieldList:
                 innerFieldDef=packFieldDef(innerField, className, indent+'    ')
                 innerDefs.append(innerFieldDef)
-
     else: fieldType=None;
 
     isAContainer = False
@@ -241,6 +249,7 @@ def packFieldDef(fieldResult, className, indent):
         isAContainer = True
         #print"         ****Old ArraySpec found: "
     else: arraySpec=None
+
     if(fieldResult.containerSpec):
         containerSpec=fieldResult.containerSpec
         isAContainer = True
@@ -255,33 +264,37 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.nameAndVal):
         nameAndVal = fieldResult.nameAndVal
         #print "nameAndVal = ", nameAndVal
+        
         if(nameAndVal.fieldName):
             fieldName = nameAndVal.fieldName
             #print "FIELD NAME", fieldName
         else: fieldName=None;
 
         if(nameAndVal.allocDoubleColon):
-            if varOwner == 'me' or varOwner == 'we': print("Error: unable to allocate variable with owner me or we: ", fieldName); exit(1)
+            if varOwner == 'me' or varOwner == 'we':
+                print("Error: unable to allocate variable with owner me or we: ", fieldName)
+                exit(1)
             else: isAllocated = True
 
         if(nameAndVal.givenValue):
             givenValue = nameAndVal.givenValue
-
         elif(nameAndVal.funcBody):
-            [funcBodyOut, funcTextVerbatim] = extractFuncBody(className, fieldName, nameAndVal.funcBody)
+            [funcBodyOut, funcTextVerbatim] = extractFuncBody(fieldName, nameAndVal.funcBody) 
             givenValue=[funcBodyOut, funcTextVerbatim]
-            #print "\n\n[funcBodyOut, funcTextVerbatim] ", givenValue
-
+            #print("\n\n[funcBodyOut, funcTextVerbatim] ", givenValue)
         elif(nameAndVal.rValueVerbatim):
             givenValue = ['', nameAndVal.rValueVerbatim[1]]
         else: givenValue=None;
+        
         if(nameAndVal.argListTag):
             for argSpec in nameAndVal.argList:
-                argList.append(packFieldDef(argSpec[0], className, indent+"    "))
+                argList.append(packFieldDef(argSpec.fieldDef, className, indent+"    "))
         else: argList=None;
+        
         if 'parameters' in nameAndVal:
             if('deprecateDoubleColon'in nameAndVal):
                 print("            ***deprecated doubleColon in nameAndVal at: ", fieldName)
+            
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
             else: prmList=nameAndVal.parameters[1]
             for param in prmList:
@@ -292,7 +305,6 @@ def packFieldDef(fieldResult, className, indent):
     else:
         givenValue=None;
         fieldName=None;
-
 
 
     if(fieldResult.flagDef):
@@ -369,7 +381,7 @@ def extractActItem(funcName, actionItem):
         ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
         elseBodyOut = {}
         if (actionItem.optionalElse):
-            elseBodyIn = actionItem.optionalElse
+            elseBodyIn = actionItem.optionalElse.elseBody
             if (elseBodyIn.conditionalAction):
                 elseBodyOut = ['if' , [extractActItem(funcName, elseBodyIn.conditionalAction)] ]
             elif (elseBodyIn.actionSeq):
@@ -455,26 +467,23 @@ def extractActSeq(funcName, childActSeq):
         actSeq.append(thisActionItem)
     return actSeq
 
-def extractActSeqToFunc(funcName, funcBodyIn):
-    childActSeq = extractActSeq( funcName, funcBodyIn)
-    return childActSeq
-
-
-def extractFuncBody(ObjectName,funcName, funcBodyIn):
-    if funcBodyIn[0] == "<%":
+def extractFuncBody(funcName, funcBodyIn):
+    '''Extract body of funcName (str) from funcBodyIn (parseResults)
+    
+    Returns two values: funcBodyOut for CodeDog defined body & funcTextVerbatim for verbatim text.
+    If body is verbatim: funcBodyOut is an empty string, funcTextVerbatim is a string
+    If body is CodeDog: funcBodyOut is a list of stuff, funcTextVerbatim is an empty string
+    '''
+    if funcBodyIn.rValueVerbatim:
         funcBodyOut = ""
-        if len(funcBodyIn)== 3: # handles new pyparsing
-            funcTextVerbatim = funcBodyIn[1]
-        elif len(funcBodyIn)== 2: # handles old pyparsing
-            funcTextVerbatim = funcBodyIn[1][0]
-        else:
-            cdErr( "problem in funcTextVerbatim: len(funcBodyIn): {}".format( len(funcBodyIn)))
-            exit(1)
-    else:
-        funcBodyOut = extractActSeqToFunc(funcName, funcBodyIn)
+        funcTextVerbatim = funcBodyIn.rValueVerbatim[1] # opening and closing verbatim symbols are indices 0 and 2
+    elif funcBodyIn.actionSeq:
+        funcBodyOut = extractActSeq(funcName, funcBodyIn.actionSeq)
         funcTextVerbatim = ""
+    else:
+        cdErr("problem in extractFuncBody: funcBodyIn has no rValueVerbatim or actionSeq")
+        exit(1)
     return funcBodyOut, funcTextVerbatim
-
 
 def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
     cdlog(logLvl(), "EXTRACTING {}".format(className))
@@ -693,3 +702,4 @@ def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
         cdErr( "Error parsing generated class {}: {}".format(description, pe))
     cdlog(errLevl, 'Completed parsing: '+description)
     extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0])
+
