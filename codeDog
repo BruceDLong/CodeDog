@@ -64,7 +64,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
             tagsList=[tags, buildTags, testTagStore]
         else:
             tagsList=[tags, buildTags]
-        print("BUILDTAGS:", buildTags)
+        #print("BUILDTAGS:", buildTags)
         cdlog(0, "\n######################   G E N E R A T I N G   S O U R C E   C O D E   S Y S T E M   {}   o f   {}...   ({})".format(count, len(buildSpecs), buildName))
         libsToUse=libraryMngr.ChooseLibs(classes, buildTags, tags)
         fileSpecs = GenerateProgram(classes, buildTags, tagsList, libsToUse)
