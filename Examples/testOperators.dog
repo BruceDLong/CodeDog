@@ -27,6 +27,8 @@ struct GLOBAL{
 	print("x: ", x, "\n")
 	x <+- 3
 	print("x: ", x, "\n")
+	x <-- 2
+	print("x: ", x, "\n")
 	x <*- 2
 	print("x: ", x, "\n")
 	x </- 4
