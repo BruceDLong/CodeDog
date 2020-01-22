@@ -62,6 +62,16 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
 
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
+    reqTagList = progSpec.getReqTagList(typeSpec)
+    if(reqTagList != None):
+        reqTagString = "<"
+        count = 0
+        for reqTag in reqTagList[1]:
+            if(count>0):reqTagString += ", "
+            reqTagString += str(reqTag)
+            count += 1
+        reqTagString += ">"
+        langType += reqTagString
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
 
     if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
@@ -836,16 +846,6 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             elif(fieldTypeCat=='bool'):
                 assignValue = '= false'
 
-    reqTagList = progSpec. getReqTagList(typeSpec)
-    if(reqTagList != None):
-        reqTagString = "<"
-        count = 0
-        for reqTag in reqTagList[1]:
-            if(count>0):reqTagString += ", "
-            reqTagString += str(reqTag)
-            count += 1
-        reqTagString += ">"
-        fieldType += reqTagString
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
