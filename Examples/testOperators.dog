@@ -48,5 +48,12 @@ struct GLOBAL{
 	print("y: ", y, "\n")
 	y <|- 5
 	print("y: ", y, "\n")
+	
+	print("\nTesting range 0..23\n")
+	me 0..23: hour
+	hour <- 5
+	print("It's ", hour, " o'clock\n")
+	hour <- 333
+	print("Hour, ", hour, ", is outside its range. This feature hasn't been built in yet.\n")
     }
 }
