@@ -358,7 +358,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     if owner=='itr':
         typeSpecOut = copy.copy(typeSpecIn)
         typeSpecOut['arraySpec'] = None
-        codeCvrtText = xlator['codeIteratorOperation'](name)
+        codeCvrtText = xlator['codeIteratorOperation'](name, typeSpecOut['fieldType'])
         if codeCvrtText!='':
             typeSpecOut['codeConverter'] = codeCvrtText
             if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'

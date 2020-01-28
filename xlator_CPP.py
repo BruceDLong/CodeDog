@@ -121,12 +121,15 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, xlator)
     return retVal
 
-def codeIteratorOperation(itrCommand):
+def codeIteratorOperation(itrCommand, fieldType):
     result = ''
-    if itrCommand=='goNext':  result='%0++'
-    elif itrCommand=='goPrev':result='--%0'
-    elif itrCommand=='key':   result='%0->first'
-    elif itrCommand=='val':   result='%0->second'
+    if(fieldType[0]=='deque'):
+        if itrCommand=='val':   result='* %0'
+    else:
+        if itrCommand=='goNext':  result='%0++'
+        elif itrCommand=='goPrev':result='--%0'
+        elif itrCommand=='key':   result='%0->first'
+        elif itrCommand=='val':   result='%0->second'
     return result
 
 def recodeStringFunctions(name, typeSpec):
