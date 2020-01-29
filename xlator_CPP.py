@@ -67,8 +67,12 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
         reqTagString = "<"
         count = 0
         for reqTag in reqTagList[1]:
+            if('owner' in reqTag):
+                reqOwner = reqTag['owner']
+            else: reqOwner = 'me'
+            reqType = applyOwner(reqOwner, reqTag['varType'][0], '')
             if(count>0):reqTagString += ", "
-            reqTagString += str(reqTag)
+            reqTagString += reqType
             count += 1
         reqTagString += ">"
         langType += reqTagString
