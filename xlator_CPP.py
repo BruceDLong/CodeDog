@@ -344,7 +344,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     return(name, typeSpecOut, paramList, convertedIdxType)
 
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
+    ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
     #print '                  factor: ', item
     S=''
     retTypeSpec='noType'
@@ -495,14 +495,14 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '      iOR item:', item
+    #print('      iOR item:', item)
     [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
         S_derefd = derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print '      IsEq ', i
+            #print('      IsEq ', i)
             [S2, retType2] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             S+= ' & '+S2

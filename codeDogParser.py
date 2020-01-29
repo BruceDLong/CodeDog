@@ -70,26 +70,25 @@ classSpec <<= Group(objectName + Optional(typeArgList))("objectName")
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 firstRefSegment = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
 secondRefSegment = Group((Suppress('.') + CID | arrayRef) + Optional(parameters))
-varRef = Group(firstRefSegment + (ZeroOrMore(secondRefSegment)))
-varFuncRef = varRef("varFuncRef")
+varRef = Group(firstRefSegment + ZeroOrMore(secondRefSegment))
 lValue = varRef("lValue")
-factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
-term = Group( factor + Group(Optional(OneOrMore(Group(oneOf('* / %') + factor )))))
-plus = Group( term  + Group(Optional(OneOrMore(Group(oneOf('+ -') + term )))))
-comparison = Group( plus + Group(Optional(OneOrMore(Group(oneOf('< > <= >=') + plus )))))
-isEQ = Group( comparison  + Group(Optional(OneOrMore(Group(oneOf('== != ===') + comparison )))))
-iOr = Group( isEQ  + Group(Optional(OneOrMore(Group('&' + isEQ )))))
-xOr = Group( iOr  + Group(Optional(OneOrMore(Group('^' + iOr )))))
-bar = Group( xOr  + Group(Optional(OneOrMore(Group('|' + xOr )))))
-logAnd = Group( bar  + Group(Optional(OneOrMore(Group(Keyword('and') + bar )))))
-expr <<= Group( logAnd + Group(Optional(OneOrMore(Group(Keyword('or') + logAnd )))))("expr")
+factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFuncRef"))
+term = Group( factor + Optional(Group(OneOrMore(Group(oneOf('* / %') + factor )))))
+plus = Group( term  + Optional(Group(OneOrMore(Group(oneOf('+ -') + term )))))
+comparison = Group( plus + Optional(Group(OneOrMore(Group(oneOf('< > <= >=') + plus )))))
+isEQ = Group( comparison  + Optional(Group(OneOrMore(Group(oneOf('== != ===') + comparison )))))
+iOr = Group( isEQ  + Optional(Group(OneOrMore(Group('&' + isEQ )))))
+xOr = Group( iOr  + Optional(Group(OneOrMore(Group('^' + iOr )))))
+bar = Group( xOr  + Optional(Group(OneOrMore(Group('|' + xOr )))))
+logAnd = Group( bar  + Optional(Group(OneOrMore(Group(Keyword('and') + bar )))))
+expr <<= Group( logAnd + Optional(Group(OneOrMore(Group(Keyword('or') + logAnd )))))("expr")
+
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 assign = lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | ('-' + FollowedBy("-")) | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue
 parameters <<= "(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
 
 ########################################   F U N C T I O N S
-funcCall = varRef("funcCall")
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 fieldDef = Forward()
 argList =  Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
@@ -119,7 +118,7 @@ repeatedAction = Group(
             + actionSeq
         )("repeatedAction")
 
-action = Group((assign("assign") | swap('swap') | funcCall("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
+action = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
 actionSeq <<=  Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
 funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
@@ -440,8 +439,9 @@ def extractActItem(funcName, actionItem):
         thisActionItem = {'typeOfAction':"swap", 'LHS':LHS, 'RHS':RHS}
     # Function Call
     elif actionItem.funcCall:
-        calledFunc = (actionItem.funcCall)
-        # TODO: Verify that calledFunc is a function and error out if not. (The last segment should have '(' as its second item.)
+        calledFunc = actionItem.funcCall
+        
+        # Verify that calledFunc is a function and error out if not. (The last segment should have '(' as its second item.)
         calledFuncLastSegment = calledFunc[-1]
         if len(calledFuncLastSegment)<2 or calledFuncLastSegment[1] != '(':
             cdErr("Expected a function, not a variable: {}".format(calledFuncLastSegment))

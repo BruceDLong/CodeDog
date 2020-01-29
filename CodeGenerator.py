@@ -275,7 +275,7 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
 def chooseStructImplementationToUse(typeSpec):
     fieldType = progSpec.getFieldType(typeSpec)
     if not isinstance(fieldType, str) and  len(fieldType) >1:
-        print("TYPESPEC:", progSpec.getFieldType(typeSpec))
+        #print("TYPESPEC:", progSpec.getFieldType(typeSpec))
         if ('chosenType' in fieldType): return
         implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
      #   for option in implementationOptions:
@@ -1553,7 +1553,8 @@ def GroomTags(tags):
     # Set tag defaults as needed
     if not ('featuresNeeded' in TopLevelTags):
         TopLevelTags['featuresNeeded'] = []
-    TopLevelTags['featuresNeeded'].insert(0, 'CodeDog')
+    if not ('CodeDog' in TopLevelTags['featuresNeeded']):
+        TopLevelTags['featuresNeeded'].insert(0, 'CodeDog')
     # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
     if not ('Platform' in TopLevelTags):
         platformID=platform.system()

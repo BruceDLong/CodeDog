@@ -25,12 +25,16 @@ classHeirarchyInfo = {}
 currentCheckObjectVars = ""
 templatesDefined={}
 
-def rollBack(classes):
+def rollBack(classes, tags):
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
     global structsNeedingModification
     global DependanciesMarked
+    global funcsCalled
+
+    if tags['initCode']:
+        del tags['initCode']
 
     for ObjToDel in list(MarkedObjects.keys()):
         del classes[0][ObjToDel]
@@ -46,7 +50,8 @@ def rollBack(classes):
             del ModifierCommands[idx]
         else: idx+=1
 
-    # Delete platform-specific funcsCalled
+    # Delete platform-specific functions called in two stages
+        # First, delete calls of keys marked for deletion
     for FC_ListKey in funcsCalled:
         idx=0
         FC_List=funcsCalled[FC_ListKey]
@@ -54,6 +59,12 @@ def rollBack(classes):
             if FC_List[idx][1]==True:
                 del FC_List[idx]
             else: idx+=1
+        # Second, remove empty keys entirely.
+        ## This doesn't appear to be necessary
+    '''deleteFunc = [key for key in funcsCalled if len(funcsCalled[key]) == 0]
+    for key in deleteFunc:
+        #print("DELETING KEY: ", key, "      WITH CONTENTS: ", funcsCalled[key])
+        del funcsCalled[key]'''
 
     # Delete platform-specific items in CodeGenerator.structsNeedingModification {}
     itemsToDelete=[]
@@ -66,6 +77,7 @@ def rollBack(classes):
     MarkedObjects={}
     MarkedFields=[]
     DependanciesMarked={}
+    # featuresHandled is cleared in libraryMngr.py
 
 #########################
 
@@ -360,8 +372,8 @@ def removeFieldFromObject (classes, className, fieldtoRemove):
     fieldList=classes[0][className]['fields']
     idx=0
     for field in fieldList:
-        if field["fieldName"] == fieldtoRemove:
-           # print "Removed: ", field["fieldName"]
+        if field["fieldID"] == fieldtoRemove:
+            #print("Removed: ", field["fieldID"])
             del fieldList[idx]
         idx+=1
 
@@ -727,7 +739,7 @@ def fetchFieldByName(fields, fieldName):
 def TypeSpecsMinimumBaseType(classes, typeSpec):
     owner=typeSpec['owner']
     fieldType = typeSpec['fieldType']
-    #print "TYPESPEC:", typeSpec, "<", fieldType, ">\n"
+    #print("TYPESPEC:", typeSpec, "<", fieldType, ">\n")
     if typeIsNumRange(fieldType):
         minVal = int(fieldType[0])
         maxVal = int(fieldType[2])
