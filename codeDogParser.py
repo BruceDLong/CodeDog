@@ -245,7 +245,7 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.arraySpec):
         arraySpec=fieldResult.arraySpec
         isAContainer = True
-        #print"         ****Old ArraySpec found: "
+        #print("         ****Old ArraySpec found: ")
     else: arraySpec=None
 
     if(fieldResult.containerSpec):
@@ -261,11 +261,11 @@ def packFieldDef(fieldResult, className, indent):
 
     if(fieldResult.nameAndVal):
         nameAndVal = fieldResult.nameAndVal
-        #print "nameAndVal = ", nameAndVal
+        #print("nameAndVal = ", nameAndVal.dump())
         
         if(nameAndVal.fieldName):
             fieldName = nameAndVal.fieldName
-            #print "FIELD NAME", fieldName
+            #print("FIELD NAME", fieldName)
         else: fieldName=None;
 
         if(nameAndVal.allocDoubleColon):
@@ -429,7 +429,7 @@ def extractActItem(funcName, actionItem):
         if (actionItem.assign[1] != '<-'):
             assignTag = actionItem.assign[1][0][1:-1]
 
-        #print RHS, LHS
+        #print(RHS, LHS)
         thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS, 'assignTag':assignTag}
     # Swap
     elif (actionItem.swap):
@@ -511,7 +511,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
     elif(spec.alternateEl):configType="ALT"
     ###########Grab optional Object Tags
     if 'tagDefList' in spec:  #change so it generates an empty one if no field defs
-        #print "spec.tagDefList = ",spec.tagDefList
+        #print("spec.tagDefList = ",spec.tagDefList)
         objTags = extractTagDefs(spec.tagDefList)
     else: objTags = {}
     taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType)
@@ -578,7 +578,7 @@ def findMacroEnd(inputString, StartPosOfParens):
         if ch=='(': nestLvl+=1
         if ch==')': nestLvl-=1
         if nestLvl==0:
-            #print "MACRO-ARGS:", inputString[StartPosOfParens:pos+1]
+            #print("MACRO-ARGS:", inputString[StartPosOfParens:pos+1])
             return pos+1
     return -1
 
@@ -590,25 +590,25 @@ def doMacroSubstitutions(macros, inputString):
         subsWereMade=False
         for thisMacro in macros:
             macRefPattern=re.compile(r'(?<!#define)([^a-zA-Z0-9_]+)('+thisMacro+')(\s*)\(([^)]*)\)')
-            #print "MACRO NAME:", thisMacro
+            #print("MACRO NAME:", thisMacro)
             newString=''
             currentPos=0
             for match in macRefPattern.finditer(inputString):
-                #print "     %s: %s %s" % (match.start(), match.group(1), match.group(2))
+                #print("     %s: %s %s" % (match.start(), match.group(1), match.group(2)))
                 newText=macros[thisMacro]['Body']
-                #print "     START TEXT:", newText
+                #print("     START TEXT:", newText)
                 StartPosOfParens = match.start()+len(match.group(1)) + len(match.group(2)) + len(match.group(3))
                 EndPos=findMacroEnd(inputString, StartPosOfParens)
                 if EndPos==-1: print("\nERROR: Parentheses problem in macro", thisMacro, "\n"); exit(2);
                 paramStr=inputString[StartPosOfParens+1 : EndPos-1] #match.group(4)
                 params=paramStr.split(',')
-               # print '     PARAMS:', params
+                #print('     PARAMS:', params)
                 idx=0;
                 numMacroArgs = len(macros[thisMacro]['ArgList'])
                 if((numMacroArgs>0 and numMacroArgs != len(params)) or (numMacroArgs==0 and len(params)!=1)):
                     cdErr("The macro {} has {} parameters, but is called with {}.".format(thisMacro, len(macros[thisMacro]['ArgList']), len(params)))
                 for arg in macros[thisMacro]['ArgList']:
-                   # print "   SUBS:", arg, ', ', params[idx], ', ', thisMacro
+                    #print("   SUBS:", arg, ', ', params[idx], ', ', thisMacro)
                     replacement=params[idx]
                     if thisMacro=='BlowPOP':
                         replacement=BlowPOPMacro(replacement)
@@ -616,13 +616,13 @@ def doMacroSubstitutions(macros, inputString):
                         replacement=deSlashMacro(replacement)
                     newText=newText.replace(arg, replacement)
                     idx+=1
-                #print "     NEW TEXT:", newText
+                #print("     NEW TEXT:", newText)
                 newString += inputString[currentPos:match.start()+len(match.group(1))]+ newText
                 currentPos=EndPos
                 subsWereMade=True
             newString+=inputString[currentPos:]
             inputString=newString
-    #print "     RETURN STRING:[", inputString, ']'
+    #print("     RETURN STRING:[", inputString, ']')
     # Last, replace the text into inputString
     return inputString
 
@@ -691,7 +691,7 @@ def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
 def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
     macroDefs = {} # This var is not used here. If needed, make it an argument.
     inputStr = comment_remover(inputStr)
-    #print '####################\n',inputStr, "\n######################^\n\n\n"
+    #print('####################\n',inputStr, "\n######################^\n\n\n")
     errLevl=logLvl(); cdlog(errLevl, 'Parsing: '+description)
     progSpec.saveTextToErrFile(inputStr)
     # (map of classes, array of objectNames, string to parse)
