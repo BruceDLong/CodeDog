@@ -86,7 +86,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         #cdlog(1, "\nWRITING {} FILE(S) AND COMPILING...".format(len(fileSpecs)))
         buildDog.build("-g", '14',  fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs)
         print("Marker: Build Successful")
-        progSpec.rollBack(classes)
+        progSpec.rollBack(classes, tags)
     # GenerateDocuments()
 
 

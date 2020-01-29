@@ -9,6 +9,7 @@ from os.path import abspath
 from inspect import getsourcefile
 
 libDescriptionFileList = []
+featuresHandled = []
 
 '''
 T h e   b e s t   l i b r a r y   c h o i c e s   f o r   y o u r   p r o g r a m
@@ -145,11 +146,6 @@ def extractLibTags(library):
         interfaceTags =[]
     return [ReqTags,interfaceTags]
 
-featuresHandled = []
-
-def clearFeaturesHandled():
-    featuresHandled = []
-
 def libListType(libList):
     if isinstance(libList, str): return "STRING"
     op=libList[0]
@@ -248,7 +244,8 @@ def constructANDListFromNeeds(tags, needs, files, indent):
     return AND_List
 
 def ChooseLibs(classes, buildTags, tags):
-    clearFeaturesHandled()
+    global featuresHandled
+    featuresHandled = []
     cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
     initialNeeds =[]
