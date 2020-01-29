@@ -103,7 +103,11 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=typeSpec['owner']
     fieldType=typeSpec['fieldType']
-    if not isinstance(fieldType, str): fieldType=fieldType[0]
+    if not isinstance(fieldType, str):
+        if len(fieldType) > 1 and fieldType[1] == "..":
+            fieldType = "int"
+        else:
+            fieldType=fieldType[0]
     fieldType2 = progSpec.unwrapClass(classes, fieldType)
 
     baseType = progSpec.isWrappedType(classes, fieldType)
