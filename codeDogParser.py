@@ -75,13 +75,14 @@ lValue = varRef("lValue")
 factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFuncRef"))
 term = Group( factor + Optional(Group(OneOrMore(Group(oneOf('* / %') + factor )))))
 plus = Group( term  + Optional(Group(OneOrMore(Group(oneOf('+ -') + term )))))
-comparison = Group( plus + Optional(Group(OneOrMore(Group(oneOf('< > <= >=') + plus )))))
+comparison = Group( plus + Optional(Group(OneOrMore(Group(oneOf('< > <= >=') + ~FollowedBy("-") + plus )))))
 isEQ = Group( comparison  + Optional(Group(OneOrMore(Group(oneOf('== != ===') + comparison )))))
 iOr = Group( isEQ  + Optional(Group(OneOrMore(Group('&' + isEQ )))))
 xOr = Group( iOr  + Optional(Group(OneOrMore(Group('^' + iOr )))))
 bar = Group( xOr  + Optional(Group(OneOrMore(Group('|' + xOr )))))
 logAnd = Group( bar  + Optional(Group(OneOrMore(Group(Keyword('and') + bar )))))
-expr <<= Group( logAnd + Optional(Group(OneOrMore(Group(Keyword('or') + logAnd )))))("expr")
+logOr = Group( logAnd + Optional(Group(OneOrMore(Group(Keyword('or') + logAnd )))))
+expr <<= Group( logOr + Optional(Group(Group(Literal("<-")("assignAsExpr") + logOr ))))("expr")
 
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
@@ -426,8 +427,9 @@ def extractActItem(funcName, actionItem):
         RHS = parseResultToArray(actionItem.rValue)
         LHS = parseResultToArray(actionItem.lValue)
         assignTag = ''
-        if (actionItem.assign[1] != '<-'):
-            assignTag = actionItem.assign[1][0][1:-1]
+        if (actionItem.assignID[0] != '<-'):
+            if not isinstance(actionItem.assignID, str):
+                assignTag = actionItem.assignID.assignTag
 
         #print(RHS, LHS)
         thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS, 'assignTag':assignTag}

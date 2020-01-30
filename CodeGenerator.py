@@ -713,6 +713,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
                     if RHS=='nil' and LHS[-1]=='!': LHS=LHS[:-1]  #TODO: Move this code to swift xlator
                     actionText = indent + LHS + " = " + RHS + ";\n"
         else:
+            assignTag = assignTag[0]
             if(assignTag=='deep'):
                 actionText = indent + LHS + " = " + RHS + ";\n"
             elif(assignTag=='+'):

@@ -1,6 +1,7 @@
 // HelloWorld.dog
 
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//Linux2ndBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 //AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
@@ -55,5 +56,11 @@ struct GLOBAL{
 	print("It's ", hour, " o'clock\n")
 	hour <- 333
 	print("Hour, ", hour, ", is outside its range. This feature hasn't been built in yet.\n")
+	
+	me int: a
+	a <- 4
+	if (a <- 5) {print("a: ", a, "\n")}
+	print((a <- 6), "\n")
+	print("a: ", a, "\n")
     }
 }
