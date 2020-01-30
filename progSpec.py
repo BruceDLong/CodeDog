@@ -33,7 +33,7 @@ def rollBack(classes, tags):
     global DependanciesMarked
     global funcsCalled
 
-    if tags['initCode']:
+    if 'initCode' in tags and tags['initCode']:
         del tags['initCode']
 
     for ObjToDel in list(MarkedObjects.keys()):
