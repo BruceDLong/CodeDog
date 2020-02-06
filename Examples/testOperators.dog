@@ -21,10 +21,15 @@ LicenseText = `Public Domain`
 
 runCode=`runProg()`
 
+struct testStruct {
+    me int: a
+    me string: bus
+}
+
 struct GLOBAL{
-    void: runProg()<-{
+    void: runProg() <- {
         print("Hello World!\n")
-	me int: x <- 5
+	me int: x <- (5)*2/2
 	print("x: ", x, "\n")
 	x <+- 3
 	print("x: ", x, "\n")
@@ -57,10 +62,21 @@ struct GLOBAL{
 	hour <- 333
 	print("Hour, ", hour, ", is outside its range. This feature hasn't been built in yet.\n")
 	
-	me int: a
-	a <- 4
-	if (a <- 5) {print("a: ", a, "\n")}
-	print((a <- 6), "\n")
-	print("a: ", a, "\n")
+	
+	print("\n\nTesting initialization and assignment as an expression\n")
+	me int: a {4}
+	print("a should be 4: ", a, "\n")
+	if (a <- 5) {print("a should be 5: ", a, "\n")}
+	print("a should be 6: ", (a <- 6), "\n")
+	print("a should be 6: ", a, "\n")
+	
+	print("\n\nTesting initialization of an object with multiple attributes\n")
+	our testStruct:: ts {18, "bus"}
+	print("ts.a should be 18: ", ts.a, "\n")
+	print("ts.b should be bus: ", ts.bus, "\n")
+	
+	me int: c {(3+2)*5}
+	print("c should be 25: ", c, "\n")
+	
     }
 }

@@ -88,6 +88,7 @@ swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 assign = lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | ('-' + FollowedBy("-")) | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue
 parameters <<= "(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
+initParams = "{" + Optional(Group(delimitedList(rValue, ','))("initParams")) + Suppress("}")
 
 ########################################   F U N C T I O N S
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
@@ -127,11 +128,11 @@ funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
           (":" + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
-        | (":" + CID("fieldName") + "<-" + Group(parameters)("parameters"))
+        | (":" + CID("fieldName") + Group(initParams)("parameters"))
         | (":" + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
         | (":" + "<-" - (rValue("givenValue") | funcBody))
         | (":" + CID("fieldName") + Optional("(" + argList + Literal(")")('argListTag')) - ~Word("{"))
-        | (Literal("::")('allocDoubleColon') + CID("fieldName") + "<-" + Group(parameters)("parameters"))
+        | (Literal("::")('allocDoubleColon') + CID("fieldName") + Group(initParams)("parameters"))
         | (Literal("::")('allocDoubleColon') + CID("fieldName") + "<-" - (rValue("givenValue")))
         | (Literal("::")('deprecateDoubleColon') + CID("fieldName") + Group(parameters)("parameters"))# deprecated
         | (Literal("::")('allocDoubleColon') + CID("fieldName"))
@@ -293,11 +294,14 @@ def packFieldDef(fieldResult, className, indent):
         if 'parameters' in nameAndVal:
             if('deprecateDoubleColon'in nameAndVal):
                 print("            ***deprecated doubleColon in nameAndVal at: ", fieldName)
+                exit(1)
             
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
             else: prmList=nameAndVal.parameters[1]
             for param in prmList:
                 paramList.append(param)
+            if(isAllocated==False):     # use a constructor instead of assignment
+                paramList.append("^&useCtor//8")
         else: paramList=None
 
         if(nameAndVal.optionalTag): optionalTags=extractTagDefs(nameAndVal.tagDefList)

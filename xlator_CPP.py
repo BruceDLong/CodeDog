@@ -818,13 +818,19 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
     assignValue=''
     isAllocated = fieldDef['isAllocated']
     owner = progSpec.getTypeSpecOwner(typeSpec)
+    useCtor = False
+    if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
+        del fieldDef['paramList'][-1]
+        useCtor = True
     if(fieldDef['value']):
         [S2, rhsTypeSpec]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, typeSpec, None, xlator)
         if(isAllocated):
             assignValue = " = " + getCodeAllocSetStr(innerType, owner, S2)
         else:
             [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsTypeSpec)
-            assignValue = " = " + leftMod+S2+rightMod
+            if(useCtor==False):    # { } constructor
+                assignValue += " = "
+            assignValue += leftMod+S2+rightMod
 
     else: # If no value was given:
         CPL=''
@@ -835,13 +841,15 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
-                    exit(1)
+                    #exit(1)
 
                 theParam=progSpec.getFieldType(paramTypeList[0])
 
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(theParam, str) and fieldType==theParam[0]:
-                    assignValue = " = " + CPL   # Act like a copy constructor
+                    if(not useCtor):
+                        assignValue += " = "    # Use a copy constructor
+                    assignValue += CPL
             if(assignValue==''):
                 owner = progSpec.getTypeSpecOwner(typeSpec)
                 assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
@@ -978,6 +986,8 @@ def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, 
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
+        if paramList[-1] == "^&useCtor//8":
+            del paramList[-1]
         [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
         fieldValueText += CPL
     if isAllocated == True:

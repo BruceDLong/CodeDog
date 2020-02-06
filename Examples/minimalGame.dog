@@ -159,7 +159,7 @@ struct GameMenuScreen: inherits=GameMode{
         cr.fillNow()
 
         cr.setColor(Styler.White)
-        our fontSpec:: testFont <- ("Ariel", 20, 0)
+        our fontSpec:: testFont {"Ariel", 20, 0}
 	if (winner) {
 	    renderTextCentered(cr, "WINNER!", testFont, screenWidth/2, textY)
 	    textY <+- 100
@@ -198,7 +198,7 @@ struct GamePauseScreen: inherits=GameMode{
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         cr.setColor(Styler.White)
-        our fontSpec:: testFont <- ("Ariel", 20, 0)
+        our fontSpec:: testFont {"Ariel", 20, 0}
         renderTextCentered(cr, "PAUSED", testFont, screenWidth/2, 200)
         renderTextCentered(cr, "Press Space to Continue Playing", testFont, screenWidth/2, 300)
 	renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, 400)
@@ -253,7 +253,7 @@ struct GamePlayScreen: inherits=GameMode{
             bullet.draw(cr)
         }
         cr.setColor(Styler.White)
-        our fontSpec:: scoreFont <- ("Ariel", 20, 0)
+        our fontSpec:: scoreFont {"Ariel", 20, 0}
         renderText(cr, "Score: " + toString(playerScore), scoreFont, 10, 40)
         window.requestRedraw()
     }
@@ -273,9 +273,9 @@ struct GamePlayScreen: inherits=GameMode{
                         explosion1.play()
                         bullets.DeleteNth(bulletIdx)
                         armada.aliens.DeleteNth(alienIdx)
-                        playerScore <- playerScore + 1
-                        bulletIdx <- bulletIdx - 1
-                        alienIdx  <- alienIdx  - 1
+                        playerScore <+- 1
+                        bulletIdx <-- 1
+                        alienIdx  <-- 1
 			if (armada.aliens.size() == 0) {	// last alien is hit
 			    winner <- true
 			    finalScore <- playerScore
