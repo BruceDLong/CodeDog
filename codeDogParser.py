@@ -141,6 +141,7 @@ datastructID = Group(Keyword("list") | Keyword("opt") | Keyword("map") | Keyword
 arraySpec = Group('[' + Optional(owners)('owner') + datastructID + Optional(Group(intNum | Optional(Group(owners)('IDXowner')) + varType('idxBaseType'))('indexType')) + ']')("arraySpec")
 meOrMy = Keyword("me") | Keyword("my")
 modeSpec = Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - "[" - CIDList("modeList") + "]" + nameAndVal
+altModeSpec = Keyword("mode")("altModeIndicator") - "[" - Group(delimitedList(CID, ','))("altModeList") + "]"
 flagDef  = Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal
 baseType = cppType | numRange
 
@@ -152,7 +153,7 @@ sequenceEl = "{" + fieldDefs + "}"
 alternateEl  = "[" + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
 anonModel = sequenceEl("sequenceEl") | alternateEl("alternateEl")
 owners <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
-fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
+fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | altModeSpec | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + classSpec + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")

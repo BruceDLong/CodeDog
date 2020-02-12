@@ -238,6 +238,12 @@ def getEnumStr(fieldName, enumList):
     S += "};\n";
     return(S)
 
+def getEnumStringifyFunc(className, enumList):
+    S = "deque<string> {}Strings = {{".format(className)
+    S += '"{}"'.format('", "'.join(enumList))
+    S += '};\n\n'
+    return S
+
 ######################################################   E X P R E S S I O N   C O D I N G
 
 def codeIdentityCheck(S1, S2, retType1, retType2):
@@ -1182,6 +1188,7 @@ def fetchXlators():
     xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
+    xlators['getEnumStringifyFunc']         = getEnumStringifyFunc
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr

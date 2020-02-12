@@ -8,6 +8,7 @@ import libraryMngr
 import progSpec
 from progSpec import cdlog, cdErr, logLvl, dePythonStr
 from progSpec import structsNeedingModification
+from pyparsing import ParseResults
 
 
 import pattern_GUI_Toolkit
@@ -49,6 +50,7 @@ globalTagStore=None
 localVarsAllocated = []   # Format: [varName, typeSpec]
 localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
+inheritedEnums = {}
 
 def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
     # Handle print, return, break, etc.
@@ -81,7 +83,7 @@ def CheckFunctionsLocalVarArgList(itemName):
 
 def CheckObjectVars(className, itemName):
     searchFieldID = className+'::'+itemName
-    #print "Searching",className,"for", itemName, searchFieldID
+    #print("Searching",className,"for", itemName, searchFieldID)
     ClassDef =  progSpec.findSpecOf(globalClassStore[0], className, "struct")
     if ClassDef==None:
         message = "ERROR: definition not found for: "+ str(className) + " : " + str(itemName)
@@ -128,7 +130,16 @@ def CheckObjectVars(className, itemName):
         #print "Found", itemName
         return foundFieldID
 
-    #print "WARNING: Could not find field",itemName ,"in", className
+    ### Check inherited enum values for a match after GLOBAL
+    if searchFieldID.startswith("GLOBAL::"):
+        searchFieldID = searchFieldID[8:]
+    for enumInheritedType, enumValues in inheritedEnums.items():
+        for value in enumValues:
+            if value == searchFieldID:
+                field['fieldID'] = "{}::{}".format(enumInheritedType, searchFieldID)
+                return field
+
+    #print("WARNING: Could not find field", itemName ,"in", className, "or inherited enums")
     return 0 # Field not found in model
 
 def CheckClassStaticVars(className, itemName):
@@ -223,7 +234,17 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
     for field in progSpec.generateListOfFieldsToImplement(classes, className):
         fieldType=progSpec.getFieldType(field['typeSpec'])
         fieldName=field['fieldName'];
-        if fieldType=='flag' or fieldType=='mode':
+        inheritsMode = False
+
+        if isinstance(fieldType, list) and len(fieldType) == 1:
+            fieldType = fieldType[0]
+        try:
+            if classes[0][fieldType]['tags']['inherits']['fieldType'].get('altModeIndicator', 0):
+                inheritsMode = True
+        except (KeyError, TypeError) as e:
+            cdlog(6, "{}\n failed dict lookup in codeFlagAndModeFields".format(e))
+
+        if fieldType=='flag' or fieldType=='mode' or inheritsMode:
             flagsVarNeeded=True
 
             fieldName = progSpec.flattenObjectName(fieldName)
@@ -234,7 +255,6 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
                 bitCursor += 1;
             elif fieldType=='mode':
                 cdlog(6, "mode: {}[]".format(fieldName))
-                #print field
                 structEnums += "\n// For Mode "+fieldName+"\n"
                 # calculate field and bit position
                 enumSize= len(field['typeSpec']['enumList'])
@@ -262,6 +282,35 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
                     StaticMemberVars[eItem]=className
 
                 bitCursor=bitCursor+numEnumBits;
+            elif inheritsMode:
+                cdlog(6, "mode inherited: {}[]".format(fieldName))
+                structEnums += "\n// For Inherited Mode "+fieldName+"\n"
+                enumSize= len(classes[0][fieldType]['tags']['inherits']['fieldType']['altModeList'].asList())
+                numEnumBits=bitsNeeded(enumSize)
+                enumMask=((1 << numEnumBits) - 1) << bitCursor
+
+                offsetVarName = fieldName+"Offset"
+                maskVarName   = fieldName+"Mask"
+                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor))
+                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask)) + "\n"
+
+                enumList=classes[0][fieldType]['tags']['inherits']['fieldType']['altModeList'].asList()
+                StaticMemberVars[offsetVarName]=className
+                StaticMemberVars[maskVarName]  =className
+                StaticMemberVars[fieldName+'Strings']  = className
+                modeStateNames[fieldName+'Strings']=className
+                for eItem in enumList:
+                    StaticMemberVars[eItem]=className
+
+                bitCursor=bitCursor+numEnumBits;
+
+    try:
+        if classes[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
+            enumList=classes[0][className]['tags']['inherits']['fieldType']['altModeList'].asList()
+            CodeDogAddendums += "    me string[we list]: "+className+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
+    except (KeyError, TypeError) as e:
+        cdlog(6, "Warning: caught an exception error in codeFlagAndModeFields")
+
     if structEnums!="": structEnums="\n\n// *** Code for manipulating "+className+' flags and modes ***\n'+structEnums
     ClassDef['flagsVarNeeded'] = flagsVarNeeded
     return [flagsVarNeeded, structEnums, CodeDogAddendums]
@@ -956,6 +1005,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
     callSuperConstructor=''
     parentClasses = progSpec.getParentClassList(classes, ClassName)
     if parentClasses:
+        parentClasses[0] = progSpec.filterClassesToString(parentClasses[0])
         callSuperConstructor = xlator['codeSuperConstructorCall'](parentClasses[0])
 
     fieldID  = ClassName+'::INIT'
@@ -1209,46 +1259,59 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
     dependancies=[]
     currentObjName=className
     if((xlator['doesLangHaveGlobals']=='False') or className != 'GLOBAL'): # and ('enumList' not in classes[0][className]['typeSpec'])):
-
-        cdlog(1, "   Class: " + className)
-        classDef = progSpec.findSpecOf(classes[0], className, 'struct')
-        modelDef = progSpec.findSpecOf(classes[0], className, 'model')
-        classAttrs=progSpec.searchATagStore(classDef['tags'], 'attrs')
-        if(classAttrs): classAttrs=classAttrs[0]+' '
-        else: classAttrs=''
-        classInherits=progSpec.searchATagStore(classDef, 'inherits')
-        if modelDef != None:
-            if classInherits is None: classInherits=progSpec.searchATagStore(modelDef, 'inherits')
-            else: classInherits.append(progSpec.searchATagStore(modelDef, 'inherits'))
-        classImplements=progSpec.searchATagStore(classDef, 'implements')
-
-        if (className in structsNeedingModification):
-            cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[className])))
-            [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[className]
-            if modificationMode == 'implement':
-                if classImplements is None:
-                    classImplements=[]
-                classImplements.append( [interfaceImplemented])
-            else: classInherits.append( interfaceImplemented)
-
-        parentClass=''
-        seperatorIdx=className.rfind('::')
-        if(seperatorIdx != -1):
-            parentClass=className[0:seperatorIdx]
-
-        objsRefed={}
-        [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
-        structCode+= constFieldCode
-
-        attrList = classDef['attrList']
-        if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
-        LangFormOfObjName = progSpec.flattenObjectName(className)
-        [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classes, attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode, tags)
-        typeArgList = progSpec.getTypeArgList(className)
-        if(typeArgList != None):
+        inheritsMode = False
+        try:
+            if classes[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
+                inheritsMode = True
+        except (TypeError, KeyError) as e:
+            cdlog(6, "{}\n failed dict lookup in codeOneStruct".format(e))
+        if inheritsMode:     # struct is an enum
+            cdlog(1, "   Class that inherits mode: " + className)
             forwardDeclsOut = ""
-            templateHeader = xlator['codeTemplateHeader'](typeArgList)
-            structCodeOut=templateHeader+structCodeOut
+            enumVals = classes[0][className]['tags']['inherits']['fieldType']['altModeList']
+            structCodeOut = "\n" + xlator['getEnumStr'](className, enumVals).lstrip()
+            funcCode = xlator['getEnumStringifyFunc'](className, enumVals)
+            inheritedEnums[className] = enumVals
+        else:
+            cdlog(1, "   Class: " + className)
+            classDef = progSpec.findSpecOf(classes[0], className, 'struct')
+            modelDef = progSpec.findSpecOf(classes[0], className, 'model')
+            classAttrs=progSpec.searchATagStore(classDef['tags'], 'attrs')
+            if(classAttrs): classAttrs=classAttrs[0]+' '
+            else: classAttrs=''
+            classInherits=progSpec.searchATagStore(classDef, 'inherits')
+            if modelDef != None:
+                if classInherits is None: classInherits=progSpec.searchATagStore(modelDef, 'inherits')
+                else: classInherits.append(progSpec.searchATagStore(modelDef, 'inherits'))
+            classImplements=progSpec.searchATagStore(classDef, 'implements')
+
+            if (className in structsNeedingModification):
+                cdlog(3, "structsNeedingModification: {}".format(str(structsNeedingModification[className])))
+                [classToModify, modificationMode, interfaceImplemented, markItem]=structsNeedingModification[className]
+                if modificationMode == 'implement':
+                    if classImplements is None:
+                        classImplements=[]
+                    classImplements.append( [interfaceImplemented])
+                else: classInherits.append( interfaceImplemented)
+
+            parentClass=''
+            seperatorIdx=className.rfind('::')
+            if(seperatorIdx != -1):
+                parentClass=className[0:seperatorIdx]
+
+            objsRefed={}
+            [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
+            structCode+= constFieldCode
+
+            attrList = classDef['attrList']
+            if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
+            LangFormOfObjName = progSpec.flattenObjectName(className)
+            [structCodeOut, forwardDeclsOut] = xlator['codeStructText'](classes, attrList, parentClass, classInherits, classImplements, LangFormOfObjName, structCode, tags)
+            typeArgList = progSpec.getTypeArgList(className)
+            if(typeArgList != None):
+                forwardDeclsOut = ""
+                templateHeader = xlator['codeTemplateHeader'](typeArgList)
+                structCodeOut=templateHeader+structCodeOut
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
     currentObjName=''
     return classRecord

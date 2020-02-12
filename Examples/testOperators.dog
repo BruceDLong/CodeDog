@@ -21,16 +21,27 @@ LicenseText = `Public Domain`
 
 runCode=`runProg()`
 
+struct daysOfWeek: inherits=<mode [Mon, Tue, Wed, Thur, Fri, Sat, Sun]> {}
+
 struct testStruct {
     me int: a
     me string: bus
+    me daysOfWeek: startDay <- Tue
+    me daysOfWeek: endDay <- Thur
+}
+
+struct anotherTest {
+    me mode[Jeff, Bill, Tim]: aMode
+}
+struct standardInherits: inherits=anotherTest {
+    me int: count
 }
 
 struct GLOBAL{
     void: runProg() <- {
         print("Hello World!\n")
 	me int: x <- (5)*2/2
-	print("x: ", x, "\n")
+	print("\nx: ", x, "\n")
 	x <+- 3
 	print("x: ", x, "\n")
 	x <-- 2
@@ -43,7 +54,7 @@ struct GLOBAL{
 	print("x: ", x, "\n")
 	
 	me int: y <- 20
-	print("y: ", y, "\n")
+	print("\n\ny: ", y, "\n")
 	y <<<- 1
 	print("y: ", y, "\n")
 	y <>>- 2
@@ -62,6 +73,9 @@ struct GLOBAL{
 	hour <- 333
 	print("Hour, ", hour, ", is outside its range. This feature hasn't been built in yet.\n")
 	
+	print("\n\nTesting a traditional mode\n")
+	me anotherTest: atInst <- Tim
+	print("at.aMode should be 2: ", atInst.aMode)
 	
 	print("\n\nTesting initialization and assignment as an expression\n")
 	me int: a {4}
@@ -74,9 +88,12 @@ struct GLOBAL{
 	our testStruct:: ts {18, "bus"}
 	print("ts.a should be 18: ", ts.a, "\n")
 	print("ts.b should be bus: ", ts.bus, "\n")
+	print("ts.startDay should be Tue(1): ", ts.startDay, "\n")
+	ts.startDay <- Fri
+	print("ts.startDay should be Fri(4): ", ts.startDay, "\n")
 	
 	me int: c {(3+2)*5}
-	print("c should be 25: ", c, "\n")
+	print("\n\nc should be 25: ", c, "\n")
 	
     }
 }

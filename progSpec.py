@@ -3,6 +3,7 @@
 
 import sys
 import re
+from pyparsing import ParseResults
 
 MaxLogLevelToShow = 1
 
@@ -147,6 +148,44 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     if MarkItems: MarkedObjects[name]=1
     return name
 
+def filterClassesToList(parentClassList):
+    '''Takes string, list or ParseResults and returns it as a list
+
+    This is used in a specific situation where different parse branches
+    cause types to vary between string, list and ParseResults.
+    '''
+    if isinstance(parentClassList, list):
+        return parentClassList
+    elif isinstance(parentClassList, str):
+        parentClassList = parentClassList.replace(" ", "")
+        tmpList = parentClassList.split(",")
+    elif isinstance(parentClassList, ParseResults):
+        if parentClassList.get('fieldType', 0) and parentClassList['fieldType'].get('altModeList', 0):
+            tmpList = parentClassList['fieldType']['altModeList'].asList()
+            print("tmpList: ", tmpList)
+        else:
+            cdErr("Expected a ParseResults to be for the case where a mode is inherited")
+    else:
+        cdErr("Trying to convert unexpected type to list")
+    return tmpList
+
+def filterClassesToString(classes):
+    '''Takes string, list or ParseResults and returns it as a string
+
+    This is used in a specific situation where different parse branches
+    cause types to vary between string, list and ParseResults.
+    See specificity of filterClassesToList
+    '''
+    if isinstance(classes, ParseResults):
+        classes = filterClassesToList(classes)
+    if isinstance(classes, list):
+        classes = str(classes)
+    elif isinstance(classes, str):
+        pass
+    else:
+        cdErr("Trying to convert unexpected type to string")
+    return classes
+
 classImplementationOptions = {}
 def appendToAncestorList(objRef, className, subClassMode, parentClassList):
     global classImplementationOptions
@@ -180,8 +219,15 @@ def addObjTags(objSpecs, className, stateType, objTags):
         #print "    ADDED Tags to "+className+".\t", str(objTags)
     if ('inherits' in objRef['tags']):
         parentClassList = objRef['tags']['inherits']
-        appendToAncestorList(objRef, className, 'inherits', parentClassList)
-        addDependancyToStruct(className, parentClassList)
+        inheritsMode = False
+        try:
+            if parentClassList['fieldType']['altModeIndicator']:
+                inheritsMode = True
+        except (KeyError, TypeError) as e:
+            cdlog(6, "{}\n failed dict lookup in codeFlagAndModeFields".format(e))
+        if not inheritsMode:
+            appendToAncestorList(objRef, className, 'inherits', parentClassList)
+            addDependancyToStruct(className, parentClassList)
     if ('implements' in objRef['tags']):
         appendToAncestorList(objRef, className, 'implements', objRef['tags']['implements'])
     for tag in objRef['tags']:
@@ -429,9 +475,11 @@ def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type:
 def generateListOfFieldsToImplement(classes, structName):
     fieldList=[]
     modelSpec=findSpecOf(classes[0], structName, 'model')
-    if(modelSpec!=None): updateCvt(classes, fieldList, modelSpec["fields"])
+    if(modelSpec!=None):
+        updateCvt(classes, fieldList, modelSpec["fields"])
     modelSpec=findSpecOf(classes[0], structName, 'struct')
-    if(modelSpec!=None): updateCpy(fieldList, modelSpec["fields"])
+    if(modelSpec!=None):
+        updateCpy(fieldList, modelSpec["fields"])
     return fieldList
 
 def fieldOnlyID(fieldID):
@@ -515,7 +563,7 @@ def getParentClassList(classes, thisStructName):  # Checks 'inherits' but does n
     structSpec=findSpecOf(classes[0], thisStructName, 'struct')
     classInherits = searchATagStore(structSpec['tags'], 'inherits')
     if classInherits==None: classInherits=[]
-    #print  thisStructName+':', classInherits
+    #print(thisStructName+':', classInherits)
     return classInherits
 
 def getChildClassList(classes, thisStructName):  # Checks 'inherits' but does not check 'implements'
@@ -583,6 +631,7 @@ def getDatastructID(typeSpec):
         return(typeSpec['arraySpec']['datastructID'][0])
 
 def getFieldType(typeSpec):
+    '''Returns a string for base types and ParseResults for non-base types. Else returns None'''
     if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return ['infon']
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
