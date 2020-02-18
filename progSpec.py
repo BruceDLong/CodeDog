@@ -553,7 +553,7 @@ def doesClassContainFunc(classes, structName, funcName):
     populateCallableStructFields(callableStructFields, classes, structName)
     for field in callableStructFields:
         fieldName=field['fieldName']
-        if fieldName == funcName: return True
+        if fieldName == funcName: return field
     return False
 
 def getReqTags(fieldType):
@@ -616,6 +616,22 @@ def getFieldType(typeSpec):
         return retVal
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
+
+def getInnerContainerOwner(typeSpec):
+    global currentCheckObjectVars
+    if (typeSpec == 0):
+        cdErr(currentCheckObjectVars)
+    if isAContainer(typeSpec):
+        if isNewContainerTempFunc(typeSpec):
+            if(typeSpec['fieldType'][0] == 'DblLinkedList'):
+                return('our')
+            else:
+                return typeSpec['fieldType'][1][1][0]['owner']
+        else:
+            return(typeSpec['owner'])
+    else:
+        # TODO: This should throw error, no lists should reach this point.
+        return(typeSpec['owner'])
 
 def getTypeSpecOwner(typeSpec):
     global currentCheckObjectVars
@@ -728,10 +744,17 @@ def baseStructName(structName):
     return structName[0:colonIndex]
 
 def fieldTypeKeyword(fieldType):
+    # fieldType can be fieldType or typeSpec
     if fieldType==None: return 'NONE'
-    if 'fieldType' in fieldType: fieldType = getFieldType(fieldType)
-    if isinstance(fieldType, str): return fieldType
-    return fieldType[0]
+    if 'fieldType' in fieldType:    # if var fieldType is typeSpec
+        fieldType = getFieldType(fieldType)
+    if isinstance(fieldType, str):
+        return fieldType
+    if('varType' in fieldType[0]):
+        fieldType = fieldType[0]['varType']
+    if isinstance(fieldType[0], str):
+        return fieldType[0]
+    cdErr("?Invalid fieldTypeKeyword?")
 
 def isStruct(fieldType):
     if isinstance(fieldType, str): return False

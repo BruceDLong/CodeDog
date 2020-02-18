@@ -896,7 +896,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
-    owner=containerType['owner']
+    owner=progSpec.getInnerContainerOwner(containerType)
     containedType=progSpec.getFieldType(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ContainerOwner)
