@@ -66,9 +66,23 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
 
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
+    reqTagList = progSpec.getReqTagList(typeSpec)
+    if(reqTagList != None):
+        reqTagString = "<"
+        count = 0
+        for reqTag in reqTagList[1]:
+            if('owner' in reqTag):
+                reqOwner = reqTag['owner']
+            else: reqOwner = 'me'
+            reqType = applyOwner(reqOwner, reqTag['varType'][0], '')
+            if(count>0):reqTagString += ", "
+            reqTagString += reqType
+            count += 1
+        reqTagString += ">"
+        langType += reqTagString
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
 
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return [langType, InnerLangType]
+    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
 
     if progSpec.isAContainer(typeSpec):
         containerSpec = progSpec.getContainerSpec(typeSpec)
@@ -119,12 +133,15 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, xlator)
     return retVal
 
-def codeIteratorOperation(itrCommand):
+def codeIteratorOperation(itrCommand, fieldType):
     result = ''
-    if itrCommand=='goNext':  result='%0++'
-    elif itrCommand=='goPrev':result='--%0'
-    elif itrCommand=='key':   result='%0->first'
-    elif itrCommand=='val':   result='%0->second'
+    if(fieldType[0]=='deque'):
+        if itrCommand=='val':   result='* %0'
+    else:
+        if itrCommand=='goNext':  result='%0++'
+        elif itrCommand=='goPrev':result='--%0'
+        elif itrCommand=='key':   result='%0->first'
+        elif itrCommand=='val':   result='%0->second'
     return result
 
 def recodeStringFunctions(name, typeSpec):
@@ -148,7 +165,7 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-        if 'fieldType' in itemTypeSpec and not(isinstance(itemTypeSpec['fieldType'], str)) and itemTypeSpec['fieldType'][0]=='DblLinkedList': return ['', '']
+        if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '']
         if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
             if progSpec.isAContainer(itemTypeSpec):
@@ -265,7 +282,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     #print containerType, name
-    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], str)) and typeSpecIn['fieldType'][0]=='DblLinkedList': return(name, typeSpecOut, paramList, convertedIdxType)
+    if progSpec.isNewContainerTempFunc(typeSpecIn): return(name, typeSpecOut, paramList, convertedIdxType)
     if containerType=='deque' or  containerType=='list':
         if name=='at' or name=='resize': pass
         elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -700,8 +717,11 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
         parentClass=': public '+parentClass+' '
         print("Warning: old style inheritance used: " , parentClass)
     if classImplements!=None:
-        print("Error: Implements found for: " , parentClass)
-        exit(1)
+        #print(structName, "Implements: " , classImplements)
+        for classToImplement in classImplements[0]:
+            [implementsParent, failedFuncName] = progSpec.doesChildImplementParentClass(classes[0], classToImplement, structName)
+            if not implementsParent:
+                cdErr("Template class "+ structName+"{} does not implement " + failedFuncName)
     if classInherits!=None:
         parentClass=': public '
         count =0
@@ -873,16 +893,6 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             elif(fieldTypeCat=='bool'):
                 assignValue = '= false'
 
-    typeArgList = progSpec. getFieldTypeArgList(typeSpec)
-    if(typeArgList != None):
-        typeArgString = "<"
-        count = 0
-        for typeArg in typeArgList[1]:
-            if(count>0):typeArgString += ", "
-            typeArgString += str(typeArg)
-            count += 1
-        typeArgString += ">"
-        fieldType += typeArgString
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
@@ -926,7 +936,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText = ""
     loopCounterName = ""
-    owner=containerType['owner']
+    owner=progSpec.getInnerContainerOwner(containerType)
     containedType=progSpec.getFieldType(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ContainerOwner)
@@ -1071,20 +1081,36 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         else:
             globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
     else:
+        typeArgList = progSpec.getTypeArgList(className)
+        if(typeArgList != None):
+            templateHeader = codeTemplateHeader(typeArgList) +"\n"
+            className = className + codeTypeArgs(typeArgList)
+        else:
+            templateHeader = ""
         if inheritMode=='normal' or inheritMode=='override':
             structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
             objPrefix = progSpec.flattenObjectName(className) +'::'
-            funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+            funcDefCode += templateHeader + typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
         elif inheritMode=='virtual':
             structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +");\n";
             objPrefix = progSpec.flattenObjectName(className) +'::'
-            funcDefCode += typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
+            funcDefCode += templateHeader + typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
         elif inheritMode=='pure-virtual':
             #print "PARMS: ", "'"+str(fieldName)+"'",  "'"+str(typeDefName)+"'", "'"+str(argListText)+"'"
-            structCode += indent + 'virtual '+typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
+            structCode +=  indent + 'virtual ' + typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
         else: cdErr("Invalid inherit mode found: "+inheritMode)
         if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
     return [structCode, funcDefCode, globalFuncs]
+
+def codeTypeArgs(typeArgList):
+    typeArgsCode = "<"
+    count = 0
+    for typeArg in typeArgList:
+        if(count>0):typeArgsCode+=", "
+        typeArgsCode+=typeArg
+        count+=1
+    typeArgsCode+=">"
+    return(typeArgsCode)
 
 def codeTemplateHeader(typeArgList):
     templateHeader = "\ntemplate<"

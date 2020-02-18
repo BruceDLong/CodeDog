@@ -324,11 +324,25 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
 def chooseStructImplementationToUse(typeSpec):
     fieldType = progSpec.getFieldType(typeSpec)
     if not isinstance(fieldType, str) and  len(fieldType) >1:
-        #print("TYPESPEC:", progSpec.getFieldType(typeSpec))
-        if ('chosenType' in fieldType): return
-        implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
-     #   for option in implementationOptions:
-            # calculate a score
+        if ('chosenType' in fieldType):
+            return(None)
+        reqTags = progSpec.getReqTags(fieldType)
+        if(reqTags != None):
+            implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
+            if(implementationOptions != None):
+                highestScore = -1
+                highestScoreClassName = None
+                for option in implementationOptions:
+                    optionClassDef =  progSpec.findSpecOf(globalClassStore[0], option, "struct")
+                    if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
+                        optionSpecs = optionClassDef['tags']['specs']
+                        [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
+                        if(errorMsg != ""): cdErr(errorMsg)
+                        if(implScore > highestScore):
+                            highestScore = implScore
+                            highestScoreClassName = optionClassDef['name']
+                return(highestScoreClassName)
+    return(None)
     #    choose highest score and mark the typedef
 
 def codeAllocater(typeSpec, xlator):
@@ -383,7 +397,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     #if not isinstance(name, basestring):  print "NAME:", name, typeSpecIn
 
     isStructLikeContainer = False
-    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], str)) and typeSpecIn['fieldType'][0]=='DblLinkedList': isStructLikeContainer = True
+    if progSpec.isNewContainerTempFunc(typeSpecIn): isStructLikeContainer = True
 
     IsAContainer = progSpec.isAContainer(typeSpecIn)
     if (fieldTypeIn!=None and isinstance(fieldTypeIn, str) and not IsAContainer):
@@ -393,7 +407,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     if owner=='itr':
         typeSpecOut = copy.copy(typeSpecIn)
         typeSpecOut['arraySpec'] = None
-        codeCvrtText = xlator['codeIteratorOperation'](name)
+        codeCvrtText = xlator['codeIteratorOperation'](name, typeSpecOut['fieldType'])
         if codeCvrtText!='':
             typeSpecOut['codeConverter'] = codeCvrtText
             if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
@@ -419,7 +433,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
-        if isStructLikeContainer == True: fType = typeSpecIn['fieldType'][0]
+        if isStructLikeContainer == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
         else: fType=progSpec.fieldTypeKeyword(fieldTypeIn)
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
@@ -439,6 +453,14 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             if fType!='string':
                 typeSpecOut=CheckObjectVars(fType, name)
                 if typeSpecOut!=0:
+                    if isStructLikeContainer == True:
+                        segType = CheckObjectVars(fType, name)
+                        segTypeKeyWord = progSpec.fieldTypeKeyword(segType['typeSpec'])
+                        [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
+                        if(innerTypeOwner):
+                            typeSpecOut['typeSpec']['owner'] = innerTypeOwner
+                        if(innerTypeKeyWord):
+                            typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
                 else: print("typeSpecOut = 0 for", name)
@@ -705,7 +727,9 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
     if (typeOfAction =='newVar'):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
-        chooseStructImplementationToUse(typeSpec)
+        structToImplement = chooseStructImplementationToUse(typeSpec)
+        if(structToImplement != None):
+            typeSpec['fieldType'][0] = structToImplement
         varName = fieldDef['fieldName']
         cdlog(5, "Action newVar: {}".format(varName))
         varDeclareStr = xlator['codeNewVarStr'](globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, 'action', xlator)
@@ -1617,8 +1641,7 @@ def GroomTags(tags):
     # Set tag defaults as needed
     if not ('featuresNeeded' in TopLevelTags):
         TopLevelTags['featuresNeeded'] = []
-    if not ('CodeDog' in TopLevelTags['featuresNeeded']):
-        TopLevelTags['featuresNeeded'].insert(0, 'CodeDog')
+    TopLevelTags['featuresNeeded'].insert(0, 'CodeDog')
     # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
     if not ('Platform' in TopLevelTags):
         platformID=platform.system()

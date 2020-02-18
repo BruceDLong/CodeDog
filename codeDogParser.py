@@ -63,10 +63,12 @@ comment = Suppress(r'//') + restOfLine('comment')
 #######################################   E X P R E S S I O N S
 parameters = Forward()
 owners = Forward()
-varSpec = Optional(owners) + varType
+varSpec = Group(Optional(owners)("owner") + varType("varType") )("varSpec")
 varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
 typeArgList = Group(Literal("<") + CIDList + Literal(">"))("typeArgList")
-classSpec <<= Group(objectName + Optional(typeArgList))("objectName")
+reqTagList = Group(Literal("<") + varSpecList + Optional(Literal(":")("optionalTag") + tagDefList) + Literal(">"))("reqTagList")
+classSpec <<= Group(objectName + Optional(reqTagList))("objectName")
+classDef = Group(objectName + Optional(typeArgList))("objectName")
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 firstRefSegment = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
 secondRefSegment = Group((Suppress('.') + CID | arrayRef) + Optional(parameters))
@@ -156,7 +158,7 @@ owners <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | K
 fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | altModeSpec | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
 fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
-objectDef = Group(modelTypes + classSpec + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
+objectDef = Group(modelTypes + classDef + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
 doPattern = Group(Keyword("do") + classSpec + Suppress("(") + CIDList + Suppress(")"))("doPattern")
 macroDef  = Group(Keyword("#define") + CID('macroName') + Suppress("(") + Optional(CIDList('macroArgs')) + Suppress(")") + Group("<%" + SkipTo("%>", include=True))("macroBody"))
 objectList = Group(ZeroOrMore(objectDef | doPattern | macroDef))("objectList")
@@ -265,7 +267,7 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.nameAndVal):
         nameAndVal = fieldResult.nameAndVal
         #print("nameAndVal = ", nameAndVal.dump())
-        
+
         if(nameAndVal.fieldName):
             fieldName = nameAndVal.fieldName
             #print("FIELD NAME", fieldName)
@@ -447,7 +449,7 @@ def extractActItem(funcName, actionItem):
     # Function Call
     elif actionItem.funcCall:
         calledFunc = actionItem.funcCall
-        
+
         # Verify that calledFunc is a function and error out if not. (The last segment should have '(' as its second item.)
         calledFuncLastSegment = calledFunc[-1]
         if len(calledFuncLastSegment)<2 or calledFuncLastSegment[1] != '(':
@@ -708,4 +710,3 @@ def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
         cdErr( "Error parsing generated class {}: {}".format(description, pe))
     cdlog(errLevl, 'Completed parsing: '+description)
     extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0])
-

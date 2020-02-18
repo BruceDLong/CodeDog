@@ -25,6 +25,7 @@ DependanciesMarked={}
 classHeirarchyInfo = {}
 currentCheckObjectVars = ""
 templatesDefined={}
+classImplementationOptions = {}
 
 def rollBack(classes, tags):
     global MarkedObjects
@@ -186,7 +187,6 @@ def filterClassesToString(classes):
         cdErr("Trying to convert unexpected type to string")
     return classes
 
-classImplementationOptions = {}
 def appendToAncestorList(objRef, className, subClassMode, parentClassList):
     global classImplementationOptions
     #subClassMode ="inherits" or "implements"
@@ -201,7 +201,7 @@ def appendToAncestorList(objRef, className, subClassMode, parentClassList):
             objRef[subClassMode].append(parentClass)
 
         if subClassMode=='implements':
-            print("ADDING:", className, 'to', parentClass)
+            print("ADDING:", className, ' implements ', parentClass)
             if not (parentClass in classImplementationOptions):
                 classImplementationOptions[parentClass] = [className]
             else: classImplementationOptions[parentClass].append(className)
@@ -538,6 +538,19 @@ def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
 
 #### These functions help evaluate parent-class / child-class relations
 
+def doesChildImplementParentClass(classes, parentClassName, childClassName):
+    parentClassDef = findSpecOf(classes, parentClassName, 'model')
+    if(parentClassDef == None):parentClassDef = findSpecOf(classes, parentClassName, 'struct')
+    if(parentClassDef == None):cdErr("Struct to implement not found:"+parentClassName)
+    for field in parentClassDef['fields']:
+        if(field['typeSpec'] and field['typeSpec']['argList'] and field['typeSpec']['argList'] != None): # ArgList exists so this is a FUNCTION
+            parentFieldID = field['fieldID']
+            childFieldID = parentFieldID.replace(parentClassName+"::", childClassName+"::")
+            fieldExists = doesClassDirectlyImlementThisField(classes, childClassName, childFieldID)
+            if not fieldExists:
+                return [False, parentFieldID]
+    return [True, ""]
+
 def doesClassDirectlyImlementThisField(objSpecs, structName, fieldID):
     #print '        ['+structName+']: ', fieldID
     modelSpec=findSpecOf(objSpecs, structName, 'model')
@@ -600,8 +613,31 @@ def doesClassContainFunc(classes, structName, funcName):
     populateCallableStructFields(callableStructFields, classes, structName)
     for field in callableStructFields:
         fieldName=field['fieldName']
-        if fieldName == funcName: return True
+        if fieldName == funcName: return field
     return False
+
+def getReqTags(fieldType):
+    if('optionalTag' in fieldType[1]):
+        reqTags = fieldType[1][3]
+        return(reqTags)
+    else:
+        return None
+
+templateSpecKeyWords = {'verySlow':0, 'slow':1, 'normal':2, 'fast':3, 'veryFast':4, 'polynomial':0, 'exponential':0, 'nLog_n':1, 'linear':2, 'logarithmic':3, 'constant':4}
+def scoreImplementation(optionSpecs, reqTags):
+    returnScore = 0
+    errorStr = ""
+    for reqTag in reqTags:
+        reqID = reqTag[0]
+        reqVal = templateSpecKeyWords[reqTag[1]]
+        if(reqID in optionSpecs):
+            specVal = templateSpecKeyWords[optionSpecs[reqID]]
+            if(specVal < reqVal):return([-1, errorStr])
+            if(specVal > reqVal):returnScore = specVal - reqVal
+        else:
+            errorStr = "Requirement '"+reqID+"' not found in Spec:"+str(optionSpecs)
+            return([-1, errorStr])
+    return [returnScore, errorStr]
 
 def getImplementationOptionsFor(fieldType):
     global classImplementationOptions
@@ -609,20 +645,29 @@ def getImplementationOptionsFor(fieldType):
         return classImplementationOptions[fieldType]
     return None
 ###############  Various type-handling functions
+def isNewContainerTempFunc(typeSpec):
+    # use only while transitioning to dynamic lists<> then delete
+    # TODO: delete this function when dynamic types working
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
+        return(['infon'])
+    else:
+        reqTagList = getReqTagList(typeSpec)
+        if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='CPP_Deque':
+            return(reqTagList[1])
+    return(None)
 def isAContainer(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return True  # TODO: Remove this after Dynamix Types work.
+    if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def getContainerSpec(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
-        return {'owner': 'me', 'datastructID':'list'}
+    if isNewContainerTempFunc(typeSpec): return {'owner': 'me', 'datastructID':'list'}
     return(typeSpec['arraySpec'])
 
 def getTemplateArg(typeSpec, argIdx):
     return(typeSpec)
 
 def getDatastructID(typeSpec):
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
+    if isNewContainerTempFunc(typeSpec):
         # if fieldType is parseResult w/ fieldType whose value is 'DblLinkedList' 
         return 'list'
     if(isinstance(typeSpec['arraySpec']['datastructID'], str)):
@@ -631,10 +676,27 @@ def getDatastructID(typeSpec):
         return(typeSpec['arraySpec']['datastructID'][0])
 
 def getFieldType(typeSpec):
-    '''Returns a string for base types and ParseResults for non-base types. Else returns None'''
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return ['infon']
+    retVal = isNewContainerTempFunc(typeSpec)
+    if retVal != None:
+        return retVal
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
+
+def getInnerContainerOwner(typeSpec):
+    global currentCheckObjectVars
+    if (typeSpec == 0):
+        cdErr(currentCheckObjectVars)
+    if isAContainer(typeSpec):
+        if isNewContainerTempFunc(typeSpec):
+            if(typeSpec['fieldType'][0] == 'DblLinkedList'):
+                return('our')
+            else:
+                return typeSpec['fieldType'][1][1][0]['owner']
+        else:
+            return(typeSpec['owner'])
+    else:
+        # TODO: This should throw error, no lists should reach this point.
+        return(typeSpec['owner'])
 
 def getTypeSpecOwner(typeSpec):
     global currentCheckObjectVars
@@ -642,7 +704,7 @@ def getTypeSpecOwner(typeSpec):
         cdErr(currentCheckObjectVars)
     if typeSpec==None or isinstance(typeSpec, str): return 'me'
     if isAContainer(typeSpec):
-        if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList': return typeSpec['owner']
+        if isNewContainerTempFunc(typeSpec): return typeSpec['owner']
         if "owner" in typeSpec['arraySpec']:
             owner = typeSpec['arraySpec']['owner']
             return owner
@@ -654,9 +716,9 @@ def getTypeArgList(className):
         return(templatesDefined[className])
     else:
         return(None)
-def getFieldTypeArgList(typeSpec):
-    if('fieldType' in typeSpec and 'typeArgList' in typeSpec['fieldType']):
-        return(typeSpec['fieldType']['typeArgList'])
+def getReqTagList(typeSpec):
+    if('fieldType' in typeSpec and 'reqTagList' in typeSpec['fieldType']):
+        return(typeSpec['fieldType']['reqTagList'])
     else:
         return(None)
 
@@ -747,10 +809,35 @@ def baseStructName(structName):
     return structName[0:colonIndex]
 
 def fieldTypeKeyword(fieldType):
+    # fieldType can be fieldType or typeSpec
     if fieldType==None: return 'NONE'
-    if 'fieldType' in fieldType: fieldType = getFieldType(fieldType)
-    if isinstance(fieldType, str): return fieldType
-    return fieldType[0]
+    if 'fieldType' in fieldType:    # if var fieldType is typeSpec
+        fieldType = getFieldType(fieldType)
+    if isinstance(fieldType, str):
+        return fieldType
+    if('varType' in fieldType[0]):
+        fieldType = fieldType[0]['varType']
+    if isinstance(fieldType[0], str):
+        return fieldType[0]
+    cdErr("?Invalid fieldTypeKeyword?")
+
+def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
+    funcField = doesClassContainFunc(classes, className, funcName)
+    if(funcField):
+        funcFieldKeyWord = fieldTypeKeyword(funcField['typeSpec'])
+        if(funcFieldKeyWord == matchName):
+            typeArgList = getTypeArgList(className)
+            reqTagList  = getReqTagList(typeSpecIn)
+            reqTagList  = reqTagList[1]
+            count = 0
+            for item in typeArgList:
+                if(item == matchName):
+                    innerType        = reqTagList[count]
+                    innerTypeOwner   = innerType[0]
+                    innerTypeKeyWord = innerType[1][0]
+                    return([innerTypeOwner, innerTypeKeyWord])
+                count += 1
+    return([None, None])
 
 def isStruct(fieldType):
     if isinstance(fieldType, str): return False
