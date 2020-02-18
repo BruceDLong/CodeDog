@@ -756,6 +756,24 @@ def fieldTypeKeyword(fieldType):
         return fieldType[0]
     cdErr("?Invalid fieldTypeKeyword?")
 
+def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
+    funcField = doesClassContainFunc(classes, className, funcName)
+    if(funcField):
+        funcFieldKeyWord = fieldTypeKeyword(funcField['typeSpec'])
+        if(funcFieldKeyWord == matchName):
+            typeArgList = getTypeArgList(className)
+            reqTagList  = getReqTagList(typeSpecIn)
+            reqTagList  = reqTagList[1]
+            count = 0
+            for item in typeArgList:
+                if(item == matchName):
+                    innerType        = reqTagList[count]
+                    innerTypeOwner   = innerType[0]
+                    innerTypeKeyWord = innerType[1][0]
+                    return([innerTypeOwner, innerTypeKeyWord])
+                count += 1
+    return([None, None])
+
 def isStruct(fieldType):
     if isinstance(fieldType, str): return False
     return True

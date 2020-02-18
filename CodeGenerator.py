@@ -384,7 +384,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
-        if isStructLikeContainer == True: fType = typeSpecIn['fieldType'][0]
+        if isStructLikeContainer == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
         else: fType=progSpec.fieldTypeKeyword(fieldTypeIn)
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
@@ -404,6 +404,14 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             if fType!='string':
                 typeSpecOut=CheckObjectVars(fType, name)
                 if typeSpecOut!=0:
+                    if isStructLikeContainer == True:
+                        segType = CheckObjectVars(fType, name)
+                        segTypeKeyWord = progSpec.fieldTypeKeyword(segType['typeSpec'])
+                        [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
+                        if(innerTypeOwner):
+                            typeSpecOut['typeSpec']['owner'] = innerTypeOwner
+                        if(innerTypeKeyWord):
+                            typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
                 else: print("typeSpecOut = 0 for", name)
