@@ -1,6 +1,7 @@
 // HelloWorld.dog
 
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//Linux2ndBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 //AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
@@ -20,12 +21,30 @@ LicenseText = `Public Domain`
 
 runCode=`runProg()`
 
+struct daysOfWeek: inherits=<mode [Mon, Tue, Wed, Thur, Fri, Sat, Sun]> {}
+
+struct testStruct {
+    me int: a
+    me string: bus
+    me daysOfWeek: startDay <- Tue
+    me daysOfWeek: endDay <- Thur
+}
+
+struct anotherTest {
+    me mode[Jeff, Bill, Tim]: aMode
+}
+struct standardInherits: inherits=anotherTest {
+    me int: count
+}
+
 struct GLOBAL{
-    void: runProg()<-{
+    void: runProg() <- {
         print("Hello World!\n")
-	me int: x <- 5
-	print("x: ", x, "\n")
+	me int: x <- (5)*2/2
+	print("\nx: ", x, "\n")
 	x <+- 3
+	print("x: ", x, "\n")
+	x <-- 2
 	print("x: ", x, "\n")
 	x <*- 2
 	print("x: ", x, "\n")
@@ -35,7 +54,7 @@ struct GLOBAL{
 	print("x: ", x, "\n")
 	
 	me int: y <- 20
-	print("y: ", y, "\n")
+	print("\n\ny: ", y, "\n")
 	y <<<- 1
 	print("y: ", y, "\n")
 	y <>>- 2
@@ -46,5 +65,35 @@ struct GLOBAL{
 	print("y: ", y, "\n")
 	y <|- 5
 	print("y: ", y, "\n")
+	
+	print("\nTesting range 0..23\n")
+	me 0..23: hour
+	hour <- 5
+	print("It's ", hour, " o'clock\n")
+	hour <- 333
+	print("Hour, ", hour, ", is outside its range. This feature hasn't been built in yet.\n")
+	
+	print("\n\nTesting a traditional mode\n")
+	me anotherTest: atInst <- Tim
+	print("at.aMode should be 2: ", atInst.aMode)
+	
+	print("\n\nTesting initialization and assignment as an expression\n")
+	me int: a {4}
+	print("a should be 4: ", a, "\n")
+	if (a <- 5) {print("a should be 5: ", a, "\n")}
+	print("a should be 6: ", (a <- 6), "\n")
+	print("a should be 6: ", a, "\n")
+	
+	print("\n\nTesting initialization of an object with multiple attributes\n")
+	our testStruct:: ts {18, "bus"}
+	print("ts.a should be 18: ", ts.a, "\n")
+	print("ts.b should be bus: ", ts.bus, "\n")
+	print("ts.startDay should be Tue(1): ", ts.startDay, "\n")
+	ts.startDay <- Fri
+	print("ts.startDay should be Fri(4): ", ts.startDay, "\n")
+	
+	me int: c {(3+2)*5}
+	print("\n\nc should be 25: ", c, "\n")
+	
     }
 }

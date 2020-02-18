@@ -23,41 +23,42 @@ def logFieldDef(s, loc, toks):
 # # # # # # # # # # # # #   BNF Parser Productions for CodeDog syntax   # # # # # # # # # # # # #
 ParserElement.enablePackrat()
 #######################################   T A G S   A N D   B U I L D - S P E C S
-identifier = Word(alphas + nums + "_")("identifier")
+identifier = Word(alphanums + "_")
 tagID = identifier("tagID")
 tagDefList = Forward()
 tagValue = Forward()
-tagMap  = Group('{' + tagDefList + '}')
-tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ','))) + ']')
-backTickString = Literal("`").suppress() + SkipTo("`") + Literal("`").suppress()("backTickString")
-tagValue <<= (quotedString() | backTickString | Word(alphas+nums+'-*_./') | tagList | tagMap)("tagValue")
-tagDef = Group(tagID + Literal("=").suppress() + tagValue)("tagDef")
+fullFieldDef = Forward()
+tagMap  = Group('{' + tagDefList + '}')("tagMap")
+tagList = Group('[' + Group(Optional(delimitedList(Group(tagValue), ',')))("tagListContents") + ']')
+backTickString = Suppress("`") + SkipTo("`") + Suppress("`")
+tagValue <<= Group((Suppress('<') + Group(fullFieldDef)("tagType") + Suppress('>')) | quotedString | backTickString | Word(alphanums+'-*_./') | tagList | tagMap)("tagValue")
+tagDef = Group(tagID + Suppress("=") + tagValue)("tagDef*")
 tagDefList <<= Group(ZeroOrMore(tagDef))("tagDefList")
 
 buildID = identifier("buildID")
-buildDefList = tagDefList("buildDefList")
-buildSpec = Group(buildID + Literal(":").suppress() + buildDefList + ";")("buildSpec")
+buildDefList = Group(tagDefList)("buildDefList")
+buildSpec = Group(buildID + Suppress(":") + buildDefList + ";")("buildSpec")
 buildSpecList = Group(OneOrMore(buildSpec))("buildSpecList")
 
 #######################################   B A S I C   T Y P E S
 expr = Forward()
 CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
-objectName = (CID)("objectName")
+objectName = CID("objectName")
 classSpec = Forward()
-cppType = (Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string"))("cppType")
+cppType = Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string")
 HexNums = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
 BinNums = Combine((Literal("0B") | Literal("0b")) + Word("01"))
-intNum = (HexNums | BinNums | Word(nums))("intNum")
+intNum = HexNums | BinNums | Word(nums)
 numRange = Group(intNum + ".." + intNum)("numRange")
-varType = (classSpec | cppType | numRange)("varType")
-boolValue = (Keyword("true") | Keyword("false"))("boolValue")
+varType = classSpec | cppType | numRange
+boolValue = Keyword("true") | Keyword("false")
 floatNum = Combine(intNum + "." + intNum)("floatNum")
 value = Forward()
 listVal = "[" + delimitedList(expr, ",") + "]"
-strMapVal = "{" + delimitedList( quotedString() + ":" + expr, ",")  + "}"
-value <<= (boolValue | floatNum | intNum | quotedString() | listVal | strMapVal)("value")
-comment = Literal(r'//').suppress() + restOfLine('comment')
+strMapVal = "{" + delimitedList(quotedString + ":" + expr, ",")  + "}"
+value <<= boolValue | floatNum | intNum | quotedString | listVal | strMapVal
+comment = Suppress(r'//') + restOfLine('comment')
 
 #######################################   E X P R E S S I O N S
 parameters = Forward()
@@ -70,41 +71,41 @@ classSpec <<= Group(objectName + Optional(reqTagList))("objectName")
 classDef = Group(objectName + Optional(typeArgList))("objectName")
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 firstRefSegment = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
-secondRefSegment = Group((Literal('.').suppress() + CID | arrayRef) + Optional(parameters))
-varRef = Group(firstRefSegment + (ZeroOrMore(secondRefSegment)))
-varFuncRef = varRef("varFuncRef")
+secondRefSegment = Group((Suppress('.') + CID | arrayRef) + Optional(parameters))
+varRef = Group(firstRefSegment + ZeroOrMore(secondRefSegment))
 lValue = varRef("lValue")
-factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
-term = Group( factor + Group(Optional(OneOrMore(Group(oneOf('* / %') + factor )))))
-plus = Group( term  + Group(Optional(OneOrMore(Group(oneOf('+ -') + term )))))
-comparison = Group( plus + Group(Optional(OneOrMore(Group(oneOf('< > <= >=') + plus )))))
-isEQ = Group( comparison  + Group(Optional(OneOrMore(Group(oneOf('== != ===') + comparison )))))
-iOr = Group( isEQ  + Group(Optional(OneOrMore(Group('&' + isEQ )))))
-xOr = Group( iOr  + Group(Optional(OneOrMore(Group('^' + iOr )))))
-bar = Group( xOr  + Group(Optional(OneOrMore(Group('|' + xOr )))))
-logAnd = Group( bar  + Group(Optional(OneOrMore(Group(Keyword('and') + bar )))))
-expr <<= Group( logAnd + Group(Optional(OneOrMore(Group(Keyword('or') + logAnd )))))("expr")
+factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFuncRef"))
+term = Group( factor + Optional(Group(OneOrMore(Group(oneOf('* / %') + factor )))))
+plus = Group( term  + Optional(Group(OneOrMore(Group(oneOf('+ -') + term )))))
+comparison = Group( plus + Optional(Group(OneOrMore(Group(oneOf('< > <= >=') + ~FollowedBy("-") + plus )))))
+isEQ = Group( comparison  + Optional(Group(OneOrMore(Group(oneOf('== != ===') + comparison )))))
+iOr = Group( isEQ  + Optional(Group(OneOrMore(Group('&' + isEQ )))))
+xOr = Group( iOr  + Optional(Group(OneOrMore(Group('^' + iOr )))))
+bar = Group( xOr  + Optional(Group(OneOrMore(Group('|' + xOr )))))
+logAnd = Group( bar  + Optional(Group(OneOrMore(Group(Keyword('and') + bar )))))
+logOr = Group( logAnd + Optional(Group(OneOrMore(Group(Keyword('or') + logAnd )))))
+expr <<= Group( logOr + Optional(Group(Group(Literal("<-")("assignAsExpr") + logOr ))))("expr")
+
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
-# TODO: -= operator, it isn't set up because parser does not handle a middle "-" and closing "-"
-assign = (lValue + Combine(Literal("<") + (Optional((Word(alphas + nums + '_') | '+' | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + Literal("-"))("assignID") + rValue)("assign")
-parameters <<= (Literal("(") + Optional(Group(delimitedList(rValue, ','))) + Literal(")").suppress())("parameters")
+assign = lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | ('-' + FollowedBy("-")) | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue
+parameters <<= "(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
+initParams = "{" + Optional(Group(delimitedList(rValue, ','))("initParams")) + Suppress("}")
 
 ########################################   F U N C T I O N S
-funcCall = varRef("funcCall")
 verbatim = Group(Literal(r"<%") + SkipTo(r"%>", include=True))
 fieldDef = Forward()
-argList =  (verbatim | Group(Optional(delimitedList(Group( fieldDef)))))("argList")
+argList =  Group(verbatim | Optional(delimitedList(Group(fieldDef))))("argList")
 actionSeq = Forward()
-defaultCase = Group(Keyword("default")+Literal(":").suppress() + actionSeq("caseAction"))("defaultCase")
-switchCase= Group(Keyword("case") + OneOrMore(rValue+Literal(":").suppress())("caseValues") - actionSeq("caseAction"))
-switchStmt= Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - ")" -"{" - OneOrMore(switchCase)("switchCases") - Optional(defaultCase)("optionalDefaultCase") +"}")
+defaultCase = Group(Keyword("default") + Suppress(":") + actionSeq("caseAction"))("defaultCase")
+switchCase= Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValues") - actionSeq("caseAction"))
+switchStmt= Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - ")" - "{" - OneOrMore(switchCase)("switchCases") - Optional(defaultCase)("optionalDefaultCase") + "}")
 conditionalAction = Forward()
 conditionalAction <<= Group(
             Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
-            + Optional((Keyword("else") | Keyword("but")) + (actionSeq | conditionalAction)("elseBody"))("optionalElse")
+            + Optional(Group((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse"))
         )("conditionalAction")
-traversalModes = (Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative"))
+traversalModes = Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative")
 rangeSpec = Group(Keyword("RANGE") + '(' + rValue + ".." + rValue + ')')
 whileSpec = Group(Keyword('WHILE') + '(' + expr + ')')
 newWhileSpec  = Group(Keyword('while') + '(' + expr + ')')
@@ -112,89 +113,99 @@ whileAction = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
 fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
 keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID")  - CID("repName") + "in"+ Optional(traversalModes("traversalMode")) + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))('itemsToIter') + Optional(":")("optionalColon")
+            Keyword("withEach")("repeatedActionID") - CID("repName") + "in" 
+            + Optional(traversalModes("traversalMode")) 
+            + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))
+            + Optional(":")("optionalColon") 
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
         )("repeatedAction")
 
-action = Group((assign("assign") | swap('swap') | funcCall("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
-actionSeq <<=  Group(Literal("{")("actSeqID") + ( ZeroOrMore (switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + Literal("}")) ("actionSeq")
-rValueVerbatim = Group( "<%" + SkipTo("%>", include=True))("rValueVerbatim")
-funcBody = (actionSeq | rValueVerbatim)("funcBody")
+action = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
+actionSeq <<=  Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
+rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
+funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
-          (Literal(":") + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
-        | (Literal(":") + CID("fieldName") + "<-" + Group(parameters)("parameters"))
-        | (Literal(":") + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
-        | (Literal(":") + "<-" - (rValue("givenValue") | funcBody))
-        | (Literal(":") + CID("fieldName") + Optional("(" + argList + Literal(")")('argListTag')) - ~Word("{"))
-        | (Literal("::")('allocDoubleColon') + CID("fieldName") + "<-" + Group(parameters)("parameters"))
-        | (Literal("::")('allocDoubleColon')+ CID("fieldName") + "<-" - (rValue("givenValue")))
-        | (Literal("::")('deprecateDoubleColon') + CID("fieldName")  + Group(parameters)("parameters"))# deprecated
+          (":" + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
+        | (":" + CID("fieldName") + Group(initParams)("parameters"))
+        | (":" + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
+        | (":" + "<-" - (rValue("givenValue") | funcBody))
+        | (":" + CID("fieldName") + Optional("(" + argList + Literal(")")('argListTag')) - ~Word("{"))
+        | (Literal("::")('allocDoubleColon') + CID("fieldName") + Group(initParams)("parameters"))
+        | (Literal("::")('allocDoubleColon') + CID("fieldName") + "<-" - (rValue("givenValue")))
+        | (Literal("::")('deprecateDoubleColon') + CID("fieldName") + Group(parameters)("parameters"))# deprecated
         | (Literal("::")('allocDoubleColon') + CID("fieldName"))
     )("nameAndVal")
-
-datastructID = (Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
-arraySpec = Group (Literal('[')  + Optional(owners)('owner') + datastructID + Optional(intNum | Optional(owners)('IDXowner') + varType('idxBaseType'))('indexType') + Literal(']'))("arraySpec")
-meOrMy = (Keyword("me") | Keyword("my"))
-modeSpec = (Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - Literal("[") - CIDList("modeList") + Literal("]") + nameAndVal)("modeSpec")
-flagDef  = (Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal )("flagDef")
-baseType = (cppType | numRange)("baseType")
+datastructID = Group(Keyword("list") | Keyword("opt") | Keyword("map") | Keyword("multimap") | Keyword("tree") | Keyword("graph") | Keyword("iterableList"))('datastructID')
+arraySpec = Group('[' + Optional(owners)('owner') + datastructID + Optional(Group(intNum | Optional(Group(owners)('IDXowner')) + varType('idxBaseType'))('indexType')) + ']')("arraySpec")
+meOrMy = Keyword("me") | Keyword("my")
+modeSpec = Optional(meOrMy)('owner') + Keyword("mode")("modeIndicator") - "[" - CIDList("modeList") + "]" + nameAndVal
+altModeSpec = Keyword("mode")("altModeIndicator") - "[" - Group(delimitedList(CID, ','))("altModeList") + "]"
+flagDef  = Optional(meOrMy)('owner') + Keyword("flag")("flagIndicator") - nameAndVal
+baseType = cppType | numRange
 
 #########################################   O B J E C T   D E S C R I P T I O N S
 fieldDefs = ZeroOrMore(fieldDef)("fieldDefs")
-SetFieldStmt = Group(Word(alphas + nums + "_.") + '=' + Word(alphas + nums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
-coFactualEl  = Group(Literal("(") + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Literal(';').suppress())))  + ")") ("coFactualEl")
-sequenceEl = (Literal("{") + fieldDefs + Literal("}"))("sequenceEl")
-alternateEl  = (Literal("[") + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + Literal("]"))("alternateEl")
-anonModel = (sequenceEl | alternateEl) ("anonModel")
-owners <<= (Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their"))
-fullFieldDef = (Optional('>')('isNext') + Optional(owners)('owner') + (baseType | classSpec | Group(anonModel) | datastructID)('fieldType') +Optional(arraySpec) + Optional(nameAndVal))("fullFieldDef")
-fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString()('constStr')+Optional("[opt]")+Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
+SetFieldStmt = Group(Word(alphanums + "_.") + '=' + Word(alphanums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
+coFactualEl  = Group("(" + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Suppress(';'))))  + ")")("coFactualEl")
+sequenceEl = "{" + fieldDefs + "}"
+alternateEl  = "[" + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
+anonModel = sequenceEl("sequenceEl") | alternateEl("alternateEl")
+owners <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
+fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | altModeSpec | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
+fieldDef <<= Group(flagDef('flagDef') | modeSpec('modeDef') | (quotedString('constStr') + Optional("[opt]") + Optional(":"+CID)) | intNum('constNum') | nameAndVal('nameVal') | fullFieldDef('fullFieldDef'))("fieldDef")
 modelTypes = (Keyword("model") | Keyword("struct") | Keyword("string") | Keyword("stream"))
 objectDef = Group(modelTypes + classDef + Optional(Literal(":")("optionalTag") + tagDefList) + (Keyword('auto') | anonModel))("objectDef")
-doPattern = Group(Keyword("do") + classSpec + Literal("(").suppress() + CIDList + Literal(")").suppress())("doPattern")
-macroDef  = Group(Keyword("#define") + CID('macroName') + Literal("(").suppress() + Optional(CIDList('macroArgs')) + Literal(")").suppress() + Group( "<%" + SkipTo("%>", include=True))("macroBody"))
+doPattern = Group(Keyword("do") + classSpec + Suppress("(") + CIDList + Suppress(")"))("doPattern")
+macroDef  = Group(Keyword("#define") + CID('macroName') + Suppress("(") + Optional(CIDList('macroArgs')) + Suppress(")") + Group("<%" + SkipTo("%>", include=True))("macroBody"))
 objectList = Group(ZeroOrMore(objectDef | doPattern | macroDef))("objectList")
 objectDef.setParseAction(logObj)
 fieldDef.setParseAction(logFieldDef)
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
-progSpecParser = (Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + objectList)("progSpecParser")
-libTagParser = (tagDefList.setParseAction(logTags))("libTagParser")
+progSpecParser = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + objectList)("progSpecParser")
+libTagParser = Group(tagDefList.setParseAction(logTags))("libTagParser")
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
     cdlog(2, "Parsing build-specs...")
     progSpec.saveTextToErrFile(inputStr)
     try:
-        localResults = progSpecParser.parseString(inputStr, parseAll = True)
+        localResults = progSpecParser.parseString(inputStr, parseAll=True)
 
     except ParseException as pe:
         cdErr( "Error parsing: {}".format( pe))
         exit(1)
     return localResults
 
+autoClassNameIdx = 1
 def extractTagDefs(tagResults):
+    global autoClassNameIdx
     localTagStore = {}
 
     for tagSpec in tagResults:
-        tagVal = tagSpec.tagValue
+        tagVal = tagSpec.tagValue[0]
         if ((not isinstance(tagVal, str)) and len(tagVal)>=2):
-            if(tagVal[0]=='['):
+            if(tagVal.tagListContents): #tagVal is tagList
                 tagValues=[]
-                for multiVal in tagVal[1]:
-                    tagValues.append(multiVal[0])
-
-            elif(tagVal[0]=='{'):
-                tagValues=extractTagDefs(tagVal[1])
+                for each in tagVal.tagListContents:
+                    tagValues.append(each.tagValue[0])
+            elif(tagVal.tagDefList):   #tagVal is tagMap
+                tagValues=extractTagDefs(tagVal.tagDefList)
+            elif("tagType" in tagVal):
+                autoClassName = "autoClass" + str(autoClassNameIdx)
+                autoClassNameIdx += 1
+                tagValues=packFieldDef(tagVal, autoClassName, '')
+            else:   #tagVal is an empty parseResult
+                tagValues = []
             tagVal=tagValues
         # Remove quotes
         elif (len(tagVal)>=2 and (tagVal[0] == '"' or tagVal[0] == "'") and (tagVal[0]==tagVal[-1])):
             tagVal = tagVal[1:-1]
-        #print tagSpec.tagID, " is ", tagVal
+        #print(tagSpec.tagID, " is ", tagVal)
         localTagStore[tagSpec.tagID] = tagVal
     return localTagStore
 
@@ -225,24 +236,23 @@ def packFieldDef(fieldResult, className, indent):
     isAllocated = False
 
     if(fieldResult.fieldType):
-        fieldType=fieldResult.fieldType;
+        fieldType=fieldResult.fieldType[0];
         if not isinstance(fieldType, str) and (fieldType[0]=='[' or fieldType[0]=='{'):
-            #print "FIELDTYPE is an inline SEQ or ALT:"
-
+            #print("FIELDTYPE is an inline SEQ or ALT")
             if   fieldType[0]=='{': fieldList=fieldType[1:-1]
             elif fieldType[0]=='[': fieldList=fieldType[1]
             for innerField in fieldList:
                 innerFieldDef=packFieldDef(innerField, className, indent+'    ')
                 innerDefs.append(innerFieldDef)
-
     else: fieldType=None;
 
     isAContainer = False
     if(fieldResult.arraySpec):
         arraySpec=fieldResult.arraySpec
         isAContainer = True
-        #print"         ****Old ArraySpec found: "
+        #print("         ****Old ArraySpec found: ")
     else: arraySpec=None
+
     if(fieldResult.containerSpec):
         containerSpec=fieldResult.containerSpec
         isAContainer = True
@@ -256,45 +266,51 @@ def packFieldDef(fieldResult, className, indent):
 
     if(fieldResult.nameAndVal):
         nameAndVal = fieldResult.nameAndVal
-        #print "nameAndVal = ", nameAndVal
+        #print("nameAndVal = ", nameAndVal.dump())
+
         if(nameAndVal.fieldName):
             fieldName = nameAndVal.fieldName
-            #print "FIELD NAME", fieldName
+            #print("FIELD NAME", fieldName)
         else: fieldName=None;
 
         if(nameAndVal.allocDoubleColon):
-            if varOwner == 'me' or varOwner == 'we': print("Error: unable to allocate variable with owner me or we: ", fieldName); exit(1)
+            if varOwner == 'me' or varOwner == 'we':
+                print("Error: unable to allocate variable with owner me or we: ", fieldName)
+                exit(1)
             else: isAllocated = True
 
         if(nameAndVal.givenValue):
             givenValue = nameAndVal.givenValue
-
         elif(nameAndVal.funcBody):
-            [funcBodyOut, funcTextVerbatim] = extractFuncBody(className, fieldName, nameAndVal.funcBody)
+            [funcBodyOut, funcTextVerbatim] = extractFuncBody(fieldName, nameAndVal.funcBody) 
             givenValue=[funcBodyOut, funcTextVerbatim]
-            #print "\n\n[funcBodyOut, funcTextVerbatim] ", givenValue
-
+            #print("\n\n[funcBodyOut, funcTextVerbatim] ", givenValue)
         elif(nameAndVal.rValueVerbatim):
             givenValue = ['', nameAndVal.rValueVerbatim[1]]
         else: givenValue=None;
+        
         if(nameAndVal.argListTag):
             for argSpec in nameAndVal.argList:
-                argList.append(packFieldDef(argSpec[0], className, indent+"    "))
+                argList.append(packFieldDef(argSpec.fieldDef, className, indent+"    "))
         else: argList=None;
+        
         if 'parameters' in nameAndVal:
             if('deprecateDoubleColon'in nameAndVal):
                 print("            ***deprecated doubleColon in nameAndVal at: ", fieldName)
+                exit(1)
+            
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
             else: prmList=nameAndVal.parameters[1]
             for param in prmList:
                 paramList.append(param)
+            if(isAllocated==False):     # use a constructor instead of assignment
+                paramList.append("^&useCtor//8")
         else: paramList=None
 
         if(nameAndVal.optionalTag): optionalTags=extractTagDefs(nameAndVal.tagDefList)
     else:
         givenValue=None;
         fieldName=None;
-
 
 
     if(fieldResult.flagDef):
@@ -371,7 +387,7 @@ def extractActItem(funcName, actionItem):
         ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
         elseBodyOut = {}
         if (actionItem.optionalElse):
-            elseBodyIn = actionItem.optionalElse
+            elseBodyIn = actionItem.optionalElse.elseBody
             if (elseBodyIn.conditionalAction):
                 elseBodyOut = ['if' , [extractActItem(funcName, elseBodyIn.conditionalAction)] ]
             elif (elseBodyIn.actionSeq):
@@ -418,10 +434,11 @@ def extractActItem(funcName, actionItem):
         RHS = parseResultToArray(actionItem.rValue)
         LHS = parseResultToArray(actionItem.lValue)
         assignTag = ''
-        if (actionItem.assign[1] != '<-'):
-            assignTag = actionItem.assign[1][0][1:-1]
+        if (actionItem.assignID[0] != '<-'):
+            if not isinstance(actionItem.assignID, str):
+                assignTag = actionItem.assignID.assignTag
 
-        #print RHS, LHS
+        #print(RHS, LHS)
         thisActionItem = {'typeOfAction':"assign", 'LHS':LHS, 'RHS':RHS, 'assignTag':assignTag}
     # Swap
     elif (actionItem.swap):
@@ -431,8 +448,9 @@ def extractActItem(funcName, actionItem):
         thisActionItem = {'typeOfAction':"swap", 'LHS':LHS, 'RHS':RHS}
     # Function Call
     elif actionItem.funcCall:
-        calledFunc = (actionItem.funcCall)
-        # TODO: Verify that calledFunc is a function and error out if not. (The last segment should have '(' as its second item.)
+        calledFunc = actionItem.funcCall
+
+        # Verify that calledFunc is a function and error out if not. (The last segment should have '(' as its second item.)
         calledFuncLastSegment = calledFunc[-1]
         if len(calledFuncLastSegment)<2 or calledFuncLastSegment[1] != '(':
             cdErr("Expected a function, not a variable: {}".format(calledFuncLastSegment))
@@ -457,26 +475,23 @@ def extractActSeq(funcName, childActSeq):
         actSeq.append(thisActionItem)
     return actSeq
 
-def extractActSeqToFunc(funcName, funcBodyIn):
-    childActSeq = extractActSeq( funcName, funcBodyIn)
-    return childActSeq
-
-
-def extractFuncBody(ObjectName,funcName, funcBodyIn):
-    if funcBodyIn[0] == "<%":
+def extractFuncBody(funcName, funcBodyIn):
+    '''Extract body of funcName (str) from funcBodyIn (parseResults)
+    
+    Returns two values: funcBodyOut for CodeDog defined body & funcTextVerbatim for verbatim text.
+    If body is verbatim: funcBodyOut is an empty string, funcTextVerbatim is a string
+    If body is CodeDog: funcBodyOut is a list of stuff, funcTextVerbatim is an empty string
+    '''
+    if funcBodyIn.rValueVerbatim:
         funcBodyOut = ""
-        if len(funcBodyIn)== 3: # handles new pyparsing
-            funcTextVerbatim = funcBodyIn[1]
-        elif len(funcBodyIn)== 2: # handles old pyparsing
-            funcTextVerbatim = funcBodyIn[1][0]
-        else:
-            cdErr( "problem in funcTextVerbatim: len(funcBodyIn): {}".format( len(funcBodyIn)))
-            exit(1)
-    else:
-        funcBodyOut = extractActSeqToFunc(funcName, funcBodyIn)
+        funcTextVerbatim = funcBodyIn.rValueVerbatim[1] # opening and closing verbatim symbols are indices 0 and 2
+    elif funcBodyIn.actionSeq:
+        funcBodyOut = extractActSeq(funcName, funcBodyIn.actionSeq)
         funcTextVerbatim = ""
+    else:
+        cdErr("problem in extractFuncBody: funcBodyIn has no rValueVerbatim or actionSeq")
+        exit(1)
     return funcBodyOut, funcTextVerbatim
-
 
 def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
     cdlog(logLvl(), "EXTRACTING {}".format(className))
@@ -484,18 +499,19 @@ def extractFieldDefs(ProgSpec, className, stateType, fieldResults):
         fieldDef=packFieldDef(fieldResult, className, '')
         progSpec.addField(ProgSpec, className, stateType, fieldDef)
 
-
-
-def extractBuildSpecs(buildSpecResults):
-    resultBuildSpecs = []
-    #print "buildSpecResults: ", buildSpecResults
+def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a parseResult, often an empty string
+    resultOfExtractBuildSpecs = []
+    #print("buildSpecResults: ", buildSpecResults)
     if (len(buildSpecResults)==0):
-        resultBuildSpecs = []
+        return resultOfExtractBuildSpecs
     else:
-        for localBuildSpecs in buildSpecResults:
-            spec = [localBuildSpecs.buildID, extractTagDefs(localBuildSpecs.buildDefList[0])]
-            resultBuildSpecs.append(spec)
-    return resultBuildSpecs
+        for each_buildSpec in buildSpecResults:
+            # If this doesn't loop when expected, it may be a result of a ZeroOrMore/deLimitedList call in parser
+            # chain of buildSpec without trailing * in name, causing each new builSpec to overwrite previous value.
+            # Or it may be that another loop is needed over contents of tagDefList
+            spec = [each_buildSpec.buildID, extractTagDefs(each_buildSpec.buildDefList.tagDefList)]
+            resultOfExtractBuildSpecs.append(spec)
+    return resultOfExtractBuildSpecs
 
 def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
     className=spec.objectName[0]
@@ -504,7 +520,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
     elif(spec.alternateEl):configType="ALT"
     ###########Grab optional Object Tags
     if 'tagDefList' in spec:  #change so it generates an empty one if no field defs
-        #print "spec.tagDefList = ",spec.tagDefList
+        #print("spec.tagDefList = ",spec.tagDefList)
         objTags = extractTagDefs(spec.tagDefList)
     else: objTags = {}
     taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType)
@@ -571,7 +587,7 @@ def findMacroEnd(inputString, StartPosOfParens):
         if ch=='(': nestLvl+=1
         if ch==')': nestLvl-=1
         if nestLvl==0:
-            #print "MACRO-ARGS:", inputString[StartPosOfParens:pos+1]
+            #print("MACRO-ARGS:", inputString[StartPosOfParens:pos+1])
             return pos+1
     return -1
 
@@ -583,25 +599,25 @@ def doMacroSubstitutions(macros, inputString):
         subsWereMade=False
         for thisMacro in macros:
             macRefPattern=re.compile(r'(?<!#define)([^a-zA-Z0-9_]+)('+thisMacro+')(\s*)\(([^)]*)\)')
-            #print "MACRO NAME:", thisMacro
+            #print("MACRO NAME:", thisMacro)
             newString=''
             currentPos=0
             for match in macRefPattern.finditer(inputString):
-                #print "     %s: %s %s" % (match.start(), match.group(1), match.group(2))
+                #print("     %s: %s %s" % (match.start(), match.group(1), match.group(2)))
                 newText=macros[thisMacro]['Body']
-                #print "     START TEXT:", newText
+                #print("     START TEXT:", newText)
                 StartPosOfParens = match.start()+len(match.group(1)) + len(match.group(2)) + len(match.group(3))
                 EndPos=findMacroEnd(inputString, StartPosOfParens)
                 if EndPos==-1: print("\nERROR: Parentheses problem in macro", thisMacro, "\n"); exit(2);
                 paramStr=inputString[StartPosOfParens+1 : EndPos-1] #match.group(4)
                 params=paramStr.split(',')
-               # print '     PARAMS:', params
+                #print('     PARAMS:', params)
                 idx=0;
                 numMacroArgs = len(macros[thisMacro]['ArgList'])
                 if((numMacroArgs>0 and numMacroArgs != len(params)) or (numMacroArgs==0 and len(params)!=1)):
                     cdErr("The macro {} has {} parameters, but is called with {}.".format(thisMacro, len(macros[thisMacro]['ArgList']), len(params)))
                 for arg in macros[thisMacro]['ArgList']:
-                   # print "   SUBS:", arg, ', ', params[idx], ', ', thisMacro
+                    #print("   SUBS:", arg, ', ', params[idx], ', ', thisMacro)
                     replacement=params[idx]
                     if thisMacro=='BlowPOP':
                         replacement=BlowPOPMacro(replacement)
@@ -609,13 +625,13 @@ def doMacroSubstitutions(macros, inputString):
                         replacement=deSlashMacro(replacement)
                     newText=newText.replace(arg, replacement)
                     idx+=1
-                #print "     NEW TEXT:", newText
+                #print("     NEW TEXT:", newText)
                 newString += inputString[currentPos:match.start()+len(match.group(1))]+ newText
                 currentPos=EndPos
                 subsWereMade=True
             newString+=inputString[currentPos:]
             inputString=newString
-    #print "     RETURN STRING:[", inputString, ']'
+    #print("     RETURN STRING:[", inputString, ']')
     # Last, replace the text into inputString
     return inputString
 
@@ -663,7 +679,7 @@ def parseCodeDogLibTags(inputString):
     except ParseException as pe:
         cdErr( "Error parsing lib tags: {}".format( pe))
 
-    tagStore = extractTagDefs(localResults.tagDefList)
+    tagStore = extractTagDefs(localResults.libTagParser.tagDefList)
     return tagStore
 
 def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
@@ -675,16 +691,16 @@ def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
     cdlog(LogLvl, "PARSING: "+description+"...")
     results = parseInput(inputString)
     cdlog(LogLvl, "EXTRACTING: "+description+"...")
-    tagStore = extractTagDefs(results.tagDefList)
-    buildSpecs = extractBuildSpecs(results.buildSpecList)
-    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.objectList)
+    tagStore = extractTagDefs(results.progSpecParser.tagDefList)
+    buildSpecs = extractBuildSpecs(results.progSpecParser.buildSpecList)
+    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.progSpecParser.objectList)
     classes = [ProgSpec, clsNames]
     return[tagStore, buildSpecs, classes, newClasses]
 
 def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
     macroDefs = {} # This var is not used here. If needed, make it an argument.
     inputStr = comment_remover(inputStr)
-    #print '####################\n',inputStr, "\n######################^\n\n\n"
+    #print('####################\n',inputStr, "\n######################^\n\n\n")
     errLevl=logLvl(); cdlog(errLevl, 'Parsing: '+description)
     progSpec.saveTextToErrFile(inputStr)
     # (map of classes, array of objectNames, string to parse)

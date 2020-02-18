@@ -27,7 +27,7 @@ from os.path import abspath
 from timeit import default_timer as timer
 
 atexit.register(progSpec.whenExit)
-sys.setrecursionlimit(3000)
+sys.setrecursionlimit(5000)
 startTime = timer()
 
 def GenerateProgram(classes, buildTags, tagsList, libsToUse):
@@ -64,7 +64,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
             tagsList=[tags, buildTags, testTagStore]
         else:
             tagsList=[tags, buildTags]
-        print("BUILDTAGS:", buildTags)
+        #print("BUILDTAGS:", buildTags)
         cdlog(0, "\n######################   G E N E R A T I N G   S O U R C E   C O D E   S Y S T E M   {}   o f   {}...   ({})".format(count, len(buildSpecs), buildName))
         libsToUse=libraryMngr.ChooseLibs(classes, buildTags, tags)
         fileSpecs = GenerateProgram(classes, buildTags, tagsList, libsToUse)
@@ -86,7 +86,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         #cdlog(1, "\nWRITING {} FILE(S) AND COMPILING...".format(len(fileSpecs)))
         buildDog.build("-g", '14',  fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs)
         print("Marker: Build Successful")
-        progSpec.rollBack(classes)
+        progSpec.rollBack(classes, tags)
     # GenerateDocuments()
 
 

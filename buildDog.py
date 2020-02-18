@@ -56,7 +56,8 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     buildStr = ''
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
     libStr = "-I " + codeDogFolder + " "
-    langStr = 'g++ '
+    langStr = 'g++'
+    langStr += ' -fdiagnostics-color '  # Add color to the output
     minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
     fileStr = fileName + fileExtension
@@ -167,7 +168,7 @@ def printResults(workingDirectory, buildStr, runStr):
     out, err = pipe.communicate()
     if out: print("Result: ",out)
     if err:
-        print("Error Messages:\n--------------------------\n", err, end=' ')
+        print("Error Messages:\n--------------------------\n", err.decode('UTF-8'), end=' ')
         print("--------------------------", end=' ')
         exit(2)
     else: cdlog(1, "SUCCESS!")

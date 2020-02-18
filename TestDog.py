@@ -47,14 +47,14 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             print("\nTotal Failures/Tests: ", T_NUM_FAILS, "/", T_total, "\n")
         }
 
-        void: RUN_TEST(me string: testName, me string: verboseMode) <- {
+        void: RUN_TEST(me int: testNum, me string: testName, me string: verboseMode) <- {
             Tstat <- "."
             T_total <- T_total+1
             T_TEST_BUFF <- "\n############################################ FAILED:"+testName+"\n"
             me int: lineLength
             if(verboseMode=="1"){
                 lineLength <- testName.size() + 13
-                print("TESTING ",testName," ... ")
+                print(testNum, "\tTESTING ",testName," ... ")
             }
             log("TESTING "+testName+" _________________")
             // clear failFlag and mesg_buff; setTimer
@@ -81,15 +81,17 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
         void: EXEC_TESTS(me string: verboseMode) <- {
             me bool: listOnly <- false
             me bool: CrashProof <- false
+            me int: testNum <- 1
             withEach test in testToRun{
                 if(! listOnly){
                     if (!CrashProof){
-                        RUN_TEST(test, verboseMode)
+                        RUN_TEST(testNum, test, verboseMode)
                     } else {
      //                   ExecSelf with timer and fetch result
                     }
      //               StoreResults()
                 }
+                testNum <+- 1
             }
             if(T_NUM_FAILS==0){print(" PASSED")}
             else{print(" DONE")}

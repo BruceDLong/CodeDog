@@ -3,6 +3,7 @@
 
 import sys
 import re
+from pyparsing import ParseResults
 
 MaxLogLevelToShow = 1
 
@@ -26,12 +27,16 @@ currentCheckObjectVars = ""
 templatesDefined={}
 classImplementationOptions = {}
 
-def rollBack(classes):
+def rollBack(classes, tags):
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
     global structsNeedingModification
     global DependanciesMarked
+    global funcsCalled
+
+    if 'initCode' in tags and tags['initCode']:
+        del tags['initCode']
 
     for ObjToDel in list(MarkedObjects.keys()):
         del classes[0][ObjToDel]
@@ -47,7 +52,8 @@ def rollBack(classes):
             del ModifierCommands[idx]
         else: idx+=1
 
-    # Delete platform-specific funcsCalled
+    # Delete platform-specific functions called in two stages
+        # First, delete calls of keys marked for deletion
     for FC_ListKey in funcsCalled:
         idx=0
         FC_List=funcsCalled[FC_ListKey]
@@ -55,6 +61,12 @@ def rollBack(classes):
             if FC_List[idx][1]==True:
                 del FC_List[idx]
             else: idx+=1
+        # Second, remove empty keys entirely.
+        ## This doesn't appear to be necessary
+    '''deleteFunc = [key for key in funcsCalled if len(funcsCalled[key]) == 0]
+    for key in deleteFunc:
+        #print("DELETING KEY: ", key, "      WITH CONTENTS: ", funcsCalled[key])
+        del funcsCalled[key]'''
 
     # Delete platform-specific items in CodeGenerator.structsNeedingModification {}
     itemsToDelete=[]
@@ -67,6 +79,7 @@ def rollBack(classes):
     MarkedObjects={}
     MarkedFields=[]
     DependanciesMarked={}
+    # featuresHandled is cleared in libraryMngr.py
 
 #########################
 
@@ -115,7 +128,7 @@ def fieldIdentifierString(className, packedField):
         count=0
         for arg in argList:
             if count>0: fieldID+=','
-            fieldID += fieldTypeKeyword(arg['typeSpec']['fieldType'])
+            fieldID += fieldTypeKeyword(arg['typeSpec']['fieldType'][0])
             count+=1
         fieldID+=')'
     return fieldID
@@ -135,6 +148,44 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     objectNameList.append(name)
     if MarkItems: MarkedObjects[name]=1
     return name
+
+def filterClassesToList(parentClassList):
+    '''Takes string, list or ParseResults and returns it as a list
+
+    This is used in a specific situation where different parse branches
+    cause types to vary between string, list and ParseResults.
+    '''
+    if isinstance(parentClassList, list):
+        return parentClassList
+    elif isinstance(parentClassList, str):
+        parentClassList = parentClassList.replace(" ", "")
+        tmpList = parentClassList.split(",")
+    elif isinstance(parentClassList, ParseResults):
+        if parentClassList.get('fieldType', 0) and parentClassList['fieldType'].get('altModeList', 0):
+            tmpList = parentClassList['fieldType']['altModeList'].asList()
+            print("tmpList: ", tmpList)
+        else:
+            cdErr("Expected a ParseResults to be for the case where a mode is inherited")
+    else:
+        cdErr("Trying to convert unexpected type to list")
+    return tmpList
+
+def filterClassesToString(classes):
+    '''Takes string, list or ParseResults and returns it as a string
+
+    This is used in a specific situation where different parse branches
+    cause types to vary between string, list and ParseResults.
+    See specificity of filterClassesToList
+    '''
+    if isinstance(classes, ParseResults):
+        classes = filterClassesToList(classes)
+    if isinstance(classes, list):
+        classes = str(classes)
+    elif isinstance(classes, str):
+        pass
+    else:
+        cdErr("Trying to convert unexpected type to string")
+    return classes
 
 def appendToAncestorList(objRef, className, subClassMode, parentClassList):
     global classImplementationOptions
@@ -168,8 +219,15 @@ def addObjTags(objSpecs, className, stateType, objTags):
         #print "    ADDED Tags to "+className+".\t", str(objTags)
     if ('inherits' in objRef['tags']):
         parentClassList = objRef['tags']['inherits']
-        appendToAncestorList(objRef, className, 'inherits', parentClassList)
-        addDependancyToStruct(className, parentClassList)
+        inheritsMode = False
+        try:
+            if parentClassList['fieldType']['altModeIndicator']:
+                inheritsMode = True
+        except (KeyError, TypeError) as e:
+            cdlog(6, "{}\n failed dict lookup in codeFlagAndModeFields".format(e))
+        if not inheritsMode:
+            appendToAncestorList(objRef, className, 'inherits', parentClassList)
+            addDependancyToStruct(className, parentClassList)
     if ('implements' in objRef['tags']):
         appendToAncestorList(objRef, className, 'implements', objRef['tags']['implements'])
     for tag in objRef['tags']:
@@ -285,18 +343,18 @@ def extractListFromTagList(tagVal):
     tagValues=[]
     if ((not isinstance(tagVal, str)) and len(tagVal)>=2):
         if(tagVal[0]=='['):
-            for multiVal in tagVal[1]:
-                tagValues.append(multiVal[0])
+            for each in tagVal.tagListContents:
+                tagValues.append(each.tagValue[0])
     return tagValues
 
 def searchATagStore(tagStore, tagToFind):
-    #print "SEARCHING for tag", tagToFind
+    #print("SEARCHING for tag", tagToFind, "     in tagStore: ", tagStore)
     if tagStore == None: return None
     tagSegs=tagToFind.split(r'.')
     crntStore=tagStore
     item=''
     for seg in tagSegs:
-        #print seg
+        #print("seg: ", seg, "      crntStore: ", crntStore)
         if(seg in crntStore):
             item=crntStore[seg]
             crntStore=item
@@ -360,8 +418,8 @@ def removeFieldFromObject (classes, className, fieldtoRemove):
     fieldList=classes[0][className]['fields']
     idx=0
     for field in fieldList:
-        if field["fieldName"] == fieldtoRemove:
-           # print "Removed: ", field["fieldName"]
+        if field["fieldID"] == fieldtoRemove:
+            #print("Removed: ", field["fieldID"])
             del fieldList[idx]
         idx+=1
 
@@ -391,7 +449,7 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
         insertOrReplaceField(fieldListToUpdate, field)
 
 def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type::subType::subType2'
-    #print "POPULATING-STRUCT:", structName
+    #print("POPULATING-STRUCT:", structName)
     # TODO: fix sometimes will populateCallableStructFields with sibling class fields
     structSpec=findSpecOf(classes[0], structName, 'struct')
     if structSpec==None: return
@@ -417,9 +475,11 @@ def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type:
 def generateListOfFieldsToImplement(classes, structName):
     fieldList=[]
     modelSpec=findSpecOf(classes[0], structName, 'model')
-    if(modelSpec!=None): updateCvt(classes, fieldList, modelSpec["fields"])
+    if(modelSpec!=None):
+        updateCvt(classes, fieldList, modelSpec["fields"])
     modelSpec=findSpecOf(classes[0], structName, 'struct')
-    if(modelSpec!=None): updateCpy(fieldList, modelSpec["fields"])
+    if(modelSpec!=None):
+        updateCpy(fieldList, modelSpec["fields"])
     return fieldList
 
 def fieldOnlyID(fieldID):
@@ -516,7 +576,7 @@ def getParentClassList(classes, thisStructName):  # Checks 'inherits' but does n
     structSpec=findSpecOf(classes[0], thisStructName, 'struct')
     classInherits = searchATagStore(structSpec['tags'], 'inherits')
     if classInherits==None: classInherits=[]
-    #print  thisStructName+':', classInherits
+    #print(thisStructName+':', classInherits)
     return classInherits
 
 def getChildClassList(classes, thisStructName):  # Checks 'inherits' but does not check 'implements'
@@ -607,8 +667,13 @@ def getTemplateArg(typeSpec, argIdx):
     return(typeSpec)
 
 def getDatastructID(typeSpec):
-    if isNewContainerTempFunc(typeSpec): return 'list'
-    return(typeSpec['arraySpec']['datastructID'])
+    if isNewContainerTempFunc(typeSpec):
+        # if fieldType is parseResult w/ fieldType whose value is 'DblLinkedList' 
+        return 'list'
+    if(isinstance(typeSpec['arraySpec']['datastructID'], str)):
+        return(typeSpec['arraySpec']['datastructID'])
+    else:   #is a parseResult
+        return(typeSpec['arraySpec']['datastructID'][0])
 
 def getFieldType(typeSpec):
     retVal = isNewContainerTempFunc(typeSpec)
@@ -810,7 +875,7 @@ def fetchFieldByName(fields, fieldName):
 def TypeSpecsMinimumBaseType(classes, typeSpec):
     owner=typeSpec['owner']
     fieldType = typeSpec['fieldType']
-    #print "TYPESPEC:", typeSpec, "<", fieldType, ">\n"
+    #print("TYPESPEC:", typeSpec, "<", fieldType, ">\n")
     if typeIsNumRange(fieldType):
         minVal = int(fieldType[0])
         maxVal = int(fieldType[2])

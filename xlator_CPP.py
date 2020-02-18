@@ -12,12 +12,16 @@ def getContainerType(typeSpec, actionOrField):
     idxType=''
     idxOwner=None
     if 'indexType' in containerSpec:
-        if 'IDXowner' in containerSpec:
-            idxOwner=containerSpec['IDXowner']
-            idxType=containerSpec['idxBaseType'][0]
+        if 'IDXowner' in containerSpec['indexType']:
+            idxOwner=containerSpec['indexType']['IDXowner'][0]
+            idxType=containerSpec['indexType']['idxBaseType'][0][0]
             idxType=applyOwner(idxOwner, idxType, '')
-        else: idxType=containerSpec['idxBaseType'][0]
-    datastructID = containerSpec['datastructID']
+        else:
+            idxType=containerSpec['indexType']['idxBaseType'][0][0]
+    if( isinstance(containerSpec['datastructID'], str) ):
+        datastructID = containerSpec['datastructID']
+    else:   # it's a parseResult
+        datastructID = containerSpec['datastructID'][0]
     if idxType[0:4]=='uint': idxType+='_t'
     if(datastructID=='list'): datastructID = "deque"
     if(datastructID=='iterableList'): datastructID = "list"
@@ -113,7 +117,11 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg'. Large items are passed as pointers
     owner=typeSpec['owner']
     fieldType=typeSpec['fieldType']
-    if not isinstance(fieldType, str): fieldType=fieldType[0]
+    if not isinstance(fieldType, str):
+        if len(fieldType) > 1 and fieldType[1] == "..":
+            fieldType = "int"
+        else:
+            fieldType=fieldType[0]
     fieldType2 = progSpec.unwrapClass(classes, fieldType)
 
     baseType = progSpec.isWrappedType(classes, fieldType)
@@ -202,6 +210,8 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     if LVAL==0 or LVAL==None or isinstance(LVAL, str): return ['','',  '','']
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
+    if not isinstance(assignTag, str):
+        assignTag = assignTag[0]
     if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):
         if assignTag=='deep' :return ['(*',')',  '(*',')']
         elif LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
@@ -244,6 +254,12 @@ def getEnumStr(fieldName, enumList):
         if(count<enumSize): S += ", "
     S += "};\n";
     return(S)
+
+def getEnumStringifyFunc(className, enumList):
+    S = "deque<string> {}Strings = {{".format(className)
+    S += '"{}"'.format('", "'.join(enumList))
+    S += '};\n\n'
+    return S
 
 ######################################################   E X P R E S S I O N   C O D I N G
 
@@ -353,12 +369,12 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     return(name, typeSpecOut, paramList, convertedIdxType)
 
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
-    #print '                  factor: ', item
+    ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
+    #print('                  factor: ', item)
     S=''
     retTypeSpec='noType'
     item0 = item[0]
-    #print "ITEM0=", item0, ">>>>>", item
+    #print("ITEM0=", item0, ">>>>>", item)
     if (isinstance(item0, str)):
         if item0=='(':
             [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, xlator)
@@ -504,14 +520,14 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '      iOR item:', item
+    #print('      iOR item:', item)
     [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
         S_derefd = derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print '      IsEq ', i
+            #print('      IsEq ', i)
             [S2, retType2] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             S+= ' & '+S2
@@ -560,18 +576,34 @@ def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
-def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
+def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print 'Or item:', item
-    [S, retTypeSpec]=codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
+    [S, retTypeSpec] = codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    if len(item) > 1 and len(item[1])>0:
         S=derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print 'OR ', i
+            #print('   OR ', i)
             if (i[0] == 'or'):
                 [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S2=derefPtr(S2, retTypeSpec)
                 S+=' || ' + S2
             else: print("ERROR: 'or' expected in code generator."); exit(2)
+            retTypeSpec='bool'
+    #print "S:",S
+    return [S, retTypeSpec]
+
+def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
+    #print 'Assign item:', item
+    [S, retTypeSpec]=codeLogOr(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retTypeSpec)
+        for i in item[1]:
+            #print('Assign ', i)
+            if (i[0] == '<-'):
+                [S2, retTypeSpec] = codeLogOr(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                S2=derefPtr(S2, retTypeSpec)
+                S+=' = ' + S2
+            else: print("ERROR: '<-' expected in code generator."); exit(2)
             retTypeSpec='bool'
     #print "S:",S
     return [S, retTypeSpec]
@@ -812,13 +844,19 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
     assignValue=''
     isAllocated = fieldDef['isAllocated']
     owner = progSpec.getTypeSpecOwner(typeSpec)
+    useCtor = False
+    if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
+        del fieldDef['paramList'][-1]
+        useCtor = True
     if(fieldDef['value']):
         [S2, rhsTypeSpec]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, typeSpec, None, xlator)
         if(isAllocated):
             assignValue = " = " + getCodeAllocSetStr(innerType, owner, S2)
         else:
             [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsTypeSpec)
-            assignValue = " = " + leftMod+S2+rightMod
+            if(useCtor==False):    # { } constructor
+                assignValue += " = "
+            assignValue += leftMod+S2+rightMod
 
     else: # If no value was given:
         CPL=''
@@ -829,13 +867,15 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
-                    exit(1)
+                    #exit(1)
 
                 theParam=progSpec.getFieldType(paramTypeList[0])
 
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(theParam, str) and fieldType==theParam[0]:
-                    assignValue = " = " + CPL   # Act like a copy constructor
+                    if(not useCtor):
+                        assignValue += " = "    # Use a copy constructor
+                    assignValue += CPL
             if(assignValue==''):
                 owner = progSpec.getTypeSpecOwner(typeSpec)
                 assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
@@ -962,6 +1002,8 @@ def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, 
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
+        if paramList[-1] == "^&useCtor//8":
+            del paramList[-1]
         [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
         fieldValueText += CPL
     if isAllocated == True:
@@ -1172,6 +1214,7 @@ def fetchXlators():
     xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
+    xlators['getEnumStringifyFunc']         = getEnumStringifyFunc
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
