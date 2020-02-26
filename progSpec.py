@@ -128,7 +128,8 @@ def fieldIdentifierString(className, packedField):
         count=0
         for arg in argList:
             if count>0: fieldID+=','
-            fieldID += fieldTypeKeyword(arg['typeSpec']['fieldType'][0])
+            argKeyWord = fieldTypeKeyword(arg['typeSpec'])
+            fieldID += argKeyWord
             count+=1
         fieldID+=')'
     return fieldID
@@ -811,6 +812,8 @@ def baseStructName(structName):
 def fieldTypeKeyword(fieldType):
     # fieldType can be fieldType or typeSpec
     if fieldType==None: return 'NONE'
+    if 'owner' in fieldType and fieldType['owner']=='PTR':
+        return 'NONE'
     if 'fieldType' in fieldType:    # if var fieldType is typeSpec
         fieldType = getFieldType(fieldType)
     if isinstance(fieldType, str):

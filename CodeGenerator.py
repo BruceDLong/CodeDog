@@ -81,9 +81,10 @@ def CheckFunctionsLocalVarArgList(itemName):
             return [item[1], 'FUNCARG']
     return 0
 
-def CheckObjectVars(className, itemName):
+def CheckObjectVars(className, itemName, fieldIDArgList):
     searchFieldID = className+'::'+itemName
-    #print("Searching",className,"for", itemName, searchFieldID)
+    fullSearchFieldID = className+'::'+itemName+fieldIDArgList
+    #print("Searching",className,"for", itemName, fullSearchFieldID)
     ClassDef =  progSpec.findSpecOf(globalClassStore[0], className, "struct")
     if ClassDef==None:
         message = "ERROR: definition not found for: "+ str(className) + " : " + str(itemName)
@@ -96,7 +97,7 @@ def CheckObjectVars(className, itemName):
         actualFieldType=progSpec.getFieldType(wrappedTypeSpec)
         if not isinstance(actualFieldType, str):
             #print "'actualFieldType", wrappedTypeSpec, actualFieldType, className
-            retVal = CheckObjectVars(actualFieldType[0], itemName)
+            retVal = CheckObjectVars(actualFieldType[0], itemName, "")
             if retVal!=0:
                 retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
                 return retVal
@@ -118,16 +119,14 @@ def CheckObjectVars(className, itemName):
     #       search child, parent, grandparent etc.
     #       commit 2111d27664f99c2b4aad289586438efa1846e355 (HEAD -> master, origin/master, origin/HEAD, patternMakeGUI)
     for field in callableStructFields:
-        fieldID=field['fieldID']
         fieldName=field['fieldName']
-        structAndFieldID = fieldID.split("(")
-        fieldID      = structAndFieldID[0]
-        if searchFieldID== fieldID:
+        if fullSearchFieldID== field['fieldID']:
+            #print("fullSearchFieldID:",fullSearchFieldID)
             return field
         if fieldName==itemName:
             foundFieldID = field
     if foundFieldID != 'None':
-        #print "Found", itemName
+        #print ("Found", itemName)
         return foundFieldID
 
     ### Check inherited enum values for a match after GLOBAL
@@ -160,6 +159,35 @@ def staticVarNamePrefix(staticVarName, parentClass, xlator):
             return refedClass + xlator['ObjConnector']
     return ''
 
+def getFieldIDArgList(segSpec, objsRefed, xlator):
+    argList=None
+    fieldIDArgList = ""
+    argListStr = ""
+    if len(segSpec) > 1 and segSpec[1]=='(':
+        if(len(segSpec)==2):
+            argList=[]
+        else:
+            argList=segSpec[2]
+    if(argList):
+        count = 0
+        fieldIDArgList += '('
+        argListStr     += '('
+        for arg in argList:
+            [S2, argTypeSpec]=xlator['codeExpr'](arg[0], objsRefed, None, None, xlator)
+            #print(argTypeSpec)
+            keyWord = progSpec.fieldTypeKeyword(argTypeSpec)
+            if(count >0 ):
+                fieldIDArgList += ', '
+                argListStr     += ', '
+            fieldIDArgList += keyWord
+            argListStr     += S2
+            count += 1
+        fieldIDArgList += ')'
+        argListStr     += ')'
+        #print("fieldIDArgList:",fieldIDArgList)
+        #print("argListStr:",argListStr)
+    return [argListStr, fieldIDArgList]
+
 def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     global currentObjName
@@ -168,7 +196,8 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
     RefType=""
     useClassTag=""
     itemName=segSpec[0]
-    #print "FETCHING TYPESPEC OF:", currentObjName+'::'+itemName
+    [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, xlator)
+    #print ("FETCHING TYPESPEC OF:", currentObjName+'::'+itemName+fieldIDArgList)
     if currentObjName != "":
         fieldID = currentObjName+'::'+itemName
         tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
@@ -183,7 +212,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
         if (REF): # RefType="LOCAL" or "FUNCARG"
             return REF
         else:
-            REF=CheckObjectVars(currentObjName, itemName)
+            REF=CheckObjectVars(currentObjName, itemName, fieldIDArgList)
             if (REF):
                 if useClassTag != "":
                     fieldType=progSpec.getFieldType(REF['typeSpec'])
@@ -195,7 +224,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
                     RefOwner = progSpec.getTypeSpecOwner(REF['typeSpec'])
                     if RefOwner=='we': RefType = "STATIC:" + currentObjName + xlator['ObjConnector']
             else:
-                REF=CheckObjectVars("GLOBAL", itemName)
+                REF=CheckObjectVars("GLOBAL", itemName, fieldIDArgList)
                 if (REF):
                     RefType="GLOBAL"
                 else:
@@ -451,10 +480,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             exit(2)
         else:
             if fType!='string':
-                typeSpecOut=CheckObjectVars(fType, name)
+                typeSpecOut=CheckObjectVars(fType, name, "")
                 if typeSpecOut!=0:
                     if isStructLikeContainer == True:
-                        segType = CheckObjectVars(fType, name)
+                        segType = CheckObjectVars(fType, name, "")
                         segTypeKeyWord = progSpec.fieldTypeKeyword(segType['typeSpec'])
                         [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
                         if(innerTypeOwner):
