@@ -81,6 +81,38 @@ def CheckFunctionsLocalVarArgList(itemName):
             return [item[1], 'FUNCARG']
     return 0
 
+def disassembleFieldID(fullFieldID):
+    openParenPos   = fullFieldID.find("(")
+    if(openParenPos == -1): return(fullFieldID, None)
+    closeParenPos  = fullFieldID.find(")")
+    classAndFuncName = fullFieldID[:openParenPos]
+    argListString  = fullFieldID[openParenPos+1:closeParenPos]
+    argList        = argListString.split(",")
+    return(classAndFuncName, argList)
+
+def reassembleFieldID(classAndFuncName, argList):
+    fullFieldID = classAndFuncName
+    fullFieldID += "("
+    count = 0
+    for arg in argList:
+        if count > 0: fullFieldID += " ,"
+        fullFieldID += arg
+        count += 1
+    fullFieldID += ")"
+    return(fullFieldID)
+
+def convertFieldIDType(fieldID, convertType):
+    [classAndFuncName, argList] = disassembleFieldID(fieldID)
+    if(argList != None):
+        newArgList= []
+        for arg in argList:
+            if(arg == 'uint64_t' or arg == 'uint64' or arg == 'uint32' or arg == 'double' or arg == 'uint' or arg == 'int64' or arg == 'mode' or arg == 'int'):
+                newArgList.append('number_type')
+            else:
+                newArgList.append(arg)
+        fieldID = reassembleFieldID(classAndFuncName, newArgList)
+    return(fieldID)
+
 def CheckObjectVars(className, itemName, fieldIDArgList):
     searchFieldID = className+'::'+itemName
     fullSearchFieldID = className+'::'+itemName+fieldIDArgList
@@ -123,6 +155,10 @@ def CheckObjectVars(className, itemName, fieldIDArgList):
         if fullSearchFieldID== field['fieldID']:
             #print("fullSearchFieldID:",fullSearchFieldID)
             return field
+        if fieldName==itemName and 'number_type' in field['fieldID']:
+            num_typeFieldID = convertFieldIDType(fullSearchFieldID, "number_type")
+            if(field['fieldID'] == num_typeFieldID):
+                return field
         if fieldName==itemName:
             foundFieldID = field
     if foundFieldID != 'None':
