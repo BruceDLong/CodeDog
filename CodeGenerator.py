@@ -106,7 +106,7 @@ def convertFieldIDType(fieldID, convertType):
     if(argList != None):
         newArgList= []
         for arg in argList:
-            if(arg == 'uint64_t' or arg == 'uint64' or arg == 'uint32' or arg == 'double' or arg == 'uint' or arg == 'int64' or arg == 'mode' or arg == 'int'):
+            if(arg == 'uint64_t' or arg == 'uint64' or arg == 'uint32' or arg == 'double' or arg == 'uint' or arg == 'int64' or arg == 'mode' or arg == 'int' or arg == 'int64_t'):
                 newArgList.append('number_type')
             else:
                 newArgList.append(arg)

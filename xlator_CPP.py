@@ -945,7 +945,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     if containerType['fieldType'][0]=='DblLinkedList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
         loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':owner, 'fieldType':containedType}
+        keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         repItrName = repName+'Itr'
