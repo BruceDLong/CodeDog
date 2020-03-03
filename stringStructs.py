@@ -405,6 +405,7 @@ struct EParser{
                     case ws:          {return(scrapeWS(pos))}
                     case quotedStr1:  {return(scrapeQuotedStr1(pos))}
                     case quotedStr2:  {return(scrapeQuotedStr2(pos))}
+                    case BigInt:      {return(scrapeUintSeq(pos))}
                     case CID:         {return(scrapeCID(pos))}
              //       case UniID:       {return(scrapeUniID(pos))}
                     case intSeq:      {return(scrapeIntSeq(pos))}
@@ -768,6 +769,7 @@ def populateBaseRules():
     appendRule('ws',          'term', 'parseAUTO', 'white space')
     appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
     appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
+    appendRule('BigInt',      'term', 'parseAUTO', "a big integer")
     appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
     appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier for the current locale')
     appendRule('printables',  'term', 'parseAUTO', "a seqence of printable chars")
@@ -813,7 +815,7 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif progSpec.isStruct(fieldType):
             objName=fieldType[0]
-            if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
+            if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or objName=='BigInt':
                 nameOut=objName
             else:
                 if objName=='[' or objName=='{': # This is an ALT or SEQ sub structure
@@ -1092,7 +1094,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             if debugTmp: print('        toFieldType:', toFieldType)
             if not ToIsEmbedded:
                 objName=toFieldType[0]
-                if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
+                if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or objName=='BigInt':
                     CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     toIsStruct=False; # false because it is really a base type.
                 else:

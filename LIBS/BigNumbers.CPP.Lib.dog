@@ -15,7 +15,12 @@ LibDescription ={
     description = 'Built in routines for CPP'
 }
 
-struct BigInt{me mpz_class: BigInt}
+struct GLOBAL{
+    me string: toString(me BigInt: val) <- <%!%1.get_str(10)%>
+}
+struct BigInt: wraps = mpz_class{
+    me int64: convertToIntVal() <- <%!%0.get_ui()%>
+}
 struct BigFloat{me mpf_class: BigFloat}
 struct BigInt{me BigFrac: BigFrac}
 
