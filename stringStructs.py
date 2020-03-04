@@ -345,6 +345,16 @@ struct EParser{
         return(txtSize-pos)
     }
 
+    me int: scrapeQuotedStr(me int: pos) <- {
+        me string: ch <- ""
+        ch <+- textToParse[pos]
+        if(ch != "\'" and ch != "\""){return(-1)}
+        else{pos <+- 1}
+        me int: sLen <- escapedScrapeUntil(pos, ch)
+        if(sLen<0){return(-1)}
+        return(sLen+2)
+    }
+
     me int: scrapeQuotedStr1(me int: pos) <- {
         if(chkStr(pos, "'")>=0){pos <- pos+1}else{return(-1)}
         me int: sLen <- escapedScrapeUntil(pos, "'")
@@ -403,6 +413,7 @@ struct EParser{
                     case alphaNumSeq: {return(scrapeAlphaNumSeq(pos))}
                     case printables:  {return(scrapePrintableSeq(pos))}
                     case ws:          {return(scrapeWS(pos))}
+                    case quotedStr:   {return(scrapeQuotedStr(pos))}
                     case quotedStr1:  {return(scrapeQuotedStr1(pos))}
                     case quotedStr2:  {return(scrapeQuotedStr2(pos))}
                     case BigInt:      {return(scrapeUintSeq(pos))}
@@ -767,6 +778,7 @@ def populateBaseRules():
     appendRule('RdxSeq',      'term', 'parseAUTO', 'a number')
     appendRule('alphaNumSeq', 'term', 'parseAUTO', "an alpha-numeric string")
     appendRule('ws',          'term', 'parseAUTO', 'white space')
+    appendRule('quotedStr',   'term', 'parseAUTO', "a quoted string with single or double quotes and escapes")
     appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
     appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
     appendRule('BigInt',      'term', 'parseAUTO', "a big integer")
@@ -807,7 +819,7 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
             print("Unusable const type in fetchOrWriteTerminalParseRule():", fieldType); exit(2);
 
     elif fieldOwner=='me' or  fieldOwner=='their' or  fieldOwner=='our':
-        if fieldType=='string':        nameOut='quotedStr1'
+        if fieldType=='string':        nameOut='quotedStr'
         elif fieldType[0:4]=='uint':   nameOut='uintSeq'
         elif fieldType[0:3]=='int':    nameOut='intSeq'
         elif fieldType[0:6]=='double': nameOut='RdxSeq'
@@ -815,7 +827,7 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif progSpec.isStruct(fieldType):
             objName=fieldType[0]
-            if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or progSpec.typeIsInteger(objName):
+            if objName=='ws' or objName=='quotedStr' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or progSpec.typeIsInteger(objName):
                 nameOut=objName
             else:
                 if objName=='[' or objName=='{': # This is an ALT or SEQ sub structure
@@ -1310,7 +1322,7 @@ def CreateStructsForStringModels(classes, newClasses, tags):
         me int: startPos <- SRec.originPos
         me int: endPos <- SRec.crntPos
         me int: prod <- SRec.productionID
-        if(prod == quotedStr1 or prod == quotedStr2){
+        if(prod == quotedStr or prod == quotedStr1 or prod == quotedStr2){
             startPos <- startPos+1
             endPos <- endPos-1
         }

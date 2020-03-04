@@ -1,0 +1,62 @@
+// parserExample.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "Parser Example"
+FileName = "parserExample"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "Example of parser"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [Logger]
+
+LicenseText = `Public Domain`
+
+
+runCode=`runProg()`
+struct EmpName{
+    me string: firstName
+    me string: lastName
+    me string: middleName
+}
+struct Employee{
+    me EmpName: empName
+    me int: age
+    me mode[Mr, Ms, Dr]:title
+}
+struct Company{
+    me string: companyName
+    me Employee[list]: employees
+}
+string EmpName{
+    >ws>string: firstName
+    >ws>string: lastName
+    >ws>string[opt]: middleName
+}
+string Employee{
+    >ws>EmpName: empName
+    >ws>int: age
+    >ws>[("Mr"<=> title=Mr;)
+	|("Ms"<=> title=Ms;)
+	|("Dr"<=> title=Dr;)
+        ]>ws
+}
+string Company: StartSymbol="true" {
+    >{>string: companyName > ws
+	>Employee[list]: employees
+    }
+}
+
+struct GLOBAL{
+    void: runProg()<-{
+	our Company: result <- Parse_Company("\"The Slipstream\"")
+        print("Parse Complete\n")
+	print("    CompanyName:",result.companyName,"\n")
+    }
+}
+
