@@ -815,7 +815,7 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif progSpec.isStruct(fieldType):
             objName=fieldType[0]
-            if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or objName=='BigInt':
+            if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or progSpec.typeIsInteger(objName):
                 nameOut=objName
             else:
                 if objName=='[' or objName=='{': # This is an ALT or SEQ sub structure
@@ -861,7 +861,7 @@ def writeNonTermParseRule(classes, tags, modelName, fields, SeqOrAlt, nameSuffix
         if fname==None: fname=''
         else: fname='_'+fname
         typeSpec   =field['typeSpec']
-        if(field['isNext']==True):
+        if(field['isNext']==True): # means in the parse there was a '>' symbol, a sequence seperator
             firstItm=progSpec.getFieldType(field['typeSpec'])[0]
             if firstItm=='[' or firstItm=='{': # Handle an ALT or SEQ sub structure
                 cdlog(logLvl, "NonTERM: {} = {}".format(fname, firstItm))
@@ -878,6 +878,7 @@ def writeNonTermParseRule(classes, tags, modelName, fields, SeqOrAlt, nameSuffix
 
 
                 if progSpec.isAContainer(typeSpec):
+                    # anything with [] is a container: lists and optionals
                     global rules
                     containerSpec = progSpec.getContainerSpec(typeSpec)
                     idxType=''
@@ -1094,7 +1095,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             if debugTmp: print('        toFieldType:', toFieldType)
             if not ToIsEmbedded:
                 objName=toFieldType[0]
-                if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or objName=='BigInt':
+                if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or progSpec.typeIsInteger(objName):
                     CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     toIsStruct=False; # false because it is really a base type.
                 else:
@@ -1104,8 +1105,8 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                         # make alternate finalCodeStr. Also, write the extractor that extracts toStruct fields to memVersion of this
                         finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'('+VarTag+"<LVL_SUFFIX>"+'.child.next, memStruct)\n')
 
-                        #print "    FUNCTION:", getFunctionName(fieldType[0], memVersionName)
-                        ToFields=progSpec.findSpecOf(classes[0], objName, 'string')['fields']
+                        objSpec = progSpec.findSpecOf(classes[0], objName, 'string')
+                        ToFields=objSpec['fields']
                         FromStructName=objName
                         Write_Extracter(classes, ToStructName, FromStructName, logLvl+1)
                     else:
@@ -1342,8 +1343,8 @@ def CreateStructsForStringModels(classes, newClasses, tags):
             if 'StartSymbol' in classTags:
                 writeParserWrapperFunction(classes, className)
             SeqOrAlt=''
-            if configType=='SEQ': SeqOrAlt='parseSEQ'
-            elif configType=='ALT': SeqOrAlt='parseALT'
+            if configType=='SEQ': SeqOrAlt='parseSEQ'   # seq has {}
+            elif configType=='ALT': SeqOrAlt='parseALT' # alt has []
 
             normedObjectName = className.replace('::', '_')
             if normedObjectName==className: normedObjectName+='_str'
@@ -1360,14 +1361,6 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     if numStringStructs==0: return
 
     ExtracterCode += extracterFunctionAccumulator
-
-    # Define streamSpan struct
-    structsName = 'streamSpan'
-    StructFieldStr = "    me int: offset \n    me int: len"
-    progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ')
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr), 'class '+structsName)
-
-
 
     ############  Add struct parser
     parserCode=genParserCode()

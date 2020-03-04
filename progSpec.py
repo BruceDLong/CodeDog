@@ -669,7 +669,7 @@ def getTemplateArg(typeSpec, argIdx):
 
 def getDatastructID(typeSpec):
     if isNewContainerTempFunc(typeSpec):
-        # if fieldType is parseResult w/ fieldType whose value is 'DblLinkedList' 
+        # if fieldType is parseResult w/ fieldType whose value is 'DblLinkedList'
         return 'list'
     if(isinstance(typeSpec['arraySpec']['datastructID'], str)):
         return(typeSpec['arraySpec']['datastructID'])
@@ -863,9 +863,9 @@ def typeIsNumRange(fieldType):
 
 def typeIsInteger(fieldType):
     if typeIsNumRange(fieldType): return True
-    if isinstance(fieldType, str):
-        if fieldType=="int" or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32": return True
-    elif fieldType[0]=="int" or fieldType[0]=="uint" or fieldType[0]=="uint64" or fieldType[0]=="uint32"or fieldType[0]=="int64" or fieldType[0]=="int32":
+    if not isinstance(fieldType, str):
+        fieldType= fieldType[0]
+    if fieldType=="int" or fieldType=="BigInt"or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32":
         return True
     return False
 

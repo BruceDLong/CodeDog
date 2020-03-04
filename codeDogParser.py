@@ -46,7 +46,7 @@ CID = identifier("CID")
 CIDList = Group(delimitedList(CID, ','))("CIDList")
 objectName = CID("objectName")
 classSpec = Forward()
-cppType = Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string")
+cppType = Keyword("void") | Keyword("bool") | Keyword("int32") | Keyword("int64") | Keyword("double") | Keyword("char") | Keyword("uint32") | Keyword("uint64") | Keyword("string") | Keyword("int")
 HexNums = Combine((Literal("0X") | Literal("0x")) + Word(hexnums))
 BinNums = Combine((Literal("0B") | Literal("0b")) + Word("01"))
 intNum = HexNums | BinNums | Word(nums)
@@ -113,10 +113,10 @@ whileAction = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
 fileSpec  = Group(Keyword('FILE')  + '(' + expr + ')')
 keyRange  = Group(rValue("repList") + Keyword('from') + rValue('fromPart')  + Keyword('to') + rValue('toPart'))
 repeatedAction = Group(
-            Keyword("withEach")("repeatedActionID") - CID("repName") + "in" 
-            + Optional(traversalModes("traversalMode")) 
+            Keyword("withEach")("repeatedActionID") - CID("repName") + "in"
+            + Optional(traversalModes("traversalMode"))
             + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))
-            + Optional(":")("optionalColon") 
+            + Optional(":")("optionalColon")
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq
@@ -282,23 +282,23 @@ def packFieldDef(fieldResult, className, indent):
         if(nameAndVal.givenValue):
             givenValue = nameAndVal.givenValue
         elif(nameAndVal.funcBody):
-            [funcBodyOut, funcTextVerbatim] = extractFuncBody(fieldName, nameAndVal.funcBody) 
+            [funcBodyOut, funcTextVerbatim] = extractFuncBody(fieldName, nameAndVal.funcBody)
             givenValue=[funcBodyOut, funcTextVerbatim]
             #print("\n\n[funcBodyOut, funcTextVerbatim] ", givenValue)
         elif(nameAndVal.rValueVerbatim):
             givenValue = ['', nameAndVal.rValueVerbatim[1]]
         else: givenValue=None;
-        
+
         if(nameAndVal.argListTag):
             for argSpec in nameAndVal.argList:
                 argList.append(packFieldDef(argSpec.fieldDef, className, indent+"    "))
         else: argList=None;
-        
+
         if 'parameters' in nameAndVal:
             if('deprecateDoubleColon'in nameAndVal):
                 print("            ***deprecated doubleColon in nameAndVal at: ", fieldName)
                 exit(1)
-            
+
             if(str(nameAndVal.parameters)=="['(']"): prmList={}
             else: prmList=nameAndVal.parameters[1]
             for param in prmList:
@@ -477,7 +477,7 @@ def extractActSeq(funcName, childActSeq):
 
 def extractFuncBody(funcName, funcBodyIn):
     '''Extract body of funcName (str) from funcBodyIn (parseResults)
-    
+
     Returns two values: funcBodyOut for CodeDog defined body & funcTextVerbatim for verbatim text.
     If body is verbatim: funcBodyOut is an empty string, funcTextVerbatim is a string
     If body is CodeDog: funcBodyOut is a list of stuff, funcTextVerbatim is an empty string
