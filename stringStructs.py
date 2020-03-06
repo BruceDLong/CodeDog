@@ -315,7 +315,15 @@ struct EParser{
         }
         return(txtSize-pos)
     }
-
+    me int: scrapeBinNum(me int: pos) <- {
+        me int: txtSize <- textToParse.size()
+        me char: ch
+        withEach p in RANGE(pos .. txtSize){
+            ch <- textToParse[p]
+            if(!isxdigit(ch)){if(p==pos){return(-1)} else{return(p-pos)}}
+        }
+        return(txtSize-pos)
+    }
     me int: scrapeAlphaNumSeq(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
@@ -427,7 +435,8 @@ struct EParser{
                     case quotedStr:   {return(scrapeQuotedStr(pos))}
                     case quotedStr1:  {return(scrapeQuotedStr1(pos))}
                     case quotedStr2:  {return(scrapeQuotedStr2(pos))}
-                    case HexNum_str:      {return(scrapeHexNum(pos))}
+                    case HexNum_str:  {return(scrapeHexNum(pos))}
+                    case BinNum_str:  {return(scrapeBinNum(pos))}
                     case BigInt:      {return(scrapeUintSeq(pos))}
                     case CID:         {return(scrapeCID(pos))}
              //       case UniID:       {return(scrapeUniID(pos))}
@@ -794,6 +803,7 @@ def populateBaseRules():
     appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
     appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
     appendRule('HexNum_str',      'term', 'parseAUTO', "a hexidecimal number")
+    appendRule('BinNum_str',      'term', 'parseAUTO', "a hexidecimal number")
     appendRule('BigInt',      'term', 'parseAUTO', "an integer")
     appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
     appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier for the current locale')
@@ -1127,6 +1137,8 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                         CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     elif(strFieldType == "HexNum"):
                         CODE_RVAL='makeHexInt('+VarTag+'.child'+')'
+                    elif(strFieldType == "BinNum"):
+                        CODE_RVAL='makeBinInt('+VarTag+'.child'+')'
                     else:
                         CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     toIsStruct=False; # false because it is really a base type.
@@ -1364,7 +1376,13 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     me BigInt: makeHexInt(our stateRec: SRec) <- {
         me string: S <- makeStr(SRec)
         me BigInt: N
-        N.hexNumToBigInt(S, 16)
+        N.hexNumToBigInt(S)
+        return(N)
+    }
+    me BigInt: makeBinInt(our stateRec: SRec) <- {
+        me string: S <- makeStr(SRec)
+        me BigInt: N
+        N.binNumToBigInt(S)
         return(N)
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(NULL) }

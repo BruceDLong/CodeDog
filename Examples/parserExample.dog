@@ -13,7 +13,7 @@ Authors = "Bruce Long"
 Description = "Example of parser"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [Logger]
+featuresNeeded = [Logger, BigNumbers]
 
 LicenseText = `Public Domain`
 
