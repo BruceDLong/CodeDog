@@ -34,6 +34,7 @@ rules=[]
 constDefs=[]
 ruleSet={}      # Used to track duplicates
 globalFieldCount=0
+globalTempVarIdx=0
 
 def genParserCode():
     global rules
@@ -305,6 +306,19 @@ struct EParser{
         }
         return(txtSize-pos)
     }
+    me int: scrapeHexNum(me int: pos) <- {
+        if(chkStr(pos, "0x")){}
+        else if(chkStr(pos, "0X")){}
+        else{return (-1)}
+        me int: txtSize <- textToParse.size()
+        me char: ch
+        withEach p in RANGE(pos .. txtSize){
+            ch <- textToParse[p]
+            if(!isxdigit(ch)){if(p==pos){print("error:scrape\n"); return(-1)} else{return(p-pos)}}
+        }
+        return(txtSize-pos)
+    }
+
     me int: scrapeAlphaNumSeq(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
@@ -781,7 +795,7 @@ def populateBaseRules():
     appendRule('quotedStr',   'term', 'parseAUTO', "a quoted string with single or double quotes and escapes")
     appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
     appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
-    appendRule('BigInt',      'term', 'parseAUTO', "a big integer")
+    appendRule('BigInt',      'term', 'parseAUTO', "an integer")
     appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
     appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier for the current locale')
     appendRule('printables',  'term', 'parseAUTO', "a seqence of printable chars")
@@ -999,6 +1013,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     VarTag=VarTagBase+str(level)
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
     global  globalFieldCount
+    global  globalTempVarIdx
     S=''
     fieldName  = field['fieldName']
     fieldIsNext= field['isNext']
@@ -1184,7 +1199,9 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                         ## Make a special form of Extract_fromFieldType_to_ToFieldType()
                         ## Call that function instead of the one in Code_LVAR
                 # First, create a new flag field
-                if fieldName==None: fieldName="TEMP"
+                if fieldName==None:
+                    fieldName="TEMP"+str(globalTempVarIdx)
+                    globalTempVarIdx += globalTempVarIdx
                 newFieldsName=fieldName   #'has_'+fieldName
                 fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, None, newFieldsName, None, None, None, False)
                 progSpec.addField(classes[0], memVersionName, 'struct', fieldDef)
@@ -1334,6 +1351,13 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     me int64: makeInt(our stateRec: SRec) <- {
         me string: S <- makeStr(SRec)
         me int64: N <- stol(S)
+        return(N)
+    }
+    me BigInt: makeHexInt(our stateRec: SRec) <- {
+        me string: S <- makeStr(SRec)
+        print(\"  S:\",S)
+        me BigInt: N
+        N.hexNumToBigInt(S, 16)
         return(N)
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(NULL) }
