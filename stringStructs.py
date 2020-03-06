@@ -307,14 +307,11 @@ struct EParser{
         return(txtSize-pos)
     }
     me int: scrapeHexNum(me int: pos) <- {
-        if(chkStr(pos, "0x")){}
-        else if(chkStr(pos, "0X")){}
-        else{return (-1)}
         me int: txtSize <- textToParse.size()
         me char: ch
         withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
-            if(!isxdigit(ch)){if(p==pos){print("error:scrape\n"); return(-1)} else{return(p-pos)}}
+            if(!isxdigit(ch)){if(p==pos){return(-1)} else{return(p-pos)}}
         }
         return(txtSize-pos)
     }
@@ -430,6 +427,7 @@ struct EParser{
                     case quotedStr:   {return(scrapeQuotedStr(pos))}
                     case quotedStr1:  {return(scrapeQuotedStr1(pos))}
                     case quotedStr2:  {return(scrapeQuotedStr2(pos))}
+                    case HexNum_str:      {return(scrapeHexNum(pos))}
                     case BigInt:      {return(scrapeUintSeq(pos))}
                     case CID:         {return(scrapeCID(pos))}
              //       case UniID:       {return(scrapeUniID(pos))}
@@ -795,6 +793,7 @@ def populateBaseRules():
     appendRule('quotedStr',   'term', 'parseAUTO', "a quoted string with single or double quotes and escapes")
     appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
     appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
+    appendRule('HexNum_str',      'term', 'parseAUTO', "a hexidecimal number")
     appendRule('BigInt',      'term', 'parseAUTO', "an integer")
     appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
     appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier for the current locale')
@@ -1122,7 +1121,16 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             if debugTmp: print('        toFieldType:', toFieldType)
             if not ToIsEmbedded:
                 objName=toFieldType[0]
-                if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or progSpec.typeIsInteger(objName):
+                if  progSpec.typeIsInteger(objName):
+                    strFieldType = fieldType[0]
+                    if(strFieldType == "BigInt"):
+                        CODE_RVAL='makeStr('+VarTag+'.child'+')'
+                    elif(strFieldType == "HexNum"):
+                        CODE_RVAL='makeHexInt('+VarTag+'.child'+')'
+                    else:
+                        CODE_RVAL='makeStr('+VarTag+'.child'+')'
+                    toIsStruct=False; # false because it is really a base type.
+                elif objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
                     CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     toIsStruct=False; # false because it is really a base type.
                 else:
@@ -1355,7 +1363,6 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     }
     me BigInt: makeHexInt(our stateRec: SRec) <- {
         me string: S <- makeStr(SRec)
-        print(\"  S:\",S)
         me BigInt: N
         N.hexNumToBigInt(S, 16)
         return(N)
