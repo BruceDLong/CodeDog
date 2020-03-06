@@ -34,6 +34,7 @@ rules=[]
 constDefs=[]
 ruleSet={}      # Used to track duplicates
 globalFieldCount=0
+globalTempVarIdx=0
 
 def genParserCode():
     global rules
@@ -305,6 +306,24 @@ struct EParser{
         }
         return(txtSize-pos)
     }
+    me int: scrapeHexNum(me int: pos) <- {
+        me int: txtSize <- textToParse.size()
+        me char: ch
+        withEach p in RANGE(pos .. txtSize){
+            ch <- textToParse[p]
+            if(!isxdigit(ch)){if(p==pos){return(-1)} else{return(p-pos)}}
+        }
+        return(txtSize-pos)
+    }
+    me int: scrapeBinNum(me int: pos) <- {
+        me int: txtSize <- textToParse.size()
+        me char: ch
+        withEach p in RANGE(pos .. txtSize){
+            ch <- textToParse[p]
+            if(!isxdigit(ch)){if(p==pos){return(-1)} else{return(p-pos)}}
+        }
+        return(txtSize-pos)
+    }
     me int: scrapeAlphaNumSeq(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
@@ -343,6 +362,16 @@ struct EParser{
             if(isspace(ch)){}else{if(p==pos){return(-1)} else{return(p-pos)}}
         }
         return(txtSize-pos)
+    }
+
+    me int: scrapeQuotedStr(me int: pos) <- {
+        me string: ch <- ""
+        ch <+- textToParse[pos]
+        if(ch != "\'" and ch != "\""){return(-1)}
+        else{pos <+- 1}
+        me int: sLen <- escapedScrapeUntil(pos, ch)
+        if(sLen<0){return(-1)}
+        return(sLen+2)
     }
 
     me int: scrapeQuotedStr1(me int: pos) <- {
@@ -403,8 +432,12 @@ struct EParser{
                     case alphaNumSeq: {return(scrapeAlphaNumSeq(pos))}
                     case printables:  {return(scrapePrintableSeq(pos))}
                     case ws:          {return(scrapeWS(pos))}
+                    case quotedStr:   {return(scrapeQuotedStr(pos))}
                     case quotedStr1:  {return(scrapeQuotedStr1(pos))}
                     case quotedStr2:  {return(scrapeQuotedStr2(pos))}
+                    case HexNum_str:  {return(scrapeHexNum(pos))}
+                    case BinNum_str:  {return(scrapeBinNum(pos))}
+                    case BigInt:      {return(scrapeUintSeq(pos))}
                     case CID:         {return(scrapeCID(pos))}
              //       case UniID:       {return(scrapeUniID(pos))}
                     case intSeq:      {return(scrapeIntSeq(pos))}
@@ -766,8 +799,12 @@ def populateBaseRules():
     appendRule('RdxSeq',      'term', 'parseAUTO', 'a number')
     appendRule('alphaNumSeq', 'term', 'parseAUTO', "an alpha-numeric string")
     appendRule('ws',          'term', 'parseAUTO', 'white space')
+    appendRule('quotedStr',   'term', 'parseAUTO', "a quoted string with single or double quotes and escapes")
     appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
     appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
+    appendRule('HexNum_str',      'term', 'parseAUTO', "a hexidecimal number")
+    appendRule('BinNum_str',      'term', 'parseAUTO', "a hexidecimal number")
+    appendRule('BigInt',      'term', 'parseAUTO', "an integer")
     appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
     appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier for the current locale')
     appendRule('printables',  'term', 'parseAUTO', "a seqence of printable chars")
@@ -805,7 +842,7 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
             print("Unusable const type in fetchOrWriteTerminalParseRule():", fieldType); exit(2);
 
     elif fieldOwner=='me' or  fieldOwner=='their' or  fieldOwner=='our':
-        if fieldType=='string':        nameOut='quotedStr1'
+        if fieldType=='string':        nameOut='quotedStr'
         elif fieldType[0:4]=='uint':   nameOut='uintSeq'
         elif fieldType[0:3]=='int':    nameOut='intSeq'
         elif fieldType[0:6]=='double': nameOut='RdxSeq'
@@ -813,7 +850,7 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif progSpec.isStruct(fieldType):
             objName=fieldType[0]
-            if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
+            if objName=='ws' or objName=='quotedStr' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or progSpec.typeIsInteger(objName):
                 nameOut=objName
             else:
                 if objName=='[' or objName=='{': # This is an ALT or SEQ sub structure
@@ -859,7 +896,7 @@ def writeNonTermParseRule(classes, tags, modelName, fields, SeqOrAlt, nameSuffix
         if fname==None: fname=''
         else: fname='_'+fname
         typeSpec   =field['typeSpec']
-        if(field['isNext']==True):
+        if(field['isNext']==True): # means in the parse there was a '>' symbol, a sequence seperator
             firstItm=progSpec.getFieldType(field['typeSpec'])[0]
             if firstItm=='[' or firstItm=='{': # Handle an ALT or SEQ sub structure
                 cdlog(logLvl, "NonTERM: {} = {}".format(fname, firstItm))
@@ -876,6 +913,7 @@ def writeNonTermParseRule(classes, tags, modelName, fields, SeqOrAlt, nameSuffix
 
 
                 if progSpec.isAContainer(typeSpec):
+                    # anything with [] is a container: lists and optionals
                     global rules
                     containerSpec = progSpec.getContainerSpec(typeSpec)
                     idxType=''
@@ -984,6 +1022,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     VarTag=VarTagBase+str(level)
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
     global  globalFieldCount
+    global  globalTempVarIdx
     S=''
     fieldName  = field['fieldName']
     fieldIsNext= field['isNext']
@@ -1092,7 +1131,18 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             if debugTmp: print('        toFieldType:', toFieldType)
             if not ToIsEmbedded:
                 objName=toFieldType[0]
-                if objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
+                if  progSpec.typeIsInteger(objName):
+                    strFieldType = fieldType[0]
+                    if(strFieldType == "BigInt"):
+                        CODE_RVAL='makeStr('+VarTag+'.child'+')'
+                    elif(strFieldType == "HexNum"):
+                        CODE_RVAL='makeHexInt('+VarTag+'.child'+')'
+                    elif(strFieldType == "BinNum"):
+                        CODE_RVAL='makeBinInt('+VarTag+'.child'+')'
+                    else:
+                        CODE_RVAL='makeStr('+VarTag+'.child'+')'
+                    toIsStruct=False; # false because it is really a base type.
+                elif objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
                     CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     toIsStruct=False; # false because it is really a base type.
                 else:
@@ -1102,8 +1152,8 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                         # make alternate finalCodeStr. Also, write the extractor that extracts toStruct fields to memVersion of this
                         finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'('+VarTag+"<LVL_SUFFIX>"+'.child.next, memStruct)\n')
 
-                        #print "    FUNCTION:", getFunctionName(fieldType[0], memVersionName)
-                        ToFields=progSpec.findSpecOf(classes[0], objName, 'string')['fields']
+                        objSpec = progSpec.findSpecOf(classes[0], objName, 'string')
+                        ToFields=objSpec['fields']
                         FromStructName=objName
                         Write_Extracter(classes, ToStructName, FromStructName, logLvl+1)
                     else:
@@ -1169,7 +1219,9 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                         ## Make a special form of Extract_fromFieldType_to_ToFieldType()
                         ## Call that function instead of the one in Code_LVAR
                 # First, create a new flag field
-                if fieldName==None: fieldName="TEMP"
+                if fieldName==None:
+                    fieldName="TEMP"+str(globalTempVarIdx)
+                    globalTempVarIdx += globalTempVarIdx
                 newFieldsName=fieldName   #'has_'+fieldName
                 fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, None, newFieldsName, None, None, None, False)
                 progSpec.addField(classes[0], memVersionName, 'struct', fieldDef)
@@ -1307,7 +1359,7 @@ def CreateStructsForStringModels(classes, newClasses, tags):
         me int: startPos <- SRec.originPos
         me int: endPos <- SRec.crntPos
         me int: prod <- SRec.productionID
-        if(prod == quotedStr1 or prod == quotedStr2){
+        if(prod == quotedStr or prod == quotedStr1 or prod == quotedStr2){
             startPos <- startPos+1
             endPos <- endPos-1
         }
@@ -1319,6 +1371,18 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     me int64: makeInt(our stateRec: SRec) <- {
         me string: S <- makeStr(SRec)
         me int64: N <- stol(S)
+        return(N)
+    }
+    me BigInt: makeHexInt(our stateRec: SRec) <- {
+        me string: S <- makeStr(SRec)
+        me BigInt: N
+        N.hexNumToBigInt(S)
+        return(N)
+    }
+    me BigInt: makeBinInt(our stateRec: SRec) <- {
+        me string: S <- makeStr(SRec)
+        me BigInt: N
+        N.binNumToBigInt(S)
         return(N)
     }
     our stateRec: getNextStateRec(our stateRec: SRec) <- {if(SRec.next){ return(SRec.next)} return(NULL) }
@@ -1340,8 +1404,8 @@ def CreateStructsForStringModels(classes, newClasses, tags):
             if 'StartSymbol' in classTags:
                 writeParserWrapperFunction(classes, className)
             SeqOrAlt=''
-            if configType=='SEQ': SeqOrAlt='parseSEQ'
-            elif configType=='ALT': SeqOrAlt='parseALT'
+            if configType=='SEQ': SeqOrAlt='parseSEQ'   # seq has {}
+            elif configType=='ALT': SeqOrAlt='parseALT' # alt has []
 
             normedObjectName = className.replace('::', '_')
             if normedObjectName==className: normedObjectName+='_str'
@@ -1358,14 +1422,6 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     if numStringStructs==0: return
 
     ExtracterCode += extracterFunctionAccumulator
-
-    # Define streamSpan struct
-    structsName = 'streamSpan'
-    StructFieldStr = "    me int: offset \n    me int: len"
-    progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ')
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr), 'class '+structsName)
-
-
 
     ############  Add struct parser
     parserCode=genParserCode()

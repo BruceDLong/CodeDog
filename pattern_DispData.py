@@ -123,7 +123,7 @@ class structToStringWriter(structProcessor):
         global classesToProcess
         global classesEncoded
         valStr=''
-        if(fldCat=='int' or fldCat=='double'):
+        if(fldCat=='int' or fldCat=='double' or fldCat=='BigInt'):
             valStr='toString('+fieldName+')'
         elif(fldCat=='string' or fldCat=='char'):
             valStr= ' '+fieldName+' '
