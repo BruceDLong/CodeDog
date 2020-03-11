@@ -822,6 +822,8 @@ def fieldTypeKeyword(fieldType):
         fieldType = fieldType[0]['varType']
     if isinstance(fieldType[0], str):
         return fieldType[0]
+    if isinstance(fieldType[0][0], str):
+        return fieldType[0][0]
     cdErr("?Invalid fieldTypeKeyword?")
 
 def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
