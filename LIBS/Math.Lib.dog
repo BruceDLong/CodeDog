@@ -1,0 +1,126 @@
+// CodeDog
+
+requirements = [
+    [require, Math_implementation]
+]
+
+
+struct Vector2<numType>{
+    me numType: x
+    me numType: y
+
+    void: setXY(me numType: X, me numType: Y) <- {
+	x <- X
+	y <- Y
+    }
+    me Vector2<numType>: __plus(me Vector2<numType>: RHS) <- {
+	me Vector2<numType>: sum
+	sum.x <- x + RHS.x
+	sum.y <- y + RHS.y
+	return (sum)
+    }
+    me Vector2<numType>: __minus(me Vector2<numType>: RHS) <- {
+	me Vector2<numType>: diff
+	diff.x <- x - RHS.x
+	diff.y <- y - RHS.y
+	return (diff)
+    }
+    me Vector2<numType>: __times(me numType: RHS) <- {
+	me Vector2<numType>: product
+	product.x <- x * RHS
+	product.y <- y * RHS
+	return (product)
+    }
+    me Vector2<numType>: __divide(me numType: RHS) <- {
+    	me Vector2<numType>: quotient
+	quotient.x <- x / RHS
+	quotient.y <- y / RHS
+	return (quotient)
+    }
+}
+
+struct Vector3<numType>{
+    me numType: x
+    me numType: y
+    me numType: z
+
+    void: setXYZ(me numType: X, me numType: Y, me numType: Z) <- {
+	x <- X
+	y <- Y
+	z <- Z
+    }
+    me Vector3<numType>: __plus(me Vector3<numType>: RHS) <- {
+	me Vector3<numType>: sum
+	sum.x <- x + RHS.x
+	sum.y <- y + RHS.y
+	sum.z <- z + RHS.z
+	return (sum)
+    }
+    me Vector3<numType>: __minus(me Vector3<numType>: RHS) <- {
+	me Vector3<numType>: diff
+	diff.x <- x - RHS.x
+	diff.y <- y - RHS.y
+	diff.z <- z - RHS.z
+	return (diff)
+    }
+    me Vector3<numType>: __times(me numType: RHS) <- {
+	me Vector3<numType>: product
+	product.x <- x * RHS
+	product.y <- y * RHS
+	product.z <- z * RHS
+	return (product)
+    }
+    me Vector3<numType>: __divide(me numType: RHS) <- {
+    	me Vector3<numType>: quotient
+	quotient.x <- x / RHS
+	quotient.y <- y / RHS
+	quotient.z <- z / RHS
+	return (quotient)
+    }
+}
+
+struct Vector4<numType>{
+    me numType: w
+    me numType: x
+    me numType: y
+    me numType: z
+
+    void: setXYZ(me numType: W, me numType: X, me numType: Y, me numType: Z) <- {
+	w <- W
+	x <- X
+	y <- Y
+	z <- Z
+    }
+    me Vector4<numType>: __plus(me Vector4<numType>: RHS) <- {
+	me Vector4<numType>: sum
+	sum.w <- w + RHS.w
+	sum.x <- x + RHS.x
+	sum.y <- y + RHS.y
+	sum.z <- z + RHS.z
+	return (sum)
+    }
+    me Vector4<numType>: __minus(me Vector4<numType>: RHS) <- {
+	me Vector4<numType>: diff
+	diff.w <- w - RHS.w
+	diff.x <- x - RHS.x
+	diff.y <- y - RHS.y
+	diff.z <- z - RHS.z
+	return (diff)
+    }
+    me Vector4<numType>: __times(me numType: RHS) <- {
+	me Vector4<numType>: product
+	product.w <- w * RHS
+	product.x <- x * RHS
+	product.y <- y * RHS
+	product.z <- z * RHS
+	return (product)
+    }
+    me Vector4<numType>: __divide(me numType: RHS) <- {
+    	me Vector4<numType>: quotient
+	quotient.w <- w / RHS
+	quotient.x <- x / RHS
+	quotient.y <- y / RHS
+	quotient.z <- z / RHS
+	return (quotient)
+    }
+}

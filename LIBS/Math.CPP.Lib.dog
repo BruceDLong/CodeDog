@@ -1,0 +1,19 @@
+//############  Add Game-Toolkit features using GTK3
+requirements = [
+    [tagOneOf, Lang, [CPP]]
+]
+
+interface={
+    provides=[Math_implementation]
+    libFiles=[]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description =''
+    features    =[]
+    platforms   =[Linux]
+    bindings    =[C, CPP]
+}
+
