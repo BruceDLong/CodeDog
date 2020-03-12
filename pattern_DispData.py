@@ -221,7 +221,6 @@ struct GLOBAL{
             typeName=progSpec.getFieldType(field['typeSpec'])[0]
             fldCat=progSpec.fieldsTypeCategory(typeSpec)
             if fldCat=='func': continue
-   #         if typeName=='DblLinkedListNode': continue
             if progSpec.typeIsPointer(typeSpec):  # Draw dereferenced POINTER
                 fieldName=field['fieldName']
                 dispStructTypeName = "display_"+typeName
@@ -397,8 +396,8 @@ struct display_'''+className+": inherits=dash"+'''{
         elif(fldCat=='struct'):  # Header for a STRUCT
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', ">", '+fieldRef+')\n'
-            if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':structTypeName = 'infon'
-            else: structTypeName = progSpec.getFieldType(typeSpec)[0]
+            structTypeName = progSpec.isNewContainerTempFunc(typeSpec)
+            if structTypeName == None: structTypeName = progSpec.getFieldType(typeSpec)[0]
             structText += "    "+owner+" display_"+structTypeName+': '+fieldName+"\n"
 
 

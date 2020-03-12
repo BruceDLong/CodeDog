@@ -519,10 +519,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 typeSpecOut=CheckObjectVars(fType, name, "")
                 if typeSpecOut!=0:
                     if isStructLikeContainer == True:
-                        segType = CheckObjectVars(fType, name, "")
-                        segTypeKeyWord = progSpec.fieldTypeKeyword(segType['typeSpec'])
+                        segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
+                        segTypeOwner   = typeSpecOut['typeSpec']['owner']
                         [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
-                        if(innerTypeOwner):
+                        if(innerTypeOwner and segTypeOwner != 'itr'):
                             typeSpecOut['typeSpec']['owner'] = innerTypeOwner
                         if(innerTypeKeyWord):
                             typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
