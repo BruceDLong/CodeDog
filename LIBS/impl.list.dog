@@ -1,0 +1,58 @@
+// impl.list.dog
+//CPP_Deque implements list
+//code converters for functions
+model List<nodeType>{   //model is abstract class
+    void: append()             <- {}
+    nodeType: at()          <- {}
+    me void: clear()           <- {}
+    me void: clipToSize()      <- {}
+    itr nodeType: deleteNth()  <- {}
+    itr nodeType: end()        <- {}
+    itr nodeType: erase()      <- {}
+    nodeType: first()       <- {}
+    itr nodeType: front()      <- {}
+    nodeType: __getAt()     <- {}
+    itr nodeType: insert()     <- {}
+    itr nodeType: insertIdx()  <- {}
+    me bool: isEmpty()         <- {}
+    nodeType: last()        <- {}
+    itr nodeType: nthItr()     <- {}
+    nodeType: popFirst()    <- {}
+    nodeType: popLast()     <- {}
+    me void: prepend()         <- {}
+    itr nodeType: __putAt()    <- {}
+    me uint: size()            <- {}
+    ///////////////////////////////////
+    me void: pushFirst()       <- {}
+    me void: pushLast()        <- {}
+    //me void: begin()         <- {}
+    //me void: rEnd()          <- {}
+    //nodeType: back()      <- {}
+}
+struct CPP_Deque<nodeType>: implements = List wraps = deque specs = {insert = linear append = constant prepend = constant}{
+    void: append(nodeType: value)            <- <%!push_back(%1)%>
+    nodeType: at(me int: position)           <- <%!%0.at(%1)%>
+    void: clear()                               <- <%!clear()%>
+    void: clipToSize(me int: size)              <- <%!resize(%1)%>
+    itr nodeType: deleteNth(me int: position)   <- <%!%0.erase(%0.begin()+%1)%>
+    itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
+    itr nodeType: erase(itr nodeType: position) <- <%!%0.erase(%0.begin()+%1)%>
+    nodeType: first()                        <- <%!front()%>
+    itr nodeType: front()                       <- <%!begin()%>
+    nodeType: __getAt(me int: position)      <- <%!%0.at(%1)%>
+    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%1, %2)%>
+    itr nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.insert((%0.begin()+%1), %2)%>
+    me bool: isEmpty()                          <- <%!empty()%>
+    nodeType: last()                         <- <%!back()%>
+    itr nodeType: nthItr()                      <- <%!(%0.begin()+%1)%>
+    nodeType: popFirst()                     <- <%!%0.front(); %0.pop_front()%>
+    nodeType: popLast()                      <- <%!%0.back(); %0.pop_back()%>
+    me void: prepend(nodeType: value)        <- <%!push_front(%1)%>
+    itr nodeType: __putAt(itr nodeType: position, nodeType: value) <- <%!insert(%1, %2)%>
+    me uint: size()                             <- <%!size()%>
+    /////////////////////////////////////////
+    me void: pushFirst(nodeType: value)         <- <%!push_front(%1)%>
+    me void: pushLast(nodeType: value)       <- <%!push_back(%1)%>
+    // TODO: need Reverse Iterators working first
+    //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
+}
