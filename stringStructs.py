@@ -947,7 +947,6 @@ def getFunctionName(fromName, toName):
 
 def fetchMemVersion(classes, objName):
     if objName=='[' or objName=='{': return [None, None]
-    #if objName=='DblLinkedList': objName = 'infon'
     memObj = progSpec.findSpecOf(classes[0], objName, 'struct')
     if memObj==None: return [None, None]
     return [memObj, objName]
@@ -1048,8 +1047,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     else:
         toTypeSpec   = toField['typeSpec']
         toFieldType  = progSpec.getFieldType(toTypeSpec)
-        toFieldOwner = toTypeSpec['owner']
-        if toTypeSpec['fieldType'][0]=='DblLinkedList': toFieldOwner='our'  # Because the list stores 'our infon'
+        toFieldOwner = progSpec.getInnerContainerOwner(toTypeSpec)
 
         if debugTmp:
             print('        toFieldType:', toFieldType)
@@ -1150,8 +1148,10 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                     [toMemObj, toMemVersionName]=fetchMemVersion(classes, objName)
                     if toMemVersionName==None:
                         # make alternate finalCodeStr. Also, write the extractor that extracts toStruct fields to memVersion of this
-                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'('+VarTag+"<LVL_SUFFIX>"+'.child.next, memStruct)\n')
-
+                        childStr = ".child"
+                        if fromIsOPT:
+                            childStr += ".next"
+                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'('+VarTag+"<LVL_SUFFIX>"+childStr+', memStruct)\n')
                         objSpec = progSpec.findSpecOf(classes[0], objName, 'string')
                         ToFields=objSpec['fields']
                         FromStructName=objName

@@ -28,10 +28,27 @@ struct Employee{
     me EmpName: empName
     me int: age
     me mode[Mr, Ms, Dr]:title
+    me int: streetNumber
+    me mode[N, S, E, W]: streetPrefix
+    me string: streetName
+    me mode[St, Pl, Ct, Ave]: streetSuffix
+    me string: city
+    me int: zipCode
 }
 struct Company{
     me string: companyName
     me Employee[list]: employees
+}
+string Address{
+    >int: streetNumber
+    >ws>[("N"<=> streetPrefix=N;)
+	|("S"<=> streetPrefix=S;)
+	|("E"<=> streetPrefix=E;)
+	|("W"<=> streetPrefix=W;)
+        ][opt]
+    >ws>string: streetName
+    >ws>string: city
+    >ws>int: zipCode
 }
 string EmpName{
     >ws>string: firstName
@@ -40,11 +57,11 @@ string EmpName{
 }
 string Employee{
     >ws>EmpName: empName
-    >ws>int: age
     >ws>[("Mr"<=> title=Mr;)
 	|("Ms"<=> title=Ms;)
 	|("Dr"<=> title=Dr;)
-        ]>ws
+        ][opt]
+    >ws>me Address
 }
 string Company: StartSymbol="true" {
     >{>string: companyName > ws
@@ -54,9 +71,11 @@ string Company: StartSymbol="true" {
 
 struct GLOBAL{
     void: runProg()<-{
-	our Company: result <- Parse_Company("\"The Slipstream\"")
+	our Company: result <- Parse_Company("'The Slipstream' 'Bob' 'Roberts' 123 W 'Oak' 'BayCity' 12345")
         print("Parse Complete\n")
 	print("    CompanyName:",result.companyName,"\n")
+	print("    Employee:",result.employees[0].empName.firstName," ",result.employees[0].empName.lastName,"\n")
+	print("    Address:",result.employees[0].streetNumber," ",result.employees[0].streetName,"\n")
     }
 }
 
