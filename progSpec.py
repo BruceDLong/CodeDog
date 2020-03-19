@@ -630,7 +630,7 @@ def scoreImplementation(optionSpecs, reqTags):
     errorStr = ""
     for reqTag in reqTags:
         reqID = reqTag[0]
-        reqVal = templateSpecKeyWords[reqTag[1]]
+        reqVal = templateSpecKeyWords[reqTag[1][0]]
         if(reqID in optionSpecs):
             specVal = templateSpecKeyWords[optionSpecs[reqID]]
             if(specVal < reqVal):return([-1, errorStr])
@@ -654,7 +654,7 @@ def isNewContainerTempFunc(typeSpec):
     else:
         reqTagList = getReqTagList(typeSpec)
         if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='CPP_Deque':
-            return(reqTagList[1])
+            return(reqTagList[1][0])
     return(None)
 def isAContainer(typeSpec):
     if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
@@ -692,7 +692,9 @@ def getInnerContainerOwner(typeSpec):
             if(typeSpec['fieldType'][0] == 'DblLinkedList'):
                 return('our')
             else:
-                return typeSpec['fieldType'][1][1][0]['owner']
+                innerTypeSpec = typeSpec['fieldType'][1][1][0]
+                if 'owner' in innerTypeSpec: return (innerTypeSpec['owner'])
+                else: return ('me')
         else:
             return(typeSpec['owner'])
     else:
@@ -837,9 +839,10 @@ def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
             count = 0
             for item in typeArgList:
                 if(item == matchName):
-                    innerType        = reqTagList[count]
-                    innerTypeOwner   = innerType[0]
-                    innerTypeKeyWord = innerType[1][0]
+                    innerTypeSpec        = reqTagList[count]
+                    if 'owner' in innerTypeSpec: innerTypeOwner = innerTypeSpec['owner']
+                    else: innerTypeOwner = 'me'
+                    innerTypeKeyWord = innerTypeSpec["varType"][0][0]
                     return([innerTypeOwner, innerTypeKeyWord])
                 count += 1
     return([None, None])
