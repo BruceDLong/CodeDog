@@ -1284,14 +1284,14 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
 extracterFunctionAccumulator = ""
 alreadyWrittenFunctions={}
 
-def Write_structExtracter(classes, ToStructName, fields, nameForFunc, logLvl):
+def Write_structExtracter(classes, ToStructName, FromStructName, fields, nameForFunc, logLvl):
     memObjFields=[]
     progSpec.populateCallableStructFields(memObjFields, classes, ToStructName)
     if memObjFields==None: cdErr("struct {} is not defined".format(ToStructName.replace('str','mem')))
     S='    me string: tmpStr\n'
     for field in fields: # Extract all the fields in the string version.
         S+=Write_fieldExtracter(classes, ToStructName, field, memObjFields, 'SRec', '', True, '    ', 0, logLvl+1)
-    if progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessing'):
+    if  ToStructName== FromStructName and progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessing'):
         S += 'memStruct.postParseProcessing()\n'
     return S
 
@@ -1311,7 +1311,7 @@ def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
     elif configType=='ALT': SeqOrAlt='parseALT'
     cdlog(logLvl, "WRITING function {}() to extract struct {} from parse tree: stage 2...".format(nameForFunc, ToStructName))
     if configType=='SEQ':
-        S+=Write_structExtracter(classes, ToStructName, fields, nameForFunc, logLvl)
+        S+=Write_structExtracter(classes, ToStructName, FromStructName, fields, nameForFunc, logLvl)
     elif configType=='ALT':
         S+=Write_ALT_Extracter(classes, ToStructName, fields, 'SRec', '', 'tmpStr', '    ', -1, logLvl)
 
