@@ -122,15 +122,21 @@ def getTagsFromLibFiles():
     return tagsFromLibFiles
 
 def filterReqTags(ReqTags):
-    '''Change requirement tags from a list containing one parseResult element to a list of strings. (exceptions)
+    '''Change requirement tags from a list containing one parseResult element
+    to a list of lists containing strings. (see exceptions). Each inner list
+    corresponds to an element in the requirements list in the LIB.
     
-    Exceptional case: when requirement is in another list, ie. in cases of tagOneOf,
-    that element is appended to the output list as a parseResult rather than a string.
+    Exception: when requirement is in another list, ie. cases of tagOneOf,
+    the element is appended to inner list as ParseResults rather than string.
+    TODO: look into extracting the ParseResults
     '''
     filteredTags=[]
-    for each in ReqTags[0].tagListContents:
-        filteredTags.append(each.tagValue[0])
-    return [filteredTags]
+    for ReqTag in ReqTags:
+        filteredTag = []
+        for tagItem in ReqTag.tagListContents:
+            filteredTag.append(tagItem.tagValue[0])
+        filteredTags.append(filteredTag)
+    return filteredTags
 
 def extractLibTags(library):
     global tagsFromLibFiles
@@ -190,20 +196,23 @@ def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
         LibCanWork=False
         if 'provides' in interfaceTags:
             if need[1] in interfaceTags['provides']:
-                #print indent, 'REQUIRE: ', need[1], ' in ' ,interfaceTags['provides']
+                #print(indent, '{}REQUIRE: {} in {}'.format(indent, need[1], interfaceTags['provides']))
                 LibCanWork = True
 
-    for Req in ReqTags:
-       # print "REQUIREMENT:", Req[0], Req[1]
-        if Req[0]=='feature':
-            print("\n    Nested Features should be implemented. Please implement them. (", Req[1], ")n"); exit(2);
-        elif Req[0]=='require':
-            Requirements.append(Req)
-        elif Req[0]=='tagOneOf':
-            tagToCheck = Req[1]
-            validValues = progSpec.extractListFromTagList(Req[2])
+    for ReqTag in ReqTags:
+        #print("REQUIREMENT: {}".format(ReqTag))
+        if ReqTag[0]=='feature':
+            print("\n    Nested Features should be implemented. Please implement them. (", ReqTag[1], ")n")
+            exit(2)
+        elif ReqTag[0]=='require':
+            Requirements.append(ReqTag)
+        elif ReqTag[0]=='tagOneOf':
+            tagToCheck = ReqTag[1]
+            validValues = progSpec.extractListFromTagList(ReqTag[2])
             parentTag = progSpec.fetchTagValue(tags, tagToCheck)  # E.g.: "platform"
-            if parentTag==None: LibCanWork=False;  cdErr("ERROR: The tag '"+ tagToCheck + "' was not found in" + libFile + ".\n");
+            if parentTag==None:
+                LibCanWork=False
+                cdErr("ERROR: The tag '"+ tagToCheck + "' was not found in" + libFile + ".\n")
             if not parentTag in validValues: LibCanWork=False
             else: cdlog(1, "  Validated: "+tagToCheck+" = "+parentTag)
 
