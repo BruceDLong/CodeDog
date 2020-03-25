@@ -377,11 +377,23 @@ def doesClassHaveProperty(classes, fieldType, propToFind):
 
 def fetchTagValue(tagStoreArray, tagToFind):
     """Searches tagStoreArray, a list of dictionaries, for tagToFind
-    
-    Return is unclear: varies between str, dict, list
-    searchATagStore returns a list wrapper around item, hence tagRet[0]
+
+    Pass in a list of tag stores to search, sorted with the lower priority lists first.
+
+    For example, if you want to search for the tag "platform", first in the buildSpecs tags
+    and if not found there, in the main tag store, call it like this:
+
+       fetchTagValue([mainTags, buildSpecTags], "platform")
+
+    If "platform" is defined in the buildSpecTags, that value will override any value for "platform" in the mainTags.
+
+    The return value will be of the type and value of the given tag or None if there was no such tag.
+
+    Because a tag's value can be a string, number, dict or list, the return value can be any of these.
+
+    To search a specific tag store (instead of a prioritized list) use searchAtTagStore().
     """
-    
+
     for tagStore in reversed(tagStoreArray):
         tagRet=searchATagStore(tagStore, tagToFind)
         if tagRet:
