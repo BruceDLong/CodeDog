@@ -1,24 +1,32 @@
-# This module manages dog files that describe libraries
+# This module manages dog files that form libraries
 
-import os
-import progSpec
-import re
-import codeDogParser
-from progSpec import cdlog, cdErr
-from os.path import abspath
 from inspect import getsourcefile
+import os
+from os.path import abspath
+import re
 
-libDescriptionFileList = []
+import codeDogParser
+import progSpec
+from progSpec import cdlog, cdErr
+
+from pyparsing import ParseResults
+
+
+libPaths = []
 featuresHandled = []
+tagsFromLibFiles = {}
+currentFilesPath = ""
 
 '''
 T h e   b e s t   l i b r a r y   c h o i c e s   f o r   y o u r   p r o g r a m
   And the best programs for your library
 
-Whether you are writing a program for which library choices will be made, or a library which will be
-chosen for use with different programs, you want to have codeDog make the best choices.
+Whether you are writing a program for which library choices will be made,
+or a library which will be chosen for use with different programs,
+you want to have codeDog make the best choices.
 
-You can get the results you want by knowing how CodeDog makes its descision about which libraries to use.
+You can get the results you want by knowing how CodeDog makes its decisions
+about which libraries to use.
 
 The way libraries are chosen in most languages
 is that they're given by the programmer.
@@ -27,29 +35,32 @@ is easiest to create when the decision is left to the compiler.
 
 In codeDog the problem is solved by telling
 the compiler about features and needs instead of about the libraries.
-The compiler then chooses which libraries to link from needs the progam has listed.
+The compiler then chooses which libraries to link from the listed program needs.
 
-There are two kinds of need that the programmer can then specify in dog files:
-We'll call them 'features' and 'components'. Features are functionality that must be added to codeDog
-in order for your program to work. GUI-toolkit, Unicode, Math-kit, Networking. Feautures often
-correspond to actual libraries. Components are files that describe libraries that may be specific to
-particular platforms. GTK3, XCODE, etc. Both features and components are "needs" that are specified with tags.
-
-
-
+There are two kinds of need that the programmer can specify in dog files:
+We'll call them 'features' and 'components'. Features are functionality that
+must be added to codeDog in order for your program to work (GUI-toolkit,
+Unicode, Math-kit, Networking.) Features often correspond to actual libraries.
+Components are files that describe libraries that may be specific to particular
+platforms. GTK3, XCODE, etc. Both features and components are "needs"
+that are specified with tags.
 '''
+
+def getTagsFromLibFiles():
+    """simple getter for module level variable"""
+    return tagsFromLibFiles
 
 def collectLibFilenamesFromFolder(folderPath):
     for filename in os.listdir(folderPath):
         if filename.endswith("Lib.dog"):
-            libDescriptionFileList.append(os.path.join(folderPath, filename))
+            libPaths.append(os.path.join(folderPath, filename))
         elif filename.endswith("Lib.dog.proxy"):
             line = open(os.path.join(folderPath, filename)).readline()
             line=line.strip()
             baseName = os.path.basename(line)
-            #print"baseName: ", baseName
+            #print("baseName: {}".format(baseName))
             if (filename.strip('.proxy') == baseName):
-                libDescriptionFileList.append(os.path.realpath(line))
+                libPaths.append(os.path.realpath(line))
             else:
                 cdErr("File name "+filename+" does not match path name.")
 
@@ -67,17 +78,22 @@ def findLibraryFiles():
         collectFromFolderOrLIB(codeDogFolder)
 
 def findLibrary(feature):
-    for item in libDescriptionFileList:
-        if not isinstance(feature, str):
-            if(len(feature)==1):        # convert parseResults of size 1 to a string
-                feature = feature[0]
-        if(os.path.basename(item) == feature+".Lib.dog"):
-            return item
+    """Returns the filepath of LIB that matches '[input].Lib.dog'. If no match
+    is found returns empty string"""
+    
+    for libPath in libPaths:
+        if isinstance(feature, ParseResults) and len(feature)==1:
+            feature = feature[0]
+        if os.path.basename(libPath) == feature+".Lib.dog":
+            return libPath
     return ""
 
 def findLibraryChildren(libID):
+    """Given a lib prefix string (ie. Logger) return list of paths to children
+    LIB files (ie. Logger.CPP.Lib.dog, Logger.Android.Lib.dog)"""
+    
     libs=[]
-    for item in libDescriptionFileList:
+    for item in libPaths:
         itemBaseName = os.path.basename(item)
         if(itemBaseName.endswith('Lib.dog') and itemBaseName.startswith(libID)):
             innerName = itemBaseName[len(libID)+1:-8]
@@ -85,8 +101,6 @@ def findLibraryChildren(libID):
                 libs.append(item)
     return libs
 
-
-currentFilesPath = ""
 def replaceFileName(fileMatch):
     global currentFilesPath
     fileName = fileMatch.group(1)
@@ -105,7 +119,6 @@ def replaceFileName(fileMatch):
     return includedStr
 
 def processIncludedFiles(fileString, fileName):
-    global currentFilesPath
     dirname, filename = os.path.split(abspath(fileName))
     currentFilesPath = dirname
     pattern = re.compile(r'#include +([\w -\.\/\\]+)')
@@ -115,11 +128,6 @@ def loadTagsFromFile(fileName):
     codeDogStr = progSpec.stringFromFile(fileName)
     codeDogStr = processIncludedFiles(codeDogStr, fileName)
     return codeDogParser.parseCodeDogLibTags(codeDogStr)
-
-tagsFromLibFiles = {}
-
-def getTagsFromLibFiles():
-    return tagsFromLibFiles
 
 def filterReqTags(ReqTags):
     '''Change requirement tags from a list containing one parseResult element
@@ -139,7 +147,6 @@ def filterReqTags(ReqTags):
     return filteredTags
 
 def extractLibTags(library):
-    global tagsFromLibFiles
     libTags = loadTagsFromFile(library)
     tagsFromLibFiles[library] = libTags
     ReqTags = progSpec.fetchTagValue([libTags], 'requirements')
@@ -169,7 +176,10 @@ def reduceSolutionOptions(options, indent):
             opt=options[1][i]
             if not isinstance(opt, str):
                 reduceSolutionOptions(options[1][i], indent+'|   ')
-                if len(opt[1])==0: del options[1][i]; print("DELETED:", i); continue;
+                if len(opt[1])==0:
+                    del options[1][i]
+                    cdlog(1, "DELETED:", i)
+                    continue
                 changesMade=True
                 while changesMade:
                     changesMade=False
@@ -181,10 +191,9 @@ def reduceSolutionOptions(options, indent):
                         changesMade=True
                     elif optionsOp=='AND' and optOp=='OR':
                         print("CROSS")
-
                    # removeDuplicates(options)  # TODO: Make this line remove duplicates
-
             i+=1
+
 def fetchFeaturesNeededByLibrary(feature):
     return []
 
@@ -221,21 +230,21 @@ def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
 def constructORListFromFiles(tags, need, files, indent):
     OR_List = ['OR', []]
     for libFile in files:
-        #print indent + "LIB FILE: ", libFile
+        #print("{}LIB FILE: {}".format(indent, libFile))
         [LibCanWork, Requirements] = checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent)
         if(LibCanWork):
-            #print indent + " LIB CAN WORK:", libFile
+            #print("{} LIB CAN WORK: {}".format(indent, libFile))
             childFileList = findLibraryChildren(os.path.basename(libFile)[:-8])
             if len(childFileList)>0:
                 solutionOptions = constructANDListFromNeeds(tags, Requirements, childFileList, indent + "|   ")
                 solutionOptions[1] = [libFile] + solutionOptions[1]
                 OR_List[1].append(solutionOptions)
             else: OR_List[1].append(libFile)
-    if len(OR_List[1])==1 and isinstance(OR_List[1][0], str): return OR_List[1][0]  # Optimization
+    if len(OR_List[1])==1 and isinstance(OR_List[1][0], str):
+        return OR_List[1][0]  # Optimization
     return OR_List
 
 def constructANDListFromNeeds(tags, needs, files, indent):
-    global featuresHandled
     AND_List = ['AND', []]
     for need in needs:
         #print(indent, "**need*: ", need)
@@ -245,7 +254,9 @@ def constructANDListFromNeeds(tags, needs, files, indent):
             featuresHandled.append(need[1])
             filesToTry = [findLibrary(need[1])]
             if filesToTry[0]=='': cdErr('Could not find a dog file for feature '+need[1])
-        else: filesToTry = files
+        else:
+            filesToTry = files
+
         if len(filesToTry)>0:
             solutionOptions = constructORListFromFiles(tags, need, filesToTry, indent + "|   ")
             if len(solutionOptions[1])>0:
@@ -253,15 +264,20 @@ def constructANDListFromNeeds(tags, needs, files, indent):
     return AND_List
 
 def ChooseLibs(classes, buildTags, tags):
-    global featuresHandled
-    featuresHandled = []
+    """Entry point to libraryMngr
+    
+    tags: dict
+    """
+    
+    featuresHandled.clear()
     cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
-    initialNeeds =[]
+    initialNeeds = []
     for feature in featuresNeeded:
-        featuresNeeded.extend(fetchFeaturesNeededByLibrary(feature))
+        #featuresNeeded.extend(fetchFeaturesNeededByLibrary(feature))
         initialNeeds.append(["feature", feature])
     solutionOptions = constructANDListFromNeeds([tags, buildTags], initialNeeds, [], "")
     reduceSolutionOptions(solutionOptions, '')
-    for libPath in solutionOptions[1]: cdlog(2, "USING LIBRARY:"+libPath)
+    for libPath in solutionOptions[1]:
+        cdlog(2, "USING LIBRARY:"+libPath)
     return solutionOptions[1]
