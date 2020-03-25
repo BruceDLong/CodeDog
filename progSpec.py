@@ -356,7 +356,7 @@ def searchATagStore(tagStore, tagToFind):
     item=''
     for seg in tagSegs:
         #print("seg: ", seg, "      crntStore: ", crntStore)
-        if(seg in crntStore):
+        if seg in crntStore:
             item=crntStore[seg]
             crntStore=item
         else: return None
@@ -376,9 +376,16 @@ def doesClassHaveProperty(classes, fieldType, propToFind):
     return False
 
 def fetchTagValue(tagStoreArray, tagToFind):
+    """Searches tagStoreArray, a list of dictionaries, for tagToFind
+    
+    Return is unclear: varies between str, dict, list
+    searchATagStore returns a list wrapper around item, hence tagRet[0]
+    """
+    
     for tagStore in reversed(tagStoreArray):
         tagRet=searchATagStore(tagStore, tagToFind)
-        if(tagRet):
+        if tagRet:
+            #print("tagRet[0]. type: {}      value: {}".format(type(tagRet[0]), tagRet[0]))
             return tagRet[0]
     return None
 
