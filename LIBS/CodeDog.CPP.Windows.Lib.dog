@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides = [CPP_OS_tools]
     libFiles = []
-    headers  = [direct.h, time.h]
+    headers  = [direct.h, time.h, windows.h, array]
 }
 
 
@@ -32,3 +32,25 @@ int pipeclose(FILE* stream) {
 }
 `
 
+struct GLOBAL {
+	void: sleep(me int: milliseconds) <- <%{
+       Sleep(milliseconds);
+   }%>
+
+	me string: execCmd(me string: command) <- <%{
+      FILE* pipe;
+      std::array<CHAR, 128> buffer;
+      string result = "";
+      pipe = pipeopen(command.data(), "r");
+      if (pipe == NULL) {
+        cout<<"Cannot execute command:'" << command<<"'\n";
+        return "";
+      }
+      while(fgets(buffer.data(), 128, pipe) != NULL) {
+        result = result+buffer.data();
+      }
+      pipeclose(pipe);
+      return result;
+    }%>
+
+}
