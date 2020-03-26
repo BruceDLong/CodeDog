@@ -1,0 +1,28 @@
+/////////// Add Linux-specific routines for C++
+requirements = [
+    [tagOneOf, Lang, [CPP]],
+    [tagOneOf, Platform, [Linux]]
+]
+
+interface={
+    provides = [CPP_OS_tools]
+    libFiles = []
+    headers  = []
+}
+
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in Linux-specific routines for CPP'
+}
+
+embedHigh = `
+// platform dependent wrappers
+int makedir(const char *dirname) {
+	return(mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
+}
+errno_t stringcopy(char *dest, rsize_t dest_size, const char *src) {
+	return(strcpy(dest, src));
+}
+`
+

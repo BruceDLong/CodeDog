@@ -1,0 +1,28 @@
+/////////// Add Windows-specific routines for C++
+requirements = [
+    [tagOneOf, Lang, [CPP]],
+    [tagOneOf, Platform, [Windows]]
+]
+
+interface={
+    provides = [CPP_OS_tools]
+    libFiles = []
+    headers  = [direct.h, time.h]
+}
+
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in Windows-specific routines for CPP'
+}
+
+embedHigh = `
+// platform dependent wrappers
+int makedir(const char *dirname) {
+	return(_mkdir(dirname));
+}
+errno_t stringcopy(char *dest, rsize_t dest_size, const char *src) {
+	return(strcpy_s(dest, dest_size, src));
+}
+`
+

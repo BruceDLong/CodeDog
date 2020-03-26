@@ -1,6 +1,7 @@
 /////////// Add routines for C++
 requirements = [
-    [tagOneOf, Lang, [CPP]]
+    [tagOneOf, Lang, [CPP]],
+    [require, CPP_OS_tools]
 ]
 
 interface={

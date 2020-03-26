@@ -757,6 +757,9 @@ def addSpecialCode(filename):
     S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
     S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
 
+    S += "int makedir(const char *);\n"
+    S += "errno_t stringcopy(char *dest, rsize_t dest_size, const char *src);\n"
+
     S+="""
     // Thanks to Erik Aronesty via stackoverflow.com
     // Like printf but returns a string.
@@ -768,8 +771,7 @@ def addSpecialCode(filename):
         va_list ap;
         while(1) {
             formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
-            strcpy(&formatted[0], fmt_str.c_str());
-// WINDOWS: strcpy_s(&formatted[0], n, fmt_str.c_str());
+            stringcopy(&formatted[0], n, fmt_str.c_str());
             va_start(ap, fmt_str);
             final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
             va_end(ap);
@@ -783,13 +785,12 @@ def addSpecialCode(filename):
 
     string getFilesDirAsString(){
         string fileDir = "./";
-        mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-// WINDOWS: _mkdir(fileDir.data());
+        makedir(fileDir.data());
         return (fileDir);
     }
     string getAssetsDir(){
         string fileDir = "./assets";
-        mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        makedir(fileDir.data());
         return (fileDir);
     }
     bool doesFileExist(string filePath){
