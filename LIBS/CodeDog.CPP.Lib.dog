@@ -87,7 +87,7 @@ struct GLOBAL{
       FILE* pipe;
       std::array<char, 128> buffer;
       string result = "";
-      pipe = popen(command.data(), "r");
+      pipe = pipeopen(command.data(), "r");
       if (pipe == NULL) {
         cout<<"Cannot execute command:'" << command<<"'\n";
         return "";
@@ -95,7 +95,7 @@ struct GLOBAL{
       while(fgets(buffer.data(), 128, pipe) != NULL) {
         result = result+buffer.data();
       }
-      pclose(pipe);
+      pipeclose(pipe);
       return result;
     }%>
 

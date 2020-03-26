@@ -24,5 +24,11 @@ int makedir(const char *dirname) {
 void stringcopy(char *dest, size_t dest_size, const char *src) {
 	strcpy(dest, src);
 }
+FILE* pipeopen(const char *command, const char *type) {
+	return(popen(command, type));
+}
+int pipeclose(FILE* stream) {
+	return(pclose(stream));
+}
 `
 

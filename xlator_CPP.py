@@ -757,8 +757,10 @@ def addSpecialCode(filename):
     S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
     S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
 
-    S += "int makedir(const char *);\n"
-    S += "void stringcopy(char *dest, size_t dest_size, const char *src);\n"
+    S += "int makedir(const char *);       // Forward declaration\n"
+    S += "void stringcopy(char *dest, size_t dest_size, const char *src);       // Forward declaration\n"
+    S += "FILE* pipeopen(const char *command, const char *type);       // Forward declaration\n"
+    S += "int pipeclose(FILE* stream);       // Forward declaration\n"
 
     S+="""
     // Thanks to Erik Aronesty via stackoverflow.com
