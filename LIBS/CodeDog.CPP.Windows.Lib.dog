@@ -21,8 +21,8 @@ embedHigh = `
 int makedir(const char *dirname) {
 	return(_mkdir(dirname));
 }
-errno_t stringcopy(char *dest, rsize_t dest_size, const char *src) {
-	return(strcpy_s(dest, dest_size, src));
+void stringcopy(char *dest, size_t dest_size, const char *src) {
+	strcpy_s(dest, dest_size, src);
 }
 `
 

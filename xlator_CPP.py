@@ -758,7 +758,7 @@ def addSpecialCode(filename):
     S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
 
     S += "int makedir(const char *);\n"
-    S += "errno_t stringcopy(char *dest, rsize_t dest_size, const char *src);\n"
+    S += "void stringcopy(char *dest, size_t dest_size, const char *src);\n"
 
     S+="""
     // Thanks to Erik Aronesty via stackoverflow.com
