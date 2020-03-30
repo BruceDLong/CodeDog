@@ -356,7 +356,7 @@ def searchATagStore(tagStore, tagToFind):
     item=''
     for seg in tagSegs:
         #print("seg: ", seg, "      crntStore: ", crntStore)
-        if(seg in crntStore):
+        if seg in crntStore:
             item=crntStore[seg]
             crntStore=item
         else: return None
@@ -376,9 +376,28 @@ def doesClassHaveProperty(classes, fieldType, propToFind):
     return False
 
 def fetchTagValue(tagStoreArray, tagToFind):
+    """Searches tagStoreArray, a list of dictionaries, for tagToFind
+
+    Pass in a list of tag stores to search, sorted with the lower priority lists first.
+
+    For example, if you want to search for the tag "platform", first in the buildSpecs tags
+    and if not found there, in the main tag store, call it like this:
+
+       fetchTagValue([mainTags, buildSpecTags], "platform")
+
+    If "platform" is defined in the buildSpecTags, that value will override any value for "platform" in the mainTags.
+
+    The return value will be of the type and value of the given tag or None if there was no such tag.
+
+    Because a tag's value can be a string, number, dict or list, the return value can be any of these.
+
+    To search a specific tag store (instead of a prioritized list) use searchAtTagStore().
+    """
+
     for tagStore in reversed(tagStoreArray):
         tagRet=searchATagStore(tagStore, tagToFind)
-        if(tagRet):
+        if tagRet:
+            #print("tagRet[0]. type: {}      value: {}".format(type(tagRet[0]), tagRet[0]))
             return tagRet[0]
     return None
 
