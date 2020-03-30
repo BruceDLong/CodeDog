@@ -1,8 +1,8 @@
 // minimalGUI2.dog
 
-//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
 Title = "minimalGUI2"
@@ -13,7 +13,7 @@ Authors = "Bruce Long"
 Description = "This is an example of a very minimal GUI"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [GUI_ToolKit]
+featuresNeeded = [GUI_ToolKit, Threads, Unicode, Dashboard, Logger]
 
 LicenseText = `Public Domain`
 
@@ -59,7 +59,7 @@ struct testWidget: inherits = 'widget'{
         cr.strokeNow()
 
         cr.setColor(Styler.DarkSlateBlue)
-    our fontSpec:: testFont <- ("Ariel", 20, 0)
+        our fontSpec:: testFont{"Ariel", 20, 0}
         renderText(cr, "Hello World!", testFont, 150, 100)
         cr.strokeNow()
 
@@ -99,6 +99,7 @@ struct GLOBAL{
 struct APP{
     my GUI: gui
     me GUI_ScrollingWindow: scrollerRef
+    me GUI_eventDispatcher: EventDispatcher
 
     me void: createAppMenu(me GUI_Frame: frame) <- {}
 
