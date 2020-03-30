@@ -47,7 +47,7 @@ do makeGUI(GUI_Spec)
 
 ////////////   A p p l i c a t i o n   a n d   G l o b a l s
 
-struct testWidget: inherits = 'widget'{
+struct testWidget: inherits=DashboardWidget{
 
     void: draw(their GUI_ctxt: cr) <- {
         print("In DRAW()\n")
@@ -92,14 +92,13 @@ struct testWidget: inherits = 'widget'{
 
 struct GLOBAL{
     their GUI_canvas: drawing_area
-    our testWidget: drawAnX
+    their testWidget: drawAnX
     me int: fontSize
 }
 
 struct APP{
     my GUI: gui
     me GUI_ScrollingWindow: scrollerRef
-    me GUI_eventDispatcher: EventDispatcher
 
     me void: createAppMenu(me GUI_Frame: frame) <- {}
 
@@ -107,7 +106,7 @@ struct APP{
         drawing_area  <- gui.newCanvas()
         gui.setWidgetSize(drawing_area, 1200, 1200)
         Allocate(drawAnX)
-        EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
+        drawAnX.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
         addToContainerAndExpand (frame, drawing_area)
     }
 }
