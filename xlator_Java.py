@@ -53,24 +53,6 @@ def convertToJavaType(fieldType, isContainer):
             else: javaType=progSpec.flattenObjectName(fieldType)
     return javaType
 
-def convertType(classes, typeSpec, varMode, actionOrField, xlator):
-    owner=typeSpec['owner']
-    fieldType=typeSpec['fieldType']
-    if not isinstance(fieldType, str): fieldType=fieldType[0]
-    fieldType2 = progSpec.unwrapClass(classes, fieldType)
-    baseType = progSpec.isWrappedType(classes, fieldType)
-    if(baseType!=None): owner=baseType['owner']
-    retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, actionOrField, xlator)
-    return retVal
-
-def codeIteratorOperation(itrCommand):
-    result = ''
-    if itrCommand=='goNext':  result='%0.next()'
-    elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
-    elif itrCommand=='key':   result='%0.getKey()'
-    elif itrCommand=='val':   result='%0'
-    return result
-
 def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
     if owner=='const':
         if actionOrField=="field": langType = "final static "+langType
@@ -122,6 +104,24 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     if owner =="const":                     InnerLangType = fieldType
     return [langType, InnerLangType]
 
+def convertType(classes, typeSpec, varMode, actionOrField, xlator):
+    owner=typeSpec['owner']
+    fieldType=typeSpec['fieldType']
+    if not isinstance(fieldType, str): fieldType=fieldType[0]
+    fieldType2 = progSpec.unwrapClass(classes, fieldType)
+    baseType = progSpec.isWrappedType(classes, fieldType)
+    if(baseType!=None): owner=baseType['owner']
+    retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, actionOrField, xlator)
+    return retVal
+
+def codeIteratorOperation(itrCommand):
+    result = ''
+    if itrCommand=='goNext':  result='%0.next()'
+    elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
+    elif itrCommand=='key':   result='%0.getKey()'
+    elif itrCommand=='val':   result='%0'
+    return result
+
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
     elif name == "subStr":
@@ -149,6 +149,15 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
         if codeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
         else: return '(' + codeStr + ' != 0)'
     return codeStr
+
+def getTheDerefPtrMods(itemTypeSpec):
+    print("TODO: finish")
+
+def derefPtr(varRef, itemTypeSpec):
+    print("TODO: finish")
+
+def ChoosePtrDecorationForSimpleCase(owner):
+    print("TODO: finish")
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     return ['','']
@@ -179,7 +188,15 @@ def getEnumStr(fieldName, enumList):
     S += "\n"
    # S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
+
+def getEnumStringifyFunc(className, enumList):
+    print("TODO: finish")
+
 ######################################################   E X P R E S S I O N   C O D I N G
+
+def codeIdentityCheck(S1, S2, retType1, retType2):
+    print("TODO: finish")
+
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
@@ -461,6 +478,9 @@ def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
+def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
+    print("")
+
 def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print 'Or item:', item
     [S, retTypeSpec]=codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
@@ -549,19 +569,6 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='this'
 
     return [S, retOwner, fieldType]
-
-def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
-    if LorR_Val=='RVAL':
-        #Next line may be cause of bug with printing modes.  remove 'not'?
-        if (previousSegName in getModeStateNames()): S= '.get((int)' + idx + ')'
-        elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
-            S= '.get(' + idx + ')'
-        elif (containerType== 'string'): S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
-        else: S= '[' + idx +']'
-    else:
-        if containerType== 'ArrayList': S = '.get('+idx+')'
-        else: S= '[' + idx +']'
-    return S
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
     # Check for string A[x] = B;  If so, render A.put(B,x)
@@ -860,8 +867,27 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     elif inheritMode=='override': pass
     return [structCode, funcDefCode, globalFuncs]
 
+def codeTypeArgs(typeArgList):
+    print("")
+
+def codeTemplateHeader(typeArgList):
+    print("")
+
 def extraCodeForTopOfFuntion(argList):
     return ''
+
+def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
+    if LorR_Val=='RVAL':
+        #Next line may be cause of bug with printing modes.  remove 'not'?
+        if (previousSegName in getModeStateNames()): S= '.get((int)' + idx + ')'
+        elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
+            S= '.get(' + idx + ')'
+        elif (containerType== 'string'): S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
+        else: S= '[' + idx +']'
+    else:
+        if containerType== 'ArrayList': S = '.get('+idx+')'
+        else: S= '[' + idx +']'
+    return S
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
@@ -886,7 +912,9 @@ def codeSwitchBreak(caseAction, indent, xlator):
 
 def applyTypecast(typeInCodeDog, itemToAlterType):
     return '((int)'+itemToAlterType+')'
+
 #######################################################
+
 def includeDirective(libHdr):
     S = 'import '+libHdr+';\n'
     return S

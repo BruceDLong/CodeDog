@@ -160,7 +160,6 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(S, segType, owner):
         return S
 
-
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.varTypeKeyWord(LHS_Type)
     RHS_KeyType = progSpec.varTypeKeyWord(RHS_Type)
@@ -228,7 +227,6 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
         else: return ['','',  "&", '']
     return ['','',  '','']
 
-
 def getCodeAllocStr(varTypeStr, owner):
     if(owner=='our'): S="make_shared<"+varTypeStr+">"
     elif(owner=='my'): S="make_unique<"+varTypeStr+">"
@@ -279,7 +277,6 @@ def codeIdentityCheck(S1, S2, retType1, retType2):
     else: retStr =  S1+' == '+S2
     #print "IDENTITY CHECK:"+retStr+"\n    ", retType1, "\n    ", retType2
     return retStr
-
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
@@ -738,7 +735,6 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
     forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
     return([S,forwardDecls])
 
-
 def produceTypeDefs(typeDefMap, xlator):
     typeDefCode="\n// Typedefs:\n"
     for key in typeDefMap:
@@ -1170,7 +1166,6 @@ def generateMainFunctionality(classes, tags):
 """
     progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ), "C++ main()")
-
 
 def fetchXlators():
     xlators = {}
