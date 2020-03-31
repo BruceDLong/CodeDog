@@ -1,12 +1,12 @@
-// minimalGUI2.dog
+// minimalGUI.dog
 
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 //AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
-Title = "minimalGUI2"
-FileName = "minimalGUI2"
+Title = "minimalGUI"
+FileName = "minimalGUI"
 Version = "1.0"
 CopyrightMesg = "Public Domain"
 Authors = "Bruce Long"
@@ -19,7 +19,7 @@ LicenseText = `Public Domain`
 
 runCode=``
 
-mainStyle = {
+/*mainStyle = {
     colors = {
         //frGndColor = sysDefaultFrGndColor
         //bkGndColor = [45, 100, 220]   // RGB
@@ -42,23 +42,29 @@ mainStyle = {
     fontSizeMode = pp
 }
 
-do makeStyler(mainStyle)
+do makeStyler(mainStyle)*/
+
 do makeGUI(GUI_Spec)
 
 ////////////   A p p l i c a t i o n   a n d   G l o b a l s
 
 struct testWidget: inherits=DashboardWidget{
+    me cdColor: color
 
     void: draw(their GUI_ctxt: cr) <- {
+	color.red <- 150
+	color.green <- 200
+	color.blue <- 200
+	
         print("In DRAW()\n")
-        cr.setColor(Styler.DarkMagenta)
+        cr.setColor(color)
         cr.moveTo(0, 0)
         cr.lineTo(1200, 1200)
         cr.moveTo(1200, 0)
         cr.lineTo(0, 1200)
         cr.strokeNow()
 
-        cr.setColor(Styler.DarkSlateBlue)
+        cr.setColor(color)
         our fontSpec:: testFont{"Ariel", 20, 0}
         renderText(cr, "Hello World!", testFont, 150, 100)
         cr.strokeNow()
@@ -75,7 +81,7 @@ struct testWidget: inherits=DashboardWidget{
         //    setFillPattern() and gradient control functions.
     }
 
-    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+    /*me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         me GUI_Scalar: eventX <- event.x
         me GUI_Scalar: eventY <- event.y
         print("CLICK! (x:", eventX, ", y:", eventY, ")\n")
@@ -87,26 +93,24 @@ struct testWidget: inherits=DashboardWidget{
         me GUI_Scalar: eventY <- event.y
         print("SECONDARY CLICK! (x:", eventX, ", y:", eventY, ")\n")
         return(true)
-    }
+    }*/
 }
 
 struct GLOBAL{
     their GUI_canvas: drawing_area
     their testWidget: drawAnX
-    me int: fontSize
 }
 
 struct APP{
     my GUI: gui
-    me GUI_ScrollingWindow: scrollerRef
 
     me void: createAppMenu(me GUI_Frame: frame) <- {}
 
     me void: createAppArea(me GUI_Frame: frame) <- {
         drawing_area  <- gui.newCanvas()
-        gui.setWidgetSize(drawing_area, 1200, 1200)
+        gui.setWidgetSize(drawing_area, 800, 800)
         Allocate(drawAnX)
         drawAnX.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
-        addToContainerAndExpand (frame, drawing_area)
+        addToContainerAndExpand(frame, drawing_area)
     }
 }

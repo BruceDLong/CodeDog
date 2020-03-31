@@ -227,15 +227,15 @@ struct Dashboard: inherits=dash{
         myGUI_ctxt <- cr
         if (isHidden){return()}
         layoutChildDashes()
-        me cdColor: bkCol <- styler.bkGndColor
-        me cdColor: fgCol <- styler.frGndColor
+        //me cdColor: bkCol <- styler.bkGndColor
+        //me cdColor: fgCol <- styler.frGndColor
         //displayImage(cr, "blue-sky.png", 0, 0, 1.0)
-        cr.setColor(bkCol)
+        //cr.setColor(bkCol)
         cr.paintNow()
 
         cr.setLineWidth(2)
         withEach childDash in dashChildren{
-            cr.setColor(fgCol)
+            //cr.setColor(fgCol)
             childDash.draw(cr)
         }
         withEach depDash in dependentItems{
@@ -271,8 +271,11 @@ struct dataField: inherits=dash{
 
     void: draw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
-        renderText(cr, label, styler.fontSmall, posX, posY+15)
-        renderText(cr, value, styler.fontSmall, posX+midPos, posY+15)
+	our fontSpec:: testFont{"Ariel", 20, 0}
+	
+	// TODO: return testFont to styler.smallFont when styler works
+        renderText(cr, label, testFont, posX, posY+15)
+        renderText(cr, value, testFont, posX+midPos, posY+15)
     }
 }
 
