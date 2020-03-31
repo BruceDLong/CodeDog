@@ -213,7 +213,7 @@ def extractTypeArgList(typeArgList):
     localListStore = []
     for typeArg in typeArgList[1]:
         localListStore.append(typeArg)
-    return(localListStore)
+    return localListStore
 
 nameIDX=1
 def packFieldDef(fieldResult, className, indent):
@@ -353,16 +353,13 @@ def packFieldDef(fieldResult, className, indent):
         fieldDef['optionalTags']=optionalTags
     return fieldDef
 
-def extractActSeqToActSeq(funcName, childActSeq):
-    actSeqData = extractActSeq(funcName, childActSeq)
-    return actSeqData
-
-def parseResultToArray(parseSegment):
+def parseResultsToListOfParseResults(parseSegment):
+    """This splits a ParseResults into a list of the top level ParseResults
+    """
     myList = []
     for seg in parseSegment:
         myList.append(seg)
     return myList
-
 
 def extractActItem(funcName, actionItem):
     global funcsCalled
@@ -374,17 +371,17 @@ def extractActItem(funcName, actionItem):
         switchCases = actionItem.switchCases
         defaultCaseAction = None
         if actionItem.optionalDefaultCase:
-            defaultCaseAction = extractActSeqToActSeq(funcName, actionItem.defaultCase.caseAction)
+            defaultCaseAction = extractActSeq(funcName, actionItem.defaultCase.caseAction)
         casesList=[]
         for sCase in switchCases:
-            CaseActSeq = extractActSeqToActSeq(funcName, sCase.caseAction)
+            CaseActSeq = extractActSeq(funcName, sCase.caseAction)
             casesList.append([sCase.caseValues, CaseActSeq])
 
         thisActionItem = {'typeOfAction':'switchStmt', 'switchKey':switchKey, 'switchCases':casesList, 'defaultCase':defaultCaseAction}
     elif actionItem.ifStatement:    # Conditional
         ifCondition = actionItem.ifStatement.ifCondition
         IfBodyIn = actionItem.ifStatement.ifBody
-        ifBodyOut = extractActSeqToActSeq(funcName, IfBodyIn)
+        ifBodyOut = extractActSeq(funcName, IfBodyIn)
         elseBodyOut = {}
         if (actionItem.optionalElse):
             elseBodyIn = actionItem.optionalElse.elseBody
@@ -399,7 +396,7 @@ def extractActItem(funcName, actionItem):
         repName = actionItem.repName
         repList = actionItem.repList
         repBodyIn = actionItem.actionSeq
-        repBodyOut = extractActSeqToActSeq(funcName, repBodyIn)
+        repBodyOut = extractActSeq(funcName, repBodyIn)
         traversalMode=None
         if actionItem.optionalColon:
             print("            optionalColon in repeatedAction is deprecated.")
@@ -427,12 +424,12 @@ def extractActItem(funcName, actionItem):
     # Action sequence
     elif actionItem.actSeqID:
         actionListIn = actionItem
-        actionListOut = extractActSeqToActSeq(funcName, actionListIn)
+        actionListOut = extractActSeq(funcName, actionListIn)
         thisActionItem = {'typeOfAction':"actionSeq", 'actionList':actionListOut}
     # Assign
     elif (actionItem.assign):
-        RHS = parseResultToArray(actionItem.rValue)
-        LHS = parseResultToArray(actionItem.lValue)
+        RHS = parseResultsToListOfParseResults(actionItem.rValue)
+        LHS = parseResultsToListOfParseResults(actionItem.lValue)
         assignTag = ''
         if (actionItem.assignID[0] != '<-'):
             if not isinstance(actionItem.assignID, str):
@@ -563,16 +560,19 @@ def BlowPOPMacro(replacement):
     scanMode='identifier'
     for ch in replacement:
         if scanMode=='identifier':
-            if isCID(ch): updatedStr += ch
+            if isCID(ch):
+                updatedStr += ch
             else:
                 updatedStr += ' + "'+ch
                 scanMode='filler'
         elif scanMode=='filler':
-            if not (ch.isalpha() or ch=='_'): updatedStr += ch
+            if not (ch.isalpha() or ch=='_'):
+                updatedStr += ch
             else:
                 updatedStr += '" + '+ch
                 scanMode='identifier'
-    if scanMode=='filler': updatedStr+='" '
+    if scanMode=='filler':
+        updatedStr+='" '
     return updatedStr
 
 def deSlashMacro(replacement):
@@ -675,7 +675,6 @@ def parseCodeDogLibTags(inputString):
     progSpec.saveTextToErrFile(inputString)
     try:
         localResults = libTagParser.parseString(inputString, parseAll = False)
-
     except ParseException as pe:
         cdErr( "Error parsing lib tags: {}".format( pe))
 
@@ -707,6 +706,6 @@ def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
     try:
         results = objectList.parseString(inputStr, parseAll = True)
     except ParseException as pe:
-        cdErr( "Error parsing generated class {}: {}".format(description, pe))
+        cdErr("Error parsing generated class {}: {}".format(description, pe))
     cdlog(errLevl, 'Completed parsing: '+description)
     extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0])

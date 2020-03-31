@@ -1,8 +1,8 @@
 // minimalGUI2.dog
 
-//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
-AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
 Title = "minimalGUI2"
@@ -13,7 +13,7 @@ Authors = "Bruce Long"
 Description = "This is an example of a very minimal GUI"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [GUI_ToolKit]
+featuresNeeded = [GUI_ToolKit, Threads, Unicode, Dashboard, Logger]
 
 LicenseText = `Public Domain`
 
@@ -47,7 +47,7 @@ do makeGUI(GUI_Spec)
 
 ////////////   A p p l i c a t i o n   a n d   G l o b a l s
 
-struct testWidget: inherits = 'widget'{
+struct testWidget: inherits=DashboardWidget{
 
     void: draw(their GUI_ctxt: cr) <- {
         print("In DRAW()\n")
@@ -59,7 +59,7 @@ struct testWidget: inherits = 'widget'{
         cr.strokeNow()
 
         cr.setColor(Styler.DarkSlateBlue)
-    our fontSpec:: testFont <- ("Ariel", 20, 0)
+        our fontSpec:: testFont{"Ariel", 20, 0}
         renderText(cr, "Hello World!", testFont, 150, 100)
         cr.strokeNow()
 
@@ -92,7 +92,7 @@ struct testWidget: inherits = 'widget'{
 
 struct GLOBAL{
     their GUI_canvas: drawing_area
-    our testWidget: drawAnX
+    their testWidget: drawAnX
     me int: fontSize
 }
 
@@ -106,7 +106,7 @@ struct APP{
         drawing_area  <- gui.newCanvas()
         gui.setWidgetSize(drawing_area, 1200, 1200)
         Allocate(drawAnX)
-        EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
+        drawAnX.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
         addToContainerAndExpand (frame, drawing_area)
     }
 }
