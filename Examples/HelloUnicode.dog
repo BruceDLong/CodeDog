@@ -1,12 +1,13 @@
-// HelloWorld.dog
+// HelloUnicode.dog
 
-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 //AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
 
-Title = "Hello World"
-FileName = "helloworld"
+Title = "Hello Unicode"
+FileName = "hellounicode"
 Version = "1.0"
 CopyrightMesg = "Public Domain"
 Authors = "Bruce Long"
@@ -22,7 +23,7 @@ runCode=`runProg()`
 
 struct GLOBAL{
     void: runProg() <- {
-        me string: hello <- "Hello World!\n"
+        me string: hello <- "Hello Unicode!\n"
     me UnicodeStr: uniHello <- unicodeMgr.fromUTF8Str(hello)
     me string: output <- unicodeMgr.toUTF8Str(uniHello)
     print(output)
