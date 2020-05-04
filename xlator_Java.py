@@ -667,7 +667,15 @@ struct GLOBAL{
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code' )
 
 def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
-    [fieldTypeSpec, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
+    [fieldTypeSpec, innerType] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
+    varDeclareStr=''
+    assignValue=''
+    isAllocated = fieldDef['isAllocated']
+    owner = progSpec.getTypeSpecOwner(typeSpec)
+    useCtor = False
+    if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
+        del fieldDef['paramList'][-1]
+        useCtor = True
     containerSpec = progSpec.getContainerSpec(typeSpec)
     fieldType = convertToJavaType(fieldTypeSpec, progSpec.isAContainer(typeSpec))
     if isinstance(containerSpec, str) and containerSpec == None:
@@ -691,17 +699,17 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             else:
                 assignValue= ' = '+ RHS   #' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
     else: # If no value was given:
-        #print "TYPE:", fieldType
+        CPL=''
         if fieldDef['paramList'] != None:       # call constructor
             # Code the constructor's arguments
         #TODO: make test case
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
-                    print("\nPROBLEM: The return type of the parameter '", CPL, "' cannot be found and is needed. Try to define it.\n")
-                    exit(1)
+                    print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
+                    #exit(1)
 
-                theParam=paramTypeList[0]['fieldType']
+                theParam=progSpec.getFieldType(paramTypeList[0])
                 if not isinstance(theParam, str) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
                 elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
@@ -716,7 +724,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             else: assignValue=''
         else:assignValue= " = new " + fieldType + "()"
     varDeclareStr= fieldType + " " + varName + assignValue
-    #print"codeNewVarStr: ",varDeclareStr
+    if(useCtor): print("useCtor:"+varDeclareStr)
     return(varDeclareStr)
 
 def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
