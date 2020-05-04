@@ -12,15 +12,16 @@ def getContainerType(typeSpec, actionOrField):
         if 'owner' in containerSpec: owner=containerSpec['owner']
         else: owner='me'
         if 'indexType' in containerSpec:
-            if 'IDXowner' in containerSpec:
-                idxOwner=containerSpec['IDXowner']
-                idxType=containerSpec['idxBaseType'][0]
-                idxType=applyOwner(idxOwner, idxType, 'IDX ERROR', containerSpec['indexType'], actionOrField, '')
-            else: idxType=containerSpec['idxBaseType'][0]
+            if 'IDXowner' in containerSpec['indexType']:
+                idxOwner=containerSpec['indexType']['IDXowner'][0]
+                idxType=containerSpec['indexType']['idxBaseType'][0][0]
+                idxType=applyOwner(idxOwner, idxType, '')
+            else:
+                idxType=containerSpec['indexType']['idxBaseType'][0][0]
         else:
             idxType = progSpec.getFieldType(typeSpec)
         convertToJavaType(idxType, True)
-        datastructID = containerSpec['datastructID']
+        datastructID = containerSpec['datastructID'][0]
         if(datastructID=='list'):       datastructID = 'ArrayList'
         elif(datastructID=='map'):      datastructID = 'TreeMap'
         elif(datastructID=='multimap'): datastructID = 'TreeMap'  # TODO: Implement true multmaps in java
@@ -52,24 +53,6 @@ def convertToJavaType(fieldType, isContainer):
             elif(fieldType=='string'):   javaType= 'String'
             else: javaType=progSpec.flattenObjectName(fieldType)
     return javaType
-
-def convertType(classes, typeSpec, varMode, actionOrField, xlator):
-    owner=typeSpec['owner']
-    fieldType=typeSpec['fieldType']
-    if not isinstance(fieldType, str): fieldType=fieldType[0]
-    fieldType2 = progSpec.unwrapClass(classes, fieldType)
-    baseType = progSpec.isWrappedType(classes, fieldType)
-    if(baseType!=None): owner=baseType['owner']
-    retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, actionOrField, xlator)
-    return retVal
-
-def codeIteratorOperation(itrCommand):
-    result = ''
-    if itrCommand=='goNext':  result='%0.next()'
-    elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
-    elif itrCommand=='key':   result='%0.getKey()'
-    elif itrCommand=='val':   result='%0'
-    return result
 
 def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
     if owner=='const':
@@ -122,6 +105,24 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     if owner =="const":                     InnerLangType = fieldType
     return [langType, InnerLangType]
 
+def convertType(classes, typeSpec, varMode, actionOrField, xlator):
+    owner=typeSpec['owner']
+    fieldType=typeSpec['fieldType']
+    if not isinstance(fieldType, str): fieldType=fieldType[0]
+    fieldType2 = progSpec.unwrapClass(classes, fieldType)
+    baseType = progSpec.isWrappedType(classes, fieldType)
+    if(baseType!=None): owner=baseType['owner']
+    retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, actionOrField, xlator)
+    return retVal
+
+def codeIteratorOperation(itrCommand, codeIteratorOperation):
+    result = ''
+    if itrCommand=='goNext':  result='%0.next()'
+    elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
+    elif itrCommand=='key':   result='%0.getKey()'
+    elif itrCommand=='val':   result='%0'
+    return result
+
 def recodeStringFunctions(name, typeSpec):
     if name == "size": name = "length"
     elif name == "subStr":
@@ -149,6 +150,30 @@ def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
         if codeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
         else: return '(' + codeStr + ' != 0)'
     return codeStr
+
+def getTheDerefPtrMods(itemTypeSpec):
+    if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
+        if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '']
+        if progSpec.typeIsPointer(itemTypeSpec):
+            owner=progSpec.getTypeSpecOwner(itemTypeSpec)
+            if progSpec.isAContainer(itemTypeSpec):
+                if owner=='itr':
+                    containerType = progSpec.getDatastructID(itemTypeSpec)
+                    if containerType =='map' or containerType == 'multimap':
+                        return ['', '->second']
+                return ['(*', ')']
+            else:
+                if owner!='itr':
+                   # print "GettingPTRMode:", itemTypeSpec
+                    return ['(*', ')']
+    return ['', '']
+
+def derefPtr(varRef, itemTypeSpec):
+    [leftMod, rightMod] = getTheDerefPtrMods(itemTypeSpec)
+    return leftMod + varRef + rightMod
+
+def ChoosePtrDecorationForSimpleCase(owner):
+    print("TODO: finish ChoosePtrDecorationForSimpleCase")
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     return ['','']
@@ -179,13 +204,19 @@ def getEnumStr(fieldName, enumList):
     S += "\n"
    # S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
+
+def getEnumStringifyFunc(className, enumList):
+    print("TODO: finish getEnumStringifyFunc")
+
 ######################################################   E X P R E S S I O N   C O D I N G
+
+def codeIdentityCheck(S1, S2, retType1, retType2):
+    print("TODO: finish codeIdentityCheck")
+
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
-    if 'fieldType' in typeSpecIn and not(isinstance(typeSpecIn['fieldType'], str)) and typeSpecIn['fieldType'][0]=='DblLinkedList':
-        print("getContainerTypeInfo DblLinkedList")
-        return(name, typeSpecOut, paramList, convertedIdxType)
+    if progSpec.isNewContainerTempFunc(typeSpecIn): return(name, typeSpecOut, paramList, convertedIdxType)
     if containerType=='ArrayList':
         if name=='at'         : name='get'
         elif name=='erase'    : name='remove'
@@ -461,24 +492,39 @@ def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
-def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print 'Or item:', item
-    [S, retTypeSpec]=codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
+def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
+    #print ('Or item:', item)
+    [S, retTypeSpec] = codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print 'OR ', i
+            #print('   OR ', i)
             if (i[0] == 'or'):
-                S = checkForTypeCastNeed('bool', retTypeSpec, S)
                 [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                S2= checkForTypeCastNeed('bool', retTypeSpec, S2)
+                S2=derefPtr(S2, retTypeSpec)
                 S+=' || ' + S2
             else: print("ERROR: 'or' expected in code generator."); exit(2)
             retTypeSpec='bool'
     #print "S:",S
     return [S, retTypeSpec]
 
+def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
+    #print ('Assign item:', item)
+    [S, retTypeSpec]=codeLogOr(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
+        S=derefPtr(S, retTypeSpec)
+        for i in item[1]:
+            #print('Assign ', i)
+            if (i[0] == '<-'):
+                [S2, retTypeSpec] = codeLogOr(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                S2=derefPtr(S2, retTypeSpec)
+                S+=' = ' + S2
+            else: print("ERROR: '<-' expected in code generator."); exit(2)
+            retTypeSpec='bool'
+    #print "S:",S
+    return [S, retTypeSpec]
+
 def adjustConditional(S2, conditionType):
-    #print "CONDITIONTYPE:", conditionType, '[', S2, ']'
     if not isinstance(conditionType, str):
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):
             if S2[0]=='!': S2 = S2[1:]+ " == true"
@@ -549,19 +595,6 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='this'
 
     return [S, retOwner, fieldType]
-
-def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
-    if LorR_Val=='RVAL':
-        #Next line may be cause of bug with printing modes.  remove 'not'?
-        if (previousSegName in getModeStateNames()): S= '.get((int)' + idx + ')'
-        elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
-            S= '.get(' + idx + ')'
-        elif (containerType== 'string'): S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
-        else: S= '[' + idx +']'
-    else:
-        if containerType== 'ArrayList': S = '.get('+idx+')'
-        else: S= '[' + idx +']'
-    return S
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
     # Check for string A[x] = B;  If so, render A.put(B,x)
@@ -634,7 +667,15 @@ struct GLOBAL{
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code' )
 
 def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
-    [fieldTypeSpec, fieldAttrs] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
+    [fieldTypeSpec, innerType] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
+    varDeclareStr=''
+    assignValue=''
+    isAllocated = fieldDef['isAllocated']
+    owner = progSpec.getTypeSpecOwner(typeSpec)
+    useCtor = False
+    if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
+        del fieldDef['paramList'][-1]
+        useCtor = True
     containerSpec = progSpec.getContainerSpec(typeSpec)
     fieldType = convertToJavaType(fieldTypeSpec, progSpec.isAContainer(typeSpec))
     if isinstance(containerSpec, str) and containerSpec == None:
@@ -658,17 +699,17 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             else:
                 assignValue= ' = '+ RHS   #' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
     else: # If no value was given:
-        #print "TYPE:", fieldType
+        CPL=''
         if fieldDef['paramList'] != None:       # call constructor
             # Code the constructor's arguments
         #TODO: make test case
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
-                    print("\nPROBLEM: The return type of the parameter '", CPL, "' cannot be found and is needed. Try to define it.\n")
-                    exit(1)
+                    print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
+                    #exit(1)
 
-                theParam=paramTypeList[0]['fieldType']
+                theParam=progSpec.getFieldType(paramTypeList[0])
                 if not isinstance(theParam, str) and fieldType==theParam[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
                 elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
@@ -683,7 +724,7 @@ def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, acti
             else: assignValue=''
         else:assignValue= " = new " + fieldType + "()"
     varDeclareStr= fieldType + " " + varName + assignValue
-    #print"codeNewVarStr: ",varDeclareStr
+    if(useCtor): print("useCtor:"+varDeclareStr)
     return(varDeclareStr)
 
 def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
@@ -789,6 +830,8 @@ def codeVarFieldRHS_Str(name, convertedType, fieldType, fieldOwner, paramList, o
         if fieldOwner =="const": convertedType = fieldType
         if paramList!=None:
             #TODO: make test case
+            if paramList[-1] == "^&useCtor//8":
+                del paramList[-1]
             [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
             fieldValueText=" = new " + convertedType + CPL
         else:
@@ -860,8 +903,27 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     elif inheritMode=='override': pass
     return [structCode, funcDefCode, globalFuncs]
 
+def codeTypeArgs(typeArgList):
+    print("TODO: finish codeTypeArgs")
+
+def codeTemplateHeader(typeArgList):
+    print("TODO: finish codeTemplateHeader")
+
 def extraCodeForTopOfFuntion(argList):
     return ''
+
+def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
+    if LorR_Val=='RVAL':
+        #Next line may be cause of bug with printing modes.  remove 'not'?
+        if (previousSegName in getModeStateNames()): S= '.get((int)' + idx + ')'
+        elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'):
+            S= '.get(' + idx + ')'
+        elif (containerType== 'string'): S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
+        else: S= '[' + idx +']'
+    else:
+        if containerType== 'ArrayList': S = '.get('+idx+')'
+        else: S= '[' + idx +']'
+    return S
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
@@ -886,7 +948,9 @@ def codeSwitchBreak(caseAction, indent, xlator):
 
 def applyTypecast(typeInCodeDog, itemToAlterType):
     return '((int)'+itemToAlterType+')'
+
 #######################################################
+
 def includeDirective(libHdr):
     S = 'import '+libHdr+';\n'
     return S

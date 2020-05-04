@@ -1162,20 +1162,20 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 isAllocated = False
                 paramList = None
             fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, xlator)
-           # print "                            RHS none: ", fieldValueText
+            #print ("    RHS none: ", fieldValueText)
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, str):
                 fieldValueText = ' = "'+ fieldValue + '"'
                 #TODO:  make test case
             else:
                 fieldValueText = " = "+ xlator['codeExpr'](fieldValue, objsRefed, None, None, xlator)[0]
-           # print "                            RHS const: ", fieldValueText
+            #print ("    RHS const: ", fieldValueText)
         elif(fieldArglist==None):
             fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], objsRefed, None, None, xlator)[0]
-           # print "                            RHS var: ", fieldValueText
+            #print ("    RHS var: ", fieldValueText)
         else:
             fieldValueText = " = "+ str(fieldValue)
-            #print "                            RHS func or array"
+            #print ("    RHS func or array")
 
         ############ CODE MEMBER VARIABLE ##########################################################
         if(fieldOwner=='const'):

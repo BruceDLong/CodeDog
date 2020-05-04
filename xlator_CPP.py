@@ -6,25 +6,28 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAlloc
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
-    containerSpec = progSpec.getContainerSpec(typeSpec)
-    if 'owner' in containerSpec: owner=containerSpec['owner']
-    else: owner='me'
     idxType=''
-    idxOwner=None
-    if 'indexType' in containerSpec:
-        if 'IDXowner' in containerSpec['indexType']:
-            idxOwner=containerSpec['indexType']['IDXowner'][0]
-            idxType=containerSpec['indexType']['idxBaseType'][0][0]
-            idxType=applyOwner(idxOwner, idxType, '')
-        else:
-            idxType=containerSpec['indexType']['idxBaseType'][0][0]
-    if( isinstance(containerSpec['datastructID'], str) ):
-        datastructID = containerSpec['datastructID']
-    else:   # it's a parseResult
-        datastructID = containerSpec['datastructID'][0]
-    if idxType[0:4]=='uint': idxType+='_t'
-    if(datastructID=='list'): datastructID = "deque"
-    if(datastructID=='iterableList'): datastructID = "list"
+    if progSpec.isAContainer(typeSpec):
+        containerSpec = progSpec.getContainerSpec(typeSpec)
+        if 'owner' in containerSpec: owner=containerSpec['owner']
+        else: owner='me'
+        if 'indexType' in containerSpec:
+            if 'IDXowner' in containerSpec['indexType']:
+                idxOwner=containerSpec['indexType']['IDXowner'][0]
+                idxType=containerSpec['indexType']['idxBaseType'][0][0]
+                idxType=applyOwner(idxOwner, idxType, '')
+            else:
+                idxType=containerSpec['indexType']['idxBaseType'][0][0]
+        if( isinstance(containerSpec['datastructID'], str) ):
+            datastructID = containerSpec['datastructID']
+        else:   # it's a parseResult
+            datastructID = containerSpec['datastructID'][0]
+        if idxType[0:4]=='uint': idxType+='_t'
+        if(datastructID=='list'): datastructID = "deque"
+        if(datastructID=='iterableList'): datastructID = "list"
+    else:
+        owner = typeSpec['owner']
+        datastructID = 'None'
     return [datastructID, idxType, owner]
 
 def adjustBaseTypes(fieldType):
@@ -160,7 +163,6 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(S, segType, owner):
         return S
 
-
 def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
     LHS_KeyType = progSpec.varTypeKeyWord(LHS_Type)
     RHS_KeyType = progSpec.varTypeKeyWord(RHS_Type)
@@ -228,7 +230,6 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
         else: return ['','',  "&", '']
     return ['','',  '','']
 
-
 def getCodeAllocStr(varTypeStr, owner):
     if(owner=='our'): S="make_shared<"+varTypeStr+">"
     elif(owner=='my'): S="make_unique<"+varTypeStr+">"
@@ -280,11 +281,9 @@ def codeIdentityCheck(S1, S2, retType1, retType2):
     #print "IDENTITY CHECK:"+retStr+"\n    ", retType1, "\n    ", retType2
     return retStr
 
-
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
-    #print containerType, name
     if progSpec.isNewContainerTempFunc(typeSpecIn): return(name, typeSpecOut, paramList, convertedIdxType)
     if containerType=='deque' or  containerType=='list':
         if name=='at' or name=='resize': pass
@@ -738,7 +737,6 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
     forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
     return([S,forwardDecls])
 
-
 def produceTypeDefs(typeDefMap, xlator):
     typeDefCode="\n// Typedefs:\n"
     for key in typeDefMap:
@@ -1001,7 +999,7 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(name,  convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, xlator):
+def codeVarFieldRHS_Str(name, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, xlator):
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
@@ -1170,7 +1168,6 @@ def generateMainFunctionality(classes, tags):
 """
     progSpec.addObject(classes[0], classes[1], 'GLOBAL', 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef('GLOBAL',  mainFuncCode ), "C++ main()")
-
 
 def fetchXlators():
     xlators = {}
