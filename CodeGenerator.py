@@ -391,22 +391,21 @@ def chooseStructImplementationToUse(typeSpec):
     if not isinstance(fieldType, str) and  len(fieldType) >1:
         if ('chosenType' in fieldType):
             return(None)
-        reqTags = progSpec.getReqTags(fieldType)
-        if(reqTags != None):
-            implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
-            if(implementationOptions != None):
-                highestScore = -1
-                highestScoreClassName = None
-                for option in implementationOptions:
-                    optionClassDef =  progSpec.findSpecOf(globalClassStore[0], option, "struct")
-                    if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
-                        optionSpecs = optionClassDef['tags']['specs']
-                        [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
-                        if(errorMsg != ""): cdErr(errorMsg)
-                        if(implScore > highestScore):
-                            highestScore = implScore
-                            highestScoreClassName = optionClassDef['name']
-                return(highestScoreClassName)
+        implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
+        if(implementationOptions != None):
+            reqTags = progSpec.getReqTags(fieldType)
+            highestScore = -1
+            highestScoreClassName = None
+            for option in implementationOptions:
+                optionClassDef =  progSpec.findSpecOf(globalClassStore[0], option, "struct")
+                if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
+                    optionSpecs = optionClassDef['tags']['specs']
+                    [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
+                    if(errorMsg != ""): cdErr(errorMsg)
+                    if(implScore > highestScore):
+                        highestScore = implScore
+                        highestScoreClassName = optionClassDef['name']
+            return(highestScoreClassName)
     return(None)
     #    choose highest score and mark the typedef
 
