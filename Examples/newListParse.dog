@@ -13,14 +13,13 @@ Authors = "Bruce Long"
 Description = "newListParse"
 ProgramOrLibrary = "program"
 
-featuresNeeded = []
+featuresNeeded = [List]
 
 LicenseText = `Public Domain`
 
 
 runCode=`runProg()`
 
-#include LIBS/impl.list.dog
 
 struct gloop<key, value>{
     me int: i
