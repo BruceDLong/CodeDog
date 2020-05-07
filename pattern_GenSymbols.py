@@ -7,6 +7,8 @@ classesTracked = {}   # track to make sure we do not track a class twice.
 
 def apply(classes, tags, classesToTrack):
     S=""
+    if isinstance(classesToTrack,str):
+        classesToTrack =[classesToTrack]
     for className in classesToTrack:
         if className in classesTracked: continue
         else: classesTracked[className] = True
@@ -39,6 +41,6 @@ def apply(classes, tags, classesToTrack):
 
         C += "}\n"
         S += C + "\n"
-
+    #print(S)
 
     codeDogParser.AddToObjectFromText(classes[0], classes[1], S, 'Pattern: generate symbols' )
