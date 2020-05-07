@@ -1141,6 +1141,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
+        structToImplement = chooseStructImplementationToUse(typeSpec)
+        if(structToImplement != None):
+            typeSpec['fieldType'][0] = structToImplement
         isAllocated = field['isAllocated']
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']

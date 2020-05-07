@@ -660,7 +660,6 @@ def scoreImplementation(optionSpecs, reqTags):
                 return([-1, errorStr])
         return [returnScore, errorStr]
     else:
-        print(optionSpecs)
         for specKey,specValue in optionSpecs.items():
             specScore = templateSpecKeyWords[specValue]
             returnScore += specScore
