@@ -80,7 +80,7 @@ def findLibraryFiles():
 def findLibrary(feature):
     """Returns the filepath of LIB that matches '[input].Lib.dog'. If no match
     is found returns empty string"""
-    
+
     for libPath in libPaths:
         if isinstance(feature, ParseResults) and len(feature)==1:
             feature = feature[0]
@@ -91,7 +91,7 @@ def findLibrary(feature):
 def findLibraryChildren(libID):
     """Given a lib prefix string (ie. Logger) return list of paths to children
     LIB files (ie. Logger.CPP.Lib.dog, Logger.Android.Lib.dog)"""
-    
+
     libs=[]
     for item in libPaths:
         itemBaseName = os.path.basename(item)
@@ -133,7 +133,7 @@ def filterReqTags(ReqTags):
     '''Change requirement tags from a list containing one parseResult element
     to a list of lists containing strings. (see exceptions). Each inner list
     corresponds to an element in the requirements list in the LIB.
-    
+
     Exception: when requirement is in another list, ie. cases of tagOneOf,
     the element is appended to inner list as ParseResults rather than string.
     TODO: look into extracting the ParseResults
@@ -195,6 +195,11 @@ def reduceSolutionOptions(options, indent):
             i+=1
 
 def fetchFeaturesNeededByLibrary(feature):
+    libFile = findLibrary(feature)
+    libTags = loadTagsFromFile(libFile)
+    if 'featuresNeeded' in libTags:
+        featuresNeeded = libTags['featuresNeeded']
+        return featuresNeeded
     return []
 
 def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
@@ -265,18 +270,23 @@ def constructANDListFromNeeds(tags, needs, files, indent):
 
 def ChooseLibs(classes, buildTags, tags):
     """Entry point to libraryMngr
-    
+
     tags: dict
     """
-    
+
     featuresHandled.clear()
     cdlog(0,  "\n##############   C H O O S I N G   L I B R A R I E S")
     featuresNeeded = progSpec.fetchTagValue([tags], 'featuresNeeded')
-    initialNeeds = []
+    initialNeeds1 = []
     for feature in featuresNeeded:
-        #featuresNeeded.extend(fetchFeaturesNeededByLibrary(feature))
-        initialNeeds.append(["feature", feature])
-    solutionOptions = constructANDListFromNeeds([tags, buildTags], initialNeeds, [], "")
+        featuresNeeded.extend(fetchFeaturesNeededByLibrary(feature))
+        initialNeeds1.append(feature)
+
+    initialNeeds1 = list(set(initialNeeds1))
+    initialNeeds2 =[]
+    for feature in initialNeeds1:
+        initialNeeds2.append(['feature',feature])
+    solutionOptions = constructANDListFromNeeds([tags, buildTags], initialNeeds2, [], "")
     reduceSolutionOptions(solutionOptions, '')
     for libPath in solutionOptions[1]:
         cdlog(2, "USING LIBRARY:"+libPath)

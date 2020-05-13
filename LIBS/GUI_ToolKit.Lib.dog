@@ -3,6 +3,8 @@ requirements = [
     [require, GUI_ToolKit_implementation]
 ]
 
+featuresNeeded = [Unicode, Threads]
+
 // Set up a complete application: fonts, colors, a window/frame with a menu, toolbar, app area and optionally a statusbar.
 // Boilerplate details such as resizing windows, etc are taken care of in the best way for each platform.
 

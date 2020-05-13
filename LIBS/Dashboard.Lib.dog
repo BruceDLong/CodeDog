@@ -2,7 +2,7 @@
 
 // Widgets for constructing a dashboard
 
-featuresNeeded = [GUI_ToolKit]
+featuresNeeded = [GUI_ToolKit, Logger]
 
 
 struct dash: inherits=widget{

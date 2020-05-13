@@ -1,5 +1,7 @@
 // CodeDog IntDraggerWidget
-featuresNeeded = [GUI_ToolKit]
+
+featuresNeeded = [GUI_ToolKit, Logger]
+
 struct LabelDash: inherits=dash{
     me string:          label
     void: initLabelDash(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string: Label) <- {

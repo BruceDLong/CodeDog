@@ -6,9 +6,11 @@ requirements = [
     [require, GameToolkit_implementation]
 ]
 
+featuresNeeded = [Logger]
+
 struct GameMode{
     our GameLooper: looper
-    
+
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {}
     void: pause() <- {}
@@ -121,7 +123,7 @@ struct GameLooper{
     me bool: running
     me bool: printFPS <- true
     our GameMode: crntGameMode
-    
+
     me int: framesDrawnCount
     me double: latestTickCount
     me double: lastTickLog
@@ -175,7 +177,7 @@ struct GameLooper{
         me int: ticksToSkip <- 1000 / FramesPerSec
         me int: timeToSleep <- 0
         me double: nextTick <- 0
-	
+
         while(running){
             handleEvents()
             crntGameMode.update()
@@ -194,7 +196,7 @@ struct GameLooper{
         me int: MAX_FRAMESKIP <- 10
         me double: nextTick <- getTickCount()
         me int: loops
-	
+
         while(running){
             loops <- 0
             while(getTickCount() >= nextTick and loops < MAX_FRAMESKIP){
@@ -215,7 +217,7 @@ struct GameLooper{
         me double: nextTick <- getTickCount()
         me int: loops
         me double: interpolation
-	
+
         while(running){
             loops <- 0
             while(getTickCount() >= nextTick and loops < MAX_FRAMESKIP){
