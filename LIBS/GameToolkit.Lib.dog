@@ -24,38 +24,36 @@ struct GameMode{
     }
     void: windowEventHandler(their GameEvent: event) <- {
         switch (event.window.event) {
-            case SDL_WINDOWEVENT_MOVED:{}
-            case SDL_WINDOWEVENT_SIZE_CHANGED:{
+            case WINDOWEVENT_MOVED:{}
+            case WINDOWEVENT_SIZE_CHANGED:{
                 resetWindowSize(event.window.data1, event.window.data2)
                 window.requestRedraw()
             }
-            case SDL_WINDOWEVENT_MINIMIZED:{}    // Stop rendering
-            case SDL_WINDOWEVENT_MAXIMIZED:{}
-            case SDL_WINDOWEVENT_RESTORED:{}     // Resume rendering
-            case SDL_WINDOWEVENT_FOCUS_GAINED:{} // Move window to front position
-            case SDL_WINDOWEVENT_FOCUS_LOST:{}
-            case SDL_WINDOWEVENT_CLOSE:{}
-            case SDL_WINDOWEVENT_ENTER:{}        // Mouse enters window
-            case SDL_WINDOWEVENT_LEAVE:{}       // Mouse leaves window
+            case WINDOWEVENT_MINIMIZED:{}    // Stop rendering
+            case WINDOWEVENT_MAXIMIZED:{}
+            case WINDOWEVENT_RESTORED:{}     // Resume rendering
+            case WINDOWEVENT_FOCUS_GAINED:{} // Move window to front position
+            case WINDOWEVENT_FOCUS_LOST:{}
+            case WINDOWEVENT_CLOSE:{}
+            case WINDOWEVENT_ENTER:{}        // Mouse enters window
+            case WINDOWEVENT_LEAVE:{}       // Mouse leaves window
         }
     }
     void: keyDownEventHandler(their KeyInfo: event) <- {
         switch (event.sym){
-            case SDLK_PRINTSCREEN:{}
-            case SDLK_SPACE:{}
-            case SDLK_a:{}
-            case SDLK_z:{}
-            case SDLK_RETURN:{}
-            case SDL_SCANCODE_ESCAPE:{}
-            case SDLK_ESCAPE:{}
-            case SDLK_UP:{}
-            case SDLK_DOWN:{}
-            case SDLK_LEFT:{}
-            case SDLK_RIGHT:{}
-            case SDLK_PAGEUP:{}
-            case SDLK_PAGEDOWN:{}
-            case SDLK_KP_PLUS:{}
-            case SDLK_KP_MINUS:{}
+            case KEY_SPACE:{}
+            case KEY_a:{}
+            case KEY_z:{}
+            case KEY_RETURN:{}
+            case KEY_ESCAPE:{}
+            case KEY_UP:{}
+            case KEY_DOWN:{}
+            case KEY_LEFT:{}
+            case KEY_RIGHT:{}
+            case KEY_PAGEUP:{}
+            case KEY_PAGEDOWN:{}
+            case KP_PLUS:{}
+            case KP_MINUS:{}
         }
     }
     void: keyUpEventHandler(their KeyInfo: event) <- {
@@ -66,18 +64,18 @@ struct GameMode{
         me int: mouseX <- event.x
         me int: mouseY <- event.y
         switch (event.type){
-            case SDL_BUTTON_LEFT:{}
-            case SDL_BUTTON_MIDDLE:{}
-            case SDL_BUTTON_RIGHT:{}
+            case BUTTON_LEFT:{}
+            case BUTTON_MIDDLE:{}
+            case BUTTON_RIGHT:{}
         }
     }
     void: mouseButtonUpEventHandler(their MouseButtonEvent: event) <- {
         me int: mouseX <- event.x
         me int: mouseY <- event.y
         switch (event.type){
-            case SDL_BUTTON_LEFT:{}
-            case SDL_BUTTON_MIDDLE:{}
-            case SDL_BUTTON_RIGHT:{}
+            case BUTTON_LEFT:{}
+            case BUTTON_MIDDLE:{}
+            case BUTTON_RIGHT:{}
         }
     }
     void: mouseWheelEventHandler(their MouseWheelEvent: event) <- {
@@ -87,31 +85,31 @@ struct GameMode{
     }
     void: handleEvent(their GameEvent: event) <- {
         switch(event.type){
-            case SDL_USEREVENT:{
+            case USEREVENT:{
                 userEventHandler(event)
             }
-            case SDL_WINDOWEVENT:{
+            case WINDOWEVENT:{
                 windowEventHandler(event)
             }
-            case SDL_KEYDOWN:{
+            case KEYDOWN:{
                 keyDownEventHandler(event.key.keysym)
             }
-            case SDL_KEYUP:{
+            case KEYUP:{
                 keyUpEventHandler(event.key.keysym)
             }
-            case SDL_MOUSEMOTION:{
+            case MOUSEMOTION:{
                 mouseMotionEventHandler(event.motion)
             }
-            case SDL_MOUSEBUTTONDOWN:{
+            case MOUSEBUTTONDOWN:{
                 mouseButtonDownEventHandler(event.button)
             }
-            case SDL_MOUSEBUTTONUP:{
+            case MOUSEBUTTONUP:{
                 mouseButtonUpEventHandler(event.button)
             }
-            case SDL_MOUSEWHEEL:{
+            case MOUSEWHEEL:{
                 mouseWheelEventHandler(event.wheel)
             }
-            case SDL_QUIT:{
+            case QUIT:{
                 quitEventHandler()
             }
         }
@@ -119,7 +117,6 @@ struct GameMode{
 }
 
 struct GameLooper{
-
     me bool: running
     me bool: printFPS <- true
     our GameMode: crntGameMode
@@ -149,7 +146,7 @@ struct GameLooper{
     me int: FPS() <- {return(0)}
     void: handleEvents() <- {
         their GameEvent:: event
-        while(SDL_PollEvent(event)){
+        while(PollForEvent(event)){
             crntGameMode.handleEvent(event);
         }
     }
@@ -286,13 +283,12 @@ struct Styler{
 
 struct GLOBAL{
     their GRWindow: window
+    their INK_Image[map string]: picCache
+
     void: deinitGraphics() <- {
         deallocateWindow(window)
         deallocateGraphicsSystem()
     }
-
-    ////////////////////////
-    their INK_Image[map string]: picCache
 }
 struct GUI_ctxt{
     //me void: fetchAreaToBeDrawn(me GUI_rect: area)
@@ -324,19 +320,6 @@ struct GameImage{
     me int: height
     me int: width
 
-    void: loadFromFile(me string: fileName) <- <%{
-        name = fileName;
-        img=cairo_image_surface_create_from_png(name.data());
-        width=cairo_image_surface_get_width(img);
-        height=cairo_image_surface_get_height(img);
-    }%>
-    void: draw(their GUI_ctxt: cr, me double: x, me double: y, me double: scale) <- <%{
-        cairo_save(cr);
-        cairo_scale(cr,1/scale,1/scale);
-        cairo_set_source_surface(cr,img,x*scale,y*scale);
-        cairo_paint(cr);
-        cairo_restore(cr);
-    }%>
     void: deInit() <- {
         // TODO: free image memory
     }
@@ -344,18 +327,6 @@ struct GameImage{
 struct GameSound{
     me string: name
     their SoundData: data
-
-    void: loadFromFile(me string: fileName) <- <%{
-        name = fileName;
-        data=Mix_LoadWAV(name.data());
-        if(!data) {
-            printf("Mix_LoadWAV: %s\n", Mix_GetError());
-            // handle error
-        }
-    }%>
-    void: play() <-  <%{
-        Mix_PlayChannel(-1, data, 0);
-    }%>
 }
 struct GUI_Scalar{}
 

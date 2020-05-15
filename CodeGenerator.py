@@ -1170,7 +1170,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 fieldValueText = ' = "'+ fieldValue + '"'
                 #TODO:  make test case
             else:
-                fieldValueText = " = "+ xlator['codeExpr'](fieldValue, objsRefed, None, None, xlator)[0]
+                fieldValueText = " = "+ xlator['codeExpr'](fieldValue[0], objsRefed, None, None, xlator)[0]
             #print ("    RHS const: ", fieldValueText)
         elif(fieldArglist==None):
             fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], objsRefed, None, None, xlator)[0]

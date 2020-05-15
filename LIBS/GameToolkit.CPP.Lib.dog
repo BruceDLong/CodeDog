@@ -192,7 +192,7 @@ struct GLOBAL{
         map<string, cairo_surface_t*>::iterator picPtr=picCache.find(filename);
         if (picPtr==picCache.end()) {picCache[filename]=pic=cairo_image_surface_create_from_png(filename.data());}
         else pic=picPtr->second;
-	
+
         cairo_save(cr);
         cairo_scale(cr, 1/xScale, 1/yScale);
         cairo_set_source_surface(cr,pic,x*xScale,y*yScale);
@@ -205,18 +205,160 @@ struct GLOBAL{
         map<string, cairo_surface_t*>::iterator picPtr=picCache.find(filename);
         if (picPtr==picCache.end()) {picCache[filename]=pic=cairo_image_surface_create_from_png(filename.data());}
         else pic=picPtr->second;
-	
+
 	double picWidth = cairo_image_surface_get_width(pic);
 	double picHeight = cairo_image_surface_get_height(pic);
 	double xScale = screenWidth / picWidth;
 	double yScale = screenHeight / picHeight;
-	
+
         cairo_save(cr);
         cairo_scale(cr, xScale, yScale);
         cairo_set_source_surface(cr,pic,0,0);
         cairo_paint(cr);
         cairo_restore(cr);
     }%>
+}
+struct GLOBAL{		// Constants
+    const int: WINDOWEVENT_MOVED 	<- SDL_WINDOWEVENT_MOVED
+    const int: WINDOWEVENT_SIZE_CHANGED <- SDL_WINDOWEVENT_SIZE_CHANGED
+    const int: WINDOWEVENT_MINIMIZED 	<- SDL_WINDOWEVENT_MINIMIZED
+    const int: WINDOWEVENT_MAXIMIZED 	<- SDL_WINDOWEVENT_MAXIMIZED
+    const int: WINDOWEVENT_RESTORED 	<- SDL_WINDOWEVENT_RESTORED
+    const int: WINDOWEVENT_FOCUS_GAINED <- SDL_WINDOWEVENT_FOCUS_GAINED
+    const int: WINDOWEVENT_FOCUS_LOST 	<- SDL_WINDOWEVENT_FOCUS_LOST
+    const int: WINDOWEVENT_CLOSE 	<- SDL_WINDOWEVENT_CLOSE
+    const int: WINDOWEVENT_ENTER 	<- SDL_WINDOWEVENT_ENTER
+    const int: WINDOWEVENT_LEAVE 	<- SDL_WINDOWEVENT_LEAVE
+    const int: SCANCODE_ESCAPE 		<- SDL_SCANCODE_ESCAPE
+    const int: BUTTON_LEFT 		<- SDL_BUTTON_LEFT
+    const int: BUTTON_MIDDLE 		<- SDL_BUTTON_MIDDLE
+    const int: BUTTON_RIGHT 		<- SDL_BUTTON_RIGHT
+    const int: USEREVENT 		<- SDL_USEREVENT
+    const int: WINDOWEVENT 		<- SDL_WINDOWEVENT
+    const int: KEYDOWN 			<- SDL_KEYDOWN
+    const int: KEYUP 			<- SDL_KEYUP
+    const int: MOUSEMOTION 		<- SDL_MOUSEMOTION
+    const int: MOUSEBUTTONDOWN 		<- SDL_MOUSEBUTTONDOWN
+    const int: MOUSEBUTTONUP 		<- SDL_MOUSEBUTTONUP
+    const int: MOUSEWHEEL 		<- SDL_MOUSEWHEEL
+    const int: QUIT 			<- SDL_QUIT
+    const int: KEY_QUOTE	 	<- SDLK_QUOTE
+    const int: KEY_BACKSLASH	 	<- SDLK_BACKSLASH
+    const int: KEY_BACKSPACE	 	<- SDLK_BACKSPACE
+    const int: KEY_CAPSLOCK	 	<- SDLK_CAPSLOCK
+    const int: KEY_COMMA	 	<- SDLK_COMMA
+    const int: KEY_DELETE	 	<- SDLK_DELETE
+    const int: KEY_DOWN	 		<- SDLK_DOWN
+    const int: KEY_END	 		<- SDLK_END
+    const int: KEY_EQUALS	 	<- SDLK_EQUALS
+    const int: KEY_ESCAPE	 	<- SDLK_ESCAPE
+    const int: KEY_BACKQUOTE	 	<- SDLK_BACKQUOTE
+    const int: KEY_HOME	 		<- SDLK_HOME
+    const int: KEY_INSERT	 	<- SDLK_INSERT
+    const int: KEY_LALT	 		<- SDLK_LALT
+    const int: KEY_LCTRL	 	<- SDLK_LCTRL
+    const int: KEY_LEFT	 		<- SDLK_LEFT
+    const int: KEY_LEFTBRACKET	 	<- SDLK_LEFTBRACKET
+    const int: KEY_LSHIFT	 	<- SDLK_LSHIFT
+    const int: KEY_MINUS	 	<- SDLK_MINUS
+    const int: KEY_PAGEDOWN	 	<- SDLK_PAGEDOWN
+    const int: KEY_PAGEUP		<- SDLK_PAGEUP
+    const int: KEY_PAUSE	 	<- SDLK_PAUSE
+    const int: KEY_PERIOD	 	<- SDLK_PERIOD
+    const int: KEY_PRINTSCREEN	 	<- SDLK_PRINTSCREEN
+    const int: KEY_RALT	 		<- SDLK_RALT
+    const int: KEY_RCTRL		<- SDLK_RCTRL
+    const int: KEY_RETURN	 	<- SDLK_RETURN
+    const int: KEY_RIGHT	 	<- SDLK_RIGHT
+    const int: KEY_RIGHTBRACKET	 	<- SDLK_RIGHTBRACKET
+    const int: KEY_RSHIFT	 	<- SDLK_RSHIFT
+    const int: KEY_SEMICOLON	 	<- SDLK_SEMICOLON
+    const int: KEY_SLASH	 	<- SDLK_SLASH
+    const int: KEY_SPACE	 	<- SDLK_SPACE
+    const int: KEY_TAB	 		<- SDLK_TAB
+    const int: KEY_UP	 		<- SDLK_UP
+    const int: KEY_AMPERSAND	 	<- SDLK_AMPERSAND
+    const int: KEY_ASTERISK	 	<- SDLK_ASTERISK
+    const int: KEY_AT	 		<- SDLK_AT
+    const int: KEY_CARET	 	<- SDLK_CARET
+    const int: KEY_COLON	 	<- SDLK_COLON
+    const int: KEY_DOLLAR	 	<- SDLK_DOLLAR
+    const int: KEY_EXCLAIM	 	<- SDLK_EXCLAIM
+    const int: KEY_GREATER	 	<- SDLK_GREATER
+    const int: KEY_HASH	 		<- SDLK_HASH
+    const int: KEY_LEFTPAREN	 	<- SDLK_LEFTPAREN
+    const int: KEY_LESS	 		<- SDLK_LESS
+    const int: KEY_PERCENT	 	<- SDLK_PERCENT
+    const int: KEY_PLUS	 		<- SDLK_PLUS
+    const int: KEY_QUESTION	 	<- SDLK_QUESTION
+    const int: KEY_QUOTEDBL	 	<- SDLK_QUOTEDBL
+    const int: KEY_RIGHTPAREN	 	<- SDLK_RIGHTPAREN
+    const int: KEY_UNDERSCORE	 	<- SDLK_UNDERSCORE
+    const int: KP_0			<- SDLK_KP_0
+    const int: KP_1			<- SDLK_KP_1
+    const int: KP_2			<- SDLK_KP_2
+    const int: KP_3			<- SDLK_KP_3
+    const int: KP_4			<- SDLK_KP_4
+    const int: KP_5			<- SDLK_KP_5
+    const int: KP_6			<- SDLK_KP_6
+    const int: KP_7			<- SDLK_KP_7
+    const int: KP_8			<- SDLK_KP_8
+    const int: KP_9			<- SDLK_KP_9
+    const int: KP_DIVIDE	 	<- SDLK_KP_DIVIDE
+    const int: KP_ENTER	 		<- SDLK_KP_ENTER
+    const int: KP_EQUALS	 	<- SDLK_KP_EQUALS
+    const int: KP_MINUS	 		<- SDLK_KP_MINUS
+    const int: KP_MULTIPLY	 	<- SDLK_KP_MULTIPLY
+    const int: KP_PERIOD	 	<- SDLK_KP_PERIOD
+    const int: KP_PLUS	 		<- SDLK_KP_PLUS
+    const int: KEY_F1	 		<- SDLK_F1
+    const int: KEY_F2	 		<- SDLK_F2
+    const int: KEY_F3	 		<- SDLK_F3
+    const int: KEY_F4	 		<- SDLK_F4
+    const int: KEY_F5	 		<- SDLK_F5
+    const int: KEY_F6	 		<- SDLK_F6
+    const int: KEY_F7	 		<- SDLK_F7
+    const int: KEY_F8	 		<- SDLK_F8
+    const int: KEY_F9	 		<- SDLK_F9
+    const int: KEY_F10	 		<- SDLK_F10
+    const int: KEY_F11	 		<- SDLK_F11
+    const int: KEY_F12	 		<- SDLK_F12
+    const int: KEY_0	 		<- SDLK_0
+    const int: KEY_1	 		<- SDLK_1
+    const int: KEY_2	 		<- SDLK_2
+    const int: KEY_3	 		<- SDLK_3
+    const int: KEY_4	 		<- SDLK_4
+    const int: KEY_5	 		<- SDLK_5
+    const int: KEY_6	 		<- SDLK_6
+    const int: KEY_7	 		<- SDLK_7
+    const int: KEY_8	 		<- SDLK_8
+    const int: KEY_9	 		<- SDLK_9
+    const int: KEY_a	 		<- SDLK_a
+    const int: KEY_b	 		<- SDLK_b
+    const int: KEY_c	 		<- SDLK_c
+    const int: KEY_d	 		<- SDLK_d
+    const int: KEY_e	 		<- SDLK_e
+    const int: KEY_f	 		<- SDLK_f
+    const int: KEY_g	 		<- SDLK_g
+    const int: KEY_h	 		<- SDLK_h
+    const int: KEY_i	 		<- SDLK_i
+    const int: KEY_j	 		<- SDLK_j
+    const int: KEY_k	 		<- SDLK_k
+    const int: KEY_l	 		<- SDLK_l
+    const int: KEY_m	 		<- SDLK_m
+    const int: KEY_n	 		<- SDLK_n
+    const int: KEY_o	 		<- SDLK_o
+    const int: KEY_p	 		<- SDLK_p
+    const int: KEY_q	 		<- SDLK_q
+    const int: KEY_r	 		<- SDLK_r
+    const int: KEY_s	 		<- SDLK_s
+    const int: KEY_t	 		<- SDLK_t
+    const int: KEY_u	 		<- SDLK_u
+    const int: KEY_v	 		<- SDLK_v
+    const int: KEY_w	 		<- SDLK_w
+    const int: KEY_x	 		<- SDLK_x
+    const int: KEY_y	 		<- SDLK_y
+    const int: KEY_z	 		<- SDLK_z
 }
 /////////////////////////////////  GUI_ctxt
 struct GUI_ctxt{
@@ -277,3 +419,35 @@ struct MouseButtonEvent{
     me int32: y
 }
 
+
+struct GameLooper{
+    me bool: PollForEvent(their GameEvent: event)	<- <%!SDL_PollEvent(%1)%>
+}
+struct GameImage{
+    void: loadFromFile(me string: fileName) <- <%{
+        name = fileName;
+        img=cairo_image_surface_create_from_png(name.data());
+        width=cairo_image_surface_get_width(img);
+        height=cairo_image_surface_get_height(img);
+    }%>
+    void: draw(their GUI_ctxt: cr, me double: x, me double: y, me double: scale) <- <%{
+        cairo_save(cr);
+        cairo_scale(cr,1/scale,1/scale);
+        cairo_set_source_surface(cr,img,x*scale,y*scale);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }%>
+}
+struct GameSound{
+    void: loadFromFile(me string: fileName) <- <%{
+        name = fileName;
+        data=Mix_LoadWAV(name.data());
+        if(!data) {
+            printf("Mix_LoadWAV: %s\n", Mix_GetError());
+            // handle error
+        }
+    }%>
+    void: play() <-  <%{
+        Mix_PlayChannel(-1, data, 0);
+    }%>
+}

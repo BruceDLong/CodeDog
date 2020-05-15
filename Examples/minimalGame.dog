@@ -13,7 +13,7 @@ Authors = "Bruce Long"
 Description = "This is an example of a very minimal game"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [GameToolkit, Logger]
+featuresNeeded = [GameToolkit]
 
 LicenseText = `Public Domain`
 
@@ -150,7 +150,7 @@ struct Bullet{
 }
 struct GameMenuScreen: inherits=GameMode{
     me int: textY
-    
+
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         textY <- 100
@@ -349,17 +349,17 @@ struct GLOBAL{
     our GameMenuScreen:: gameMenuScreen
     our GamePauseScreen:: gamePauseScreen
     our GamePlayScreen:: gamePlayScreen
-    
+
     // SETTINGS
     const int: scaleFactor <- 2
     const int: bulletSpeed <- 5
     const int: playerMovement <- 15
     const int: alienShotOdds <- 1000	// the lower the number, the more they shoot
-    
+
     me int: playerScore
     me int: finalScore
     me bool: winner
-    
+
     void: setUpGame() <- {
 	playerScore <- 0
 	winner <- false
