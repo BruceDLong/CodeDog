@@ -10,13 +10,7 @@ struct logger{
     me void: Show()
     me void: Hide()
     me void: Route(me string: routeSpec)
-    me void: LogEntry(me string: loggerName, me string: logText) <- {
-        if(logStr != ""){
-            logMgr.writeToLog(loggerName+logStr)
-            logStr <- ""
-        }
-        logMgr.writeToLog(loggerName+logText)
-    }
+    me void: LogEntry(me string: loggerName, me string: logText) <- {logMgr.writeToLog(loggerName+logText)}
 }
 
 struct logManager{
