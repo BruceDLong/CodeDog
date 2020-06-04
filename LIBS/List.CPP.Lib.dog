@@ -1,34 +1,20 @@
-// impl.list.dog
-//CPP_Deque implements list
-//code converters for functions
-model List<nodeType>{   //model is abstract class
-    void: append()             <- {}
-    nodeType: at()          <- {}
-    me void: clear()           <- {}
-    me void: clipToSize()      <- {}
-    itr nodeType: deleteNth()  <- {}
-    itr nodeType: end()        <- {}
-    itr nodeType: erase()      <- {}
-    nodeType: first()       <- {}
-    itr nodeType: front()      <- {}
-    nodeType: __getAt()     <- {}
-    itr nodeType: insert()     <- {}
-    itr nodeType: insertIdx()  <- {}
-    me bool: isEmpty()         <- {}
-    nodeType: last()        <- {}
-    itr nodeType: nthItr()     <- {}
-    nodeType: popFirst()    <- {}
-    nodeType: popLast()     <- {}
-    me void: prepend()         <- {}
-    itr nodeType: __putAt()    <- {}
-    me uint: size()            <- {}
-    ///////////////////////////////////
-    me void: pushFirst()       <- {}
-    me void: pushLast()        <- {}
-    //me void: begin()         <- {}
-    //me void: rEnd()          <- {}
-    //nodeType: back()      <- {}
+// List.CPP.Lib.dog
+requirements = [
+    [tagOneOf, Lang, [CPP]]
+]
+
+interface={
+    provides = [List_implementation]
+    libFiles = []
+    headers  = [list, deque, map]
 }
+
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'List in routines for CPP'
+}
+
 struct CPP_Deque<nodeType>: implements = List wraps = deque specs = {insert = linear append = constant prepend = constant}{
     void: append(nodeType: value)            <- <%!push_back(%1)%>
     nodeType: at(me int: position)           <- <%!%0.at(%1)%>

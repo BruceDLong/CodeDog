@@ -2,7 +2,7 @@
 
 // Widgets for constructing a dashboard
 
-featuresNeeded = [GUI_ToolKit]
+featuresNeeded = [GUI_ToolKit, Logger]
 
 
 struct dash: inherits=widget{
@@ -67,7 +67,7 @@ struct Dashboard: inherits=dash{
         me GUI_Scalar: largeToX <- to.posX + to.width
         me GUI_Scalar: smallToY <- to.posY
         me GUI_Scalar: largeToY <- to.posY + to.height
-        our arrow: Arrow <- (fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY))
+        our arrow: Arrow {fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY)}
         decorations.pushLast(Arrow)
     }
 

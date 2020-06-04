@@ -647,17 +647,23 @@ templateSpecKeyWords = {'verySlow':0, 'slow':1, 'normal':2, 'fast':3, 'veryFast'
 def scoreImplementation(optionSpecs, reqTags):
     returnScore = 0
     errorStr = ""
-    for reqTag in reqTags:
-        reqID = reqTag[0]
-        reqVal = templateSpecKeyWords[reqTag[1][0]]
-        if(reqID in optionSpecs):
-            specVal = templateSpecKeyWords[optionSpecs[reqID]]
-            if(specVal < reqVal):return([-1, errorStr])
-            if(specVal > reqVal):returnScore = specVal - reqVal
-        else:
-            errorStr = "Requirement '"+reqID+"' not found in Spec:"+str(optionSpecs)
-            return([-1, errorStr])
-    return [returnScore, errorStr]
+    if(reqTags != None):
+        for reqTag in reqTags:
+            reqID = reqTag[0]
+            reqVal = templateSpecKeyWords[reqTag[1][0]]
+            if(reqID in optionSpecs):
+                specVal = templateSpecKeyWords[optionSpecs[reqID]]
+                if(specVal < reqVal):return([-1, errorStr])
+                if(specVal > reqVal):returnScore = specVal - reqVal
+            else:
+                errorStr = "Requirement '"+reqID+"' not found in Spec:"+str(optionSpecs)
+                return([-1, errorStr])
+        return [returnScore, errorStr]
+    else:
+        for specKey,specValue in optionSpecs.items():
+            specScore = templateSpecKeyWords[specValue]
+            returnScore += specScore
+        return([returnScore, errorStr])
 
 def getImplementationOptionsFor(fieldType):
     global classImplementationOptions
@@ -668,13 +674,19 @@ def getImplementationOptionsFor(fieldType):
 def isNewContainerTempFunc(typeSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
-        return(['infon'])
+    if not 'fieldType' in typeSpec: return(None)
+    fieldType = typeSpec['fieldType']
+    if isinstance(fieldType, str): return(None)
+    fieldTypeKeyword = fieldType[0]
+    if fieldTypeKeyword=='DblLinkedList': return(['infon'])
     else:
         reqTagList = getReqTagList(typeSpec)
-        if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='CPP_Deque':
+        if reqTagList == None: return(None)
+        if fieldTypeKeyword=='CPP_Deque':
             return(reqTagList[1][0])
+        #print("fieldTypeKeyword: ",fieldTypeKeyword," ",reqTagList[1][0])
     return(None)
+
 def isAContainer(typeSpec):
     if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)

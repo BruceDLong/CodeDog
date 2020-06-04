@@ -174,9 +174,9 @@ struct Styler{
     me cdColor:  data6Color <- Gold
 
 
-    our fontSpec:: fontDefault <- ("Ariel", 10, 0)
-    our fontSpec:: fontTitle <- ("Ariel", 16, 0)
-    our fontSpec:: fontSmall <- ("Ariel", 8, 0)
+    our fontSpec:: fontDefault{"Ariel", 10, 0}
+    our fontSpec:: fontTitle{"Ariel", 16, 0}
+    our fontSpec:: fontSmall{"Ariel", 8, 0}
     our fontSpec: fontVerySmall
     our fontSpec: fontLabelWidgetAndroid
     our fontSpec: fontEntryWidgetAndroid

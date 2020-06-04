@@ -13,14 +13,13 @@ Authors = "Bruce Long"
 Description = "newListParse"
 ProgramOrLibrary = "program"
 
-featuresNeeded = []
+featuresNeeded = [List]
 
 LicenseText = `Public Domain`
 
 
 runCode=`runProg()`
 
-#include LIBS/impl.list.dog
 
 struct gloop<key, value>{
     me int: i
@@ -35,6 +34,8 @@ struct myList2<nodeType>: implements = List specs = {append = slow}{
     void: append(me nodeType: item) <- {}
 }
 struct GLOBAL{
+    me List<me int>: classList
+
     void: runProg()<-{
         me gloop<me int, me string>: testList
         me List<int: append = slow > : intList
@@ -44,7 +45,7 @@ struct GLOBAL{
     }
     void: testDequeAsList()<-{
         print("testDequeAsList\n")
-        me CPP_Deque<me int>: testCPPD
+        me List<me int>: testCPPD
         print("isEmpty:"+testCPPD.isEmpty())
         testCPPD.pushLast(1)
         testCPPD.pushLast(3)

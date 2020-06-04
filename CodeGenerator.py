@@ -391,22 +391,21 @@ def chooseStructImplementationToUse(typeSpec):
     if not isinstance(fieldType, str) and  len(fieldType) >1:
         if ('chosenType' in fieldType):
             return(None)
-        reqTags = progSpec.getReqTags(fieldType)
-        if(reqTags != None):
-            implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
-            if(implementationOptions != None):
-                highestScore = -1
-                highestScoreClassName = None
-                for option in implementationOptions:
-                    optionClassDef =  progSpec.findSpecOf(globalClassStore[0], option, "struct")
-                    if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
-                        optionSpecs = optionClassDef['tags']['specs']
-                        [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
-                        if(errorMsg != ""): cdErr(errorMsg)
-                        if(implScore > highestScore):
-                            highestScore = implScore
-                            highestScoreClassName = optionClassDef['name']
-                return(highestScoreClassName)
+        implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
+        if(implementationOptions != None):
+            reqTags = progSpec.getReqTags(fieldType)
+            highestScore = -1
+            highestScoreClassName = None
+            for option in implementationOptions:
+                optionClassDef =  progSpec.findSpecOf(globalClassStore[0], option, "struct")
+                if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
+                    optionSpecs = optionClassDef['tags']['specs']
+                    [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
+                    if(errorMsg != ""): cdErr(errorMsg)
+                    if(implScore > highestScore):
+                        highestScore = implScore
+                        highestScoreClassName = optionClassDef['name']
+            return(highestScoreClassName)
     return(None)
     #    choose highest score and mark the typedef
 
@@ -1142,6 +1141,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
+        structToImplement = chooseStructImplementationToUse(typeSpec)
+        if(structToImplement != None):
+            typeSpec['fieldType'][0] = structToImplement
         isAllocated = field['isAllocated']
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
@@ -1162,20 +1164,20 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 isAllocated = False
                 paramList = None
             fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, xlator)
-           # print "                            RHS none: ", fieldValueText
+            #print ("    RHS none: ", fieldValueText)
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, str):
                 fieldValueText = ' = "'+ fieldValue + '"'
                 #TODO:  make test case
             else:
-                fieldValueText = " = "+ xlator['codeExpr'](fieldValue, objsRefed, None, None, xlator)[0]
-           # print "                            RHS const: ", fieldValueText
+                fieldValueText = " = "+ xlator['codeExpr'](fieldValue[0], objsRefed, None, None, xlator)[0]
+            #print ("    RHS const: ", fieldValueText)
         elif(fieldArglist==None):
             fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], objsRefed, None, None, xlator)[0]
-           # print "                            RHS var: ", fieldValueText
+            #print ("    RHS var: ", fieldValueText)
         else:
             fieldValueText = " = "+ str(fieldValue)
-            #print "                            RHS func or array"
+            #print ("    RHS func or array")
 
         ############ CODE MEMBER VARIABLE ##########################################################
         if(fieldOwner=='const'):

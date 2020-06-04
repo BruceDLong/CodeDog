@@ -1,40 +1,34 @@
 // CodeDog List model
 
 requirements = [
-    [require, listImplementation]
+    [require, List_implementation]
 ]
 
-interface={
-    provides=[List]
-}
-
-LibDescription ={
-    useStatus   = dynamic
-    description ='List Model'
-    features    =[]
-}
-
-
-struct ListNode<ItemType>{
-    our ItemType: item
-    our ListNode<ItemType>: next
-    our ListNode<ItemType>: prev
-}
-
-model List<ItemType> {
-
-    void: clear()
-
-    void: append(our ItemType: i)
-    void: prepend(our ItemType: i)
-    void: insertBefore(our ListNode<ItemType>: position, our infon: i)
-    void: insertAfter(our ListNode<ItemType>: position, our infon: i)
-    void: erase(our ListNode<ItemType>: toDel)
-    void: popLast()
-    void: popFirst()
-
-    our ListNode<ItemType>: begin()
-    our ListNode<ItemType>: end()
-    our ListNode<ItemType>: rbegin()
-    our ListNode<ItemType>: rend()
+model List<nodeType>{   //model is abstract class
+    void: append()             <- {}
+    nodeType: at()          <- {}
+    me void: clear()           <- {}
+    me void: clipToSize()      <- {}
+    itr nodeType: deleteNth()  <- {}
+    itr nodeType: end()        <- {}
+    itr nodeType: erase()      <- {}
+    nodeType: first()       <- {}
+    itr nodeType: front()      <- {}
+    nodeType: __getAt()     <- {}
+    itr nodeType: insert()     <- {}
+    itr nodeType: insertIdx()  <- {}
+    me bool: isEmpty()         <- {}
+    nodeType: last()        <- {}
+    itr nodeType: nthItr()     <- {}
+    nodeType: popFirst()    <- {}
+    nodeType: popLast()     <- {}
+    me void: prepend()         <- {}
+    itr nodeType: __putAt()    <- {}
+    me uint: size()            <- {}
+    ///////////////////////////////////
+    me void: pushFirst()       <- {}
+    me void: pushLast()        <- {}
+    //me void: begin()         <- {}
+    //me void: rEnd()          <- {}
+    //nodeType: back()      <- {}
 }
