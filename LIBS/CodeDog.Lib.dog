@@ -58,6 +58,16 @@ struct GLOBAL{
         }
         return(S)
     }
+
+    me string: alignLeft(me string: s, me int: colWidth) <- {
+        me string: strOut
+        me int: padLen <- colWidth-s.size()
+        if(padLen>0){
+            withEach i in RANGE(0..padLen){
+                strOut <+- " "
+            }
+        }
+    }
 }
 
 struct datum{
