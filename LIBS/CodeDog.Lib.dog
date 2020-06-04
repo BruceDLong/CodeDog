@@ -68,7 +68,7 @@ struct GLOBAL{
         return(strOut)
     }
     me string: alignLeft(me string: s, me int: colWidth) <- {
-        me string: strOut
+        me string: strOut <- s
         me int: padLen <- colWidth-s.size()
         if(padLen>0){
             withEach i in RANGE(0..padLen){
