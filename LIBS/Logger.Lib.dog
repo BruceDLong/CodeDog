@@ -5,11 +5,18 @@ requirements = [
 ]
 
 struct logger{
+    me string: logStr
     me bool: isVisible
     me void: Show()
     me void: Hide()
     me void: Route(me string: routeSpec)
-    me void: LogEntry(me string: group, me string: LogText)
+    me void: LogEntry(me string: loggerName, me string: logText) <- {
+        if(logStr != ""){
+            logMgr.writeToLog(loggerName+logStr)
+            logStr <- ""
+        }
+        logMgr.writeToLog(loggerName+logText)
+    }
 }
 
 struct logManager{
@@ -41,5 +48,8 @@ struct logManager{
 struct GLOBAL{
     me logManager: logMgr
 
+    void: logSeg(me string: logTxt) <- {logMgr.Mesg.logStr <+- logTxt}
+    void: logSegClear() <- {logMgr.Mesg.logStr <+- ""}
+    void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
     //me void: assert(me string: condition) <- {}
 }
