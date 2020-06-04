@@ -58,14 +58,14 @@ struct GLOBAL{
         }
         return(S)
     }
-    me string: indentedStr(me string: mesg, me int: lvl, me int: tabCol<-0) <- {
-        me string: S <- ""
+    me string: indentedStr(me string: mesg, me int: lvl, me int: tabCol) <- {
+        me string: strOut <- ""
         withEach c in RANGE(0..lvl){
-            S <+- "   |"
+            strOut <+- "   |"
         }
-        S <+- mesg
-        if(tabCol>0){S <- alignLeft(S, tabCol)}
-        return (S)
+        strOut <+- mesg
+        if(tabCol>0){strOut <- alignLeft(strOut, tabCol)}
+        return(strOut)
     }
     me string: alignLeft(me string: s, me int: colWidth) <- {
         me string: strOut
@@ -75,6 +75,7 @@ struct GLOBAL{
                 strOut <+- " "
             }
         }
+        return(strOut)
     }
 }
 
