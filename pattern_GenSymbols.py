@@ -35,7 +35,7 @@ def apply(classes, tags, classesToTrack):
     }
 
     // their <CLASSNAME>: classPtrFromSymbol(me string: symbol) <- {}  // what about our, my, me, ...?
-    // void: clearSymbol(me string: symbol) <- {}
+     void: clearSymbol(their <CLASSNAME>: obj) <- {ptrToUint.erase(uniqueObjectID(obj))}
 
         '''.replace("<CLASSNAME>", className)
 
