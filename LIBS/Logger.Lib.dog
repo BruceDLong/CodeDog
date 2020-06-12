@@ -43,6 +43,16 @@ struct GLOBAL{
     me logManager: logMgr
 
     void: logSeg(me string: logTxt) <- {logMgr.Mesg.logStr <+- logTxt}
+    void: logSegStartCol(me string: logTxt, me int: startPos) <- {
+	me int: strLength <- logMgr.Mesg.logStr.size()
+	if(strLength < startPos){
+	    me int: lenDiff <- startPos - strLength
+	    withEach i in RANGE(0..lenDiff){
+		logMgr.Mesg.logStr <+- " "
+	    }
+	}
+	logMgr.Mesg.logStr <+- logTxt
+    }
     void: logSegClear() <- {logMgr.Mesg.logStr <+- ""}
     void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
     //me void: assert(me string: condition) <- {}
