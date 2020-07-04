@@ -804,16 +804,22 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
         cdlog(5, "Pre-assignment... ")
         [codeStr, lhsTypeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', objsRefed, returnType, xlator)
+        if codeStr == "was2ndVisit":
+            print("############################ "+codeStr)
         assignTag = action['assignTag']
         LHS = codeStr
         cdlog(5, "Assignment: {}".format(LHS))
         [S2, rhsTypeSpec]=xlator['codeExpr'](action['RHS'][0], objsRefed, None, lhsTypeSpec, xlator)
         #if LHS=='lastItem': print "LHS / RHS:", LHS, ' / ', S2, lhsTypeSpec, rhsTypeSpec
-        [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](lhsTypeSpec, rhsTypeSpec, assignTag)
+        [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](lhsTypeSpec, rhsTypeSpec, assignTag,codeStr)
         LHS = LHS_leftMod+LHS+LHS_rightMod
         RHS = RHS_leftMod+S2+RHS_rightMod
         cdlog(5, "Assignment: {} = {}".format(lhsTypeSpec, rhsTypeSpec))
         RHS = xlator['checkForTypeCastNeed'](lhsTypeSpec, rhsTypeSpec, RHS)
+        if codeStr == "was2ndVisit":
+            print("############################ "+codeStr)
+            print(lhsTypeSpec)
+            print(rhsTypeSpec)
         if not isinstance (lhsTypeSpec, dict):
             #TODO: make test case
             print('Problem: lhsTypeSpec is', lhsTypeSpec, '\n');

@@ -208,13 +208,18 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
 
-def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
+def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
     #TODO: make test case
     # Returns left and right text decorations for both LHS and RHS of assignment
     if RVAL==0 or RVAL==None or isinstance(RVAL, str): return ['','',  '',''] # This happens e.g., string.size() # TODO: fix this.
     if LVAL==0 or LVAL==None or isinstance(LVAL, str): return ['','',  '','']
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
+    if codeStr == "was2ndVisit":
+        print("RVAL "+str(RVAL))
+        print("RightOwner "+RightOwner)
+        print("LVAL "+str(LVAL))
+        print("LeftOwner "+LeftOwner)
     if not isinstance(assignTag, str):
         assignTag = assignTag[0]
     if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):
@@ -228,6 +233,7 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
         if assignTag=='deep' :return ['(*',')',  '', '']
         else: return ['','',  "&", '']
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='literal':return ['(*',')',  '', '']
     return ['','',  '','']
 
 def getCodeAllocStr(varTypeStr, owner):
@@ -431,7 +437,10 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                         cdErr("Characters must have exactly 1 character.")
                 else:
                     S+='"'+item0[1:-1] +'"'
-            else: S+=item0;
+            else:
+                S+=item0;
+                if item0=='false' or item0=='true':
+                    retTypeSpec={'owner': 'literal', 'fieldType': 'bool'}
     else:
         if isinstance(item0[0], str):
             S+=item0[0]
