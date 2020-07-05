@@ -215,11 +215,6 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
     if LVAL==0 or LVAL==None or isinstance(LVAL, str): return ['','',  '','']
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
-    if codeStr == "was2ndVisit":
-        print("RVAL "+str(RVAL))
-        print("RightOwner "+RightOwner)
-        print("LVAL "+str(LVAL))
-        print("LeftOwner "+LeftOwner)
     if not isinstance(assignTag, str):
         assignTag = assignTag[0]
     if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):

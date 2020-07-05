@@ -804,8 +804,6 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
         cdlog(5, "Pre-assignment... ")
         [codeStr, lhsTypeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', objsRefed, returnType, xlator)
-        if codeStr == "was2ndVisit":
-            print("############################ "+codeStr)
         assignTag = action['assignTag']
         LHS = codeStr
         cdlog(5, "Assignment: {}".format(LHS))
@@ -816,10 +814,6 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         RHS = RHS_leftMod+S2+RHS_rightMod
         cdlog(5, "Assignment: {} = {}".format(lhsTypeSpec, rhsTypeSpec))
         RHS = xlator['checkForTypeCastNeed'](lhsTypeSpec, rhsTypeSpec, RHS)
-        if codeStr == "was2ndVisit":
-            print("############################ "+codeStr)
-            print(lhsTypeSpec)
-            print(rhsTypeSpec)
         if not isinstance (lhsTypeSpec, dict):
             #TODO: make test case
             print('Problem: lhsTypeSpec is', lhsTypeSpec, '\n');
