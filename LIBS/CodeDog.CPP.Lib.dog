@@ -109,6 +109,7 @@ struct GLOBAL{
         return retVal;
     }%>
 
+    me int: findString(me string: toSearch, me string: toFind) <- <%!%G%1.find(%2)%>
     me double: sqrt(me double: input) <- <%!sqrt(%1)%>
     me timeValue: convertToTimeVal()                        <- <%!%G%1%>
     me timeValue: convertToLongVal()                        <- <%!%G%1%>
