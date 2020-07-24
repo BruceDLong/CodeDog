@@ -58,6 +58,16 @@ struct GLOBAL{
         }
         return(S)
     }
+    me string: remWhiteSpace(me string: s) <- {
+        if(s=="") {return("")}
+        me int: pos<-0
+        me string: space <- " "
+        while(pos < s.size()){
+            if(s[pos]=="\n"){s[pos]<-space[0]}
+            pos <- pos+1
+        }
+        return(s)
+    }
     me string: indentedStr(me string: mesg, me int: lvl, me int: tabCol) <- {
         me string: strOut <- ""
         withEach c in RANGE(0..lvl){
