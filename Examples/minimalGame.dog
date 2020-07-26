@@ -24,6 +24,7 @@ runCode=`
     deinitGraphics()
 `
 ////////////   A p p l i c a t i o n   a n d   G l o b a l s
+
 struct AlienShip{
     me double: x
     me double: y
@@ -136,14 +137,14 @@ struct Bullet{
     me bool: draw(their GUI_ctxt: cr) <- {
         if(owner == ourBullet){
             cr.setColor(Styler.White)
-            cr.setLineWidth(4)
+            cr.setLineWidth(8)
             cr.moveTo(x, y)
-            cr.lineTo(x, y+10)
+            cr.lineTo(x, y+15)
         } else if(owner == theirBullet) {
-	    cr.setColor(Styler.Red)
-            cr.setLineWidth(4)
+	    cr.setColor(Styler.Yellow)
+            cr.setLineWidth(8)
             cr.moveTo(x, y)
-            cr.lineTo(x, y-10)
+            cr.lineTo(x, y-15)
 	}
         cr.strokeNow()
     }
@@ -232,6 +233,8 @@ struct GamePlayScreen: inherits=GameMode{
     me AlienArmada: armada
 
     void: update() <- {
+	if(movingLeft){playerPosition <- max(shipWidth/2, playerPosition - playerMovement)}
+	if(movingRight) {playerPosition <- min(screenWidth-shipWidth/2, playerPosition + playerMovement)}
         me int: bulletIdx <- 0
         while (bulletIdx < bullets.size()){
             our Bullet: bullet <- bullets[bulletIdx]
@@ -322,10 +325,35 @@ struct GamePlayScreen: inherits=GameMode{
                 looper.setGameMode(gamePauseScreen)
             }
             case SDLK_LEFT:{
-                playerPosition <- max(shipWidth/2, playerPosition - playerMovement)
+		movingLeft <- true
+                
             }
             case SDLK_RIGHT:{
-                playerPosition <- min(screenWidth-shipWidth/2, playerPosition + playerMovement)
+		movingRight <- true
+                
+            }
+            case SDLK_f:{toggleFullScreen()}
+        }
+    }
+    void: keyUpEventHandler(their KeyInfo: event) <- {
+        switch (event.sym){
+            case SDLK_SPACE:{
+                our Bullet:: newBullet
+                newBullet.x <- playerPosition
+                newBullet.y <- screenHeight - shipOffsetY
+                newBullet.owner <- ourBullet
+                bullets.pushFirst(newBullet)
+                playerFires.play()
+            }
+            case SDLK_ESCAPE:{
+                pause()
+                looper.setGameMode(gamePauseScreen)
+            }
+            case SDLK_LEFT:{
+                movingLeft <- false
+            }
+            case SDLK_RIGHT:{
+		movingRight <- false
             }
             case SDLK_f:{toggleFullScreen()}
         }
@@ -339,6 +367,8 @@ struct GamePlayScreen: inherits=GameMode{
 	alienFires.loadFromFile("assets/fire2.wav")
         explosion1.loadFromFile("assets/explosion1.wav")
         armada.init()
+	movingLeft <- false
+	movingRight <- false
     }
     void: deInit() <- {}
 }
@@ -349,12 +379,14 @@ struct GLOBAL{
     our GameMenuScreen:: gameMenuScreen
     our GamePauseScreen:: gamePauseScreen
     our GamePlayScreen:: gamePlayScreen
+    me bool: movingLeft
+    me bool: movingRight
 
     // SETTINGS
     const int: scaleFactor <- 2
-    const int: bulletSpeed <- 5
-    const int: playerMovement <- 15
-    const int: alienShotOdds <- 1000	// the lower the number, the more they shoot
+    const int: bulletSpeed <- 30
+    const int: playerMovement <- 25
+    const int: alienShotOdds <- 500	// the lower the number, the more they shoot
 
     me int: playerScore
     me int: finalScore
