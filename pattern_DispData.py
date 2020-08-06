@@ -61,7 +61,7 @@ class structAsProteusWriter(structProcessor):
         elif(fldCat=='string' or fldCat=='char'):
             valStr= "\"'\" + "+fieldName+" + \"'\""
         elif(fldCat=='flag' or fldCat=='bool'):
-            valStr='dispBool(('+fieldName+')!=0)'
+            valStr='toString(('+fieldName+')!=0)'
         elif(fldCat=='mode'):
             valStr='toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
         elif(fldCat=='struct'):
@@ -128,7 +128,7 @@ class structToStringWriter(structProcessor):
         elif(fldCat=='string' or fldCat=='char'):
             valStr= ' '+fieldName+' '
         elif(fldCat=='flag' or fldCat=='bool'):
-            valStr='dispBool(('+fieldName+')!=0)'
+            valStr='toString(('+fieldName+')!=0)'
         elif(fldCat=='mode'):
             valStr=fieldName+'Strings['+fieldName+'] ' #'toString('+fieldName+')'  #fieldName+'Strings['+fieldName+'] '
         elif(fldCat=='struct'):
@@ -412,7 +412,7 @@ struct display_'''+className+": inherits=dash"+'''{
             elif(fldCat=='string' or fldCat=='char'):
                 valStr= '"\'"+'+'data.'+fieldName+'+"\'"'
             elif(fldCat=='flag' or fldCat=='bool'):
-                valStr='dispBool((data.'+fieldName+')!=0)'
+                valStr='toString((data.'+fieldName+')!=0)'
             elif(fldCat=='mode'):
                 valStr= fieldRef+'Strings[data.'+fieldName+'] '
 

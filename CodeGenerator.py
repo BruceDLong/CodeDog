@@ -114,6 +114,8 @@ def convertFieldIDType(fieldID, convertType):
     return(fieldID)
 
 def CheckObjectVars(className, itemName, fieldIDArgList):
+    # also used to fetch codeConverter
+    # if returning wrong overloaded codeConverter check fieldIDArgList
     searchFieldID = className+'::'+itemName
     fullSearchFieldID = className+'::'+itemName+fieldIDArgList
     #print("Searching",className,"for", itemName, fullSearchFieldID)
@@ -212,6 +214,7 @@ def getFieldIDArgList(segSpec, objsRefed, xlator):
             [S2, argTypeSpec]=xlator['codeExpr'](arg[0], objsRefed, None, None, xlator)
             #print(argTypeSpec)
             keyWord = progSpec.fieldTypeKeyword(argTypeSpec)
+            if keyWord == 'flag':keyWord ='bool'
             if(count >0 ):
                 fieldIDArgList += ', '
                 argListStr     += ', '
@@ -225,6 +228,7 @@ def getFieldIDArgList(segSpec, objsRefed, xlator):
     return [argListStr, fieldIDArgList]
 
 def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
+    # also used to fetch codeConverter
     # return format: [{typeSpec}, 'OBJVAR']. Substitute for wrapped types.
     global currentObjName
     global StaticMemberVars
