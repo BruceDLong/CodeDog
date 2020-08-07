@@ -57,7 +57,7 @@ struct GLOBAL{
     me uint: shiftRight(me uint: bits, me uint: shft) <- <%!(%1 >> %2)%>
     me uint: AndBits(me uint: bits, me uint: shft) <- <%!(%1 & %2)%>
     me uint: OrBits (me uint: bits, me uint: shft) <- <%!(%1 | %2)%>
-    me void: endFunc(me int: val) <- <%!return(0)%>
+    me void: endFunc() <- <%!return(0)%>
     me int: randInt(me int: val) <- <%!(rand() % %1)%>
     me string: toString(me number_type: val) <- <%!std::to_string(%1)%>
     me string: longToString(me long: val) <- <%!std::to_string(%1)%>
@@ -114,7 +114,7 @@ struct GLOBAL{
     me timeValue: convertToTimeVal()                        <- <%!%G%1%>
     me timeValue: convertToLongVal()                        <- <%!%G%1%>
     me timeValue: convertToL()                              <- <%!%G%1%>
-    me int: convertToIntVal()                               <- <%!%G%1%>
+    me int: convertToIntVal(me int: val)                    <- <%!%G%1%>
     me float: convertToFloatVal()                           <- <%!%G%1%>
 }
 struct timeValue{me int64: timeValue}

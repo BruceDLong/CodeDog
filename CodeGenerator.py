@@ -112,6 +112,37 @@ def convertFieldIDType(fieldID, convertType):
                 newArgList.append(arg)
         fieldID = reassembleFieldID(classAndFuncName, newArgList)
     return(fieldID)
+def isArgNumeric(arg):
+    if arg=='numeric' or arg=='int' or arg=='uint' or arg=='uint32' or arg=='BigInt' or arg=='int64' or arg=='uint':
+        return True
+    return False
+
+def doFieldIDsMatch(foundFieldID, fullSearchFieldID):
+    if(foundFieldID!=fullSearchFieldID):
+        [foundClassAndFunc, foundArgs]  = disassembleFieldID(foundFieldID)
+        [searchClassAndFunc, searchArgs] = disassembleFieldID(fullSearchFieldID)
+        if foundClassAndFunc != searchClassAndFunc:
+            return False
+        if foundArgs != searchArgs:
+            #print("  args don't match:  "+ str(foundFieldID)+"  !=  "+str(fullSearchFieldID))
+            if(len(foundArgs) != len(searchArgs)):
+                print("  # arg lists not same length: "+ foundFieldID+"  !=  "+fullSearchFieldID)
+                return False
+            count = 0
+            while count < len(foundArgs):
+                foundArg=foundArgs[count]
+                searchArg=searchArgs[count]
+                if(foundArg != searchArg):
+                    argsMatch = False
+                    if(foundArg=='any'):argsMatch = True
+                    elif(searchArg=='NULL'):argsMatch = True
+                    elif(searchArg=='BigInt' and foundArg=='string')or(searchArg=='string' and foundArg=='BigInt'):argsMatch = True
+                    elif isArgNumeric(searchArg) and isArgNumeric(foundArg):argsMatch = True
+                    if not argsMatch:
+                        print("  args don't match:  "+ foundArg+"  !=  "+searchArg)
+                        return False
+                count += 1
+        return True
 
 def CheckObjectVars(className, itemName, fieldIDArgList):
     # also used to fetch codeConverter
@@ -164,6 +195,7 @@ def CheckObjectVars(className, itemName, fieldIDArgList):
         if fieldName==itemName:
             foundFieldID = field
     if foundFieldID != 'None':
+        #doIDsMatch = doFieldIDsMatch(foundFieldID['fieldID'], fullSearchFieldID)
         #print ("Found", itemName)
         return foundFieldID
 
@@ -215,8 +247,9 @@ def getFieldIDArgList(segSpec, objsRefed, xlator):
             #print(argTypeSpec)
             keyWord = progSpec.fieldTypeKeyword(argTypeSpec)
             if keyWord == 'flag':keyWord ='bool'
+            if keyWord == 'NONE':keyWord ='NULL'
             if(count >0 ):
-                fieldIDArgList += ', '
+                fieldIDArgList += ','
                 argListStr     += ', '
             fieldIDArgList += keyWord
             argListStr     += S2
@@ -519,7 +552,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             exit(2)
         else:
             if fType!='string':
-                typeSpecOut=CheckObjectVars(fType, name, "")
+                [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, xlator)
+                typeSpecOut=CheckObjectVars(fType, name, fieldIDArgList)
                 if typeSpecOut!=0:
                     if isStructLikeContainer == True:
                         segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])

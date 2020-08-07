@@ -437,6 +437,8 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                 S+=item0;
                 if item0=='false' or item0=='true':
                     retTypeSpec={'owner': 'literal', 'fieldType': 'bool'}
+                if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):retTypeSpec=expected_KeyType
+                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):retTypeSpec='numeric'
     else:
         if isinstance(item0[0], str):
             S+=item0[0]

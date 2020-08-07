@@ -339,7 +339,10 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
         else:
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
-            else:                 S+=item0;
+            else:
+                S+=item0;
+                if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):retTypeSpec=expected_KeyType
+                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):retT
     else: # CODEDOG LITERALS
         if isinstance(item0[0], str):
             S+=item0[0]

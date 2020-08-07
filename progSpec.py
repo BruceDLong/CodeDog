@@ -898,12 +898,23 @@ def typeIsNumRange(fieldType):
     return False
 
 def typeIsInteger(fieldType):
+    #print("typeIsInteger:"+str(fieldType))
+    if fieldType == None: return False
     if typeIsNumRange(fieldType): return True
     if not isinstance(fieldType, str):
         fieldType= fieldType[0]
     if fieldType=="int" or fieldType=="BigInt"or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32":
         return True
     return False
+
+def isStringNumeric(S):
+    countDots = 0
+    for char in S:
+        if char == '.':
+            countDots += 1
+            if countDots >1: return False
+        elif not char.isdigit():return False
+    return True
 
 def fetchFieldByName(fields, fieldName):
     for field in fields:

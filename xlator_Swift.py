@@ -296,6 +296,7 @@ def codeFactor(item, objsRefed, returnType, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
     #print '                  factor: ', item
     S=''
+    #TODO:get correct retTypeSpec
     retType='noType'
     item0 = item[0]
     #print "ITEM0=", item0, ">>>>>", item
@@ -325,7 +326,10 @@ def codeFactor(item, objsRefed, returnType, xlator):
             retType='string'
             if(item0[0]=="'"): S+=codeUserMesg(item0[1:-1], xlator)
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"'
-            else: S+=item0;
+            else:
+                S+=item0;
+                if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):retTypeSpec=expected_KeyType
+                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):retT
     else:
         if isinstance(item0[0], str):
             S+=item0[0]
