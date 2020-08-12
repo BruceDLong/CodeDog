@@ -6,7 +6,9 @@ requirements = [
 interface={
     provides=[Unicode_implementation]
     libFiles=[`pkg-config --libs --cflags icu-uc icu-io`]
-    headers=[unicode/locid.h, unicode/unistr.h, unicode/putil.h, unicode/ustream.h, unicode/normalizer2.h, unicode/calendar.h, unicode/gregocal.h, unicode/smpdtfmt.h, unicode/utypes.h]
+    headers=[unicode/locid.h, unicode/unistr.h, unicode/putil.h, unicode/ustream.h, unicode/normalizer2.h, unicode/calendar.h,
+             unicode/gregocal.h, unicode/smpdtfmt.h, unicode/utypes.h, codecvt, locale
+            ]
 }
 
 LibDescription  ={
@@ -61,6 +63,10 @@ struct GLOBAL{
         }
         return 1;
     }%>
+    me wstring: stringToWString(me string: str) <- <%{
+        std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+        return converter.from_bytes(str);
+    }%>
 }
 
 struct UnicodeMgr {
@@ -98,7 +104,13 @@ struct UnicodeMgr {
         input.toUTF8String(output);
         return(output);
     }%>
-
+    void: UnicodeStrToUTF8_String(me UnicodeString: s, their string: out) <- <%{
+        int32_t len=s.length() * 5;
+        char c[len];
+        CheckedArrayByteSink sbs(c,len);
+        s.toUTF8(sbs);
+        *out=string(c, strlen(c));
+    }%>
     me string: normalizeStr(me string: input) <- <%{
         UnicodeString uniNorm = UNormalizer->normalize(fromUTF8Str(input.data()), uErr);
         string outputUTF8 = toUTF8Str(uniNorm);
@@ -167,5 +179,13 @@ struct UnicodeMgr {
         simpleDateFormat->format(dt, dateUniStr, success);
         dateUniStr.toUTF8String(output);
         return output;
+    }%>
+    me string: localeString(their Locale: loc) <- <%{
+        icu::UnicodeString lang,country;
+        string R, tmp;
+        UnicodeStrToUTF8_String(loc->getDisplayLanguage(*loc, lang), &R); R+="-";
+        UnicodeStrToUTF8_String(loc->getDisplayCountry(*loc, country), &tmp); R+=tmp;
+        R+=" ("; R+=loc->getBaseName(); R+=")";
+        return R;
     }%>
 }

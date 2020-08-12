@@ -58,7 +58,7 @@ struct GLOBAL{
         }
         return(S)
     }
-    me string: remWhiteSpace(me string: s) <- {
+    me string: remNewLines(me string: s) <- {
         if(s=="") {return("")}
         me int: pos<-0
         me string: space <- " "
@@ -136,14 +136,30 @@ struct stringScanner{
         withEach p in RANGE(pos .. txtSize){
             ch <- S[p]
             if(isdigit(ch)){}
-            else{if(p==pos){return(-1)}
             else{
-                me int: retVal <- p-pos
-                pos <- p;
-                return(retVal)}
+                if(p==pos){return(-1)}
+                else{
+                    me int: retVal <- p-pos
+                    pos <- p;
+                    return(retVal)
+                }
             }
         }
         return(txtSize-pos)
+    }
+    me string: scrapeAlphaNumSeq() <- {
+        me string: retStr
+        me char: ch
+        skipWS()
+        me int: txtSize <- S.size()
+        withEach p in RANGE(pos .. txtSize){
+            ch <- S[p]
+            pos <- p
+            if(isalnum(ch) or ch=="-" or ch=="_"){retStr<+-ch}
+            else{break()}
+        }
+        skipWS()
+        return(retStr)
     }
 
     me int: chkStr(me string: s) <- {

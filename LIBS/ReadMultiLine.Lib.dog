@@ -15,9 +15,9 @@ deinitCode = "endwin()"
 
 
 struct charX {
-    me uint: ch
+    me int: ch
     me uint: colorCode
-    me uint: chWidth
+    me int: chWidth
 }
 
 struct lineX{
@@ -315,7 +315,10 @@ struct readMultiLine {
         return(false)
     }
 
-
+    me void: addUserMesgAndTopBar(me string: msg) <- {
+        message <- msg
+        addUserMesg(msg, 3+shiftLeft(6, 4))
+    }
     void: clearEntry(their EntryX: entry) <- {
         if(!entry){return()}
         mgr.crntRowInWnd <- mgr.crntRowInWnd-entry.lines.size()
@@ -367,7 +370,7 @@ struct readMultiLine {
                             }
                         }
                     }
-                    lx.chars.pushLast(charX(ch,colorCode))
+                    lx.chars.pushLast(charX(ch,colorCode,wcwidth(ch)))
                     if(nextColor < 4096) {colorCode<-nextColor; nextColor<-4096}
                 }
                 q<-p

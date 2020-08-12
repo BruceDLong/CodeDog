@@ -109,6 +109,12 @@ struct GLOBAL{
         return retVal;
     }%>
 
+    void: trimLeftWS(their string: str) <- <%{str->erase(0, str->find_first_not_of("\t\n\v\f\r "));}%>
+    void: trimRightWS(their string: str) <- <%{str->erase(str->find_last_not_of("\t\n\v\f\r ")+1);}%>
+    void: trimWS(their string: str) <- {
+        trimLeftWS(str);
+        trimRightWS(str)
+    }
     me int: findString(me string: toSearch, me string: toFind) <- <%!%G%1.find(%2)%>
     me double: sqrt(me double: input) <- <%!sqrt(%1)%>
     me timeValue: convertToTimeVal()                        <- <%!%G%1%>

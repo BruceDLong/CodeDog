@@ -3,8 +3,8 @@
 requirements = []
 
 interface={
-    libFiles=[curses]
-    headers=[cursesw.h]
+    libFiles=[`pkg-config --cflags --libs ncursesw`]
+    headers=[curses.h]
 }
 
 LibDescription  ={
@@ -15,7 +15,7 @@ LibDescription  ={
 }
 
 struct GLOBAL{
-    void: initTerminalControls() <- <%!initscr(); start_color(); use_default_colors();%>
+    void: initTerminalControls() <- <%!initscr(); start_color(); use_default_colors(); setlocale(LC_ALL,"")%>
     void: moveCursor(me int: x, me int: y) <- <%!move(%1, %2)%>
     void: getScreenMaxXY(me int: x, me int: y) <- <%!getmaxyx(stdscr, %2, %1)%>
     void: setColorPair(me int: pairIdx, me int: foregroundColor, me int: backgroundColor) <- <%!init_pair(%1, %2, %3)%>
@@ -31,9 +31,9 @@ struct GLOBAL{
     void: clearToBottom() <- <%!clrtobot()%>
     void: refreshScn() <- <%!refresh()%>
     void: putChar(me char: ch) <- <%!addch(%1)%>
-    void: putStr(me string: s) <- <%!addstr(%1)%>
-    void: movePutChar(me int: X, me int: Y, me char: ch) <- <%!mvaddch(%2, %1, %3)%>
-    void: movePutStr(me int: X, me int: Y, me string: s) <- <%!mvaddstr(%2, %1, %3)%>
+    void: putStr(me string: s) <- <%!addwstr(stringToWString(%1).data())%>
+    void: movePutChar(me int: X, me int: Y, me wchar_t: ch) <- <%!mvaddch(%2, %1, %3)%>
+    void: movePutStr(me int: X, me int: Y, me string: s) <- <%!mvaddwstr(%2, %1, stringToWString(%3).data())%>
     me int: getChar() <- <%!getch()%>
 
     me int: waitForKeyPressed(me bool: guiMode) <- <%{
