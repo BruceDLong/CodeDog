@@ -226,7 +226,7 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
         [leftMod, rightMod] = getTheDerefPtrMods(RVAL)
         return ['','',  leftMod, rightMod]  # ['', '', "(*", ")"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
-        if assignTag=='deep' :return ['(*',')',  '', '']
+        if assignTag!="" or assignTag=='deep':return ['(*',')',  '', '']
         else: return ['','',  "&", '']
     if progSpec.typeIsPointer(LVAL) and RightOwner=='literal':return ['(*',')',  '', '']
     return ['','',  '','']
@@ -437,8 +437,10 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                 S+=item0;
                 if item0=='false' or item0=='true':
                     retTypeSpec={'owner': 'literal', 'fieldType': 'bool'}
+                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):
+                    #retTypeSpec='numeric'
+                    retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
                 if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):retTypeSpec=expected_KeyType
-                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):retTypeSpec='numeric'
     else:
         if isinstance(item0[0], str):
             S+=item0[0]
@@ -1133,7 +1135,9 @@ def codeTemplateHeader(typeArgList):
 def extraCodeForTopOfFuntion(argList):
     return ''
 
-def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
+def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
+    if 'owner' in idxTypeSpec and (idxTypeSpec['owner']=='their' or idxTypeSpec['owner']=='our' or idxTypeSpec['owner']=='itr'):
+        idx = "*"+idx
     S= '[' + idx +']'
     return S
 

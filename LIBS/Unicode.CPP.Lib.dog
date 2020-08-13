@@ -49,20 +49,6 @@ struct UniErrorCode {me UErrorCode: UniErrorCode}
 struct GLOBAL{
     me Udate: exampleUDate <- 1532000000000
 
-    me int: getUTF8c(me string: str, their uint: pos, their uint: out) <- <%{
-        unsigned char c;
-        (*out) = 0;
-        c=str[(*pos)++]; if(c==0) return 0;
-        (*out)+=c;
-        int remaining=remainingOctets(c);
-        if(remaining>3) return 0; // Too many bytes.
-        for (int n=1; n<=remaining; ++n){
-            c=str[(*pos)++]; if(c==0) return 0;
-            if(isutf(c)) return 0;  // Invalid utf8 octet
-            (*out) <<= 8; (*out)+=c;
-        }
-        return 1;
-    }%>
     me wstring: stringToWString(me string: str) <- <%{
         std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
         return converter.from_bytes(str);
