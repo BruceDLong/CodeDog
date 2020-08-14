@@ -169,7 +169,7 @@ struct UnicodeMgr {
     me string: localeString(their Locale: loc) <- <%{
         icu::UnicodeString lang,country;
         string R, tmp;
-        UnicodeStrToUTF8_String(loc->getDisplayLanguage(*loc, lang), &R); R+="-";
+        UnicodeStrToUTF8_String(loc->getDisplayLanguage(*loc, lang), &R); R+=" - ";
         UnicodeStrToUTF8_String(loc->getDisplayCountry(*loc, country), &tmp); R+=tmp;
         R+=" ("; R+=loc->getBaseName(); R+=")";
         return R;

@@ -31,7 +31,7 @@ struct GLOBAL{
     void: clearToBottom() <- <%!clrtobot()%>
     void: refreshScn() <- <%!refresh()%>
     void: putChar(me char: ch) <- <%!addch(%1)%>
-    void: putStr(me string: s) <- <%!addwstr(stringToWString(%1).data())%>
+    void: putStr(me string: s) <- <%!addwstr(%1.data())%>
     void: movePutChar(me int: X, me int: Y, me wchar_t: ch) <- <%!mvaddch(%2, %1, %3)%>
     void: movePutStr(me int: X, me int: Y, me string: s) <- <%!mvaddwstr(%2, %1, stringToWString(%3).data())%>
     me int: getChar() <- <%!getch()%>

@@ -20,24 +20,37 @@ struct GLOBAL{
         chr   <- str[pos]
         pos <+- 1
         if(chr==0){return(0)}
-        out <deep- chr
         me int: remaining <- remainingOctets(chr)
+        switch(remaining){
+            case 1: {chr <&- 0x3F}
+            case 2: {chr <&- 0x1F}
+            case 3: {chr <&- 0x0F}
+        }
         if(remaining>3){return(0)} // Too many bytes.
-        me int: n <- 1
-        while(n<=remaining){
+        out <deep- chr
+        withEach count in RANGE(0..remaining){
             chr <- str[pos]
             pos <+- 1
             if(chr==0){return(0)}
             if(isutf(chr)){return (0)}  // Invalid utf8 octet
-            out <<<- 8
+            chr <- chr & 0x3f
+            out <<<- 6
             out <+- chr
-            n <+- 1
         }
         return(1)
     }
+
+    void: putCharX(their charX: chX, me uint: EntryAttrs) <- {
+        if(chX.colorCode>0) {attrOn(getColorPair(chX.colorCode))}
+        else if(EntryAttrs>0) {attrOn(getColorPair(AndBits(EntryAttrs, 7)))}
+        else {attrOn(getColorPair(1))}
+        me wstring: msgAcc; msgAcc <+- chX.chr
+        putStr(msgAcc)
+    }
 }
+
 struct charX {
-    me int: chr
+    me uint: chr
     me uint: colorCode
     me int: chWidth
 }
@@ -423,7 +436,6 @@ struct readMultiLine {
 
     void: refreshDisplay(me uint: Mode) <- {
         if(!readMultiLineGUIMode) {return()}
-        me uint: colorCode <- 0
         me uint: EntryAttrs <- 0
         me uint: winHeight <- mgr.wndEndY-mgr.wndStartY
         me lineIterator: rowItr <- mgr.currentLine
@@ -455,11 +467,7 @@ struct readMultiLine {
                 // Print each character
                 their lineX: lx <- mgr.entries[rowItr.entriesIdx].lines[rowItr.linesIdx]
                 withEach chX in lx.chars{
-                    colorCode <- chX.colorCode
-                    if(colorCode>0) {attrOn(getColorPair(colorCode))}
-                    else if(EntryAttrs>0) {attrOn(getColorPair(AndBits(EntryAttrs, 7)))}
-                    else {attrOn(getColorPair(1))}
-                    putChar(chX.chr)
+                    putCharX(chX, EntryAttrs)
                 }
                 clearToEOL()
             }
@@ -482,7 +490,7 @@ struct readMultiLine {
         me int: w
         getScreenMaxXY(w, h)
         if(msg.size()>=w){msg.resize(w)}
-        putStr(msg.data())
+        putStr(stringToWString(msg))
         withEach p in RANGE(msg.size() .. w){putChar(charConsts[0]);}
         attrOff(A_REVERSE)
 
