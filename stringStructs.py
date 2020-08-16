@@ -364,7 +364,7 @@ struct EParser{
                 return(scrapeUntil(pos+2, "*/")+2)
             }
         }
-        return(txtSize-pos)
+        return(0)
     }
 
     me int: scrapeWSC(me int: pos) <- {
@@ -373,7 +373,7 @@ struct EParser{
         withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
             me int: cmntLen <- scrapeCComment(p)
-            if(cmntLen>0){p <+- cmntLen-1}
+            if(cmntLen>0){p <+- cmntLen}
             else if(isspace(ch)){}
             else{if(p==pos){return(-1)} else{return(p-pos)}}
         }
