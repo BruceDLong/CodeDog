@@ -228,7 +228,7 @@ struct EParser{
    //             print("                                  ALT: ")
                 addProductionToStateSet(crntPos, AltProd, 0, origin, pred, cause)
             }
-        } else if(ProdType == parseAUTO and productionID == ws and SeqPos==0){  // Whitespace is nullable
+        } else if(ProdType == parseAUTO and (productionID == ws or productionID == wsc) and SeqPos==0){  // Whitespace is nullable
             addProductionToStateSet(crntPos, productionID, 1, origin, pred, cause)
         }
     }
@@ -250,22 +250,21 @@ struct EParser{
         me int: L <- s.size()
         if(pos+L > textToParse.size()){return(-1)}
         withEach i in RANGE(0 .. L){
-            if( s[i] != textToParse[pos+i]) {
-  //              print("                                 chkStr FAILED\n")
-                return(-1)
-            }
+            if( s[i] != textToParse[pos+i]){return(-1)}
         }
-  //      print("                                 chkStr PASSED\n")
         return(L)
     }
 
-    me int: scrapeUntil(me int:pos, me string:endChar) <- {
-        me char: ender <- endChar[0]
+    me int: scrapeUntil(me int:pos, me string:endStr) <- {
+        me char: ender <- endStr[0]
         me char: ch
         me int: txtSize <- textToParse.size()
         withEach p in RANGE(pos .. txtSize){
             ch <- textToParse[p]
-            if(ch==ender){return(p-pos)}
+            if(ch==ender){
+                me int: nxtLen <- chkStr(p, endStr)
+                if(nxtLen>0){return((p+nxtLen)-pos)}
+            }
         }
         return(-1)
     }
@@ -354,6 +353,32 @@ struct EParser{
         return(txtSize-pos)
     }
 
+    me int: scrapeCComment(me int:pos) <- {
+        me int: txtSize <- textToParse.size()
+        me char: ch <- textToParse[pos]
+        if(ch=="/" and pos<=(txtSize-2)){
+            me char: nextCh <- textToParse[pos+1]
+            if(nextCh=="/"){
+                return(scrapeToEOL(pos))
+            } else if(nextCh=="*"){
+                return(scrapeUntil(pos+2, "*/")+2)
+            }
+        }
+        return(txtSize-pos)
+    }
+
+    me int: scrapeWSC(me int: pos) <- {
+        me char: ch
+        me int: txtSize <- textToParse.size()
+        withEach p in RANGE(pos .. txtSize){
+            ch <- textToParse[p]
+            me int: cmntLen <- scrapeCComment(p)
+            if(cmntLen>0){p <+- cmntLen-1}
+            else if(isspace(ch)){}
+            else{if(p==pos){return(-1)} else{return(p-pos)}}
+        }
+        return(txtSize-pos)
+    }
     me int: scrapeWS(me int: pos) <- {
         me char: ch
         me int: txtSize <- textToParse.size()
@@ -432,6 +457,7 @@ struct EParser{
                     case alphaNumSeq: {return(scrapeAlphaNumSeq(pos))}
                     case printables:  {return(scrapePrintableSeq(pos))}
                     case ws:          {return(scrapeWS(pos))}
+                    case wsc:         {return(scrapeWSC(pos))}
                     case quotedStr:   {return(scrapeQuotedStr(pos))}
                     case quotedStr1:  {return(scrapeQuotedStr1(pos))}
                     case quotedStr2:  {return(scrapeQuotedStr2(pos))}
@@ -799,6 +825,7 @@ def populateBaseRules():
     appendRule('RdxSeq',      'term', 'parseAUTO', 'a number')
     appendRule('alphaNumSeq', 'term', 'parseAUTO', "an alpha-numeric string")
     appendRule('ws',          'term', 'parseAUTO', 'white space')
+    appendRule('wsc',         'term', 'parseAUTO', 'white space or C comment')
     appendRule('quotedStr',   'term', 'parseAUTO', "a quoted string with single or double quotes and escapes")
     appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
     appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
@@ -850,7 +877,9 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif progSpec.isStruct(fieldType):
             objName=fieldType[0]
-            if objName=='ws' or objName=='quotedStr' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq' or progSpec.typeIsInteger(objName):
+            if (objName=='ws' or objName=='wsc' or objName=='quotedStr' or objName=='quotedStr1' or objName=='quotedStr2'
+                  or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq'
+                  or progSpec.typeIsInteger(objName)):
                 nameOut=objName
             else:
                 if objName=='[' or objName=='{': # This is an ALT or SEQ sub structure
@@ -1140,7 +1169,8 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                     else:
                         CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     toIsStruct=False; # false because it is really a base type.
-                elif objName=='ws' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq':
+                elif (objName=='ws' or objName=='wsc' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID'
+                      or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq'):
                     CODE_RVAL='makeStr('+VarTag+'.child'+')'
                     toIsStruct=False; # false because it is really a base type.
                 else:
