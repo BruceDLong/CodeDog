@@ -1221,7 +1221,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             gatherFieldCode+='\n'+indent+getFunctionName(fieldType[0], toFieldType[0])+'('+childRecName+'.child, tmpVar)\n'
 
         else:
-            CODE_RVAL = CodeRValExpr(toFieldType, childRecName, '') # TODO: one too many arguments
+            CODE_RVAL = CodeRValExpr(toFieldType, childRecName)
             #CODE_RVAL=childRecName+'.child'
 
         # Now code to push the chosen alternative into the data field# This is a LIST, not an OPT:
