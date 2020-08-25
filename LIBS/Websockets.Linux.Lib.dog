@@ -19,12 +19,21 @@ LibDescription ={
 }
 
 embedHigh = `
-
+/*
+ * Copyright (C) 2010-2018 Andy Green <andy@warmcat.com>
+ *
+ * This file is made available under the Creative Commons CC0 1.0
+ * Universal Public Domain Dedication.
+ *
+ * This version holds a single message at a time, which may be lost if a new
+ * message comes.  See the minimal-ws-server-ring sample for the same thing
+ * but using an lws_ring ringbuffer to hold up to 8 messages at a time.
+ */
 static struct lws *wsi_generic;
 static volatile int force_exit;
 
 void sighandler(int sig){
-        force_exit = 1;
+    force_exit = 1;
 }
 
 enum APP_protocols {PROTOCOL_GENERIC, APP_PROTOCOL_COUNT};
@@ -34,14 +43,14 @@ static int webSockets_generic_callback(struct lws *wsi, enum lws_callback_reason
 struct lws_context *context;
 
 static const struct lws_protocols protocols[] = {
-    {       "generic-protocol", webSockets_generic_callback,        0, 4096},  // protocol-name, callback, memToAllocate, rx_buffer_size
-    {       NULL, NULL,     0, 0 }
+    {"generic-protocol",        webSockets_generic_callback,    0, 4096},  // protocol-name, callback, memToAllocate, rx_buffer_size
+    {NULL,                      NULL,                           0, 0   }
 };
 
 static const struct lws_extension exts[] = {
-    {       "permessage-deflate",           lws_extension_callback_pm_deflate,              "permessage-deflate;            client_no_context_takeover"},
-    {       "deflate-frame",                        lws_extension_callback_pm_deflate,              "deflate_frame"},
-    {       NULL,                                           NULL,                                                                    NULL /* terminator */ }
+    {"permessage-deflate",      lws_extension_callback_pm_deflate,      "permessage-deflate;    client_no_context_takeover"},
+    {"deflate-frame",           lws_extension_callback_pm_deflate,      "deflate_frame"},
+    {NULL,                      NULL,                                   NULL /* terminator */ }
 };
 
 bool initializeWebsocketSystem(){
