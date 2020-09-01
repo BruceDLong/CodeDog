@@ -1033,11 +1033,11 @@ def Write_ALT_Extracter(classes, parentStructName, fields, VarTagBase, VarTagSuf
     return S
 
 
-def CodeRValExpr(toFieldType, VarTag):
-    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child'+')'+"\n"
-    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child'+')'+"\n"
-    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child'+')'+"\n"
-    elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child'+')'+"\n"
+def CodeRValExpr(toFieldType, VarTag, suffix):
+    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child'+suffix+')'+"\n"
+    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child'+suffix+')'+"\n"
+    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child'+suffix+')'+"\n"
+    elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child'+suffix+')'+"\n"
     elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
     elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
     elif toFieldType[0:4]=='flag':       CODE_RVAL=''
@@ -1196,7 +1196,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             else: pass
 
         else:
-            CODE_RVAL = CodeRValExpr(toFieldType, VarTag)
+            CODE_RVAL = CodeRValExpr(toFieldType, VarTag, "")
 
 
     #print "CODE_RVAL:", CODE_RVAL
@@ -1221,8 +1221,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             gatherFieldCode+='\n'+indent+getFunctionName(fieldType[0], toFieldType[0])+'('+childRecName+'.child, tmpVar)\n'
 
         else:
-            CODE_RVAL = CodeRValExpr(toFieldType, childRecName)
-            #CODE_RVAL=childRecName+'.child'
+            CODE_RVAL = CodeRValExpr(toFieldType, childRecName, ".next")
 
         # Now code to push the chosen alternative into the data field# This is a LIST, not an OPT:
         gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
@@ -1302,7 +1301,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             #print '######################\n'+assignerCode, memVersionName, '\n'
            # exit(2)
         gatherFieldCode = assignerCode
-    #print "##########################\n",S,"\n#####################################\n"
+    #print ("##########################\n",S,"\n#####################################\n")
     if LHS_IsPointer: # LVAL is a pointer and should be allocated or cleared.
         S+= indent + 'AllocateOrClear(' +CODE_LVAR +')\n'
 
