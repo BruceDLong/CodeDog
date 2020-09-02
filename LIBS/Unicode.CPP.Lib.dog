@@ -174,4 +174,12 @@ struct UnicodeMgr {
         R+=" ("; R+=loc->getBaseName(); R+=")";
         return R;
     }%>
+
+    me string: getLocaleBaseName(their Locale: loc) <- <%{
+        return loc->getBaseName();
+    }%>
+
+    me Locale: getSystemLocale() <- <%{
+        return icu::Locale();
+    }%>
 }
