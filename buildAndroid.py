@@ -67,15 +67,15 @@ def gradleFile(topDomain, domain, appName, workingDir):
                 '        google()\n' \
                 '    }\n' \
                 '    dependencies {\n' \
-                '        classpath "com.android.tools.build:gradle:3.0.1"\n' \
+                '        classpath "com.android.tools.build:gradle:3.6.2"\n' \
                 '    }\n' \
                 '}\n' \
                 'apply plugin: "com.android.application"\n' \
                 'android {\n' \
-                '    compileSdkVersion 26\n' \
+                '    compileSdkVersion 28\n' \
                 '    defaultConfig {\n' \
-                '        targetSdkVersion 26\n' \
-                '        minSdkVersion 20\n' \
+                '        targetSdkVersion 28\n' \
+                '        minSdkVersion 24\n' \
                 '    }\n' \
                 '    sourceSets {main{res.srcDirs = [\'res\']}}\n'\
                 '    buildTypes {\n' \
@@ -151,7 +151,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconNam
     writeFile(workingDir, packageDir, moduleName, outStr, fileExt, packageName)
     gradleFile(topDomain, domain, moduleName, workingDir)
     androidManifest(topDomain, domain, moduleName, labelName, launchIconName, workingDir+'/src/main')
-    [out, err] = runCMD( './gradlew tasks ', workingDir)
-    [out, err] = runCMD( './gradlew assembleDebug --stacktrace', workingDir)
-    [out, err] = runCMD( './gradlew installDebug ', workingDir)
+    #[out, err] = runCMD( './gradlew tasks ', workingDir)
+    #[out, err] = runCMD( './gradlew assembleDebug --stacktrace', workingDir)
+    #[out, err] = runCMD( './gradlew installDebug ', workingDir)
     print('Finished Building for Android')

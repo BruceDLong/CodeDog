@@ -15,7 +15,6 @@ LibDescription ={
 }
 
 struct logger{
-    me void: LogEntry(me string: loggerName, me string: MSG)    <- <%{Log.w(loggerName,MSG);}%>
     me void: Show()                                             <- <%{isVisible = true;}%>
     me void: Hide()                                             <- <%{isVisible = false;}%>
     me void: Route(me string: routeSpec)                        <- <%{System.out.println(routeSpec+"\n");}%>
@@ -23,6 +22,9 @@ struct logger{
 
 struct logManager{
     me void: openLogFile() <- <%{}%>
+    me void: writeToLog (me string: txt) <- <%{
+        System.out.println(txt+"\n");
+    }%>
 }
 
 struct GLOBAL{

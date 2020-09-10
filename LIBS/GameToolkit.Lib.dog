@@ -170,10 +170,10 @@ struct GameLooper{
             sleep(1)  // With no sleep CPU will go to 100%
         }
     }
-    void: runConstFPS(me int: FramesPerSec) <- {	// Constant game speed and FPS
-        me int: ticksToSkip <- 1000 / FramesPerSec
-        me int: timeToSleep <- 0
-        me double: nextTick <- 0
+    void: runConstFPS(me int: FramesPerSec) <- {// Constant game speed and FPS
+        me timeValue: ticksToSkip <- 1000 / FramesPerSec
+        me timeValue: timeToSleep <- 0
+        me timeValue: nextTick <- 0
 
         while(running){
             handleEvents()
@@ -191,7 +191,7 @@ struct GameLooper{
     void: runMaxFPS(me int: gameSpeed) <- { 	// Constant Game speed, max FPS
         me int: ticksToSkip   <- 1000 / gameSpeed
         me int: MAX_FRAMESKIP <- 10
-        me double: nextTick <- getTickCount()
+        me timeValue: nextTick <- getTickCount()
         me int: loops
 
         while(running){
@@ -204,14 +204,14 @@ struct GameLooper{
             }
             their GUI_ctxt: cr  <- createGUI_ctxt()
             framesDrawnCount <+- 1
-	    crntGameMode.draw(cr, 0)
-	    if (printFPS) {outputFPS()}
+            crntGameMode.draw(cr, 0)
+            if (printFPS) {outputFPS()}
         }
     }
-    void: runVarFPS(me int: gameSpeed) <- { 	// Constant Game speed, variable FPS
-        me int: ticksToSkip   <- 1000 / gameSpeed
+    void: runVarFPS(me int: gameSpeed) <- { // Constant Game speed, variable FPS
+        me timeValue: ticksToSkip   <- 1000 / gameSpeed
         me int: MAX_FRAMESKIP <- 5
-        me double: nextTick <- getTickCount()
+        me timeValue: nextTick <- getTickCount()
         me int: loops
         me double: interpolation
 
@@ -226,8 +226,8 @@ struct GameLooper{
             interpolation <- (getTickCount() + ticksToSkip - nextTick) / ticksToSkip
             their GUI_ctxt: cr  <- createGUI_ctxt()
             framesDrawnCount <+- 1
-	    crntGameMode.draw(cr, interpolation)
-	    if (printFPS) {outputFPS()}
+            crntGameMode.draw(cr, interpolation)
+            if (printFPS) {outputFPS()}
         }
     }
 
