@@ -178,7 +178,7 @@ def ChoosePtrDecorationForSimpleCase(owner):
 def chooseVirtualRValOwner(LVAL, RVAL):
     return ['','']
 
-def determinePtrConfigForAssignments(LVAL, RVAL, assignTag):
+def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
     return ['','',  '','']
 
 def getCodeAllocStr(varTypeStr, owner):
@@ -296,12 +296,12 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     return(name, typeSpecOut, paramList, convertedIdxType)
 
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
-    #print '                  factor: ', item
+    ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
+    #print('                  factor: ', item)
     S=''
     retTypeSpec='noType'
     item0 = item[0]
-    #print "ITEM0=", item0, ">>>>>", item
+    #print("ITEM0=", item0, ">>>>>", item)
     if (isinstance(item0, str)):
         if item0=='(':
             [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, xlator)
@@ -341,8 +341,9 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
             else:
                 S+=item0;
+                expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
                 if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):retTypeSpec=expected_KeyType
-                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):retT
+                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
     else: # CODEDOG LITERALS
         if isinstance(item0[0], str):
             S+=item0[0]
@@ -445,7 +446,7 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '      iOR item:', item
+    #print('      iOR item:', item)
     [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
@@ -915,7 +916,7 @@ def codeTemplateHeader(typeArgList):
 def extraCodeForTopOfFuntion(argList):
     return ''
 
-def codeArrayIndex(idx, containerType, LorR_Val, previousSegName):
+def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
     if LorR_Val=='RVAL':
         #Next line may be cause of bug with printing modes.  remove 'not'?
         if (previousSegName in getModeStateNames()): S= '.get((int)' + idx + ')'
