@@ -121,7 +121,7 @@ struct GLOBAL{
     me timeValue: convertToLongVal()                        <- <%!%G%1%>
     me timeValue: convertToL()                              <- <%!%G%1%>
     me int: convertToIntVal(me int: val)                    <- <%!%G%1%>
-    me float: convertToFloatVal()                           <- <%!%G%1%>
+    me float: convertToFloatVal()                           <- <%!%G(float)%1%>
 }
 struct timeValue{me int64: timeValue}
 struct DateValue{me int64: DateValue}

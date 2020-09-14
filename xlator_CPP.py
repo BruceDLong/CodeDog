@@ -60,8 +60,10 @@ def applyOwner(owner, langType, varMode):
         langType="shared_ptr<"+langType + ' >*'
     elif owner=='id_their':
         langType += '**'
+    elif owner=='dblTheir':
+        langType += '**'
     else:
-        cdErr("ERROR: Owner of type not valid '" + owner + "'")
+        cdErr("Owner of type not valid '" + owner + "'")
     return langType
 
 def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
@@ -120,9 +122,11 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
     return [langType, InnerLangType]
 
 def convertType(classes, typeSpec, varMode, actionOrField, xlator):
-    # varMode is 'var' or 'arg'. Large items are passed as pointers
+    # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     owner=typeSpec['owner']
     fieldType=typeSpec['fieldType']
+    tmpisStateRec = False
+    if not isinstance(fieldType, str) and fieldType[0]=='stateRec': tmpisStateRec=True;
     if not isinstance(fieldType, str):
         if len(fieldType) > 1 and fieldType[1] == "..":
             fieldType = "int"
@@ -131,12 +135,23 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     fieldType2 = progSpec.unwrapClass(classes, fieldType)
 
     baseType = progSpec.isWrappedType(classes, fieldType)
-    if(baseType!=None):owner=baseType['owner']
+    if baseType!=None and tmpisStateRec: print("STATEREC_BASETYPE:", baseType)
+    if baseType!=None:  # TODO: When this is all tested and stable, optimize this.
+        if 'ownerMe' in baseType:
+            if owner=='their':
+                if varMode=='arg': owner='their'
+                else: owner = 'their'
+            elif owner=='me':
+                if varMode=='var' or varMode=='arg': owner='me'
+                else: owner = 'their'
+        else: owner=baseType['owner']
+
 
 #    else: owner2 =  progSpec.getTypeSpecOwner(typeSpec)
 #    if owner!=owner2: print "OWNER MISMATCH:", owner, owner2, varMode
 
     retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, xlator)
+    if tmpisStateRec: print("STATEREC_RET:", retVal)
     return retVal
 
 def codeIteratorOperation(itrCommand, fieldType):

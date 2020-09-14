@@ -18,11 +18,11 @@ LibDescription ={
 struct GLOBAL{
     me string: toString(me BigInt: val) <- <%!%1.get_str(10)%>
 }
-struct BigInt: wraps = mpz_class{
+struct BigInt: wraps = mpz_class ownerMe = their{
     me int64: convertToIntVal() <- <%!%0.get_ui()%>
     me int: hexNumToBigInt(me string: val) <- <%!%0.set_str(%1, 16)%>
     me int: binNumToBigInt(me string: val) <- <%!%0.set_str(%1, 2)%>
 }
 struct BigFloat{me mpf_class: BigFloat}
-struct BigInt{me BigFrac: BigFrac}
+//???struct BigInt{me BigFrac: BigFrac}
 
