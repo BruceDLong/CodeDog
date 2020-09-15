@@ -21,8 +21,13 @@ LibDescription  ={
     Lang    =[CPP]
 }
 
-embedHigh = `
+embedVeryHigh = `
 using namespace icu;
+using icu::UnicodeString;
+using icu::Locale;
+`
+embedHigh = `
+
 static const char trailingBytesForUTF8[256] = {
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
