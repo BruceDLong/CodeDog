@@ -7,10 +7,11 @@ interface={
     provides=[GameToolkit_implementation]
     libFiles=[]
         headers=[android.app.Activity, android.os.Bundle, android.view.Window, android.view.WindowManager,
-        android.content.Context,
-        android.graphics.Canvas, android.view.MotionEvent, android.view.SurfaceView,
-        android.view.SurfaceHolder, android.graphics.Color, android.graphics.Paint, android.content.res.AssetManager, android.graphics.Bitmap, android.graphics.BitmapFactory,
-        android.graphics.Path, android.os.SystemClock
+        android.content.Context, android.view.View, android.view.SurfaceView,
+        android.graphics.Canvas, android.view.MotionEvent, android.view.KeyEvent, android.view.View.OnTouchListener,
+        android.view.SurfaceHolder, android.graphics.Color, android.graphics.Paint,
+        android.content.res.AssetManager, android.graphics.Bitmap, android.graphics.BitmapFactory,
+        android.graphics.Path, android.os.SystemClock, android.graphics.Typeface, android.graphics.Rect
     ]
 }
 
@@ -22,14 +23,41 @@ LibDescription ={
     bindings    =[Java]
 }
 
-initCode = ``
+initCode  = ``
+embedHigh = `
+class GameModeView extends SurfaceView implements SurfaceHolder.Callback, OnTouchListener{
+    public SurfaceHolder surfaceHolder;
+
+    public GameModeView(Context context) {
+        super(context);
+        getHolder().addCallback(this);
+        surfaceHolder = getHolder();
+        setFocusable(true);
+    }
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        GLOBAL.static_Global.gameLooper.start();
+    }
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {}
+    public void update() {}
+    @Override
+    public void draw(Canvas canvas) {}
+    public boolean onTouch(View v, MotionEvent event){
+        // Handle touch events
+        return true;
+    }
+}
+`
 
 /////////////////////////////////  STRUCT CONVERTERS
 struct GRWindow{their WindowManager: GRWindow}
 struct GameEvent{their MotionEvent:GameEvent}
 struct UserEvent{their MotionEvent:UserEvent}
 struct WindowEvent{their MotionEvent:WindowEvent}
-struct KeyboardEvent{their MotionEvent:KeyboardEvent}
+struct KeyboardEvent{their KeyEvent:KeyboardEvent}
 struct MouseButtonEvent{their MotionEvent:MouseButtonEvent}
 struct MouseMotionEvent{their MotionEvent:MouseMotionEvent}
 struct MouseWheelEvent{their MotionEvent:MouseWheelEvent}
@@ -57,7 +85,7 @@ struct GLOBAL: inherits=Activity{
         GLOBAL.static_Global = this;
         initialize("");
         runDogCode();
-        setContentView(gameMenuScreen);
+        setContentView(gameLooper.crntGameMode.gameModeView);
     }%>
     me bool: getFullScreenMode() <- <%{
         return(false);
@@ -181,7 +209,7 @@ struct GUI_ctxt: inherits=Canvas{
     //me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     //me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
     //me void: closePath()      <- <%!GPath.close()%>
-    me void: rectangle()      <- <%!%0.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
+    me void: rectangle()      <- <%!%0.GCanvas.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
     //me void: paintNow()       <- <%!paint.setStyle(Paint.Style.FILL);cr.GCanvas.drawPaint(cr.paint)%>
     me void: strokeNow()      <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
     me void: fillNow()        <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
@@ -196,6 +224,7 @@ struct GUI_ctxt: inherits=Canvas{
 struct GRWindow{
     void: requestRedraw()       <- <%!%G%>
 }
+/////////////////////////////////  HANDLE EVENTS
 struct GameEvent{
     me int32: type
     me UserEvent: user
@@ -229,24 +258,21 @@ struct GameLooper: inherits=Thread{
     our Canvas: canvas
 
     me bool: PollForEvent(their GameEvent: event)       <- <%!SDL_PollEvent(%1)%>
-    none: GameLooper(me SurfaceHolder: holder, our GameMode: gameMode) <- <%{
-        super();
-        this.surfaceHolder = holder;
-        this.crntGameMode = gameMode;
-    }%>
+
     void: run() <- <%{
         while(running){
             canvas = null;
             try {
-                canvas = crntGameMode.getHolder().lockCanvas();
-                synchronized(crntGameMode.surfaceHolder) {
-                    this.crntGameMode.update();
-                    this.crntGameMode.draw(canvas);
+                canvas = crntGameMode.gameModeView.getHolder().lockCanvas();
+                GUI_ctxt cr = new GUI_ctxt(canvas);
+                synchronized(crntGameMode.gameModeView.surfaceHolder) {
+                    this.crntGameMode.gameModeView.update();
+                    this.crntGameMode.draw(cr, 0);
                 }
             } catch (Exception e) {} finally {
                 if (canvas != null) {
                     try {
-                        crntGameMode.surfaceHolder.unlockCanvasAndPost(canvas);
+                        crntGameMode.gameModeView.surfaceHolder.unlockCanvasAndPost(canvas);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -269,38 +295,14 @@ struct GameSound{
     void: play() <-  <%{}%>
 }
 
-struct GameMode: inherits=SurfaceView implements=SurfaceHolder.Callback{
-    our GameLooper: looper
-    our SurfaceHolder: surfaceHolder
+
+
+struct GameMode{
+    our GameModeView: gameModeView
 
     void: update() <- {}
-    //@Override
-    none: GameMode(me Context: context) <- <%{
-        super(context);
-        getHolder().addCallback(this);
-        surfaceHolder = getHolder();
-        setFocusable(true);
-    }%>
-    //@Override
-    void: surfaceChanged(me SurfaceHolder: holder, me int: format, me int: width, me int: height) <- {}
 
-    //@Override
-    void: surfaceDestroyed(me SurfaceHolder: holder) <- <%{
-        boolean retry = true;
-        while (retry) {
-            try {
-                looper.running=false;
-                looper.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            retry = false;
-        }
-    }%>
-
-    //@Override
-    void: surfaceCreated(me SurfaceHolder: holder) <- <%{
-        looper.running=true;
-        looper.start();
+    void: INIT() <- <%{
+        gameModeView = new GameModeView(GLOBAL.static_Global);
     }%>
 }
