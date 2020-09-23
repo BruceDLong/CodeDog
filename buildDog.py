@@ -48,7 +48,8 @@ def copyTree(src, dst):
         s = os.path.join(src, item)
         d = os.path.join(dst, item)
         if os.path.isdir(s):
-            shutil.copytree(s, d, False, None)
+            pass
+#            shutil.copytree(s, d, False, None)
         else:
             shutil.copy2(s, d)
 
