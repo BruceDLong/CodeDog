@@ -119,6 +119,7 @@ def replaceFileName(fileMatch):
     return includedStr
 
 def processIncludedFiles(fileString, fileName):
+    global currentFilesPath
     dirname, filename = os.path.split(abspath(fileName))
     currentFilesPath = dirname
     pattern = re.compile(r'#include +([\w -\.\/\\]+)')

@@ -53,7 +53,7 @@ struct boolWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Label: dataLabel
     their GUI_Bool:  dataValue
 
-    me bool: getValue()            <- {dataValue.getValue()}
+    me bool: getValue()            <- {return(dataValue.getValue())}
     void: setValue(me bool: value) <- {dataValue.setValue(value)}
     me void: clear() <- {
         dataValue.setValue(true)
@@ -1064,7 +1064,7 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     gtk_box_pack_start(GTK_BOX(boxForMenubar), menubar, TRUE, TRUE, 0);
     gtk_widget_show (menubar);
 
-    thisApp.createAppMenu(menubar);
+    //thisApp.createAppMenu(menubar);
 
       /////////////////////  A d d   A p p l i c a t i o n   I t e m s
 

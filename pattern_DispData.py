@@ -93,7 +93,7 @@ class structAsProteusWriter(structProcessor):
             S+="            "+self.toProteusTextFieldAction(calcdName, itemName, field, fldCatInner)+"        }\n"
         else: S+="            "+self.toProteusTextFieldAction(fieldName, fieldName, field, fldCat)
         if progSpec.typeIsPointer(typeSpec):
-            T ="            if("+fieldName+' == NULL){S <- S + '+'indent2 + dispFieldAsText("'+fieldName+'", 10, " = ")+"NULL\\n"}\n'
+            T ="            if("+fieldName+' == NULL){S <- S + '+'indent2 + dispFieldAsText("'+fieldName+'", 10)+" = NULL\\n"}\n'
             T+="            else{\n    "+S+"    }\n"
             S=T
         self.textFuncBody += S

@@ -237,7 +237,7 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
         else: return ['','',  '', '']
     if LeftOwner == RightOwner: return ['','',  '','']
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
-        [leftMod, rightMod] = getTheDerefPtrMods(RVAL)
+        [leftMod, rightMod, isDerefd] = getTheDerefPtrMods(RVAL)
         return ['','',  leftMod, rightMod]  # ['', '', "(*", ")"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
         if assignTag!="" or assignTag=='deep':return ['(*',')',  '', '']
