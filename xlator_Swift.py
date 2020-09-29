@@ -592,7 +592,7 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
 
     if parentClass != "":
         parentClass=': '+parentClass+' '
-        parentClass = progSpec.unwrapClass(structName)
+        parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(structName)
     if classImplements!=None:
         parentClass=': '
         count =0

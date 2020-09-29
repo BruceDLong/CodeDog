@@ -109,7 +109,7 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     owner=typeSpec['owner']
     fieldType=typeSpec['fieldType']
     if not isinstance(fieldType, str): fieldType=fieldType[0]
-    fieldType2 = progSpec.unwrapClass(classes, fieldType)
+    fieldType2 = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
     baseType = progSpec.isWrappedType(classes, fieldType)
     if(baseType!=None): owner=baseType['owner']
     retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, actionOrField, xlator)
@@ -631,7 +631,7 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
 
     if (parentClass != ""):
         parentClass = parentClass.replace('::', '_')
-        parentClass = progSpec.unwrapClass(classes, structName)
+        parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, structName)
         parentClass=' extends ' +parentClass
     elif classInherits!=None:
         parentClass=' extends ' + classInherits[0][0]

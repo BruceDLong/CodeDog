@@ -684,6 +684,8 @@ def isNewContainerTempFunc(typeSpec):
         if reqTagList == None: return(None)
         if fieldTypeKeyword=='CPP_Deque':
             return(reqTagList[1][0])
+        if fieldTypeKeyword=='map':
+            return(reqTagList)
         #print("fieldTypeKeyword: ",fieldTypeKeyword," ",reqTagList[1][0])
     return(None)
 
@@ -835,7 +837,7 @@ def findSpecOf(objMap, structName, stateTypeWanted):
     if not structName in objMap: return None
     return objMap[structName]
 
-def unwrapClass(classes, structName):
+def getUnwrappedClassFieldTypeKeyWord(classes, structName):
     baseType = isWrappedType(classes, structName)
     if(baseType!=None):
         baseType = getFieldType(baseType)

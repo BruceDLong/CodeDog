@@ -931,7 +931,7 @@ struct GLOBAL{
         cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
     } %>
 
-    me INK_Image[map string]: InkImgCache
+    me map<me string, me INK_Image>: InkImgCache
     me void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         filename = "./assets/" + filename;
         map< string, cairo_surface_t* >::iterator picPtr=InkImgCache.find(filename);

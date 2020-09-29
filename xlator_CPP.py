@@ -66,7 +66,21 @@ def applyOwner(owner, langType, varMode):
         cdErr("Owner of type not valid '" + owner + "'")
     return langType
 
-def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
+def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode):
+    owner=typeSpec['owner']
+    baseType = progSpec.isWrappedType(classes, fieldType)
+    if baseType!=None:  # TODO: When this is all tested and stable, optimize this.
+        if 'ownerMe' in baseType:
+            if owner=='their':
+                if varMode=='arg': owner='their'
+                else: owner = 'their'
+            elif owner=='me':
+                if varMode=='var' or varMode=='arg': owner='me'
+                else: owner = 'their'
+        else: owner=baseType['owner']
+    return owner
+
+def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
 
     langType = adjustBaseTypes(fieldType)
@@ -82,7 +96,9 @@ def xlateLangType(typeSpec, owner, fieldType, varMode, xlator):
             varTypeKeyword = reqTag['varType'][0]
             if not isinstance(varTypeKeyword, str):
                 varTypeKeyword= varTypeKeyword[0]
-            reqType = applyOwner(reqOwner, varTypeKeyword, '')
+            unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc')
+            unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
+            reqType = applyOwner(unwrappedOwner, unwrappedTypeKeyword, '')
             if(count>0):reqTagString += ", "
             reqTagString += reqType
             count += 1
@@ -125,32 +141,14 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     owner=typeSpec['owner']
     fieldType=typeSpec['fieldType']
-    tmpisStateRec = False
-    if not isinstance(fieldType, str) and fieldType[0]=='stateRec': tmpisStateRec=True;
     if not isinstance(fieldType, str):
         if len(fieldType) > 1 and fieldType[1] == "..":
             fieldType = "int"
         else:
             fieldType=fieldType[0]
-    fieldType2 = progSpec.unwrapClass(classes, fieldType)
-
-    baseType = progSpec.isWrappedType(classes, fieldType)
-    if baseType!=None:  # TODO: When this is all tested and stable, optimize this.
-        if 'ownerMe' in baseType:
-            if owner=='their':
-                if varMode=='arg': owner='their'
-                else: owner = 'their'
-            elif owner=='me':
-                if varMode=='var' or varMode=='arg': owner='me'
-                else: owner = 'their'
-        else: owner=baseType['owner']
-
-
-#    else: owner2 =  progSpec.getTypeSpecOwner(typeSpec)
-#    if owner!=owner2: print "OWNER MISMATCH:", owner, owner2, varMode
-
-    retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, xlator)
-    #if tmpisStateRec: print("STATEREC_RET:", retVal)
+    unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
+    owner=getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode)
+    retVal = xlateLangType(classes, typeSpec, owner, unwrappedFieldTypeKeyWord, varMode, xlator)
     return retVal
 
 def codeIteratorOperation(itrCommand, fieldType):
@@ -741,7 +739,7 @@ def codeArgText(argFieldName, argType, xlator):
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
     if parentClass != "":
         parentClass = parentClass.replace('::', '_')
-        parentClass = progSpec.unwrapClass(classes, structName)
+        parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, structName)
         parentClass=': public '+parentClass+' '
         print("Warning: old style inheritance used: " , parentClass)
     if classImplements!=None:
@@ -756,7 +754,7 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
         for item in classInherits[0]:
             if count>0:
                 parentClass+= ', '
-            parentClass+= progSpec.unwrapClass(classes, item)
+            parentClass+= progSpec.getUnwrappedClassFieldTypeKeyWord(classes, item)
             count += 1
         #print "parentClass" , parentClass
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
