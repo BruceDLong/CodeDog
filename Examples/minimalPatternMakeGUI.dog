@@ -1,0 +1,174 @@
+// minimalPatternMakeGUI.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+BuildCmd = "g++ -g -std=gnu++14 `pkg-config --cflags gtk+-3.0` minimalPatternMakeGUI.cpp `pkg-config --libs gtk+-3.0` -o minimalPatternMakeGUI"
+Title = "minimalPatternMakeGUI"
+FileName = "minimalPatternMakeGUI.dog"
+Version = "0.8"
+CopyrightMesg = "Copyright (c) 2017-2018 Bruce Long"
+Authors = "Bruce Long, Tiffany Lawrence"
+Description = "minimalPatternMakeGUI"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [GUI_ToolKit, Dashboard]
+
+LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
+
+runCode=`
+    logMgr.init(OFile)
+    isFirstRun<-true
+`
+
+mainStyle = {
+    colors = {
+    }
+    fontNames = {
+    }
+    fontSizes = {
+        fontSizeSmall     = 8
+    }
+    fontSizeMode = pp
+}
+
+do makeStyler(mainStyle)
+do makeGUI(GUI_Spec)
+
+model Settings{
+    me string: UsersName
+}
+struct Settings{}
+model StaticInfo1: dialogStyle=WizardChild{
+    me string: userName
+    mode[male, female]: gender
+    me timeValue: birthday
+}
+model StaticInfo1_Dialog_GUI{
+    bool: isComplete() <- {
+        me string: userNameVal <- UserNameWidget.getValue()
+        me int: genderVal <- GenderWidget.getValue()
+        me timeValue: birthdayVal <- BirthdayWidget.getValue()
+        if (userNameVal.size()<1){return(false)}
+        if (genderVal==-1){return(false)}
+        return(true)
+    }
+    void: save() <-{
+        getValue()
+    }
+    void: load() <-{}
+}
+model StaticInfo2: dialogStyle=WizardChildLast{
+    mode[sedentary, lightlyActive, Active, veryActive]: activityLevel
+    mode[type1, type2, gestational, preDiabetes, none]:   typeOfDiabetes
+}
+model StaticInfo2_Dialog_GUI{
+    bool: isComplete() <- {
+        me int: activityLevelVal  <- ActivityLevelWidget.getValue()
+        me int: typeOfDiabetesVal <- TypeOfDiabetesWidget.getValue()
+        if (activityLevelVal==-1){return(false)}
+        if (typeOfDiabetesVal==-1){return(false)}
+        return(true)
+    }
+    void: save() <-{
+        getValue()
+    }
+    void: load() <-{}
+}
+model DisclaimerAgreement: dialogStyle=WizardChildFirst{
+    me Agreement: HealthDogDisclaimer
+}
+model DisclaimerAgreement_Dialog_GUI{
+    bool: isComplete() <- {
+        HealthDogDisclaimerWidget.getValue()
+        me bool: checkMarkState <- HealthDogDisclaimerWidget._data.doesAgree
+        return(checkMarkState)
+    }
+    void: save() <-{
+        HealthDogDisclaimerWidget.getValue()
+        if (HealthDogDisclaimerWidget._data.doesAgree){}
+    }
+    void: load() <-{}
+}
+model PrivacyAgreement: dialogStyle=WizardChild{
+    me Agreement: HealthDogPrivacyPolicy
+}
+model PrivacyAgreement_Dialog_GUI{
+    bool: isComplete() <- {
+        HealthDogPrivacyPolicyWidget.getValue()
+        me bool: checkMarkState <- HealthDogPrivacyPolicyWidget._data.doesAgree
+        return(checkMarkState)
+    }
+    void: save() <-{
+        HealthDogPrivacyPolicyWidget.getValue()
+        if (HealthDogPrivacyPolicyWidget._data.doesAgree){}
+    }
+    void: load() <-{}
+}
+
+model Event{
+    me int: eventType
+    me int: arg1
+    me int: arg2
+}
+model IntroScreens:  dialogStyle=WizardStack{
+    our DisclaimerAgreement: disclaimerAgreement
+    our PrivacyAgreement:    privacyAgreement
+    our StaticInfo1:         initialInformation1
+    our StaticInfo2:         initialInformation2
+    void: wizardFinished(me string: wizID) <- {
+        guiMgr.parentGuiMgr.setActiveChild(1)
+    }
+}
+model appModel_GUI{
+    void: onLoaded() <- {
+        if(IntroScreens_GUI_Mgr.DisclaimerAgreement_GUI_Mgr.isComplete()){
+            if(IntroScreens_GUI_Mgr.PrivacyAgreement_GUI_Mgr.isComplete()){
+                if(IntroScreens_GUI_Mgr.StaticInfo1_GUI_Mgr.isComplete()){
+                    showWidget(IntroScreens_GUI_Mgr.StaticInfo2_GUI_Mgr.box)
+                    IntroScreens_GUI_Mgr.wiz.activeScreenIdx <- 3
+                    IntroScreens_GUI_Mgr.wiz.setActiveChild(3)
+                    return()
+                }
+                showWidget(IntroScreens_GUI_Mgr.StaticInfo1_GUI_Mgr.box)
+                IntroScreens_GUI_Mgr.wiz.activeScreenIdx <- 2
+                IntroScreens_GUI_Mgr.wiz.setActiveChild(2)
+                return()
+            }
+            showWidget(IntroScreens_GUI_Mgr.PrivacyAgreement_GUI_Mgr.box)
+            IntroScreens_GUI_Mgr.wiz.activeScreenIdx <- 1
+            IntroScreens_GUI_Mgr.wiz.setActiveChild(1)
+            return()
+        }
+    }
+}
+
+model appModel: dialogStyle=Z_stack{
+    our Settings:          settings
+    our IntroScreens:      introduction
+}
+
+do codeModelToGUI(appModel)
+
+struct GLOBAL{
+    me bool: isFirstRun
+
+    me void: initializeAppGui() <- {}
+}
+
+struct GUI{
+    me float: prevX
+    me float: prevY
+    me bool: enableScrolling <- true
+
+    me bool: isEnableScrolling()<-{return (enableScrolling)}
+}
+
+struct APP{
+    my GUI: gui
+    me GUI_ScrollingWindow: scrollerRef
+
+    me void: createAppMenu(me GUI_Frame: frame) <- {}
+}
