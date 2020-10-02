@@ -264,6 +264,8 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
     elif fieldSpec=='list' or fieldSpec=='map': pass
     else: print('pattern_MakeGUI.getWidgetHandlingCode fieldSpec not specified: ', fieldSpec);  exit(2)
 
+    if typeName == 'GUI_Frame': owner='their '
+    else: owner='our '
     # If this is a list or map, populate it
     if progSpec.isAContainer(typeSpec):
         makeTypeNameCall      =  widgetName+' <- make'+typeName[0].upper() + typeName[1:]+'("'+label+'")\n'
@@ -286,18 +288,18 @@ def getWidgetHandlingCode(classes, fldCat, fieldName, field, structTypeName, dia
         varsFromWidgetCode   += '        ' + listWidMgrName + '.getValue()\n'
         clearWidgetCode      += '        ' + listWidMgrName + '.clear()\n'
     elif dialogStyle == 'WizardStack':
-        newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
+        newWidgetFields      += '    '+owner+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
         widgetInitFuncCode   += '        addToZStack(wiz.ZStack, '+widgetBoxName+', "'+CasedFieldName+'")\n'
         widgetInitFuncCode   += '        wiz.children.pushLast("'+CasedFieldName+'")\n'
     elif dialogStyle   == 'Z_stack':
         widgetBoxName         =  guiMgrName +'.box'
-        newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
+        newWidgetFields      += '    '+owner+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall+'\n'
         widgetInitFuncCode   += '        addToZStack(Zbox, '+widgetBoxName+', "'+CasedFieldName+'")\n'
         widgetInitFuncCode   += '        children.pushLast("'+CasedFieldName+'")\n'
     else: # Not an ArraySpec:
-        newWidgetFields      += '    our '+typeName+': '+widgetName+'\n'
+        newWidgetFields      += '    '+owner+typeName+': '+widgetName+'\n'
         widgetInitFuncCode   += '        '+makeTypeNameCall
         if classPrimaryGuiItem==fieldName: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetBoxName+')\n'
         else: widgetInitFuncCode   += '        addToContainerAndExpand(box, '+widgetBoxName+')\n'
@@ -400,7 +402,7 @@ def buildListRowView(classes, className, dialogStyle, newStructName):
         showWidget(headerBox)
         return(headerBox)
     }
-    their GUI_Frame: initWidget(our '''+className+''': Data) <- {
+    their GUI_Frame: initWidget(their '''+className+''': Data) <- {
         box <- makeXStack("")
         '''+rowViewCode+'''
         showWidget(box)
@@ -408,7 +410,7 @@ def buildListRowView(classes, className, dialogStyle, newStructName):
     }
 }
 '''
-    #print '==========================================================\n'+CODE
+    #print ('==========================================================\n'+CODE)
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
@@ -636,7 +638,7 @@ struct <NEWSTRUCTNAME>:inherits=appComponentGUI '''+tagCode+'''{
 
     CODE = CODE.replace('<NEWSTRUCTNAME>', newStructName)
     CODE = CODE.replace('<CLASSNAME>', className)
-    #print '==========================================================\n'+CODE
+    #print ('==========================================================\n'+CODE)
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, newStructName)
 
 def apply(classes, tags, topClassName):
@@ -681,7 +683,7 @@ struct APP{
 }'''
 
     CODE = CODE.replace('<PRIMARY_GUI>', primaryGUIName)
-    #print '==========================================================\n'+CODE
+    #print ('==========================================================\n'+CODE)
     codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, 'APP')
 
     return
