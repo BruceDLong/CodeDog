@@ -7,19 +7,23 @@ interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
     headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
-        android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.support.v4.widget.NestedScrollView, android.widget.HorizontalScrollView, android.widget.ScrollView, android.widget.TextView,
+        android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.widget.HorizontalScrollView, android.widget.ScrollView, android.widget.TextView,
         android.widget.RelativeLayout, android.widget.FrameLayout, android.util.DisplayMetrics, android.os.Handler, android.content.res.Configuration, android.content.res.Resources,
-        android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface, android.support.v4.content.ContextCompat,
-        android.support.v7.app.AppCompatActivity, android.os.Bundle, android.support.v7.widget.Toolbar, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
-        android.support.v4.app.FragmentActivity, android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment, android.support.v4.app.DialogFragment,
+        android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface,
+        android.os.Bundle, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
+        android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment,
         android.util.Log, android.content.res.AssetManager, android.content.Context, android.content.ContextWrapper, android.graphics.Rect, android.os.Looper,  android.os.HandlerThread,
         android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.LinearGradient, android.view.Gravity,
         android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.graphics.Shader, android.graphics.Shader.TileMode,
         android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
         android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup, android.widget.TimePicker, android.app.TimePickerDialog, android.app.TimePickerDialog.OnTimeSetListener,
-        android.support.design.widget.FloatingActionButton, android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
+        android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
         android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable, android.widget.AutoCompleteTextView,
-        android.widget.AdapterView.OnItemSelectedListener, android.text.TextWatcher, android.text.Editable, android.widget.AdapterView.OnItemSelectedListener
+        android.widget.AdapterView.OnItemSelectedListener, android.text.TextWatcher, android.text.Editable, android.widget.AdapterView.OnItemSelectedListener,
+        androidx.appcompat.app.AppCompatActivity, androidx.fragment.app.FragmentActivity,
+        androidx.core.widget.NestedScrollView, androidx.core.content.ContextCompat, androidx.appcompat.widget.Toolbar,
+        android.app.DialogFragment, com.google.android.material.floatingactionbutton.FloatingActionButton,
+        android.graphics.pdf.PdfDocument
     ]
 }
 
@@ -601,7 +605,7 @@ struct ListWidgetManager{
         addBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleAdd();}});
         addBtn.setImageResource(android.R.drawable.ic_menu_add );
         addBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
-        addBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
+        addBtn.setSize(FloatingActionButton.SIZE_MINI);
         RelativeLayout.LayoutParams addBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         addBtnParams.rightMargin = 40;
         addBtn.setLayoutParams(addBtnParams);
@@ -610,7 +614,7 @@ struct ListWidgetManager{
         deleteBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleDelete();}});
         deleteBtn.setImageResource(android.R.drawable.ic_menu_delete);
         deleteBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
-        deleteBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
+        deleteBtn.setSize(FloatingActionButton.SIZE_MINI);
         RelativeLayout.LayoutParams deleteBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         deleteBtnParams.rightMargin = 40;
         deleteBtn.setLayoutParams(deleteBtnParams);
@@ -619,7 +623,7 @@ struct ListWidgetManager{
         editBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleEdit();}});
         editBtn.setImageResource(android.R.drawable.ic_menu_edit);
         editBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
-        editBtn.setSize(android.support.design.widget.FloatingActionButton.SIZE_MINI);
+        editBtn.setSize(FloatingActionButton.SIZE_MINI);
         RelativeLayout.LayoutParams editBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         editBtnParams.rightMargin = 40;
         editBtn.setLayoutParams(editBtnParams);
@@ -961,13 +965,13 @@ struct GUI: inherits=LinearLayout{
     }
 
     me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenubar, me string: text) <- {
-        me ourSubMenu: subMenu <- (text)
+        me ourSubMenu: subMenu{text}
         GLOBAL.static_Global.thisApp.menubar.items.pushLast(subMenu)
         return(subMenu)
     }
 
     me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
-        our ourSubMenu: thisMenuItem <- (menuLabel)
+        our ourSubMenu: thisMenuItem{menuLabel}
         menu.items.pushLast(thisMenuItem)
     }
 
@@ -989,7 +993,6 @@ struct GUI {
     me void: setBtnCallback2() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%5;}})%>
     me void: setBtnCallback3() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%4();}})%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
-    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gnull%>
 //    me GUI_Frame: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
 //    me GUI_Frame: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
 
@@ -1003,7 +1006,7 @@ struct GUI_ctxt: inherits=Canvas{
     me void: setColor(me cdColor: color) <- <%!%0.paint.setColor( Color.rgb(%1.red, %1.green, %1.blue))%>
     me void: setLineWidth(me double: width) <- <%!paint.setStrokeWidth(%1)%>
     me void: finishPDF() <- <%!%GSystem.out.print("PDF Functions not given.")%>
-    me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
+    me void: setScale() <- <%!%G%>  // TODO: Finish setScale()
     me void: moveTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo((float)(%1), (float)(%2))%>
     me void: lineTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo((float)(%1), (float)(%2))%>
     me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
@@ -1020,6 +1023,17 @@ struct GUI_ctxt: inherits=Canvas{
     me void: renderFrame()    <- <%!repaint()%>
     me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
     me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!%0.paint.setStyle(Paint.Style.STROKE);%0.paint.setStrokeWidth(2);%0.GCanvas.drawCircle(%1, %2, %3, cr.paint)%>
+    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!newAndroidPDF(%1, (int)%2, (int)%3)%>
+    me GUI_ctxt: newAndroidPDF(me string: filename, me int: inchesWide, me int: inchesHigh) <- <%{
+        // TODO: Finish newAndroidPDF() and confirm it works
+        PdfDocument document = new PdfDocument();
+        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(inchesWide, inchesHigh, 1).create();
+        PdfDocument.Page page = document.startPage(pageInfo);
+        Canvas canvas = page.getCanvas();
+        document.finishPage(page);
+        GUI_ctxt cr = new GUI_ctxt(canvas);
+        return(cr);
+    }%>
 }
 
 struct GUI_ctxt {
@@ -1079,6 +1093,7 @@ struct timeStringer{
 /////////////////////////////////  G L O B A L
 struct GLOBAL: inherits=AppCompatActivity{
     me APP: thisApp
+    their LinearLayout: window
     me int: widgetHeight() <- <%!%G%1.getHeight()%>
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
     me INK_Image[map string]: InkImgCache
@@ -1337,7 +1352,7 @@ struct GLOBAL{
 struct APP: inherits=LinearLayout{
     me LinearLayout: thisFrame
     me GUI: gui
-    me ourSubMenu: menubar <- ("menubar")
+    me ourSubMenu: menubar{"menubar"}
 
     me none: APP() <- <%{super(GLOBAL.static_Global);}%>
 }
