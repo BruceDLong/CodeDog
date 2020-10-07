@@ -66,23 +66,23 @@ def applyOwner(owner, langType, varMode):
         cdErr("Owner of type not valid '" + owner + "'")
     return langType
 
-def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode):
+def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
     owner=typeSpec['owner']
     baseType = progSpec.isWrappedType(classes, fieldType)
-    if baseType!=None:  # TODO: When this is all tested and stable, optimize this.
+    if baseType!=None:  # TODO: When this is all tested and stable, un-hardcode and optimize this!!!!!
         if 'ownerMe' in baseType:
             if owner=='their':
                 if varMode=='arg': owner='their'
                 else: owner = 'their'
             elif owner=='me':
-                if varMode=='var' or varMode=='arg': owner='me'
-                else: owner = 'their'
-        else: owner=baseType['owner']
+                owner = 'their'
+        else:
+            if varMode=='var':owner=baseType['owner']   # TODO: remove this condition: accomodates old list type generated in stringStructs
+            else: owner=ownerIn
     return owner
 
 def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
     reqTagList = progSpec.getReqTagList(typeSpec)
@@ -96,7 +96,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
             varTypeKeyword = reqTag['varType'][0]
             if not isinstance(varTypeKeyword, str):
                 varTypeKeyword= varTypeKeyword[0]
-            unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc')
+            unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc', reqOwner)
             unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
             reqType = applyOwner(unwrappedOwner, unwrappedTypeKeyword, '')
             if(count>0):reqTagString += ", "
@@ -139,7 +139,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
 
 def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    owner=typeSpec['owner']
+    ownerIn=typeSpec['owner']
     fieldType=typeSpec['fieldType']
     if not isinstance(fieldType, str):
         if len(fieldType) > 1 and fieldType[1] == "..":
@@ -147,8 +147,8 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
         else:
             fieldType=fieldType[0]
     unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
-    owner=getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode)
-    retVal = xlateLangType(classes, typeSpec, owner, unwrappedFieldTypeKeyWord, varMode, xlator)
+    ownerOut=getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn)
+    retVal = xlateLangType(classes, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, xlator)
     return retVal
 
 def codeIteratorOperation(itrCommand, fieldType):
