@@ -141,7 +141,6 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     sourcePath = buildName + "/" + fileName + "/" + "Sources"
     currentDirectory = currentWD = os.getcwd()
     workingDirectory = currentDirectory + "/" + buildName + "/" + fileName
-
     makeDir(buildName)
     makeDir(buildName + "/" + fileName)
     runCMD("swift package init --type executable", workingDirectory)
@@ -189,6 +188,9 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
         printResults(workingDirectory, buildStr, runStr)
     elif platform == 'Windows':
         [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+    elif platform == 'MacOS':
+        [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        printResults(workingDirectory, buildStr, runStr)
     else:
         print("buildDog.py error: build string not generated for "+ buildName)
         exit(2)

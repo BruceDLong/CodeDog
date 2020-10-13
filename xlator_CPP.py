@@ -175,10 +175,10 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(S, segType, owner):
         return S
 
-def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
-    LHS_KeyType = progSpec.varTypeKeyWord(LHS_Type)
-    RHS_KeyType = progSpec.varTypeKeyWord(RHS_Type)
-    return codeStr
+def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
+    LHS_KeyType = progSpec.varTypeKeyWord(lhsTypeSpec)
+    RHS_KeyType = progSpec.varTypeKeyWord(rhsTypeSpec)
+    return RHScodeStr
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
@@ -197,6 +197,7 @@ def getTheDerefPtrMods(itemTypeSpec):
     return ['', '', False]
 
 def derefPtr(varRef, itemTypeSpec):
+    #print("derefPtr:",varRef)
     [leftMod, rightMod, isDerefd] = getTheDerefPtrMods(itemTypeSpec)
     S = leftMod + varRef + rightMod
     return [S, isDerefd]
@@ -277,8 +278,6 @@ def getEnumStringifyFunc(className, enumList):
     S += '"{}"'.format('", "'.join(enumList))
     S += '};\n\n'
     return S
-
-######################################################   E X P R E S S I O N   C O D I N G
 
 def codeIdentityCheck(S1, S2, retType1, retType2):
     if progSpec.typeSpecsAreCompatible(retType1, retType2): retStr = S1+' == '+S2
@@ -384,6 +383,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     else: print("Unknown container type:", containerType); exit(2);
     return(name, typeSpecOut, paramList, convertedIdxType)
 
+######################################################   E X P R E S S I O N   C O D I N G
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
     #print('                  factor: ', item)
@@ -465,7 +465,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeTerm(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '               term item:', item
+    #print('               term item:', item)
     [S, retTypeSpec]=codeFactor(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
         [S, isDerefd]=derefPtr(S, retTypeSpec)
@@ -481,7 +481,7 @@ def codeTerm(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codePlus(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '            plus item:', item
+    #print('            plus item:', item)
     [S, retTypeSpec]=codeTerm(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=derefPtr(S, retTypeSpec)
@@ -499,13 +499,12 @@ def codePlus(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '         Comp item', item
+    #print('         Comp item', item)
     [S, retTypeSpec]=codePlus(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print("Error: Chained comparisons.\n"); exit(1);
         [S, isDerefd]=derefPtr(S, retTypeSpec)
         for  i in item[1]:
-            #print '         comp ', i
             if   (i[0] == '<'): S+=' < '
             elif (i[0] == '>'): S+=' > '
             elif (i[0] == '<='): S+=' <= '
@@ -518,7 +517,7 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '      IsEq item:', item
+    #print('      IsEq item:', item)
     [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
@@ -560,35 +559,34 @@ def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '      xOR item:', item
+    #print('   xOR item:', item)
     [S, retTypeSpec]=codeIOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
         [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print '      IsEq ', i
+            #print('      IsEq ', i)
             [S2, retType2] = codeIOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             S+= ' ^ '+S2
     return [S, retTypeSpec]
 
 def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '      Bar item:', item
+    #print ('   Bar item:', item)
     [S, retTypeSpec]=codeXOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
         [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print '      IsEq ', i
             [S2, retType2] = codeXOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             S+= ' | '+S2
     return [S, retTypeSpec]
 
 def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '   And item:', item
+    #print('   And item:', item)
     [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=derefPtr(S, retTypeSpec)
@@ -603,7 +601,7 @@ def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print 'Or item:', item
+    #print('Or item:', item)
     [S, retTypeSpec] = codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=derefPtr(S, retTypeSpec)
@@ -619,12 +617,11 @@ def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print 'Assign item:', item
+    #print("codeExpr:",item)
     [S, retTypeSpec]=codeLogOr(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print('Assign ', i)
             if (i[0] == '<-'):
                 [S2, retTypeSpec] = codeLogOr(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 [S2, isDerefd]=derefPtr(S2, retTypeSpec)
@@ -634,6 +631,7 @@ def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print "S:",S
     return [S, retTypeSpec]
 
+######################################################
 def adjustConditional(S2, conditionType):
     return [S2, conditionType]
 
@@ -862,7 +860,7 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
+def codeNewVarStr(classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
     #TODO: make test case
     [fieldType, innerType] = xlator['convertType'](classes, typeSpec, 'var', '', xlator)
     varDeclareStr=''
