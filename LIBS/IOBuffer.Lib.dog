@@ -2,9 +2,9 @@
 
 struct strInnerBuf{
     me string: buf
-    me uint64: myOffset
-    me uint64: refCount
-    me uint64: endingLineNumber
+    me int64: myOffset
+    me int64: refCount
+    me int64: endingLineNumber
     their strInnerBuf: next
     their strInnerBuf: prev
 }
@@ -12,7 +12,7 @@ struct strInnerBuf{
 struct strBuf{
     their strInnerBuf: head
     their strInnerBuf: tail
-    me uint64: crntStreamSize
+    me int64: crntStreamSize
     void: putStr(their string: data) <- {
         their strInnerBuf:: innerBuf
         innerBuf.buf <- data
@@ -25,7 +25,7 @@ struct strBuf{
         tail <- innerBuf
         // Unlock
     }
-    their strInnerBuf: findInrBufWithPos(me uint64: pos) <- {
+    their strInnerBuf: findInrBufWithPos(me int64: pos) <- {
         their strInnerBuf: bufr <- head
         while(bufr!=NULL){
             if(bufr.myOffset <= pos and bufr.myOffset + bufr.buf.size() > pos){
@@ -35,13 +35,13 @@ struct strBuf{
         }
         return(NULL)
     }
-    me char: at(me uint64: pos) <- {
+    me char: at(me int64: pos) <- {
         their strInnerBuf: crntInnerBuf <- findInrBufWithPos(pos)
         if(crntInnerBuf==NULL){return(0)}
         me char: retChar <- crntInnerBuf.buf[pos-crntInnerBuf.myOffset]
         return(retChar)
     }
-    our strBufItr: getItrAt(me uint64: pos) <- {
+    our strBufItr: getItrAt(me int64: pos) <- {
         their strInnerBuf: crntInnerBuf <- findInrBufWithPos(pos)
         if(crntInnerBuf==NULL){return(NULL)}
         our strBufItr:: retVal
@@ -51,7 +51,7 @@ struct strBuf{
         retVal.status       <- bfOK
         return(retVal)
     }
-    me uint64: size() <- {return(crntStreamSize)}
+    me int64: size() <- {return(crntStreamSize)}
     me string: stringify() <- {
         me string: retVal
         their strInnerBuf: crnt <- head
@@ -71,8 +71,8 @@ struct strBuf{
 struct strBufItr{
     their strBuf: theStrBuf
     their strInnerBuf: crntInnerBuf
-    me uint64: crntRelPos
-    me uint64: crntAbsPos() <- {return(crntInnerBuf.myOffset + crntRelPos)}
+    me int64: crntRelPos
+    me int64: crntAbsPos() <- {return(crntInnerBuf.myOffset + crntRelPos)}
     me mode[bfWaiting, bfOK, bfEOB, bfError]: status
     me char: ch() <- {
         return(crntInnerBuf.buf[crntRelPos])
@@ -98,9 +98,9 @@ struct strBufItr{
 
 struct strBufRange{
     their strBuf: theStrBuf
-    me uint64: startPos
-    me uint64: endPos
-    void: INIT(me uint64: start, me uint64: end) <- {}  // inc RefCount
+    me int64: startPos
+    me int64: endPos
+    void: INIT(me int64: start, me int64: end) <- {}  // inc RefCount
     void: DEINIT() <- {} // dec RefCOunt
 }
 
