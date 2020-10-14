@@ -1,0 +1,76 @@
+// IOBuffer.Lib.dog
+
+struct strInnerBuf{
+    me string: buf
+    me uint64: myOffset
+    me uint64: refCount
+    me uint64: endingLineNumber
+    their strInnerBuf: next
+    their strInnerBuf: prev
+}
+
+struct strBuf{
+    their strInnerBuf: head
+    their strInnerBuf: tail
+    me uint64: crntStreamSize
+    void: putStr(their string: data) <- {
+        their strInnerBuf:: innerBuf
+        innerBuf.buf <- data
+        innerBuf.myOffset <- crntStreamSize
+        innerBuf.refCount <- 1
+        crntStreamSize <+- data.size()
+        // Lock
+        if(tail==NULL){ head <- innerBuf}
+        else{tail.next <- innerBuf}
+        tail <- innerBuf
+        // Unlock
+    }
+    their strInnerBuf: findInrBufWithPos(me uint64: pos) <- {
+        their strInnerBuf: bufr <- head
+        while(bufr!=NULL){
+            if(bufr.myOffset <= pos and bufr.myOffset + bufr.buf.size() > pos){
+                return(bufr)
+            }
+            bufr <- bufr.next
+        }
+        return(NULL)
+    }
+    our strBufItr: getItrAt(me uint64: pos) <- {
+        their strInnerBuf: crntInnerBuf <- findInrBufWithPos(pos)
+        if(crntInnerBuf==NULL){return(NULL)}
+        our strBufItr:: retVal
+        retVal.theStrBuf    <- self
+        retVal.crntInnerBuf <- crntInnerBuf
+        retVal.crntRelPos   <- pos - retVal.crntInnerBuf.myOffset
+        retVal.status       <- bfWaiting
+        return(retVal)
+    }
+}
+
+struct strBufItr{
+    their strBuf: theStrBuf
+    their strInnerBuf: crntInnerBuf
+    me uint64: crntRelPos
+    me uint64: crntAbsPos() <- {return(crntInnerBuf.myOffset + crntRelPos)}
+    me mode[bfWaiting, bfOK, bfEOB, bfError]: status
+    me int: goNext() <- {
+        crntRelPos <+- 1
+        if(crntRelPos >= crntInnerBuf.buf.size()){
+            crntRelPos <- 0
+            crntInnerBuf <- crntInnerBuf.next
+            if(crntInnerBuf==NULL){
+                status <- bfEOB
+            }
+        }
+        return(status)
+    }
+}
+
+struct strBufRange{
+    their strBuf: theStrBuf
+    me uint64: startPos
+    me uint64: endPos
+    void: INIT(me uint64: start, me uint64: end) <- {}  // inc RefCount
+    void: DEINIT() <- {} // dec RefCOunt
+}
+
