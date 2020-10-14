@@ -35,6 +35,12 @@ struct strBuf{
         }
         return(NULL)
     }
+    me char: at(me uint64: pos) <- {
+        their strInnerBuf: crntInnerBuf <- findInrBufWithPos(pos)
+        if(crntInnerBuf==NULL){return(0)}
+        me char: retChar <- crntInnerBuf.buf[pos-crntInnerBuf.myOffset]
+        return(retChar)
+    }
     our strBufItr: getItrAt(me uint64: pos) <- {
         their strInnerBuf: crntInnerBuf <- findInrBufWithPos(pos)
         if(crntInnerBuf==NULL){return(NULL)}
@@ -42,8 +48,23 @@ struct strBuf{
         retVal.theStrBuf    <- self
         retVal.crntInnerBuf <- crntInnerBuf
         retVal.crntRelPos   <- pos - retVal.crntInnerBuf.myOffset
-        retVal.status       <- bfWaiting
+        retVal.status       <- bfOK
         return(retVal)
+    }
+    me uint64: size() <- {return(crntStreamSize)}
+    me string: stringify() <- {
+        me string: retVal
+        their strInnerBuf: crnt <- head
+        while(crnt!=NULL){
+            retVal <- "'"+crnt.buf + "'\n"
+            crnt <- crnt.next
+        }
+        return(retVal)
+    }
+    void: init() <- {
+        head <- NULL
+        tail <- NULL
+        crntStreamSize <- 0
     }
 }
 
@@ -53,6 +74,9 @@ struct strBufItr{
     me uint64: crntRelPos
     me uint64: crntAbsPos() <- {return(crntInnerBuf.myOffset + crntRelPos)}
     me mode[bfWaiting, bfOK, bfEOB, bfError]: status
+    me char: ch() <- {
+        return(crntInnerBuf.buf[crntRelPos])
+    }
     me int: goNext() <- {
         crntRelPos <+- 1
         if(crntRelPos >= crntInnerBuf.buf.size()){
@@ -60,9 +84,15 @@ struct strBufItr{
             crntInnerBuf <- crntInnerBuf.next
             if(crntInnerBuf==NULL){
                 status <- bfEOB
-            }
+            }else{status <- bfOK}
         }
         return(status)
+    }
+    me string: stringify() <- {
+        me string: retVal
+        if(crntInnerBuf){retVal <- "'"+crntInnerBuf.buf +"'("+toString(crntRelPos)+ ")\n"}
+        else{retVal <- "NULL"}
+        return(retVal)
     }
 }
 
