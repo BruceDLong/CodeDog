@@ -7,23 +7,26 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[pthread]
-    headers=[thread]
+    headers=[thread, mutex]
 }
 
 LibDescription  ={
     useStatus   = dynamic
-    description ='Library for Webmulti-thread programming'
+    description ='Library for multi-thread programming'
     features    =[Threads]
-    Lang    =[CPP]
+    Lang        =[CPP]
 }
 
 struct Threads{
     me bool: notDone <- true
     me uint: ID()           <- {return(5);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
     bool: isActive()        <- {return(true);}
-    void: start()           <- <%{ T = std::thread(&Threads::run, this); }%>
+    void: start()           <- <%{T = std::thread(&Threads::run, this);}%>
     void: waitForExit()     <- <%{T.join();}%>
 
     me thread: T
-
+}
+struct mutex: wraps = Mutex{
+    void: lock()        <- <%!lock()%>
+    void: unlock()      <- <%!unlock()%>
 }
