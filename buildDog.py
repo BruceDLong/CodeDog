@@ -143,7 +143,7 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     workingDirectory = currentDirectory + "/" + buildName + "/" + fileName
     makeDir(buildName)
     makeDir(buildName + "/" + fileName)
-    runCMD("swift package init --type executable", workingDirectory)
+    #runCMD("swift package init --type executable", workingDirectory)
     writeFile(sourcePath, "AppDelegate", fileSpecs, fileExtension)
 
     for libFile in libFiles:

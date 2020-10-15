@@ -119,7 +119,7 @@ def codeIteratorOperation(itrCommand):
 
 def recodeStringFunctions(name, typeSpec):
     if name == "size":
-        name = "characters.count"
+        typeSpec['codeConverter']='%0.count'
         typeSpec['fieldType']='int'
     elif name == "subStr":
         typeSpec['codeConverter']='substring(from:%1, to:%2)'
@@ -687,7 +687,7 @@ extension Character {
         file.seekg(0, std::ios::end);
         S.resize(file.tellg());
         file.seekg(0, std::ios::beg);
-        file.read((char*)S.c_str(), S.characters.count);
+        file.read((char*)S.c_str(), S.count);
         return S;  //No errors
     }"""
     #appendGlobalFuncAcc(decl, defn)
