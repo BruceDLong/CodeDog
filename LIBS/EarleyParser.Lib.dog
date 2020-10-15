@@ -180,6 +180,7 @@ struct EParser{
         startProduction <- startProd
         textToParse.init()
         textToParse.putStr(txt)
+        textToParse.close()
         SSets.clear()
         withEach i in RANGE(0 .. txt.size()+1){
             me stateSets: newSSet
