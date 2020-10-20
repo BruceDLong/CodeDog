@@ -65,7 +65,7 @@ struct stateSets{
 }
 
 struct EParser{
-    me strBuf: textToParse
+    their strBuf: textToParse
     me int: startProduction
     me stateSets[list]: SSets
     me production[list]: grammar
@@ -175,18 +175,24 @@ struct EParser{
         }
     }
 
-    me void: initPosStateSets(me int: startProd, me string: txt) <- {
-       // print('Will parse "', txt, '" with rule ', startProd, '.\n')
+    me void: initParseFromStream(me int: startProd, their strBuf: streamBuffer) <- {
+        textToParse <- streamBuffer
         startProduction <- startProd
-        textToParse.init()
-        textToParse.putStr(txt)
-        textToParse.close()
         SSets.clear()
-        withEach i in RANGE(0 .. txt.size()+1){
+        withEach i in RANGE(0 .. textToParse.size()+1){
             me stateSets: newSSet
             SSets.pushLast(newSSet)
         }
         addProductionToStateSet(0, startProduction, 0, 0, NULL, NULL)
+    }
+
+    me void: initParseFromString(me int: startProd, me string: txt) <- {
+        // print('Will parse "', txt, '" with rule ', startProd, '.\n')
+        their strBuf:: bufToParse
+        bufToParse.init()
+        bufToParse.putStr(txt)
+        bufToParse.close()
+        initParseFromStream(startProd, bufToParse)
     }
 
     me int64: chkStr(me int64: pos, me string: s) <- {
@@ -200,7 +206,6 @@ struct EParser{
 
     me int64: scrapeUntil(me int64: pos, me string:endStr) <- {
         me char: ender <- endStr[0]
-        me int64: txtSize <- textToParse.size()
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
@@ -218,7 +223,6 @@ struct EParser{
         me string: prevCharStr <- " "
         me char: prevChar <- prevCharStr[0]
         me char: ender <- endChar[0]
-        me int64: txtSize <- textToParse.size()
         me string: escCharStr <- "\\ "
         me char: escChar <- escCharStr[0]
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
@@ -234,104 +238,104 @@ struct EParser{
     }
 
     me int64: scrapeAlphaSeq(me int64: pos) <- {
-        me int64: txtSize <- textToParse.size()
+        me int64: charsUsed <- 0
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
             if(!isalpha(ch)){
-                me int64: p <- txtItr.crntAbsPos()
-                if(p==pos){return(-1)}
-                else{return(p-pos)}
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
             }
             txtItr.goNext()
+            charsUsed <+- 1
         }
-        return(txtSize-pos)
+        return(charsUsed)
     }
     me int64: scrapeUintSeq(me int64: pos) <- {
-        me int64: txtSize <- textToParse.size()
+        me int64: charsUsed <- 0
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
             if(!isdigit(ch)){
-                me int64: p <- txtItr.crntAbsPos()
-                if(p==pos){return(-1)}
-                else{return(p-pos)}
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
             }
             txtItr.goNext()
+            charsUsed <+- 1
         }
-        return(txtSize-pos)
+        return(charsUsed)
     }
     me int64: scrapeHexNum(me int64: pos) <- {
-        me int64: txtSize <- textToParse.size()
+        me int64: charsUsed <- 0
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
             if(!isxdigit(ch)){
-                me int64: p <- txtItr.crntAbsPos()
-                if(p==pos){return(-1)}
-                else{return(p-pos)}
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
             }
             txtItr.goNext()
+            charsUsed <+- 1
         }
-        return(txtSize-pos)
+        return(charsUsed)
     }
     me int64: scrapeBinNum(me int64: pos) <- {
-        me int64: txtSize <- textToParse.size()
+        me int64: charsUsed <- 0
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
             if(!isxdigit(ch)){
-                me int64: p <- txtItr.crntAbsPos()
-                if(p==pos){return(-1)}
-                else{return(p-pos)}
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
             }
             txtItr.goNext()
+            charsUsed <+- 1
         }
-        return(txtSize-pos)
+        return(charsUsed)
     }
     me int64: scrapeAlphaNumSeq(me int64: pos) <- {
-        me int64: txtSize <- textToParse.size()
+        me int64: charsUsed <- 0
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
             if(!isalnum(ch)){
-                me int64: p <- txtItr.crntAbsPos()
-                if(p==pos){return(-1)}
-                else{return(p-pos)}
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
             }
             txtItr.goNext()
+            charsUsed <+- 1
         }
-        return(txtSize-pos)
+        return(charsUsed)
     }
     me int64: scrapeAlphaNum_Seq(me int64: pos) <- {
         me string: chars <- "_"
-        me int64: txtSize <- textToParse.size()
+        me int64: charsUsed <- 0
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
             if (!(isalnum(ch) or ch==chars[0])){
-                me int64: p <- txtItr.crntAbsPos()
-                if(p==pos){return(-1)}
-                else{return(p-pos)}
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
             }
             txtItr.goNext()
+            charsUsed <+- 1
         }
-        return(txtSize-pos)
+        return(charsUsed)
     }
 
     me int64: scrapePrintableSeq(me int64: pos) <- {
-        me int64: txtSize <- textToParse.size()
+        me int64: charsUsed <- 0
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
             if(!isprint(ch)){
-                me int64: p <- txtItr.crntAbsPos()
-                if(p==pos){return(-1)}
-                else{return(p-pos)}
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
             }
             txtItr.goNext()
+            charsUsed <+- 1
         }
-        return(txtSize-pos)
+        return(charsUsed)
     }
 
     me int64: scrapeCComment(me int:pos) <- {
@@ -360,18 +364,18 @@ struct EParser{
         return(txtSize-pos)
     }
     me int64: scrapeWS(me int64: pos) <- {
-        me int64: txtSize <- textToParse.size()
+        me int64: charsUsed <- 0
         our strBufItr: txtItr <- textToParse.getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
             if(!isspace(ch)){
-                me int64: p <- txtItr.crntAbsPos()
-                if(p==pos){return(-1)}
-                else{return(p-pos)}
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
             }
             txtItr.goNext()
+            charsUsed <+- 1
         }
-        return(txtSize-pos)
+        return(charsUsed)
     }
 
     me int64: scrapeQuotedStr(me int64: pos) <- {
