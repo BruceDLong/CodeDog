@@ -673,7 +673,7 @@ struct GLOBAL{
     our <CLASSNAME>: Parse_<CLASSNAME>(me string: textIn) <- {
         me EParser: parser
         parser.populateGrammar()
-        parser.initPosStateSets(parser.<CLASSNAME>_str, textIn)
+        parser.initParseFromString(parser.<CLASSNAME>_str, textIn)
         parser.doParse()
         if (parser.doesParseHaveError()) {
             print("Parse Error:" + parser.errorMesg + "\\n")
