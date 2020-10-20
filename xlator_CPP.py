@@ -1197,7 +1197,7 @@ def fetchXlators():
     xlators = {}
 
     xlators['LanguageName']          = "C++"
-    xlators['BuildStrPrefix']        = "g++ -g -std=gnu++14  "
+    xlators['BuildStrPrefix']        = "g++ -g -std=gnu++17  "
     xlators['fileExtension']         = ".cpp"
     xlators['typeForCounterInt']     = "int64_t"
     xlators['GlobalVarPrefix']       = ""
