@@ -145,6 +145,8 @@ def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
         RHScodeStr = 'Double('+RHScodeStr+')'
     elif LHS_KeyType == 'int' and RHS_KeyType=='char':
         RHScodeStr = RHScodeStr+'.asciiValue'
+    elif LHS_KeyType == 'string' and RHS_KeyType=='char':
+        RHScodeStr = "String(" + RHScodeStr+ ")"
     #elif LHS_KeyType != RHS_KeyType and LHS_KeyType != "mode" and LHS_KeyType != "flag" and RHS_KeyType != "ERROR" and LHS_KeyType != "struct" and LHS_KeyType != "bool":
     #    print"checkForTypeCastNeed: ", LHS_KeyType, RHS_KeyType, '        ',  RHScodeStr
 
@@ -648,24 +650,19 @@ extension String {
         return self.index(startIndex, offsetBy: from)
     }
 
-    func substring(from: Int) -> String {
-        return String(self[index(from: from)...])
-    }
-
-    func substring(to: Int) -> String {
-        return String(self[..<index(from: to)])
-    }
-
     func substring(from: Int, to:Int) -> String {
         return String(self[index(from: from)..<index(from: to)])
     }
 
-    func substring(from: Int, length:Int) -> String {
-        return String(self[index(from: from)..<index(from: length+from)])
-    }
-
-    func getChar(at: Int) -> Character {
-        return Character(self.substring(from: at, length:1))
+    subscript(index value: Int) -> Element {
+        get {
+            let i = index(startIndex, offsetBy: value)
+            return self[i]
+        } set {
+            var array = Array(self)
+            array[value] = newValue
+            self = String(array)
+        }
     }
 }
 
@@ -954,7 +951,7 @@ def extraCodeForTopOfFuntion(argList):
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
     if (containerType == "string"):
-        S= '[S.startIndex]'
+        S= '[index: '+idx+']'
     else:
         S= '[' + idx +']'
     return S
