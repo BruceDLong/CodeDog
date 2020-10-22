@@ -1,4 +1,5 @@
-# !/usr/bin/env python
+# !/usr/bin/env python3
+
 # CodeDog Xlator tester
 
 import os
@@ -47,7 +48,7 @@ struct testClass{
      'class/funcDefn':          ['struct testClass{me int: myInt <- 7-3}', 'PGB:'],
      'class/funcDecl':          ['struct testClass{me void: runTest()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
      'class/funcCallArgs':      ['struct testClass{me void: runTest()<-{testFunc2("Pass func arg.")}\nme void: testFunc2(me string: strArg)<-{print(strArg)}}', 'PGBR:Pass func arg.'],
-     'class/pureVirtualFunc':   ['struct testClass{me void: runTest()<-{me pureVirtualClass::derivedClass: DC\nDC.pureVirtualFunc ()}}\nstruct pureVirtualClass{me void: pureVirtualFunc()}\nstruct pureVirtualClass::derivedClass{me void: pureVirtualFunc()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
+     #'class/pureVirtualFunc':   ['struct testClass{me void: runTest()<-{me pureVirtualClass::derivedClass: DC\nDC.pureVirtualFunc ()}}\nstruct pureVirtualClass{me void: pureVirtualFunc()}\nstruct pureVirtualClass::derivedClass{me void: pureVirtualFunc()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
      'class/funcDefaultParams': ['struct testClass{me void: runTest()<-{DefaultParams()}\nme void: DefaultParams(me string: defaultParam<-"Default func param1.  ",me string: defaultParam2<-"Default func param2. ")<-{print(defaultParam,defaultParam2)}}', 'PGBR:Default func param1.  Default func param2. '],
      'class/funcPassAndDefault':['struct testClass{me void: runTest()<-{PassAndDefault("Pass func arg.  ")}\nme void: PassAndDefault(me string: defaultParam<-"Default func param1.  ",me string: defaultParam2<-"Default func param2. ")<-{print(defaultParam,defaultParam2)}}', 'PGBR:Pass func arg.  Default func param2. '],
      'class/funcs':             ['''
@@ -74,7 +75,7 @@ struct pureVirtualClass::derivedClass{
         print("Function was called.")
     }
 }
-''', 'PGBR:Pass func arg.  Function was called.Default func param1.  Default func param2. Pass func arg.  Default func param2. ',['class/funcDefn','class/funcDecl','class/funcCallArgs','class/pureVirtualFunc', 'class/funcDefaultParams', 'class/funcPassAndDefault']],
+''', 'PGBR:Pass func arg.  Function was called.Default func param1.  Default func param2. Pass func arg.  Default func param2. ',['class/funcDefn','class/funcDecl','class/funcCallArgs', 'class/funcDefaultParams', 'class/funcPassAndDefault']],
 #####################################################################################################
      'actions/varDecl':      ['struct testClass{me void: runTest()<-{me int: actionVarDecl}}', 'PGB:'],
      'actions/mapDecl':      ['struct testClass{me void: runTest()<-{me string[map string]:testMap}}', 'PGB:'],
@@ -225,18 +226,18 @@ def ExecCodeDogTest(testSpec, buildSpec):
         willRun = True
         testString += tags.replace('<runCodeGoesHere>', '`\nme testClass: TC\nTC.runTest()\n`') + "\n"
     else:
-        print("Unknown test spec: ",testSpec[1])
+        print(("Unknown test spec: ",testSpec[1]))
         exit(0)
 
     testString += testSpec[0] + "\n"
     out, err = RunCodeDogPrg(testString)
-    print("out: ", out)
+    #print(("out: ", out))
     if out:
-        if(out.find('Marker: Parse Successful')==-1):
+        if(out.find(b'Marker: Parse Successful')==-1):
             return "***Parse Fail***"
-        if (out.find('Marker: Code Gen Successful')==-1):
+        if (out.find(b'Marker: Code Gen Successful')==-1):
             return "***Code Gen Fail***"
-        buildMarker = out.find('Marker: Build Successful')
+        buildMarker = out.find(b'Marker: Build Successful')
         if (buildMarker==-1):
             return "***Build Fail***"
         if(not willRun):
@@ -248,7 +249,7 @@ def ExecCodeDogTest(testSpec, buildSpec):
                 if (reqSpec == out):
                     return "Success"
                 else:
-                    return "***Run Fail*** expected '"+reqSpec+"' not '"+out+"'"
+                    return "***Run Fail*** expected '"+str(reqSpec)+"' not '"+str(out)+"'"
     else: return "***Error: no out***"
 
 def runDeps(testKey):
@@ -269,7 +270,7 @@ def runListedTests(testsToRun):
     global testDefinitions
     reportText = ""
     for testKey in testsToRun:
-        print("Running test: ", testKey)
+        print(("Running test: ", testKey))
         testResult = ExecCodeDogTest(testDefinitions[testKey], buildSpec)
         #print "testResult: ", testKey, ":  ", testResult
         reportText+= testKey + ": "+testResult+  "\n"
@@ -292,7 +293,7 @@ def gatherListOfTestsToRun(keywordList):
 ###################################
 # Get command line: tests and xlator name
 if len(sys.argv)==1:
-    print("\nUsage:", sys.argv[0], "<xlatorName> [test-names...]\n")
+    print(("\nUsage:", sys.argv[0], "<xlatorName> [test-names...]\n"))
     exit(0)
 
 xlatorName = sys.argv[1]
@@ -312,7 +313,7 @@ elif(xlatorName == "swift"):
     runSpec = ".build/debug/testXlator"
     runDirectory = workingDirectory + "/SwiftBuild/testXlator"
 else:
-    print("UNKNOWN XLATOR: ", xlatorName)
+    print(("UNKNOWN XLATOR: ", xlatorName))
     exit(0)
 
 testsToRun = gatherListOfTestsToRun(testListSpec)
