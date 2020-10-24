@@ -65,7 +65,7 @@ struct stateSets{
 }
 
 struct EParser{
-    their strBuf: textToParse
+    their strBuf: streamToParse
     me int: startProduction
     me stateSets[list]: SSets
     me production[list]: grammar
@@ -77,12 +77,12 @@ struct EParser{
     me string[list]: rnames
 
     me char: getCharAt(me int64: pos) <- {
-        me char: ch <- textToParse.at(pos)
+        me char: ch <- streamToParse.at(pos)
         topOffSSets()
         return(ch)
     }
     our strBufItr: getItrAt(me int64: pos) <- {
-        our strBufItr: bufItr <- textToParse.getItrAt(pos)
+        our strBufItr: bufItr <- streamToParse.getItrAt(pos)
         topOffSSets()
         return(bufItr)
     }
@@ -109,7 +109,7 @@ struct EParser{
             their stateSets: SSet <- SSets[crntPos]
             me string: ch <- "x"
             if(crntPos+1 != SSets.size()) {
-                ch <- ""+textToParse.at(crntPos)
+                ch <- ""+streamToParse.at(crntPos)
             }
          //   print("SLOT: ", crntPos, "(", ch, ") - size: ", SSet->stateRecs.size(), "\n")
             withEach SRec in SSet.stateRecs {
@@ -187,7 +187,7 @@ struct EParser{
     }
 
     void: topOffSSets() <- {
-        me int64: sizeDiff <- (textToParse.size()+1) - SSets.size()
+        me int64: sizeDiff <- (streamToParse.size()+1) - SSets.size()
         if(sizeDiff>0){
             me stateSets: newSSet
             withEach i in RANGE(0 .. sizeDiff){
@@ -197,7 +197,7 @@ struct EParser{
     }
 
     void: initParseFromStream(me int: startProd, their strBuf: streamBuffer) <- {
-        textToParse <- streamBuffer
+        streamToParse <- streamBuffer
         startProduction <- startProd
         SSets.clear()
         topOffSSets()
@@ -630,7 +630,7 @@ struct EParser{
         errLineNum <- 1
         me int64: lastLinePos <- 0
         withEach C in RANGE(0..charPos){
-            me char: ch <- textToParse.at(C)
+            me char: ch <- streamToParse.at(C)
             if(ch == "\n"){
                 errLineNum <- errLineNum+1
                 lastLinePos <- C
@@ -730,7 +730,7 @@ struct EParser{
         if(prod.isTerm){
             print(indent, "'")
             withEach i in RANGE(SRec.originPos .. SRec.crntPos){
-                print(textToParse.at(i))
+                print(streamToParse.at(i))
             }
             print("'\n")
         } else {
@@ -753,7 +753,7 @@ struct EParser{
             startPos <- startPos+1
             endPos <- endPos-1
         }
-        our strBufItr: txtItr <- textToParse.getItrAt(startPos)
+        our strBufItr: txtItr <- streamToParse.getItrAt(startPos)
         while(txtItr != NULL and txtItr.status==bfOK and txtItr.crntAbsPos()<endPos){
             me char: ch <- txtItr.ch()
             S <- S+ch
