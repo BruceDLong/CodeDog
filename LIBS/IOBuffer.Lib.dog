@@ -33,7 +33,7 @@ struct strBuf{
         bufLock.notifyOne()
     }
     their strInnerBuf: findInrBufWithPos(me int64: pos) <- {
-        #log("in FindInrBufWithPos(): "+ toString(pos))
+        //log("in FindInrBufWithPos(): "+ toString(pos))
         me MutexMngr: bufMtxMgr{bufMutex}
         while(tail==NULL or (tail.myOffset + tail.buf.size() <= pos)){
             if(bufferClosed){return(NULL)}
