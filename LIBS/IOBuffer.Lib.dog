@@ -14,32 +14,40 @@ struct strBuf{
     their strInnerBuf: tail
     me int64: crntStreamSize
     me Mutex: bufMutex
+    me SyncLock: bufLock
     me bool: bufferClosed
 
     void: putStr(their string: data) <- {
-        if(bufferClosed){return()}
+        log("PUTTING:"+data)
+        me MutexMngr: bufMtxMgr{bufMutex}
+        if(bufferClosed){log("BUFF_CLOSED:"+data); return()}
         their strInnerBuf:: innerBuf
         innerBuf.buf <- data
         innerBuf.myOffset <- crntStreamSize
         innerBuf.refCount <- 1
         crntStreamSize <+- data.size()
-        bufMutex.lock()
-        if(tail==NULL){ head <- innerBuf}
-        else{tail.next <- innerBuf}
+        if(tail==NULL){head <- innerBuf}
+        else{tail.next <- innerBuf; innerBuf.prev <- tail}
         tail <- innerBuf
-        bufMutex.unlock()
+        log("NOTIFYING:")
+        bufLock.notifyOne()
     }
     their strInnerBuf: findInrBufWithPos(me int64: pos) <- {
-        bufMutex.lock()
-        their strInnerBuf: bufr <- head
+        #log("in FindInrBufWithPos(): "+ toString(pos))
+        me MutexMngr: bufMtxMgr{bufMutex}
+        while(tail==NULL or (tail.myOffset + tail.buf.size() <= pos)){
+            if(bufferClosed){return(NULL)}
+            log("WAITING")
+            bufLock.wait(bufMtxMgr)
+            log("DONE WAITING")
+        }
+        their strInnerBuf: bufr <- tail
         while(bufr!=NULL){
             if(bufr.myOffset <= pos and bufr.myOffset + bufr.buf.size() > pos){
-                bufMutex.unlock()
                 return(bufr)
             }
-            bufr <- bufr.next
+            bufr <- bufr.prev
         }
-        bufMutex.unlock()
         return(NULL)
     }
     me char: at(me int64: pos) <- {
@@ -59,7 +67,10 @@ struct strBuf{
         return(retVal)
     }
     void: close() <- {
+        me MutexMngr: bufMtxMgr{bufMutex}
         bufferClosed <- true
+        bufLock.notifyOne()
+        log("CLOSE-NOTIFYING:")
     }
     me int64: size() <- {return(crntStreamSize)}
     me string: stringify() <- {
@@ -91,16 +102,14 @@ struct strBufItr{
     me int: goNext() <- {
         crntRelPos <+- 1
         if(crntRelPos >= crntInnerBuf.buf.size()){
-            crntRelPos <- 0
-            crntInnerBuf <- crntInnerBuf.next
+            crntInnerBuf <- theStrBuf.findInrBufWithPos(crntAbsPos())
             if(crntInnerBuf==NULL){
-                if(theStrBuf.bufferClosed){
-                    status <- bfEOB
-                }else{ // TODO: wait for buffer to fill
-                    //theStrBuf.bufMutex.lock()
-                    status <- bfWaiting
-                }
-            }else{status <- bfOK}
+                if(theStrBuf.bufferClosed){status <- bfEOB}
+                else{status <- bfError}
+            }else{
+                crntRelPos <- 0
+                status <- bfOK
+            }
         }
         return(status)
     }

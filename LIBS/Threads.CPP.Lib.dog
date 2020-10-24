@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[pthread]
-    headers=[thread, mutex]
+    headers=[thread, mutex, condition_variable]
 }
 
 LibDescription  ={
@@ -16,7 +16,36 @@ LibDescription  ={
     features    =[Threads]
     Lang        =[CPP]
 }
+embedVeryHigh = `
+typedef  std::unique_lock<std::mutex> Unique_Lock_Mutex;
 
+class semaphore{
+public:
+    semaphore(unsigned int count=1) : m_count(count) {}
+    semaphore(const semaphore&&) = delete;
+    semaphore(semaphore&&) = delete;
+    semaphore& operator = (const semaphore&) = delete;
+    semaphore& operator = (semaphore&&) = delete;
+    ~semaphore() = default;
+
+    void post(){
+        std::unique_lock<std::mutex> lock(m_mutex);
+        ++m_count;
+        m_cv.notify_one();
+    }
+
+    void wait(){
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_cv.wait(lock, [&]{ return m_count > 0; });
+        --m_count;
+    }
+
+private:
+    std::mutex m_mutex;
+    std::condition_variable m_cv;
+    unsigned int m_count;
+};
+`
 struct Threads{
     me bool: notDone <- true
     me uint: ID()           <- {return(5);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
@@ -29,4 +58,22 @@ struct Threads{
 struct Mutex: wraps = mutex{
     void: lock()        <- <%!lock()%>
     void: unlock()      <- <%!unlock()%>
+    bool: tryLock()     <- <%!try_lock()%>
+}
+
+struct MutexMngr: wraps = Unique_Lock_Mutex{
+    void: lock()        <- <%!lock()%>
+    void: unlock()      <- <%!unlock()%>
+    bool: tryLock()     <- <%!try_lock()%>
+}
+
+struct SyncLock: wraps = condition_variable {
+    void: wait(me MutexMngr: lock)   <- <%!wait(%1)%>
+    void: notifyOne()                <- <%!notify_one()%>
+    void: notifyAll()                <- <%!notify_all()%>
+}
+
+struct Semaphore: wraps=semaphore {
+    void: post()        <- <%!post()%>
+    void: wait()        <- <%!wait()%>
 }
