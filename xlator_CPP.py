@@ -510,8 +510,11 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
             else: print("ERROR: One of <, >, <= or >= expected in code generator."); exit(2)
-            [S2, retTypeSpec] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            [S2, isDerefd]=derefPtr(S2, retTypeSpec)
+            [S2, retType2] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            if retTypeSpec!=None and not isinstance(retTypeSpec, str) and isinstance(retTypeSpec['fieldType'], str) and isinstance(retType2, str):
+                if retTypeSpec['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
+                    S2 = "'" + S2[1:-1] + "'"
+            [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
@@ -531,10 +534,10 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (i[0] == '==='): op=' == '
             else: print("ERROR: '==' or '!=' or '===' expected."); exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            rightOwner=progSpec.getTypeSpecOwner(retType2)
             if not isinstance(retTypeSpec, str) and isinstance(retTypeSpec['fieldType'], str) and isinstance(retType2, str):
                 if retTypeSpec['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
                     S2 = "'" + S2[1:-1] + "'"
+            rightOwner=progSpec.getTypeSpecOwner(retType2)
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
                 if (S2!='NULL' and S2!='nullptr' ): S=S_derefd
                 [S2, isDerefd]=derefPtr(S2, retType2)
