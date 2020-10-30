@@ -33,7 +33,7 @@ struct testClass{
     me double: myDouble
     me uint32: myUint32
     me uint64: myUint64
-    me bool: myBool
+    me bool: myBool <- false 
     const int: myConst <- 2
     me char: myChar
 }''', 'PGB:',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
@@ -55,7 +55,8 @@ struct testClass{
 struct testClass{
     me void: runTest()<-{
         testFunc2("Pass func arg.  ")
-        me pureVirtualClass::derivedClass: DC\nDC.pureVirtualFunc ()
+        me derivedClass: DC
+        DC.pureVirtualFunc ()
         DefaultParams()
         PassAndDefault("Pass func arg.  ")
     }
@@ -70,7 +71,7 @@ struct testClass{
 struct pureVirtualClass{
     me void: pureVirtualFunc()
 }
-struct pureVirtualClass::derivedClass{
+struct derivedClass: inherits=pureVirtualClass{
     me void: pureVirtualFunc()<-{
         print("Function was called.")
     }
@@ -131,35 +132,7 @@ struct testClass{
     }
 }''', 'PGBR:true 3',['actions/conditional','actions/switch']],
 #####################################################################################################
-     'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in RANGE(2..6){print(spec," ")}}}', 'PGBR:2 3 4 5 '],
-     'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward RANGE(2..6){print(RB," ")}}}', 'PGBR:5 4 3 2 '],
-     'actions/listRep':      ['struct testClass{me void: runTest()<-{me int[list]:testList<-[2,13,-22,188]\nwithEach T in testList {print(T," ")}}}', 'PGBR:2 13 -22 188 '],
-     'actions/backListRep':  ['struct testClass{me void: runTest()<-{me int[list]:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
-     'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me int[list]:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList {print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
-     'actions/mapRep':       ['struct testClass{me void: runTest()<-{me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
-     'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
-     'actions/deleteMapRep': ['struct testClass{me void: runTest()<-{me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"\nwithEach MD in testMapDel {if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}}}', 'PGBR:D-does E-every F-fine G-good '],
-     'actions/deleteListRep':['struct testClass{me void: runTest()<-{me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
-     'actions/repetitions':  ['''
-struct testClass{
-    me void: runTest()<-{
-        withEach spec in RANGE(2..6) {print(spec," ")}
-        withEach RB in Backward RANGE(2..6) {print(RB," ")}
-        me int[list]:testList<-[2,13,-22,188]
-        withEach T in testList {print(T," ")}
-        me int[list]:testListBackward<-[2,13,-22,188]
-        withEach TB in Backward testListBackward {print(TB," ")}
-        me int[list]:testKeyList<-[2,3,5,8,13,21]
-        withEach TK in testKeyList {print(TK_key,"-", TK, " ")}
-        me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
-        withEach M in testMap {print(M," ")}
-        me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
-        withEach MK in testMapKey {print(MK_key,"-",MK," ")}
-        me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"
-        withEach MD in testMapDel {if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}
-        me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}
-    }
-}''', 'PGBR:BB',['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep']],
+# TODO: make tests for 'actions/repetitions':  'actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep'
 #####################################################################################################
 
 }
@@ -233,23 +206,26 @@ def ExecCodeDogTest(testSpec, buildSpec):
     out, err = RunCodeDogPrg(testString)
     #print(("out: ", out))
     if out:
-        if(out.find(b'Marker: Parse Successful')==-1):
+        decodedOut = bytes.decode(out)
+        if(decodedOut.find('Marker: Parse Successful')==-1):
+            print(decodedOut)
             return "***Parse Fail***"
-        if (out.find(b'Marker: Code Gen Successful')==-1):
+        if (decodedOut.find('Marker: Code Gen Successful')==-1):
             return "***Code Gen Fail***"
-        buildMarker = out.find(b'Marker: Build Successful')
+        buildMarker = decodedOut.find('Marker: Build Successful')
         if (buildMarker==-1):
             return "***Build Fail***"
         if(not willRun):
             return "Success"
         else:
             out, err = runCmd(runDirectory, runSpec)
-            #print "out: ", out
+            decodedOut = bytes.decode(out)
+            #print("out: ", out)
             if (reqSpec != ""):
-                if (reqSpec == out):
+                if (reqSpec == decodedOut):
                     return "Success"
                 else:
-                    return "***Run Fail*** expected '"+str(reqSpec)+"' not '"+str(out)+"'"
+                    return "***Run Fail*** expected '"+str(reqSpec)+"' not '"+decodedOut+"'"
     else: return "***Error: no out***"
 
 def runDeps(testKey):
