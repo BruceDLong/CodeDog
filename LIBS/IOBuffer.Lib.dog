@@ -37,9 +37,9 @@ struct strBuf{
         me MutexMngr: bufMtxMgr{bufMutex}
         while(tail==NULL or (tail.myOffset + tail.buf.size() <= pos)){
             if(bufferClosed){return(NULL)}
-            log("WAITING")
+            log("WAITING(findInrBufWithPos)")
             bufLock.wait(bufMtxMgr)
-            log("DONE WAITING")
+            log("DONE_WAITING(findInrBufWithPos)")
         }
         their strInnerBuf: bufr <- tail
         while(bufr!=NULL){
