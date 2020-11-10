@@ -6,18 +6,29 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAlloc
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
-    containerSpec=typeSpec['arraySpec']
-    if 'owner' in containerSpec: owner=containerSpec['owner']
-    else: owner='me'
     idxType=''
-    if 'indexType' in containerSpec:
-        idxType=containerSpec['indexType']
-    datastructID = containerSpec['datastructID']
+    if progSpec.isAContainer(typeSpec):
+        containerSpec = progSpec.getContainerSpec(typeSpec)
+        if 'owner' in containerSpec: owner=containerSpec['owner']
+        else: owner='me'
+        if 'indexType' in containerSpec:
+            if 'IDXowner' in containerSpec['indexType']:
+                idxOwner=containerSpec['indexType']['IDXowner'][0]
+                idxType=containerSpec['indexType']['idxBaseType'][0][0]
+                idxType=applyOwner(idxOwner, idxType, '')
+            else:
+                idxType=containerSpec['indexType']['idxBaseType'][0][0]
+        if( isinstance(containerSpec['datastructID'], str) ):
+            datastructID = containerSpec['datastructID']
+        else:   # it's a parseResult
+            datastructID = containerSpec['datastructID'][0]
+    else:
+        owner = typeSpec['owner']
+        datastructID = 'None'
     return [datastructID, idxType, owner]
 
 def adjustBaseTypes(fieldType):
     if(isinstance(fieldType, str)):
-        #print"adjustBaseTypes:basestring",fieldType
         if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='uint32'): fieldType='UInt32'
         elif(fieldType=='int8' or fieldType=='int16' or fieldType=='int32'): fieldType='Int32'
         elif(fieldType=='uint64'):fieldType='UInt64'
@@ -35,9 +46,7 @@ def adjustBaseTypes(fieldType):
     return langType
 
 def applyOwner(owner, langType, varMode):
-    if owner=='const':
-        langType = langType
-    elif owner=='me':
+    if owner=='me':
         langType = langType
     elif owner=='my':
         langType = langType
@@ -47,6 +56,8 @@ def applyOwner(owner, langType, varMode):
         langType  = langType
     elif owner=='itr':
         langType += '::iterator'
+    elif owner=='const':
+        langType = langType
     elif owner=='we':
         langType += 'public static'
     else:
@@ -68,18 +79,20 @@ def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
             else: owner=ownerIn
     return owner
 
-def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
+def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
+    # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     fieldAttrs=''
     langType = adjustBaseTypes(fieldType)
     if varMode != 'alloc':
         fieldAttrs = applyOwner(owner, langType, varMode)
-    if 'arraySpec' in TypeSpec:
-        arraySpec=TypeSpec['arraySpec']
+    if 'arraySpec' in typeSpec:
+        arraySpec=typeSpec['arraySpec']
         if(arraySpec): # Make list, map, etc
-            [containerType, idxType, owner]=getContainerType(TypeSpec, '')
-            if 'owner' in TypeSpec['arraySpec']:
-                containerOwner=TypeSpec['arraySpec']['owner']
+            [containerType, idxType, owner]=getContainerType(typeSpec, '')
+            if 'owner' in typeSpec['arraySpec']:
+                containerOwner=typeSpec['arraySpec']['owner']
             else: containerOwner='me'
+
             idxType=adjustBaseTypes(idxType)
             if idxType=='timeValue': idxType = 'Int64'
 
@@ -92,7 +105,7 @@ def xlateLangType(TypeSpec, owner, fieldType, varMode, xlator):
             if varMode != 'alloc':
                 fieldAttrs=applyOwner(containerOwner, langType, varMode)
 
-    if varMode != 'alloc' and progSpec.typeIsPointer(TypeSpec):
+    if varMode != 'alloc' and progSpec.typeIsPointer(typeSpec):
         langType+='?'    # Make pointer func args optionals
     return [langType, fieldAttrs]   # E.g.: langType='uint', file
 
@@ -101,15 +114,19 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     owner=typeSpec['owner']
     fieldType=typeSpec['fieldType']
     if not isinstance(fieldType, str):
-        fieldType=fieldType[0]
+        if len(fieldType) > 1 and fieldType[1] == "..":
+            fieldType = "int"
+        else:
+            fieldType=fieldType[0]
     baseType = progSpec.isWrappedType(classes, fieldType)
     if(baseType!=None):
         owner=baseType['owner']
         fieldType=baseType['fieldType']
     if(fieldType=='<%'): return fieldType[1][0]
-    return xlateLangType(typeSpec, owner, fieldType, varMode, xlator)
+    retVal = xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator)
+    return retVal
 
-def codeIteratorOperation(itrCommand):
+def codeIteratorOperation(itrCommand, fieldType):
     result = ''
     if itrCommand=='goNext':  result='%0.next()'
     elif itrCommand=='goPrev':result='%0.Swift ERROR!'
@@ -306,7 +323,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecOut, par
 ######################################################   E X P R E S S I O N   C O D I N G
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varFuncRef)
-    #print ('                  factor: ', item)
+    #print('                  factor: ', item)
     S=''
     #TODO:get correct retTypeSpec
     retTypeSpec='noType'
@@ -448,7 +465,7 @@ def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     if len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print ('      IsEq ', i)
+            #print('      IsEq ', i)
             if (i[0] == '^'):
                 [S2, retTypeSpec] = codeIOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S2=derefPtr(S2, retTypeSpec)
@@ -470,7 +487,7 @@ def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print ('   And item:', item)
+    #print('   And item:', item)
     [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=derefPtr(S, retTypeSpec)

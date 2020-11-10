@@ -115,7 +115,7 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, actionOrField, xlator)
     return retVal
 
-def codeIteratorOperation(itrCommand, codeIteratorOperation):
+def codeIteratorOperation(itrCommand, fieldType):
     result = ''
     if itrCommand=='goNext':  result='%0.next()'
     elif itrCommand=='goPrev':result='%0.JAVA ERROR!'

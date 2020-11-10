@@ -67,19 +67,17 @@ def applyOwner(owner, langType, varMode):
     return langType
 
 def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
-    owner=typeSpec['owner']
+    ownerOut = ownerIn
     baseType = progSpec.isWrappedType(classes, fieldType)
     if baseType!=None:  # TODO: When this is all tested and stable, un-hardcode and optimize this!!!!!
         if 'ownerMe' in baseType:
-            if owner=='their':
-                if varMode=='arg': owner='their'
-                else: owner = 'their'
-            elif owner=='me':
-                owner = 'their'
+            ownerOut = 'their'
         else:
-            if varMode=='var':owner=baseType['owner']   # TODO: remove this condition: accomodates old list type generated in stringStructs
-            else: owner=ownerIn
-    return owner
+            if varMode=='var':
+                ownerOut=baseType['owner']   # TODO: remove this condition: accomodates old list type generated in stringStructs
+            else:
+                ownerOut=ownerIn
+    return ownerOut
 
 def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
