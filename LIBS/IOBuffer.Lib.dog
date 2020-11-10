@@ -37,9 +37,9 @@ struct strBuf{
         me MutexMngr: bufMtxMgr{bufMutex}
         while(tail==NULL or (tail.myOffset + tail.buf.size() <= pos)){
             if(bufferClosed){return(NULL)}
-            log("WAITING")
+            log("WAITING(findInrBufWithPos)")
             bufLock.wait(bufMtxMgr)
-            log("DONE WAITING")
+            log("DONE_WAITING(findInrBufWithPos)")
         }
         their strInnerBuf: bufr <- tail
         while(bufr!=NULL){
@@ -65,6 +65,24 @@ struct strBuf{
         retVal.crntRelPos   <- pos - retVal.crntInnerBuf.myOffset
         retVal.status       <- bfOK
         return(retVal)
+    }
+    me string:atSafe(me int64: pos) <- {
+        // Use this to print or log; Won't return 0 or block
+        if(tail==NULL){return("BufEmpty")}
+        if(tail.myOffset + tail.buf.size() <= pos){return("PastEOB")}
+        their strInnerBuf: bufr <- tail
+        while(bufr!=NULL){
+            if(bufr.myOffset <= pos and bufr.myOffset + bufr.buf.size() > pos){
+                me char: ch <- bufr.buf[pos-bufr.myOffset]
+                if(ch=="\n"){return("\\n")}
+                if(ch=="\t"){return("\\t")}
+                if(ch<" "){me int: chNum<-ch; return("\\"+toString(chNum))}
+                me string: S; S <+- ch
+                return(S)
+            }
+            bufr <- bufr.prev
+        }
+        return("BufERROR")
     }
     void: close() <- {
         me MutexMngr: bufMtxMgr{bufMutex}

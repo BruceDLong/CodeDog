@@ -1154,9 +1154,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     funcBodyIndent   = xlator['funcBodyIndent']
     funcsDefInClass  = xlator['funcsDefInClass']
     MakeConstructors = xlator['MakeConstructors']
-    globalFuncsAcc=''
-    funcDefCodeAcc=''
+    globalFuncsAcc=""
+    funcDefCodeAcc=""
     structCodeAcc=""
+    topFuncDefCodeAcc="" # For defns that must appear first in the code. TODO: sort items instead
     ObjectDef = classes[0][className]
     for field in progSpec.generateListOfFieldsToImplement(classes, className):
         ################################################################
@@ -1166,6 +1167,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         funcDefCode=""
         structCode=""
         globalFuncs=""
+        topFuncDefCode=""
         funcText=""
         fieldID   =field['fieldID']
         typeSpec =field['typeSpec']
@@ -1219,7 +1221,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
         ############ CODE MEMBER VARIABLE ##########################################################
         if(fieldOwner=='const'):
-            [structCode, funcDefCode] = xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, className, indent, xlator )
+            [structCode, topFuncDefCode] = xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, className, indent, xlator )
         elif(fieldArglist==None):
             [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent)
 
@@ -1319,14 +1321,16 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
 
         ## Accumulate field code
-        structCodeAcc  += structCode
-        funcDefCodeAcc += funcDefCode
-        globalFuncsAcc += globalFuncs
+        structCodeAcc     += structCode
+        funcDefCodeAcc    += funcDefCode
+        globalFuncsAcc    += globalFuncs
+        topFuncDefCodeAcc += topFuncDefCode
 
     # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
     if MakeConstructors=='True' and (className!='GLOBAL')  and (className!='widget'):
         constructCode=codeConstructor(classes, className, tags, objsRefed, xlator)
         structCodeAcc+= "\n"+constructCode
+    funcDefCodeAcc = topFuncDefCodeAcc + funcDefCodeAcc
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
 def processDependancies(classes, item, searchList, newList):
