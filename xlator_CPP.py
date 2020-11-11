@@ -555,7 +555,7 @@ def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
             #print('      IsEq ', i)
             [S2, retType2] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
-            S+= ' & '+S2
+            S+= ' | '+S2
     return [S, retTypeSpec]
 
 def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
