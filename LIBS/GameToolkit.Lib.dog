@@ -150,16 +150,16 @@ struct GameLooper{
             crntGameMode.handleEvent(event);
         }
     }
-    our GameMode[list]: modeStack
+    me List<our GameMode>: modeStack
 
     void: outputFPS() <- {
-	latestTickCount <- getTickCount()
-	if ((latestTickCount - lastTickLog) >= 3000) {
-	    recentFPS <- (framesDrawnCount - framesLog) / 3
-	    print("\nIn the last three seconds: ", recentFPS, " FPS\n")
-	    lastTickLog <- latestTickCount
-	    framesLog <- framesDrawnCount
-	}
+        latestTickCount <- getTickCount()
+        if ((latestTickCount - lastTickLog) >= 3000) {
+            recentFPS <- (framesDrawnCount - framesLog) / 3
+            print("\nIn the last three seconds: ", recentFPS, " FPS\n")
+            lastTickLog <- latestTickCount
+            framesLog <- framesDrawnCount
+        }
     }
     void: runNoWait() <- {
         while(running){
@@ -179,16 +179,16 @@ struct GameLooper{
             handleEvents()
             crntGameMode.update()
             their GUI_ctxt: cr  <- createGUI_ctxt()
-	    framesDrawnCount <+- 1
+            framesDrawnCount <+- 1
             crntGameMode.draw(cr, 0)
             nextTick <+- ticksToSkip
             timeToSleep <- nextTick - getTickCount()
-	    if (printFPS) {outputFPS()}
+            if (printFPS) {outputFPS()}
             if(timeToSleep > 0) {sleep(timeToSleep)}
-	    else {log("FRAMES MISSED")}
+            else {log("FRAMES MISSED")}
         }
     }
-    void: runMaxFPS(me int: gameSpeed) <- { 	// Constant Game speed, max FPS
+    void: runMaxFPS(me int: gameSpeed) <- {     // Constant Game speed, max FPS
         me int: ticksToSkip   <- 1000 / gameSpeed
         me int: MAX_FRAMESKIP <- 10
         me timeValue: nextTick <- getTickCount()

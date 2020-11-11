@@ -67,19 +67,17 @@ def applyOwner(owner, langType, varMode):
     return langType
 
 def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
-    owner=typeSpec['owner']
+    ownerOut = ownerIn
     baseType = progSpec.isWrappedType(classes, fieldType)
     if baseType!=None:  # TODO: When this is all tested and stable, un-hardcode and optimize this!!!!!
         if 'ownerMe' in baseType:
-            if owner=='their':
-                if varMode=='arg': owner='their'
-                else: owner = 'their'
-            elif owner=='me':
-                owner = 'their'
+            ownerOut = 'their'
         else:
-            if varMode=='var':owner=baseType['owner']   # TODO: remove this condition: accomodates old list type generated in stringStructs
-            else: owner=ownerIn
-    return owner
+            if varMode=='var':
+                ownerOut=baseType['owner']   # TODO: remove this condition: accomodates old list type generated in stringStructs
+            else:
+                ownerOut=ownerIn
+    return ownerOut
 
 def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
@@ -510,8 +508,11 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
             else: print("ERROR: One of <, >, <= or >= expected in code generator."); exit(2)
-            [S2, retTypeSpec] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            [S2, isDerefd]=derefPtr(S2, retTypeSpec)
+            [S2, retType2] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            if retTypeSpec!=None and not isinstance(retTypeSpec, str) and isinstance(retTypeSpec['fieldType'], str) and isinstance(retType2, str):
+                if retTypeSpec['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
+                    S2 = "'" + S2[1:-1] + "'"
+            [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
@@ -531,10 +532,10 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (i[0] == '==='): op=' == '
             else: print("ERROR: '==' or '!=' or '===' expected."); exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            rightOwner=progSpec.getTypeSpecOwner(retType2)
             if not isinstance(retTypeSpec, str) and isinstance(retTypeSpec['fieldType'], str) and isinstance(retType2, str):
                 if retTypeSpec['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
                     S2 = "'" + S2[1:-1] + "'"
+            rightOwner=progSpec.getTypeSpecOwner(retType2)
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
                 if (S2!='NULL' and S2!='nullptr' ): S=S_derefd
                 [S2, isDerefd]=derefPtr(S2, retType2)

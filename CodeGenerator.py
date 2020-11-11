@@ -1154,9 +1154,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     funcBodyIndent   = xlator['funcBodyIndent']
     funcsDefInClass  = xlator['funcsDefInClass']
     MakeConstructors = xlator['MakeConstructors']
-    globalFuncsAcc=''
-    funcDefCodeAcc=''
+    globalFuncsAcc=""
+    funcDefCodeAcc=""
     structCodeAcc=""
+    topFuncDefCodeAcc="" # For defns that must appear first in the code. TODO: sort items instead
     ObjectDef = classes[0][className]
     for field in progSpec.generateListOfFieldsToImplement(classes, className):
         ################################################################
@@ -1166,8 +1167,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         funcDefCode=""
         structCode=""
         globalFuncs=""
+        topFuncDefCode=""
         funcText=""
-        fieldID   =field['fieldID']
+        fieldID  =field['fieldID']
         typeSpec =field['typeSpec']
         fieldType=progSpec.getFieldType(typeSpec)
         if progSpec.doesClassHaveProperty(globalClassStore, fieldType, 'metaClass'):
@@ -1179,9 +1181,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         fieldName =field['fieldName']
-        structToImplement = chooseStructImplementationToUse(typeSpec)
-        if(structToImplement != None):
-            typeSpec['fieldType'][0] = structToImplement
         isAllocated = field['isAllocated']
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
@@ -1219,7 +1218,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
         ############ CODE MEMBER VARIABLE ##########################################################
         if(fieldOwner=='const'):
-            [structCode, funcDefCode] = xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, className, indent, xlator )
+            [structCode, topFuncDefCode] = xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, className, indent, xlator )
         elif(fieldArglist==None):
             [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent)
 
@@ -1240,6 +1239,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
                     if progSpec.typeIsPointer(argTypeSpec): arg
+                    structToImplement = chooseStructImplementationToUse(argTypeSpec)
+                    if(structToImplement != None):
+                        argTypeSpec['fieldType'][0] = structToImplement
                     [argType, innerType] = xlator['convertType'](classes, argTypeSpec, 'arg', 'field', xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
@@ -1319,14 +1321,16 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
 
         ## Accumulate field code
-        structCodeAcc  += structCode
-        funcDefCodeAcc += funcDefCode
-        globalFuncsAcc += globalFuncs
+        structCodeAcc     += structCode
+        funcDefCodeAcc    += funcDefCode
+        globalFuncsAcc    += globalFuncs
+        topFuncDefCodeAcc += topFuncDefCode
 
     # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
     if MakeConstructors=='True' and (className!='GLOBAL')  and (className!='widget'):
         constructCode=codeConstructor(classes, className, tags, objsRefed, xlator)
         structCodeAcc+= "\n"+constructCode
+    funcDefCodeAcc = topFuncDefCodeAcc + funcDefCodeAcc
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
 def processDependancies(classes, item, searchList, newList):
@@ -1523,7 +1527,6 @@ def codeStructureCommands(classes, tags, xlator):
                 #print '     addCallProxy:', className, funcName, proxyStyle, platformTag
                 pattern_WriteCallProxy.apply(classes, tags, proxyStyle, className, funcName, platformTag)
 
-
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
     if tagVal==None: return "Tag '"+tagName+"' is not set in the dog file."
@@ -1595,6 +1598,16 @@ def connectLibraries(classes, tags, libsToUse, xlator):
         [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], tags[0], macroDefs)
 
     return headerStr
+
+def convertTemplateClasses(classes, tags):
+    structsToImplement = fetchListOfStructsToImplement(classes, tags)
+    for className in structsToImplement:
+        for field in progSpec.generateListOfFieldsToImplement(classes, className):
+            typeSpec =field['typeSpec']
+            fieldName =field['fieldName']
+            structToImplement = chooseStructImplementationToUse(typeSpec)
+            if(structToImplement != None):
+                typeSpec['fieldType'][0] = structToImplement
 
 def appendGLOBALInitCode(classes, tags, xlator):
     for field in progSpec.generateListOfFieldsToImplement(classes, "GLOBAL"):
@@ -1716,6 +1729,9 @@ def generate(classes, tags, libsToUse, langName, xlator):
     globalTagStore=tags[0]
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(classes, tags, libsToUse, xlator)
+
+    cdlog(0, "\n##############  C O N V E R T I N G    T E M P L A T E S")
+    convertTemplateClasses(classes, tags)
 
     cdlog(0, "\n##############  G E N E R A T I N G   "+langName+"   C O D E . . .")
     cdlog(1, "GENERATING: Top-level (e.g., main())...")

@@ -55,6 +55,7 @@ struct EParser{
 #CONST_CODE_HERE
 
     void: populateGrammar() <- {
+        setQuickParse(false)
         clearGrammar()
 #GRAMMAR_CODE_HERE
     }
@@ -671,17 +672,18 @@ def writeParserWrapperFunction(classes, className):
     S='''
 struct GLOBAL{
     our <CLASSNAME>: Parse_<CLASSNAME>(me string: textIn) <- {
+        our <CLASSNAME>: result
         me EParser: parser
         parser.populateGrammar()
         parser.initParseFromString(parser.<CLASSNAME>_str, textIn)
         parser.doParse()
         if (parser.doesParseHaveError()) {
             print("Parse Error:" + parser.errorMesg + "\\n")
+        } else {
+            our stateRec: topItem <- parser.resolve(parser.lastTopLevelItem, "")
+            Allocate(result)
+            parser.Extract_<CLASSNAME>_to_<CLASSNAME>(topItem, result)
         }
-        our stateRec: topItem <- parser.resolve(parser.lastTopLevelItem, "")
-        our <CLASSNAME>: result
-        Allocate(result)
-        parser.Extract_<CLASSNAME>_to_<CLASSNAME>(topItem, result)
         return(result)
     }
 }
