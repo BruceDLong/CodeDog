@@ -461,13 +461,13 @@ def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
 
 def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('   xOR item:', item)
-    [S, retTypeSpec]=codeIOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    [S, retTypeSpec]=codeAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print('      IsEq ', i)
             if (i[0] == '^'):
-                [S2, retTypeSpec] = codeIOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                [S2, retTypeSpec] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S2=derefPtr(S2, retTypeSpec)
                 S+=' ^ ' + S2
             else: print("ERROR: '^' expected in code generator."); exit(2)
