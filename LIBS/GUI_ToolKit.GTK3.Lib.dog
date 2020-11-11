@@ -201,12 +201,12 @@ struct enumWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GtkWidget: dataValue
-    me string[list]: options
+    me List<me string>: options
 
     me int: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_combo_box_set_active((GtkComboBox*)%0->dataValue, %1)%>
     me void: clear() <- <%{}%>
-    their GUI_Frame: initWidget(me string: label, me string[list]: Options)  <- <%{
+    their GUI_Frame: initWidget(me string: label, me List<me string>: Options)  <- <%{
         options = Options;
         box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(label.data());
