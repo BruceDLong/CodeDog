@@ -1067,6 +1067,6 @@ def whenExit():
     print("\n")
 
 def saveTextToErrFile(textToSave):
-    text_file = open("ErrFile.txt", "w")
+    text_file = open("ErrFile.dog", "w")
     text_file.write(textToSave)
     text_file.close()
