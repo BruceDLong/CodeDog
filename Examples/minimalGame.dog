@@ -30,7 +30,7 @@ struct AlienShip{
     me double: y
 }
 struct AlienArmada{
-    our AlienShip[list]: aliens
+    me List<our AlienShip>: aliens
     me int: alien1Width
     me int: alien1Height
     me int: leftMostPos
@@ -229,7 +229,7 @@ struct GamePlayScreen: inherits=GameMode{
     me int: playerPosition
     me int: shipWidth
     me int: shipOffsetY
-    our Bullet[list]: bullets
+    me List<our Bullet>: bullets
     me AlienArmada: armada
 
     void: update() <- {
@@ -239,7 +239,7 @@ struct GamePlayScreen: inherits=GameMode{
         while (bulletIdx < bullets.size()){
             our Bullet: bullet <- bullets[bulletIdx]
             if(bullet.update()){
-                bullets.DeleteNth(bulletIdx)
+                bullets.deleteNth(bulletIdx)
             }else{
                 bulletIdx <- bulletIdx + 1
             }
@@ -274,8 +274,8 @@ struct GamePlayScreen: inherits=GameMode{
                     our AlienShip: alien <- armada.aliens[alienIdx]
                     if(pointIsInRectangle(bullet.x, bullet.y, alien.x, alien.y, armada.alien1Width, armada.alien1Height)){
                         explosion1.play()
-                        bullets.DeleteNth(bulletIdx)
-                        armada.aliens.DeleteNth(alienIdx)
+                        bullets.deleteNth(bulletIdx)
+                        armada.aliens.deleteNth(alienIdx)
                         playerScore <+- 1
                         bulletIdx <-- 1
                         alienIdx  <-- 1
