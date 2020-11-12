@@ -1,19 +1,20 @@
-// minimalGUI2.dog
+// minimalGUI.dog
 
 LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 //AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
 
-Title = "minimalGUI2"
-FileName = "minimalGUI2"
+Title = "minimalGUI"
+FileName = "minimalGUI"
 Version = "1.0"
 CopyrightMesg = "Public Domain"
 Authors = "Bruce Long"
 Description = "This is an example of a very minimal GUI"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [GUI_ToolKit, Dashboard]
+featuresNeeded = [GUI_ToolKit, Dashboard, List]
 
 LicenseText = `Public Domain`
 

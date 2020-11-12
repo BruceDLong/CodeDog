@@ -201,12 +201,12 @@ struct enumWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Frame: box
     their GUI_Label: dataLabel
     their GtkWidget: dataValue
-    me string[list]: options
+    me List<me string>: options
 
     me int: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
     me void: setValue(me int: val) <- <%!gtk_combo_box_set_active((GtkComboBox*)%0->dataValue, %1)%>
     me void: clear() <- <%{}%>
-    their GUI_Frame: initWidget(me string: label, me string[list]: Options)  <- <%{
+    their GUI_Frame: initWidget(me string: label, me List<me string>: Options)  <- <%{
         options = Options;
         box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(label.data());
@@ -274,8 +274,8 @@ struct TimeWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_ComboBox: hourBox
     their GUI_ComboBox: minuteBox
     me timeValue:       data
-    me int[list]:       hours
-    me int[list]:       minutes
+    me List<int>:       hours
+    me List<int>:       minutes
 
     their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
         ///// HOUR //////////////////////////////////
@@ -508,7 +508,7 @@ struct GLOBAL{
     their GtkWidget: makeEntryBox(me string: label)             <- <%!%Ggtk_entry_new()%>
     void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
         <- <%!%Ggtk_entry_set_completion((GtkEntry*)%1, %2)%>
-    their GtkEntryCompletion: makeCompleter(me string: label, their GUI_CompleterList: list_store, me string[list]: items) <- <%{
+    their GtkEntryCompletion: makeCompleter(me string: label, their GUI_CompleterList: list_store, me List<me string>: items) <- <%{
         GtkEntryCompletion* completion = gtk_entry_completion_new();
         list_store = gtk_list_store_new(1, G_TYPE_STRING);
         GtkTreeIter iter;

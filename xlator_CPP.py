@@ -67,19 +67,17 @@ def applyOwner(owner, langType, varMode):
     return langType
 
 def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
-    owner=typeSpec['owner']
+    ownerOut = ownerIn
     baseType = progSpec.isWrappedType(classes, fieldType)
     if baseType!=None:  # TODO: When this is all tested and stable, un-hardcode and optimize this!!!!!
         if 'ownerMe' in baseType:
-            if owner=='their':
-                if varMode=='arg': owner='their'
-                else: owner = 'their'
-            elif owner=='me':
-                owner = 'their'
+            ownerOut = 'their'
         else:
-            if varMode=='var':owner=baseType['owner']   # TODO: remove this condition: accomodates old list type generated in stringStructs
-            else: owner=ownerIn
-    return owner
+            if varMode=='var':
+                ownerOut=baseType['owner']   # TODO: remove this condition: accomodates old list type generated in stringStructs
+            else:
+                ownerOut=ownerIn
+    return ownerOut
 
 def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
@@ -547,7 +545,7 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
-def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
+def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('      iOR item:', item)
     [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
@@ -563,14 +561,14 @@ def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
 
 def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('   xOR item:', item)
-    [S, retTypeSpec]=codeIOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    [S, retTypeSpec]=codeAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
         [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print('      IsEq ', i)
-            [S2, retType2] = codeIOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            [S2, retType2] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             S+= ' ^ '+S2
     return [S, retTypeSpec]

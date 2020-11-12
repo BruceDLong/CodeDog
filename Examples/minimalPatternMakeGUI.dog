@@ -14,7 +14,7 @@ Authors = "Bruce Long, Tiffany Lawrence"
 Description = "minimalPatternMakeGUI"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [GUI_ToolKit, Dashboard]
+featuresNeeded = [GUI_ToolKit, Dashboard,List]
 
 LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
 

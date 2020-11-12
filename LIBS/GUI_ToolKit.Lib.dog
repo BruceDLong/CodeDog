@@ -55,10 +55,10 @@ struct dateWidget: inherits=baseTypeWidget{void: onChanged()  <- {parentGuiMgr.o
 struct wizardWidget:inherits=appComponentGUI{
     me string: widgetID
     our appComponentData: _data
-    their GUI_Frame:  box
-    their GUI_ZStack: ZStack
-    me int:           activeScreenIdx
-    me string[list]:  children
+    their GUI_Frame:    box
+    their GUI_ZStack:   ZStack
+    me int:             activeScreenIdx
+    me List<me string>: children
 
     their GUI_Frame: initWidget(me string: name) <- {
         widgetID        <- name
@@ -74,10 +74,10 @@ struct wizardWidget:inherits=appComponentGUI{
     }
 }
 struct matterTerm: inherits=baseTypeWidget{
-    me string[list]: matterTypes <- ["a", "b"]
-    me int:          matterIdx   <- 0
-    me double:       term        <- 0
-    me string:       units       <- ""
+    me List<me string>: matterTypes <- ["a", "b"]
+    me int:             matterIdx   <- 0
+    me double:          term        <- 0
+    me string:          units       <- ""
     void: onChanged()  <- {parentGuiMgr.onChanged()}
 }
 struct MatterTermWidget: inherits=baseTypeWidget{
@@ -347,8 +347,8 @@ struct DateWidget: inherits=baseTypeWidget{
     their GUI_Frame:    box
     their GUI_Label:    dataLabel
     me timeValue:       data
-    me string[list]:    months <- ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
-    me int[list]:       days
+    me List<me string>: months <- ['Jan', 'Feb', 'March', 'April', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+    me List<me int>:    days
 
     their GUI_Frame: initCrnt(me string: label) <- {
         me timeValue: crntTime <- getCurrentTimeStamp()
@@ -364,8 +364,8 @@ struct TimeWidget: inherits=baseTypeWidget{
     their GUI_ComboBox: hourBox
     their GUI_ComboBox: minuteBox
     me timeValue:       data
-    me int[list]:       hours
-    me int[list]:       minutes
+    me List<me int>:       hours
+    me List<me int>:       minutes
 
     their GUI_Frame: initCrnt(me string: label) <- {
         me timeValue: crntTime <- getCurrentTimeStamp()

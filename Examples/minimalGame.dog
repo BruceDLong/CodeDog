@@ -13,7 +13,7 @@ Authors = "Bruce Long"
 Description = "This is an example of a very minimal game"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [GameToolkit]
+featuresNeeded = [GameToolkit, List]
 
 LicenseText = `Public Domain`
 
@@ -73,14 +73,14 @@ struct AlienArmada{
         withEach ship in aliens{
             ship.x <- ship.x + xToMove
             ship.y <- ship.y + yToMove
-	    if (randInt(alienShotOdds) == 0) {
-		our Bullet:: newBullet
-		newBullet.x <- ship.x + alien1Width/2
-		newBullet.y <- ship.y + alien1Height
-		newBullet.owner <- theirBullet
-		gamePlayScreen.bullets.pushFirst(newBullet)
-		gamePlayScreen.alienFires.play()
-	    }
+            if (randInt(alienShotOdds) == 0) {
+                our Bullet:: newBullet
+                newBullet.x <- ship.x + alien1Width/2
+                newBullet.y <- ship.y + alien1Height
+                newBullet.owner <- theirBullet
+                gamePlayScreen.bullets.pushFirst(newBullet)
+                gamePlayScreen.alienFires.play()
+            }
         }
     }
     void: draw(their GUI_ctxt: cr) <- {
@@ -108,12 +108,12 @@ struct AlienArmada{
     }
     void: init() <-{
         aliens.clear()
-	alien1Img.loadFromFile("assets/greenAlien.png")
+        alien1Img.loadFromFile("assets/greenAlien.png")
         alien1Width  <- alien1Img.width/scaleFactor
         alien1Height <- alien1Img.height/scaleFactor
-	addAliens(1)
-	alienSpeed <- 5
-	alienAdvance <- 30
+        addAliens(1)
+        alienSpeed <- 5
+        alienAdvance <- 30
     }
 }
 struct Bullet{
@@ -141,11 +141,11 @@ struct Bullet{
             cr.moveTo(x, y)
             cr.lineTo(x, y+15)
         } else if(owner == theirBullet) {
-	    cr.setColor(Styler.Yellow)
+            cr.setColor(Styler.Yellow)
             cr.setLineWidth(8)
             cr.moveTo(x, y)
             cr.lineTo(x, y-15)
-	}
+        }
         cr.strokeNow()
     }
 }
@@ -155,27 +155,27 @@ struct GameMenuScreen: inherits=GameMode{
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         textY <- 100
-	cr.setColor(Styler.DarkSlateBlue)
+        cr.setColor(Styler.DarkSlateBlue)
         cr.rectangle(0,0,screenWidth, screenHeight)
         cr.fillNow()
 
         cr.setColor(Styler.White)
         our fontSpec:: testFont {"Ariel", 20, 0}
-	if (winner) {
-	    renderTextCentered(cr, "WINNER!", testFont, screenWidth/2, textY)
-	    textY <+- 100
-	}
-	if (finalScore) {
-	    renderTextCentered(cr, "Final Score: " + toString(finalScore), testFont, screenWidth/2, textY)
-	    textY <+- 100
-	    renderTextCentered(cr, "Press Space to Play Again!", testFont, screenWidth/2, textY)
-	    textY <+- 100
-	} else {
-	    renderTextCentered(cr, "Press Space to Play!", testFont, screenWidth/2, textY)
-	    textY <+- 100
-	}
+        if (winner) {
+            renderTextCentered(cr, "WINNER!", testFont, screenWidth/2, textY)
+            textY <+- 100
+        }
+        if (finalScore) {
+            renderTextCentered(cr, "Final Score: " + toString(finalScore), testFont, screenWidth/2, textY)
+            textY <+- 100
+            renderTextCentered(cr, "Press Space to Play Again!", testFont, screenWidth/2, textY)
+            textY <+- 100
+        } else {
+            renderTextCentered(cr, "Press Space to Play!", testFont, screenWidth/2, textY)
+            textY <+- 100
+        }
         renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, textY)
-	textY <+- 100
+        textY <+- 100
         cr.strokeNow()
         window.requestRedraw()
     }
@@ -184,8 +184,8 @@ struct GameMenuScreen: inherits=GameMode{
     void: keyDownEventHandler(their KeyInfo: event) <- {
         switch (event.sym){
             case SDLK_SPACE:{
-		setUpGame()
-		looper.setGameMode(gamePlayScreen)
+                setUpGame()
+                looper.setGameMode(gamePlayScreen)
             }
             case SDLK_ESCAPE:{
                 looper.quitGame()
@@ -202,7 +202,7 @@ struct GamePauseScreen: inherits=GameMode{
         our fontSpec:: testFont {"Ariel", 20, 0}
         renderTextCentered(cr, "PAUSED", testFont, screenWidth/2, 200)
         renderTextCentered(cr, "Press Space to Continue Playing", testFont, screenWidth/2, 300)
-	renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, 400)
+        renderTextCentered(cr, "Press Escape to Exit", testFont, screenWidth/2, 400)
         cr.strokeNow()
         window.requestRedraw()
     }
@@ -215,7 +215,7 @@ struct GamePauseScreen: inherits=GameMode{
             }
             case SDLK_ESCAPE:{
                 finalScore <- playerScore
-		looper.setGameMode(gameMenuScreen)
+                looper.setGameMode(gameMenuScreen)
             }
         }
     }
@@ -233,8 +233,8 @@ struct GamePlayScreen: inherits=GameMode{
     me AlienArmada: armada
 
     void: update() <- {
-	if(movingLeft){playerPosition <- max(shipWidth/2, playerPosition - playerMovement)}
-	if(movingRight) {playerPosition <- min(screenWidth-shipWidth/2, playerPosition + playerMovement)}
+        if(movingLeft){playerPosition <- max(shipWidth/2, playerPosition - playerMovement)}
+        if(movingRight) {playerPosition <- min(screenWidth-shipWidth/2, playerPosition + playerMovement)}
         me int: bulletIdx <- 0
         while (bulletIdx < bullets.size()){
             our Bullet: bullet <- bullets[bulletIdx]
@@ -250,7 +250,7 @@ struct GamePlayScreen: inherits=GameMode{
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         displayBackgroundImage(cr, "assets/level1Background.png")
         shipOffsetY <- screenHeight/10
-	displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, screenHeight-shipOffsetY, scaleFactor, scaleFactor)
+        displayImage(cr, "assets/ship1.png", playerPosition-shipWidth/2, screenHeight-shipOffsetY, scaleFactor, scaleFactor)
         armada.draw(cr)
         withEach bullet in bullets{
             bullet.draw(cr)
@@ -265,10 +265,10 @@ struct GamePlayScreen: inherits=GameMode{
     }
     void: detectCollisions() <- {
         // Bullet on ship collisions
-	me int: bulletIdx <- 0
+        me int: bulletIdx <- 0
         while (bulletIdx < bullets.size()){
             our Bullet: bullet <- bullets[bulletIdx]
-            if(bullet.owner == ourBullet){		// alien is hit
+            if(bullet.owner == ourBullet){              // alien is hit
                 me int: alienIdx <- 0
                 while(alienIdx < armada.aliens.size()){
                     our AlienShip: alien <- armada.aliens[alienIdx]
@@ -279,34 +279,34 @@ struct GamePlayScreen: inherits=GameMode{
                         playerScore <+- 1
                         bulletIdx <-- 1
                         alienIdx  <-- 1
-			if (armada.aliens.size() == 0) {	// last alien is hit
-			    winner <- true
-			    finalScore <- playerScore
-			    looper.setGameMode(gameMenuScreen)
-			}
+                        if (armada.aliens.size() == 0) {        // last alien is hit
+                            winner <- true
+                            finalScore <- playerScore
+                            looper.setGameMode(gameMenuScreen)
+                        }
                     }
                     alienIdx  <- alienIdx  + 1
                 }
-            }else if(bullet.owner == theirBullet){	// player is hit
-		if(pointIsInRectangle(bullet.x, bullet.y, playerPosition - shipWidth/2, screenHeight - shipOffsetY, shipWidth, 100)){
-		    explosion1.play()
-		    finalScore <- playerScore
-		    looper.setGameMode(gameMenuScreen)
-		}
+            }else if(bullet.owner == theirBullet){      // player is hit
+                if(pointIsInRectangle(bullet.x, bullet.y, playerPosition - shipWidth/2, screenHeight - shipOffsetY, shipWidth, 100)){
+                    explosion1.play()
+                    finalScore <- playerScore
+                    looper.setGameMode(gameMenuScreen)
+                }
             }
             bulletIdx <- bulletIdx + 1
         }
-	// Ship on ship collisions
-	me int: alienIdx <- 0
-	while(alienIdx < armada.aliens.size()){
-	    our AlienShip: alien <- armada.aliens[alienIdx]
-	    if(pointIsInRectangle(alien.x, alien.y, playerPosition, screenHeight - shipOffsetY, shipWidth, 100)){
-		explosion1.play()
-		finalScore <- playerScore
-		looper.setGameMode(gameMenuScreen)
-	    }
-	    alienIdx  <- alienIdx  + 1
-	}
+        // Ship on ship collisions
+        me int: alienIdx <- 0
+        while(alienIdx < armada.aliens.size()){
+            our AlienShip: alien <- armada.aliens[alienIdx]
+            if(pointIsInRectangle(alien.x, alien.y, playerPosition, screenHeight - shipOffsetY, shipWidth, 100)){
+                explosion1.play()
+                finalScore <- playerScore
+                looper.setGameMode(gameMenuScreen)
+            }
+            alienIdx  <- alienIdx  + 1
+        }
     }
     void: pause() <- {}
     void: resume() <- {}
@@ -325,12 +325,12 @@ struct GamePlayScreen: inherits=GameMode{
                 looper.setGameMode(gamePauseScreen)
             }
             case SDLK_LEFT:{
-		movingLeft <- true
-                
+                movingLeft <- true
+
             }
             case SDLK_RIGHT:{
-		movingRight <- true
-                
+                movingRight <- true
+
             }
             case SDLK_f:{toggleFullScreen()}
         }
@@ -353,7 +353,7 @@ struct GamePlayScreen: inherits=GameMode{
                 movingLeft <- false
             }
             case SDLK_RIGHT:{
-		movingRight <- false
+                movingRight <- false
             }
             case SDLK_f:{toggleFullScreen()}
         }
@@ -362,13 +362,13 @@ struct GamePlayScreen: inherits=GameMode{
         looper <- ourLooper
         playerPosition <- screenWidth/2
         shipWidth      <- 136/scaleFactor
-	bullets.clear()
+        bullets.clear()
         playerFires.loadFromFile("assets/fire1.wav")
-	alienFires.loadFromFile("assets/fire2.wav")
+        alienFires.loadFromFile("assets/fire2.wav")
         explosion1.loadFromFile("assets/explosion1.wav")
         armada.init()
-	movingLeft <- false
-	movingRight <- false
+        movingLeft <- false
+        movingRight <- false
     }
     void: deInit() <- {}
 }
@@ -386,17 +386,17 @@ struct GLOBAL{
     const int: scaleFactor <- 2
     const int: bulletSpeed <- 30
     const int: playerMovement <- 25
-    const int: alienShotOdds <- 500	// the lower the number, the more they shoot
+    const int: alienShotOdds <- 500     // the lower the number, the more they shoot
 
     me int: playerScore
     me int: finalScore
     me bool: winner
 
     void: setUpGame() <- {
-	playerScore <- 0
-	winner <- false
+        playerScore <- 0
+        winner <- false
         gameMenuScreen.init(gameLooper)
-	gamePauseScreen.init(gameLooper)
+        gamePauseScreen.init(gameLooper)
         gamePlayScreen.init(gameLooper)
         gameLooper.setGameMode(gameMenuScreen)
     }

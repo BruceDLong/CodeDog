@@ -114,7 +114,7 @@ struct GLOBAL {
         codeDogParser.AddToObjectFromText(classes[0], classes[1], CODE, callbackName)
     elif proxyStyle == "widgetEventData" and platformTag == "Android":
         pass
-    elif platformTag == "IOS": pass
+    elif platformTag == "IOS" or platformTag == "MacOS": pass
     else: print("###ERROR: unknown proxyStyle & Platform: ", proxyStyle, platformTag); exit(1)
     #print '==========================================================\n'+CODE
 

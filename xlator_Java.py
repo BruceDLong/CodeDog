@@ -115,7 +115,7 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, actionOrField, xlator)
     return retVal
 
-def codeIteratorOperation(itrCommand, codeIteratorOperation):
+def codeIteratorOperation(itrCommand, fieldType):
     result = ''
     if itrCommand=='goNext':  result='%0.next()'
     elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
@@ -445,7 +445,7 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
-def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
+def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('      iOR item:', item)
     [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
@@ -459,12 +459,12 @@ def codeIOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
 
 def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print '      xOR item:', item
-    [S, retTypeSpec]=codeIOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    [S, retTypeSpec]=codeAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == '^'):
-                [S2, retTypeSpec] = codeIOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                [S2, retTypeSpec] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S+=' ^ ' + S2
             else: print("ERROR: '^' expected in code generator."); exit(2)
     return [S, retTypeSpec]

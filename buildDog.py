@@ -144,7 +144,7 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     makeDir(buildName)
     makeDir(buildName + "/" + fileName)
     #runCMD("swift package init --type executable", workingDirectory)
-    writeFile(sourcePath, "AppDelegate", fileSpecs, fileExtension)
+    writeFile(sourcePath, "main", fileSpecs, fileExtension)
 
     for libFile in libFiles:
         if libFile.startswith('pkg-config'):
