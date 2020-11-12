@@ -746,7 +746,7 @@ me int: numMarked
                         if((fSrec.productionID==productionID and fSrec.originPos==originPos)){ // and !checkException(fSrec)){
                             if(!(SRec===fSrec) and !grammar[fSrec.productionID].isNullable){
                                 attrs <- "color=red"
-                        log("STOPPER: "+fSrec.stringify(self) + "  STOPed: "+SRec.stringify(self))
+                      //  log("STOPPER: "+fSrec.stringify(self) + "  STOPed: "+SRec.stringify(self))
                                 fullyComplete <- false; break()}
                         }
                     }
@@ -755,8 +755,8 @@ me int: numMarked
             if(fullyComplete and !grammar[productionID].isTerm){
                 SRec.fullyComplete<-true
                 SRec.MARKer1 <- true
-                dumpParseTrace("complete"+toString(numMarked), highestSlotSoFar)
-                numMarked <+- 1; log("MARKED:"+toString(numMarked) + SRec.stringify(self))
+           //     dumpParseTrace("complete"+toString(numMarked), highestSlotSoFar)
+           ///     numMarked <+- 1; log("MARKED:"+toString(numMarked) + SRec.stringify(self))
                 resolve(SRec, "")
             }
         }
@@ -807,16 +807,16 @@ me int: numMarked
         while(crntPos<SSets.size()){
             their stateSets: SSet <- SSets[crntPos]
 
-            log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: " + toString(crntPos)+ " '" + streamToParse.atSafe(crntPos)+"'")
+     //       log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: " + toString(crntPos)+ " '" + streamToParse.atSafe(crntPos)+"'")
 
-          if(streamingMode){dumpGraph("ProcessingSlot"+toString(crntPos), 1)}
+     //     if(streamingMode){dumpGraph("ProcessingSlot"+toString(crntPos), 1)}
             resetCompletions(crntPos)
             withEach SRec in SSet.stateRecs {
                 their production: prod <- grammar[SRec.productionID]
                 me int: ProdType       <- prod.prodType
                 me bool: isTerminal    <- prod.isTerm != 0
                 me int64: seqPos       <- SRec.SeqPosition
-              log("PARSE:"+SRec.stringify(self) + " SYM:" + SRec.mySymbol(SRec))
+     //         log("PARSE:"+SRec.stringify(self) + " SYM:" + SRec.mySymbol(SRec))
                 if(ruleIsDone(isTerminal, seqPos, ProdType, prod.items.size())){
                     complete(SRec, crntPos) // COMPLETER for non-REPetitions
                 }else{
@@ -933,13 +933,13 @@ me int: numMarked
         their production: Prod <- grammar[prodID]
  //       print(indent+'grammar[%i`prodID`] = ')  crntRec.stringify(self)  print("\n", indent, "\n")
         if(Prod.isTerm){
-            log(indent+" RESOLVE-TERM:"+crntRec.stringify(self) + " SYM:" + crntRec.mySymbol(crntRec))
+    //        log(indent+" RESOLVE-TERM:"+crntRec.stringify(self) + " SYM:" + crntRec.mySymbol(crntRec))
             if(crntRec.pedigrees.size()>0){
                 me pedigree: ped <- crntRec.pedigrees[0]
                 our stateRec: pedSR <- ped.pred
-                if(pedSR!=NULL){log(indent+"       ped.pred:"+pedSR.stringify(self) + " SYM:" + pedSR.mySymbol(pedSR))}
+               // if(pedSR!=NULL){log(indent+"       ped.pred:"+pedSR.stringify(self) + " SYM:" + pedSR.mySymbol(pedSR))}
                 pedSR <- ped.cause
-                if(pedSR!=NULL){log(indent+"       ped.cause:"+pedSR.stringify(self) + " SYM:" + pedSR.mySymbol(pedSR))}
+              //  if(pedSR!=NULL){log(indent+"       ped.cause:"+pedSR.stringify(self) + " SYM:" + pedSR.mySymbol(pedSR))}
             } else{log("NO_PED")}
 
 
@@ -947,7 +947,7 @@ me int: numMarked
         } else if(seqPos>0){
             withEach subItem in Backward RANGE(0..seqPos){ //+1){
                 me bool: doneTheRestAlready <- false
-                log(toString(numResolutions)+indent+" RESOLVE:"+crntRec.stringify(self) + " SYM:" + crntRec.mySymbol(crntRec))
+            //    log(toString(numResolutions)+indent+" RESOLVE:"+crntRec.stringify(self) + " SYM:" + crntRec.mySymbol(crntRec))
                 if(!crntRec.resolved){numResolutions <+- 1}
                 me int: pedToFollow <- choosePedigreeToFollow(prodID, crntRec.pedigrees)
                 me pedigree: ped <- crntRec.pedigrees[pedToFollow]
@@ -1054,7 +1054,7 @@ me int: numMarked
             if(SRec.next){log("GNSR:"+SRec.stringify(self)+"  "+SRec.mySymbol(SRec)  +  "  .NEXT:"+SRec.next.stringify(self)+"  "+SRec.next.mySymbol(SRec.next));}else{log("GNSR: NULL")}
             return(SRec.next)
         }
-        if(SRec.next){log("GNSR:"+SRec.stringify(self)+"  "+SRec.mySymbol(SRec)  +  "  .NEXT:"+SRec.next.stringify(self)+"  "+SRec.next.mySymbol(SRec.next));}else{log("GNSR: NULL")}
+       // if(SRec.next){log("GNSR:"+SRec.stringify(self)+"  "+SRec.mySymbol(SRec)  +  "  .NEXT:"+SRec.next.stringify(self)+"  "+SRec.next.mySymbol(SRec.next));}else{log("GNSR: NULL")}
         return(SRec.next)
     }
 
