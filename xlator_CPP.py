@@ -96,6 +96,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
                 varTypeKeyword= varTypeKeyword[0]
             unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc', reqOwner)
             unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
+            unwrappedTypeKeyword = adjustBaseTypes(unwrappedTypeKeyword)
             reqType = applyOwner(unwrappedOwner, unwrappedTypeKeyword, '')
             if(count>0):reqTagString += ", "
             reqTagString += reqType
@@ -123,7 +124,6 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
                 if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="list< "+langType+" >"
             elif containerType=='map':
-                #print "XLATING TYPE:", "Item:", owner, langType, "IDX-Owner:", idxOwner, "Container-owner/type:", containerOwner, containerType
                 if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="map< "+idxType+', '+langType+" >"
             elif containerType=='multimap':
@@ -288,7 +288,6 @@ def codeIdentityCheck(S1, S2, retType1, retType2):
         if RightOwner=='our' or RightOwner=='my': RHS+='.get()'
         retStr =  "(void*)("+LHS+") == (void*)("+RHS+")"
     else: retStr =  S1+' == '+S2
-    #print "IDENTITY CHECK:"+retStr+"\n    ", retType1, "\n    ", retType2
     return retStr
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
@@ -322,7 +321,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=adjustBaseTypes(idxType)
-        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
+        [convertedItmType, innerType] = convertType(classes, typeSpecOut, 'var', '', xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0.count(%1)>0)';
         elif name=='containsKey2'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0->count(%1)>0)';
@@ -346,7 +345,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=adjustBaseTypes(idxType)
-        [convertedItmType, innerType] = xlator['convertType'](classes, typeSpecOut, 'var', '', xlator)
+        [convertedItmType, innerType] = convertType(classes, typeSpecOut, 'var', '', xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='count(%1)>=1';
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -420,7 +419,6 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
             S+=tmp
         else:
             expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
-            #print "CHECK FOR CHAR", item, expected_KeyType
             if expected_KeyType == "BigInt":
                 S += item0 + "_mpz"
                 retTypeSpec='BigInt'
@@ -614,7 +612,6 @@ def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
                 S+=' || ' + S2
             else: print("ERROR: 'or' expected in code generator."); exit(2)
             retTypeSpec='bool'
-    #print "S:",S
     return [S, retTypeSpec]
 
 def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
@@ -629,7 +626,6 @@ def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
                 S+=' = ' + S2
             else: print("ERROR: '<-' expected in code generator."); exit(2)
             retTypeSpec='bool'
-    #print "S:",S
     return [S, retTypeSpec]
 
 ######################################################
@@ -647,34 +643,33 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             # TODO: have a tag to choose cout vs printf()
             S+='cout'
             for P in paramList:
-                [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, None, xlator)
+                [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, xlator)
                 [S2, isDerefd]=derefPtr(S2, argTypeSpec)
                 S+=' << '+S2
             S+=" << flush"
         elif(funcName=='input'):
             P=paramList[0]
-            [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, None, xlator)
+            [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, xlator)
             [S2, isDerefd]=derefPtr(S2, argTypeSpec)
             S+='getline(cin, '+S2+')'
         elif(funcName=='AllocateOrClear'):
-            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, None, xlator)
+            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, xlator)
             if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
             S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
-            [varName,  varTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, None, xlator)
-            #if varTypeSpec==None: print "ALLOCATE:", varName, varTypeSpec, segSpec
+            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, xlator)
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
             for P in paramList[1:]:
                 if(count>0): S+=', '
-                [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, None, xlator)
+                [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, xlator)
                 S+=S2
                 count=count+1
             S+=")"
         elif(funcName=='callPeriodically'):
-            [objName,  typeSpec]=xlator['codeExpr'](paramList[1][0], objsRefed, None, None, xlator)
-            [interval,  intTypeSpec]   =xlator['codeExpr'](paramList[2][0], objsRefed, None, None, xlator)
+            [objName,  typeSpec]=codeExpr(paramList[1][0], objsRefed, None, None, xlator)
+            [interval,  intTypeSpec]   =codeExpr(paramList[2][0], objsRefed, None, None, xlator)
             fieldType = typeSpec['fieldType']
             varTypeSpec= fieldType[0]
             wrapperName="cb_wraps_"+varTypeSpec
@@ -690,15 +685,15 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             if len(paramList)==0: S+='return'
         elif(funcName=='toStr'):
             if len(paramList)==1:
-                [S2, argTypeSpec]=xlator['codeExpr'](P[0][0], objsRefed, None, None, xlator)
+                [S2, argTypeSpec]=codeExpr(P[0][0], objsRefed, None, None, xlator)
                 [S2, isDerefd]=derefPtr(S2, argTypeSpec)
                 S+='to_string('+S2+')'
                 fieldType='string'
         elif(funcName=='asClass'):
             if len(paramList)==2:
-                [newTypeStr, argTypeSpec]=xlator['codeExpr'](paramList[0][0], objsRefed, None, None, xlator)
+                [newTypeStr, argTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, xlator)
                 [newTypeStr, isDerefd]=derefPtr(newTypeStr, argTypeSpec)
-                [toCvtStr, toCvtTypeSpec]=xlator['codeExpr'](paramList[1][0], objsRefed, None, None, xlator)
+                [toCvtStr, toCvtTypeSpec]=codeExpr(paramList[1][0], objsRefed, None, None, xlator)
                # [toCvtStr, isDerefd]=derefPtr(toCvtStr, toCvtTypeSpec)
                 varOwner=progSpec.getTypeSpecOwner(toCvtTypeSpec)
                 if(varOwner=='their'): S="static_cast<"+newTypeStr+"*>("+toCvtStr+")"
@@ -755,7 +750,6 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
                 parentClass+= ', '
             parentClass+= progSpec.getUnwrappedClassFieldTypeKeyWord(classes, item)
             count += 1
-        #print "parentClass" , parentClass
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
     return([S,forwardDecls])
@@ -863,7 +857,7 @@ struct GLOBAL{
 
 def codeNewVarStr(classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
     #TODO: make test case
-    [fieldType, innerType] = xlator['convertType'](classes, typeSpec, 'var', '', xlator)
+    [fieldType, innerType] = convertType(classes, typeSpec, 'var', '', xlator)
     varDeclareStr=''
     assignValue=''
     isAllocated = fieldDef['isAllocated']
@@ -873,7 +867,7 @@ def codeNewVarStr(classes, typeSpec, varName, fieldDef, indent, objsRefed, actio
         del fieldDef['paramList'][-1]
         useCtor = True
     if(fieldDef['value']):
-        [S2, rhsTypeSpec]=xlator['codeExpr'](fieldDef['value'][0], objsRefed, typeSpec, None, xlator)
+        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, typeSpec, None, xlator)
         if(isAllocated):
             assignValue = " = " + getCodeAllocSetStr(innerType, owner, S2)
         else:
@@ -1120,7 +1114,6 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             objPrefix = progSpec.flattenObjectName(className) +'::'
             funcDefCode += templateHeader + typeDefName +' ' + objPrefix + fieldName +"("+argListText+")"
         elif inheritMode=='pure-virtual':
-            #print "PARMS: ", "'"+str(fieldName)+"'",  "'"+str(typeDefName)+"'", "'"+str(argListText)+"'"
             structCode +=  indent + 'virtual ' + typeDefName +' ' + fieldName +"("+argListText +") = 0;\n";
         else: cdErr("Invalid inherit mode found: "+inheritMode)
         if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
