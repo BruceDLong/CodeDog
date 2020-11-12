@@ -423,13 +423,17 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
-def chooseStructImplementationToUse(typeSpec):
+def chooseStructImplementationToUse(typeSpec,className,fieldName):
     fieldType = progSpec.getFieldType(typeSpec)
     if not isinstance(fieldType, str) and  len(fieldType) >1:
         if ('chosenType' in fieldType):
             return(None)
         implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
-        if(implementationOptions != None):
+        if(implementationOptions == None):
+            if fieldType[0]=="List":
+                print("******WARNING: no implementationOptions found for LIST ",className,"::",fieldName)
+                # Check to confirm List is in features needed
+        else:
             reqTags = progSpec.getReqTags(fieldType)
             highestScore = -1
             highestScoreClassName = None
@@ -829,7 +833,8 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
     if (typeOfAction =='newVar'):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
-        structToImplement = chooseStructImplementationToUse(typeSpec)
+        fieldName =fieldDef['fieldName']
+        structToImplement = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
         if(structToImplement != None):
             typeSpec['fieldType'][0] = structToImplement
         varName = fieldDef['fieldName']
@@ -1239,7 +1244,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
                     if progSpec.typeIsPointer(argTypeSpec): arg
-                    structToImplement = chooseStructImplementationToUse(argTypeSpec)
+                    structToImplement = chooseStructImplementationToUse(argTypeSpec,className,argFieldName)
                     if(structToImplement != None):
                         argTypeSpec['fieldType'][0] = structToImplement
                     [argType, innerType] = xlator['convertType'](classes, argTypeSpec, 'arg', 'field', xlator)
@@ -1605,7 +1610,7 @@ def convertTemplateClasses(classes, tags):
         for field in progSpec.generateListOfFieldsToImplement(classes, className):
             typeSpec =field['typeSpec']
             fieldName =field['fieldName']
-            structToImplement = chooseStructImplementationToUse(typeSpec)
+            structToImplement = chooseStructImplementationToUse(typeSpec,className,fieldName)
             if(structToImplement != None):
                 typeSpec['fieldType'][0] = structToImplement
 

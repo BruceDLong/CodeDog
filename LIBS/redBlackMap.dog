@@ -400,7 +400,7 @@ struct GLOBAL{
     me void: testMap() <- {
     their RBTree: tree
     Allocate(tree)
-    me int[list]: keyList
+    me List<me int>: keyList
     keyList<-[3,1,5,7,6,8,9,10,15,31,14,50,16,36,17,42,34,43,38,44,18,41,26,58,19,57,20,45,29,28,46,53,54,47,21,33,22,60,2,37,27,11,39,52,12,59,13,23,51,32,24,48,30,49,35,56,25,55,40]
     withEach item in keyList:{
         tree.insert(item, ":)")
