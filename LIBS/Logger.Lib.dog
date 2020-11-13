@@ -87,7 +87,7 @@ struct graphLogger{
     void: setNodeSlot(me string: nodeID, me string: slotID) <-{
         rankSlots[slotID] <+- "\""+nodeID+"\"; "
     }
-    void: addEdge(me string: fromID, me string: toID, me string: label, me string: attrs) <-{
+    void: addArrow(me string: fromID, me string: toID, me string: label, me string: attrs) <-{
         me string: edgeStr <- "    \""+deQuote(fromID)+"\" -> \"" + deQuote(toID) + "\""
         me string: labelStr
         if(label != ""){
@@ -102,7 +102,7 @@ struct graphLogger{
     void: saveGraph(me string: graphName, me string: filename) <- {
         me FileStream: out
         out.openNew(filename)
-        me string: header <- "strict digraph \""+deQuote(graphName)+"\"{\n"
+        me string: header <- "digraph \""+deQuote(graphName)+"\"{\n"
         out.write(header)
         withEach line in items{
             out.write(line)
