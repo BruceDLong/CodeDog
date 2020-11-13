@@ -52,7 +52,7 @@ struct production{
     flag: isTerm
     mode[parseSEQ, parseALT, parseREP, parseOPT, parseAUTO]: prodType
     me string: constStr
-    me int[list]: items
+    me List<me int>: items
     flag: isNullable
     flag: nullabilityCalced
     me string: toStr(me int64: seqPos, me int64: originPos, me string[their list]: rnames) <- {
@@ -100,7 +100,7 @@ struct stateRec{
     me int64: SeqPosition
     me int64: originPos
     me int64: crntPos
-    me pedigree[list]: pedigrees
+    me List<me pedigree>: pedigrees
     our stateRec: next
     our stateRec: child
     flag: resolved
@@ -120,17 +120,16 @@ struct stateRec{
 flag: MARKer1  // Use these to mark staterecs in grapher
 flag: MARKer2  // They are for debugging and can be removed
 }
-struct stateRecPtr{our stateRec: stateRecPtr}
 
 struct stateSets{
-    me stateRecPtr[list]: stateRecs
+    me List<our stateRec>: stateRecs
 }
 
 struct EParser{
     their strBuf: streamToParse
     me int: startProduction
-    me stateSets[list]: SSets
-    me production[list]: grammar
+    me List<me stateSets>: SSets
+    me List<me production>: grammar
     me bool: parseFound
     our stateRec: lastTopLevelItem
     our stateRec: topParseNode
@@ -138,7 +137,7 @@ struct EParser{
     me string: errorMesg
     me int64: errLineNum
     me int64: errCharPos
-    me string[list]: rnames
+    me List<me string>: rnames
 
     me bool: streamingMode
     me Mutex: streamingSRecMutex
@@ -173,7 +172,7 @@ struct EParser{
         grammar.pushLast(P)
         rnames.pushLast(name)
     }
-    void: addNon_TermProd(me string: name, me int: ProdType, me int[list]: terms) <- {
+    void: addNon_TermProd(me string: name, me int: ProdType, me List<me int>: terms) <- {
         me production: prod
         prod.prodType   <- ProdType
         prod.items      <- terms
@@ -677,7 +676,7 @@ struct EParser{
 
     ///////////////// Late Completion Code
     //  This code handles the case where productions are added with the same origin (crntPos) as their (null) predecessor and must have completions applied from past completions.
-    our stateRec[list]: SRecsToComplete
+    me List<our stateRec>: SRecsToComplete
     me int64: crntPos
 
     void: resetCompletions(me int64: CrntPos) <- {

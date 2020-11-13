@@ -63,13 +63,14 @@ docs/_build/
 target/
 
 # Error File
-ErrFile.txt
+ErrFile.dog
 
 # Build Directories
 Examples/iPhoneBuild/
 Examples/LinuxBuild/
 Examples/AndroidBuild/
 Examples/MacBuild/
+xlatorTests/
 
 
 
