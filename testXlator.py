@@ -7,10 +7,12 @@ from progSpec import cdlog
 import errno
 import subprocess
 import sys;  sys.dont_write_bytecode = True
+from datetime import date
 buildSpec = ""
 runSpec = ""
 workingDirectory = ""
 runDirectory = ""
+
 
 testDefinitions = {
      'class/simple':        ['struct emptyClass{ }', 'PGB:'],
@@ -33,12 +35,9 @@ struct testClass{
     me double: myDouble
     me uint32: myUint32
     me uint64: myUint64
-    me bool: myBool <- true
+    me bool: myBool
     const int: myConst <- 2
     me char: myChar
-    me void: runTest()<-{
-        print(toString(myBool)
-    }
 }''', 'PGBR:true',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
 #####################################################################################################
 #############################################################
@@ -138,7 +137,35 @@ struct testClass{
 }''', 'PGBR:true false 3',['actions/conditional','actions/switch']],
 #####################################################################################################
 # TODO: make tests for 'actions/repetitions':  'actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep'
-
+     'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in RANGE(2..6){print(spec," ")}}}', 'PGBR:2 3 4 5 '],
+     'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward RANGE(2..6){print(RB," ")}}}', 'PGBR:5 4 3 2 '],
+     'actions/listRep':      ['struct testClass{me void: runTest()<-{me int[list]:testList<-[2,13,-22,188]\nwithEach T in testList {print(T," ")}}}', 'PGBR:2 13 -22 188 '],
+     'actions/backListRep':  ['struct testClass{me void: runTest()<-{me int[list]:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
+     'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me int[list]:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList {print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
+     'actions/mapRep':       ['struct testClass{me void: runTest()<-{me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
+     'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
+     'actions/deleteMapRep': ['struct testClass{me void: runTest()<-{me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"\nwithEach MD in testMapDel {if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}}}', 'PGBR:D-does E-every F-fine G-good '],
+     'actions/deleteListRep':['struct testClass{me void: runTest()<-{me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
+     'actions/repetitions':  ['''
+struct testClass{
+    me void: runTest()<-{
+        withEach spec in RANGE(2..6) {print(spec," ")}
+        withEach RB in Backward RANGE(2..6) {print(RB," ")}
+        me int[list]:testList<-[2,13,-22,188]
+        withEach T in testList {print(T," ")}
+        me int[list]:testListBackward<-[2,13,-22,188]
+        withEach TB in Backward testListBackward {print(TB," ")}
+        me int[list]:testKeyList<-[2,3,5,8,13,21]
+        withEach TK in testKeyList {print(TK_key,"-", TK, " ")}
+        me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
+        withEach M in testMap {print(M," ")}
+        me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
+        withEach MK in testMapKey {print(MK_key,"-",MK," ")}
+        me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"
+        withEach MD in testMapDel {if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}
+        me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}
+    }
+}''', 'PGBR:BB',['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep']],
 ###################################################################################################
      'actions/plusEquals':  ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<+-1\nprint(myInt)}}', 'PGBR:3'],
      'actions/minusEquals':  ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<--1\nprint(myInt)}}', 'PGBR:1'],
@@ -446,10 +473,10 @@ struct testClass{
      'actions/allocateCurlyOur':  ['struct testClass{me void: runTest()<-{our int:: A{4}\nprint(A) }}', 'PGBR:4'],
      'actions/allocateArrowOur':  ['struct testClass{me void: runTest()<-{our int:: A<-4\nprint(A) }}', 'PGBR:4'],
      'actions/allocateArrowlist':  ['struct testClass{me void: runTest()<-{our int:: A <- (4)\nprint(A) ', 'PGBR:4'],
-     'actions/allocateCurlyVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{V}\n print(A)}} ', 'PGBR:NULL'],
+     'actions/allocateCurlyVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{V}\n print(A)}} ', 'PGBR:0'],
      'actions/allocateCurlypVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{pV}\n print(A)}} ', 'PGBR:0'],
-     'actions/allocateAssignVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A<-V\n print(A)}}', 'PGBR:NULL'],
-     'actions/allocateAssignpVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A<-pV\n print(A)}}', 'PGBR:NULL'],
+     'actions/allocateAssignVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A<-V\n print(A)}}', 'PGBR:0'],
+     'actions/allocateAssignpVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A<-pV\n print(A)}}', 'PGBR:0'],
      'actions/globalOur': ['me int: A<-{4}\nprint(A)','PGBR:'],
      'actions/allocateOurInits':   ['''
 struct testClass{
@@ -477,8 +504,6 @@ struct testClass{
 }''', 'PGBR:04400',['actions/allocateddefaultOur','actions/allocateCurlyOur','actions/allocateArrowOur','actions/allocateArrowlist','actions/allocateCurlyVOur','actions/allocateCurlypVOur','actions/allocateAssignVOur','actions/allocateAssignpVOur' ]],
 
 
-
-
 #####################################################################################################
      'actions/intToString':  ['struct testClass{me void: runTest()<-{me int:A<-123\nme string:B<-toString(A)\nprint(B)}}', 'PGBR:123'],
      'actions/32intToString':  ['struct testClass{me void: runTest()<-{me int32:A<-123\nme string:B<-toString(A)\nprint(B)}}', 'PGBR:123'],
@@ -493,7 +518,8 @@ struct testClass{
 
     me void: testStrConversion()<-{
         me int: a <- 123
-        //me bool: b <- true  //maybe add bool to string test later
+        me bool: b <- true  //maybe add bool to string test later
+        print(toString(b))
         me int32: eye32 <- 32
         me int64: eye64 <- 64
 
@@ -521,11 +547,9 @@ struct testClass{
         me uint32: ui32 <- stoi("123456789012345678901234567890")
         print(ui64+ui32)
     }
-}''', 'PGBR:1233264pass',['actions/intToString','actions/32intToString','actions/64intToString','actions/stringToInt']],
+}''', 'PGBR:true1233264pass',['actions/intToString','actions/32intToString','actions/64intToString','actions/stringToInt']],
 #####################################################################################################
-## TODO: add loops test (eg backwards), check in cppxlator for more
-## TODO: print out tests that failed
-##
+## TODO: add more loop tests?
 ########################################
 
 
@@ -547,6 +571,17 @@ def makeDir(dirToGen):
         os.makedirs(dirToGen)
     except OSError as exception:
         if exception.errno != errno.EEXIST: raise
+
+def clearErrorFile():
+    makeDir("xlatorTests")
+    erfClear = open("xlatorTests/failedTests.txt","w")
+    erfClear.close()
+
+def writePrepend(fileName, testName):
+    with open(fileName, 'r+') as f:
+        content = f.read()
+        f.seek(0,0) # add global counter to stop the reverse order of the tests?
+        f.write(testName.rstrip('\r\n') + "\n" + content)
 
 def writeFile(path, fileName, testString):
     makeDir(path)
@@ -572,7 +607,7 @@ def RunCodeDogPrg(testString):
     out, err = runCmd(workingDirectory, runString)
     return out, err
 
-def ExecCodeDogTest(testSpec, buildSpec):
+def ExecCodeDogTest(testSpec, buildSpec, testName,toPrint):
     global tags
     global runSpec
     global workingDirectory
@@ -582,7 +617,6 @@ def ExecCodeDogTest(testSpec, buildSpec):
         colonPos = testSpec[1].find(':')
     else:
         print("Missing Test Spec")
-        print(testSpec)
         exit(0)
     willRun = False
     if(colonPos):
@@ -603,12 +637,30 @@ def ExecCodeDogTest(testSpec, buildSpec):
     if out:
         decodedOut = bytes.decode(out)
         if(decodedOut.find('Marker: Parse Successful')==-1):
+            if(toPrint):
+                errorFile = open("xlatorTests/failedTests.txt","a")
+                errorFile.write("***\nParse Fail***\n")
+                errorFile.write(testName + "\n")
+                errorFile.write(testSpec[0]+"\n\n")
+                errorFile.close()
             print(decodedOut)
             return "***Parse Fail***"
         if (decodedOut.find('Marker: Code Gen Successful')==-1):
+            if(toPrint):
+                errorFile = open("xlatorTests/failedTests.txt","a")
+                errorFile.write("***\nCode Gen Fail***\n")
+                errorFile.write(testName + "\n")
+                errorFile.write(testSpec[0]+"\n\n")
+                errorFile.close()
             return "***Code Gen Fail***"
         buildMarker = decodedOut.find('Marker: Build Successful')
         if (buildMarker==-1):
+            if(toPrint):
+                errorFile = open("xlatorTests/failedTests.txt","a")
+                errorFile.write("\n***Build Fail***\n")
+                errorFile.write(testName + "\n")
+                errorFile.write(testSpec[0]+"\n\n")
+                errorFile.close()
             return "***Build Fail***"
         if(not willRun):
             return "Success"
@@ -631,18 +683,21 @@ def runDeps(testKey):
     if (len(testDefinitions[testKey])>2):
         depsList = testDefinitions[testKey][2]
     for dep in depsList:
-        testResult = ExecCodeDogTest(testDefinitions[dep], buildSpec)
+        testResult = ExecCodeDogTest(testDefinitions[dep], buildSpec,dep,True)
         depsReportText +=  "        " + dep + " : "+testResult+  "\n"
+        if(testResult != "Success"):
+            writePrepend("xlatorTests/failedTests.txt",dep)
     return depsReportText
 
 
 def runListedTests(testsToRun):
     global buildSpec
     global testDefinitions
+    clearErrorFile()
     reportText = ""
     for testKey in testsToRun:
         print(("Running test: ", testKey))
-        testResult = ExecCodeDogTest(testDefinitions[testKey], buildSpec)
+        testResult = ExecCodeDogTest(testDefinitions[testKey], buildSpec, testKey,False)
         print("testResult: ", testKey, ":  ", testResult)
         reportText+= testKey + ": "+testResult+  "\n"
         if(testResult!="Success"):
@@ -693,3 +748,5 @@ reportText = runListedTests(testsToRun)
 print("********** T E S T    R E S U L T S **********")
 print(reportText)
 print("**********************************************")
+writePrepend("xlatorTests/failedTests.txt", "Failed tests: \n")
+writePrepend("xlatorTests/failedTests.txt","Run on: "+ str(date.today())+"\n\n")
