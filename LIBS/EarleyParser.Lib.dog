@@ -282,7 +282,7 @@ struct EParser{
                 me string: slotLabel <- "SLOT: "+ toString(curPos)+"'"+ ch +"'"
                 grapher.addNode(slotLabel, "", "shape=box")
                 rankSlots[toString(curPos)] <+- "\""+slotLabel+"\"; "
-                if(prevHeader!=""){grapher.addEdge(prevHeader, slotLabel, "", "")}
+                if(prevHeader!=""){grapher.addArrow(prevHeader, slotLabel, "", "")}
                 prevHeader <- slotLabel
             }
             withEach SRec in SSet.stateRecs {
@@ -298,18 +298,18 @@ struct EParser{
                 if(SRec.MARKer1){lastTopAttrs<-"style=filled fillcolor=yellow"}
                 if(SRec.MARKer2){lastTopAttrs<-"style=filled fillcolor=red"}
                 grapher.addNode(sRecSym, SRec.stringify(self)+":"+SRec.mySymbol(SRec), lastTopAttrs)
-                if(SRec.next!=NULL){grapher.addEdge(sRecSym, SRec.next.mySymbol(SRec.next), "next", "color=orange")}
-                if(SRec.child!=NULL){grapher.addEdge(sRecSym, SRec.child.mySymbol(SRec.child), "child", "color=brown")}
+                if(SRec.next!=NULL){grapher.addArrow(sRecSym, SRec.next.mySymbol(SRec.next), "next", "color=orange")}
+                if(SRec.child!=NULL){grapher.addArrow(sRecSym, SRec.child.mySymbol(SRec.child), "child", "color=brown")}
 
                 me int: count<-0
                 withEach ped in SRec.pedigrees{
                     me string: cntStr <- ""
                     if(count>0){cntStr<-toString(count)}
                     if(ped.pred!=NULL){
-                 //       grapher.addEdge(sRecSym, ped.pred.mySymbol(ped.pred), "pred"+cntStr, "color=blue")
+                 //       grapher.addArrow(sRecSym, ped.pred.mySymbol(ped.pred), "pred"+cntStr, "color=blue")
                     }
                     if(ped.cause!=NULL){
-                 //       grapher.addEdge(sRecSym, ped.cause.mySymbol(ped.cause), "cause"+cntStr, "color=darkgreen")
+                 //       grapher.addArrow(sRecSym, ped.cause.mySymbol(ped.cause), "cause"+cntStr, "color=darkgreen")
                     }
                     count <+- 1
                 }
@@ -335,13 +335,13 @@ struct EParser{
             if(count>0){cntStr<-toString(count)}
             if(ped.pred!=NULL){
                 if(ped.pred.crntPos!=curPos){
-                    grapher.addEdge(sRecSym, ped.pred.mySymbol(ped.pred), "pred"+cntStr, "color=darkgreen")
+                    grapher.addArrow(sRecSym, ped.pred.mySymbol(ped.pred), "pred"+cntStr, "color=darkgreen")
                     dumpResolvePath(ped.pred)
                 }
             }
             if(ped.cause!=NULL){
                 me string: pedCauseSym <- ped.cause.mySymbol(ped.cause)
-                grapher.addEdge(sRecSym, pedCauseSym, "cause"+cntStr, "color=orange")
+                grapher.addArrow(sRecSym, pedCauseSym, "cause"+cntStr, "color=orange")
                 addSRecToGrapher(ped.cause, "")
             }
             count <+- 1
