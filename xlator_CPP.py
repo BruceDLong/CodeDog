@@ -9,7 +9,7 @@ def getContainerType(typeSpec, actionOrField):
     idxType=''
     if progSpec.isAContainer(typeSpec):
         containerSpec = progSpec.getContainerSpec(typeSpec)
-        if 'owner' in containerSpec: owner=containerSpec['owner']
+        if 'owner' in containerSpec: owner=progSpec.getOwnerFromTypeSpec(containerSpec)
         else: owner='me'
         if 'indexType' in containerSpec:
             if 'IDXowner' in containerSpec['indexType']:
@@ -26,7 +26,7 @@ def getContainerType(typeSpec, actionOrField):
         if(datastructID=='list'): datastructID = "deque"
         if(datastructID=='iterableList'): datastructID = "list"
     else:
-        owner = typeSpec['owner']
+        owner = progSpec.getOwnerFromTypeSpec(typeSpec)
         datastructID = 'None'
     return [datastructID, idxType, owner]
 
@@ -74,7 +74,7 @@ def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
             ownerOut = 'their'
         else:
             if varMode=='var':
-                ownerOut=baseType['owner']   # TODO: remove this condition: accomodates old list type generated in stringStructs
+                ownerOut=progSpec.getOwnerFromTypeSpec(baseType)   # TODO: remove this condition: accomodates old list type generated in stringStructs
             else:
                 ownerOut=ownerIn
     return ownerOut
@@ -89,7 +89,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
         count = 0
         for reqTag in reqTagList[1]:
             if('owner' in reqTag):
-                reqOwner = reqTag['owner']
+                reqOwner = progSpec.getOwnerFromTypeSpec(reqTag)
             else: reqOwner = 'me'
             varTypeKeyword = reqTag['varType'][0]
             if not isinstance(varTypeKeyword, str):
@@ -112,7 +112,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
         if(containerSpec): # Make list, map, etc
             [containerType, idxType, idxOwner]=getContainerType(typeSpec, '')
             if 'owner' in containerSpec:
-                containerOwner = containerSpec['owner']
+                containerOwner = progSpec.getOwnerFromTypeSpec(containerSpec)
             else: containerOwner='me'
             idxType=adjustBaseTypes(idxType)
             if idxType=='timeValue': idxType = 'int64_t'
@@ -137,8 +137,8 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
 
 def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    ownerIn=typeSpec['owner']
-    fieldType=typeSpec['fieldType']
+    ownerIn=progSpec.getOwnerFromTypeSpec(typeSpec)
+    fieldType=progSpec.getFieldTypeNew(typeSpec)
     if not isinstance(fieldType, str):
         if len(fieldType) > 1 and fieldType[1] == "..":
             fieldType = "int"
@@ -670,7 +670,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
         elif(funcName=='callPeriodically'):
             [objName,  typeSpec]=codeExpr(paramList[1][0], objsRefed, None, None, xlator)
             [interval,  intTypeSpec]   =codeExpr(paramList[2][0], objsRefed, None, None, xlator)
-            fieldType = typeSpec['fieldType']
+            fieldType = progSpec.getFieldTypeNew(typeSpec)
             varTypeSpec= fieldType[0]
             wrapperName="cb_wraps_"+varTypeSpec
             S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
@@ -928,10 +928,12 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
     containedType=progSpec.getFieldType(containerType)
     if progSpec.ownerIsPointer(ContainerOwner): connector="->"
     else: connector = "."
-    ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+    containerOwner=progSpec.getOwnerFromTypeSpec(containerType)
+    ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
 
     if datastructID=='multimap' or datastructID=='map':
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        KeyVarOwner=progSpec.getOwnerFromTypeSpec(containerType)
+        keyVarSpec = {'owner':KeyVarOwner, 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
 

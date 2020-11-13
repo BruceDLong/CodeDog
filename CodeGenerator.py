@@ -61,7 +61,7 @@ def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
         classDef =  progSpec.findSpecOf(globalClassStore[0], currentObjName, "struct")
         if 'typeSpec' in classDef:
             typeSpecOut = classDef['typeSpec']
-            typeSpecOut['owner']='their' # Does this work correctly on containers?
+            typeSpecOut['owner']='their' # TODO: write test case for containers
             print("SHOULDNT MATCH:", typeSpecOut['owner'],classDef['typeSpec']['owner'])
         else: typeSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
     else: typeSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
@@ -161,7 +161,8 @@ def CheckObjectVars(className, itemName, fieldIDArgList):
         if not isinstance(actualFieldType, str):
             retVal = CheckObjectVars(actualFieldType[0], itemName, "")
             if retVal!=0:
-                retVal['typeSpec']['owner']=wrappedTypeSpec['owner']
+                wrappedOwner=progSpec.getOwnerFromTypeSpec(wrappedTypeSpec)
+                retVal['typeSpec']['owner']=wrappedOwner
                 return retVal
         else:
             if 'fieldName' in wrappedTypeSpec and wrappedTypeSpec['fieldName']==itemName:
@@ -506,7 +507,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     if owner=='itr':
         typeSpecOut = copy.copy(typeSpecIn)
         typeSpecOut['arraySpec'] = None
-        codeCvrtText = xlator['codeIteratorOperation'](name, typeSpecOut['fieldType'])
+        fieldTypeOut=progSpec.getFieldTypeNew(typeSpecOut)
+        codeCvrtText = xlator['codeIteratorOperation'](name, fieldTypeOut)
         if codeCvrtText!='':
             typeSpecOut['codeConverter'] = codeCvrtText
             if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
@@ -556,7 +558,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 if typeSpecOut!=0:
                     if isStructLikeContainer == True:
                         segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
-                        segTypeOwner   = typeSpecOut['typeSpec']['owner']
+                        segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut['typeSpec'])
                         [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
                         if(innerTypeOwner and segTypeOwner != 'itr'):
                             typeSpecOut['typeSpec']['owner'] = innerTypeOwner
@@ -1080,7 +1082,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
         if(fieldType=='flag' or fieldType=='mode'): continue
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
         if progSpec.isAContainer(typeSpec): continue
-        fieldOwner=typeSpec['owner']
+        fieldOwner=progSpec.getOwnerFromTypeSpec(typeSpec)
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
         [convertedType, innerType] = xlator['convertType'](classes, typeSpec, 'var', 'constructor', xlator)
         fieldName=field['fieldName']
