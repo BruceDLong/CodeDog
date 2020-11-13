@@ -22,6 +22,7 @@ deinitCode = ""
 struct FileStream{
     me fstream: FileStream
     me void: open(me string: filename) <- <%!open(%1)%>
+    me void: openNew(me string: filename) <- <%!open(%1, std::ios::out|std::ios::trunc)%>
     me void: openAppend(me string: filename) <- <%!open(%1, ios_base::in | ios_base::out | ios_base::app)%>
     me void: close()     <- <%!close()%>
     me int:  getChar()   <- <%!get()%>

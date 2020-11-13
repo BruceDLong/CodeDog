@@ -175,8 +175,8 @@ struct horizontalScale: inherits=graphScale{
     me timeValue: t9  <- 1000*60*60*24*15
     me timeValue: t10 <- 1000*60*60*12
 
-        me timeValue[list]: stepTable    <- [t0,t1,t2,t3,t4, t5,t6,t7,t8,t9, 2592000000, 6307200000]
-        me timeValue[list]: divisorTable <- [t0,t1,t2,t3,t4,t10,t6,t7,t8,t9, 2592000000, 6307200000]
+        me List<me timeValue>: stepTable    <- [t0,t1,t2,t3,t4, t5,t6,t7,t8,t9, 2592000000, 6307200000]
+        me List<me timeValue>: divisorTable <- [t0,t1,t2,t3,t4,t10,t6,t7,t8,t9, 2592000000, 6307200000]
 
         step    <- stepTable[zoomLvl]
         divisor <- divisorTable[zoomLvl]
@@ -270,7 +270,7 @@ struct zoomWidget: inherits=dash{
 struct streamToggle: inherits=dash{
     me circleButton: left
     me circleButton: right
-    me string[list]: dataStreamsTitleTbl
+    me List<me string>: dataStreamsTitleTbl
     me string: dispMode
     me int: state
     me string: label
@@ -296,7 +296,7 @@ struct streamToggle: inherits=dash{
         cr.strokeNow()
     }
 
-    void: initStreamToggle(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me string[list]: DataStreamsTitleTbl, me int: State) <- {
+    void: initStreamToggle(me GUI_Scalar: PosX, me GUI_Scalar: PosY, me List<me string>: DataStreamsTitleTbl, me int: State) <- {
         posX <- PosX
         posY <- PosY
         radius <- 10
@@ -373,7 +373,7 @@ struct GraphDataStream {
 }
 
 struct GraphDataStreamSources{
-    our GraphDataStream[me list]: dataStreams
+    me List<our GraphDataStream>: dataStreams
     their DataGen: parentDataSource
     me timeStepInterval: requestedInterval
     me bool: dataRangeChangeRequested
@@ -389,7 +389,7 @@ struct dataCacheStream {  // Use this to gather data and transfer it to the GUI 
     me datum[me map timeValue]: dataMap
 }
 struct dataCacheStreams {
-    our dataCacheStream[me list]: dataStreams
+    me List<our dataCacheStream>: dataStreams
     void: addNewStream(me string: ID) <- {
         our dataCacheStream:: dcStream
         dcStream.title <- ID
@@ -445,7 +445,7 @@ struct dataPlotter {
 }
 struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
     our GraphDataStreamSources: dataStreamSrcs
-    me string[list]: dataStreamsTitleTable <- ["None"]
+    me List<me string>: dataStreamsTitleTable <- ["None"]
     me double:        screenDataTotal
     me int:          screenDataCount
     me timeValue:    timeInterval
@@ -469,8 +469,8 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
     me timeValue: t4 <- 1000*60*60*24
     me timeValue: t5 <- 1000*60*60*24*7
     me timeValue: t6 <- 1000*60*60*24*14
-    me timeValue[list]: zoomTable <- [t0,t1,t2,t3,t4,t5,t6, 2592000000, 5184000000, 7776000000, 15552000000, 31536000000]
-    me string[list]: labelTable   <-   ["1 Minute","1 Hour","6 Hours","12 Hours","24 Hours","One Week","Two Weeks","30 Days","60 Days","90 Days","180 Days","One Year"]
+    me List<me timeValue>: zoomTable <- [t0,t1,t2,t3,t4,t5,t6, 2592000000, 5184000000, 7776000000, 15552000000, 31536000000]
+    me List<me string>: labelTable   <-   ["1 Minute","1 Hour","6 Hours","12 Hours","24 Hours","One Week","Two Weeks","30 Days","60 Days","90 Days","180 Days","One Year"]
     me streamToggle: streamToggle1
     me streamToggle: streamToggle2
     me bool: gradients

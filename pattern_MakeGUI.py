@@ -526,7 +526,7 @@ def BuildGuiForStruct(classes, className, dialogStyle, newStructName):
     returnCode             = '        return(box)'
     if dialogStyle   == 'Z_stack':
         newWidgetFields   += '    their GUI_ZStack: Zbox\n'
-        newWidgetFields   += '    me string[list]: children\n'
+        newWidgetFields   += '    me List<me string>: children\n'
         newWidgetFields   += '    me int: activeScreenIdx <-1\n'
         newWidgetFields   += '    void: setActiveChild(me int: N) <- {\n'
         newWidgetFields   += '        if (N >= 0 and N < children.size()){'

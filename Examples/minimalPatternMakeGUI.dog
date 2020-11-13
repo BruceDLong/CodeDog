@@ -7,14 +7,14 @@ LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 
 BuildCmd = "g++ -g -std=gnu++14 `pkg-config --cflags gtk+-3.0` minimalPatternMakeGUI.cpp `pkg-config --libs gtk+-3.0` -o minimalPatternMakeGUI"
 Title = "minimalPatternMakeGUI"
-FileName = "minimalPatternMakeGUI.dog"
+FileName = "minimalPatternMakeGUI"
 Version = "0.8"
 CopyrightMesg = "Copyright (c) 2017-2018 Bruce Long"
 Authors = "Bruce Long, Tiffany Lawrence"
 Description = "minimalPatternMakeGUI"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [GUI_ToolKit, Dashboard]
+featuresNeeded = [GUI_ToolKit, Dashboard,List]
 
 LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
 
