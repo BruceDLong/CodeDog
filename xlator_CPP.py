@@ -73,7 +73,7 @@ def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
         if 'ownerMe' in baseType:
             ownerOut = 'their'
         else:
-            if varMode=='var':
+            if varMode=='var' and progSpec.isOldContainerTempFunc(typeSpec):
                 ownerOut=progSpec.getOwnerFromTypeSpec(baseType)   # TODO: remove this condition: accomodates old list type generated in stringStructs
             else:
                 ownerOut=ownerIn
