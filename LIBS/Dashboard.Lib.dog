@@ -36,9 +36,9 @@ struct dash: inherits=widget{
 }
 
 struct Dashboard: inherits=dash{
-    our dash[list]: dashChildren
+    me List<our dash>: dashChildren
     their dash[map string]: dependentItems
-    our decor[list]: decorations
+    me List<our decor>: decorations
     mode[accomodateParent, accomodateContent]: sizingMode
     mode[singleDash, verticalStack, userArranges]: layoutMode
     their GUI_canvas: canvas
@@ -324,7 +324,7 @@ struct listOfItems: inherits=dash{
     me mode[headerOnly, fullDisplay, noZeros]: displayMode
     me mode[vertical, horizontal]: orientation
     me dataField: header
-    our dash[our list]: elements
+    our List<our dash>: elements
 
     void: update(me string: Label, me string: textValue, me bool: hideThis, me bool: clear <- true) <- {
         isNullLike<-hideThis
@@ -349,7 +349,7 @@ struct listOfItems: inherits=dash{
         height <- y-posY
         extX <- header.extX
         extY <- max(y, extC)
-        if(displayMode!=headerOnly){
+        /*if(displayMode!=headerOnly){
             if(orientation==vertical){
                 x <- x+8
                 withEach element in elements{
@@ -381,7 +381,7 @@ struct listOfItems: inherits=dash{
                     extY <- max(extY, extC)
                 }
             }
-        }
+        }*/
     }
 
    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
@@ -400,7 +400,7 @@ struct listOfItems: inherits=dash{
         if (isHidden){return()}
         header.isHidden <- false
         header.draw(cr)
-        if(displayMode!=headerOnly){
+        /*if(displayMode!=headerOnly){
             withEach element in elements{
                 element.isHidden <- false
                 element.draw(cr)
@@ -416,7 +416,7 @@ struct listOfItems: inherits=dash{
                     cr.strokeNow()
                 }
             }
-        }
+        }*/
     }
 }
 

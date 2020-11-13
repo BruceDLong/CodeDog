@@ -89,7 +89,6 @@ def getTypesBase(typeSpec):
     else: return getTypesBase(typeSpec[1])
 
 def registerBaseType(usedType, className):
-    #print "registerBaseType: ", usedType, className
     baseType=getTypesBase(usedType)
     if not (baseType in storeOfBaseTypesUsed):
         storeOfBaseTypesUsed[baseType]={}
@@ -138,11 +137,9 @@ def addObject(objSpecs, objectNameList, name, stateType, configType):
     global MarkItems
     global MarkedObjects
     # Config type is [unknown | SEQ | ALT]
-    #print "ADDING:", name, stateType
     if stateType=='model': name='%'+name
     elif stateType=='string': name='$'+name
     if(name in objSpecs):
-        #print "NOT ADDING:"
         cdlog(4, "Note: The struct '{}' is being added but already exists.".format(name))
         return None
     objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType}
@@ -214,10 +211,8 @@ def addObjTags(objSpecs, className, stateType, objTags):
     objRef = objSpecs[className]
     if ('tags' in objRef):
         objRef['tags'].update(objTags)
-        #print "    APPENDED Tags to "+className+".\t", str(objTags)
     else:
         objRef['tags']=objTags
-        #print "    ADDED Tags to "+className+".\t", str(objTags)
     if ('inherits' in objRef['tags']):
         parentClassList = objRef['tags']['inherits']
         inheritsMode = False
@@ -261,7 +256,6 @@ def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, contain
         codeConverter = thisValue[1][1:]
         packedField['typeSpec']['codeConverter']=codeConverter
     fieldID = fieldIdentifierString(className, packedField)
-    #print "FIELD-ID", fieldID
     packedField['fieldID']=fieldID
     return packedField
 
@@ -269,7 +263,6 @@ def addDependancyToStruct(structName, nameOfDependancy):
     global DependanciesMarked
     global DependanciesUnmarked
     if structName == nameOfDependancy: return
-    #print "DEPINFO:",  structName, nameOfDependancy
     if MarkItems: listToUpdate = DependanciesMarked
     else: listToUpdate = DependanciesUnmarked
     if not(structName in listToUpdate): listToUpdate[structName]=[nameOfDependancy]
@@ -604,7 +597,6 @@ def getChildClassList(classes, thisStructName):  # Checks 'inherits' but does no
     if thisStructName in classHeirarchyInfo:
         classRelationData = classHeirarchyInfo[thisStructName]
         if 'childClasses' in classRelationData and len(classRelationData['childClasses'])>0:
-            #print "classRelationData['"+thisStructName+"']:", classRelationData['childClasses']
             listOfChildClasses = classRelationData['childClasses']
             grandChildren = set([])
             for className in listOfChildClasses:
@@ -683,15 +675,18 @@ def isNewContainerTempFunc(typeSpec):
         reqTagList = getReqTagList(typeSpec)
         if reqTagList == None: return(None)
         if fieldTypeKeyword=='CPP_Deque':
-            return(reqTagList[1][0])
+            return(reqTagList[1][0][1])
         if fieldTypeKeyword=='map':
             return(reqTagList)
         #print("fieldTypeKeyword: ",fieldTypeKeyword," ",reqTagList[1][0])
     return(None)
 
+def isOldContainerTempFunc(typeSpec):
+    return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
+
 def isAContainer(typeSpec):
     if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
-    return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
+    return(isOldContainerTempFunc(typeSpec))
 
 def getContainerSpec(typeSpec):
     if isNewContainerTempFunc(typeSpec): return {'owner': 'me', 'datastructID':'list'}
@@ -716,6 +711,10 @@ def getFieldType(typeSpec):
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
+def getFieldTypeNew(typeSpec):
+    if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
+    return None
+
 def getInnerContainerOwner(typeSpec):
     global currentCheckObjectVars
     if (typeSpec == 0):
@@ -735,6 +734,7 @@ def getInnerContainerOwner(typeSpec):
         return(typeSpec['owner'])
 
 def getTypeSpecOwner(typeSpec):
+    # this is old way to get the owner, delete when transition complete
     global currentCheckObjectVars
     if (typeSpec == 0):
         cdErr(currentCheckObjectVars)
@@ -745,6 +745,12 @@ def getTypeSpecOwner(typeSpec):
             owner = typeSpec['arraySpec']['owner']
             return owner
         else: return 'me'
+    return typeSpec['owner']
+
+def getOwnerFromTypeSpec(typeSpec):
+    global currentCheckObjectVars
+    if (typeSpec == 0):
+        cdErr(currentCheckObjectVars)
     return typeSpec['owner']
 
 def getTypeArgList(className):
@@ -779,7 +785,6 @@ def fieldIsFunction(typeSpec):
 def isWrappedType(objMap, structname):
     # If type is not wrapped, return None, else return the wrapped typeSpec
     if not structname in objMap[0]:
-        #print "Struct "+structname+" not found"
         return None; # TODO: "Print Struct "+structname+" not found" But not if type is base type.
     structToSearch=findSpecOf(objMap[0], structname, 'struct')
     ownerMe = False
@@ -1004,7 +1009,6 @@ def stringFromFile(filename):
         Str = f.read()
         f.close()
 #    except IOError as e:
-#        print "FILENAME:", filename
 #        cdErr("I/O error({0}): {1}: {2}".format(e.errno, e.strerror, filename))
         return Str
 
