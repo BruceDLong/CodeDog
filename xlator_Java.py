@@ -9,7 +9,7 @@ def getContainerType(typeSpec, actionOrField):
     idxType=''
     if progSpec.isAContainer(typeSpec):
         containerSpec = progSpec.getContainerSpec(typeSpec)
-        if 'owner' in containerSpec: owner=containerSpec['owner']
+        if 'owner' in containerSpec: owner=progSpec.getOwnerFromTypeSpec(containerSpec)
         else: owner='me'
         if 'indexType' in containerSpec:
             if 'IDXowner' in containerSpec['indexType']:
@@ -26,7 +26,7 @@ def getContainerType(typeSpec, actionOrField):
         elif(datastructID=='map'):      datastructID = 'TreeMap'
         elif(datastructID=='multimap'): datastructID = 'TreeMap'  # TODO: Implement true multmaps in java
     else:
-        owner = typeSpec['owner']
+        owner = progSpec.getOwnerFromTypeSpec(typeSpec)
         datastructID = 'None'
     return [datastructID, idxType, owner]
 
@@ -43,7 +43,6 @@ def convertToJavaType(fieldType, isContainer):
             elif fieldType=='uint':      javaType = 'Integer'
             else:
                 javaType = fieldType
-                #print "javaType: ", javaType
         else:
             if(fieldType=='int32'):      javaType= 'int'
             elif(fieldType=='uint32'  or fieldType=='uint'):javaType='int'  # these should be long but Java won't allow
@@ -74,26 +73,40 @@ def applyOwner(owner, langType, innerType, idxType, actionOrField, varMode):
         cdErr("ERROR: Owner of type not valid '" + owner + "'")
     return langType
 
-def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
-    # varMode is 'var' or 'arg'.
+def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
+    # Coppied directly from C++ xlator, TODO: adapt to Java
+    ownerOut = ownerIn
+    baseType = progSpec.isWrappedType(classes, fieldType)
+    if baseType!=None:  # TODO: When this is all tested and stable, un-hardcode and optimize this!!!!!
+        if 'ownerMe' in baseType:
+            ownerOut = 'their'
+        else:
+            if varMode=='var' and progSpec.isOldContainerTempFunc(typeSpec):
+                ownerOut=progSpec.getOwnerFromTypeSpec(baseType)   # TODO: remove this condition: accomodates old list type generated in stringStructs
+            else:
+                ownerOut=ownerIn
+    return ownerOut
+
+def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, xlator):
+    # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     if(isinstance(fieldType, str)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        langType= convertToJavaType(fieldType, progSpec.isAContainer(TypeSpec))
+        langType= convertToJavaType(fieldType, progSpec.isAContainer(typeSpec))
     else: langType=progSpec.flattenObjectName(fieldType[0])
     langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', actionOrField, varMode)
     if langType=='TYPE ERROR': print(langType, owner, fieldType);
     InnerLangType = langType
 
-    if 'fieldType' in TypeSpec and not(isinstance(TypeSpec['fieldType'], str)) and TypeSpec['fieldType'][0]=='DblLinkedList':
+    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
         print("xlateLangType DblLinkedList")
         return [langType, InnerLangType]
 
-    if progSpec.isAContainer(TypeSpec):
-        containerSpec= progSpec.getContainerSpec(TypeSpec)
+    if progSpec.isAContainer(typeSpec):
+        containerSpec= progSpec.getContainerSpec(typeSpec)
         if(containerSpec): # Make list, map, etc
-            [containerType, idxType, owner]=getContainerType(TypeSpec, actionOrField)
-            if 'owner' in containerSpec:    containerOwner=containerSpec['owner']
+            [containerType, idxType, owner]=getContainerType(typeSpec, actionOrField)
+            if 'owner' in containerSpec:    containerOwner=progSpec.getOwnerFromTypeSpec(containerSpec)
             else:                           containerOwner='me'
             idxType = convertToJavaType(idxType, True)
             langType = convertToJavaType(langType, True)
@@ -106,13 +119,15 @@ def xlateLangType(TypeSpec,owner, fieldType, varMode, actionOrField, xlator):
     return [langType, InnerLangType]
 
 def convertType(classes, typeSpec, varMode, actionOrField, xlator):
+    # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
+    ownerIn=progSpec.getOwnerFromTypeSpec(typeSpec)
     owner=typeSpec['owner']
-    fieldType=typeSpec['fieldType']
+    fieldType=progSpec.getFieldTypeNew(typeSpec)
     if not isinstance(fieldType, str): fieldType=fieldType[0]
-    fieldType2 = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
+    unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
     baseType = progSpec.isWrappedType(classes, fieldType)
     if(baseType!=None): owner=baseType['owner']
-    retVal = xlateLangType(typeSpec, owner, fieldType2, varMode, actionOrField, xlator)
+    retVal = xlateLangType(classes, typeSpec, owner, unwrappedFieldTypeKeyWord, varMode, actionOrField, xlator)
     return retVal
 
 def codeIteratorOperation(itrCommand, fieldType):
@@ -142,35 +157,35 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(S, segType, owner):
         return S
 
-def checkForTypeCastNeed(LHS_Type, RHS_Type, codeStr):
-    LHS_KeyType = progSpec.fieldTypeKeyword(LHS_Type)
-    RHS_KeyType = progSpec.fieldTypeKeyword(RHS_Type)
-    if LHS_KeyType == 'bool' and progSpec.typeIsPointer(RHS_KeyType): return '(' + codeStr + ' != null)'
+def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
+    LHS_KeyType = progSpec.fieldTypeKeyword(lhsTypeSpec)
+    RHS_KeyType = progSpec.fieldTypeKeyword(rhsTypeSpec)
+    if LHS_KeyType == 'bool' and progSpec.typeIsPointer(RHS_KeyType): return '(' + RHScodeStr + ' != null)'
     if (LHS_KeyType == 'bool' or LHS_KeyType == 'boolean') and (RHS_KeyType=='int' or RHS_KeyType=='flag'):
-        if codeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
-        else: return '(' + codeStr + ' != 0)'
-    return codeStr
+        if RHScodeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
+        else: return '(' + RHScodeStr + ' != 0)'
+    return RHScodeStr
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
-        if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '']
+        if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '', False]
         if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
             if progSpec.isAContainer(itemTypeSpec):
                 if owner=='itr':
                     containerType = progSpec.getDatastructID(itemTypeSpec)
                     if containerType =='map' or containerType == 'multimap':
-                        return ['', '->second']
-                return ['(*', ')']
+                        return ['', '->second', False]
+                return ['(*', ')', False]
             else:
                 if owner!='itr':
-                   # print "GettingPTRMode:", itemTypeSpec
-                    return ['(*', ')']
-    return ['', '']
+                    return ['(*', ')', True]
+    return ['', '', False]
 
 def derefPtr(varRef, itemTypeSpec):
-    [leftMod, rightMod] = getTheDerefPtrMods(itemTypeSpec)
-    return leftMod + varRef + rightMod
+    [leftMod, rightMod, isDerefd] = getTheDerefPtrMods(itemTypeSpec)
+    S = leftMod + varRef + rightMod
+    return [S, isDerefd]
 
 def ChoosePtrDecorationForSimpleCase(owner):
     print("TODO: finish ChoosePtrDecorationForSimpleCase")
@@ -182,7 +197,7 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
     return ['','',  '','']
 
 def getCodeAllocStr(varTypeStr, owner):
-    if(owner!='const'):  S="new "+varTypeStr
+    if(owner!='const'): S="new "+varTypeStr
     else: print("ERROR: Cannot allocate a 'const' variable."); exit(1);
     return S
 
@@ -196,7 +211,7 @@ def getConstIntFieldStr(fieldName, fieldValue):
     return(S)
 
 def getEnumStr(fieldName, enumList):
-    S=''
+    S = ''
     count=0
     for enumName in enumList:
         S += "    " + getConstIntFieldStr(enumName, str(count))
@@ -207,8 +222,6 @@ def getEnumStr(fieldName, enumList):
 
 def getEnumStringifyFunc(className, enumList):
     print("TODO: finish getEnumStringifyFunc")
-
-######################################################   E X P R E S S I O N   C O D I N G
 
 def codeIdentityCheck(S1, S2, retType1, retType2):
     print("TODO: finish codeIdentityCheck")
@@ -295,6 +308,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     else: print("Unknown container type:", containerType); exit(2);
     return(name, typeSpecOut, paramList, convertedIdxType)
 
+######################################################   E X P R E S S I O N   C O D I N G
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
     #print('                  factor: ', item)
@@ -361,7 +375,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeTerm(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '               term item:', item
+    #print('               term item:', item)
     [S, retTypeSpec]=codeFactor(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
         for i in item[1]:
@@ -375,7 +389,7 @@ def codeTerm(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codePlus(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '            plus item:', item
+    #print('            plus item:', item)
     [S, retTypeSpec]=codeTerm(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for  i in item[1]:
@@ -388,11 +402,10 @@ def codePlus(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '         Comp item', item
+    #print('         Comp item', item)
     [S, retTypeSpec]=codePlus(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for  i in item[1]:
-            #print '         comp ', i
             if   (i[0] == '<'): S+=' < '
             elif (i[0] == '>'): S+=' > '
             elif (i[0] == '<='): S+=' <= '
@@ -404,7 +417,7 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '      IsEq item:', item
+    #print('      IsEq item:', item)
     [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
@@ -419,13 +432,13 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             if 'fieldType' in retType2:
-                rightFieldType = retType2['fieldType']
+                rightFieldType = progSpec.getFieldTypeNew(retType2)
             else:
                 rightFieldType =  retType2
                 if not isinstance(rightFieldType, str):
                     rightFieldType = rightFieldType[0]
             if 'fieldType' in retTypeSpec:
-                leftFieldType = retTypeSpec['fieldType']
+                leftFieldType = progSpec.getFieldTypeNew(retTypeSpec)
             else:
                 leftFieldType =  retTypeSpec
                 if not isinstance(leftFieldType, str):
@@ -440,8 +453,7 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
             else:
                 if rightFieldType == "String" and item[1][0][0]=="==" and leftFieldType=='String':
                     S+= '.equals('+S2+')'
-                else:
-                    S+= op+S2
+                else: S+= op+S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
@@ -450,7 +462,7 @@ def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
-            #print '   AND ', i
+            #print('      IsEq ', i)
             if (i[0] == '&'):
                 [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S+=' & ' + S2
@@ -458,11 +470,10 @@ def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '      xOR item:', item
+    #print('   xOR item:', item)
     [S, retTypeSpec]=codeAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
-            #print '   AND ', i
             if (i[0] == '^'):
                 [S2, retTypeSpec] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S+=' ^ ' + S2
@@ -470,11 +481,10 @@ def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '      Bar item:', item
+    #print ('   Bar item:', item)
     [S, retTypeSpec]=codeXOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
-            #print '   AND ', i
             if (i[0] == '|'):
                 [S2, retTypeSpec] = codeXOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S+=' | ' + S2
@@ -482,7 +492,7 @@ def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print '   And item:', item
+    #print('   And item:', item)
     [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
@@ -497,37 +507,35 @@ def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print ('Or item:', item)
+    #print('Or item:', item)
     [S, retTypeSpec] = codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
-        S=derefPtr(S, retTypeSpec)
+        [S, isDerefd]=derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print('   OR ', i)
             if (i[0] == 'or'):
                 [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                S2=derefPtr(S2, retTypeSpec)
+                [S2, isDerefd]=derefPtr(S2, retTypeSpec)
                 S+=' || ' + S2
             else: print("ERROR: 'or' expected in code generator."); exit(2)
             retTypeSpec='bool'
-    #print "S:",S
     return [S, retTypeSpec]
 
 def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print ('Assign item:', item)
+    #print("codeExpr:",item)
     [S, retTypeSpec]=codeLogOr(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
-        S=derefPtr(S, retTypeSpec)
+        [S, isDerefd]=derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print('Assign ', i)
             if (i[0] == '<-'):
                 [S2, retTypeSpec] = codeLogOr(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                S2=derefPtr(S2, retTypeSpec)
+                [S2, isDerefd]=derefPtr(S2, retTypeSpec)
                 S+=' = ' + S2
             else: print("ERROR: '<-' expected in code generator."); exit(2)
             retTypeSpec='bool'
-    #print "S:",S
     return [S, retTypeSpec]
 
+######################################################
 def adjustConditional(S2, conditionType):
     if not isinstance(conditionType, str):
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):
@@ -545,7 +553,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
     fieldType='void'   # default to void
     retOwner='me'    # default to 'me'
     funcName=segSpec[0]
-    if(len(segSpec)>2):
+    if(len(segSpec)>2):  # If there are arguments...
         paramList=segSpec[2]
         if(funcName=='print'):
             S+='System.out.print('
@@ -555,7 +563,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 count+=1
                 [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, None, xlator)
                 if 'fieldType' in argTypeSpec:
-                    fieldType = argTypeSpec['fieldType']
+                    fieldType = progSpec.getFieldTypeNew(argTypeSpec)
                     if not isinstance(fieldType, str):
                         fieldType=fieldType[0]
                     fieldType = convertToJavaType(fieldType, False)
@@ -591,7 +599,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
         elif(funcName=='toStr'):
             if len(paramList)==1:
                 [S2, argTypeSpec]=xlator['codeExpr'](P[0][0], objsRefed, None, None, xlator)
-                S2=derefPtr(S2, argTypeSpec)
+                [S2, isDerefd]=derefPtr(S2, argTypeSpec)
                 S+='String.valueOf('+S2+')'
                 fieldType='String'
     else: # Not parameters, i.e., not a function
@@ -615,7 +623,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
         print("ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType)
         exit(1)
     return S
-################################################
+############################################
 def codeMain(classes, tags, objsRefed, xlator):
     return ["", ""]
 
@@ -635,7 +643,6 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
         parentClass=' extends ' +parentClass
     elif classInherits!=None:
         parentClass=' extends ' + classInherits[0][0]
-        #print "parentClass::: " , parentClass
     if classImplements!=None:
         parentClass+=' implements '
         count =0
@@ -644,11 +651,9 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
                 parentClass+= ', '
             parentClass+= item
             count += 1
-        #print "parentClass:: " , parentClass
     if structName =="GLOBAL" and Platform == 'Android':
         classAttrs = "public " + classAttrs
     S= "\n"+classAttrs +"class "+structName+''+parentClass+" {\n" + structCode + '};\n'
-    #if classAttrs!='': print "ATTRIBUTE:", classAttrs +"class "+structName+''+parentClass
     return([S,""])
 
 def produceTypeDefs(typeDefMap, xlator):
@@ -670,18 +675,18 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code' )
 
-def codeNewVarStr (classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
-    [fieldTypeSpec, innerType] = xlator['convertType'](classes, typeSpec, 'var', actionOrField, xlator)
+def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
+    [fieldTypeSpec, innerType] = xlator['convertType'](classes, lhsTypeSpec, 'var', actionOrField, xlator)
     varDeclareStr=''
     assignValue=''
     isAllocated = fieldDef['isAllocated']
-    owner = progSpec.getTypeSpecOwner(typeSpec)
+    owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
     useCtor = False
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    containerSpec = progSpec.getContainerSpec(typeSpec)
-    fieldType = convertToJavaType(fieldTypeSpec, progSpec.isAContainer(typeSpec))
+    containerSpec = progSpec.getContainerSpec(lhsTypeSpec)
+    fieldType = convertToJavaType(fieldTypeSpec, progSpec.isAContainer(lhsTypeSpec))
     if isinstance(containerSpec, str) and containerSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, xlator)
@@ -740,10 +745,11 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
 
 def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType, ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
-    actionText = ""
-    loopCounterName = ""
-    containedType=containerType['fieldType']
-    ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+    actionText       = ""
+    loopCounterName  = ""
+    containedType    = progSpec.getFieldTypeNew(containerType)
+    containerOwner   = progSpec.getOwnerFromTypeSpec(containerType)
+    ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
 
     if datastructID=='TreeMap':
         valueFieldType = convertToJavaType(progSpec.fieldTypeKeyword(progSpec.getFieldType(containerType)), True)
@@ -765,10 +771,10 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
     return [actionText, loopCounterName]
 
 def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
-    actionText = ""
-    loopCounterName=""
-    owner=containerType['owner']
-    containedType=containerType['fieldType']
+    actionText       = ""
+    loopCounterName  = ""
+    owner            = progSpec.getOwnerFromTypeSpec(containerType)
+    containedType    = progSpec.getFieldTypeNew(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if containerType['fieldType'][0]=='DblLinkedList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
@@ -854,7 +860,6 @@ def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueTe
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     # TODO: make next line so it is not hard coded
     if(Platform == 'Android' and (convertedType == "TextView" or convertedType == "CanvasView" or convertedType == "FragmentTransaction" or convertedType == "FragmentManager" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "Toolbar" or convertedType == "NestedScrollView" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI"or convertedType == "CheckBox" or convertedType == "HorizontalScrollView"or convertedType == "GUI_ZStack"or convertedType == "widget"or convertedType == "GLOBAL")):
-        #print "                                        ConvertedType: ", convertedType, "     FieldName: ", fieldName
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
@@ -891,7 +896,6 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
 #    if fieldName == 'init':
 #        fieldName = fieldName+'_'+className
     if inheritMode=='pure-virtual':
-        #print "Inherit Mode: ", className, fieldName
         typeDefName = 'abstract '+typeDefName
     structCode='\n'; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):

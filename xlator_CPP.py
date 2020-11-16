@@ -45,9 +45,9 @@ def applyOwner(owner, langType, varMode):
     if owner=='me':
         langType = langType
     elif owner=='my':
-        langType="unique_ptr<"+langType + ' >'
+        langType = "unique_ptr<"+langType + ' >'
     elif owner=='our':
-        langType="shared_ptr<"+langType + ' >'
+        langType = "shared_ptr<"+langType + ' >'
     elif owner=='their':
         langType += '*'
     elif owner=='itr':
@@ -63,7 +63,7 @@ def applyOwner(owner, langType, varMode):
     elif owner=='dblTheir':
         langType += '**'
     else:
-        cdErr("Owner of type not valid '" + owner + "'")
+        cdErr("ERROR: Owner of type not valid '" + owner + "'")
     return langType
 
 def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
@@ -137,8 +137,8 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
 
 def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    ownerIn=progSpec.getOwnerFromTypeSpec(typeSpec)
-    fieldType=progSpec.getFieldTypeNew(typeSpec)
+    ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
+    fieldType = progSpec.getFieldTypeNew(typeSpec)
     if not isinstance(fieldType, str):
         if len(fieldType) > 1 and fieldType[1] == "..":
             fieldType = "int"
@@ -195,7 +195,6 @@ def getTheDerefPtrMods(itemTypeSpec):
     return ['', '', False]
 
 def derefPtr(varRef, itemTypeSpec):
-    #print("derefPtr:",varRef)
     [leftMod, rightMod, isDerefd] = getTheDerefPtrMods(itemTypeSpec)
     S = leftMod + varRef + rightMod
     return [S, isDerefd]
@@ -449,7 +448,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                     #retTypeSpec='numeric'
                     retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
                 if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):retTypeSpec=expected_KeyType
-    else:
+    else: # CODEDOG LITERALS
         if isinstance(item0[0], str):
             S+=item0[0]
         else:
@@ -539,13 +538,13 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
                 [S2, isDerefd]=derefPtr(S2, retType2)
             if i[0] == '===':
                 S=codeIdentityCheck(S, S2, retTypeSpec, retType2)
-            else:S+= op+S2
+            else: S+= op+S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
 def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('      iOR item:', item)
-    [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    [S, retTypeSpec] = codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
@@ -553,7 +552,7 @@ def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
         for i in item[1]:
             #print('      IsEq ', i)
             [S2, retType2] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            rightOwner=progSpec.getTypeSpecOwner(retType2)
+            rightOwner = progSpec.getTypeSpecOwner(retType2)
             S+= ' & '+S2
     return [S, retTypeSpec]
 
@@ -565,7 +564,6 @@ def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
         leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
         [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print('      IsEq ', i)
             [S2, retType2] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retType2)
             S+= ' ^ '+S2
@@ -855,30 +853,30 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr(classes, typeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
+def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
     #TODO: make test case
-    [fieldType, innerType] = convertType(classes, typeSpec, 'var', '', xlator)
+    [fieldType, innerType] = convertType(classes, lhsTypeSpec, 'var', '', xlator)
     varDeclareStr=''
     assignValue=''
     isAllocated = fieldDef['isAllocated']
-    owner = progSpec.getTypeSpecOwner(typeSpec)
+    owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
     useCtor = False
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
     if(fieldDef['value']):
-        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, typeSpec, None, xlator)
+        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, xlator)
         if(isAllocated):
             assignValue = " = " + getCodeAllocSetStr(innerType, owner, S2)
         else:
-            [leftMod, rightMod]=chooseVirtualRValOwner(typeSpec, rhsTypeSpec)
+            [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)
             if(useCtor==False):    # { } constructor
                 assignValue += " = "
             assignValue += leftMod+S2+rightMod
 
     else: # If no value was given:
         CPL=''
-        itemsTypeCat = progSpec.fieldsTypeCategory(typeSpec)
+        itemsTypeCat = progSpec.fieldsTypeCategory(lhsTypeSpec)
         if fieldDef['paramList'] != None:
             # Code the constructor's arguments
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
@@ -895,17 +893,17 @@ def codeNewVarStr(classes, typeSpec, varName, fieldDef, indent, objsRefed, actio
                         assignValue += " = "    # Use a copy constructor
                     assignValue += CPL
             if(assignValue==''):
-                owner = progSpec.getTypeSpecOwner(typeSpec)
+                owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
                 assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
-        elif(progSpec.typeIsPointer(typeSpec)):
+        elif(progSpec.typeIsPointer(lhsTypeSpec)):
             if(isAllocated):
                 assignValue = " = " + getCodeAllocSetStr(innerType, owner, "")
             else:
                 assignValue = '= NULL'
-        elif(progSpec.isAContainer(typeSpec)):
+        elif(progSpec.isAContainer(lhsTypeSpec)):
             pass
         else:
-            fieldTypeCat= progSpec.fieldsTypeCategory(typeSpec)
+            fieldTypeCat= progSpec.fieldsTypeCategory(lhsTypeSpec)
             if(fieldTypeCat=='int' or fieldTypeCat=='char' or fieldTypeCat=='double' or fieldTypeCat=='float'):
                 assignValue = ' = 0'
             elif(fieldTypeCat=='bool'):
@@ -921,11 +919,11 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,containerType,ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType, ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
-    actionText = ""
-    loopCounterName = ""
-    containedType=progSpec.getFieldType(containerType)
+    actionText       = ""
+    loopCounterName  = ""
+    containedType    = progSpec.getFieldType(containerType)
     if progSpec.ownerIsPointer(ContainerOwner): connector="->"
     else: connector = "."
     containerOwner=progSpec.getOwnerFromTypeSpec(containerType)
@@ -948,20 +946,17 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey,contai
     else:
         print("DSID:",datastructID,containerType)
         exit(2)
-
     return [actionText, loopCounterName]
 
 def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
     #TODO: handle isBackward
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
-    actionText = ""
-    loopCounterName = ""
-    owner=progSpec.getInnerContainerOwner(containerType)
-    containedType=progSpec.getFieldType(containerType)
+    actionText       = ""
+    loopCounterName  = ""
+    owner            = progSpec.getInnerContainerOwner(containerType)
+    containedType    = progSpec.getFieldType(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ContainerOwner)
-
-
     if containerType['fieldType'][0]=='DblLinkedList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
         loopCounterName=repName+'_key'
@@ -972,9 +967,6 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         actionText += (indent + "for( auto " + repItrName+' ='+ repContainer+RDeclP+'begin()' + "; " + repItrName + " !=" + repContainer+RDeclP+'end()' +"; "+ repItrName + " = " + repItrName+"->next ){\n"
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+repItrName+"->item;\n")
         return [actionText, loopCounterName]
-
-
-
     if datastructID=='multimap' or datastructID=='map':
         keyVarSpec = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
@@ -988,7 +980,6 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':owner, 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         if isBackward:
             actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'rbegin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'rend()' +"; ++"+ repName + "Itr ){\n")
@@ -1009,7 +1000,6 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n"
     else:
         cdErr("DSID:" + datastructID + ', ' +containerType)
-
     return [actionText, loopCounterName]
 
 def codeIncrement(varName):
@@ -1040,7 +1030,7 @@ def codeConstField_Str(convertedType, fieldName, fieldValueText, className, inde
     return [defn, decl]
 
 def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
-    #TODO: make test case
+    # TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
         defn = indent + convertedType + ' ' + fieldName +';\n'
