@@ -20,7 +20,7 @@ def getContainerType(typeSpec, actionOrField):
                 idxType=containerSpec['indexType']['idxBaseType'][0][0]
         else:
             idxType = progSpec.getFieldType(typeSpec)
-        convertToJavaType(idxType, True)
+        adjustBaseTypes(idxType, True)
         datastructID = containerSpec['datastructID'][0]
         if(datastructID=='list'):       datastructID = 'ArrayList'
         elif(datastructID=='map'):      datastructID = 'TreeMap'
@@ -30,7 +30,7 @@ def getContainerType(typeSpec, actionOrField):
         datastructID = 'None'
     return [datastructID, idxType, owner]
 
-def convertToJavaType(fieldType, isContainer):
+def adjustBaseTypes(fieldType, isContainer):
     javaType = ''
     if fieldType !="":
         if isContainer:
@@ -92,38 +92,40 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if(isinstance(fieldType, str)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        langType= convertToJavaType(fieldType, progSpec.isAContainer(typeSpec))
-    else: langType=progSpec.flattenObjectName(fieldType[0])
+        langType = adjustBaseTypes(fieldType, progSpec.isAContainer(typeSpec))
+    else: langType = progSpec.flattenObjectName(fieldType[0])
     langType = applyOwner(owner, langType, 'Itr-Error', 'ITR-ERROR', actionOrField, varMode)
     if langType=='TYPE ERROR': print(langType, owner, fieldType);
     InnerLangType = langType
+    reqTagList = progSpec.getReqTagList(typeSpec)
 
-    if 'fieldType' in typeSpec and not(isinstance(typeSpec['fieldType'], str)) and typeSpec['fieldType'][0]=='DblLinkedList':
-        print("xlateLangType DblLinkedList")
-        return [langType, InnerLangType]
+    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
 
     if progSpec.isAContainer(typeSpec):
-        containerSpec= progSpec.getContainerSpec(typeSpec)
+        containerSpec = progSpec.getContainerSpec(typeSpec)
         if(containerSpec): # Make list, map, etc
             [containerType, idxType, owner]=getContainerType(typeSpec, actionOrField)
-            if 'owner' in containerSpec:    containerOwner=progSpec.getOwnerFromTypeSpec(containerSpec)
-            else:                           containerOwner='me'
-            idxType = convertToJavaType(idxType, True)
-            langType = convertToJavaType(langType, True)
+            if 'owner' in containerSpec:
+                containerOwner = progSpec.getOwnerFromTypeSpec(containerSpec)
+            else: containerOwner='me'
+            idxType  = adjustBaseTypes(idxType, True)
+            langType = adjustBaseTypes(langType, True)
             InnerLangType = langType
             if containerType=='ArrayList':  langType ="ArrayList<"+langType+'>'
             elif containerType=='TreeMap':  langType ='TreeMap<'+idxType+', '+langType+'>'
             elif containerType=='multimap': langType ='multimap<'+idxType+', '+langType+'>'
-            if varMode != 'alloc':          langType=applyOwner(containerOwner, langType, InnerLangType, idxType, actionOrField, varMode)
+            if varMode != 'alloc':
+                langType=applyOwner(containerOwner, langType, InnerLangType, idxType, actionOrField, varMode)
     if owner =="const":                     InnerLangType = fieldType
     return [langType, InnerLangType]
 
 def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    ownerIn=progSpec.getOwnerFromTypeSpec(typeSpec)
+    ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
     owner=typeSpec['owner']
-    fieldType=progSpec.getFieldTypeNew(typeSpec)
-    if not isinstance(fieldType, str): fieldType=fieldType[0]
+    fieldType = progSpec.getFieldTypeNew(typeSpec)
+    if not isinstance(fieldType, str):
+        fieldType=fieldType[0]
     unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
     baseType = progSpec.isWrappedType(classes, fieldType)
     if(baseType!=None): owner=baseType['owner']
@@ -336,7 +338,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                 count+=1
                 [S2, exprTypeSpec] = codeExpr(expr, objsRefed, returnType, expectedTypeSpec, xlator)
                 if not exprTypeSpec=='noType':
-                    retTypeSpec = convertToJavaType(exprTypeSpec, True)
+                    retTypeSpec = adjustBaseTypes(exprTypeSpec, True)
                 if count>1: tmp+=', '
                 tmp+=S2
                 if exprTypeSpec=='Long' or exprTypeSpec=='noType':
@@ -348,7 +350,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                         retTypeSpec = 'Long'
             tmp+="))"
             typeKeyword = progSpec.fieldTypeKeyword(retTypeSpec)
-            typeKeyword = convertToJavaType(typeKeyword, True)
+            typeKeyword = adjustBaseTypes(typeKeyword, True)
             S+='new '+'ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
         else:
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
@@ -566,7 +568,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                     fieldType = progSpec.getFieldTypeNew(argTypeSpec)
                     if not isinstance(fieldType, str):
                         fieldType=fieldType[0]
-                    fieldType = convertToJavaType(fieldType, False)
+                    fieldType = adjustBaseTypes(fieldType, False)
                 else: fieldType = argTypeSpec
                 if fieldType == "timeValue" or fieldType == "int" or fieldType == "double": S2 = '('+S2+')'
                 S+=S2
@@ -623,6 +625,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
         print("ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType)
         exit(1)
     return S
+
 ############################################
 def codeMain(classes, tags, objsRefed, xlator):
     return ["", ""]
@@ -636,7 +639,6 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
     if len(attrList)>0:
         for attr in attrList:
             if attr=='abstract': classAttrs += 'abstract '
-
     if (parentClass != ""):
         parentClass = parentClass.replace('::', '_')
         parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, structName)
@@ -686,7 +688,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
         del fieldDef['paramList'][-1]
         useCtor = True
     containerSpec = progSpec.getContainerSpec(lhsTypeSpec)
-    fieldType = convertToJavaType(fieldTypeSpec, progSpec.isAContainer(lhsTypeSpec))
+    fieldType = adjustBaseTypes(fieldTypeSpec, progSpec.isAContainer(lhsTypeSpec))
     if isinstance(containerSpec, str) and containerSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, xlator)
@@ -718,8 +720,8 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
                     #exit(1)
 
-                theParam=progSpec.getFieldType(paramTypeList[0])
-                if not isinstance(theParam, str) and fieldType==theParam[0]:
+                paramFieldType=progSpec.getFieldType(paramTypeList[0])
+                if not isinstance(paramFieldType, str) and fieldType==paramFieldType[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
                 elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
                     assignValue = " = " + CPL
@@ -752,11 +754,11 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
     ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
 
     if datastructID=='TreeMap':
-        valueFieldType = convertToJavaType(progSpec.fieldTypeKeyword(progSpec.getFieldType(containerType)), True)
+        valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(progSpec.getFieldType(containerType)), True)
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        keyFieldType = convertToJavaType(keyFieldType, True)
+        keyFieldType = adjustBaseTypes(keyFieldType, True)
         repContainerTypeSpec = (repContainer)
         actionText += (indent + 'for(Map.Entry<'+keyFieldType+','+valueFieldType+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
                        indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
@@ -791,10 +793,10 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
         [containedTypeStr, innerType]=xlator['convertType'](classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
-        containedTypeStr = convertToJavaType(containedTypeStr, True)
+        containedTypeStr = adjustBaseTypes(containedTypeStr, True)
         [indexTypeStr, innerType]=xlator['convertType'](classes, keyVarSpec, 'var', actionOrField, xlator)
-        indexTypeStr = convertToJavaType(indexTypeStr, True)
-        containedTypeStr = convertToJavaType(containedTypeStr, True)
+        indexTypeStr = adjustBaseTypes(indexTypeStr, True)
+        containedTypeStr = adjustBaseTypes(containedTypeStr, True)
         iteratorTypeStr="Map.Entry<"+indexTypeStr+', '+containedTypeStr+'>'
         repContainer+='.entrySet()'
         localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope

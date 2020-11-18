@@ -79,7 +79,7 @@ def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
                 ownerOut=ownerIn
     return ownerOut
 
-def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
+def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     langType = adjustBaseTypes(fieldType)
     InnerLangType = langType
@@ -114,9 +114,8 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
             if 'owner' in containerSpec:
                 containerOwner = progSpec.getOwnerFromTypeSpec(containerSpec)
             else: containerOwner='me'
-            idxType=adjustBaseTypes(idxType)
+            idxType  = adjustBaseTypes(idxType)
             if idxType=='timeValue': idxType = 'int64_t'
-
             if containerType=='deque':
                 if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="deque< "+langType+" >"
@@ -129,7 +128,6 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
             elif containerType=='multimap':
                 if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="multimap< "+idxType+', '+langType+" >"
-
             InnerLangType = langType
             if varMode != 'alloc':
                 langType=applyOwner(containerOwner, langType, varMode)
@@ -146,7 +144,7 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
             fieldType=fieldType[0]
     unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
     ownerOut=getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn)
-    retVal = xlateLangType(classes, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, xlator)
+    retVal = xlateLangType(classes, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, actionOrField, xlator)
     return retVal
 
 def codeIteratorOperation(itrCommand, fieldType):
