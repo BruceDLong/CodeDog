@@ -883,10 +883,9 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
                     #exit(1)
 
-                theParam=progSpec.getFieldType(paramTypeList[0])
-
+                paramFieldType=progSpec.getFieldType(paramTypeList[0])
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                if True or not isinstance(theParam, str) and fieldType==theParam[0]:
+                if True or not isinstance(paramFieldType, str) and fieldType==paramFieldType[0]:
                     if(not useCtor):
                         assignValue += " = "    # Use a copy constructor
                     assignValue += CPL
