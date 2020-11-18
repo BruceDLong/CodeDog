@@ -678,6 +678,8 @@ def isNewContainerTempFunc(typeSpec):
             return(reqTagList[1][0][1])
         if fieldTypeKeyword=='map':
             return(reqTagList)
+        if fieldTypeKeyword=='Java_ArrayList':
+            return(reqTagList[1][0][1])
         #print("fieldTypeKeyword: ",fieldTypeKeyword," ",reqTagList[1][0])
     return(None)
 
@@ -711,11 +713,16 @@ def getFieldType(typeSpec):
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
+def getContainedFieldType(typeSpec):
+    retVal = isNewContainerTempFunc(typeSpec)
+    if retVal == None: print("WARNING: no contained type found for ", typeSpec)
+    return retVal
+
 def getFieldTypeNew(typeSpec):
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
-def getInnerContainerOwner(typeSpec):
+def getContainerFirstElementOwner(typeSpec):
     global currentCheckObjectVars
     if (typeSpec == 0):
         cdErr(currentCheckObjectVars)

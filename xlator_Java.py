@@ -7,7 +7,7 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParamete
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
     idxType=''
-    if progSpec.isAContainer(typeSpec):
+    if progSpec.isNewContainerTempFunc(typeSpec):
         containerSpec = progSpec.getContainerSpec(typeSpec)
         if 'owner' in containerSpec: owner=progSpec.getOwnerFromTypeSpec(containerSpec)
         else: owner='me'
@@ -21,10 +21,11 @@ def getContainerType(typeSpec, actionOrField):
         else:
             idxType = progSpec.getFieldType(typeSpec)
         adjustBaseTypes(idxType, True)
-        datastructID = containerSpec['datastructID'][0]
-        if(datastructID=='list'):       datastructID = 'ArrayList'
-        elif(datastructID=='map'):      datastructID = 'TreeMap'
-        elif(datastructID=='multimap'): datastructID = 'TreeMap'  # TODO: Implement true multmaps in java
+        if(isinstance(containerSpec['datastructID'], str)):
+            datastructID = containerSpec['datastructID']
+        else:   # it's a parseResult
+            datastructID = containerSpec['datastructID'][0]
+    elif progSpec.isOldContainerTempFunc(typeSpec): print("Deprecated container type:", typeSpec); exit(2);
     else:
         owner = progSpec.getOwnerFromTypeSpec(typeSpec)
         datastructID = 'None'
@@ -66,7 +67,7 @@ def applyOwner(owner, langType, innerType, actionOrField, varMode):
     elif owner=='their':
         langType = langType
     elif owner=='itr':
-        langType = innerType
+        langType = 'Itr-Error'
     elif owner=='we':
         langType = 'static '+langType
     else:
@@ -81,20 +82,18 @@ def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
         if 'ownerMe' in baseType:
             ownerOut = 'their'
         else:
-            if varMode=='var' and progSpec.isOldContainerTempFunc(typeSpec):
-                ownerOut=progSpec.getOwnerFromTypeSpec(baseType)   # TODO: remove this condition: accomodates old list type generated in stringStructs
-            else:
-                ownerOut=ownerIn
+            ownerOut=ownerIn
     return ownerOut
 
 def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
+    if progSpec.isOldContainerTempFunc(typeSpec): print("Deprecated container type:", typeSpec); exit(2);
     if(isinstance(fieldType, str)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
         langType = adjustBaseTypes(fieldType, progSpec.isAContainer(typeSpec))
     else: langType = progSpec.flattenObjectName(fieldType[0])
-    langType = applyOwner(owner, langType, 'Itr-Error', actionOrField, varMode)
+    langType = applyOwner(owner, langType, progSpec.isNewContainerTempFunc(typeSpec), actionOrField, varMode)
     if langType=='TYPE ERROR': print(langType, owner, fieldType);
     InnerLangType = langType
     reqTagList = progSpec.getReqTagList(typeSpec)
@@ -110,32 +109,14 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
                 varTypeKeyword= varTypeKeyword[0]
             unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc', reqOwner)
             unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
-            unwrappedTypeKeyword = adjustBaseTypes(unwrappedTypeKeyword, True)
-            reqType = applyOwner(unwrappedOwner, InnerLangType, actionOrField, unwrappedTypeKeyword, '')
+            reqType = adjustBaseTypes(unwrappedTypeKeyword, True)
             if(count>0):reqTagString += ", "
             reqTagString += reqType
             count += 1
         reqTagString += ">"
         langType += reqTagString
-
-
-    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
-
-    if progSpec.isAContainer(typeSpec):
-        containerSpec = progSpec.getContainerSpec(typeSpec)
-        if(containerSpec): # Make list, map, etc
-            [containerType, idxType, owner]=getContainerType(typeSpec, actionOrField)
-            if 'owner' in containerSpec:
-                containerOwner = progSpec.getOwnerFromTypeSpec(containerSpec)
-            else: containerOwner='me'
-            idxType  = adjustBaseTypes(idxType, True)
-            langType = adjustBaseTypes(langType, True)
-            InnerLangType = langType
-            if containerType=='ArrayList':  langType ="ArrayList<"+langType+'>'
-            elif containerType=='TreeMap':  langType ='TreeMap<'+idxType+', '+langType+'>'
-            elif containerType=='multimap': langType ='multimap<'+idxType+', '+langType+'>'
-            if varMode != 'alloc':
-                langType=applyOwner(containerOwner, langType, InnerLangType, actionOrField, varMode)
+    if progSpec.isNewContainerTempFunc(typeSpec):
+        return [langType, InnerLangType]
     if owner =="const":                     InnerLangType = fieldType
     return [langType, InnerLangType]
 
@@ -188,18 +169,12 @@ def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
+        if progSpec.isOldContainerTempFunc(itemTypeSpec): print("Deprecated container type:", itemTypeSpec); exit(2);
         if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '', False]
         if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
-            if progSpec.isAContainer(itemTypeSpec):
-                if owner=='itr':
-                    containerType = progSpec.getDatastructID(itemTypeSpec)
-                    if containerType =='map' or containerType == 'multimap':
-                        return ['', '->second', False]
-                return ['(*', ')', False]
-            else:
-                if owner!='itr':
-                    return ['(*', ')', True]
+            if owner!='itr':
+                return ['(*', ')', True]
     return ['', '', False]
 
 def derefPtr(varRef, itemTypeSpec):
@@ -250,82 +225,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     if progSpec.isNewContainerTempFunc(typeSpecIn): return(name, typeSpecOut, paramList, convertedIdxType)
-    if containerType=='ArrayList':
-        if name=='at'         : name='get'
-        elif name=='erase'    : name='remove'
-        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='insert'   : name='add';
-        elif name=='insertIdx': typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':{'owner':'itr'}}, {'typeSpec':typeSpecIn}]}; typeSpecOut['codeConverter']='%0.add(%1, %2)'
-        elif name=='InsertIdx': typeSpecOut={'owner':'me', 'fieldType': 'void', 'argList':[{'typeSpec':{'owner':'itr'}}, {'typeSpec':typeSpecIn}]}; typeSpecOut['codeConverter']='%0.add(%1, %2)'
-        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='rend'     : name='rend()';   typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='nthItr'   : typeSpecOut['codeConverter']='%0.listIterator(%1)';  typeSpecOut['owner']='itr';
-        elif name=='first'    : name='get(0)';   paramList=None;
-        elif name=='last'     : name='%0.get(%0.size()-1)'; paramList=None;
-        elif name=='popFirst' : name='remove(0)';   paramList=None;
-        elif name=='popLast'  : typeSpecOut['codeConverter']='%0.remove(%0.size() - 1)';  typeSpecOut['owner']='itr';
-        elif name=='pushFirst': typeSpecOut['codeConverter']='%0.add(0, %1)';  typeSpecOut['owner']='itr';
-        elif name=='pushLast' : name='add'
-        elif name=='isEmpty'  : name='isEmpty';  typeSpecOut={'owner':'me', 'fieldType': 'bool'}
-        elif name=='deleteNth': name='remove'
-        else: print("Unknown ArrayList command:", name); exit(2);
-    elif containerType=='TreeMap':
-        convertedIdxType=idxType
-        [convertedItmType, innerType]=convertType(classes, typeSpecOut, 'var', '', xlator)
-        if name=='at'         : name='get'
-        elif name=='containsKey'   : name="containsKey"; typeSpecOut={'owner':'me', 'fieldType': 'bool'}
-        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='insert'   : name='put';
-        elif name=='clear'    : typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='find'     :
-            typeSpecOut['owner']='itr'; typeSpecOut['fieldType']=convertedItmType;
-            typeSpecOut['codeConverter']='get(%1)';
-            print("convertedItmType:",convertedItmType)
-        elif name=='get'      : name='get';      typeSpecOut['owner']='me';  typeSpecOut['fieldType']=convertedItmType;
-        elif name=='front'    : name='firstEntry().getValue()';  typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='rend'     : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='first'    : name='get(0)';   paramList=None;
-        elif name=='last'     : name='%0.get(%0.size()-1)'; paramList=None;
-        elif name=='popFirst' : name='%0.remove(%0.firstKey())'; paramList=None;
-        elif name=='popLast'  : name='pollLastEntry'
-        elif name=='erase'    : name='remove'
-        elif name=='isEmpty'  : name='isEmpty';typeSpecOut={'owner':'me', 'fieldType': 'bool'}
-        else: print("ERROR: Unknown map command:", name); exit(2);
-    elif containerType=='multimap':
-        convertedIdxType=idxType
-        [convertedItmType, innerType]=convertType(classes, typeSpecOut, 'var', '', xlator)
-        if name=='at' or name=='erase': pass
-        elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='insert'   : name='put'; #typeSpecOut['codeConverter']='put(pair<'+convertedIdxType+', '+convertedItmType+'>(%1, %2))'
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        elif name=='front'    : name='begin()';  typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='back'     : name='rbegin()'; typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='end'      : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='rend'     : typeSpecOut['codeConverter']='%Gnull';    typeSpecOut['owner']='itr'; paramList=None;
-        elif name=='first'    : name='get(0)';   paramList=None;
-        elif name=='popFirst' : name='pop_front'
-        elif name=='popLast'  : name='pop_back'
-        else: print("Unknown multimap command:", name); exit(2);
-    elif containerType=='tree': # TODO: Make trees work
-        if name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        else: print("Unknown tree command:", name); exit(2)
-    elif containerType=='graph': # TODO: Make graphs work
-        if name=='insert' or name=='erase': pass
-        elif name=='size' : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
-        elif name=='clear': typeSpecOut={'owner':'me', 'fieldType': 'void'}
-        else: print("Unknown graph command:", name); exit(2);
-    elif containerType=='stream': # TODO: Make stream work
-        pass
-    elif containerType=='filesystem': # TODO: Make filesystem work
-        pass
-    else: print("Unknown container type:", containerType); exit(2);
+    if progSpec.isOldContainerTempFunc(typeSpecIn): print("Deprecated container type:", typeSpecIn); exit(2);
     return(name, typeSpecOut, paramList, convertedIdxType)
 
 ######################################################   E X P R E S S I O N   C O D I N G
@@ -706,7 +606,9 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
         del fieldDef['paramList'][-1]
         useCtor = True
     containerSpec = progSpec.getContainerSpec(lhsTypeSpec)
-    fieldType = adjustBaseTypes(fieldTypeSpec, progSpec.isAContainer(lhsTypeSpec))
+    if progSpec.isOldContainerTempFunc(lhsTypeSpec): print("Deprecated container type:", lhsTypeSpec); exit(2);
+    isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)
+    fieldType = adjustBaseTypes(fieldTypeSpec, isAContainer)
     if isinstance(containerSpec, str) and containerSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, xlator)
@@ -793,19 +695,9 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
 def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
     actionText       = ""
     loopCounterName  = ""
-    owner            = progSpec.getOwnerFromTypeSpec(containerType)
-    containedType    = progSpec.getFieldTypeNew(containerType)
+    containedOwner   = progSpec.getOwnerFromTypeSpec(containerType)
+    containedType    = progSpec.getContainedFieldType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-    if containerType['fieldType'][0]=='DblLinkedList':
-        ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':owner, 'fieldType':containedType}
-        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        repItrName = repName+'Itr'
-        actionText += (indent + "for( int " + repItrName+" = 0; " + repItrName + " !=" + repContainer+'.size()' +"; "+ repItrName + " +=1){\n"
-                    + indent+"    "+"infon "+repName+" = "+repContainer+".at("+repItrName+").item;\n")
-        return [actionText, loopCounterName]
     if datastructID=='TreeMap':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
@@ -822,8 +714,9 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         return [actionText, loopCounterName]
     elif datastructID=='list':
         loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+        keyVarSpec = {'owner':containedOwner, 'fieldType':containedType}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
     else:
         loopCounterName=repName+'_key'

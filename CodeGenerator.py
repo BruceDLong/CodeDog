@@ -515,7 +515,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
 
     elif IsAContainer and (not isStructLikeContainer or name[0]=='['):
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')
-        ownerOut=progSpec.getInnerContainerOwner(typeSpecIn)
+        ownerOut=progSpec.getContainerFirstElementOwner(typeSpecIn)
         typeSpecOut={'owner':ownerOut, 'fieldType': fieldTypeIn}
         if(name[0]=='['):
             [S2, idxTypeSpec] = xlator['codeExpr'](name[1], objsRefed, None, None, xlator)
