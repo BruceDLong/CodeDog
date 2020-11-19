@@ -19,7 +19,8 @@ def apply(classes, tags, classesToTrack):
     //    me <CLASSNAME>[their map]: uintToPtr
         we string: classTag <- "<CLASSNAME>"
 
-    we string: mySymbol(their <CLASSNAME>: obj) <- {  // find or generate symbol
+    me string: mySymbol() <- {  // find or generate symbol
+        their <CLASSNAME>: obj <- self
         if(obj==NULL){return("NULL")}
         me int: objID <- uniqueObjectID(obj)
         if(! ptrToUint.containsKey(objID)){

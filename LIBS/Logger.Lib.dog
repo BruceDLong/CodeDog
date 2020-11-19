@@ -71,7 +71,7 @@ struct graphLogger{
     }
     void: addItem(me string: itemStr)<-{
         itemStr <+- "\n"
-        items.pushLast(itemStr)
+        items.append(itemStr)
     }
     void: addNode(me string: nodeID, me string: label, me string: attrs) <-{
         me string: nodeStr <- "    \""+deQuote(nodeID)+"\" "
@@ -82,7 +82,7 @@ struct graphLogger{
         me string: attrStr <- labelStr+deQuote(attrs)
         if(attrStr!=""){ attrStr <-  " ["+attrStr+"]"}
         nodeStr <+- attrStr+";\n"
-        items.pushLast(nodeStr)
+        items.append(nodeStr)
     }
     void: setNodeSlot(me string: nodeID, me string: slotID) <-{
         rankSlots[slotID] <+- "\""+nodeID+"\"; "
@@ -96,7 +96,7 @@ struct graphLogger{
         me string: attrStr <- labelStr+deQuote(attrs)
         if(attrStr!=""){ attrStr <-  " ["+attrStr+"]"}
         edgeStr <+- attrStr+";\n"
-        items.pushLast(edgeStr)
+        items.append(edgeStr)
     }
     void: clear()<-{items.clear(); rankSlots.clear()}
     void: saveGraph(me string: graphName, me string: filename) <- {
