@@ -396,7 +396,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     else:
         toTypeSpec   = toField['typeSpec']
         toFieldType  = progSpec.getFieldType(toTypeSpec)
-        toFieldOwner = progSpec.getInnerContainerOwner(toTypeSpec)
+        toFieldOwner = progSpec.getContainerFirstElementOwner(toTypeSpec)
 
         if debugTmp:
             print('        toFieldType:', toFieldType)
