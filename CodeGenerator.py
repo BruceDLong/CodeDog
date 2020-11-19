@@ -1007,6 +1007,8 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         if loopCounterName!='':
             actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
             repBodyText += indent + "    " + xlator['codeIncrement'](loopCounterName) + ";\n"
+            ctrlVarsTypeSpec = {'owner':'me', 'fieldType':'uint'}
+            localVarsAllocated.append([loopCounterName, ctrlVarsTypeSpec])  # Tracking local vars for scope
         actionText += repBodyText + indent + '}\n'
     elif (typeOfAction =='funcCall'):
         calledFunc = action['calledFunc']
