@@ -747,7 +747,12 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
             parentClass+= progSpec.getUnwrappedClassFieldTypeKeyWord(classes, item)
             count += 1
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
-    forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
+    typeArgList = progSpec.getTypeArgList(structName)
+    if(typeArgList != None):
+        forwardDecls = ""
+        templateHeader = codeTemplateHeader(structName, typeArgList)
+        S=templateHeader+S
+    else: forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
     return([S,forwardDecls])
 
 def produceTypeDefs(typeDefMap, xlator):
@@ -1086,7 +1091,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     else:
         typeArgList = progSpec.getTypeArgList(className)
         if(typeArgList != None):
-            templateHeader = codeTemplateHeader(typeArgList) +"\n"
+            templateHeader = codeTemplateHeader(className, typeArgList) +"\n"
             className = className + codeTypeArgs(typeArgList)
         else:
             templateHeader = ""
@@ -1114,7 +1119,7 @@ def codeTypeArgs(typeArgList):
     typeArgsCode+=">"
     return(typeArgsCode)
 
-def codeTemplateHeader(typeArgList):
+def codeTemplateHeader(structName, typeArgList):
     templateHeader = "\ntemplate<"
     count = 0
     for typeArg in typeArgList:
@@ -1240,6 +1245,5 @@ def fetchXlators():
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['codeConstructorCall']          = codeConstructorCall
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
-    xlators['codeTemplateHeader']            = codeTemplateHeader
 
     return(xlators)

@@ -574,6 +574,10 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
     if structName =="GLOBAL" and Platform == 'Android':
         classAttrs = "public " + classAttrs
     S= "\n"+classAttrs +"class "+structName+''+parentClass+" {\n" + structCode + '};\n'
+    typeArgList = progSpec.getTypeArgList(structName)
+    if(typeArgList != None):
+        templateHeader = codeTemplateHeader(structName, typeArgList)
+        S=templateHeader+" {\n" + structCode + '};\n'
     return([S,""])
 
 def produceTypeDefs(typeDefMap, xlator):
@@ -757,7 +761,7 @@ def codeVarFieldRHS_Str(name, convertedType, fieldType, fieldOwner, paramList, o
                 del paramList[-1]
             [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
             fieldValueText=" = new " + convertedType + CPL
-        else:
+        elif isAllocated:
             fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
@@ -827,8 +831,15 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
 def codeTypeArgs(typeArgList):
     print("TODO: finish codeTypeArgs")
 
-def codeTemplateHeader(typeArgList):
-    print("TODO: finish codeTemplateHeader")
+def codeTemplateHeader(structName, typeArgList):
+    templateHeader = "\n class "+structName+"<"
+    count = 0
+    for typeArg in typeArgList:
+        if(count>0):templateHeader+=", "
+        templateHeader+=typeArg
+        count+=1
+    templateHeader+=">"
+    return(templateHeader)
 
 def extraCodeForTopOfFuntion(argList):
     return ''

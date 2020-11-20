@@ -15,8 +15,8 @@ LibDescription ={
 }
 
 struct Java_ArrayList<nodeType>: implements = List wraps = ArrayList specs = {append = constant}{
-    # TODO: find Time Complexity
-    # TODO: verify code converters are correct
+    // TODO: find Time Complexity
+    // TODO: verify code converters are correct
     void: append(nodeType: value)               <- <%!add(%1)%>
     nodeType: at(me int: position)              <- <%!%0.get(%1)%>
     void: clear()                               <- <%!clear()%>
