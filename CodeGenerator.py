@@ -1067,7 +1067,7 @@ def codeActionSeq(actSeq, indent, objsRefed, returnType, xlator):
         localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
-def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
+def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, xlator):
     baseType = progSpec.isWrappedType(classes, ClassName)
     if(baseType!=None): return ''
     if not ClassName in classes[0]: return ''
@@ -1080,7 +1080,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
     count=0
     for field in progSpec.generateListOfFieldsToImplement(classes, ClassName):
         typeSpec =field['typeSpec']
-        fieldType=progSpec.getFieldType(typeSpec)
+        fieldType=progSpec.getFieldTypeKeyWord(typeSpec)
         if(fieldType=='flag' or fieldType=='mode'): continue
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
         if progSpec.isAContainer(typeSpec): continue
@@ -1088,6 +1088,8 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
         [convertedType, innerType] = xlator['convertType'](classes, typeSpec, 'var', 'constructor', xlator)
         fieldName=field['fieldName']
+        if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
+        else: isTemplateVar = False
 
         cdlog(4, "Coding Constructor: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
         if not isinstance(fieldType, str): fieldType=fieldType[0]
@@ -1109,7 +1111,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, xlator):
             constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
 
             count += 1
-        copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, xlator)
+        copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, isTemplateVar, xlator)
 
     funcBody = ''
     constructCode=''
@@ -1144,6 +1146,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     structCodeAcc=""
     topFuncDefCodeAcc="" # For defns that must appear first in the code. TODO: sort items instead
     ObjectDef = classes[0][className]
+    typeArgList = progSpec.getTypeArgList(className)
+    if(typeArgList != None): isTemplateStruct = True
+    else: isTemplateStruct = False
     for field in progSpec.generateListOfFieldsToImplement(classes, className):
         ################################################################
         ### extracting FIELD data
@@ -1184,7 +1189,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
                 isAllocated = False
                 paramList = None
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, isTemplateStruct, xlator)
             #print ("    RHS none: ", fieldValueText)
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, str):
@@ -1305,7 +1310,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
     # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
     if MakeConstructors=='True' and (className!='GLOBAL')  and (className!='widget'):
-        constructCode=codeConstructor(classes, className, tags, objsRefed, xlator)
+        constructCode=codeConstructor(classes, className, tags, objsRefed, typeArgList, xlator)
         structCodeAcc+= "\n"+constructCode
     funcDefCodeAcc = topFuncDefCodeAcc + funcDefCodeAcc
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]

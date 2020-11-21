@@ -713,6 +713,13 @@ def getFieldType(typeSpec):
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
+def getFieldTypeKeyWord(typeSpec):
+    fieldType = getFieldType(typeSpec)
+    if isinstance(fieldType, str): return fieldType
+    if isinstance(fieldType[0], str): return fieldType[0]
+    print("TODO: reduce field type to key word in progSpec.getFieldTypeKeyWord():",fieldType)
+    exit(2)
+
 def getContainedFieldType(typeSpec):
     retVal = isNewContainerTempFunc(typeSpec)
     if retVal == None: print("WARNING: no contained type found for ", typeSpec)

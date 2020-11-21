@@ -1006,13 +1006,13 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(name, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, isTemplateStruct, xlator):
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
         if paramList[-1] == "^&useCtor//8":
             del paramList[-1]
-        [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
+        [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
         fieldValueText += CPL
     if isAllocated == True:
         fieldValueText = " = " + getCodeAllocSetStr(fieldType, fieldOwner, "")
@@ -1070,7 +1070,7 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
         defaultVal = "=" + defaultVal
     return argType + "  _" +argFieldName + defaultVal
 
-def codeCopyConstructor(fieldName, convertedType, xlator):
+def codeCopyConstructor(fieldName, convertedType, isTemplateVar, xlator):
     return ""
 
 def codeConstructorCall(className):

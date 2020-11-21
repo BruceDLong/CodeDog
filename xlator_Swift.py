@@ -846,7 +846,7 @@ def isNumericType(convertedType):
     else:
         return False
 
-def codeVarFieldRHS_Str(fieldName,  convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, isTemplateStruct, xlator):
     fieldValueText=""
     if paramList!=None:
         [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
@@ -915,7 +915,7 @@ def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
     if defaultVal: argType = argType + '=' + defaultVal
     return "_ arg_" + argFieldName  + ': ' +argType
 
-def codeCopyConstructor(fieldName, convertedType, xlator):
+def codeCopyConstructor(fieldName, convertedType, isTemplateVar, xlator):
     return ""
 
 def codeConstructorCall(className):
