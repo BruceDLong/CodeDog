@@ -697,12 +697,17 @@ def isNewContainerTempFunc(typeSpec):
             return(reqTagList[1][0][1])
         if fieldTypeKeyword=='map':
             return(reqTagList)
+        if fieldTypeKeyword=='Java_ArrayList':
+            return(reqTagList[1][0][1])
         #print("fieldTypeKeyword: ",fieldTypeKeyword," ",reqTagList[1][0])
     return(None)
 
+def isOldContainerTempFunc(typeSpec):
+    return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
+
 def isAContainer(typeSpec):
     if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
-    return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
+    return(isOldContainerTempFunc(typeSpec))
 
 def getContainerSpec(typeSpec):
     if isNewContainerTempFunc(typeSpec): return {'owner': 'me', 'datastructID':'list'}
@@ -727,7 +732,23 @@ def getFieldType(typeSpec):
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
-def getInnerContainerOwner(typeSpec):
+def getFieldTypeKeyWord(typeSpec):
+    fieldType = getFieldType(typeSpec)
+    if isinstance(fieldType, str): return fieldType
+    if isinstance(fieldType[0], str): return fieldType[0]
+    print("TODO: reduce field type to key word in progSpec.getFieldTypeKeyWord():",fieldType)
+    exit(2)
+
+def getContainedFieldType(typeSpec):
+    retVal = isNewContainerTempFunc(typeSpec)
+    if retVal == None: print("WARNING: no contained type found for ", typeSpec)
+    return retVal
+
+def getFieldTypeNew(typeSpec):
+    if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
+    return None
+
+def getContainerFirstElementOwner(typeSpec):
     global currentCheckObjectVars
     if (typeSpec == 0):
         cdErr(currentCheckObjectVars)
@@ -746,6 +767,7 @@ def getInnerContainerOwner(typeSpec):
         return(typeSpec['owner'])
 
 def getTypeSpecOwner(typeSpec):
+    # this is old way to get the owner, delete when transition complete
     global currentCheckObjectVars
     if (typeSpec == 0):
         cdErr(currentCheckObjectVars)
@@ -756,6 +778,12 @@ def getTypeSpecOwner(typeSpec):
             owner = typeSpec['arraySpec']['owner']
             return owner
         else: return 'me'
+    return typeSpec['owner']
+
+def getOwnerFromTypeSpec(typeSpec):
+    global currentCheckObjectVars
+    if (typeSpec == 0):
+        cdErr(currentCheckObjectVars)
     return typeSpec['owner']
 
 def getTypeArgList(className):

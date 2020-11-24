@@ -39,7 +39,7 @@ struct GLOBAL{
 
     void: runProg()<-{
         me gloop<me int, me string>: testList
-        me List<int: append = slow > : intList
+        me List<me int: append = slow > : intList
         intList.append(5)
         testDequeAsList()
         print("\nHello World!\n")

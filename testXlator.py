@@ -92,7 +92,7 @@ struct derivedClass: inherits=pureVirtualClass{
      'actions/mapAsgn':      ['struct testClass{me void: runTest()<-{me string[map string]:testMap\ntestMap["key0"]<-"value0"\nprint(testMap["key0"])}}', 'PGBR:value0'],
      #'actions/dictAsgn':
      #'actions/mapPush':     ['struct testClass{me void: runTest()<-{me string[map string]:testMap<-{"key":"value"}}}', 'PGB:'],
-     'actions/assigns':        ['''
+     'actions/assigns':      ['''
 struct testClass{
     flag: isStart
     me mode[small, medium, large]: myMode
@@ -167,22 +167,22 @@ struct testClass{
     }
 }''', 'PGBR:BB',['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep']],
 ###################################################################################################
-     'actions/plusEquals':  ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<+-1\nprint(myInt)}}', 'PGBR:3'],
-     'actions/minusEquals':  ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<--1\nprint(myInt)}}', 'PGBR:1'],
-     'actions/multiply':  ['struct testClass{me void: runTest()<-{me int:myInt<-2\nprint(myInt*2)}}', 'PGBR:4'],
-     'actions/modulo':  ['struct testClass{me void: runTest()<-{me int:myInt<-9\nprint(myInt%2)}}', 'PGBR:1'],
-     'actions/equalEqual':  ['struct testClass{me void: runTest()<-{me int:myInt<-9\nif(myInt==myInt){print("true")}}}', 'PGBR:true'],
-     'actions/bangEqual':  ['struct testClass{me void: runTest()<-{me int:myInt<-9\nif(myInt!=myInt){print("fail")}\nelse{print("true")}}}', 'PGBR:true'],
-     'actions/And':  ['struct testClass{me void: runTest()<-{if(1&1){print("p")}}}','PGBR:p'],
-     'actions/Xor':  ['struct testClass{me void: runTest()<-{if(1^0){print("p")}}}','PGBR:p'],
-     'actions/Ior':  ['struct testClass{me void: runTest()<-{if(1|1){print("p")}}}','PGBR:p'],
-     'actions/LogAnd':  ['struct testClass{me void: runTest()<-{if(true&&true){print("p")}}}','PGBR:p'],
-     'actions/LogOr':  ['struct testClass{me void: runTest()<-{if(true||true){print("p")}}}','PGBR:p'],
-     'actions/lessThan':  ['struct testClass{me void: runTest()<-{if(1<2){print("p")}}}','PGBR:p'],
-     'actions/lessThanEq':  ['struct testClass{me void: runTest()<-{if(1<=2){print("p")}}}','PGBR:p'],
-     'actions/greaterThan':  ['struct testClass{me void: runTest()<-{if(2>1){print("p")}}}','PGBR:p'],
-     'actions/greaterThanEq':  ['struct testClass{me void: runTest()<-{if(2>=2){print("p")}}}','PGBR:p'],
-     'actions/operators':   ['''
+     'actions/plusEquals':    ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<+-1\nprint(myInt)}}', 'PGBR:3'],
+     'actions/minusEquals':   ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<--1\nprint(myInt)}}', 'PGBR:1'],
+     'actions/multiply':      ['struct testClass{me void: runTest()<-{me int:myInt<-2\nprint(myInt*2)}}', 'PGBR:4'],
+     'actions/modulo':        ['struct testClass{me void: runTest()<-{me int:myInt<-9\nprint(myInt%2)}}', 'PGBR:1'],
+     'actions/equalEqual':    ['struct testClass{me void: runTest()<-{me int:myInt<-9\nif(myInt==myInt){print("true")}}}', 'PGBR:true'],
+     'actions/bangEqual':     ['struct testClass{me void: runTest()<-{me int:myInt<-9\nif(myInt!=myInt){print("fail")}\nelse{print("true")}}}', 'PGBR:true'],
+     'actions/And':           ['struct testClass{me void: runTest()<-{if(1&1){print("p")}}}','PGBR:p'],
+     'actions/Xor':           ['struct testClass{me void: runTest()<-{if(1^0){print("p")}}}','PGBR:p'],
+     'actions/Ior':           ['struct testClass{me void: runTest()<-{if(1|1){print("p")}}}','PGBR:p'],
+     'actions/LogAnd':        ['struct testClass{me void: runTest()<-{if(true and true){print("p")}}}','PGBR:p'],
+     'actions/LogOr':         ['struct testClass{me void: runTest()<-{if(true or true){print("p")}}}','PGBR:p'],
+     'actions/lessThan':      ['struct testClass{me void: runTest()<-{if(1<2){print("p")}}}','PGBR:p'],
+     'actions/lessThanEq':    ['struct testClass{me void: runTest()<-{if(1<=2){print("p")}}}','PGBR:p'],
+     'actions/greaterThan':   ['struct testClass{me void: runTest()<-{if(2>1){print("p")}}}','PGBR:p'],
+     'actions/greaterThanEq': ['struct testClass{me void: runTest()<-{if(2>=2){print("p")}}}','PGBR:p'],
+     'actions/operators':     ['''
 struct testClass{
     me void: runTest()<-{
         testPE(3)
@@ -191,8 +191,11 @@ struct testClass{
         testModulo(9)
         testequalEqual(1)
         testBangEq()
-        testIor()
+        testAnd()
         testXor()
+        testIor()
+        testLogAnd()
+        testLogOr()
         testLessThan()
         testLessThanEq()
         testGreaterThan()
@@ -217,17 +220,17 @@ struct testClass{
 
     me void: testequalEqual(me int: intArg)<-{
         if(intArg == intArg){
-            print("true")
-        }
+            print(" true")
+        }else{print(" false")}
     }
 
     me void: testBangEq()<-{
         me int:myInt<-9
         if(myInt!=myInt){
-            print("fail")
+            print(" fail")
         }
         else{
-            print("true")
+            print(" true")
         }
     }
 
@@ -235,16 +238,16 @@ struct testClass{
         me int: a <- 0
         me int: b <- 1
         if(a&a){
-            print("and fail")
+            print(" fail")
         }
         if(a&b){
-            print("fail")
+            print(" fail")
         }
         if(b&a){
-            print("fail")
+            print(" fail")
         }
         if(b&b){
-            print("And Pass")
+            print(" Pass")
         }
     }
 
@@ -252,16 +255,16 @@ struct testClass{
         me int: a <- 0
         me int: b <- 1
         if(a^a){
-            print("Xor fail")
+            print(" A:fail")
         }
         if(a^b){
-            print("Xor")
+            print(" B:pass")
         }
         if(b^a){
-            print(" pass")
+            print(" C:pass")
         }
         if(b^b){
-            print("Xor fail")
+            print(" D:fail")
         }
     }
 
@@ -269,27 +272,27 @@ struct testClass{
         me int: a <- 0
         me int: b <- 1
         if(a|a){
-            print("Ior fail")
+            print(" A:fail")
         }
         if(a|b){
-            print("Ior")
+            print(" B:pass")
         }
         if(b|a){
-            print(" ")
+            print(" C:pass")
         }
         if(b|b){
-            print("pass")
+            print(" D:pass")
         }
     }
 
     me void: testLogAnd()<-{
-        if(true&&true){
+        if(true and true){
             print(" logAndPass")
         }
     }
 
     me void: testLogOr()<-{
-        if(true||true){
+        if(true or true){
             print(" logOrPass")
         }
     }
@@ -317,29 +320,27 @@ struct testClass{
             print("p")
         }
     }
-}''', 'PGBR:42101truetrue And Pass Xor pass Ior pass logAndPass logOrPass pppp',['actions/plusEquals','actions/minusEquals','actions/multiply','actions/modulo','actions/equalEqual','actions/bangEqual', 'actions/And', 'actions/Xor', 'actions/Ior','actions/LogAnd','actions/LogOr','actions/lessThan','actions/lessThanEq','actions/greaterThan','actions/greaterThanEq']],
+}''', 'PGBR:42101 true true Pass B:pass C:pass B:pass C:pass D:pass logAndPass logOrPass pppp',['actions/plusEquals','actions/minusEquals','actions/multiply','actions/modulo','actions/equalEqual','actions/bangEqual', 'actions/And', 'actions/Xor', 'actions/Ior','actions/LogAnd','actions/LogOr','actions/lessThan','actions/lessThanEq','actions/greaterThan','actions/greaterThanEq']],
 #####################################################################################################
-     'actions/defaultme':  ['struct testClass{me void: runTest()<-{me int:A\nprint(A)}}', 'PGBR:0'],
-     'actions/curlyme':  ['struct testClass{me void: runTest()<-{me int: A{4}\n print(A) }} ', 'PGBR:4'],
-     'actions/arrowme':  ['struct testClass{me void: runTest()<-{me int: A <- 4\n print(A) }}', 'PGBR:4'],
-     'actions/arrowlistme':  ['struct testClass{me void: runTest()<-{their int: A <- (4)\n print(A)}}', 'PGBR:4'],
-     'actions/curlyVme':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nme int: A{V}\n print(A)}}', 'PGBR:0'],
-     'actions/curlypVme':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nme int: A{pV}\n print(A)}}', 'PGBR:0'],
-     'actions/assignVme':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nme int: A<-V\n print(A)}}', 'PGBR:0'],
+     'actions/defaultme':   ['struct testClass{me void: runTest()<-{me int:A\nprint(A)}}', 'PGBR:0'],
+     'actions/curlyme':     ['struct testClass{me void: runTest()<-{me int: A{4}\n print(A) }} ', 'PGBR:4'],
+     'actions/arrowme':     ['struct testClass{me void: runTest()<-{me int: A <- 4\n print(A) }}', 'PGBR:4'],
+     'actions/arrowlistme': ['struct testClass{me void: runTest()<-{their int: A <- (4)\n print(A)}}', 'PGBR:4'],
+     'actions/curlyVme':    ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nme int: A{V}\n print(A)}}', 'PGBR:0'],
+     'actions/curlypVme':   ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nme int: A{pV}\n print(A)}}', 'PGBR:0'],
+     'actions/assignVme':   ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nme int: A<-V\n print(A)}}', 'PGBR:0'],
      'actions/assignpVme':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nme int: A<-pV\n print(A)}}', 'PGBR:0'],
-     'actions/meInits':   ['''
+     'actions/meInits':     ['''
 struct testClass{
     me void: runTest()<-{
         me int: V
         their int:: pV
-
-
         me int: a
         me int: b{4}
         print(b)
         me int: c <- 4
         print(c)
-        me int: d <- {4}
+        me int: d <- (4)
         print(d)
         me int: e{V}
         print(e)
@@ -349,25 +350,22 @@ struct testClass{
         print(g)
         me int: h <- pV
         print(h)
-
     }
 }''', 'PGBR:04440000',['actions/defaultme','actions/curlyme','actions/arrowme','actions/arrowlistme','actions/curlyVme','actions/curlypVme','actions/assignVme','actions/assignpVme' ]],
 #####################################################################################################
      'actions/defaulttheir':  ['struct testClass{me void: runTest()<-{their int:A\nif(A==NULL){print("NULL")}\nelse{print(A)}}}', 'PGBR:NULL'],
-     'actions/curlytheir':  ['struct testClass{me void: runTest()<-{their int: A{4}\n print(A) }} ', 'PGBR:NULL'],
-     'actions/arrowtheir':  ['struct testClass{me void: runTest()<-{their int: A <- 4\n print(A) }}', 'PGBR:NULL'],
-     'actions/arrowlist':  ['struct testClass{me void: runTest()<-{their int: A <- (4)\n print(A)}}', 'PGBR:NULL'],
-     'actions/curlyVtheir':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int: A{V}\n print(A)}}', 'PGBR:NULL'],
+     'actions/curlytheir':    ['struct testClass{me void: runTest()<-{their int: A{4}\n print(A) }} ', 'PGBR:NULL'],
+     'actions/arrowtheir':    ['struct testClass{me void: runTest()<-{their int: A <- 4\n print(A) }}', 'PGBR:NULL'],
+     'actions/arrowlist':     ['struct testClass{me void: runTest()<-{their int: A <- (4)\n print(A)}}', 'PGBR:NULL'],
+     'actions/curlyVtheir':   ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int: A{V}\n print(A)}}', 'PGBR:NULL'],
      'actions/curlypVtheir':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int: A{pV}\n print(A)}}', 'PGBR:0'],
      'actions/assignVtheir':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int: A<-V\n print(A)}}', 'PGBR:NULL'],
-     'actions/assignpVtheir':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int: A<-pV\n print(A)}}', 'PGBR:0'],
-     'actions/theirInits':   ['''
+     'actions/assignpVtheir': ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int: A<-pV\n print(A)}}', 'PGBR:0'],
+     'actions/theirInits':    ['''
 struct testClass{
     me void: runTest()<-{
         me int: V
         their int:: pV
-
-
         their int: a  //make a function called null test
         if(a == NULL){
             print("NULL")
@@ -379,7 +377,7 @@ struct testClass{
         print(b)
         their int: c <- 4 //should I be using Try:, Except:   here?
         print(c)
-        their int: d <- {4}
+        their int: d <- (4)
         print(d)
         their int: e{V}
         print(e)
@@ -389,19 +387,18 @@ struct testClass{
         print(g) // skip need to write check for build failure. low prio
         their int: h <- pV
         print(h)
-
     }
-}''', 'PGBR:null',['actions/defaulttheir','actions/curlytheir','actions/arrowtheir','actions/arrowlist','actions/curlyVtheir','actions/curlypVtheir','actions/assignVtheir','actions/assignpVtheir' ]],
+}''', 'PGBR:NULL',['actions/defaulttheir','actions/curlytheir','actions/arrowtheir','actions/arrowlist','actions/curlyVtheir','actions/curlypVtheir','actions/assignVtheir','actions/assignpVtheir' ]],
 #####################################################################################################
      'actions/allocateddefaulttheir':  ['struct testClass{me void: runTest()<-{their int:: A\nprint(A)}}', 'PGBR:0'],
-     'actions/allocateCurlytheir':  ['struct testClass{me void: runTest()<-{their int:: A{4}\nprint(A) }}', 'PGBR:4'],
-     'actions/allocateArrowtheir':  ['struct testClass{me void: runTest()<-{their int:: A<-4\nprint(A) }}', 'PGBR:4'],
-     'actions/allocateArrowlist':  ['struct testClass{me void: runTest()<-{their int:: A <- (4)\nprint(A) ', 'PGBR:4'],
-     'actions/allocateCurlyVtheir':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int:: A{V}\n print(A)}} ', 'PGBR:0'],
-     'actions/allocateCurlypVtheir':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int:: A{pV}\n print(A)}} ', 'PGBR:0'],
-     'actions/allocateAssignVtheir':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int:: A<-V\n print(A)}}', 'PGBR:0'],
+     'actions/allocateCurlytheir':     ['struct testClass{me void: runTest()<-{their int:: A{4}\nprint(A) }}', 'PGBR:4'],
+     'actions/allocateArrowtheir':     ['struct testClass{me void: runTest()<-{their int:: A<-4\nprint(A) }}', 'PGBR:4'],
+     'actions/allocateArrowlistTheir': ['struct testClass{me void: runTest()<-{their int:: A <- (4)\nprint(A) }}', 'PGBR:4'],
+     'actions/allocateCurlyVtheir':    ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int:: A{V}\n print(A)}} ', 'PGBR:0'],
+     'actions/allocateCurlypVtheir':   ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int:: A{pV}\n print(A)}} ', 'PGBR:0'],
+     'actions/allocateAssignVtheir':   ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int:: A<-V\n print(A)}}', 'PGBR:0'],
      'actions/allocateAssignpVtheir':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\ntheir int:: A<-pV\n print(A)}}', 'PGBR:0'],
-     'actions/allocateTheirInits':   ['''
+     'actions/allocateTheirInits':     ['''
 struct testClass{
     me void: runTest()<-{
         me int: V
@@ -424,20 +421,17 @@ struct testClass{
         their int:: H <- pV  //causing build fail
         print(H)
     }
-}''', 'PGBR:04400',['actions/allocateddefaulttheir','actions/allocateCurlytheir','actions/allocateArrowtheir','actions/allocateArrowlist','actions/allocateCurlyVtheir','actions/allocateCurlypVtheir','actions/allocateAssignVtheir','actions/allocateAssignpVtheir' ]],
-
-
-
+}''', 'PGBR:04400',['actions/allocateddefaulttheir','actions/allocateCurlytheir','actions/allocateArrowtheir','actions/allocateArrowlistTheir','actions/allocateCurlyVtheir','actions/allocateCurlypVtheir','actions/allocateAssignVtheir','actions/allocateAssignpVtheir' ]],
 #####################################################################################################
-     'actions/defaultOur':  ['struct testClass{me void: runTest()<-{our int:A\nif(A==NULL){print("NULL")}\nelse{print(A)}}}', 'PGBR:NULL'],
-     'actions/curlyOur':  ['struct testClass{me void: runTest()<-{our int: A{4}\n print(A) }} ', 'PGBR:NULL'],
-     'actions/arrowOur':  ['struct testClass{me void: runTest()<-{our int: A <- 4\n print(A) }}', 'PGBR:NULL'],
-     'actions/arrowlistOur':  ['struct testClass{me void: runTest()<-{our int: A <- (4)\n print(A)}}', 'PGBR:NULL'],
-     'actions/curlyVOur':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nour int: A{V}\n print(A)}}', 'PGBR:NULL'],
-     'actions/curlypVOur':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nour int: A{pV}\n print(A)}}', 'PGBR:0'],
-     'actions/assignVOur':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nour int: A<-V\n print(A)}}', 'PGBR:NULL'],
+     'actions/defaultOur':   ['struct testClass{me void: runTest()<-{our int:A\nif(A==NULL){print("NULL")}\nelse{print(A)}}}', 'PGBR:NULL'],
+     'actions/curlyOur':     ['struct testClass{me void: runTest()<-{our int: A{4}\n print(A) }} ', 'PGBR:NULL'],
+     'actions/arrowOur':     ['struct testClass{me void: runTest()<-{our int: A <- 4\n print(A) }}', 'PGBR:NULL'],
+     'actions/arrowlistOur': ['struct testClass{me void: runTest()<-{our int: A <- (4)\n print(A)}}', 'PGBR:NULL'],
+     'actions/curlyVOur':    ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nour int: A{V}\n print(A)}}', 'PGBR:NULL'],
+     'actions/curlypVOur':   ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nour int: A{pV}\n print(A)}}', 'PGBR:0'],
+     'actions/assignVOur':   ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nour int: A<-V\n print(A)}}', 'PGBR:NULL'],
      'actions/assignpVOur':  ['struct testClass{me void: runTest()<-{me int:V \n their int:: pV\nour int: A<-pV\n print(A)}}', 'PGBR:0'],
-     'actions/ourInits':   ['''
+     'actions/ourInits':     ['''
 struct testClass{
     me void: runTest()<-{
         me int: V
@@ -470,15 +464,15 @@ struct testClass{
 }''', 'PGBR:NULL',['actions/defaultOur','actions/curlyOur','actions/arrowOur','actions/arrowlist','actions/curlyVOur','actions/curlypVOur','actions/assignVOur','actions/assignpVOur' ]],
 #####################################################################################################
      'actions/allocateddefaultOur':  ['struct testClass{me void: runTest()<-{our int:: A\nprint(A)}}', 'PGBR:0'],
-     'actions/allocateCurlyOur':  ['struct testClass{me void: runTest()<-{our int:: A{4}\nprint(A) }}', 'PGBR:4'],
-     'actions/allocateArrowOur':  ['struct testClass{me void: runTest()<-{our int:: A<-4\nprint(A) }}', 'PGBR:4'],
-     'actions/allocateArrowlist':  ['struct testClass{me void: runTest()<-{our int:: A <- (4)\nprint(A) ', 'PGBR:4'],
-     'actions/allocateCurlyVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{V}\n print(A)}} ', 'PGBR:0'],
-     'actions/allocateCurlypVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{pV}\n print(A)}} ', 'PGBR:0'],
-     'actions/allocateAssignVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A<-V\n print(A)}}', 'PGBR:0'],
-     'actions/allocateAssignpVOur':  ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A<-pV\n print(A)}}', 'PGBR:0'],
-     'actions/globalOur': ['me int: A<-{4}\nprint(A)','PGBR:'],
-     'actions/allocateOurInits':   ['''
+     'actions/allocateCurlyOur':     ['struct testClass{me void: runTest()<-{our int:: A{4}\nprint(A) }}', 'PGBR:4'],
+     'actions/allocateArrowOur':     ['struct testClass{me void: runTest()<-{our int:: A<-4\nprint(A) }}', 'PGBR:4'],
+     'actions/allocateArrowlistOur': ['struct testClass{me void: runTest()<-{our int:: A <- (4)\nprint(A) ', 'PGBR:4'],
+     'actions/allocateCurlyVOur':    ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{V}\n print(A)}} ', 'PGBR:0'],
+     'actions/allocateCurlypVOur':   ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{pV}\n print(A)}} ', 'PGBR:0'],
+     'actions/allocateAssignVOur':   ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A<-V\n print(A)}}', 'PGBR:0'],
+     'actions/allocateAssignpVOur':  ['struct testClass{me void: runTest()<-{their int:: pV<-5\nour int:: A<-pV\n print(A)}}', 'PGBR:5'],
+     'actions/globalOur':            ['me int: A<-{4}\nprint(A)','PGBR:'],
+     'actions/allocateOurInits':     ['''
 struct testClass{
     me void: runTest()<-{
         me int: V
@@ -501,15 +495,15 @@ struct testClass{
         our int:: H <- pV  //causing build fail
         print(H)
     }
-}''', 'PGBR:04400',['actions/allocateddefaultOur','actions/allocateCurlyOur','actions/allocateArrowOur','actions/allocateArrowlist','actions/allocateCurlyVOur','actions/allocateCurlypVOur','actions/allocateAssignVOur','actions/allocateAssignpVOur' ]],
+}''', 'PGBR:04400',['actions/allocateddefaultOur','actions/allocateCurlyOur','actions/allocateArrowOur','actions/allocateArrowlistOur','actions/allocateCurlyVOur','actions/allocateCurlypVOur','actions/allocateAssignVOur','actions/allocateAssignpVOur' ]],
 
 
 #####################################################################################################
-     'actions/intToString':  ['struct testClass{me void: runTest()<-{me int:A<-123\nme string:B<-toString(A)\nprint(B)}}', 'PGBR:123'],
-     'actions/32intToString':  ['struct testClass{me void: runTest()<-{me int32:A<-123\nme string:B<-toString(A)\nprint(B)}}', 'PGBR:123'],
-     'actions/64intToString':  ['struct testClass{me void: runTest()<-{me int64:A<-123\nme string:B<-toString(A)\nprint(B)}}', 'PGBR:123'],
-     'actions/stringToInt':  ['struct testClass{me void: runTest()<-{me string:A<-"123"\nme int:B<-stoi(A)\nprint(B)}}', 'PGBR:123'],
-     'actions/typeConversions':   ['''
+     'actions/intToString':     ['struct testClass{me void: runTest()<-{me int:A<-123\nme string:B<-toString(A)\nprint(B)}}', 'PGBR:123'],
+     'actions/32intToString':   ['struct testClass{me void: runTest()<-{me int32:A<-123\nme string:B<-toString(A)\nprint(B)}}', 'PGBR:123'],
+     'actions/64intToString':   ['struct testClass{me void: runTest()<-{me int64:A<-123\nme string:B<-toString(A)\nprint(B)}}', 'PGBR:123'],
+     'actions/stringToInt':     ['struct testClass{me void: runTest()<-{me string:A<-"123"\nme int:B<-stoi(A)\nprint(B)}}', 'PGBR:123'],
+     'actions/typeConversions': ['''
 struct testClass{
     me void: runTest()<-{
         testStrConversion()
@@ -643,7 +637,7 @@ def ExecCodeDogTest(testSpec, buildSpec, testName,toPrint):
                 errorFile.write(testName + "\n")
                 errorFile.write(testSpec[0]+"\n\n")
                 errorFile.close()
-            print(decodedOut)
+            #print(decodedOut)
             return "***Parse Fail***"
         if (decodedOut.find('Marker: Code Gen Successful')==-1):
             if(toPrint):
@@ -696,7 +690,7 @@ def runListedTests(testsToRun):
     clearErrorFile()
     reportText = ""
     for testKey in testsToRun:
-        print(("Running test: ", testKey))
+        #print(("Running test: ", testKey))
         testResult = ExecCodeDogTest(testDefinitions[testKey], buildSpec, testKey,False)
         print("testResult: ", testKey, ":  ", testResult)
         reportText+= testKey + ": "+testResult+  "\n"
@@ -730,7 +724,7 @@ if (xlatorName == "cpp"):
     buildSpec = "LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';"
     runSpec = "./testXlator"
     runDirectory = workingDirectory + "/LinuxBuild"
-elif(xlatorName == "swing" or xlatorName == "java"):
+elif(xlatorName == "swing" or xlatorName == "java" or xlatorName == "Java"):
     buildSpec = "SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';"
     runSpec = "java GLOBAL"
     runDirectory = workingDirectory + "/SwingBuild"

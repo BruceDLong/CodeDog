@@ -1,0 +1,45 @@
+// List.Java.Lib.dog
+requirements = [
+    [tagOneOf, Lang, [Java]]
+]
+
+interface={
+    provides = [List_implementation]
+    libFiles = []
+    headers  = [java.util.ArrayList]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'List in routines for Java'
+}
+
+struct Java_ArrayList<nodeType>: implements = List wraps = ArrayList specs = {append = constant}{
+    // TODO: find Time Complexity
+    // TODO: verify code converters are correct
+    void: append(nodeType: value)               <- <%!add(%1)%>
+    nodeType: at(me int: position)              <- <%!%0.get(%1)%>
+    void: clear()                               <- <%!clear()%>
+    void: clipToSize(me int: size)              <- <%!resize(%1)%>
+    itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(%0)%>
+    itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
+    itr nodeType: erase(itr nodeType: position) <- <%!remove%>
+    nodeType: first()                           <- <%!get(0)%>
+    itr nodeType: front()                       <- <%!begin()%>
+    nodeType: __getAt(me int: position)         <- <%!%0.at(%1)%>
+    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!add%>
+    itr nodeType: insertIdx(me int: position, nodeType: value) <- <%!%0.add(%1, %2)%>
+    me bool: isEmpty()                          <- <%!isEmpty()%>
+    nodeType: last()                            <- <%!%0.get(%0.size()-1)%>
+    itr nodeType: nthItr()                      <- <%!%0.listIterator(%1)%>
+    nodeType: popFirst()                        <- <%!remove(0)%>
+    nodeType: popLast()                         <- <%!%0.remove(%0.size() - 1)%>
+    me void: prepend(nodeType: value)           <- <%!push_front(%1)%>
+    itr nodeType: __putAt(itr nodeType: position, nodeType: value) <- <%!insert(%1, %2)%>
+    me uint: size()                             <- <%!size()%>
+    /////////////////////////////////////////
+    me void: pushFirst(nodeType: value)         <- <%!%0.add(0, %1)%>
+    me void: pushLast(nodeType: value)           <- <%!add(%1)%>
+    // TODO: need Reverse Iterators working first
+    //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
+}

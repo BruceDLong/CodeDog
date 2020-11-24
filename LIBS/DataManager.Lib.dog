@@ -3,11 +3,12 @@
 // Widgets for constructing a DataManager
 
 featuresNeeded = [Networking, Websockets]
-
+struct infonTypeSpec{}
+struct dataSourceDetails{}
 struct DataManager{
-    //me string[list]: queryDataCatList() <- {
+    //me List<me string>: queryDataCatList() <- {
         // Returns list of keyWords labeling each member of TypesOfInfoSources_Views that are supported on this device or a co-device.
-        //me string[list]: dataCats
+        //me List<me string>: dataCats
         //return (dataCats)
     //}
 
@@ -17,7 +18,7 @@ struct DataManager{
         return (sourceDetails)
     }
 
-    our infonTypeSpec[list]: TypesOfInfoSources_Views
+    me List<our infonTypeSpec>: TypesOfInfoSources_Views
     void: addInfoSourceType(me string: idTag, me string: longTitle, me string: shortTitle, me bool: isDefault) <-{
         our infonTypeSpec: infSpec
         Allocate(infSpec)

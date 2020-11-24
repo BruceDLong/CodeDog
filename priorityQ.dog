@@ -27,7 +27,7 @@ struct queueItem{
 }
 
 struct priorityQ{
-    our queueItem[list]: theHeap
+    me List<our queueItem>: theHeap
 
     me void: push(our queueItem: newItem) <- {
     theHeap.pushLast(newItem)

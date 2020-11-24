@@ -59,7 +59,7 @@ struct GLOBAL{
 }
 
 struct graphLogger{
-    me string[list]: items
+    me List<me string>: items
     me string[map string]: rankSlots
 
     me string: deQuote(me string: S) <-{
@@ -71,7 +71,7 @@ struct graphLogger{
     }
     void: addItem(me string: itemStr)<-{
         itemStr <+- "\n"
-        items.pushLast(itemStr)
+        items.append(itemStr)
     }
     void: addNode(me string: nodeID, me string: label, me string: attrs) <-{
         me string: nodeStr <- "    \""+deQuote(nodeID)+"\" "
@@ -82,12 +82,12 @@ struct graphLogger{
         me string: attrStr <- labelStr+deQuote(attrs)
         if(attrStr!=""){ attrStr <-  " ["+attrStr+"]"}
         nodeStr <+- attrStr+";\n"
-        items.pushLast(nodeStr)
+        items.append(nodeStr)
     }
     void: setNodeSlot(me string: nodeID, me string: slotID) <-{
         rankSlots[slotID] <+- "\""+nodeID+"\"; "
     }
-    void: addEdge(me string: fromID, me string: toID, me string: label, me string: attrs) <-{
+    void: addArrow(me string: fromID, me string: toID, me string: label, me string: attrs) <-{
         me string: edgeStr <- "    \""+deQuote(fromID)+"\" -> \"" + deQuote(toID) + "\""
         me string: labelStr
         if(label != ""){
@@ -96,13 +96,13 @@ struct graphLogger{
         me string: attrStr <- labelStr+deQuote(attrs)
         if(attrStr!=""){ attrStr <-  " ["+attrStr+"]"}
         edgeStr <+- attrStr+";\n"
-        items.pushLast(edgeStr)
+        items.append(edgeStr)
     }
     void: clear()<-{items.clear(); rankSlots.clear()}
     void: saveGraph(me string: graphName, me string: filename) <- {
         me FileStream: out
         out.openNew(filename)
-        me string: header <- "strict digraph \""+deQuote(graphName)+"\"{\n"
+        me string: header <- "digraph \""+deQuote(graphName)+"\"{\n"
         out.write(header)
         withEach line in items{
             out.write(line)
