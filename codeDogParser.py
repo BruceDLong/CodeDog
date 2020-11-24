@@ -510,7 +510,7 @@ def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a pa
             resultOfExtractBuildSpecs.append(spec)
     return resultOfExtractBuildSpecs
 
-def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
+def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description):
     className=spec.objectName[0]
     configType="unknown"
     if(spec.sequenceEl): configType="SEQ"
@@ -520,7 +520,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType):
         #print("spec.tagDefList = ",spec.tagDefList)
         objTags = extractTagDefs(spec.tagDefList)
     else: objTags = {}
-    taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType)
+    taggedName = progSpec.addObject(ProgSpec, classNames, className, stateType, configType,description)
     progSpec.addObjTags(ProgSpec, className, stateType, objTags)
     extractFieldDefs(ProgSpec, className, stateType, spec.fieldDefs)
     ############Grab optional typeArgList
@@ -635,12 +635,12 @@ def doMacroSubstitutions(macros, inputString):
     # Last, replace the text into inputString
     return inputString
 
-def extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, objectSpecResults):
+def extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, objectSpecResults,description):
     newClasses=[]
     for spec in objectSpecResults:
         s=spec[0]
         if s == "model" or s == "struct" or s == "string" or s == "stream":
-            newName=extractObjectSpecs(ProgSpec, clsNames, spec, s)
+            newName=extractObjectSpecs(ProgSpec, clsNames, spec, s,description)
             if newName!=None: newClasses.append(newName)
         elif s == "do":
             extractPatternSpecs(ProgSpec, clsNames, spec)
@@ -692,7 +692,7 @@ def parseCodeDogString(inputString, ProgSpec, clsNames, macroDefs, description):
     cdlog(LogLvl, "EXTRACTING: "+description+"...")
     tagStore = extractTagDefs(results.progSpecParser.tagDefList)
     buildSpecs = extractBuildSpecs(results.progSpecParser.buildSpecList)
-    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.progSpecParser.objectList)
+    newClasses = extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results.progSpecParser.objectList,description)
     classes = [ProgSpec, clsNames]
     return[tagStore, buildSpecs, classes, newClasses]
 
@@ -708,4 +708,4 @@ def AddToObjectFromText(ProgSpec, clsNames, inputStr, description):
     except ParseException as pe:
         cdErr("Error parsing generated class {}: {}".format(description, pe))
     cdlog(errLevl, 'Completed parsing: '+description)
-    extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0])
+    extractObjectsOrPatterns(ProgSpec, clsNames, macroDefs, results[0], description)

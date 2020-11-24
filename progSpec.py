@@ -26,6 +26,18 @@ classHeirarchyInfo = {}
 currentCheckObjectVars = ""
 templatesDefined={}
 classImplementationOptions = {}
+libLevels = {}
+
+def setLibLevels(CFL):
+    global libLevels
+    libLevels = CFL
+
+def getLibLevel(libName):
+    global libLevels
+    for lib in range(0,len(libLevels)):
+        if (libLevels[lib] == libName):
+            return 2
+    return 1
 
 def rollBack(classes, tags):
     global MarkedObjects
@@ -133,16 +145,23 @@ def fieldIdentifierString(className, packedField):
         fieldID+=')'
     return fieldID
 
-def addObject(objSpecs, objectNameList, name, stateType, configType):
+def addObject(objSpecs, objectNameList, name, stateType, configType, libName = None):
     global MarkItems
     global MarkedObjects
+    global libLevels
     # Config type is [unknown | SEQ | ALT]
+
+    if libName != None:
+        level = getLibLevel(libName)
+    else:
+        level = 0
+
     if stateType=='model': name='%'+name
     elif stateType=='string': name='$'+name
     if(name in objSpecs):
         cdlog(4, "Note: The struct '{}' is being added but already exists.".format(name))
         return None
-    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType}
+    objSpecs[name]={'name':name, "attrList":[], "attr":{}, "fields":[], "vFields":None, 'stateType':stateType, 'configType':configType,'libLevel':level, 'libName':libName}
     objectNameList.append(name)
     if MarkItems: MarkedObjects[name]=1
     return name

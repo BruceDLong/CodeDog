@@ -16,7 +16,8 @@ libPaths = []
 featuresHandled = []
 tagsFromLibFiles = {}
 currentFilesPath = ""
-
+global CFL
+CFL = {}
 '''
 T h e   b e s t   l i b r a r y   c h o i c e s   f o r   y o u r   p r o g r a m
   And the best programs for your library
@@ -234,6 +235,7 @@ def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
     return [LibCanWork, Requirements]
 
 def constructORListFromFiles(tags, need, files, indent):
+    global CFL
     OR_List = ['OR', []]
     for libFile in files:
         #print("{}LIB FILE: {}".format(indent, libFile))
@@ -247,7 +249,9 @@ def constructORListFromFiles(tags, need, files, indent):
                 OR_List[1].append(solutionOptions)
             else: OR_List[1].append(libFile)
     if len(OR_List[1])==1 and isinstance(OR_List[1][0], str):
+        CFL = childFileList
         return OR_List[1][0]  # Optimization
+    CFL = childFileList
     return OR_List
 
 def constructANDListFromNeeds(tags, needs, files, indent):
@@ -267,6 +271,7 @@ def constructANDListFromNeeds(tags, needs, files, indent):
             solutionOptions = constructORListFromFiles(tags, need, filesToTry, indent + "|   ")
             if len(solutionOptions[1])>0:
                 AND_List[1].append(solutionOptions)
+    progSpec.setLibLevels(CFL)
     return AND_List
 
 def ChooseLibs(classes, buildTags, tags):
@@ -291,4 +296,8 @@ def ChooseLibs(classes, buildTags, tags):
     reduceSolutionOptions(solutionOptions, '')
     for libPath in solutionOptions[1]:
         cdlog(2, "USING LIBRARY:"+libPath)
+    #TODO: add part 3
+    #for lib in libsToUse:
+    #check for completeness
+    #lib to use = solution optoins 1
     return solutionOptions[1]
