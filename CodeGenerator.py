@@ -156,7 +156,7 @@ def CheckObjectVars(className, itemName, fieldIDArgList):
     retVal=None
     if( "libLevel" in ClassDef ):
         if(ClassDef["libLevel"] == 2):
-            cdErr(itemName+ " is not defined in parent library of "+str(ClassDef["libName"]))
+            cdErr(searchFieldID+ " is not defined in parent library of "+str(ClassDef["libName"]))
 
     wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, className)
     if(wrappedTypeSpec != None):

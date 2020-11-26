@@ -253,14 +253,25 @@ struct ColorScheme{}
 // struct FontScheme{}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{}
-struct GUI_ctxt{}
 struct GUI_item{}
 struct GUI_canvas{}
 struct GUI_container{}
 struct INK_Image{}
 struct CGContext {}
-struct CGPoint {}
+struct CGPoint{}
 struct deltaSize{me int: width    me int: height}
+struct GRWindow{}
+struct GameEvent{}
+struct UserEvent{}
+struct WindowEvent{}
+struct KeyboardEvent{}
+struct MouseButtonEvent{}
+struct MouseMotionEvent{}
+struct MouseWheelEvent{}
+struct KeyInfo{}
+struct Keycode{}
+struct SoundData{}
+struct GameSurface{}
 
 struct GUI{
     me GUI_item: newCanvas()
