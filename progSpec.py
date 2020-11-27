@@ -266,10 +266,9 @@ def appendToFuncsCalled(funcName,funcParams):
         funcsCalled[funcName]= []
     funcsCalled[funcName].append([funcParams, MarkItems])
 
-
-def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, containerSpec, thisName, thisArgList, paramList, thisValue, isAllocated):
+def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, thisArgList, paramList, thisValue, isAllocated):
     codeConverter=None
-    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'containerSpec':containerSpec, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
+    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'reqTagList':thisReqTagList, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
     if( thisValue!=None and (not isinstance(thisValue, str)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
         # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
         codeConverter = thisValue[1][1:]
@@ -689,17 +688,15 @@ def isNewContainerTempFunc(typeSpec):
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(None)
     fieldTypeKeyword = fieldType[0]
+    reqTagList = getReqTagList(typeSpec)
     if fieldTypeKeyword=='DblLinkedList': return(['infon'])
-    else:
-        reqTagList = getReqTagList(typeSpec)
-        if reqTagList == None: return(None)
-        if fieldTypeKeyword=='CPP_Deque':
+    elif reqTagList:
+        if fieldTypeKeyword=='CPP_Deque' or fieldTypeKeyword=='Java_ArrayList':
             return(reqTagList[1][0][1])
-        if fieldTypeKeyword=='map':
-            return(reqTagList)
-        if fieldTypeKeyword=='Java_ArrayList':
-            return(reqTagList[1][0][1])
-        #print("fieldTypeKeyword: ",fieldTypeKeyword," ",reqTagList[1][0])
+        if fieldTypeKeyword=='CPP_Map':
+            return(reqTagList[1])
+    elif reqTagList == None: return(None)
+    #print("fieldTypeKeyword: ",fieldTypeKeyword," ",reqTagList[1][0])
     return(None)
 
 def isOldContainerTempFunc(typeSpec):
@@ -710,7 +707,10 @@ def isAContainer(typeSpec):
     return(isOldContainerTempFunc(typeSpec))
 
 def getContainerSpec(typeSpec):
-    if isNewContainerTempFunc(typeSpec): return {'owner': 'me', 'datastructID':'list'}
+    if isNewContainerTempFunc(typeSpec):
+        fieldType=getFieldTypeNew(typeSpec)
+        containerType=fieldType[0]
+        return {'owner': typeSpec['owner'], 'datastructID':containerType}
     return(typeSpec['arraySpec'])
 
 def getTemplateArg(typeSpec, argIdx):
@@ -791,11 +791,13 @@ def getTypeArgList(className):
         return(templatesDefined[className])
     else:
         return(None)
+
 def getReqTagList(typeSpec):
+    if('reqTagList' in typeSpec):
+        return(typeSpec['reqTagList'])
     if('fieldType' in typeSpec and 'reqTagList' in typeSpec['fieldType']):
         return(typeSpec['fieldType']['reqTagList'])
-    else:
-        return(None)
+    return(None)
 
 def setCurrentCheckObjectVars(message):
     global currentCheckObjectVars
@@ -827,7 +829,7 @@ def isWrappedType(objMap, structname):
             retOwner = structToSearch['tags']['ownerMe']
         else: retOwner = 'me'
         wrappedStructName = structToSearch['tags']['wraps']
-        typeSpecRetVal = {'owner':retOwner, 'fieldType':[wrappedStructName], 'arraySpec':None, 'containerSpec':None, 'argList':None}
+        typeSpecRetVal = {'owner':retOwner, 'fieldType':[wrappedStructName], 'arraySpec':None, 'argList':None}
         if ownerMe: typeSpecRetVal['ownerMe'] = retOwner
         #print(typeSpecRetVal)
         return(typeSpecRetVal)

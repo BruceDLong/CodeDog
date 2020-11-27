@@ -63,8 +63,8 @@ def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
             typeSpecOut = classDef['typeSpec']
             typeSpecOut['owner']='their' # TODO: write test case for containers
             print("SHOULDNT MATCH:", typeSpecOut['owner'],classDef['typeSpec']['owner'])
-        else: typeSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
-    else: typeSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'containerSpec':None,'argList':None}
+        else: typeSpecOut={'owner':'their', 'fieldType':retType, 'arraySpec':None, 'argList':None}
+    else: typeSpecOut={'owner':retOwner, 'fieldType':retType, 'arraySpec':None, 'argList':None}
     typeSpecOut['codeConverter']=code
     return [typeSpecOut, 'BUILTIN']
 
@@ -148,15 +148,13 @@ def CheckObjectVars(className, itemName, fieldIDArgList):
     searchFieldID = className+'::'+itemName
     fullSearchFieldID = className+'::'+itemName+fieldIDArgList
     #print("Searching",className,"for", itemName, fullSearchFieldID)
-    ClassDef =  progSpec.findSpecOf(globalClassStore[0], className, "struct")
-    if ClassDef==None:
+    classDef =  progSpec.findSpecOf(globalClassStore[0], className, "struct")
+    if classDef==None:
         message = "ERROR: definition not found for: "+ str(className) + " : " + str(itemName)
         progSpec.setCurrentCheckObjectVars(message)
         return 0
     retVal=None
-    if( "libLevel" in ClassDef ):
-        if(ClassDef["libLevel"] == 2):
-            cdErr(searchFieldID+ " is not defined in parent library of "+str(ClassDef["libName"]))
+    #if("libLevel" in classDef and classDef["libLevel"] == 2):if(classDef["libLevel"] == 2): cdErr(searchFieldID+ " is not defined in parent library of "+str(ClassDef["libName"]))
 
     wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, className)
     if(wrappedTypeSpec != None):
@@ -212,8 +210,8 @@ def CheckObjectVars(className, itemName, fieldIDArgList):
     return 0 # Field not found in model
 
 def CheckClassStaticVars(className, itemName):
-    ClassDef =  progSpec.findSpecOf(globalClassStore[0], itemName, "struct")
-    if ClassDef==None:
+    classDef =  progSpec.findSpecOf(globalClassStore[0], itemName, "struct")
+    if classDef==None:
         return None
     return [{'owner':'me', 'fieldType':[itemName], 'StaticMode':'yes'}, "CLASS:"+itemName]
 
@@ -311,7 +309,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
                         if(parentClassName != ''):
                             return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
                         else: return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "CONST"]
-                    if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None, 'containerSpec':None}, "CONST"]
+                    if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None}, "CONST"]
                     cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                     return [None, "LIB"]      # TODO: Return correct type
     return [REF['typeSpec'], RefType]
@@ -332,7 +330,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
     bitCursor=0
     structEnums=""
     CodeDogAddendums = ""
-    ClassDef = classes[0][className]
+    classDef = classes[0][className]
     for field in progSpec.generateListOfFieldsToImplement(classes, className):
         fieldType=progSpec.getFieldType(field['typeSpec'])
         fieldName=field['fieldName'];
@@ -414,7 +412,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
         cdlog(6, "Warning: caught an exception error in codeFlagAndModeFields")
 
     if structEnums!="": structEnums="\n\n// *** Code for manipulating "+className+' flags and modes ***\n'+structEnums
-    ClassDef['flagsVarNeeded'] = flagsVarNeeded
+    classDef['flagsVarNeeded'] = flagsVarNeeded
     return [flagsVarNeeded, structEnums, CodeDogAddendums]
 
 typeDefMap={}
@@ -453,8 +451,7 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
 def codeAllocater(typeSpec, xlator):
     S=''
     owner           = progSpec.getTypeSpecOwner(typeSpec)
-    fType               = progSpec.getFieldType(typeSpec)
-    containerSpec   = progSpec.getContainerSpec(typeSpec)
+    fType           = progSpec.getFieldType(typeSpec)
     if isinstance(fType, str): varTypeStr1=fType;
     else: varTypeStr1=fType[0]
 
@@ -569,7 +566,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                             typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
-                else: print("typeSpecOut = 0 for: "+previousSegName+"."+name)
+                else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isStructLikeContainer:",isStructLikeContainer)
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
