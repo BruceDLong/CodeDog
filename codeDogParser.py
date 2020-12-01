@@ -343,9 +343,8 @@ def packFieldDef(fieldResult, className, indent):
             packedTArgList = []
             for reqTag in reqTagList[0]:
                 reqTagVarType = reqTag['varType'][0][0]
-                if 'owner' in reqTag:
-                    reqTagOwner = reqTag['owner']
-                eles: reqTagOwner = 'me'
+                reqTagOwner = 'me'
+                if 'owner' in reqTag: reqTagOwner = reqTag['owner']
                 packedReqTag={'tArgOwner': reqTagOwner, 'tArgType': reqTagVarType}
                 packedTArgList.append(packedReqTag)
         else: packedTArgList = None

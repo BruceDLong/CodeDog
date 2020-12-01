@@ -413,7 +413,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
         else:
             expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
             if expected_KeyType == "BigInt":
-                S += item0 + "_mpz"
+                S += item0
                 retTypeSpec='BigInt'
             elif expected_KeyType == "BigFloat":
                 S += item0 + "_mpf"

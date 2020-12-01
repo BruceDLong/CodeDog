@@ -696,7 +696,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     actionText       = ""
     loopCounterName  = ""
     containedOwner   = progSpec.getOwnerFromTypeSpec(containerType)
-    containedType    = progSpec.getContainedFieldType(containerType)
+    containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if datastructID=='TreeMap':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
@@ -815,7 +815,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     if(className=='GLOBAL'):
         if fieldName=='main':
             structCode += indent + "public static void " + fieldName +" (String[] args)";
-            #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
+            #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'argList':None}])
         else:
             structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")"
     else:

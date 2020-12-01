@@ -396,7 +396,7 @@ struct display_'''+className+": inherits=dash"+'''{
         elif(fldCat=='struct'):  # Header for a STRUCT
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', ">", '+fieldRef+')\n'
-            structTypeName = progSpec.isNewContainerTempFunc(typeSpec)
+            structTypeName = progSpec.getNewContainerFirstElementTypeTempFunc(typeSpec)
             if structTypeName == None: structTypeName = progSpec.getFieldType(typeSpec)[0]
             structText += "    "+owner+" display_"+structTypeName+': '+fieldName+"\n"
 
