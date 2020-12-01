@@ -91,7 +91,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if(isinstance(fieldType, str)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        langType = adjustBaseTypes(fieldType, progSpec.isAContainer(typeSpec))
+        langType = adjustBaseTypes(fieldType, progSpec.isNewContainerTempFunc(typeSpec))
     else: langType = progSpec.flattenObjectName(fieldType[0])
     langType = applyOwner(owner, langType, progSpec.isNewContainerTempFunc(typeSpec), actionOrField, varMode)
     if langType=='TYPE ERROR': print(langType, owner, fieldType);
@@ -100,13 +100,9 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if(reqTagList != None):
         reqTagString = "<"
         count = 0
-        for reqTag in reqTagList[1]:
-            if('owner' in reqTag):
-                reqOwner = progSpec.getOwnerFromTypeSpec(reqTag)
-            else: reqOwner = 'me'
-            varTypeKeyword = reqTag['varType'][0]
-            if not isinstance(varTypeKeyword, str):
-                varTypeKeyword= varTypeKeyword[0]
+        for reqTag in reqTagList:
+            reqOwner = progSpec.getOwnerFromTemplateArg(reqTag)
+            varTypeKeyword = progSpec.getTypeFromTemplateArg(reqTag)
             unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc', reqOwner)
             unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
             reqType = adjustBaseTypes(unwrappedTypeKeyword, True)

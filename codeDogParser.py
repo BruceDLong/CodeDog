@@ -66,7 +66,7 @@ owners = Forward()
 varSpec = Group(Optional(owners)("owner") + varType("varType") )("varSpec")
 varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
 typeArgList = Group(Literal("<") + CIDList + Literal(">"))("typeArgList")
-reqTagList = Group(Literal("<") + varSpecList + Optional(Literal(":")("optionalTag") + tagDefList) + Literal(">"))("reqTagList")
+reqTagList = Group(Suppress(Literal("<")) + varSpecList + Optional(Literal(":")("optionalTag") + tagDefList) + Suppress(Literal(">")))("reqTagList")
 classSpec <<= Group(objectName + Optional(reqTagList('reqTagList')))("classSpec")
 classDef = Group(objectName + Optional(typeArgList))("classDef")
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
@@ -338,8 +338,18 @@ def packFieldDef(fieldResult, className, indent):
     elif(fieldResult.fullFieldDef):
         fieldTypeStr=str(fieldType)[:50]
         cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, reqTagList, fieldName])))
-        if 'reqTagList' in fieldType: reqTagList = fieldType['reqTagList']; print("***",reqTagList)
-        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, reqTagList, fieldName, argList, paramList, givenValue, isAllocated)
+        if 'reqTagList' in fieldType:
+            reqTagList = fieldType['reqTagList']
+            packedTArgList = []
+            for reqTag in reqTagList[0]:
+                reqTagVarType = reqTag['varType'][0][0]
+                if 'owner' in reqTag:
+                    reqTagOwner = reqTag['owner']
+                eles: reqTagOwner = 'me'
+                packedReqTag={'tArgOwner': reqTagOwner, 'tArgType': reqTagVarType}
+                packedTArgList.append(packedReqTag)
+        else: packedTArgList = None
+        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, packedTArgList, fieldName, argList, paramList, givenValue, isAllocated)
     else:
         cdErr("Error in packing FieldDefs: {}".format(fieldResult))
         exit(1)

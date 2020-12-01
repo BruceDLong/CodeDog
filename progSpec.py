@@ -692,9 +692,9 @@ def isNewContainerTempFunc(typeSpec):
     if fieldTypeKeyword=='DblLinkedList': return(['infon'])
     elif reqTagList:
         if fieldTypeKeyword=='CPP_Deque' or fieldTypeKeyword=='Java_ArrayList':
-            return(reqTagList[1][0][1])
+            return(reqTagList[0]['tArgType'])
         if fieldTypeKeyword=='CPP_Map':
-            return(reqTagList[1])
+            return(reqTagList[0]['tArgType'])
     elif reqTagList == None: return(None)
     #print("fieldTypeKeyword: ",fieldTypeKeyword," ",reqTagList[1][0])
     return(None)
@@ -754,14 +754,9 @@ def getContainerFirstElementOwner(typeSpec):
         cdErr(currentCheckObjectVars)
     if isAContainer(typeSpec):
         if isNewContainerTempFunc(typeSpec):
-            if(typeSpec['fieldType'][0] == 'DblLinkedList'):
-                return('our')
-            else:
-                innerTypeSpec = typeSpec['fieldType'][1][1][0]
-                if 'owner' in innerTypeSpec: return (innerTypeSpec['owner'])
-                else: return ('me')
-        else:
-            return(typeSpec['owner'])
+            if(typeSpec['fieldType'][0] == 'DblLinkedList'): return('our')
+            else: return (getOwnerFromTemplateArg(typeSpec['reqTagList'][0]))
+        else: return(typeSpec['owner'])
     else:
         # TODO: This should throw error, no lists should reach this point.
         return(typeSpec['owner'])
@@ -786,6 +781,20 @@ def getOwnerFromTypeSpec(typeSpec):
         cdErr(currentCheckObjectVars)
     return typeSpec['owner']
 
+#### Packed Template Arg Handling Functions ####
+def getOwnerFromTemplateArg(tArg):
+    global currentCheckObjectVars
+    if (tArg == 0):
+        cdErr(currentCheckObjectVars)
+    return tArg['tArgOwner']
+
+def getTypeFromTemplateArg(tArg):
+    global currentCheckObjectVars
+    if (tArg == 0):
+        cdErr(currentCheckObjectVars)
+    return tArg['tArgType']
+
+################################################
 def getTypeArgList(className):
     if(className in templatesDefined):
         return(templatesDefined[className])
@@ -914,14 +923,11 @@ def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
         if(funcFieldKeyWord == matchName):
             typeArgList = getTypeArgList(className)
             reqTagList  = getReqTagList(typeSpecIn)
-            reqTagList  = reqTagList[1]
             count = 0
             for item in typeArgList:
                 if(item == matchName):
-                    innerTypeSpec        = reqTagList[count]
-                    if 'owner' in innerTypeSpec: innerTypeOwner = innerTypeSpec['owner']
-                    else: innerTypeOwner = 'me'
-                    innerTypeKeyWord = innerTypeSpec["varType"][0][0]
+                    innerTypeOwner   = getOwnerFromTemplateArg(reqTagList[count])
+                    innerTypeKeyWord = getTypeFromTemplateArg(reqTagList[count])
                     return([innerTypeOwner, innerTypeKeyWord])
                 count += 1
     return([None, None])
