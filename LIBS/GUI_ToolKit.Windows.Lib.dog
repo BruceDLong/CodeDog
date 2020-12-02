@@ -253,12 +253,12 @@ struct enumWidget{
     their HWND: box
     their HWND: dataLabel
     their HWND: dataValue
-    me string[list]: options
+    me List<me string>: options
 
     me string: getValue() <- <%!atoi(gtk_combo_box_text_get_active_text((GtkComboBoxText*)%0))%>
     me void: setValue(me int: val) <- {}
 
-    their HWND: makeEnumWidget(me string: label, me string[list]: Options)  <- <%{
+    their HWND: makeEnumWidget(me string: label, me List<me string>: Options)  <- <%{
         options = Options;
         box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
         dataLabel = gtk_label_new(label.data());
