@@ -570,7 +570,17 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
-        #print"                             codeConverter:", name, "->", convertedName
+        reqTagList = progSpec.getReqTagList(typeSpecIn)
+        if "%T0Type" in convertedName:
+            if(reqTagList != None):
+                T0Type = progSpec.getTypeFromTemplateArg(reqTagList[0])
+                convertedName = convertedName.replace("%T0Type",T0Type)
+            else: cdErr("ERROR: looking for T0Type in codeConverter but reqTagList found in TypeSpec.")
+        if "%T1Type" in convertedName:
+            if(reqTagList != None):
+                T1Type = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                convertedName = convertedName.replace("%T1Type",T1Type)
+            else: cdErr("ERROR: looking for T1Type in codeConverter but reqTagList found in TypeSpec.")
         name = convertedName
         callAsGlobal=name.find("%G")
         if(callAsGlobal >= 0): namePrefix=''
