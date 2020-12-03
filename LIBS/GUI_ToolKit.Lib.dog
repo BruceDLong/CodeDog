@@ -321,7 +321,7 @@ struct baseTypeWidget{
 /////////////////////////////////  HIGHER LEVEL WIDGETS
 
 struct ListWidgetManager{
-    their GUI_Frame[their list]: rows
+    their List<their GUI_Frame>: rows
 
     // Override all these for each new list editing widget
     their listWidget: makeListViewWidget()  <- {return(NULL)}

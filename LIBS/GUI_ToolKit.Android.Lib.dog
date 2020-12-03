@@ -345,7 +345,7 @@ struct enumWidget{
     their GUI_Frame:    box
     their GUI_Label:    dataLabel
     their GUI_ComboBox: dataValue
-    me string[list]:    options
+    me List<me string>:    options
 
     me int: getValue() <- <%{
         int retVal = dataValue.getSelectedItemPosition();
@@ -355,7 +355,7 @@ struct enumWidget{
         dataValue.setSelection((int)val);
     }%>
     me void: clear() <- <%{}%>
-    their GUI_Frame: initWidget(me string: label, me string[list]: Options)  <- <%{
+    their GUI_Frame: initWidget(me string: label, me List<me string>: Options)  <- <%{
         options   = Options;
         dataLabel = new TextView(GLOBAL.static_Global);
         dataLabel.setText(label);
@@ -702,7 +702,7 @@ struct GLOBAL{
     their GtkWidget: makeEntryBox(me string: label)          <- <%!%Gnew EditText(GLOBAL.static_Global)%>
     void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
         <- <%!%G%1.setAdapter(%2);%2.setNotifyOnChange(true)%>
-    their GUI_Completer: makeCompleter(me string: label, me string[list]: completerList, me string[list]: itemsList)  <- <%{
+    their GUI_Completer: makeCompleter(me string: label, me List<me string>: completerList, me List<me string>: itemsList)  <- <%{
         ArrayAdapter<String> suggestAdapter = new ArrayAdapter<String>(GLOBAL.static_Global, android.R.layout.select_dialog_item, itemsList);
         return suggestAdapter;
     }%>
@@ -744,7 +744,7 @@ struct GLOBAL{
         return box;
     }%>
 
-    their  GUI_Frame: makeEnumWidget(me string: label, me string[list]: options)      <- <%{
+    their  GUI_Frame: makeEnumWidget(me string: label, me List<me string>: options)      <- <%{
         LinearLayout box = new LinearLayout(GLOBAL.static_Global);
         Spinner spinner = new Spinner(GLOBAL.static_Global);
         spinner.setPrompt(label);
@@ -1359,7 +1359,7 @@ struct APP: inherits=LinearLayout{
 
 struct ourSubMenu{
     me string: name
-    me ourSubMenu[list]: items
+    me List<me ourSubMenu>: items
     me none: ourSubMenu(me string: menuLabel) <- {name <- menuLabel}
     me none: ourSubMenu() <- {Allocate(items)}
 }

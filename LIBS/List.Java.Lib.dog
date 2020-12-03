@@ -15,8 +15,8 @@ LibDescription ={
 }
 
 struct Java_ArrayList<nodeType>: implements = List wraps = ArrayList specs = {append = constant}{
-    # TODO: find Time Complexity
-    # TODO: verify code converters are correct
+    // TODO: find Time Complexity
+    // TODO: verify code converters are correct
     void: append(nodeType: value)               <- <%!add(%1)%>
     nodeType: at(me int: position)              <- <%!%0.get(%1)%>
     void: clear()                               <- <%!clear()%>
@@ -42,4 +42,24 @@ struct Java_ArrayList<nodeType>: implements = List wraps = ArrayList specs = {ap
     me void: pushLast(nodeType: value)           <- <%!add(%1)%>
     // TODO: need Reverse Iterators working first
     //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
+}
+
+struct Java_Map<keyType, valueType>: implements = Map wraps = TreeMap specs = {insert = logarithmic}{
+    keyType: at(keyType: key)                   <- <%!%0.get(%1)%>
+    void: clear()                               <- <%!clear()%>
+    //itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
+    itr nodeType: erase(keyType: key)           <- <%!remove()%>
+    itr nodeType: find(valueType: val)          <- <%!get(%1)%>
+    keyType: first()                            <- <%!get(0)%>
+    itr nodeType: front()                       <- <%!firstEntry().getValue()%>
+    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!put(%1, %2)%>
+    me bool:  isEmpty()                         <- <%!isEmpty()%>
+    keyType: last()                             <- <%!%0.get(%0.size()-1)%>
+    keyType: lower_bound()                      <- <%!firstKey()%>
+    //nodeType: popFirst()                        <- <%!%0.remove(%0.firstKey())%>
+    //nodeType: popLast()                         <- <%!pollLastEntry()%>
+    me uint:  size()                            <- <%!size()%>
+    /////////////////////////////////////////
+    // TODO: need Reverse Iterators working first
+    //itr nodeType: back() <- <%!rend()%>             // returns reverse iterator to the reverse ene of the sequence container
 }

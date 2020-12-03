@@ -363,8 +363,8 @@ struct display_'''+className+": inherits=dash"+'''{
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', '+innerUpdateFuncStr+', isNull('+innerUpdateFuncStr+'), true)\n'
              ## Now push each item
             innerFieldType = progSpec.getFieldType(typeSpec)
-            containerSpec = progSpec.getContainerSpec(typeSpec)
-            if len(containerSpec) > 3 and (containerSpec[1]== 'map' or containerSpec[1]== 'multimap') and containerSpec[2][0] =='string':
+            containerTypeSpec = progSpec.getContainerSpec(typeSpec)
+            if len(containerTypeSpec) > 3 and (containerTypeSpec[1]== 'map' or containerTypeSpec[1]== 'multimap') and containerTypeSpec[2][0] =='string':
                 itemKeyCode = itemName+'_key'
             else:
                 itemKeyCode = 'toString('+itemName+'_key)'
@@ -396,7 +396,7 @@ struct display_'''+className+": inherits=dash"+'''{
         elif(fldCat=='struct'):  # Header for a STRUCT
             updateFuncText+="        "+fieldName+'.dashParent <- self\n'
             updateFuncText+="        "+fieldName+'.update('+fieldLabel+', ">", '+fieldRef+')\n'
-            structTypeName = progSpec.isNewContainerTempFunc(typeSpec)
+            structTypeName = progSpec.getNewContainerFirstElementTypeTempFunc(typeSpec)
             if structTypeName == None: structTypeName = progSpec.getFieldType(typeSpec)[0]
             structText += "    "+owner+" display_"+structTypeName+': '+fieldName+"\n"
 
