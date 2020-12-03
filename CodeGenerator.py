@@ -22,7 +22,8 @@ import pattern_MakeStyler
 import pattern_WriteCallProxy
 
 import stringStructs
-
+import os
+import errno
 
 buildStr_libs=''
 globalFuncDeclAcc=''
@@ -1566,6 +1567,21 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
                     headerStr += xlator['includeDirective'](libHdr)
     return [headerStr, headerTopStr]
 
+def clearLogFile():
+    try:
+        os.makedirs("libraryLogs")
+    except OSError as exception:
+        if exception.errno != errno.EEXIST: raise
+    logClear = open("libraryLogs/missingFuncs.txt","w")
+    logClear.close()
+
+clearLogFile()
+
+def outputUndefinedFunctions(lib, missingObject):
+    logFile = open("libraryLogs/missingFuncs.txt","a")
+    logFile.write("Missing: "+str(missingObject) + " from library: " + str(lib) + "\n")
+    logFile.close()
+
 def connectLibraries(classes, tags, libsToUse, xlator):
     headerStr = ''
     tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
@@ -1575,7 +1591,23 @@ def connectLibraries(classes, tags, libsToUse, xlator):
         headerStr = headerTopStr + headerStr + headerStrOut
         macroDefs= {}
         [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], tags[0], macroDefs)
-
+        # Check for empty or missing functions and log it
+        for className, classDef in FileClasses[0].items():
+            if 'fields' in classDef:
+                for fieldDef in classDef['fields']:
+                    if progSpec.fieldIsFunction(fieldDef['typeSpec'], fieldDef):
+                        if classDef['libLevel'] == 1:
+                            if 'value' in fieldDef and fieldDef['value'] != None and progSpec.doesFieldDefHaveValue(fieldDef):
+                                if 'fieldName' in fieldDef and fieldDef['fieldName'] == 'LogEntry':
+                                    print(fieldDef['value'])
+                                if 'codeConverter' not in fieldDef['typeSpec']:
+                                    #print("FIELD NAME:   ", fieldDef['fieldName'], " LIB FILE NAME: ", classDef['libName'], " LEVEL:  ", classDef['libLevel'])
+                                    #print(" FUNC BODY: ", fieldDef['value'][0],"\n")
+                                    outputUndefinedFunctions(classDef['libName'], fieldDef['fieldName'] )
+                            #if fieldDef['value'] == None:
+                                #print("FIELD NAME:   ", fieldDef['fieldName'], " LIB FILE NAME: ", classDef['libName'], " LEVEL:  ", classDef['libLevel'])
+                                #print(" FOUND EMPTY FUNCTION! \n")
+                                #outputUndefinedFunctions(classDef['libName'], fieldDef['fieldName'] )
     return headerStr
 
 def convertTemplateClasses(classes, tags):

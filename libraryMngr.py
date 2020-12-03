@@ -16,8 +16,7 @@ libPaths = []
 featuresHandled = []
 tagsFromLibFiles = {}
 currentFilesPath = ""
-global CFL
-CFL = {}
+CFL = []
 '''
 T h e   b e s t   l i b r a r y   c h o i c e s   f o r   y o u r   p r o g r a m
   And the best programs for your library
@@ -92,7 +91,6 @@ def findLibrary(feature):
 def findLibraryChildren(libID):
     """Given a lib prefix string (ie. Logger) return list of paths to children
     LIB files (ie. Logger.CPP.Lib.dog, Logger.Android.Lib.dog)"""
-
     libs=[]
     for item in libPaths:
         itemBaseName = os.path.basename(item)
@@ -244,14 +242,13 @@ def constructORListFromFiles(tags, need, files, indent):
             #print("{} LIB CAN WORK: {}".format(indent, libFile))
             childFileList = findLibraryChildren(os.path.basename(libFile)[:-8])
             if len(childFileList)>0:
+                CFL = CFL + childFileList
                 solutionOptions = constructANDListFromNeeds(tags, Requirements, childFileList, indent + "|   ")
                 solutionOptions[1] = [libFile] + solutionOptions[1]
                 OR_List[1].append(solutionOptions)
             else: OR_List[1].append(libFile)
     if len(OR_List[1])==1 and isinstance(OR_List[1][0], str):
-        CFL = childFileList
         return OR_List[1][0]  # Optimization
-    CFL = childFileList
     return OR_List
 
 def constructANDListFromNeeds(tags, needs, files, indent):
@@ -296,8 +293,4 @@ def ChooseLibs(classes, buildTags, tags):
     reduceSolutionOptions(solutionOptions, '')
     for libPath in solutionOptions[1]:
         cdlog(2, "USING LIBRARY:"+libPath)
-    #TODO: add part 3
-    #for lib in libsToUse:
-    #check for completeness
-    #lib to use = solution optoins 1
     return solutionOptions[1]

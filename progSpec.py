@@ -810,10 +810,18 @@ def typeIsPointer(typeSpec):
     owner=getTypeSpecOwner(typeSpec)
     return ownerIsPointer(owner)
 
-def fieldIsFunction(typeSpec):
-    if typeSpec==None: return False
-    if 'argList' in typeSpec and typeSpec['argList']!=None: return True
+def fieldIsFunction(typeSpec,fieldDef=None):
+    if typeSpec==None:
+        return False
+    if 'argList' in typeSpec and typeSpec['argList']!=None:
+        return True
     return False
+
+def doesFieldDefHaveValue(fieldDef):
+    if len(fieldDef['value'][0]) == 0 and len(fieldDef['value'][1]) == 0:
+        return 0
+    else:
+        return 1
 
 def isWrappedType(objMap, structname):
     # If type is not wrapped, return None, else return the wrapped typeSpec
