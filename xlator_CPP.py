@@ -964,7 +964,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         actionText += (indent + "for( auto " + repItrName+' ='+ repContainer+RDeclP+'begin()' + "; " + repItrName + " !=" + repContainer+RDeclP+'end()' +"; "+ repItrName + " = " + repItrName+"->next ){\n"
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+repItrName+"->item;\n")
         return [actionText, loopCounterName]
-    if datastructID=='multimap' or datastructID=='map':
+    if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map':
         keyVarSpec = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
@@ -993,7 +993,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
             actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+RDeclP+'size();' +" ++"+lvName+" ){\n")
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n"
     else:
-        cdErr("DSID:" + datastructID + ', ' +containerType)
+        cdErr("iterateContainerStr() datastructID = " + datastructID)
     return [actionText, loopCounterName]
 
 def codeIncrement(varName):

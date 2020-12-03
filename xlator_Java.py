@@ -263,9 +263,10 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                         tmp+="L"
                         retTypeSpec = 'Long'
             tmp+="))"
-            typeKeyword = progSpec.fieldTypeKeyword(retTypeSpec)
+            reqType = progSpec.getNewContainerFirstElementTypeTempFunc(returnType)
+            typeKeyword = progSpec.fieldTypeKeyword(reqType)
             typeKeyword = adjustBaseTypes(typeKeyword, True)
-            S+='new '+'ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
+            S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
         else:
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
@@ -533,7 +534,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
         print("rhsType", rhsType)
     elif containerType == 'ArrayList':
         S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
-    elif containerType == 'TreeMap':
+    elif containerType == 'TreeMap' or containerType == 'Java_Map':
         S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     else:
         print("ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType)
@@ -617,7 +618,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
             #TODO: make test case
         else: assignValue=''
     elif(fieldDef['value']):
-        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, xlator)
+        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, xlator)
         S2=checkForTypeCastNeed(fieldTypeSpec, rhsTypeSpec, S2)
         RHS = S2
         if varTypeIsValueType(fieldType):
