@@ -123,7 +123,7 @@ repeatedAction = Group(
         )("repeatedAction")
 
 action = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
-actionSeq <<=  Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
+actionSeq <<=  Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
 funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
 
@@ -151,8 +151,8 @@ baseType = cppType | numRange
 fieldDefs = ZeroOrMore(fieldDef)("fieldDefs")
 SetFieldStmt = Group(Word(alphanums + "_.") + '=' + Word(alphanums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
 coFactualEl  = Group("(" + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Suppress(';'))))  + ")")("coFactualEl")
-sequenceEl = "{" + fieldDefs + "}"
-alternateEl  = "[" + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
+sequenceEl = "{" - fieldDefs + "}"
+alternateEl  = "[" - Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
 anonModel = sequenceEl("sequenceEl") | alternateEl("alternateEl")
 owners <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
 fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | altModeSpec | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
