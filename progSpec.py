@@ -266,13 +266,15 @@ def appendToFuncsCalled(funcName,funcParams):
         funcsCalled[funcName]= []
     funcsCalled[funcName].append([funcParams, MarkItems])
 
-def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, thisArgList, paramList, thisValue, isAllocated):
+def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, thisArgList, paramList, thisValue, isAllocated, hasFuncBody):
     codeConverter=None
     packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'reqTagList':thisReqTagList, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
     if( thisValue!=None and (not isinstance(thisValue, str)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
         # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
         codeConverter = thisValue[1][1:]
         packedField['typeSpec']['codeConverter']=codeConverter
+    if hasFuncBody:
+        packedField['hasFuncBody']=True
     fieldID = fieldIdentifierString(className, packedField)
     packedField['fieldID']=fieldID
     return packedField
