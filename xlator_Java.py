@@ -8,23 +8,23 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParamete
 def getContainerType(typeSpec, actionOrField):
     idxType=''
     if progSpec.isNewContainerTempFunc(typeSpec):
-        containerSpec = progSpec.getContainerSpec(typeSpec)
-        if 'owner' in containerSpec: owner=progSpec.getOwnerFromTypeSpec(containerSpec)
+        containerTypeSpec = progSpec.getContainerSpec(typeSpec)
+        if 'owner' in containerTypeSpec: owner=progSpec.getOwnerFromTypeSpec(containerTypeSpec)
         else: owner='me'
-        if 'indexType' in containerSpec:
-            if 'IDXowner' in containerSpec['indexType']:
-                idxOwner=containerSpec['indexType']['IDXowner'][0]
-                idxType=containerSpec['indexType']['idxBaseType'][0][0]
+        if 'indexType' in containerTypeSpec:
+            if 'IDXowner' in containerTypeSpec['indexType']:
+                idxOwner=containerTypeSpec['indexType']['IDXowner'][0]
+                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
                 idxType=applyOwner(idxOwner, idxType, '')
             else:
-                idxType=containerSpec['indexType']['idxBaseType'][0][0]
+                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
         else:
             idxType = progSpec.getFieldType(typeSpec)
         adjustBaseTypes(idxType, True)
-        if(isinstance(containerSpec['datastructID'], str)):
-            datastructID = containerSpec['datastructID']
+        if(isinstance(containerTypeSpec['datastructID'], str)):
+            datastructID = containerTypeSpec['datastructID']
         else:   # it's a parseResult
-            datastructID = containerSpec['datastructID'][0]
+            datastructID = containerTypeSpec['datastructID'][0]
     elif progSpec.isOldContainerTempFunc(typeSpec): print("Deprecated container type:", typeSpec); exit(2);
     else:
         owner = progSpec.getOwnerFromTypeSpec(typeSpec)
@@ -91,7 +91,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if(isinstance(fieldType, str)):
         if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
         elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
-        langType = adjustBaseTypes(fieldType, progSpec.isAContainer(typeSpec))
+        langType = adjustBaseTypes(fieldType, progSpec.isNewContainerTempFunc(typeSpec))
     else: langType = progSpec.flattenObjectName(fieldType[0])
     langType = applyOwner(owner, langType, progSpec.isNewContainerTempFunc(typeSpec), actionOrField, varMode)
     if langType=='TYPE ERROR': print(langType, owner, fieldType);
@@ -100,13 +100,9 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if(reqTagList != None):
         reqTagString = "<"
         count = 0
-        for reqTag in reqTagList[1]:
-            if('owner' in reqTag):
-                reqOwner = progSpec.getOwnerFromTypeSpec(reqTag)
-            else: reqOwner = 'me'
-            varTypeKeyword = reqTag['varType'][0]
-            if not isinstance(varTypeKeyword, str):
-                varTypeKeyword= varTypeKeyword[0]
+        for reqTag in reqTagList:
+            reqOwner = progSpec.getOwnerFromTemplateArg(reqTag)
+            varTypeKeyword = progSpec.getTypeFromTemplateArg(reqTag)
             unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc', reqOwner)
             unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
             reqType = adjustBaseTypes(unwrappedTypeKeyword, True)
@@ -267,9 +263,10 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                         tmp+="L"
                         retTypeSpec = 'Long'
             tmp+="))"
-            typeKeyword = progSpec.fieldTypeKeyword(retTypeSpec)
+            reqType = progSpec.getNewContainerFirstElementTypeTempFunc(returnType)
+            typeKeyword = progSpec.fieldTypeKeyword(reqType)
             typeKeyword = adjustBaseTypes(typeKeyword, True)
-            S+='new '+'ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
+            S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
         else:
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
             elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
@@ -537,7 +534,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
         print("rhsType", rhsType)
     elif containerType == 'ArrayList':
         S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
-    elif containerType == 'TreeMap':
+    elif containerType == 'TreeMap' or containerType == 'Java_Map':
         S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     else:
         print("ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType)
@@ -609,11 +606,11 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    containerSpec = progSpec.getContainerSpec(lhsTypeSpec)
+    containerTypeSpec = progSpec.getContainerSpec(lhsTypeSpec)
     if progSpec.isOldContainerTempFunc(lhsTypeSpec): print("Deprecated container type:", lhsTypeSpec); exit(2);
     isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)
     fieldType = adjustBaseTypes(fieldTypeSpec, isAContainer)
-    if isinstance(containerSpec, str) and containerSpec == None:
+    if isinstance(containerTypeSpec, str) and containerTypeSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, xlator)
             RHS = S2
@@ -621,7 +618,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
             #TODO: make test case
         else: assignValue=''
     elif(fieldDef['value']):
-        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, xlator)
+        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, xlator)
         S2=checkForTypeCastNeed(fieldTypeSpec, rhsTypeSpec, S2)
         RHS = S2
         if varTypeIsValueType(fieldType):
@@ -700,7 +697,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
     actionText       = ""
     loopCounterName  = ""
     containedOwner   = progSpec.getOwnerFromTypeSpec(containerType)
-    containedType    = progSpec.getContainedFieldType(containerType)
+    containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if datastructID=='TreeMap':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
@@ -749,7 +746,7 @@ def varTypeIsValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(name, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, isTemplateStruct, xlator):
     fieldValueText=""
     if fieldOwner=='we':
         convertedType = convertedType.replace('static ', '', 1)
@@ -759,9 +756,9 @@ def codeVarFieldRHS_Str(name, convertedType, fieldType, fieldOwner, paramList, o
             #TODO: make test case
             if paramList[-1] == "^&useCtor//8":
                 del paramList[-1]
-            [CPL, paramTypeList] = codeParameterList(name, paramList, None, objsRefed, xlator)
+            [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
             fieldValueText=" = new " + convertedType + CPL
-        elif isAllocated:
+        elif not isTemplateStruct:
             fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
@@ -800,7 +797,8 @@ def codeConstructorInit(fieldName, count, defaultVal, xlator):
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
     return argType + " arg_"+ argFieldName
 
-def codeCopyConstructor(fieldName, convertedType, xlator):
+def codeCopyConstructor(fieldName, convertedType, isTemplateVar, xlator):
+    if isTemplateVar: return ""
     return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
 
 def codeConstructorCall(className):
@@ -818,7 +816,7 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     if(className=='GLOBAL'):
         if fieldName=='main':
             structCode += indent + "public static void " + fieldName +" (String[] args)";
-            #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'arraySpec':None,'argList':None}])
+            #localArgsAllocated.append(['args', {'owner':'me', 'fieldType':'String', 'argList':None}])
         else:
             structCode += indent + "public " + typeDefName + ' ' + fieldName +"("+argListText+")"
     else:

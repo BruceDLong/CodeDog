@@ -266,14 +266,15 @@ def appendToFuncsCalled(funcName,funcParams):
         funcsCalled[funcName]= []
     funcsCalled[funcName].append([funcParams, MarkItems])
 
-
-def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, containerSpec, thisName, thisArgList, paramList, thisValue, isAllocated):
+def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, thisArgList, paramList, thisValue, isAllocated, hasFuncBody):
     codeConverter=None
-    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'containerSpec':containerSpec, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
+    packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'reqTagList':thisReqTagList, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
     if( thisValue!=None and (not isinstance(thisValue, str)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
         # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
         codeConverter = thisValue[1][1:]
         packedField['typeSpec']['codeConverter']=codeConverter
+    if hasFuncBody:
+        packedField['hasFuncBody']=True
     fieldID = fieldIdentifierString(className, packedField)
     packedField['fieldID']=fieldID
     return packedField
@@ -647,13 +648,6 @@ def doesClassContainFunc(classes, structName, funcName):
         if fieldName == funcName: return field
     return False
 
-def getReqTags(fieldType):
-    if('optionalTag' in fieldType[1]):
-        reqTags = fieldType[1][3]
-        return(reqTags)
-    else:
-        return None
-
 templateSpecKeyWords = {'verySlow':0, 'slow':1, 'normal':2, 'fast':3, 'veryFast':4, 'polynomial':0, 'exponential':0, 'nLog_n':1, 'linear':2, 'logarithmic':3, 'constant':4}
 def scoreImplementation(optionSpecs, reqTags):
     returnScore = 0
@@ -681,26 +675,40 @@ def getImplementationOptionsFor(fieldType):
     if fieldType in classImplementationOptions:
         return classImplementationOptions[fieldType]
     return None
-###############  Various type-handling functions
+###############  Various Dynamic Type-handling functions
+def getTypeArgList(className):
+    if(className in templatesDefined):
+        return(templatesDefined[className])
+    else:
+        return(None)
+
+def getReqTagList(typeSpec):
+    if('reqTagList' in typeSpec):
+        return(typeSpec['reqTagList'])
+    if('fieldType' in typeSpec and 'reqTagList' in typeSpec['fieldType']):
+        return(typeSpec['fieldType']['reqTagList'])
+    return(None)
+
+def getReqTags(fieldType):
+    if('optionalTag' in fieldType[1]):
+        reqTags = fieldType[1][3]
+        return(reqTags)
+    else:
+        return None
+
 def isNewContainerTempFunc(typeSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
-    if not 'fieldType' in typeSpec: return(None)
+    if not 'fieldType' in typeSpec: return(False)
     fieldType = typeSpec['fieldType']
-    if isinstance(fieldType, str): return(None)
+    if isinstance(fieldType, str): return(False)
     fieldTypeKeyword = fieldType[0]
-    if fieldTypeKeyword=='DblLinkedList': return(['infon'])
-    else:
-        reqTagList = getReqTagList(typeSpec)
-        if reqTagList == None: return(None)
-        if fieldTypeKeyword=='CPP_Deque':
-            return(reqTagList[1][0][1])
-        if fieldTypeKeyword=='map':
-            return(reqTagList)
-        if fieldTypeKeyword=='Java_ArrayList':
-            return(reqTagList[1][0][1])
-        #print("fieldTypeKeyword: ",fieldTypeKeyword," ",reqTagList[1][0])
-    return(None)
+    if fieldTypeKeyword=='DblLinkedList': return(True)
+    reqTagList = getReqTagList(typeSpec)
+    if reqTagList and(fieldTypeKeyword=='CPP_Deque' or fieldTypeKeyword=='Java_ArrayList' or fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map'):
+        return(True)
+    elif reqTagList == None: return(False)
+    return(False)
 
 def isOldContainerTempFunc(typeSpec):
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
@@ -710,7 +718,10 @@ def isAContainer(typeSpec):
     return(isOldContainerTempFunc(typeSpec))
 
 def getContainerSpec(typeSpec):
-    if isNewContainerTempFunc(typeSpec): return {'owner': 'me', 'datastructID':'list'}
+    if isNewContainerTempFunc(typeSpec):
+        fieldType=getFieldTypeNew(typeSpec)
+        containerType=fieldType[0]
+        return {'owner': typeSpec['owner'], 'datastructID':containerType}
     return(typeSpec['arraySpec'])
 
 def getTemplateArg(typeSpec, argIdx):
@@ -725,8 +736,25 @@ def getDatastructID(typeSpec):
     else:   #is a parseResult
         return(typeSpec['arraySpec']['datastructID'][0])
 
+def getNewContainerFirstElementTypeTempFunc(typeSpec):
+    # use only while transitioning to dynamic lists<> then delete
+    # TODO: delete this function when dynamic types working
+    if not 'fieldType' in typeSpec: return(None)
+    fieldType = typeSpec['fieldType']
+    if isinstance(fieldType, str): return(None)
+    fieldTypeKeyword = fieldType[0]
+    if fieldTypeKeyword=='DblLinkedList': return(['infon'])
+    reqTagList = getReqTagList(typeSpec)
+    if reqTagList:
+        if fieldTypeKeyword=='CPP_Deque' or fieldTypeKeyword=='Java_ArrayList':
+            return(reqTagList[0]['tArgType'])
+        if fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map':
+            return(reqTagList[0]['tArgType'])
+    elif reqTagList == None: return(None)
+    return(None)
+
 def getFieldType(typeSpec):
-    retVal = isNewContainerTempFunc(typeSpec)
+    retVal = getNewContainerFirstElementTypeTempFunc(typeSpec)
     if retVal != None:
         return retVal
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
@@ -739,10 +767,11 @@ def getFieldTypeKeyWord(typeSpec):
     print("TODO: reduce field type to key word in progSpec.getFieldTypeKeyWord():",fieldType)
     exit(2)
 
-def getContainedFieldType(typeSpec):
-    retVal = isNewContainerTempFunc(typeSpec)
-    if retVal == None: print("WARNING: no contained type found for ", typeSpec)
-    return retVal
+def getContainerFirstElementType(typeSpec):
+    reqTagList=getReqTagList(typeSpec)
+    if reqTagList:
+        return(reqTagList[0]['tArgType'])
+    return None
 
 def getFieldTypeNew(typeSpec):
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
@@ -754,14 +783,9 @@ def getContainerFirstElementOwner(typeSpec):
         cdErr(currentCheckObjectVars)
     if isAContainer(typeSpec):
         if isNewContainerTempFunc(typeSpec):
-            if(typeSpec['fieldType'][0] == 'DblLinkedList'):
-                return('our')
-            else:
-                innerTypeSpec = typeSpec['fieldType'][1][1][0]
-                if 'owner' in innerTypeSpec: return (innerTypeSpec['owner'])
-                else: return ('me')
-        else:
-            return(typeSpec['owner'])
+            if(typeSpec['fieldType'][0] == 'DblLinkedList'): return('our')
+            else: return (getOwnerFromTemplateArg(typeSpec['reqTagList'][0]))
+        else: return(typeSpec['owner'])
     else:
         # TODO: This should throw error, no lists should reach this point.
         return(typeSpec['owner'])
@@ -786,16 +810,20 @@ def getOwnerFromTypeSpec(typeSpec):
         cdErr(currentCheckObjectVars)
     return typeSpec['owner']
 
-def getTypeArgList(className):
-    if(className in templatesDefined):
-        return(templatesDefined[className])
-    else:
-        return(None)
-def getReqTagList(typeSpec):
-    if('fieldType' in typeSpec and 'reqTagList' in typeSpec['fieldType']):
-        return(typeSpec['fieldType']['reqTagList'])
-    else:
-        return(None)
+#### Packed Template Arg Handling Functions ####
+def getOwnerFromTemplateArg(tArg):
+    global currentCheckObjectVars
+    if (tArg == 0):
+        cdErr(currentCheckObjectVars)
+    return tArg['tArgOwner']
+
+def getTypeFromTemplateArg(tArg):
+    global currentCheckObjectVars
+    if (tArg == 0):
+        cdErr(currentCheckObjectVars)
+    return tArg['tArgType']
+
+################################################
 
 def setCurrentCheckObjectVars(message):
     global currentCheckObjectVars
@@ -835,7 +863,7 @@ def isWrappedType(objMap, structname):
             retOwner = structToSearch['tags']['ownerMe']
         else: retOwner = 'me'
         wrappedStructName = structToSearch['tags']['wraps']
-        typeSpecRetVal = {'owner':retOwner, 'fieldType':[wrappedStructName], 'arraySpec':None, 'containerSpec':None, 'argList':None}
+        typeSpecRetVal = {'owner':retOwner, 'fieldType':[wrappedStructName], 'arraySpec':None, 'argList':None}
         if ownerMe: typeSpecRetVal['ownerMe'] = retOwner
         #print(typeSpecRetVal)
         return(typeSpecRetVal)
@@ -875,7 +903,6 @@ def createTypedefName(ItmType):
         elif(typeHead=='our'): suffix='SPtr'
         elif(typeHead=='my'): suffix='UPtr'
         return baseType+suffix
-
 
 def findSpecOf(objMap, structName, stateTypeWanted):
     if stateTypeWanted=='model': structName='%'+structName
@@ -920,14 +947,11 @@ def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
         if(funcFieldKeyWord == matchName):
             typeArgList = getTypeArgList(className)
             reqTagList  = getReqTagList(typeSpecIn)
-            reqTagList  = reqTagList[1]
             count = 0
             for item in typeArgList:
                 if(item == matchName):
-                    innerTypeSpec        = reqTagList[count]
-                    if 'owner' in innerTypeSpec: innerTypeOwner = innerTypeSpec['owner']
-                    else: innerTypeOwner = 'me'
-                    innerTypeKeyWord = innerTypeSpec["varType"][0][0]
+                    innerTypeOwner   = getOwnerFromTemplateArg(reqTagList[count])
+                    innerTypeKeyWord = getTypeFromTemplateArg(reqTagList[count])
                     return([innerTypeOwner, innerTypeKeyWord])
                 count += 1
     return([None, None])
@@ -1043,7 +1067,6 @@ def typeSpecsAreCompatible(typeSpec1, typeSpec2):
 def flattenObjectName(objName):
     return objName.replace('::', '_')
 
-
 def stringFromFile(filename):
 #    try:
         f=open(filename)
@@ -1084,7 +1107,6 @@ def dePythonStr(pyItem):
 def printAtLvl(lvl, mesg, indent):
     for i in range(0, lvl): sys.stdout.write(indent)
     print(mesg)
-
 
 def resizeLogArray(lvl):
     global lastLogMesgs

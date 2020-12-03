@@ -66,9 +66,9 @@ owners = Forward()
 varSpec = Group(Optional(owners)("owner") + varType("varType") )("varSpec")
 varSpecList = Group(Optional(delimitedList(varSpec, ',')))("varSpecList")
 typeArgList = Group(Literal("<") + CIDList + Literal(">"))("typeArgList")
-reqTagList = Group(Literal("<") + varSpecList + Optional(Literal(":")("optionalTag") + tagDefList) + Literal(">"))("reqTagList")
-classSpec <<= Group(objectName + Optional(reqTagList))("objectName")
-classDef = Group(objectName + Optional(typeArgList))("objectName")
+reqTagList = Group(Suppress(Literal("<")) + varSpecList + Optional(Literal(":")("optionalTag") + tagDefList) + Suppress(Literal(">")))("reqTagList")
+classSpec <<= Group(objectName + Optional(reqTagList('reqTagList')))("classSpec")
+classDef = Group(objectName + Optional(typeArgList))("classDef")
 arrayRef = Group('[' + expr('startOffset') + Optional(( ':' + expr('endOffset')) | ('..' + expr('itemLength'))) + ']')
 firstRefSegment = NotAny(owners) + Group((CID | arrayRef) + Optional(parameters))
 secondRefSegment = Group((Suppress('.') + CID | arrayRef) + Optional(parameters))
@@ -234,6 +234,7 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.owner): owner=fieldResult.owner;
     else: owner='me';
     isAllocated = False
+    hasFuncBody = False
 
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType[0];
@@ -253,10 +254,7 @@ def packFieldDef(fieldResult, className, indent):
         #print("         ****Old ArraySpec found: ")
     else: arraySpec=None
 
-    if(fieldResult.containerSpec):
-        containerSpec=fieldResult.containerSpec
-        isAContainer = True
-    else: containerSpec=None
+    reqTagList=None
 
     varOwner = owner
     if isAContainer:
@@ -284,10 +282,11 @@ def packFieldDef(fieldResult, className, indent):
         elif(nameAndVal.funcBody):
             [funcBodyOut, funcTextVerbatim] = extractFuncBody(fieldName, nameAndVal.funcBody)
             givenValue=[funcBodyOut, funcTextVerbatim]
+            hasFuncBody = True
             #print("\n\n[funcBodyOut, funcTextVerbatim] ", givenValue)
         elif(nameAndVal.rValueVerbatim):
             givenValue = ['', nameAndVal.rValueVerbatim[1]]
-        else: givenValue=None;
+        else: givenValue = None;
 
         if(nameAndVal.argListTag):
             for argSpec in nameAndVal.argList:
@@ -309,19 +308,19 @@ def packFieldDef(fieldResult, className, indent):
 
         if(nameAndVal.optionalTag): optionalTags=extractTagDefs(nameAndVal.tagDefList)
     else:
-        givenValue=None;
+        givenValue = None;
         fieldName=None;
 
 
     if(fieldResult.flagDef):
         cdlog(3,"FLAG: {}".format(fieldResult))
         if(arraySpec): cdErr("Lists of flags are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, containerSpec, fieldName, None, paramList, givenValue, isAllocated)
+        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, reqTagList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.modeDef):
         cdlog(3,"MODE: {}".format(fieldResult))
         modeList=fieldResult.modeList
         if(arraySpec): cdErr("Lists of modes are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, containerSpec, fieldName, None, paramList, givenValue, isAllocated)
+        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, reqTagList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
@@ -329,19 +328,29 @@ def packFieldDef(fieldResult, className, indent):
             arraySpec={'datastructID': 'opt'};
             if(len(fieldResult)>3 and fieldResult[3]!=''):
                 fieldName=fieldResult[3]
-        givenValue=fieldResult.constStr[1:-1]
-        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, containerSpec, fieldName, None, paramList, givenValue, isAllocated)
+        givenValue = fieldResult.constStr[1:-1]
+        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, reqTagList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.constNum):
         cdlog(3,"CONST Num: {}".format(fieldResult))
         if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
-        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, containerSpec, fieldName, None, paramList, givenValue, isAllocated)
+        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, reqTagList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.nameVal):
         cdlog(3,"NameAndVal: {}".format(fieldResult))
-        fieldDef=progSpec.packField(className, None, None, None, arraySpec, containerSpec, fieldName, argList, paramList, givenValue, isAllocated)
+        fieldDef=progSpec.packField(className, None, None, None, arraySpec, reqTagList, fieldName, argList, paramList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.fullFieldDef):
         fieldTypeStr=str(fieldType)[:50]
-        cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, containerSpec, fieldName])))
-        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, containerSpec, fieldName, argList, paramList, givenValue, isAllocated)
+        cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, reqTagList, fieldName])))
+        if 'reqTagList' in fieldType:
+            reqTagList = fieldType['reqTagList']
+            packedTArgList = []
+            for reqTag in reqTagList[0]:
+                reqTagVarType = reqTag['varType'][0][0]
+                reqTagOwner = 'me'
+                if 'owner' in reqTag: reqTagOwner = reqTag['owner']
+                packedReqTag={'tArgOwner': reqTagOwner, 'tArgType': reqTagVarType}
+                packedTArgList.append(packedReqTag)
+        else: packedTArgList = None
+        fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, packedTArgList, fieldName, argList, paramList, givenValue, isAllocated, hasFuncBody)
     else:
         cdErr("Error in packing FieldDefs: {}".format(fieldResult))
         exit(1)
@@ -511,7 +520,7 @@ def extractBuildSpecs(buildSpecResults):    # buildSpecResults is sometimes a pa
     return resultOfExtractBuildSpecs
 
 def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description):
-    className=spec.objectName[0]
+    className=spec.classDef[0]
     configType="unknown"
     if(spec.sequenceEl): configType="SEQ"
     elif(spec.alternateEl):configType="ALT"
@@ -530,7 +539,7 @@ def extractObjectSpecs(ProgSpec, classNames, spec, stateType,description):
     return taggedName
 
 def extractPatternSpecs(ProgSpec, classNames, spec):
-    patternName=spec.objectName[0]
+    patternName=spec.classSpec[0]
     patternArgWords=spec.CIDList
     progSpec.addPattern(ProgSpec, classNames, patternName, patternArgWords)
     return

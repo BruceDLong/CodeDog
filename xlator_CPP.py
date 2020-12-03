@@ -8,20 +8,20 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAlloc
 def getContainerType(typeSpec, actionOrField):
     idxType=''
     if progSpec.isAContainer(typeSpec):
-        containerSpec = progSpec.getContainerSpec(typeSpec)
-        if 'owner' in containerSpec: owner=progSpec.getOwnerFromTypeSpec(containerSpec)
+        containerTypeSpec = progSpec.getContainerSpec(typeSpec)
+        if 'owner' in containerTypeSpec: owner=progSpec.getOwnerFromTypeSpec(containerTypeSpec)
         else: owner='me'
-        if 'indexType' in containerSpec:
-            if 'IDXowner' in containerSpec['indexType']:
-                idxOwner=containerSpec['indexType']['IDXowner'][0]
-                idxType=containerSpec['indexType']['idxBaseType'][0][0]
+        if 'indexType' in containerTypeSpec:
+            if 'IDXowner' in containerTypeSpec['indexType']:
+                idxOwner=containerTypeSpec['indexType']['IDXowner'][0]
+                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
                 idxType=applyOwner(idxOwner, idxType, '')
             else:
-                idxType=containerSpec['indexType']['idxBaseType'][0][0]
-        if(isinstance(containerSpec['datastructID'], str)):
-            datastructID = containerSpec['datastructID']
+                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
+        if(isinstance(containerTypeSpec['datastructID'], str)):
+            datastructID = containerTypeSpec['datastructID']
         else:   # it's a parseResult
-            datastructID = containerSpec['datastructID'][0]
+            datastructID = containerTypeSpec['datastructID'][0]
         if idxType[0:4]=='uint': idxType+='_t'
         if(datastructID=='list'): datastructID = "deque"
         if(datastructID=='iterableList'): datastructID = "list"
@@ -87,13 +87,9 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if(reqTagList != None):
         reqTagString = "<"
         count = 0
-        for reqTag in reqTagList[1]:
-            if('owner' in reqTag):
-                reqOwner = progSpec.getOwnerFromTypeSpec(reqTag)
-            else: reqOwner = 'me'
-            varTypeKeyword = reqTag['varType'][0]
-            if not isinstance(varTypeKeyword, str):
-                varTypeKeyword= varTypeKeyword[0]
+        for reqTag in reqTagList:
+            reqOwner = progSpec.getOwnerFromTemplateArg(reqTag)
+            varTypeKeyword = progSpec.getTypeFromTemplateArg(reqTag)
             unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc', reqOwner)
             unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
             unwrappedTypeKeyword = adjustBaseTypes(unwrappedTypeKeyword)
@@ -108,11 +104,11 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
 
     if progSpec.isAContainer(typeSpec):
-        containerSpec = progSpec.getContainerSpec(typeSpec)
-        if(containerSpec): # Make list, map, etc
+        containerTypeSpec = progSpec.getContainerSpec(typeSpec)
+        if(containerTypeSpec): # Make list, map, etc
             [containerType, idxType, idxOwner]=getContainerType(typeSpec, '')
-            if 'owner' in containerSpec:
-                containerOwner = progSpec.getOwnerFromTypeSpec(containerSpec)
+            if 'owner' in containerTypeSpec:
+                containerOwner = progSpec.getOwnerFromTypeSpec(containerTypeSpec)
             else: containerOwner='me'
             idxType  = adjustBaseTypes(idxType)
             if idxType=='timeValue': idxType = 'int64_t'
@@ -417,7 +413,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
         else:
             expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
             if expected_KeyType == "BigInt":
-                S += item0 + "_mpz"
+                S += item0
                 retTypeSpec='BigInt'
             elif expected_KeyType == "BigFloat":
                 S += item0 + "_mpf"
@@ -968,7 +964,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         actionText += (indent + "for( auto " + repItrName+' ='+ repContainer+RDeclP+'begin()' + "; " + repItrName + " !=" + repContainer+RDeclP+'end()' +"; "+ repItrName + " = " + repItrName+"->next ){\n"
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+repItrName+"->item;\n")
         return [actionText, loopCounterName]
-    if datastructID=='multimap' or datastructID=='map':
+    if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map':
         keyVarSpec = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
@@ -985,7 +981,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
         else:
             actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n")
         actionText += indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n"
-    elif datastructID=='deque' and willBeModifiedDuringTraversal:
+    elif (datastructID=='deque' or datastructID=='CPP_Deque' ) and willBeModifiedDuringTraversal:
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
         localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
@@ -997,7 +993,7 @@ def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repCont
             actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+RDeclP+'size();' +" ++"+lvName+" ){\n")
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n"
     else:
-        cdErr("DSID:" + datastructID + ', ' +containerType)
+        cdErr("iterateContainerStr() datastructID = " + datastructID)
     return [actionText, loopCounterName]
 
 def codeIncrement(varName):
@@ -1084,8 +1080,8 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     if(className=='GLOBAL'):
         if fieldName=='main':
             funcDefCode += 'int main(int argc, char *argv[])'
-            localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None, 'containerSpec':None,'argList':None}])
-            localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None, 'containerSpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
+            localArgsAllocated.append(['argc', {'owner':'me', 'fieldType':'int', 'arraySpec':None, 'argList':None}])
+            localArgsAllocated.append(['argv', {'owner':'their', 'fieldType':'char', 'arraySpec':None,'argList':None}])  # TODO: Wrong. argv should be an array.
         else:
             globalFuncs += typeDefName +' ' + fieldName +"("+argListText+")"
     else:

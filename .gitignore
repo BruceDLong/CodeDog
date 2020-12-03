@@ -66,6 +66,7 @@ target/
 ErrFile.dog
 
 # Build Directories
+Examples/SwingBuild/
 Examples/iPhoneBuild/
 Examples/LinuxBuild/
 Examples/AndroidBuild/

@@ -1,7 +1,5 @@
-# !/usr/bin/env python3
-
+#!/usr/bin/env python3
 # CodeDog Xlator tester
-
 import os
 from progSpec import cdlog
 import errno
@@ -12,7 +10,6 @@ buildSpec = ""
 runSpec = ""
 workingDirectory = ""
 runDirectory = ""
-
 
 testDefinitions = {
      'class/simple':        ['struct emptyClass{ }', 'PGB:'],
@@ -41,8 +38,8 @@ struct testClass{
 }''', 'PGBR:true',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
 #####################################################################################################
 #############################################################
-     #'class/strListDecl':  ['struct testClass{me string[list]: myStringList}', 'PGB:'],
-     #'class/mapDecl':      ['struct testClass{me int[map string]: testMap}', 'PGB:'],
+     #'class/strListDecl':  ['struct testClass{me List<me string>: myStringList}', 'PGB:'],
+     #'class/mapDecl':      ['struct testClass{me Map<me int, me string>: testMap}', 'PGB:'],
      #'class/multimapDecl':[],
      #'class/treeDecl':    [],
      #'class/graphDecl':   [],
@@ -82,16 +79,22 @@ struct derivedClass: inherits=pureVirtualClass{
 ''', 'PGBR:Pass func arg.  Function was called.Default func param1.  Default func param2. Pass func arg.  Default func param2. ',['class/funcDefn','class/funcDecl','class/funcCallArgs', 'class/funcDefaultParams', 'class/funcPassAndDefault']],
 #####################################################################################################
      'actions/varDecl':      ['struct testClass{me void: runTest()<-{me int: actionVarDecl}}', 'PGB:'],
-     'actions/mapDecl':      ['struct testClass{me void: runTest()<-{me string[map string]:testMap}}', 'PGB:'],
-     'actions/decls':        ['struct testClass{me void: runTest()<-{me int: actionVarDecl\nme string[map string]:testMap}}', 'PGB:',['actions/varDecl','actions/mapDecl']],
+     'actions/mapDecl':      ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap}}', 'PGB:'],
+     'actions/decls':        ['''
+struct testClass{
+    me void: runTest()<-{
+        me int: actionVarDecl
+        me Map<me string, me string>:testMap
+    }
+}''', 'PGB:',['actions/varDecl','actions/mapDecl']],
 #####################################################################################################
      'actions/varAsgn':      ['struct testClass{me void: runTest()<-{me int: actionVarAsgn\nactionVarAsgn<-4567\nprint(actionVarAsgn)}}', 'PGBR:4567'],
      'actions/flagAsgn':     ['struct testClass{flag: isStart\nme void: runTest()<-{print(isStart)\nisStart<-true\nprint("-")\nprint(isStart)}}', 'PGBR:0-1'],
      'actions/modeAsgn':     ['struct testClass{me mode[small, medium, large]: myMode\nme void: runTest()<-{print(myModeStrings[myMode]+ "-")\nmyMode<- large\nprint(myModeStrings[myMode])}}', 'PGBR:small-large'],
      'actions/stringAsgn':   ['struct testClass{me void: runTest()<-{me string: actionStrAsgn\nactionStrAsgn<-"Hello"\nprint(actionStrAsgn)}}', 'PGBR:Hello'],
-     'actions/mapAsgn':      ['struct testClass{me void: runTest()<-{me string[map string]:testMap\ntestMap["key0"]<-"value0"\nprint(testMap["key0"])}}', 'PGBR:value0'],
+     'actions/mapAsgn':      ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap\ntestMap["key0"]<-"value0"\nprint(testMap["key0"])}}', 'PGBR:value0'],
      #'actions/dictAsgn':
-     #'actions/mapPush':     ['struct testClass{me void: runTest()<-{me string[map string]:testMap<-{"key":"value"}}}', 'PGB:'],
+     #'actions/mapPush':     ['struct testClass{me void: runTest()<-{me List<me string, me string>:testMap<-{"key":"value"}}}', 'PGB:'],
      'actions/assigns':      ['''
 struct testClass{
     flag: isStart
@@ -110,7 +113,7 @@ struct testClass{
         me string: actionStrAsgn
         actionStrAsgn<-"Hello"
         print(actionStrAsgn+"-")
-        me string[map string]:testMap
+        me Map<me string, me string>:testMap
         testMap["key0"]<-"value0"
         print(testMap["key0"])
     }
@@ -139,33 +142,31 @@ struct testClass{
 # TODO: make tests for 'actions/repetitions':  'actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep'
      'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in RANGE(2..6){print(spec," ")}}}', 'PGBR:2 3 4 5 '],
      'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward RANGE(2..6){print(RB," ")}}}', 'PGBR:5 4 3 2 '],
-     'actions/listRep':      ['struct testClass{me void: runTest()<-{me int[list]:testList<-[2,13,-22,188]\nwithEach T in testList {print(T," ")}}}', 'PGBR:2 13 -22 188 '],
-     'actions/backListRep':  ['struct testClass{me void: runTest()<-{me int[list]:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
-     'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me int[list]:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList {print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
-     'actions/mapRep':       ['struct testClass{me void: runTest()<-{me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
-     'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
-     'actions/deleteMapRep': ['struct testClass{me void: runTest()<-{me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"\nwithEach MD in testMapDel {if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}}}', 'PGBR:D-does E-every F-fine G-good '],
-     'actions/deleteListRep':['struct testClass{me void: runTest()<-{me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
+     'actions/listRep':      ['struct testClass{me void: runTest()<-{me List<me int>:testList<-[2,13,-22,188]\nwithEach T in testList {print(T," ")}}}', 'PGBR:2 13 -22 188 '],
+     'actions/backListRep':  ['struct testClass{me void: runTest()<-{me List<me int>:testListBackward<-[2,13,-22,188]\nwithEach TB in Backward testListBackward {print(TB," ")}}}', 'PGBR:188 -22 13 2 '],
+     'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me List<me int>:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList {print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
+     'actions/mapRep':       ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
+     'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
+     'actions/deleteListRep':['struct testClass{me void: runTest()<-{me List<me int>:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
      'actions/repetitions':  ['''
 struct testClass{
     me void: runTest()<-{
         withEach spec in RANGE(2..6) {print(spec," ")}
         withEach RB in Backward RANGE(2..6) {print(RB," ")}
-        me int[list]:testList<-[2,13,-22,188]
+        me List<me int>:testList<-[2,13,-22,188]
         withEach T in testList {print(T," ")}
-        me int[list]:testListBackward<-[2,13,-22,188]
+        me List<me int>:testListBackward<-[2,13,-22,188]
         withEach TB in Backward testListBackward {print(TB," ")}
-        me int[list]:testKeyList<-[2,3,5,8,13,21]
+        me List<me int>:testKeyList<-[2,3,5,8,13,21]
         withEach TK in testKeyList {print(TK_key,"-", TK, " ")}
-        me string[map string]:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
+        me Map<me string, me string>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
         withEach M in testMap {print(M," ")}
-        me string[map string]:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
+        me Map<me string, me string>:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
         withEach MK in testMapKey {print(MK_key,"-",MK," ")}
-        me string[map string]:testMapDel\ntestMapDel["E"]<-"every"\ntestMapDel["G"]<-"good"\ntestMapDel["B"]<-"boy"\ntestMapDel["D"]<-"does"\ntestMapDel["F"]<-"fine"
-        withEach MD in testMapDel {if(MD=="boy"){testMapDel.erase(MD_key)}else{print(MD_key,"-",MD," ")}}
-        me int[list]:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}
+        me List<me int>:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}
     }
-}''', 'PGBR:BB',['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep']],
+}''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good B-boy D-does E-every F-fine G-good 2 3 5 13 21 ',
+    ['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteListRep']],
 ###################################################################################################
      'actions/plusEquals':    ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<+-1\nprint(myInt)}}', 'PGBR:3'],
      'actions/minusEquals':   ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<--1\nprint(myInt)}}', 'PGBR:1'],
@@ -367,12 +368,8 @@ struct testClass{
         me int: V
         their int:: pV
         their int: a  //make a function called null test
-        if(a == NULL){
-            print("NULL")
-        }
-        else{
-            print(a)
-        }
+        if(a == NULL){print("NULL")}
+        else{print(a)}
         their int: b{4}  //build fail
         print(b)
         their int: c <- 4 //should I be using Try:, Except:   here?
@@ -403,7 +400,6 @@ struct testClass{
     me void: runTest()<-{
         me int: V
         their int:: pV
-
         their int:: A
         print(A)
         their int:: B{4} //causing build fail
@@ -436,8 +432,6 @@ struct testClass{
     me void: runTest()<-{
         me int: V
         their int:: pV
-
-
         our int: a  //make a function called null test
         if(a == NULL){
             print("NULL")
@@ -477,7 +471,6 @@ struct testClass{
     me void: runTest()<-{
         me int: V
         their int:: pV
-
         our int:: A
         print(A)
         our int:: B{4} //causing build fail
@@ -557,6 +550,7 @@ CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long"
 Description = "DataDog gives you the numbers of your life."
 ProgramOrLibrary = "program"
+featuresNeeded = [List]
 LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
 runCode=<runCodeGoesHere>"""
 
@@ -682,7 +676,6 @@ def runDeps(testKey):
         if(testResult != "Success"):
             writePrepend("xlatorTests/failedTests.txt",dep)
     return depsReportText
-
 
 def runListedTests(testsToRun):
     global buildSpec

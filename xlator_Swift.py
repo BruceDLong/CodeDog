@@ -8,20 +8,20 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAlloc
 def getContainerType(typeSpec, actionOrField):
     idxType=''
     if progSpec.isAContainer(typeSpec):
-        containerSpec = progSpec.getContainerSpec(typeSpec)
-        if 'owner' in containerSpec: owner=progSpec.getOwnerFromTypeSpec(containerSpec)
+        containerTypeSpec = progSpec.getContainerSpec(typeSpec)
+        if 'owner' in containerTypeSpec: owner=progSpec.getOwnerFromTypeSpec(containerTypeSpec)
         else: owner='me'
-        if 'indexType' in containerSpec:
-            if 'IDXowner' in containerSpec['indexType']:
-                idxOwner=containerSpec['indexType']['IDXowner'][0]
-                idxType=containerSpec['indexType']['idxBaseType'][0][0]
+        if 'indexType' in containerTypeSpec:
+            if 'IDXowner' in containerTypeSpec['indexType']:
+                idxOwner=containerTypeSpec['indexType']['IDXowner'][0]
+                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
                 idxType=applyOwner(idxOwner, idxType, '')
             else:
-                idxType=containerSpec['indexType']['idxBaseType'][0][0]
-        if( isinstance(containerSpec['datastructID'], str) ):
-            datastructID = containerSpec['datastructID']
+                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
+        if( isinstance(containerTypeSpec['datastructID'], str) ):
+            datastructID = containerTypeSpec['datastructID']
         else:   # it's a parseResult
-            datastructID = containerSpec['datastructID'][0]
+            datastructID = containerTypeSpec['datastructID'][0]
     else:
         owner = progSpec.getOwnerFromTypeSpec(typeSpec)
         datastructID = 'None'

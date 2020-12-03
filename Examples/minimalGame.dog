@@ -134,7 +134,7 @@ struct Bullet{
         }
         return(deleteIt)
     }
-    me bool: draw(their GUI_ctxt: cr) <- {
+    void: draw(their GUI_ctxt: cr) <- {
         if(owner == ourBullet){
             cr.setColor(Styler.White)
             cr.setLineWidth(8)

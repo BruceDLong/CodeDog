@@ -216,14 +216,14 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
 
     if progSpec.isAContainer(typeSpec):
         global rules
-        containerSpec = progSpec.getContainerSpec(typeSpec)
+        containerTypeSpec = progSpec.getContainerSpec(typeSpec)
         idxType=''
-        if 'indexType' in containerSpec:
-            idxType=containerSpec['indexType']
-        if(isinstance(containerSpec['datastructID'], str)):
-            datastructID = containerSpec['datastructID']
+        if 'indexType' in containerTypeSpec:
+            idxType=containerTypeSpec['indexType']
+        if(isinstance(containerTypeSpec['datastructID'], str)):
+            datastructID = containerTypeSpec['datastructID']
         else:   # it's a parseResult
-            datastructID = containerSpec['datastructID'][0]
+            datastructID = containerTypeSpec['datastructID'][0]
         if idxType[0:4]=='uint': pass
         if(datastructID=='list'):
             nameOut=appendRule(nameOut+'_REP', "nonterm", "parseREP", [nameOut, 0, 0])
@@ -264,14 +264,14 @@ def writeNonTermParseRule(classes, tags, modelName, fields, SeqOrAlt, nameSuffix
                 if progSpec.isAContainer(typeSpec):
                     # anything with [] is a container: lists and optionals
                     global rules
-                    containerSpec = progSpec.getContainerSpec(typeSpec)
+                    containerTypeSpec = progSpec.getContainerSpec(typeSpec)
                     idxType=''
-                    if 'indexType' in containerSpec:
-                        idxType=containerSpec['indexType']
-                    if(isinstance(containerSpec['datastructID'], str)):
-                        datastructID = containerSpec['datastructID']
+                    if 'indexType' in containerTypeSpec:
+                        idxType=containerTypeSpec['indexType']
+                    if(isinstance(containerTypeSpec['datastructID'], str)):
+                        datastructID = containerTypeSpec['datastructID']
                     else:   # it's a parseResult
-                        datastructID = containerSpec['datastructID'][0]
+                        datastructID = containerTypeSpec['datastructID'][0]
                     if idxType[0:4]=='uint': pass
                     if(datastructID=='list'):
                         ruleIdxStr=appendRule(ruleIdxStr+'_REP', "nonterm", "parseREP", [ruleIdxStr, 0, 0])
@@ -572,7 +572,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                     fieldName="TEMP"+str(globalTempVarIdx)
                     globalTempVarIdx += globalTempVarIdx
                 newFieldsName=fieldName   #'has_'+fieldName
-                fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, None, newFieldsName, None, None, None, False)
+                fieldDef=progSpec.packField(ToStructName, False, 'me', 'flag', None, None, newFieldsName, None, None, None, False, False)
                 progSpec.addField(classes[0], memVersionName, 'struct', fieldDef)
 
                 # Second, generate the code to set the flag
