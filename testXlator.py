@@ -25,16 +25,17 @@ testDefinitions = {
      'class/charDecl':      ['struct testClass{me char: myChar}', 'PGB:'],
      'class/baseDecls':     ['''
 struct testClass{
-    me int: myInt
-    me string: myString
+    me int: myInt               # TODO: test that assignment works on one numeric type
+    me string: myString         # TODO: test that assignment works
     me int32: myInt32
     me int64: myInt64
     me double: myDouble
     me uint32: myUint32
     me uint64: myUint64
-    me bool: myBool
-    const int: myConst <- 2
-    me char: myChar
+    me bool: myBool             # TODO: test that assignment works
+    const int: myConst <- 2     # TODO: test that assignment works
+    me char: myChar             # TODO: test that assignment works
+    me void: runTest()<-{}
 }''', 'PGBR:true',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
 #####################################################################################################
 #############################################################
