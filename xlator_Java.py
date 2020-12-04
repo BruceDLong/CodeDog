@@ -530,8 +530,6 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
     [containerType, idxType, owner]=getContainerType(AltIDXFormat[1], "")
     if LHSParentType == 'string' and LHS_FieldType == 'char':
         S=AltIDXFormat[0] + '= replaceCharAt(' +AltIDXFormat[0]+', '+ AltIDXFormat[2] + ', ' + RHS + ');\n'
-        print("AltIDXFormat", AltIDXFormat)
-        print("rhsType", rhsType)
     elif containerType == 'ArrayList':
         S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     elif containerType == 'TreeMap' or containerType == 'Java_Map':
@@ -666,7 +664,7 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType, ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, containerType, ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText       = ""
     loopCounterName  = ""
@@ -677,8 +675,8 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
     if datastructID=='TreeMap':
         valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(progSpec.getFieldType(containerType)), True)
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-        localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         keyFieldType = adjustBaseTypes(keyFieldType, True)
         repContainerTypeSpec = (repContainer)
         actionText += (indent + 'for(Map.Entry<'+keyFieldType+','+valueFieldType+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
@@ -693,45 +691,40 @@ def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, conta
         exit(2)
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
+def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerName,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
     actionText       = ""
-    loopCounterName  = ""
-    containedOwner   = progSpec.getOwnerFromTypeSpec(containerType)
+    loopCounterName  = repName+'_key'
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-    if datastructID=='TreeMap':
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
-        localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+    if datastructID=='TreeMap' or datastructID=='Java_Map':
+        keyVarSpec   = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-        [containedTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
-        containedTypeStr = adjustBaseTypes(containedTypeStr, True)
-        [indexTypeStr, innerType]=convertType(classes, keyVarSpec, 'var', actionOrField, xlator)
-        indexTypeStr = adjustBaseTypes(indexTypeStr, True)
-        containedTypeStr = adjustBaseTypes(containedTypeStr, True)
-        iteratorTypeStr="Map.Entry<"+indexTypeStr+', '+containedTypeStr+'>'
-        repContainer+='.entrySet()'
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for("+iteratorTypeStr+" " + repName+' :'+ repContainer+"){\n")
-        return [actionText, loopCounterName]
-    elif datastructID=='list':
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':containedOwner, 'fieldType':containedType}
-        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
+        reqTagList   = progSpec.getReqTagList(containerType)
+        if(reqTagList == None): print("reqTagList not found in iterateContainerStr"); exit(1)
+        reqTagString = ""
+        count = 0
+        for reqTag in reqTagList:
+            varTypeKeyword = progSpec.getTypeFromTemplateArg(reqTag)
+            unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
+            reqType = adjustBaseTypes(unwrappedTypeKeyword, True)
+            if(count>0):reqTagString += ", "
+            reqTagString += reqType
+            count += 1
+        iteratorTypeStr="Map.Entry<"+reqTagString+ ">"
+        actionText += indent + "for("+iteratorTypeStr+" " + repName+' :'+ containerName+".entrySet()){\n"
     else:
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
+        keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
         [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
-
-    localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-    loopVarName=repName+"Idx";
-    if(isBackward==False):
-        actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + repContainer+'.size(); ' + loopVarName+' += 1){\n'
-                    + indent +"    " + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
-    else:
-        actionText += (indent + "for(int "+loopVarName+'='+repContainer+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+' ){\n'+indent +indent + iteratorTypeStr+' '+repName+" = "+repContainer+".get("+loopVarName+");\n")
+        loopVarName=repName+"Idx";
+        if(isBackward):
+            actionText += (indent + "for(int "+loopVarName+'='+containerName+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+'){\n'
+                        + indent + indent + iteratorTypeStr+' '+repName+" = "+containerName+".get("+loopVarName+");\n")
+        else:
+            actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + containerName+'.size(); ' + loopVarName+' += 1){\n'
+                        + indent + indent + iteratorTypeStr+' '+repName+" = "+containerName+".get("+loopVarName+");\n")
+    localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+    localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     return [actionText, loopCounterName]
 
 def codeIncrement(varName):
