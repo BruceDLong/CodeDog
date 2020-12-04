@@ -705,8 +705,7 @@ def isNewContainerTempFunc(typeSpec):
     fieldTypeKeyword = fieldType[0]
     if fieldTypeKeyword=='DblLinkedList': return(True)
     reqTagList = getReqTagList(typeSpec)
-    if reqTagList and(fieldTypeKeyword=='CPP_Deque' or fieldTypeKeyword=='Java_ArrayList' or fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map'):
-        return(True)
+    if reqTagList: return(True)
     elif reqTagList == None: return(False)
     return(False)
 

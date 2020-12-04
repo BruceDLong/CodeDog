@@ -282,7 +282,7 @@ def codeIdentityCheck(S1, S2, retType1, retType2):
         retStr =  "(void*)("+LHS+") == (void*)("+RHS+")"
     else: retStr =  S1+' == '+S2
     return retStr
-
+###################################################### CONTAINERS
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
@@ -373,7 +373,98 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     else: print("Unknown container type:", containerType); exit(2);
     return(name, typeSpecOut, paramList, convertedIdxType)
 
-######################################################   E X P R E S S I O N   C O D I N G
+def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
+    if 'owner' in idxTypeSpec and (idxTypeSpec['owner']=='their' or idxTypeSpec['owner']=='our' or idxTypeSpec['owner']=='itr'):
+        idx = "*"+idx
+    S= '[' + idx +']'
+    return S
+###################################################### CONTAINER REPETITIONS
+def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
+    if(traversalMode=='Forward' or traversalMode==None):
+        S = indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ xlator['codeIncrement'](repName) + "){\n"
+    elif(traversalMode=='Backward'):
+        S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+    return (S)
+
+def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, containerType, containerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
+    willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
+    actionText       = ""
+    loopCounterName  = ""
+    containedType    = progSpec.getFieldType(containerType)
+    if progSpec.ownerIsPointer(containerOwner): connector="->"
+    else: connector = "."
+    containerOwner=progSpec.getOwnerFromTypeSpec(containerType)
+    ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
+
+    if datastructID=='multimap' or datastructID=='map':
+        KeyVarOwner=progSpec.getOwnerFromTypeSpec(containerType)
+        keyVarSpec = {'owner':KeyVarOwner, 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+
+        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+connector+'lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + repContainer+connector+'upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
+        pass;
+    elif datastructID=='deque' and willBeModifiedDuringTraversal:
+        pass;
+    else:
+        print("unknown dataStrct type:",datastructID,containerType)
+        exit(2)
+    return [actionText, loopCounterName]
+
+def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContainer,datastructID,keyFieldType,containerOwner, isBackward, actionOrField, indent,xlator):
+    #TODO: handle isBackward
+    willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
+    actionText       = ""
+    loopCounterName  = ""
+    owner            = progSpec.getContainerFirstElementOwner(containerType)
+    containedType    = progSpec.getFieldType(containerType)
+    ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
+    [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
+    if containerType['fieldType'][0]=='DblLinkedList':
+        ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
+        localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        repItrName = repName+'Itr'
+        actionText += (indent + "for( auto " + repItrName+' ='+ repContainer+RDeclP+'begin()' + "; " + repItrName + " !=" + repContainer+RDeclP+'end()' +"; "+ repItrName + " = " + repItrName+"->next ){\n"
+                    + indent+"    "+"shared_ptr<infon> "+repName+" = "+repItrName+"->item;\n")
+        return [actionText, loopCounterName]
+    if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map':
+        keyVarSpec = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':owner, 'fieldType':containedType}
+        localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        if isBackward:
+            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'rbegin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'rend()' +"; ++"+ repName + "Itr ){\n")
+        else:
+            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n")
+        actionText += indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n"
+    elif (datastructID=='deque' or datastructID=='CPP_Deque' ) and willBeModifiedDuringTraversal:
+        loopCounterName=repName+'_key'
+        keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
+        localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        lvName=repName+"Idx"
+        if isBackward:
+            actionText += (indent + "for( int64_t " + lvName+' = '+repContainer+RDeclP+'size()-1; ' + lvName+" >= 0; "+" --"+lvName+" ){\n")
+        else:
+            actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+RDeclP+'size();' +" ++"+lvName+" ){\n")
+        actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n"
+    else:
+        cdErr("iterateContainerStr() datastructID = " + datastructID)
+    return [actionText, loopCounterName]
+###################################################### EXPRESSION CODING
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
     #print('                  factor: ', item)
@@ -910,92 +1001,6 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
     varDeclareStr= fieldType + " " + varName + assignValue
     return(varDeclareStr)
 
-def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
-    if(traversalMode=='Forward' or traversalMode==None):
-        S = indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ xlator['codeIncrement'](repName) + "){\n"
-    elif(traversalMode=='Backward'):
-        S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
-    return (S)
-
-def iterateRangeContainerStr(classes,localVarsAllocated, StartKey, EndKey, containerType, ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
-    willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
-    actionText       = ""
-    loopCounterName  = ""
-    containedType    = progSpec.getFieldType(containerType)
-    if progSpec.ownerIsPointer(ContainerOwner): connector="->"
-    else: connector = "."
-    containerOwner=progSpec.getOwnerFromTypeSpec(containerType)
-    ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
-
-    if datastructID=='multimap' or datastructID=='map':
-        KeyVarOwner=progSpec.getOwnerFromTypeSpec(containerType)
-        keyVarSpec = {'owner':KeyVarOwner, 'fieldType':containedType, 'codeConverter':(repName+'.first')}
-        localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
-
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+connector+'lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + repContainer+connector+'upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
-                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
-    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
-        pass;
-    elif datastructID=='deque' and willBeModifiedDuringTraversal:
-        pass;
-    else:
-        print("DSID:",datastructID,containerType)
-        exit(2)
-    return [actionText, loopCounterName]
-
-def iterateContainerStr(classes,localVarsAllocated,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
-    #TODO: handle isBackward
-    willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
-    actionText       = ""
-    loopCounterName  = ""
-    owner            = progSpec.getContainerFirstElementOwner(containerType)
-    containedType    = progSpec.getFieldType(containerType)
-    ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
-    [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ContainerOwner)
-    if containerType['fieldType'][0]=='DblLinkedList':
-        ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
-        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        repItrName = repName+'Itr'
-        actionText += (indent + "for( auto " + repItrName+' ='+ repContainer+RDeclP+'begin()' + "; " + repItrName + " !=" + repContainer+RDeclP+'end()' +"; "+ repItrName + " = " + repItrName+"->next ){\n"
-                    + indent+"    "+"shared_ptr<infon> "+repName+" = "+repItrName+"->item;\n")
-        return [actionText, loopCounterName]
-    if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map':
-        keyVarSpec = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
-        localVarsAllocated.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n"
-                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
-    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':owner, 'fieldType':containedType}
-        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        if isBackward:
-            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'rbegin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'rend()' +"; ++"+ repName + "Itr ){\n")
-        else:
-            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n")
-        actionText += indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n"
-    elif (datastructID=='deque' or datastructID=='CPP_Deque' ) and willBeModifiedDuringTraversal:
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
-        localVarsAllocated.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAllocated.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        lvName=repName+"Idx"
-        if isBackward:
-            actionText += (indent + "for( int64_t " + lvName+' = '+repContainer+RDeclP+'size()-1; ' + lvName+" >= 0; "+" --"+lvName+" ){\n")
-        else:
-            actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  repContainer+RDeclP+'size();' +" ++"+lvName+" ){\n")
-        actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n"
-    else:
-        cdErr("iterateContainerStr() datastructID = " + datastructID)
-    return [actionText, loopCounterName]
-
 def codeIncrement(varName):
     return "++" + varName
 
@@ -1127,12 +1132,6 @@ def codeTemplateHeader(structName, typeArgList):
 
 def extraCodeForTopOfFuntion(argList):
     return ''
-
-def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
-    if 'owner' in idxTypeSpec and (idxTypeSpec['owner']=='their' or idxTypeSpec['owner']=='our' or idxTypeSpec['owner']=='itr'):
-        idx = "*"+idx
-    S= '[' + idx +']'
-    return S
 
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
