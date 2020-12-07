@@ -738,6 +738,7 @@ def getDatastructID(typeSpec):
 def getNewContainerFirstElementTypeTempFunc(typeSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
+    if typeSpec == None: return(None)
     if not 'fieldType' in typeSpec: return(None)
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(None)

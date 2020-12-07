@@ -371,7 +371,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
                 # enum
                 enumList=field['typeSpec']['enumList']
                 structEnums += xlator['getEnumStr'](fieldName, enumList)
-                CodeDogAddendums += "    me string[we list]: "+fieldName+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
+                CodeDogAddendums += "    we List<me string>: "+fieldName+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
 
                 # Record the utility vars' parent-classes
                 StaticMemberVars[offsetVarName]=className
@@ -407,7 +407,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
     try:
         if classes[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
             enumList=classes[0][className]['tags']['inherits']['fieldType']['altModeList'].asList()
-            CodeDogAddendums += "    me string[we list]: "+className+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
+            CodeDogAddendums += "    we List<me string>: "+className+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
     except (KeyError, TypeError) as e:
         cdlog(6, "Warning: caught an exception error in codeFlagAndModeFields")
 
@@ -1114,7 +1114,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, xlator):
                 defaultVal = '""'
             else: # handle structs if needed
                 if 'value' in field and field['value']!=None:
-                    [defaultVal, defaultValueTypeSpec] = xlator['codeExpr'](field['value'][0], objsRefed, None, None, xlator)
+                    [defaultVal, defaultValueTypeSpec] = xlator['codeExpr'](field['value'][0], objsRefed, None, typeSpec, xlator)
         if defaultVal != '':
         #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
             constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
@@ -1163,24 +1163,27 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         ################################################################
         ### extracting FIELD data
         ################################################################
-        localArgsAllocated=[]
-        funcDefCode=""
-        structCode=""
-        globalFuncs=""
-        topFuncDefCode=""
-        funcText=""
-        fieldID  =field['fieldID']
-        typeSpec =field['typeSpec']
+        localArgsAllocated= []
+        funcDefCode       = ""
+        structCode        = ""
+        globalFuncs       = ""
+        topFuncDefCode    = ""
+        funcText          = ""
+        fieldID           = field['fieldID']
+        typeSpec          = field['typeSpec']
+        fieldName         = field['fieldName']
+        structToImplement = chooseStructImplementationToUse(typeSpec,className,fieldName)
+        if(structToImplement != None):
+            typeSpec['fieldType'][0] = structToImplement
         fieldType=progSpec.getFieldType(typeSpec)
         if progSpec.doesClassHaveProperty(globalClassStore, fieldType, 'metaClass'):
             tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
             classOptionsTag = progSpec.fetchTagValue(tags, tagToFind)
             if classOptionsTag != None and "useClass" in classOptionsTag:
                 useClassTag     = classOptionsTag["useClass"]
-                fieldType[0] = useClassTag
+                fieldType[0]    = useClassTag
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
-        fieldName =field['fieldName']
         isAllocated = field['isAllocated']
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
@@ -1206,10 +1209,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 fieldValueText = ' = "'+ fieldValue + '"'
                 #TODO:  make test case
             else:
-                fieldValueText = " = "+ xlator['codeExpr'](fieldValue[0], objsRefed, None, None, xlator)[0]
+                fieldValueText = " = "+ xlator['codeExpr'](fieldValue[0], objsRefed, typeSpec, typeSpec, xlator)[0]
             #print ("    RHS const: ", fieldValueText)
         elif(fieldArglist==None):
-            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], objsRefed, None, None, xlator)[0]
+            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], objsRefed, typeSpec, typeSpec, xlator)[0]
             #print ("    RHS var: ", fieldValueText)
         else:
             fieldValueText = " = "+ str(fieldValue)
