@@ -55,7 +55,7 @@ struct production{
     me List<me int>: items
     flag: isNullable
     flag: nullabilityCalced
-    me string: toStr(me int64: seqPos, me int64: originPos, me string[their list]: rnames) <- {
+    me string: toStr(me int64: seqPos, me int64: originPos, their List<me string>: rnames) <- {
         me int: ProdType <- prodType
         me string: S <- ""
         me string: ProdStr <- ""
@@ -919,7 +919,7 @@ me int: numMarked
         else {return(true)}
     }
 
-    me int: choosePedigreeToFollow(me int: prodID, me pedigree[their list]: peds) <- {
+    me int: choosePedigreeToFollow(me int: prodID, their List<me pedigree>: peds) <- {
         return(0)
     }
 

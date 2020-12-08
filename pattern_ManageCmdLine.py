@@ -22,7 +22,7 @@ def apply(classes, tags):
 
     struct CmdLineArgsMngr {
         me string: cmdLineText
-        our optionRecord[list]: options
+        me List<our optionRecord>: options
 
         void: defineOption(me string: groupID, me string: optionID, me string: shortName, me string: longName, me string: helpText) <- {
             our optionRecord: rec
