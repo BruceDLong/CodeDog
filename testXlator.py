@@ -26,7 +26,7 @@ testDefinitions = {
      'class/baseDecls':     ['''
 struct testClass{
     me void: runTest()<-{
-        me int: myInt <- 1
+        me int: myInt <- 2
         print(myInt)
         me string: myString <- "one"
         print(myString)
@@ -47,7 +47,7 @@ struct testClass{
         me char: myChar <-"c"
         print(myChar)
     }
-}''', 'PGBR:1one1111212c',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
+}''', 'PGBR:2one1111212c',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
 #####################################################################################################
 #############################################################
      #'class/strListDecl':  ['struct testClass{me List<me string>: myStringList}', 'PGB:'],
