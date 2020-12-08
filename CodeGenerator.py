@@ -1635,11 +1635,6 @@ def checkForEmptyFuncitons(FileClasses):
 
         if 'fields' in classDef:
             for fieldDef in classDef['fields']:
-                if 'libName' in classDef:
-                    if 'CodeDog' in classDef['libName']:
-                        if classDef['libLevel'] == 1:
-                            print("CLASSNAME: ", classDef['libName'], " lvl ", classDef['libLevel'] )
-
                 if progSpec.fieldIsFunction(fieldDef['typeSpec']):
                     if fieldDef['hasFuncBody'] and fieldDef['value'] != None:
                         status = 'Implemented'
