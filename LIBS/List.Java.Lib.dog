@@ -23,7 +23,7 @@ struct Java_ArrayList<nodeType>: implements = List wraps = ArrayList specs = {ap
     void: clipToSize(me int: size)              <- <%!resize(%1)%>
     itr nodeType: deleteNth(me int: position)   <- <%!%0.remove(%0)%>
     itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
-    itr nodeType: erase(itr nodeType: position) <- <%!remove%>
+    itr nodeType: erase(itr nodeType: position) <- <%!remove(%1)%>
     nodeType: first()                           <- <%!get(0)%>
     itr nodeType: front()                       <- <%!begin()%>
     nodeType: __getAt(me int: position)         <- <%!%0.at(%1)%>
@@ -48,7 +48,7 @@ struct Java_Map<keyType, valueType>: implements = Map wraps = TreeMap specs = {i
     keyType: at(keyType: key)                   <- <%!%0.get(%1)%>
     void: clear()                               <- <%!clear()%>
     //itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
-    itr nodeType: erase(keyType: key)           <- <%!remove()%>
+    itr nodeType: erase(keyType: key)           <- <%!remove(%1)%>
     itr nodeType: find(valueType: val)          <- <%!get(%1)%>
     keyType: first()                            <- <%!get(0)%>
     itr nodeType: front()                       <- <%!firstEntry().getValue()%>

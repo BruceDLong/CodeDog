@@ -707,8 +707,7 @@ def isNewContainerTempFunc(typeSpec):
     fieldTypeKeyword = fieldType[0]
     if fieldTypeKeyword=='DblLinkedList': return(True)
     reqTagList = getReqTagList(typeSpec)
-    if reqTagList and(fieldTypeKeyword=='CPP_Deque' or fieldTypeKeyword=='Java_ArrayList' or fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map'):
-        return(True)
+    if reqTagList: return(True)
     elif reqTagList == None: return(False)
     return(False)
 
@@ -741,6 +740,7 @@ def getDatastructID(typeSpec):
 def getNewContainerFirstElementTypeTempFunc(typeSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
+    if typeSpec == None: return(None)
     if not 'fieldType' in typeSpec: return(None)
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(None)

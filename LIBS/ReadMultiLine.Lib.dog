@@ -86,7 +86,7 @@ struct lineIterator {
 
 
 struct linesMngr {
-    their EntryX[their list]: entries
+    their List<their EntryX>: entries
     me uint: widthToCur
     me uint: charsToCur
     me uint: curMax         // Most recent width to cursor
@@ -147,7 +147,7 @@ struct linesMngr {
         return(0)
     }
 
-    me int: calcWidthToCursor(me charX[their list]: line, me uint: charsToCur) <- {
+    me int: calcWidthToCursor(their List<me charX>: line, me uint: charsToCur) <- {
         me int: wtc <- 0
         withEach p in RANGE(0..charsToCur){
             wtc <- wtc + line[p].chWidth
@@ -155,7 +155,7 @@ struct linesMngr {
         return(wtc)
     }
 
-    me void: setCursorByWidth(me charX[their list]: chrs, me uint: maxWidthToCur) <- {
+    me void: setCursorByWidth(their List<me charX>: chrs, me uint: maxWidthToCur) <- {
         me int: wtc <- 0
         me uint: p<-0
         if(chrs.size()==0){charsToCur<-0; widthToCur<-0; return();}
@@ -329,7 +329,7 @@ struct posRecStore{
 }
 
 struct readMultiLine {
-    their EntryX[list]: bufs
+    me List<their EntryX>: bufs
     me linesMngr:       mgr
     me string:          result
     me uint:            cmd
@@ -369,7 +369,7 @@ struct readMultiLine {
 
     void: appendTextToEntry(their EntryX: entry, their posRecStore: text) <- {
         their lineX:: lx
-        me uint[list]: colorStack
+        me List<me uint>: colorStack
         me posRec: pr
         me uint: chr
         me uint: q <- 0
