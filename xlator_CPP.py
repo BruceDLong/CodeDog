@@ -422,6 +422,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
     owner            = progSpec.getContainerFirstElementOwner(containerType)
     containedType    = progSpec.getFieldType(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
+    reqTagList       = progSpec.getReqTagList(containerType)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
     if containerType['fieldType'][0]=='DblLinkedList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
@@ -434,6 +435,9 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+repItrName+"->item;\n")
         return [actionText, loopCounterName]
     if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map':
+        if(reqTagList != None):
+            ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')

@@ -570,7 +570,14 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
+        typeSpecOutKeyWord = progSpec.getFieldTypeKeyWord(typeSpecOut)
         reqTagList = progSpec.getReqTagList(typeSpecIn)
+        if typeSpecOutKeyWord == "keyType":
+            typeSpecOut['owner']      = progSpec.getOwnerFromTemplateArg(reqTagList[0])
+            typeSpecOut['fieldType']  = progSpec.getTypeFromTemplateArg(reqTagList[0])
+        elif typeSpecOutKeyWord == "valueType":
+            typeSpecOut['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            typeSpecOut['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         if "%T0Type" in convertedName:
             if(reqTagList != None):
                 T0Type = progSpec.getTypeFromTemplateArg(reqTagList[0])
