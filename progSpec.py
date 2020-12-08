@@ -275,6 +275,8 @@ def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReq
         packedField['typeSpec']['codeConverter']=codeConverter
     if hasFuncBody:
         packedField['hasFuncBody']=True
+    else:
+        packedField['hasFuncBody']=False
     fieldID = fieldIdentifierString(className, packedField)
     packedField['fieldID']=fieldID
     return packedField
@@ -838,7 +840,7 @@ def typeIsPointer(typeSpec):
     owner=getTypeSpecOwner(typeSpec)
     return ownerIsPointer(owner)
 
-def fieldIsFunction(typeSpec,fieldDef=None):
+def fieldIsFunction(typeSpec):
     if typeSpec==None:
         return False
     if 'argList' in typeSpec and typeSpec['argList']!=None:

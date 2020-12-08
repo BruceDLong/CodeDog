@@ -12,30 +12,42 @@ workingDirectory = ""
 runDirectory = ""
 
 testDefinitions = {
-     'class/simple':        ['struct emptyClass{ }', 'PGB:'],
-     'class/intDecl':       ['struct testClass{me int: myInt}', 'PGB:'],
-     'class/strDecl':       ['struct testClass{me string: myString}', 'PGB:'],
-     'class/int32Decl':     ['struct testClass{me int32: myInt32}', 'PGB:'],
-     'class/int64Decl':     ['struct testClass{me int64: myInt64}', 'PGB:'],
-     'class/doubleDecl':    ['struct testClass{me double: myDouble}', 'PGB:'],
-     'class/uint32Decl':    ['struct testClass{me uint32: myUint32}', 'PGB:'],
-     'class/uint64Decl':    ['struct testClass{me uint64: myUint64}', 'PGB:'],
-     'class/boolDecl':      ['struct testClass{me bool: myBool}', 'PGB:'],
-     'class/constDecl':     ['struct testClass{const int: myConst <- 2}', 'PGB:'],
-     'class/charDecl':      ['struct testClass{me char: myChar}', 'PGB:'],
+     'class/simple':        ['struct emptyClass{ }', 'PGBR:'],
+     'class/intDecl':       ['struct testClass{ me void: runTest()<-{me int: myInt <- 1\nprint(myInt)}}', 'PGBR:1'],
+     'class/strDecl':       ['struct testClass{ me void: runTest()<-{me string: myString <- "one"\nprint(myString)}}', 'PGBR:one'],
+     'class/int32Decl':     ['struct testClass{ me void: runTest()<-{me int32: myInt32 <- 1\nprint(myInt32)}}', 'PGBR:1'],
+     'class/int64Decl':     ['struct testClass{ me void: runTest()<-{me int64: myInt64 <- 1\nprint(myInt64)}}', 'PGBR:1'],
+     'class/doubleDecl':    ['struct testClass{ me void: runTest()<-{me double: myDb <- 1\nprint(myDb)}}', 'PGBR:1'],
+     'class/uint32Decl':    ['struct testClass{ me void: runTest()<-{me uint32: myInt <- 1\nprint(myInt)}}', 'PGBR:1'],
+     'class/uint64Decl':    ['struct testClass{ me void: runTest()<-{me uint64: myInt <- 1\nprint(myInt)}}', 'PGBR:1'],
+     'class/boolDecl':      ['struct testClass{ me void: runTest()<-{me bool: myBool <- true\nprint(myBool)}}', 'PGBR:1'],
+     'class/constDecl':     ['struct testClass{ me void: runTest()<-{const int: myInt <- 2\nprint(myInt)}}', 'PGBR:2'],
+     'class/charDecl':      ['struct testClass{ me void: runTest()<-{me char: myChar<- "c"\nprint(myChar) }}', 'PGBR:c'],
      'class/baseDecls':     ['''
 struct testClass{
-    me int: myInt
-    me string: myString
-    me int32: myInt32
-    me int64: myInt64
-    me double: myDouble
-    me uint32: myUint32
-    me uint64: myUint64
-    me bool: myBool
-    const int: myConst <- 2
-    me char: myChar
-}''', 'PGBR:true',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
+    me void: runTest()<-{
+        me int: myInt <- 1
+        print(myInt)
+        me string: myString <- "one"
+        print(myString)
+        me int32: myInt32 <- 1
+        print(myInt32)
+        me int64: myInt64 <- 1
+        print(myInt64)
+        me double: myDouble <- 1
+        print(myDouble)
+        me uint32: myUint32 <- 1
+        print(myUnit32)
+        me uint64: myUint64 <-2
+        print(myUint64)
+        me bool: myBool <- true
+        print(myBool)
+        const int: myConst <- 2
+        print(myConst)
+        me char: myChar <-"c"
+        print(myChar)
+    }
+}''', 'PGBR:1one1111212c',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
 #####################################################################################################
 #############################################################
      #'class/strListDecl':  ['struct testClass{me List<me string>: myStringList}', 'PGB:'],
@@ -443,7 +455,7 @@ struct testClass{
         print(b)
         our int: c <- 4
         print(c)
-        our int: d <- {4}
+        our int: d <- (4)
         print(d)
         our int: e{V}
         print(e)
@@ -460,7 +472,7 @@ struct testClass{
      'actions/allocateddefaultOur':  ['struct testClass{me void: runTest()<-{our int:: A\nprint(A)}}', 'PGBR:0'],
      'actions/allocateCurlyOur':     ['struct testClass{me void: runTest()<-{our int:: A{4}\nprint(A) }}', 'PGBR:4'],
      'actions/allocateArrowOur':     ['struct testClass{me void: runTest()<-{our int:: A<-4\nprint(A) }}', 'PGBR:4'],
-     'actions/allocateArrowlistOur': ['struct testClass{me void: runTest()<-{our int:: A <- (4)\nprint(A) ', 'PGBR:4'],
+     'actions/allocateArrowlistOur': ['struct testClass{me void: runTest()<-{our int:: A <- (4)\nprint(A)}} ', 'PGBR:4'],
      'actions/allocateCurlyVOur':    ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{V}\n print(A)}} ', 'PGBR:0'],
      'actions/allocateCurlypVOur':   ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{pV}\n print(A)}} ', 'PGBR:0'],
      'actions/allocateAssignVOur':   ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A<-V\n print(A)}}', 'PGBR:0'],
