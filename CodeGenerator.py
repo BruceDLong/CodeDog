@@ -22,7 +22,8 @@ import pattern_MakeStyler
 import pattern_WriteCallProxy
 
 import stringStructs
-
+import os
+import errno
 
 buildStr_libs=''
 globalFuncDeclAcc=''
@@ -1583,6 +1584,80 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
                     headerStr += xlator['includeDirective'](libHdr)
     return [headerStr, headerTopStr]
 
+def clearLogFile():
+    try:
+        os.makedirs("libraryLogs")
+    except OSError as exception:
+        if exception.errno != errno.EEXIST: raise
+    logClear = open("libraryLogs/missingFuncs.txt","w")
+    logClear.close()
+
+clearLogFile()
+missingFuncsDict = {}
+
+def addMissingFunc(lib, missingObject, libLevel, value):
+    #print("LIB: ", lib, "LIB LEVEL: ", libLevel)
+    global missingFuncsDict
+    lib = lib.split('.')[0]
+    lib = lib.split('/')[-1] + "_" + str(libLevel)
+    if lib not in missingFuncsDict:
+        missingFuncsDict[lib] = {}
+    if missingObject in missingFuncsDict[lib]:
+        return
+    missingFuncsDict[lib][missingObject + " \n"] = value
+
+def outputUndefinedFunctions():
+    global missingFuncsDict
+    logFile = open("libraryLogs/missingFuncs.txt","a")
+    libkeys = missingFuncsDict.keys()
+    for lib in libkeys:
+        logFile.write("From library: "+str(lib) + "\n")
+        for obj in missingFuncsDict[lib]:
+            logFile.write(" " + obj + " " + missingFuncsDict[lib][obj])
+    logFile.close()
+
+unimplementedList = []
+def checkForMissingLibs(libName):
+    #print(missingFuncsDict.keys())
+    return
+    if libName+"_1" in missingFuncsDict:
+        parentLib = missingFuncsDict[libName+"_1"]
+    else:
+        childLib  = missingFuncsDict[libName+"_2"]
+    #print(parentLib)
+    '''for each key,value in parentLib:
+        funcName = key
+        status = value # empty, implemented or abastract
+        if(status != "Implemented"):
+            if ! funcName in childLib:
+                addtounimplementedList(childLib, funcName)
+            else:
+                childStatus = childLib[key]
+                if childStatus != implemented:
+                    addtounimplementedList(childLib, funcName)
+    '''
+def checkForEmptyFuncitons(FileClasses):
+    # Check for empty or missing functions and log it
+    for className, classDef in FileClasses[0].items():
+
+        if 'fields' in classDef:
+            for fieldDef in classDef['fields']:
+                if progSpec.fieldIsFunction(fieldDef['typeSpec']):
+                    if fieldDef['hasFuncBody'] and fieldDef['value'] != None:
+                        status = 'Implemented'
+                    elif not fieldDef['hasFuncBody']:
+                        status = 'Abstract'
+                    elif fieldDef['hasFuncBody'] and (fieldDef['value'] == None or fieldDef['value'] == ''):
+                        status = 'Empty'
+                    else:
+                        status = 'Unknown'
+                    #if not 'codeConverter' in fieldDef:
+                    #print("FIELD NAME:   ", fieldDef['fieldName'], " LIB FILE NAME: ", classDef['libName'], " LEVEL:  ", classDef['libLevel'])
+                    #print(" FUNC BODY: ", fieldDef['value'][0],"\n")
+                    addMissingFunc(classDef['libName'], fieldDef['fieldID'], classDef['libLevel'],status)
+    outputUndefinedFunctions()
+    return
+
 def connectLibraries(classes, tags, libsToUse, xlator):
     headerStr = ''
     tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
@@ -1592,7 +1667,17 @@ def connectLibraries(classes, tags, libsToUse, xlator):
         headerStr = headerTopStr + headerStr + headerStrOut
         macroDefs= {}
         [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], tags[0], macroDefs)
-
+        checkForEmptyFuncitons(FileClasses)
+    for libFilename in libsToUse:
+        for className, classDef in FileClasses[0].items():
+            try:
+                if classDef['libLevel'] == 1:
+                    lib = libFilename
+                    lib = lib.split('.')[0]
+                    lib = lib.split('/')[-1]
+                    checkForMissingLibs(lib)
+            except:
+                print("KEY ERROR: " , classDef)
     return headerStr
 
 def convertTemplateClasses(classes, tags):

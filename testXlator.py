@@ -12,31 +12,42 @@ workingDirectory = ""
 runDirectory = ""
 
 testDefinitions = {
-     'class/simple':        ['struct emptyClass{ }', 'PGB:'],
-     'class/intDecl':       ['struct testClass{me int: myInt}', 'PGB:'],
-     'class/strDecl':       ['struct testClass{me string: myString}', 'PGB:'],
-     'class/int32Decl':     ['struct testClass{me int32: myInt32}', 'PGB:'],
-     'class/int64Decl':     ['struct testClass{me int64: myInt64}', 'PGB:'],
-     'class/doubleDecl':    ['struct testClass{me double: myDouble}', 'PGB:'],
-     'class/uint32Decl':    ['struct testClass{me uint32: myUint32}', 'PGB:'],
-     'class/uint64Decl':    ['struct testClass{me uint64: myUint64}', 'PGB:'],
-     'class/boolDecl':      ['struct testClass{me bool: myBool}', 'PGB:'],
-     'class/constDecl':     ['struct testClass{const int: myConst <- 2}', 'PGB:'],
-     'class/charDecl':      ['struct testClass{me char: myChar}', 'PGB:'],
+     'class/simple':        ['struct emptyClass{ }', 'PGBR:'],
+     'class/intDecl':       ['struct testClass{ me void: runTest()<-{me int: myInt <- 1\nprint(myInt)}}', 'PGBR:1'],
+     'class/strDecl':       ['struct testClass{ me void: runTest()<-{me string: myString <- "one"\nprint(myString)}}', 'PGBR:one'],
+     'class/int32Decl':     ['struct testClass{ me void: runTest()<-{me int32: myInt32 <- 1\nprint(myInt32)}}', 'PGBR:1'],
+     'class/int64Decl':     ['struct testClass{ me void: runTest()<-{me int64: myInt64 <- 1\nprint(myInt64)}}', 'PGBR:1'],
+     'class/doubleDecl':    ['struct testClass{ me void: runTest()<-{me double: myDb <- 1\nprint(myDb)}}', 'PGBR:1'],
+     'class/uint32Decl':    ['struct testClass{ me void: runTest()<-{me uint32: myInt <- 1\nprint(myInt)}}', 'PGBR:1'],
+     'class/uint64Decl':    ['struct testClass{ me void: runTest()<-{me uint64: myInt <- 1\nprint(myInt)}}', 'PGBR:1'],
+     'class/boolDecl':      ['struct testClass{ me void: runTest()<-{me bool: myBool <- true\nprint(myBool)}}', 'PGBR:1'],
+     'class/constDecl':     ['struct testClass{ me void: runTest()<-{const int: myInt <- 2\nprint(myInt)}}', 'PGBR:2'],
+     'class/charDecl':      ['struct testClass{ me void: runTest()<-{me char: myChar<- "c"\nprint(myChar) }}', 'PGBR:c'],
      'class/baseDecls':     ['''
 struct testClass{
-    me int: myInt               # TODO: test that assignment works on one numeric type
-    me string: myString         # TODO: test that assignment works
-    me int32: myInt32
-    me int64: myInt64
-    me double: myDouble
-    me uint32: myUint32
-    me uint64: myUint64
-    me bool: myBool             # TODO: test that assignment works
-    const int: myConst <- 2     # TODO: test that assignment works
-    me char: myChar             # TODO: test that assignment works
-    me void: runTest()<-{}
-}''', 'PGBR:true',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
+    me void: runTest()<-{
+        me int: myInt <- 2
+        print(myInt)
+        me string: myString <- "one"
+        print(myString)
+        me int32: myInt32 <- 1
+        print(myInt32)
+        me int64: myInt64 <- 1
+        print(myInt64)
+        me double: myDouble <- 1
+        print(myDouble)
+        me uint32: myUint32 <- 1
+        print(myUnit32)
+        me uint64: myUint64 <-2
+        print(myUint64)
+        me bool: myBool <- true
+        print(myBool)
+        const int: myConst <- 2
+        print(myConst)
+        me char: myChar <-"c"
+        print(myChar)
+    }
+}''', 'PGBR:2one1111212c',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
 #####################################################################################################
 #############################################################
      #'class/strListDecl':  ['struct testClass{me List<me string>: myStringList}', 'PGB:'],
@@ -373,7 +384,7 @@ struct testClass{
         else{print(a)}
         their int: b{4}  //build fail
         print(b)
-        their int: c <- 4 //should I be using Try:, Except:   here?
+        their int: c <- 4
         print(c)
         their int: d <- (4)
         print(d)
@@ -403,19 +414,19 @@ struct testClass{
         their int:: pV
         their int:: A
         print(A)
-        their int:: B{4} //causing build fail
+        their int:: B{4}
         print(B)
         their int:: C<-4
         print(C)
         their int:: D <- (4)
         print(D)
-        their int:: E{V}  //causing build fail
+        their int:: E{V}
         print(E)
         their int:: F{pV}
         print(F)
         their int:: G <- V
         print(G)
-        their int:: H <- pV  //causing build fail
+        their int:: H <- pV
         print(H)
     }
 }''', 'PGBR:04400',['actions/allocateddefaulttheir','actions/allocateCurlytheir','actions/allocateArrowtheir','actions/allocateArrowlistTheir','actions/allocateCurlyVtheir','actions/allocateCurlypVtheir','actions/allocateAssignVtheir','actions/allocateAssignpVtheir' ]],
@@ -440,11 +451,11 @@ struct testClass{
         else{
             print(a)
         }
-        our int: b{4}  //build fail
+        our int: b{4}
         print(b)
         our int: c <- 4
         print(c)
-        our int: d <- {4}
+        our int: d <- (4)
         print(d)
         our int: e{V}
         print(e)
@@ -461,7 +472,7 @@ struct testClass{
      'actions/allocateddefaultOur':  ['struct testClass{me void: runTest()<-{our int:: A\nprint(A)}}', 'PGBR:0'],
      'actions/allocateCurlyOur':     ['struct testClass{me void: runTest()<-{our int:: A{4}\nprint(A) }}', 'PGBR:4'],
      'actions/allocateArrowOur':     ['struct testClass{me void: runTest()<-{our int:: A<-4\nprint(A) }}', 'PGBR:4'],
-     'actions/allocateArrowlistOur': ['struct testClass{me void: runTest()<-{our int:: A <- (4)\nprint(A) ', 'PGBR:4'],
+     'actions/allocateArrowlistOur': ['struct testClass{me void: runTest()<-{our int:: A <- (4)\nprint(A)}} ', 'PGBR:4'],
      'actions/allocateCurlyVOur':    ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{V}\n print(A)}} ', 'PGBR:0'],
      'actions/allocateCurlypVOur':   ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A{pV}\n print(A)}} ', 'PGBR:0'],
      'actions/allocateAssignVOur':   ['struct testClass{me void: runTest()<-{me int:V \ntheir int:: pV\nour int:: A<-V\n print(A)}}', 'PGBR:0'],
@@ -474,19 +485,19 @@ struct testClass{
         their int:: pV
         our int:: A
         print(A)
-        our int:: B{4} //causing build fail
+        our int:: B{4}
         print(B)
         our int:: C<-4
         print(C)
         our int:: D <- (4)
         print(D)
-        our int:: E{V}  //causing build fail
+        our int:: E{V}
         print(E)
         our int:: F{pV}
         print(F)
         our int:: G <- V
         print(G)
-        our int:: H <- pV  //causing build fail
+        our int:: H <- pV
         print(H)
     }
 }''', 'PGBR:04400',['actions/allocateddefaultOur','actions/allocateCurlyOur','actions/allocateArrowOur','actions/allocateArrowlistOur','actions/allocateCurlyVOur','actions/allocateCurlypVOur','actions/allocateAssignVOur','actions/allocateAssignpVOur' ]],
