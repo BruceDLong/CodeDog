@@ -384,7 +384,7 @@ struct testClass{
         else{print(a)}
         their int: b{4}  //build fail
         print(b)
-        their int: c <- 4 //should I be using Try:, Except:   here?
+        their int: c <- 4
         print(c)
         their int: d <- (4)
         print(d)
@@ -414,19 +414,19 @@ struct testClass{
         their int:: pV
         their int:: A
         print(A)
-        their int:: B{4} //causing build fail
+        their int:: B{4}
         print(B)
         their int:: C<-4
         print(C)
         their int:: D <- (4)
         print(D)
-        their int:: E{V}  //causing build fail
+        their int:: E{V}
         print(E)
         their int:: F{pV}
         print(F)
         their int:: G <- V
         print(G)
-        their int:: H <- pV  //causing build fail
+        their int:: H <- pV
         print(H)
     }
 }''', 'PGBR:04400',['actions/allocateddefaulttheir','actions/allocateCurlytheir','actions/allocateArrowtheir','actions/allocateArrowlistTheir','actions/allocateCurlyVtheir','actions/allocateCurlypVtheir','actions/allocateAssignVtheir','actions/allocateAssignpVtheir' ]],
@@ -451,7 +451,7 @@ struct testClass{
         else{
             print(a)
         }
-        our int: b{4}  //build fail
+        our int: b{4}
         print(b)
         our int: c <- 4
         print(c)
@@ -485,19 +485,19 @@ struct testClass{
         their int:: pV
         our int:: A
         print(A)
-        our int:: B{4} //causing build fail
+        our int:: B{4}
         print(B)
         our int:: C<-4
         print(C)
         our int:: D <- (4)
         print(D)
-        our int:: E{V}  //causing build fail
+        our int:: E{V}
         print(E)
         our int:: F{pV}
         print(F)
         our int:: G <- V
         print(G)
-        our int:: H <- pV  //causing build fail
+        our int:: H <- pV
         print(H)
     }
 }''', 'PGBR:04400',['actions/allocateddefaultOur','actions/allocateCurlyOur','actions/allocateArrowOur','actions/allocateArrowlistOur','actions/allocateCurlyVOur','actions/allocateCurlypVOur','actions/allocateAssignVOur','actions/allocateAssignpVOur' ]],
