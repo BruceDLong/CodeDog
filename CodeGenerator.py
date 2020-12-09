@@ -426,7 +426,7 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
     fieldType = progSpec.getFieldType(typeSpec)
     if not isinstance(fieldType, str) and  len(fieldType) >1:
         if ('chosenType' in fieldType):
-            return(None)
+            return(None, None, None)
         implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
         if(implementationOptions == None):
             if fieldType[0]=="List":
@@ -445,9 +445,18 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
                     if(implScore > highestScore):
                         highestScore = implScore
                         highestScoreClassName = optionClassDef['name']
-            return(highestScoreClassName)
-    return(None)
+            typeArgList = progSpec.getTypeArgList(highestScoreClassName)
+            fieldDefAt=CheckObjectVars(highestScoreClassName, "at", "")
+            return(highestScoreClassName,typeArgList,fieldDefAt)
+    return(None, None, None)
     #    choose highest score and mark the typedef
+
+def applyStructImplemetation(typeSpec,currentObjName,fieldName):
+    [structToImplement, typeArgList, fieldDefAt] = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
+    if(structToImplement != None):
+        typeSpec['fieldType'][0] = structToImplement
+        typeSpec['fromImplemented']  = {"typeArgList":typeArgList, "fieldDefAt":fieldDefAt}
+    return typeSpec
 
 def codeAllocater(typeSpec, xlator):
     S=''
@@ -516,8 +525,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
 
     elif IsAContainer and (not isStructLikeContainer or name[0]=='['):
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')
-        ownerOut=progSpec.getContainerFirstElementOwner(typeSpecIn)
-        typeSpecOut={'owner':ownerOut, 'fieldType': fieldTypeIn}
+        [valOwner, valFieldType]=progSpec.getContainerValueOwnerAndType(typeSpecIn)
+        typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
         if(name[0]=='['):
             [S2, idxTypeSpec] = xlator['codeExpr'](name[1], objsRefed, None, None, xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName, idxTypeSpec)
@@ -838,9 +847,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         fieldName =fieldDef['fieldName']
-        structToImplement = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
-        if(structToImplement != None):
-            typeSpec['fieldType'][0] = structToImplement
+        applyStructImplemetation(typeSpec,currentObjName,fieldName)
         varName = fieldDef['fieldName']
         cdlog(5, "Action newVar: {}".format(varName))
         varDeclareStr = xlator['codeNewVarStr'](globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, 'action', xlator)
@@ -1180,9 +1187,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         fieldID           = field['fieldID']
         typeSpec          = field['typeSpec']
         fieldName         = field['fieldName']
-        structToImplement = chooseStructImplementationToUse(typeSpec,className,fieldName)
-        if(structToImplement != None):
-            typeSpec['fieldType'][0] = structToImplement
+        applyStructImplemetation(typeSpec,className,fieldName)
         fieldType=progSpec.getFieldType(typeSpec)
         if progSpec.doesClassHaveProperty(globalClassStore, fieldType, 'metaClass'):
             tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
@@ -1249,9 +1254,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
                     if progSpec.typeIsPointer(argTypeSpec): arg
-                    structToImplement = chooseStructImplementationToUse(argTypeSpec,className,argFieldName)
-                    if(structToImplement != None):
-                        argTypeSpec['fieldType'][0] = structToImplement
+                    applyStructImplemetation(argTypeSpec,className,argFieldName)
                     [argType, innerType] = xlator['convertType'](classes, argTypeSpec, 'arg', 'field', xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
@@ -1686,9 +1689,7 @@ def convertTemplateClasses(classes, tags):
         for field in progSpec.generateListOfFieldsToImplement(classes, className):
             typeSpec =field['typeSpec']
             fieldName =field['fieldName']
-            structToImplement = chooseStructImplementationToUse(typeSpec,className,fieldName)
-            if(structToImplement != None):
-                typeSpec['fieldType'][0] = structToImplement
+            applyStructImplemetation(typeSpec,className,fieldName)
 
 def appendGLOBALInitCode(classes, tags, xlator):
     for field in progSpec.generateListOfFieldsToImplement(classes, "GLOBAL"):
