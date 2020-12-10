@@ -266,13 +266,17 @@ def appendToFuncsCalled(funcName,funcParams):
         funcsCalled[funcName]= []
     funcsCalled[funcName].append([funcParams, MarkItems])
 
-def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, thisArgList, paramList, thisValue, isAllocated):
+def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, thisArgList, paramList, thisValue, isAllocated, hasFuncBody):
     codeConverter=None
     packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'reqTagList':thisReqTagList, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
     if( thisValue!=None and (not isinstance(thisValue, str)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
         # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
         codeConverter = thisValue[1][1:]
         packedField['typeSpec']['codeConverter']=codeConverter
+    if hasFuncBody:
+        packedField['hasFuncBody']=True
+    else:
+        packedField['hasFuncBody']=False
     fieldID = fieldIdentifierString(className, packedField)
     packedField['fieldID']=fieldID
     return packedField
@@ -703,8 +707,7 @@ def isNewContainerTempFunc(typeSpec):
     fieldTypeKeyword = fieldType[0]
     if fieldTypeKeyword=='DblLinkedList': return(True)
     reqTagList = getReqTagList(typeSpec)
-    if reqTagList and(fieldTypeKeyword=='CPP_Deque' or fieldTypeKeyword=='Java_ArrayList' or fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map'):
-        return(True)
+    if reqTagList: return(True)
     elif reqTagList == None: return(False)
     return(False)
 
@@ -737,6 +740,7 @@ def getDatastructID(typeSpec):
 def getNewContainerFirstElementTypeTempFunc(typeSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
+    if typeSpec == None: return(None)
     if not 'fieldType' in typeSpec: return(None)
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(None)
@@ -750,6 +754,27 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
             return(reqTagList[0]['tArgType'])
     elif reqTagList == None: return(None)
     return(None)
+
+def getContainerValueOwnerAndType(typeSpec):
+    owner     = getContainerFirstElementOwner(typeSpec)
+    fieldType = getFieldType(typeSpec)
+    if not isNewContainerTempFunc(typeSpec): return[owner, fieldType]
+    reqTagList = getReqTagList(typeSpec)
+    if "fromImplemented" in typeSpec:
+        fromImplemented = typeSpec['fromImplemented']
+        if 'typeArgList' in fromImplemented:
+            typeArgList = fromImplemented['typeArgList']
+        if 'fieldDefAt' in fromImplemented:
+            fieldDefAt = fromImplemented['fieldDefAt']
+        if typeArgList and fieldDefAt:
+            atOwner  = fieldDefAt['typeSpec']['owner']
+            atTypeKW = getFieldTypeKeyWord(fieldDefAt['typeSpec'])
+            if atTypeKW in typeArgList:
+                idxAt = typeArgList.index(atTypeKW)
+                valType = reqTagList[idxAt]
+                return[valType['tArgOwner'], valType['tArgType']]
+            else: return[atOwner, atTypeKW]
+    return[owner, fieldType]
 
 def getFieldType(typeSpec):
     retVal = getNewContainerFirstElementTypeTempFunc(typeSpec)
@@ -837,9 +862,17 @@ def typeIsPointer(typeSpec):
     return ownerIsPointer(owner)
 
 def fieldIsFunction(typeSpec):
-    if typeSpec==None: return False
-    if 'argList' in typeSpec and typeSpec['argList']!=None: return True
+    if typeSpec==None:
+        return False
+    if 'argList' in typeSpec and typeSpec['argList']!=None:
+        return True
     return False
+
+def doesFieldDefHaveValue(fieldDef):
+    if len(fieldDef['value'][0]) == 0 and len(fieldDef['value'][1]) == 0:
+        return 0
+    else:
+        return 1
 
 def isWrappedType(objMap, structname):
     # If type is not wrapped, return None, else return the wrapped typeSpec

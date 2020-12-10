@@ -22,7 +22,8 @@ import pattern_MakeStyler
 import pattern_WriteCallProxy
 
 import stringStructs
-
+import os
+import errno
 
 buildStr_libs=''
 globalFuncDeclAcc=''
@@ -371,7 +372,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
                 # enum
                 enumList=field['typeSpec']['enumList']
                 structEnums += xlator['getEnumStr'](fieldName, enumList)
-                CodeDogAddendums += "    me string[we list]: "+fieldName+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
+                CodeDogAddendums += "    we List<me string>: "+fieldName+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
 
                 # Record the utility vars' parent-classes
                 StaticMemberVars[offsetVarName]=className
@@ -407,7 +408,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
     try:
         if classes[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
             enumList=classes[0][className]['tags']['inherits']['fieldType']['altModeList'].asList()
-            CodeDogAddendums += "    me string[we list]: "+className+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
+            CodeDogAddendums += "    we List<me string>: "+className+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
     except (KeyError, TypeError) as e:
         cdlog(6, "Warning: caught an exception error in codeFlagAndModeFields")
 
@@ -425,7 +426,7 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
     fieldType = progSpec.getFieldType(typeSpec)
     if not isinstance(fieldType, str) and  len(fieldType) >1:
         if ('chosenType' in fieldType):
-            return(None)
+            return(None, None, None)
         implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
         if(implementationOptions == None):
             if fieldType[0]=="List":
@@ -444,9 +445,18 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
                     if(implScore > highestScore):
                         highestScore = implScore
                         highestScoreClassName = optionClassDef['name']
-            return(highestScoreClassName)
-    return(None)
+            typeArgList = progSpec.getTypeArgList(highestScoreClassName)
+            fieldDefAt=CheckObjectVars(highestScoreClassName, "at", "")
+            return(highestScoreClassName,typeArgList,fieldDefAt)
+    return(None, None, None)
     #    choose highest score and mark the typedef
+
+def applyStructImplemetation(typeSpec,currentObjName,fieldName):
+    [structToImplement, typeArgList, fieldDefAt] = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
+    if(structToImplement != None):
+        typeSpec['fieldType'][0] = structToImplement
+        typeSpec['fromImplemented']  = {"typeArgList":typeArgList, "fieldDefAt":fieldDefAt}
+    return typeSpec
 
 def codeAllocater(typeSpec, xlator):
     S=''
@@ -496,8 +506,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     else: fieldTypeIn = None
 
 
-    isStructLikeContainer = False
-    if progSpec.isNewContainerTempFunc(typeSpecIn): isStructLikeContainer = True
+    isNewContainer = False
+    if progSpec.isNewContainerTempFunc(typeSpecIn): isNewContainer = True
 
     IsAContainer = progSpec.isAContainer(typeSpecIn)
     if (fieldTypeIn!=None and isinstance(fieldTypeIn, str) and not IsAContainer):
@@ -513,10 +523,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             typeSpecOut['codeConverter'] = codeCvrtText
             if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
 
-    elif IsAContainer and (not isStructLikeContainer or name[0]=='['):
+    elif IsAContainer and (not isNewContainer or name[0]=='['):
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')
-        ownerOut=progSpec.getContainerFirstElementOwner(typeSpecIn)
-        typeSpecOut={'owner':ownerOut, 'fieldType': fieldTypeIn}
+        [valOwner, valFieldType]=progSpec.getContainerValueOwnerAndType(typeSpecIn)
+        typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
         if(name[0]=='['):
             [S2, idxTypeSpec] = xlator['codeExpr'](name[1], objsRefed, None, None, xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName, idxTypeSpec)
@@ -535,7 +545,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
-        if isStructLikeContainer == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
+        if isNewContainer == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
         else: fType=progSpec.fieldTypeKeyword(fieldTypeIn)
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
@@ -556,7 +566,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, xlator)
                 typeSpecOut=CheckObjectVars(fType, name, fieldIDArgList)
                 if typeSpecOut!=0:
-                    if isStructLikeContainer == True:
+                    if isNewContainer == True:
                         segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
                         segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut['typeSpec'])
                         [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
@@ -566,11 +576,18 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                             typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
-                else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isStructLikeContainer:",isStructLikeContainer)
+                else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isNewContainer:",isNewContainer)
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
+        typeSpecOutKeyWord = progSpec.getFieldTypeKeyWord(typeSpecOut)
         reqTagList = progSpec.getReqTagList(typeSpecIn)
+        if typeSpecOutKeyWord == "keyType":
+            typeSpecOut['owner']      = progSpec.getOwnerFromTemplateArg(reqTagList[0])
+            typeSpecOut['fieldType']  = progSpec.getTypeFromTemplateArg(reqTagList[0])
+        elif typeSpecOutKeyWord == "valueType":
+            typeSpecOut['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            typeSpecOut['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         if "%T0Type" in convertedName:
             if(reqTagList != None):
                 T0Type = progSpec.getTypeFromTemplateArg(reqTagList[0])
@@ -830,9 +847,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         fieldName =fieldDef['fieldName']
-        structToImplement = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
-        if(structToImplement != None):
-            typeSpec['fieldType'][0] = structToImplement
+        applyStructImplemetation(typeSpec,currentObjName,fieldName)
         varName = fieldDef['fieldName']
         cdlog(5, "Action newVar: {}".format(varName))
         varDeclareStr = xlator['codeNewVarStr'](globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, 'action', xlator)
@@ -1114,7 +1129,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, xlator):
                 defaultVal = '""'
             else: # handle structs if needed
                 if 'value' in field and field['value']!=None:
-                    [defaultVal, defaultValueTypeSpec] = xlator['codeExpr'](field['value'][0], objsRefed, None, None, xlator)
+                    [defaultVal, defaultValueTypeSpec] = xlator['codeExpr'](field['value'][0], objsRefed, None, typeSpec, xlator)
         if defaultVal != '':
         #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
             constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
@@ -1163,24 +1178,25 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         ################################################################
         ### extracting FIELD data
         ################################################################
-        localArgsAllocated=[]
-        funcDefCode=""
-        structCode=""
-        globalFuncs=""
-        topFuncDefCode=""
-        funcText=""
-        fieldID  =field['fieldID']
-        typeSpec =field['typeSpec']
+        localArgsAllocated= []
+        funcDefCode       = ""
+        structCode        = ""
+        globalFuncs       = ""
+        topFuncDefCode    = ""
+        funcText          = ""
+        fieldID           = field['fieldID']
+        typeSpec          = field['typeSpec']
+        fieldName         = field['fieldName']
+        applyStructImplemetation(typeSpec,className,fieldName)
         fieldType=progSpec.getFieldType(typeSpec)
         if progSpec.doesClassHaveProperty(globalClassStore, fieldType, 'metaClass'):
             tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
             classOptionsTag = progSpec.fetchTagValue(tags, tagToFind)
             if classOptionsTag != None and "useClass" in classOptionsTag:
                 useClassTag     = classOptionsTag["useClass"]
-                fieldType[0] = useClassTag
+                fieldType[0]    = useClassTag
         if(fieldType=='flag' or fieldType=='mode'): continue
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
-        fieldName =field['fieldName']
         isAllocated = field['isAllocated']
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
@@ -1206,10 +1222,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 fieldValueText = ' = "'+ fieldValue + '"'
                 #TODO:  make test case
             else:
-                fieldValueText = " = "+ xlator['codeExpr'](fieldValue[0], objsRefed, None, None, xlator)[0]
+                fieldValueText = " = "+ xlator['codeExpr'](fieldValue[0], objsRefed, typeSpec, typeSpec, xlator)[0]
             #print ("    RHS const: ", fieldValueText)
         elif(fieldArglist==None):
-            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], objsRefed, None, None, xlator)[0]
+            fieldValueText = " = " + xlator['codeExpr'](fieldValue[0], objsRefed, typeSpec, typeSpec, xlator)[0]
             #print ("    RHS var: ", fieldValueText)
         else:
             fieldValueText = " = "+ str(fieldValue)
@@ -1238,9 +1254,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     argTypeSpec =arg['typeSpec']
                     argFieldName=arg['fieldName']
                     if progSpec.typeIsPointer(argTypeSpec): arg
-                    structToImplement = chooseStructImplementationToUse(argTypeSpec,className,argFieldName)
-                    if(structToImplement != None):
-                        argTypeSpec['fieldType'][0] = structToImplement
+                    applyStructImplemetation(argTypeSpec,className,argFieldName)
                     [argType, innerType] = xlator['convertType'](classes, argTypeSpec, 'arg', 'field', xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
@@ -1573,6 +1587,80 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
                     headerStr += xlator['includeDirective'](libHdr)
     return [headerStr, headerTopStr]
 
+def clearLogFile():
+    try:
+        os.makedirs("libraryLogs")
+    except OSError as exception:
+        if exception.errno != errno.EEXIST: raise
+    logClear = open("libraryLogs/missingFuncs.txt","w")
+    logClear.close()
+
+clearLogFile()
+missingFuncsDict = {}
+
+def addMissingFunc(lib, missingObject, libLevel, value):
+    #print("LIB: ", lib, "LIB LEVEL: ", libLevel)
+    global missingFuncsDict
+    lib = lib.split('.')[0]
+    lib = lib.split('/')[-1] + "_" + str(libLevel)
+    if lib not in missingFuncsDict:
+        missingFuncsDict[lib] = {}
+    if missingObject in missingFuncsDict[lib]:
+        return
+    missingFuncsDict[lib][missingObject + " \n"] = value
+
+def outputUndefinedFunctions():
+    global missingFuncsDict
+    logFile = open("libraryLogs/missingFuncs.txt","a")
+    libkeys = missingFuncsDict.keys()
+    for lib in libkeys:
+        logFile.write("From library: "+str(lib) + "\n")
+        for obj in missingFuncsDict[lib]:
+            logFile.write(" " + obj + " " + missingFuncsDict[lib][obj])
+    logFile.close()
+
+unimplementedList = []
+def checkForMissingLibs(libName):
+    #print(missingFuncsDict.keys())
+    return
+    if libName+"_1" in missingFuncsDict:
+        parentLib = missingFuncsDict[libName+"_1"]
+    else:
+        childLib  = missingFuncsDict[libName+"_2"]
+    #print(parentLib)
+    '''for each key,value in parentLib:
+        funcName = key
+        status = value # empty, implemented or abastract
+        if(status != "Implemented"):
+            if ! funcName in childLib:
+                addtounimplementedList(childLib, funcName)
+            else:
+                childStatus = childLib[key]
+                if childStatus != implemented:
+                    addtounimplementedList(childLib, funcName)
+    '''
+def checkForEmptyFuncitons(FileClasses):
+    # Check for empty or missing functions and log it
+    for className, classDef in FileClasses[0].items():
+
+        if 'fields' in classDef:
+            for fieldDef in classDef['fields']:
+                if progSpec.fieldIsFunction(fieldDef['typeSpec']):
+                    if fieldDef['hasFuncBody'] and fieldDef['value'] != None:
+                        status = 'Implemented'
+                    elif not fieldDef['hasFuncBody']:
+                        status = 'Abstract'
+                    elif fieldDef['hasFuncBody'] and (fieldDef['value'] == None or fieldDef['value'] == ''):
+                        status = 'Empty'
+                    else:
+                        status = 'Unknown'
+                    #if not 'codeConverter' in fieldDef:
+                    #print("FIELD NAME:   ", fieldDef['fieldName'], " LIB FILE NAME: ", classDef['libName'], " LEVEL:  ", classDef['libLevel'])
+                    #print(" FUNC BODY: ", fieldDef['value'][0],"\n")
+                    addMissingFunc(classDef['libName'], fieldDef['fieldID'], classDef['libLevel'],status)
+    outputUndefinedFunctions()
+    return
+
 def connectLibraries(classes, tags, libsToUse, xlator):
     headerStr = ''
     tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
@@ -1582,7 +1670,17 @@ def connectLibraries(classes, tags, libsToUse, xlator):
         headerStr = headerTopStr + headerStr + headerStrOut
         macroDefs= {}
         [tagStore, buildSpecs, FileClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], tags[0], macroDefs)
-
+        checkForEmptyFuncitons(FileClasses)
+    for libFilename in libsToUse:
+        for className, classDef in FileClasses[0].items():
+            try:
+                if classDef['libLevel'] == 1:
+                    lib = libFilename
+                    lib = lib.split('.')[0]
+                    lib = lib.split('/')[-1]
+                    checkForMissingLibs(lib)
+            except:
+                print("KEY ERROR: " , classDef)
     return headerStr
 
 def convertTemplateClasses(classes, tags):
@@ -1591,9 +1689,7 @@ def convertTemplateClasses(classes, tags):
         for field in progSpec.generateListOfFieldsToImplement(classes, className):
             typeSpec =field['typeSpec']
             fieldName =field['fieldName']
-            structToImplement = chooseStructImplementationToUse(typeSpec,className,fieldName)
-            if(structToImplement != None):
-                typeSpec['fieldType'][0] = structToImplement
+            applyStructImplemetation(typeSpec,className,fieldName)
 
 def appendGLOBALInitCode(classes, tags, xlator):
     for field in progSpec.generateListOfFieldsToImplement(classes, "GLOBAL"):

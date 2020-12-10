@@ -113,5 +113,5 @@ struct JSONValue {
     int: getAsInt()
     bool: getAsBool()
     string: getAsString()
-    their MultiValue[their map string]: getAsMap()
+    their Map<me string, their MultiValue>: getAsMap()
 }

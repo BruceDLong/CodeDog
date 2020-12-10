@@ -86,7 +86,7 @@ struct lineIterator {
 
 
 struct linesMngr {
-    their EntryX[their list]: entries
+    their List<their EntryX>: entries
     me uint: widthToCur
     me uint: charsToCur
     me uint: curMax         // Most recent width to cursor
@@ -147,7 +147,7 @@ struct linesMngr {
         return(0)
     }
 
-    me int: calcWidthToCursor(me charX[their list]: line, me uint: charsToCur) <- {
+    me int: calcWidthToCursor(their List<me charX>: line, me uint: charsToCur) <- {
         me int: wtc <- 0
         withEach p in RANGE(0..charsToCur){
             wtc <- wtc + line[p].chWidth
@@ -155,7 +155,7 @@ struct linesMngr {
         return(wtc)
     }
 
-    me void: setCursorByWidth(me charX[their list]: chrs, me uint: maxWidthToCur) <- {
+    me void: setCursorByWidth(their List<me charX>: chrs, me uint: maxWidthToCur) <- {
         me int: wtc <- 0
         me uint: p<-0
         if(chrs.size()==0){charsToCur<-0; widthToCur<-0; return();}
@@ -268,7 +268,7 @@ struct linesMngr {
 
     void: doEnter() <- {
         their lineX:: newLine
-        me charX[their list]: CrntLine <- crntLine()
+        me List<me charX>: CrntLine <- crntLine()
         me int: crntLineSize <- CrntLine.size()
         withEach pos in RANGE(charsToCur .. crntLineSize){newLine.chars.pushLast(CrntLine[pos])}
         me lineIterator: nxtLine <- currentLine
@@ -323,13 +323,13 @@ struct posRec{ // Use this to store the position of infons in a parsed string.
 
 struct posRecStore{
     me string: s
-    me posRec[map int]:  ps
-    me int[their map their void]: colorCodes
+    me Map<me int, me posRec>:  ps
+    their Map<their void, me int>: colorCodes
     none: posRecStore(me string: text <- "", me int[their map their void]: colCode<-0) <- {s<-text; colorCodes<-colCode;}
 }
 
 struct readMultiLine {
-    their EntryX[list]: bufs
+    me List<their EntryX>: bufs
     me linesMngr:       mgr
     me string:          result
     me uint:            cmd
@@ -369,7 +369,7 @@ struct readMultiLine {
 
     void: appendTextToEntry(their EntryX: entry, their posRecStore: text) <- {
         their lineX:: lx
-        me uint[list]: colorStack
+        me List<me uint>: colorStack
         me posRec: pr
         me uint: chr
         me uint: q <- 0
@@ -386,10 +386,10 @@ struct readMultiLine {
                     mgr.totalLines <- mgr.totalLines + 1
                 } else {
                      if(text.colorCodes){
-                        me posRec[itr map int]: posRecsItr <- text.ps.find(q)
+                        itr Map<me int, me posRec>: posRecsItr <- text.ps.find(q)
                         if(posRecsItr!=text.ps.end()){ // We need to change colors.
                             pr<-posRecsItr.val
-                            me int[itr map their void]: colorCodeItr <- text.colorCodes.find(pr.itemParsed)
+                            itr Map<their void, me int>: colorCodeItr <- text.colorCodes.find(pr.itemParsed)
                             me bool: colorCodeExists <- colorCodeItr!=text.colorCodes.end()
                             if(colorCodeExists){
                                 if(pr.isStart) {

@@ -194,7 +194,7 @@ struct JSON {
             else{retVal<-"false"}
         }
         else if(type == 6){    // arrayType
-            their JSONValue[their map string]: JV_Map <- JV.getAsMap()
+            their Map<me string, their JSONValue>: JV_Map <- JV.getAsMap()
             retVal <- retVal + "["
             me int: arraySize <- JV_Map.size()
             withEach count in RANGE(0..arraySize) {
@@ -204,7 +204,7 @@ struct JSON {
             retVal <- retVal + "]"
         }
         else if(type == 7){    // objectType
-            their JSONValue[their map string]: JV_Map <- JV.getAsMap()
+            their Map<me string, their JSONValue>: JV_Map <- JV.getAsMap()
             retVal <- retVal + "{"
             me int: count <- 0
             withEach node in JV_Map {
@@ -237,7 +237,7 @@ struct JSON {
             else{return("false")}
         }
         else if(type == 6){    // arrayType
-            their JSONValue[their map string]: JV_Map <- JV.getAsMap()
+            their Map<me string, their JSONValue>: JV_Map <- JV.getAsMap()
             me int: arraySize <- JV_Map.size()
             withEach count in RANGE(0..arraySize) {
                 if(toString(count) == JV_key) {
@@ -248,7 +248,7 @@ struct JSON {
             }
         }
         else if(type == 7){    // objectType
-            their JSONValue[their map string]: JV_Map <- JV.getAsMap()
+            their Map<me string, their JSONValue>: JV_Map <- JV.getAsMap()
             me int: count <- 0
             withEach node in JV_Map {
                 count <- count +1

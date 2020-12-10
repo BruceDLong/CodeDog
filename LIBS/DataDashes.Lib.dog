@@ -366,10 +366,16 @@ struct GraphDataStream {
     me double: screenDataAvg
 
     void: clearInterval(me double: start, me double: end) <- {
-        me datum[itr map timeValue]: startItr <- dataMap.find(start)
-        me datum[itr map timeValue]: endItr   <- dataMap.find(end)
+        itr Map<me timeValue, me datum>: startItr <- dataMap.find(start)
+        itr Map<me timeValue, me datum>: endItr   <- dataMap.find(end)
         dataMap.erase(startItr, endItr)
     }
+}
+
+struct DataGen{
+    me int: lowVal
+    me int: highVal
+    our GraphDataStreamSources: dataStreamSrcs
 }
 
 struct GraphDataStreamSources{

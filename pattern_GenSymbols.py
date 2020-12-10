@@ -16,7 +16,6 @@ def apply(classes, tags, classesToTrack):
     struct <CLASSNAME> {
         we uint: symbolCount
         me uint[we map int]: ptrToUint
-    //    me <CLASSNAME>[their map]: uintToPtr
         we string: classTag <- "<CLASSNAME>"
 
     me string: mySymbol() <- {  // find or generate symbol

@@ -530,7 +530,7 @@ struct GUI_button{
     me void: setWidgetActive            <- <%!%0.setEnabled (%1)%>
 }
 struct GUI_ZStack: inherits=LinearLayout{
-    their GUI_Frame[map string]: children
+    me Map<me string, their GUI_Frame>: children
 
     me none: GUI_ZStack() <- <%{
         super(GLOBAL.static_Global);
@@ -1096,7 +1096,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     their LinearLayout: window
     me int: widgetHeight() <- <%!%G%1.getHeight()%>
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
-    me INK_Image[map string]: InkImgCache
+    me Map<me string, me INK_Image: InkImgCache
     me long: ticksPerSec() <- <%!%G1000%>
     me SubMenu: parentMenu
     me AssetManager: assetManager

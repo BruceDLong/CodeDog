@@ -37,7 +37,7 @@ struct dash: inherits=widget{
 
 struct Dashboard: inherits=dash{
     me List<our dash>: dashChildren
-    their dash[map string]: dependentItems
+    me Map<me string, their dash>: dependentItems
     me List<our decor>: decorations
     mode[accomodateParent, accomodateContent]: sizingMode
     mode[singleDash, verticalStack, userArranges]: layoutMode
@@ -46,7 +46,7 @@ struct Dashboard: inherits=dash{
 
     their dash: dependentIsRegistered(me string: key) <- {
         if(dependentItems.containsKey(key)){
-            return(dependentItems.get(key))
+            return(dependentItems.at(key))
         }
         return(NULL)
     }
