@@ -294,7 +294,7 @@ struct Styler{
 
 struct GLOBAL{
     their GRWindow: window
-    their INK_Image[map string]: picCache
+    me Map<me string, their INK_Image>: picCache
 
     void: deinitGraphics() <- {
         deallocateWindow(window)

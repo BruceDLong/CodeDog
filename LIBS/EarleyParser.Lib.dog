@@ -268,7 +268,7 @@ struct EParser{
     void: dumpGraph(me string: title, me int: layout) <- {
         grapher.clear()
         grapher.addItem("rankdir=LR;")
-        me string[map string]: rankSlots
+        me Map<me string, me string>: rankSlots
         me string: prevHeader <- ""
         withEach crntPos in RANGE(0 .. SSets.size()) {
             me int64: curPos <- crntPos

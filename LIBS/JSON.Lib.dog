@@ -204,7 +204,7 @@ struct JSON {
             retVal <- retVal + "]"
         }
         else if(type == 7){    // objectType
-            their JSONValue[their map string]: JV_Map <- JV.getAsMap()
+            their Map<me string, their JSONValue>: JV_Map <- JV.getAsMap()
             retVal <- retVal + "{"
             me int: count <- 0
             withEach node in JV_Map {
@@ -248,7 +248,7 @@ struct JSON {
             }
         }
         else if(type == 7){    // objectType
-            their JSONValue[their map string]: JV_Map <- JV.getAsMap()
+            their Map<me string, their JSONValue>: JV_Map <- JV.getAsMap()
             me int: count <- 0
             withEach node in JV_Map {
                 count <- count +1
