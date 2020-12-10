@@ -506,8 +506,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     else: fieldTypeIn = None
 
 
-    isStructLikeContainer = False
-    if progSpec.isNewContainerTempFunc(typeSpecIn): isStructLikeContainer = True
+    isNewContainer = False
+    if progSpec.isNewContainerTempFunc(typeSpecIn): isNewContainer = True
 
     IsAContainer = progSpec.isAContainer(typeSpecIn)
     if (fieldTypeIn!=None and isinstance(fieldTypeIn, str) and not IsAContainer):
@@ -523,7 +523,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             typeSpecOut['codeConverter'] = codeCvrtText
             if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
 
-    elif IsAContainer and (not isStructLikeContainer or name[0]=='['):
+    elif IsAContainer and (not isNewContainer or name[0]=='['):
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')
         [valOwner, valFieldType]=progSpec.getContainerValueOwnerAndType(typeSpecIn)
         typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
@@ -545,7 +545,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
-        if isStructLikeContainer == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
+        if isNewContainer == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
         else: fType=progSpec.fieldTypeKeyword(fieldTypeIn)
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, xlator)
@@ -566,7 +566,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, xlator)
                 typeSpecOut=CheckObjectVars(fType, name, fieldIDArgList)
                 if typeSpecOut!=0:
-                    if isStructLikeContainer == True:
+                    if isNewContainer == True:
                         segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
                         segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut['typeSpec'])
                         [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
@@ -576,7 +576,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                             typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
                     name=typeSpecOut['fieldName']
                     typeSpecOut=typeSpecOut['typeSpec']
-                else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isStructLikeContainer:",isStructLikeContainer)
+                else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isNewContainer:",isNewContainer)
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)

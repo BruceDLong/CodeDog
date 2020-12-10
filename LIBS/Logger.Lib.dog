@@ -60,7 +60,7 @@ struct GLOBAL{
 
 struct graphLogger{
     me List<me string>: items
-    me string[map string]: rankSlots
+    me Map<me string, me string>: rankSlots
 
     me string: deQuote(me string: S) <-{
         me string: sOut

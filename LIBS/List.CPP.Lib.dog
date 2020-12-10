@@ -35,6 +35,7 @@ struct CPP_Deque<nodeType>: implements = List wraps = deque specs = {insert = li
     nodeType: popLast()                         <- <%!%0.back(); %0.pop_back()%>
     me void: prepend(nodeType: value)           <- <%!push_front(%1)%>
     itr nodeType: __putAt(itr nodeType: position, nodeType: value) <- <%!insert(%1, %2)%>
+    void: resize(me int: size)                  <- <%!resize(%1)%>
     me uint: size()                             <- <%!size()%>
     /////////////////////////////////////////
     me void: pushFirst(nodeType: value)         <- <%!push_front(%1)%>

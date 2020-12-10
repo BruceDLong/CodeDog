@@ -268,7 +268,7 @@ struct linesMngr {
 
     void: doEnter() <- {
         their lineX:: newLine
-        me charX[their list]: CrntLine <- crntLine()
+        me List<me charX>: CrntLine <- crntLine()
         me int: crntLineSize <- CrntLine.size()
         withEach pos in RANGE(charsToCur .. crntLineSize){newLine.chars.pushLast(CrntLine[pos])}
         me lineIterator: nxtLine <- currentLine
@@ -323,8 +323,8 @@ struct posRec{ // Use this to store the position of infons in a parsed string.
 
 struct posRecStore{
     me string: s
-    me posRec[map int]:  ps
-    me int[their map their void]: colorCodes
+    me Map<me int, me posRec>:  ps
+    their Map<their void, me int>: colorCodes
     none: posRecStore(me string: text <- "", me int[their map their void]: colCode<-0) <- {s<-text; colorCodes<-colCode;}
 }
 
@@ -386,10 +386,10 @@ struct readMultiLine {
                     mgr.totalLines <- mgr.totalLines + 1
                 } else {
                      if(text.colorCodes){
-                        me posRec[itr map int]: posRecsItr <- text.ps.find(q)
+                        itr Map<me int, me posRec>: posRecsItr <- text.ps.find(q)
                         if(posRecsItr!=text.ps.end()){ // We need to change colors.
                             pr<-posRecsItr.val
-                            me int[itr map their void]: colorCodeItr <- text.colorCodes.find(pr.itemParsed)
+                            itr Map<their void, me int>: colorCodeItr <- text.colorCodes.find(pr.itemParsed)
                             me bool: colorCodeExists <- colorCodeItr!=text.colorCodes.end()
                             if(colorCodeExists){
                                 if(pr.isStart) {
