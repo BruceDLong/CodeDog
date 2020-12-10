@@ -89,7 +89,7 @@ expr <<= Group( logOr + Optional(Group(Group(Literal("<-")("assignAsExpr") + log
 swap = Group(lValue + Literal("<->")("swapID") + lValue ("RightLValue"))("swap")
 rValue = Group(expr)("rValue")
 assign = lValue + Combine("<" + (Optional((Word(alphanums + '_') | '+' | ('-' + FollowedBy("-")) | '*' | '/' | '%' | '<<' | '>>' | '&' | '^' | '|')("assignTag"))) + "-")("assignID") + rValue
-parameters <<= "(" + Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
+parameters <<= "(" - Optional(Group(delimitedList(rValue, ','))) + Suppress(")")
 initParams = "{" + Optional(Group(delimitedList(rValue, ','))("initParams")) + Suppress("}")
 
 ########################################   F U N C T I O N S
@@ -102,11 +102,11 @@ switchCase= Group(Keyword("case") + OneOrMore(rValue + Suppress(":"))("caseValue
 switchStmt= Group(Keyword("switch")("switchStmt") - "(" - rValue("switchKey") - ")" - "{" - OneOrMore(switchCase)("switchCases") - Optional(defaultCase)("optionalDefaultCase") + "}")
 conditionalAction = Forward()
 conditionalAction <<= Group(
-            Group(Keyword("if") + "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
+            Group(Keyword("if") - "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
             + Optional(Group((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse"))
         )("conditionalAction")
 traversalModes = Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative")
-rangeSpec = Group(Keyword("RANGE") + '(' + rValue + ".." + rValue + ')')
+rangeSpec = Group(Keyword("RANGE") - '(' + rValue + ".." + rValue + ')')
 whileSpec = Group(Keyword('WHILE') + '(' + expr + ')')
 newWhileSpec  = Group(Keyword('while') + '(' + expr + ')')
 whileAction = Group(newWhileSpec('newWhileSpec') + actionSeq)("whileAction")
@@ -123,13 +123,13 @@ repeatedAction = Group(
         )("repeatedAction")
 
 action = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
-actionSeq <<=  Group(Literal("{")("actSeqID") + (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
+actionSeq <<=  Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
 funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
-          (":" + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
+          (":" + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) - "<-" - funcBody )         # Function Definition
         | (":" + CID("fieldName") + Group(initParams)("parameters"))
         | (":" + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
         | (":" + "<-" - (rValue("givenValue") | funcBody))
@@ -151,8 +151,8 @@ baseType = cppType | numRange
 fieldDefs = ZeroOrMore(fieldDef)("fieldDefs")
 SetFieldStmt = Group(Word(alphanums + "_.") + '=' + Word(alphanums + r"_. */+-(){}[]\|<>,./?`~@#$%^&*=:!'" + '"'))
 coFactualEl  = Group("(" + Group(fieldDef + "<=>" + Group(OneOrMore(SetFieldStmt + Suppress(';'))))  + ")")("coFactualEl")
-sequenceEl = "{" + fieldDefs + "}"
-alternateEl  = "[" + Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
+sequenceEl = "{" - fieldDefs + "}"
+alternateEl  = "[" - Group(OneOrMore((coFactualEl | fieldDef) + Optional("|").suppress()))("fieldDefs") + "]"
 anonModel = sequenceEl("sequenceEl") | alternateEl("alternateEl")
 owners <<= Keyword("const") | Keyword("me") | Keyword("my") | Keyword("our") | Keyword("their") | Keyword("we") | Keyword("itr") | Keyword("id_our") | Keyword("id_their")
 fullFieldDef <<= Optional('>')('isNext') + Optional(owners)('owner') + Group(baseType | altModeSpec | classSpec | Group(anonModel) | datastructID)('fieldType') + Optional(arraySpec) + Optional(nameAndVal)
@@ -176,9 +176,8 @@ def parseInput(inputStr):
     try:
         localResults = progSpecParser.parseString(inputStr, parseAll=True)
 
-    except ParseException as pe:
-        cdErr( "Error parsing: {}".format( pe))
-        exit(1)
+    except ParseBaseException as pe:
+        cdErr( "While parsing: {}".format( pe))
     return localResults
 
 autoClassNameIdx = 1
