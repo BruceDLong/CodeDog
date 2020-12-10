@@ -99,6 +99,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
             count += 1
         reqTagString += ">"
         langType += reqTagString
+        InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
 
     if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
@@ -390,18 +391,20 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText       = ""
     loopCounterName  = ""
+    owner            = progSpec.getContainerFirstElementOwner(containerType)
     containedType    = progSpec.getFieldType(containerType)
+    ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     if progSpec.ownerIsPointer(containerOwner): connector="->"
     else: connector = "."
-    containerOwner=progSpec.getOwnerFromTypeSpec(containerType)
-    ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
-
+    reqTagList       = progSpec.getReqTagList(containerType)
     if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map':
+        if(reqTagList != None):
+            ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         KeyVarOwner=progSpec.getOwnerFromTypeSpec(containerType)
-        keyVarSpec = {'owner':KeyVarOwner, 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        keyVarSpec = {'owner':'itr', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
-
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+connector+'lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + repContainer+connector+'upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
@@ -416,7 +419,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
 
 def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContainer,datastructID,keyFieldType,containerOwner, isBackward, actionOrField, indent,xlator):
     #TODO: handle isBackward
-    willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
+    willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText       = ""
     loopCounterName  = ""
     owner            = progSpec.getContainerFirstElementOwner(containerType)

@@ -459,9 +459,9 @@ def applyStructImplemetation(typeSpec,currentObjName,fieldName):
     return typeSpec
 
 def codeAllocater(typeSpec, xlator):
-    S=''
-    owner           = progSpec.getTypeSpecOwner(typeSpec)
-    fType           = progSpec.getFieldType(typeSpec)
+    S     = ''
+    owner = progSpec.getTypeSpecOwner(typeSpec)
+    fType = progSpec.getFieldType(typeSpec)
     if isinstance(fType, str): varTypeStr1=fType;
     else: varTypeStr1=fType[0]
 
@@ -583,10 +583,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         typeSpecOutKeyWord = progSpec.getFieldTypeKeyWord(typeSpecOut)
         reqTagList = progSpec.getReqTagList(typeSpecIn)
         if typeSpecOutKeyWord == "keyType":
-            typeSpecOut['owner']      = progSpec.getOwnerFromTemplateArg(reqTagList[0])
-            typeSpecOut['fieldType']  = progSpec.getTypeFromTemplateArg(reqTagList[0])
+            if typeSpecOut['owner']!="itr":typeSpecOut['owner'] = progSpec.getOwnerFromTemplateArg(reqTagList[0])
+            typeSpecOut['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[0])
         elif typeSpecOutKeyWord == "valueType":
-            typeSpecOut['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            if typeSpecOut['owner']!="itr":typeSpecOut['owner'] = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             typeSpecOut['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         if "%T0Type" in convertedName:
             if(reqTagList != None):
