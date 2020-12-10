@@ -396,7 +396,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     containerOwner=progSpec.getOwnerFromTypeSpec(containerType)
     ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
 
-    if datastructID=='multimap' or datastructID=='map':
+    if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map':
         KeyVarOwner=progSpec.getOwnerFromTypeSpec(containerType)
         keyVarSpec = {'owner':KeyVarOwner, 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope

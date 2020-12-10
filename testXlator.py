@@ -12,7 +12,7 @@ workingDirectory = ""
 runDirectory = ""
 
 testDefinitions = {
-     'class/simple':        ['struct emptyClass{ }', 'PGBR:'],
+     'class/simple':        ['struct emptyClass{ }', 'PGB:'],
      'class/intDecl':       ['struct testClass{ me void: runTest()<-{me int: myInt <- 1\nprint(myInt)}}', 'PGBR:1'],
      'class/strDecl':       ['struct testClass{ me void: runTest()<-{me string: myString <- "one"\nprint(myString)}}', 'PGBR:one'],
      'class/int32Decl':     ['struct testClass{ me void: runTest()<-{me int32: myInt32 <- 1\nprint(myInt32)}}', 'PGBR:1'],
@@ -37,7 +37,7 @@ struct testClass{
         me double: myDouble <- 1
         print(myDouble)
         me uint32: myUint32 <- 1
-        print(myUnit32)
+        print(myUint32)
         me uint64: myUint64 <-2
         print(myUint64)
         me bool: myBool <- true
