@@ -1120,7 +1120,7 @@ def cdErr(mesg):
     global lastLogMesgs
     global highestLvl
     highestLvl+=1
-    lastLogMesgs[highestLvl]="Error: "+mesg
+    lastLogMesgs[highestLvl]="\n\nError: "+mesg
     exit(1)
 
 def whenExit():
