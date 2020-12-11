@@ -129,7 +129,7 @@ funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
 
 #########################################   F I E L D   D E S C R I P T I O N S
 nameAndVal = Group(
-          (":" + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) - "<-" - funcBody )         # Function Definition
+          (":" + CID("fieldName") + "(" + argList + Literal(")")('argListTag') + Optional(Literal(":")("optionalTag") + tagDefList) + "<-" - funcBody )         # Function Definition
         | (":" + CID("fieldName") + Group(initParams)("parameters"))
         | (":" + CID("fieldName") + "<-" - (rValue("givenValue") | rValueVerbatim))
         | (":" + "<-" - (rValue("givenValue") | funcBody))
