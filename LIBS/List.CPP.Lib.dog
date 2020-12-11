@@ -57,7 +57,7 @@ struct CPP_Map<keyType, valueType>: implements = Map wraps = map specs = {insert
     itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>
     me bool:  isEmpty()                         <- <%!empty()%>
     nodeType: last()                            <- <%!rbegin()->second%>
-    itr valueType: lower_bound()                <- <%!lower_bound()%>
+    itr valueType: lower_bound(keyType: key)    <- <%!lower_bound(%1)%>
     //nodeType: popFirst()                        <- <%!%0.front(); %0.pop_front()%>
     //nodeType: popLast()                         <- <%!%0.back(); %0.pop_back()%>
     me uint:  size()                            <- <%!size()%>
