@@ -358,7 +358,7 @@ struct timeStepInterval{their graph: parentWidget me timeValue: start me timeVal
 
 struct GraphDataStream {
     me string: title
-    me datum[our map timeValue]:: dataMap
+    our Map<me timeValue, me datum>:: dataMap
     me cdColor: lineColor
     me cdColor: fillColor
     me bool: isVisible <- false
@@ -368,7 +368,7 @@ struct GraphDataStream {
     void: clearInterval(me double: start, me double: end) <- {
         itr Map<me timeValue, me datum>: startItr <- dataMap.find(start)
         itr Map<me timeValue, me datum>: endItr   <- dataMap.find(end)
-        dataMap.erase(startItr, endItr)
+        dataMap.eraseInterval(startItr, endItr)
     }
 }
 
@@ -392,7 +392,7 @@ struct GraphDataStreamSources{
 }
 struct dataCacheStream {  // Use this to gather data and transfer it to the GUI thread
     me string: title
-    me datum[me map timeValue]: dataMap
+    me Map<me timeValue,me datum>: dataMap
 }
 struct dataCacheStreams {
     me List<our dataCacheStream>: dataStreams

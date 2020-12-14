@@ -459,9 +459,9 @@ def applyStructImplemetation(typeSpec,currentObjName,fieldName):
     return typeSpec
 
 def codeAllocater(typeSpec, xlator):
-    S=''
-    owner           = progSpec.getTypeSpecOwner(typeSpec)
-    fType           = progSpec.getFieldType(typeSpec)
+    S     = ''
+    owner = progSpec.getTypeSpecOwner(typeSpec)
+    fType = progSpec.getFieldType(typeSpec)
     if isinstance(fType, str): varTypeStr1=fType;
     else: varTypeStr1=fType[0]
 
@@ -512,7 +512,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     IsAContainer = progSpec.isAContainer(typeSpecIn)
     if (fieldTypeIn!=None and isinstance(fieldTypeIn, str) and not IsAContainer):
         if fieldTypeIn=="string":
-            [name, typeSpecOut] = xlator['recodeStringFunctions'](name, typeSpecOut)
+            [name, tmpTypeSpec] = xlator['recodeStringFunctions'](name, typeSpecOut)
+            typeSpecOut = copy.copy(tmpTypeSpec)
 
     if owner=='itr':
         typeSpecOut = copy.copy(typeSpecIn)
@@ -531,7 +532,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             [S2, idxTypeSpec] = xlator['codeExpr'](name[1], objsRefed, None, None, xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName, idxTypeSpec)
             return [S, typeSpecOut, S2,'']
-        [name, typeSpecOut, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxTypeSpec, typeSpecOut, paramList, xlator)
+        [name, tmpTypeSpec, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxTypeSpec, typeSpecOut, paramList, xlator)
+        typeSpecOut = copy.copy(tmpTypeSpec)
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
         if name=="return":
@@ -564,7 +566,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         else:
             if fType!='string':
                 [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, xlator)
-                typeSpecOut=CheckObjectVars(fType, name, fieldIDArgList)
+                tmpTypeSpec = CheckObjectVars(fType, name, fieldIDArgList)
+                typeSpecOut = copy.copy(tmpTypeSpec)
                 if typeSpecOut!=0:
                     if isNewContainer == True:
                         segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
@@ -575,7 +578,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                         if(innerTypeKeyWord):
                             typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
                     name=typeSpecOut['fieldName']
-                    typeSpecOut=typeSpecOut['typeSpec']
+                    typeSpecOut = copy.copy(typeSpecOut['typeSpec'])
                 else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isNewContainer:",isNewContainer)
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
@@ -583,10 +586,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         typeSpecOutKeyWord = progSpec.getFieldTypeKeyWord(typeSpecOut)
         reqTagList = progSpec.getReqTagList(typeSpecIn)
         if typeSpecOutKeyWord == "keyType":
-            typeSpecOut['owner']      = progSpec.getOwnerFromTemplateArg(reqTagList[0])
-            typeSpecOut['fieldType']  = progSpec.getTypeFromTemplateArg(reqTagList[0])
+            if typeSpecOut['owner']!="itr":typeSpecOut['owner'] = progSpec.getOwnerFromTemplateArg(reqTagList[0])
+            typeSpecOut['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[0])
         elif typeSpecOutKeyWord == "valueType":
-            typeSpecOut['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            if typeSpecOut['owner']!="itr":typeSpecOut['owner'] = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             typeSpecOut['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         if "%T0Type" in convertedName:
             if(reqTagList != None):
@@ -931,9 +934,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         LHS = action['LHS']
         RHS =  action['RHS']
         typeSpec   = fetchItemsTypeSpec(LHS, objsRefed, xlator)
-        print("swap LHS RHS: ", LHS, RHS,typeSpec)
         [typeLHS, innerTypeLHS] = xlator['convertType'](globalClassStore, typeSpec[0], 'var', 'action', xlator)
-        print("typeLHS: ", typeLHS, " --- ", innerTypeLHS)
         typeSpec   = fetchItemsTypeSpec(RHS, objsRefed, xlator)
         [typeRHS, innerTypeRHS] = xlator['convertType'](globalClassStore, typeSpec[0], 'var', 'action', xlator)
         LHS = LHS[0]
@@ -941,7 +942,6 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         actionText = indent + typeLHS + " tmp = " + LHS + ";\n"
         actionText += indent + LHS + " = " + RHS + ";\n"
         actionText += indent + RHS + " = " + "tmp;\n"
-        print("actionText: ", actionText)
     elif (typeOfAction =='conditional'):
         cdlog(5, "If-statement...")
         [S2, conditionTypeSpec] =  xlator['codeExpr'](action['ifCondition'][0], objsRefed, None, None, xlator)
