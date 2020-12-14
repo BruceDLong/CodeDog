@@ -15,7 +15,7 @@ def apply(classes, tags, classesToTrack):
         C= '''
     struct <CLASSNAME> {
         we uint: symbolCount
-        me uint[we map int]: ptrToUint
+        we Map<me int, me uint>: ptrToUint
         we string: classTag <- "<CLASSNAME>"
 
     me string: mySymbol() <- {  // find or generate symbol
@@ -28,7 +28,7 @@ def apply(classes, tags, classesToTrack):
             return(classTag + toString(symbolCount))
         }
         else {
-            me int: item <- ptrToUint.get(objID)
+            me int: item <- ptrToUint.at(objID)
             me int: symbol <- item
             return(classTag + toString(symbol))
         }

@@ -513,10 +513,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     if (fieldTypeIn!=None and isinstance(fieldTypeIn, str) and not IsAContainer):
         if fieldTypeIn=="string":
             [name, tmpTypeSpec] = xlator['recodeStringFunctions'](name, typeSpecOut)
-            typeSpecOut = dict.copy(tmpTypeSpec)
+            typeSpecOut = copy.copy(tmpTypeSpec)
 
     if owner=='itr':
-        typeSpecOut = dict.copy(typeSpecIn)
+        typeSpecOut = copy.copy(typeSpecIn)
         typeSpecOut['arraySpec'] = None
         fieldTypeOut=progSpec.getFieldTypeNew(typeSpecOut)
         codeCvrtText = xlator['codeIteratorOperation'](name, fieldTypeOut)
@@ -533,7 +533,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName, idxTypeSpec)
             return [S, typeSpecOut, S2,'']
         [name, tmpTypeSpec, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxTypeSpec, typeSpecOut, paramList, xlator)
-        typeSpecOut = dict.copy(tmpTypeSpec)
+        typeSpecOut = copy.copy(tmpTypeSpec)
 
     elif ('dummyType' in typeSpecIn): # This is the first segment of a name
         if name=="return":
@@ -567,7 +567,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             if fType!='string':
                 [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, xlator)
                 tmpTypeSpec = CheckObjectVars(fType, name, fieldIDArgList)
-                typeSpecOut = dict.copy(tmpTypeSpec)
+                typeSpecOut = copy.copy(tmpTypeSpec)
                 if typeSpecOut!=0:
                     if isNewContainer == True:
                         segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
@@ -578,7 +578,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                         if(innerTypeKeyWord):
                             typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
                     name=typeSpecOut['fieldName']
-                    typeSpecOut=dict.copy(typeSpecOut['typeSpec'])
+                    typeSpecOut = copy.copy(typeSpecOut['typeSpec'])
                 else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isNewContainer:",isNewContainer)
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:

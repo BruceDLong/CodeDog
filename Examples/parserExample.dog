@@ -13,7 +13,7 @@ Authors = "Bruce Long"
 Description = "Example of parser"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [Logger, BigNumbers]
+featuresNeeded = [Logger, BigNumbers, List]
 
 LicenseText = `Public Domain`
 
@@ -42,9 +42,9 @@ struct Company{
 string Address{
     >int: streetNumber
     >ws>[("N"<=> streetPrefix=N;)
-	|("S"<=> streetPrefix=S;)
-	|("E"<=> streetPrefix=E;)
-	|("W"<=> streetPrefix=W;)
+        |("S"<=> streetPrefix=S;)
+        |("E"<=> streetPrefix=E;)
+        |("W"<=> streetPrefix=W;)
         ][opt]
     >ws>string: streetName
     >ws>string: city
@@ -58,24 +58,24 @@ string EmpName{
 string Employee{
     >ws>EmpName: empName
     >ws>[("Mr"<=> title=Mr;)
-	|("Ms"<=> title=Ms;)
-	|("Dr"<=> title=Dr;)
+        |("Ms"<=> title=Ms;)
+        |("Dr"<=> title=Dr;)
         ][opt]
     >ws>me Address
 }
 string Company: StartSymbol="true" {
     >{>string: companyName > ws
-	>Employee[list]: employees
+        >Employee[list]: employees
     }
 }
 
 struct GLOBAL{
     void: runProg()<-{
-	our Company: result <- Parse_Company("'The Slipstream' 'Bob' 'Roberts' 123 W 'Oak' 'BayCity' 12345")
+        our Company: result <- Parse_Company("'The Slipstream' 'Bob' 'Roberts' 123 W 'Oak' 'BayCity' 12345")
         print("Parse Complete\n")
-	print("    CompanyName:",result.companyName,"\n")
-	print("    Employee:",result.employees[0].empName.firstName," ",result.employees[0].empName.lastName,"\n")
-	print("    Address:",result.employees[0].streetNumber," ",result.employees[0].streetName,"\n")
+        print("    CompanyName:",result.companyName,"\n")
+        print("    Employee:",result.employees[0].empName.firstName," ",result.employees[0].empName.lastName,"\n")
+        print("    Address:",result.employees[0].streetNumber," ",result.employees[0].streetName,"\n")
     }
 }
 
