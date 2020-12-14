@@ -30,6 +30,19 @@ if sys.version_info[0] < 3:
     print("\n\nERROR: CodeDog must be used with Python 3\n")
     exit(1)
 
+codeDogVersion = '2.0'
+
+
+if(len(sys.argv) < 2):
+    print("\n    usage: codeDog [-v] filename\n")
+    exit(1)
+arg1 = sys.argv[1]
+if arg1=="-v" or arg1=='--version':
+    print("\n    CodeDog application compiler version "+ codeDogVersion+"\n")
+    exit(1)
+if arg1[0]=='-':
+    print("Unsupported argument:", arg1)
+    exit(1)
 atexit.register(progSpec.whenExit)
 sys.setrecursionlimit(5000)
 startTime = timer()
@@ -97,11 +110,9 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
 #############################################    L o a d / P a r s e   P r o g r a m   S p e c
 
 cdlog(0, "\n######################   P R O C E S S I N G   M A I N   P R O G R A M   ######################")
-if(len(sys.argv) < 2): cdErr( "No Filename given.\n")
-
 libraryMngr.findLibraryFiles()
 
-filename = abspath(os.getcwd()) + "/" + sys.argv[1]
+filename = abspath(os.getcwd()) + "/" + arg1
 [ProgSpec, objNames, macroDefs] = [ {}, [], {} ]
 [tagStore, buildSpecs, classes] = CodeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
 print("Marker: Parse Successful")
