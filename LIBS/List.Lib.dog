@@ -6,29 +6,28 @@ requirements = [
 
 model List<nodeType>{   //model is abstract class
     void: append()             <- {}
-    nodeType: at()          <- {}
+    nodeType: at()             <- {}
     me void: clear()           <- {}
     me void: clipToSize()      <- {}
     itr nodeType: deleteNth()  <- {}
     itr nodeType: end()        <- {}
     itr nodeType: erase()      <- {}
-    nodeType: first()       <- {}
+    nodeType: first()          <- {}
     itr nodeType: front()      <- {}
-    nodeType: __getAt()     <- {}
+    nodeType: __getAt()        <- {}
     itr nodeType: insert()     <- {}
     itr nodeType: insertIdx()  <- {}
     me bool: isEmpty()         <- {}
-    nodeType: last()        <- {}
+    nodeType: last()           <- {}
     itr nodeType: nthItr()     <- {}
-    nodeType: popFirst()    <- {}
-    nodeType: popLast()     <- {}
+    nodeType: popFirst()       <- {}
+    nodeType: popLast()        <- {}
     me void: prepend()         <- {}
     itr nodeType: __putAt()    <- {}
     me uint: size()            <- {}
-    ///////////////////////////////////
     me void: pushFirst()       <- {}
     me void: pushLast()        <- {}
-    //me void: begin()         <- {}
-    //me void: rEnd()          <- {}
-    //nodeType: back()      <- {}
+    me void: begin()           <- {}
+    me void: rEnd()            <- {}
+    nodeType: back()           <- {}
 }

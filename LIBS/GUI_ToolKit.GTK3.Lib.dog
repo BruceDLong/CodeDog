@@ -39,15 +39,14 @@ struct GUI_Scalar: wraps = int{}
 struct listWidget: wraps = GtkWidget ownerMe = their{}
 struct GUI_XStack: wraps = GtkWidget ownerMe = their{}
 struct GUI_YStack: wraps = GtkWidget ownerMe = their{}
+struct GUI_ZStack: wraps = GtkWidget ownerMe = their{}
 struct GUI_Text: wraps = GtkWidget ownerMe = their{}
 struct GDK_KEY_Down: wraps = GtkWidget ownerMe = their{}
-struct GUI_ZStack: wraps = GtkWidget ownerMe = their{}
 /////////////////////////////////  WIDGETS
-struct GUI_storyBoard{
+struct GUI_storyBoard{  // TODO: GUI_storyBoard should be GUI_ZStack
     their GtkWidget: GUI_storyBoard
     me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
 }
-
 struct boolWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
     their GUI_Frame: box
     their GUI_Label: dataLabel
@@ -478,9 +477,7 @@ struct ListWidgetManager{
         return box;
     } %>
 }
-
 struct GUI_CompleterList: wraps = GtkListStore ownerMe = their{}
-
 /////////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
 struct GLOBAL{
     me void: setBtnProxy()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
@@ -730,7 +727,7 @@ struct GLOBAL{
 struct GUI_canvas: wraps = GtkWidget ownerMe = their{
     me void: setParent(our DashboardWidget: wid) <- <%!%G%>
 }
-/////////////////////////////////  HANDLE GUI
+
 struct GUI{
     their GtkApplication: app
 

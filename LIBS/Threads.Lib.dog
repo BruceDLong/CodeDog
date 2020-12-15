@@ -27,3 +27,7 @@ struct Threads{
     void: requestClose() <- {notDone <- false}
 
 }
+struct Mutex{}
+struct MutexMngr{}
+struct SyncLock{}
+struct Semaphore{}
