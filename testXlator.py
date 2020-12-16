@@ -12,17 +12,18 @@ workingDirectory = ""
 runDirectory = ""
 
 testDefinitions = {
+    #TODO make more cases for strings and chars with various combinations of double and single quotes
      'class/simple':        ['struct emptyClass{ }', 'PGB:'],
-     'class/intDecl':       ['struct testClass{ me void: runTest()<-{me int: myInt <- 1\n print(myInt)}}', 'PGBR:1'],
+     'class/intDecl':       ['struct testClass{ me void: runTest()<-{me int: myInt <- 123        \n print(myInt)}}',    'PGBR:123'],
      'class/strDecl':       ['struct testClass{ me void: runTest()<-{me string: myString <- "one"\n print(myString)}}', 'PGBR:one'],
-     'class/int32Decl':     ['struct testClass{ me void: runTest()<-{me int32: myInt32 <- 1\n print(myInt32)}}', 'PGBR:1'],
-     'class/int64Decl':     ['struct testClass{ me void: runTest()<-{me int64: myInt64 <- 1\n print(myInt64)}}', 'PGBR:1'],
-     'class/doubleDecl':    ['struct testClass{ me void: runTest()<-{me double: myDb <- 1\n print(myDb)}}', 'PGBR:1'],
-     'class/uint32Decl':    ['struct testClass{ me void: runTest()<-{me uint32: myInt <- 1\n print(myInt)}}', 'PGBR:1'],
-     'class/uint64Decl':    ['struct testClass{ me void: runTest()<-{me uint64: myInt <- 1\n print(myInt)}}', 'PGBR:1'],
-     'class/boolDecl':      ['struct testClass{ me void: runTest()<-{me bool: myBool <- true\n print(myBool)}}', 'PGBR:1'],
-     'class/constDecl':     ['struct testClass{ me void: runTest()<-{const int: myInt <- 2\n print(myInt)}}', 'PGBR:2'],
-     'class/charDecl':      ['struct testClass{ me void: runTest()<-{me char: myChar<- "c"\n print(myChar) }}', 'PGBR:c'],
+     'class/int32Decl':     ['struct testClass{ me void: runTest()<-{me int32: myInt32 <- 123    \n print(myInt32)}}',  'PGBR:123'],
+     'class/int64Decl':     ['struct testClass{ me void: runTest()<-{me int64: myInt64 <- 123    \n print(myInt64)}}',  'PGBR:123'],
+     'class/doubleDecl':    ['struct testClass{ me void: runTest()<-{me double: myDb <- 12.34    \n print(myDb)}}',     'PGBR:12.34'],
+     'class/uint32Decl':    ['struct testClass{ me void: runTest()<-{me uint32: myInt <- 123     \n print(myInt)}}',    'PGBR:123'],
+     'class/uint64Decl':    ['struct testClass{ me void: runTest()<-{me uint64: myInt <- 123     \n print(myInt)}}',    'PGBR:123'],
+     'class/boolDecl':      ['struct testClass{ me void: runTest()<-{me bool: myBool <- true     \n if(myBool){print("p")}}}','PGBR:p'],
+     'class/constDecl':     ['struct testClass{ me void: runTest()<-{const int: myInt <- 2       \n print(myInt)}}',    'PGBR:2'],
+     'class/charDecl':      ['struct testClass{ me void: runTest()<-{me char: myChar<- "c"       \n print(myChar)}}',   'PGBR:c'],
      'class/baseDecls':     ['''
 struct testClass{
     me void: runTest()<-{
@@ -30,24 +31,24 @@ struct testClass{
         print(myInt)
         me string: myString <- "one"
         print(myString)
-        me int32: myInt32 <- 1
+        me int32: myInt32 <- 3
         print(myInt32)
-        me int64: myInt64 <- 1
+        me int64: myInt64 <- 4
         print(myInt64)
-        me double: myDouble <- 1
+        me double: myDouble <- 12.34
         print(myDouble)
-        me uint32: myUint32 <- 1
+        me uint32: myUint32 <- 6
         print(myUint32)
-        me uint64: myUint64 <-2
+        me uint64: myUint64 <-7
         print(myUint64)
         me bool: myBool <- true
-        print(myBool)
-        const int: myConst <- 2
+        if(myBool){print("p")}
+        const int: myConst <- 8
         print(myConst)
         me char: myChar <-"c"
         print(myChar)
     }
-}''', 'PGBR:2one1111212c',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
+}''', 'PGBR:2one3412.3467p8c',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
 #####################################################################################################
 #############################################################
      #'class/strListDecl':  ['struct testClass{me List<me string>: myStringList}', 'PGB:'],
@@ -100,11 +101,11 @@ struct testClass{
     }
 }''', 'PGB:',['actions/varDecl','actions/mapDecl']],
 #####################################################################################################
-     'actions/varAsgn':      ['struct testClass{me void: runTest()<-{me int: actionVarAsgn\nactionVarAsgn<-4567\n print(actionVarAsgn)}}', 'PGBR:4567'],
-     'actions/flagAsgn':     ['struct testClass{flag: isStart\nme void: runTest()<-{print(isStart)\nisStart<-true\n print("-")\n print(isStart)}}', 'PGBR:0-1'],
-     'actions/modeAsgn':     ['struct testClass{me mode[small, medium, large]: myMode\nme void: runTest()<-{print(myModeStrings[myMode]+ "-")\nmyMode<- large\n print(myModeStrings[myMode])}}', 'PGBR:small-large'],
-     'actions/stringAsgn':   ['struct testClass{me void: runTest()<-{me string: actionStrAsgn\nactionStrAsgn<-"Hello"\n print(actionStrAsgn)}}', 'PGBR:Hello'],
-     'actions/mapAsgn':      ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap\ntestMap["key0"]<-"value0"\n print(testMap["key0"])}}', 'PGBR:value0'],
+     'actions/varAsgn':      ['struct testClass{me void: runTest()<-{me int: actionVarAsgn \n actionVarAsgn<-4567 \n print(actionVarAsgn)}}', 'PGBR:4567'],
+     'actions/flagAsgn':     ['struct testClass{flag: isStart \n me void: runTest()<-{print(isStart) \n isStart<-true \n print("-") \n  print(isStart)}}', 'PGBR:0-1'],
+     'actions/modeAsgn':     ['struct testClass{me mode[small, medium, large]: myMode \n me void: runTest()<-{print(myModeStrings[myMode]+ "-") \n myMode<- large \n print(myModeStrings[myMode])}}', 'PGBR:small-large'],
+     'actions/stringAsgn':   ['struct testClass{me void: runTest()<-{me string: actionStrAsgn \n actionStrAsgn<-"Hello" \n print(actionStrAsgn)}}', 'PGBR:Hello'],
+     'actions/mapAsgn':      ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap \n testMap["key0"]<-"value0" \n print(testMap["key0"])}}', 'PGBR:value0'],
      #'actions/dictAsgn':
      #'actions/mapPush':     ['struct testClass{me void: runTest()<-{me List<me string, me string>:testMap<-{"key":"value"}}}', 'PGB:'],
      'actions/assigns':      ['''
@@ -180,160 +181,72 @@ struct testClass{
 }''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good B-boy D-does E-every F-fine G-good 2 3 5 13 21 ',
     ['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteListRep']],
 ###################################################################################################
-     'actions/plusEquals':    ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<+-1\n print(myInt)}}', 'PGBR:3'],
-     'actions/minusEquals':   ['struct testClass{me void: runTest()<-{me int:myInt<-2\nmyInt<--1\n print(myInt)}}', 'PGBR:1'],
-     'actions/multiply':      ['struct testClass{me void: runTest()<-{me int:myInt<-2\n print(myInt*2)}}', 'PGBR:4'],
-     'actions/modulo':        ['struct testClass{me void: runTest()<-{me int:myInt<-9\n print(myInt%2)}}', 'PGBR:1'],
-     'actions/equalEqual':    ['struct testClass{me void: runTest()<-{me int:myInt<-9\nif(myInt==myInt){print("true")}}}', 'PGBR:true'],
-     'actions/bangEqual':     ['struct testClass{me void: runTest()<-{me int:myInt<-9\nif(myInt!=myInt){print("fail")}\nelse{print("true")}}}', 'PGBR:true'],
-     'actions/And':           ['struct testClass{me void: runTest()<-{if(1&1){print("p")}}}','PGBR:p'],
-     'actions/Xor':           ['struct testClass{me void: runTest()<-{if(1^0){print("p")}}}','PGBR:p'],
-     'actions/Ior':           ['struct testClass{me void: runTest()<-{if(1|1){print("p")}}}','PGBR:p'],
-     'actions/LogAnd':        ['struct testClass{me void: runTest()<-{if(true and true){print("p")}}}','PGBR:p'],
-     'actions/LogOr':         ['struct testClass{me void: runTest()<-{if(true or true){print("p")}}}','PGBR:p'],
-     'actions/lessThan':      ['struct testClass{me void: runTest()<-{if(1<2){print("p")}}}','PGBR:p'],
-     'actions/lessThanEq':    ['struct testClass{me void: runTest()<-{if(1<=2){print("p")}}}','PGBR:p'],
-     'actions/greaterThan':   ['struct testClass{me void: runTest()<-{if(2>1){print("p")}}}','PGBR:p'],
-     'actions/greaterThanEq': ['struct testClass{me void: runTest()<-{if(2>=2){print("p")}}}','PGBR:p'],
+     'actions/plusEquals':    ['struct testClass{me void: runTest()<-{me int:A<-2 \n A<+-1 \n print(A)}}', 'PGBR:3'],
+     'actions/minusEquals':   ['struct testClass{me void: runTest()<-{me int:A<-2 \n A<--1 \n print(A)}}', 'PGBR:1'],
+     'actions/multiply':      ['struct testClass{me void: runTest()<-{me int:A<-2 \n print(A*2)}}', 'PGBR:4'],
+     'actions/modulo':        ['struct testClass{me void: runTest()<-{me int:A<-9 \n print(A%2)}}', 'PGBR:1'],
+     'actions/equalEqual':    ['struct testClass{me void: runTest()<-{me int:A<-9 \n if(A==9){print("p")}}}', 'PGBR:p'],
+     'actions/bangEqual':     ['struct testClass{me void: runTest()<-{me int:A<-9 \n if(A!=9){print("f")}\nelse{print("t")}}}', 'PGBR:t'],
+     'actions/And':           ['struct testClass{me void: runTest()<-{if(1&1)    {print("p")}}}','PGBR:p'],
+     'actions/Xor':           ['struct testClass{me void: runTest()<-{if(1^0)    {print("p")}}}','PGBR:p'],
+     'actions/Ior':           ['struct testClass{me void: runTest()<-{if(1|1)    {print("p")}}}','PGBR:p'],
+     'actions/LogAnd':        ['struct testClass{me void: runTest()<-{if(1 and 1){print("p")}}}','PGBR:p'],
+     'actions/LogOr':         ['struct testClass{me void: runTest()<-{if(1 or 1) {print("p")}}}','PGBR:p'],
+     'actions/lessThan':      ['struct testClass{me void: runTest()<-{if(1<2)    {print("p")}}}','PGBR:p'],
+     'actions/lessThanEq':    ['struct testClass{me void: runTest()<-{if(1<=2)   {print("p")}}}','PGBR:p'],
+     'actions/greaterThan':   ['struct testClass{me void: runTest()<-{if(2>1)    {print("p")}}}','PGBR:p'],
+     'actions/greaterThanEq': ['struct testClass{me void: runTest()<-{if(2>=2)   {print("p")}}}','PGBR:p'],
+     'actions/compNullPtrs':  ['struct testClass{me void: runTest()<-{our string: Q \n their string: P \n if(P or Q){print("p")}}}','PGBR:p'],
      'actions/operators':     ['''
 struct testClass{
     me void: runTest()<-{
-        testPE(3)
-        testME(3)
-        testMultiply(5)
-        testModulo(9)
-        testequalEqual(1)
-        testBangEq()
+        me int:A<-7
+        A<+-1
+        print(A)
+        A<--1
+        print(A)
+        print(A*2)
+        print(A%2)
+        if(A==7){print("==p")}
+        if(A!=7){print("f")}else{print("!=p")}
         testAnd()
         testXor()
         testIor()
-        testLogAnd()
-        testLogOr()
-        testLessThan()
-        testLessThanEq()
-        testGreaterThan()
-        testGreaterThanEq()
+        if(1 and 1){print("and p")}
+        if(1 or 1) {print("or p")}
+        if(1<2)    {print("<p")}
+        if(1<=2)   {print("<=p")}
+        if(2>1)    {print(">p")}
+        if(2>=1)   {print(">=p")}
+        our string: Q
+        their string: P
+        if(P or Q){print(" Ptr p")}
     }
-    me void: testPE(me int: intArg)<-{
-        intArg<+-1
-        print(intArg)
-    }
-
-    me void: testME(me int: intArg)<-{
-        intArg<--1
-        print(intArg)
-    }
-
-    me void: testMultiply(me int: intArg)<-{
-        print(intArg*2)
-    }
-    me void: testModulo(me int: intArg)<-{
-        print(intArg%2)
-    }
-
-    me void: testequalEqual(me int: intArg)<-{
-        if(intArg == intArg){
-            print(" true")
-        }else{print(" false")}
-    }
-
-    me void: testBangEq()<-{
-        me int:myInt<-9
-        if(myInt!=myInt){
-            print(" fail")
-        }
-        else{
-            print(" true")
-        }
-    }
-
     me void: testAnd()<-{
         me int: a <- 0
         me int: b <- 1
-        if(a&a){
-            print(" fail")
-        }
-        if(a&b){
-            print(" fail")
-        }
-        if(b&a){
-            print(" fail")
-        }
-        if(b&b){
-            print(" Pass")
-        }
+        if(a&a){print("&f")}
+        if(a&b){print("&f")}
+        if(b&a){print("&f")}
+        if(b&b){print("&p")}
     }
-
     me void: testXor()<-{
         me int: a <- 0
         me int: b <- 1
-        if(a^a){
-            print(" A:fail")
-        }
-        if(a^b){
-            print(" B:pass")
-        }
-        if(b^a){
-            print(" C:pass")
-        }
-        if(b^b){
-            print(" D:fail")
-        }
+        if(a^a){print("^f")}
+        if(a^b){print("^p")}
+        if(b^a){print("^p")}
+        if(b^b){print("^f")}
     }
-
     me void: testIor()<-{
         me int: a <- 0
         me int: b <- 1
-        if(a|a){
-            print(" A:fail")
-        }
-        if(a|b){
-            print(" B:pass")
-        }
-        if(b|a){
-            print(" C:pass")
-        }
-        if(b|b){
-            print(" D:pass")
-        }
+        if(a|a){print("|f")}
+        if(a|b){print("|p")}
+        if(b|a){print("|p")}
+        if(b|b){print("|p")}
     }
-
-    me void: testLogAnd()<-{
-        if(true and true){
-            print(" logAndPass")
-        }
-    }
-
-    me void: testLogOr()<-{
-        if(true or true){
-            print(" logOrPass")
-        }
-    }
-
-    me void: testLessThan()<-{
-        if(1<2){
-            print(" p")
-        }
-    }
-
-    me void: testLessThanEq()<-{
-        if(1<=2){
-            print("p")
-        }
-    }
-
-    me void: testGreaterThan()<-{
-        if(2>1){
-            print("p")
-        }
-    }
-
-    me void: testGreaterThanEq()<-{
-        if(2>=1){
-            print("p")
-        }
-    }
-}''', 'PGBR:42101 true true Pass B:pass C:pass B:pass C:pass D:pass logAndPass logOrPass pppp',['actions/plusEquals','actions/minusEquals','actions/multiply','actions/modulo','actions/equalEqual','actions/bangEqual', 'actions/And', 'actions/Xor', 'actions/Ior','actions/LogAnd','actions/LogOr','actions/lessThan','actions/lessThanEq','actions/greaterThan','actions/greaterThanEq']],
+}''', 'PGBR:87141==p!=p&p^p^p|p|p|pand por p<p<=p>p>=p Ptr p',['actions/plusEquals','actions/minusEquals','actions/multiply','actions/modulo','actions/equalEqual','actions/bangEqual', 'actions/And', 'actions/Xor', 'actions/Ior','actions/LogAnd','actions/LogOr','actions/lessThan','actions/lessThanEq','actions/greaterThan','actions/greaterThanEq','actions/compNullPtrs']],
 #####################################################################################################
      'actions/defaultme':   ['struct testClass{me void: runTest()<-{me int:A          \n print(A)}}', 'PGBR:0'],
      'actions/curlyme':     ['struct testClass{me void: runTest()<-{me int: A{4}      \n print(A)}}', 'PGBR:4'],
@@ -496,10 +409,10 @@ struct testClass{
     }
 }''', 'PGBR:04562323',['actions/allocateddefaultOur','actions/allocateCurlyOur','actions/allocateArrowOur','actions/allocateArrowlistOur','actions/allocateCurlyVOur','actions/allocateCurlypVOur','actions/allocateAssignVOur','actions/allocateAssignpVOur']],
 #####################################################################################################
-     'actions/intToString':     ['struct testClass{me void: runTest()<-{me int:A<-123\nme string:B<-toString(A)\n print(B)}}', 'PGBR:123'],
-     'actions/32intToString':   ['struct testClass{me void: runTest()<-{me int32:A<-123\nme string:B<-toString(A)\n print(B)}}', 'PGBR:123'],
-     'actions/64intToString':   ['struct testClass{me void: runTest()<-{me int64:A<-123\nme string:B<-toString(A)\n print(B)}}', 'PGBR:123'],
-     'actions/stringToInt':     ['struct testClass{me void: runTest()<-{me string:A<-"123"\nme int:B<-stoi(A)\n print(B)}}', 'PGBR:123'],
+     'actions/intToString':     ['struct testClass{me void: runTest()<-{me int: A<-123     \n me string:B<-toString(A) \n print(B)}}', 'PGBR:123'],
+     'actions/32intToString':   ['struct testClass{me void: runTest()<-{me int32: A<-123   \n me string:B<-toString(A) \n print(B)}}', 'PGBR:123'],
+     'actions/64intToString':   ['struct testClass{me void: runTest()<-{me int64: A<-123   \n me string:B<-toString(A) \n print(B)}}', 'PGBR:123'],
+     'actions/stringToInt':     ['struct testClass{me void: runTest()<-{me string: A<-"123"\n me int:B<-stoi(A)        \n print(B)}}', 'PGBR:123'],
      'actions/typeConversions': ['''
 struct testClass{
     me void: runTest()<-{
@@ -539,7 +452,6 @@ struct testClass{
 #####################################################################################################
 ## TODO: add more loop tests?
 ########################################
-
 
 }
 
