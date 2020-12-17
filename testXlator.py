@@ -251,16 +251,16 @@ struct testClass{
      'actions/defaultme':   ['struct testClass{me void: runTest()<-{me int:A          \n print(A)}}', 'PGBR:0'],
      'actions/curlyme':     ['struct testClass{me void: runTest()<-{me int: A{4}      \n print(A)}}', 'PGBR:4'],
      'actions/arrowme':     ['struct testClass{me void: runTest()<-{me int: A <- 4    \n print(A)}}', 'PGBR:4'],
-     'actions/arrowlistme': ['struct testClass{me void: runTest()<-{their int: A<-(4) \n print(A)}}', 'PGBR:4'],
+     'actions/arrowlistme': ['struct testClass{me void: runTest()<-{our int: A<-(4) \n print(A)}}', 'PGBR:4'],
      'actions/curlyVme':    ['struct testClass{me void: runTest()<-{me int:V <- 5     \n me int: A{V}  \n print(A)}}', 'PGBR:5'],
-     'actions/curlypVme':   ['struct testClass{me void: runTest()<-{their int:: pV<-4 \n me int: A{pV} \n print(A)}}', 'PGBR:4'],
+     'actions/curlypVme':   ['struct testClass{me void: runTest()<-{our int:: pV<-4 \n me int: A{pV} \n print(A)}}', 'PGBR:4'],
      'actions/assignVme':   ['struct testClass{me void: runTest()<-{me int:V <- 5     \n me int: A<-V  \n print(A)}}', 'PGBR:5'],
-     'actions/assignpVme':  ['struct testClass{me void: runTest()<-{their int:: pV<-4 \n me int: A<-pV \n print(A)}}', 'PGBR:4'],
+     'actions/assignpVme':  ['struct testClass{me void: runTest()<-{our int:: pV<-4 \n me int: A<-pV \n print(A)}}', 'PGBR:4'],
      'actions/meInits':     ['''
 struct testClass{
     me void: runTest()<-{
         me int: V <- 7
-        their int:: pV <- 8
+        our int:: pV <- 8
         me int: b{4}
         print(b)
         me int: c <- 5
@@ -348,14 +348,14 @@ struct testClass{
      #'actions/arrowOur':     ['struct testClass{me void: runTest()<-{our int: A <- 4 \n print(A)}}', 'PGBR:NULL'],   # Should throw an error
      #'actions/arrowlistOur': ['struct testClass{me void: runTest()<-{our int: A <- (4) \n print(A)}}', 'PGBR:NULL'], # Should throw an error
      #'actions/curlyVOur':    ['struct testClass{me void: runTest()<-{me int:V<-4       \n our int: A{V}  \n print(A)}}', 'PGBR:NULL'],
-     'actions/curlypVOur':   ['struct testClass{me void: runTest()<-{their int:: pV<-4 \n our int: A{pV} \n print(A)}}', 'PGBR:4'],
+     'actions/curlypVOur':   ['struct testClass{me void: runTest()<-{our int:: pV<-4 \n our int: A{pV} \n print(A)}}', 'PGBR:4'],
      #'actions/assignVOur':   ['struct testClass{me void: runTest()<-{me int:V<-4       \n our int: A<-V  \n print(A)}}', 'PGBR:NULL'],
-     'actions/assignpVOur':  ['struct testClass{me void: runTest()<-{their int:: pV<-4 \n our int: A<-pV \n print(A)}}', 'PGBR:4'],
+     'actions/assignpVOur':  ['struct testClass{me void: runTest()<-{our int:: pV<-4 \n our int: A<-pV \n print(A)}}', 'PGBR:4'],
      'actions/ourInits':     ['''
 struct testClass{
     me void: runTest()<-{
         me int: V <- 3
-        their int:: pV <- 4
+        our int:: pV <- 4
         //our int: a  //make a function called null test
         //if(a == NULL){print("NULL")}
         //else{print(a)}
@@ -376,20 +376,20 @@ struct testClass{
     }
 }''', 'PGBR:44',['actions/curlypVOur','actions/assignpVOur' ]],
 #####################################################################################################
-     'actions/allocateddefaultOur':  ['struct testClass{me void: runTest()<-{our int:: A      \n print(A)}}', 'PGBR:0'],
-     'actions/allocateCurlyOur':     ['struct testClass{me void: runTest()<-{our int:: A{4}   \n print(A)}}', 'PGBR:4'],
-     'actions/allocateArrowOur':     ['struct testClass{me void: runTest()<-{our int:: A<-4   \n print(A)}}', 'PGBR:4'],
-     'actions/allocateArrowlistOur': ['struct testClass{me void: runTest()<-{our int:: A<-(4) \n print(A)}} ', 'PGBR:4'],
-     'actions/allocateCurlyVOur':    ['struct testClass{me void: runTest()<-{me int:V<-4      \n our int:: A{V} \n print(A)}}', 'PGBR:4'],
-     'actions/allocateCurlypVOur':   ['struct testClass{me void: runTest()<-{their int:: pV<-4\n our int:: A{pV}\n print(A)}}', 'PGBR:4'],
-     'actions/allocateAssignVOur':   ['struct testClass{me void: runTest()<-{me int:V<-4      \n our int:: A<-V \n print(A)}}', 'PGBR:4'],
-     'actions/allocateAssignpVOur':  ['struct testClass{me void: runTest()<-{their int:: pV<-4\n our int:: A<-pV\n print(A)}}', 'PGBR:4'],
+     'actions/allocateddefaultOur':  ['struct testClass{me void: runTest()<-{our int:: A     \n print(A)}}', 'PGBR:0'],
+     'actions/allocateCurlyOur':     ['struct testClass{me void: runTest()<-{our int:: A{4}  \n print(A)}}', 'PGBR:4'],
+     'actions/allocateArrowOur':     ['struct testClass{me void: runTest()<-{our int:: A<-4  \n print(A)}}', 'PGBR:4'],
+     'actions/allocateArrowlistOur': ['struct testClass{me void: runTest()<-{our int:: A<-(4)\n print(A)}} ', 'PGBR:4'],
+     'actions/allocateCurlyVOur':    ['struct testClass{me void: runTest()<-{me int:V<-4     \n our int:: A{V} \n print(A)}}', 'PGBR:4'],
+     'actions/allocateCurlypVOur':   ['struct testClass{me void: runTest()<-{our int:: pV<-4 \n our int:: A{pV}\n print(A)}}', 'PGBR:4'],
+     'actions/allocateAssignVOur':   ['struct testClass{me void: runTest()<-{me int:V<-4     \n our int:: A<-V \n print(A)}}', 'PGBR:4'],
+     'actions/allocateAssignpVOur':  ['struct testClass{me void: runTest()<-{our int:: pV<-4 \n our int:: A<-pV\n print(A)}}', 'PGBR:4'],
      'actions/globalOur':            ['me int: A<-{4}\n print(A)','PGBR:'],
      'actions/allocateOurInits':     ['''
 struct testClass{
     me void: runTest()<-{
         me int: V <- 2
-        their int:: pV <- 3
+        our int:: pV <- 3
         our int:: A
         print(A)
         our int:: B{4}

@@ -964,7 +964,18 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
     if(fieldDef['value']):
         [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, xlator)
         if(isAllocated):
-            assignValue = " = " + getCodeAllocSetStr(innerType, owner, S2)
+            if progSpec.typeIsPointer(rhsTypeSpec):
+                leftOwner =progSpec.getTypeSpecOwner(lhsTypeSpec)
+                rightOwner=progSpec.getTypeSpecOwner(rhsTypeSpec)
+                if leftOwner==rightOwner:
+                    assignValue = " = " + S2
+                elif leftOwner=='their' and rightOwner == 'our':
+                    assignValue = " = " + S2 + ".get()"
+                else:
+                    print("TODO: handle case to alloc pointer ", leftOwner, "to", rightOwner, "for variable ", varName)
+                    exit(2)
+            else:
+                assignValue = " = " + getCodeAllocSetStr(innerType, owner, S2)
         else:
             [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)
             if(useCtor==False):    # { } constructor
@@ -981,12 +992,15 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                 if not isinstance(paramTypeList[0], dict):
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
                     #exit(1)
-
-                paramFieldType=progSpec.getFieldType(paramTypeList[0])
+                rhsTypeSpec = paramTypeList[0]
+                rhsType     = progSpec.getFieldType(rhsTypeSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                if True or not isinstance(paramFieldType, str) and fieldType==paramFieldType[0]:
-                    if(not useCtor):
-                        assignValue += " = "    # Use a copy constructor
+                if True or not isinstance(rhsType, str) and fieldType==rhsType[0]:
+                    LHSIsPtr = progSpec.typeIsPointer(lhsTypeSpec)
+                    RHSIsPtr = progSpec.typeIsPointer(rhsTypeSpec)
+                    leftOwner =progSpec.getTypeSpecOwner(lhsTypeSpec)
+                    rightOwner=progSpec.getTypeSpecOwner(rhsTypeSpec)
+                    if(not useCtor): assignValue += " = "    # Use a copy constructor
                     assignValue += CPL
             if(assignValue==''):
                 owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
