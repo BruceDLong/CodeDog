@@ -365,17 +365,17 @@ struct testClass{
 }''', 'PGBR:05623',['actions/allocateddefaultOur','actions/allocateArrowOur','actions/allocateArrowlistOur','actions/allocateAssignVOur','actions/allocateAssignpVOur']],
 
 #####################################################################################################
-     'actions/curlyme':             ['struct testClass{me void: runTest()<-{me int: A{4}      \n print(A)}}', 'PGBR:4'],
-     'actions/curlyVme':            ['struct testClass{me void: runTest()<-{me int:V <- 5     \n me int: A{V}  \n print(A)}}', 'PGBR:5'],
-     'actions/curlypVme':           ['struct testClass{me void: runTest()<-{our int:: pV<-4 \n me int: A{pV} \n print(A)}}', 'PGBR:4'],
-     'actions/curlypVtheir':        ['struct testClass{me void: runTest()<-{their int:: pV<-4  \n their int: A{pV} \n print(A)}}', 'PGBR:4'],
-     'actions/allocateCurlytheir':  ['struct testClass{me void: runTest()<-{their int:: A{4}  \n print(A)}}', 'PGBR:4'],
-     'actions/allocateCurlyVtheir': ['struct testClass{me void: runTest()<-{me int:V <- 7     \n their int:: A{V} \n print(A)}}', 'PGBR:7'],
-     'actions/allocateCurlypVtheir':['struct testClass{me void: runTest()<-{their int:: pV<-8 \n their int:: A{pV}\n print(A)}}', 'PGBR:8'],
-     'actions/curlypVOur':          ['struct testClass{me void: runTest()<-{our int:: pV<-4 \n our int: A{pV} \n print(A)}}', 'PGBR:4'],
-     'actions/allocateCurlyOur':    ['struct testClass{me void: runTest()<-{our int:: A{4}  \n print(A)}}', 'PGBR:4'],
-     'actions/allocateCurlyVOur':   ['struct testClass{me void: runTest()<-{me int:V<-4     \n our int:: A{V} \n print(A)}}', 'PGBR:4'],
-     'actions/allocateCurlypVOur':  ['struct testClass{me void: runTest()<-{our int:: pV<-4 \n our int:: A{pV}\n print(A)}}', 'PGBR:4'],
+     'actions/curlyMeLit':          ['struct testClass{me void: runTest()<-{me int: A{4}      \n print(A)}}', 'PGBR:4'],
+     'actions/curlyMeMe':           ['struct testClass{me void: runTest()<-{me int:V <- 5     \n me int: A{V}     \n print(A)}}', 'PGBR:5'],
+     'actions/curlyMeOur':          ['struct testClass{me void: runTest()<-{our int:: pV<-4   \n me int: A{pV}    \n print(A)}}', 'PGBR:4'],
+     'actions/curlyTheirOur':       ['struct testClass{me void: runTest()<-{our int:: pV<-4   \n their int: A{pV} \n print(A)}}', 'PGBR:4'],
+     'actions/curlyOurOur':         ['struct testClass{me void: runTest()<-{our int:: pV<-4   \n our int: A{pV}   \n print(A)}}', 'PGBR:4'],
+     'actions/allocCurlyTheirLit':  ['struct testClass{me void: runTest()<-{their int:: A{4}  \n print(A)}}', 'PGBR:4'],
+     'actions/allocCurlyTheirMe':   ['struct testClass{me void: runTest()<-{me int:V <- 7     \n their int:: A{V} \n print(A)}}', 'PGBR:7'],
+     'actions/allocCurlyTheirOur':  ['struct testClass{me void: runTest()<-{our int:: pV<-8   \n their int:: A{pV}\n print(A)}}', 'PGBR:8'],
+     'actions/allocCurlyOurLit':    ['struct testClass{me void: runTest()<-{our int:: A{4}    \n print(A)}}', 'PGBR:4'],
+     'actions/allocCurlyOurMe':     ['struct testClass{me void: runTest()<-{me int:V<-4       \n our int:: A{V}   \n print(A)}}', 'PGBR:4'],
+     #'actions/allocCurlyOurOur':    ['struct testClass{me void: runTest()<-{our int:: pV<-4   \n our int:: A{pV}  \n print(A)}}', 'PGBR:4'],
      #'actions/curlyVtheir':        ['struct testClass{me void: runTest()<-{me int:V\n their int: A{V}\n print(A)}}', 'PGBR:NULL'],  # Should throw an error
      #'actions/curlyOur':           ['struct testClass{me void: runTest()<-{our int: A{4} \n print(A)}} ', 'PGBR:NULL'],    # Should throw an error
      #'actions/curlyVOur':          ['struct testClass{me void: runTest()<-{me int:V<-4       \n our int: A{V}  \n print(A)}}', 'PGBR:NULL'],
@@ -392,22 +392,22 @@ struct testClass{
         print(C)
         their int: D{pV}
         print(D)
-        their int:: E{5}
+        our int: E{pV}
         print(E)
-        their int:: F{V}
+        their int:: F{5}
         print(F)
-        their int:: G{pV}
+        their int:: G{V}
         print(G)
-        our int: H{pV}
+        their int:: H{pV}
         print(H)
         our int:: I{6}
         print(I)
-        our int:: J{7}
+        our int:: J{V}
         print(J)
-        our int:: K{pV}
-        print(K)
+        //our int:: K{pV}
+        //print(K)
     }
-}''', 'PGBR:42335233673',['actions/curlyme','actions/curlyVme','actions/curlypVme','actions/curlypVtheir','actions/allocateCurlytheir','actions/allocateCurlyVtheir','actions/allocateCurlypVtheir','actions/curlypVOur','actions/allocateCurlyOur','actions/allocateCurlyVOur','actions/allocateCurlypVOur']],
+}''', 'PGBR:4233352362',['actions/curlyMeLit','actions/curlyMeMe','actions/curlyMeOur','actions/curlyTheirOur','actions/curlyOurOur','actions/allocCurlyTheirLit','actions/allocCurlyTheirMe','actions/allocCurlyTheirOur','actions/allocCurlyOurLit','actions/allocCurlyOurMe']],
 #####################################################################################################
      'actions/intToString':     ['struct testClass{me void: runTest()<-{me int: A<-123     \n me string:B<-toString(A) \n print(B)}}', 'PGBR:123'],
      'actions/32intToString':   ['struct testClass{me void: runTest()<-{me int32: A<-123   \n me string:B<-toString(A) \n print(B)}}', 'PGBR:123'],

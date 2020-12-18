@@ -996,12 +996,19 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                 rhsType     = progSpec.getFieldType(rhsTypeSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(rhsType, str) and fieldType==rhsType[0]:
-                    LHSIsPtr = progSpec.typeIsPointer(lhsTypeSpec)
-                    RHSIsPtr = progSpec.typeIsPointer(rhsTypeSpec)
+                    CPL = CPL[1:-1]
                     leftOwner =progSpec.getTypeSpecOwner(lhsTypeSpec)
                     rightOwner=progSpec.getTypeSpecOwner(rhsTypeSpec)
+                    allocStr = ""
+                    leftMod = ""
+                    rightMod = ""
+                    if(isAllocated): allocStr = getCodeAllocStr(innerType, owner)
+                    if ((leftOwner=="me" or leftOwner=="literal")  and rightOwner=="our") or (leftOwner=='their' and rightOwner == 'our' and not useCtor): leftMod = "*"
+                    elif leftOwner=='their' and rightOwner == 'our' : rightMod = ".get()"
                     if(not useCtor): assignValue += " = "    # Use a copy constructor
-                    assignValue += CPL
+                    assignValue += allocStr + "(" + leftMod + CPL + rightMod + ")"
+                    print("CURLY5:" , fieldType + " " + varName + assignValue)
+
             if(assignValue==''):
                 owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
                 assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
