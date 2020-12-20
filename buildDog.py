@@ -177,22 +177,19 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
     if platform == 'Linux':
         [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-        printResults(workingDirectory, buildStr, runStr)
     elif platform == 'Java':
         [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-        printResults(workingDirectory, buildStr, runStr)
     elif platform == 'Android':
         buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'IOS':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-        printResults(workingDirectory, buildStr, runStr)
     elif platform == 'Windows':
         [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'MacOS':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-        printResults(workingDirectory, buildStr, runStr)
     else:
         print("buildDog.py error: build string not generated for "+ buildName)
         exit(2)
+    printResults(workingDirectory, buildStr, runStr)
     print("--------------------------")
     return

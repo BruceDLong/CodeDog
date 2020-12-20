@@ -1350,7 +1350,8 @@ def processDependancies(classes, item, searchList, newList):
         newList.append(className)
         searchList[item][1]=2
     elif searchList[item][1]==1:
-        print("WARNING: Dependancy cycle detected including class "+searchList[item][0])
+        pass
+        #print("WARNING: Dependancy cycle detected including class "+searchList[item][0])
 
 def findIDX(classList, className):
     # Returns the index in classList of className or -1
@@ -1386,6 +1387,8 @@ def fetchListOfStructsToImplement(classes, tags):
             continue
         if className in progSpec.MarkedObjects: libNameList.append(className)
         else: progNameList.append(className)
+    libNameList.sort()
+    progNameList.sort()
     classList=libNameList + progNameList
     classList=sortClassesForDependancies(classes, classList)
     return classList
@@ -1577,7 +1580,7 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
         if 'libFiles' in tagsFromLibFiles[libID]['interface']:
             libFiles = tagsFromLibFiles[libID]['interface']['libFiles']
             for libFile in libFiles:
-                buildStr_libs+=libFile
+                buildStr_libs+=libFile+' '
         if 'headers' in tagsFromLibFiles[libID]['interface']:
             libHeaders = tagsFromLibFiles[libID]['interface']['headers']
             for libHdr in libHeaders:
@@ -1830,9 +1833,11 @@ def generate(classes, tags, libsToUse, langName, xlator):
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 
     fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, fileSpecs, [], topBottomStrings, xlator)
-    print("\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:")
-    for funcName in listOfFuncsWithUnknownArgTypes: print(funcName, end=' ')
-    print("\n");
+    showNote = False
+    if showNote:
+        print("\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:")
+        for funcName in listOfFuncsWithUnknownArgTypes: print(funcName, end=' ')
+        print("\n");
     return fileSpecStrings
 
 ###############  Load a file to progspec, processing include files, string-structs, and patterns.

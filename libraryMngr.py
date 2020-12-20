@@ -76,6 +76,7 @@ def findLibraryFiles():
     collectFromFolderOrLIB(dogFileFolder)
     if (dogFileFolder!=codeDogFolder):
         collectFromFolderOrLIB(codeDogFolder)
+    libPaths.sort()
 
 def findLibrary(feature):
     """Returns the filepath of LIB that matches '[input].Lib.dog'. If no match
