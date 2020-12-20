@@ -58,6 +58,7 @@ struct EParser{
         setQuickParse(false)
         clearGrammar()
 #GRAMMAR_CODE_HERE
+        preCalcNullability()
     }
 }
     """
@@ -317,16 +318,17 @@ def Write_ALT_Extracter(classes, parentStructName, fields, VarTagBase, VarTagSuf
         level=1
         VarTag='SRec1'
         VarTagSuffix='0'
+        RHS = VarTagBase+VarTagSuffix
     else:
         globalFieldCount+=1
         VarTag=VarTagBase+str(level)
-        VarTagSuffix=str(level-1)+'.child.next'+VarTagSuffix
+        RHS= 'getChildStateRec('+ VarTagBase + str(level-1)+')'+VarTagSuffix
 
     indent2 = indent+'    '
     S+='\n'+indent+'{\n'
-    S+='\n'+indent2+'our stateRec: '+VarTag+' <- '+VarTagBase+VarTagSuffix+'\n'
+    S+='\n'+indent2+'our stateRec: '+VarTag+' <- '+RHS+'\n'   #   shared_ptr<stateRec > SRec1 = SRec0->child;
     loopVarName = "ruleIDX"+str(globalFieldCount)
-    S+=indent2+'me int: '+loopVarName+' <- '+VarTag+'.child.productionID\n'
+    S+=indent2+'me int: '+loopVarName+' <- getChildStateRec('+VarTag+').productionID\n'
 
     #print "RULEIDX:", indent, parentStructName, VarName
     if VarName!='memStruct':
@@ -417,6 +419,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     fromIsOPT =False
     fromIsList=False
     toIsList  =False
+    optionalWhiteSpace =False
     if progSpec.isAContainer(typeSpec):
         datastructID = progSpec.getDatastructID(typeSpec)
         if datastructID=='opt': fromIsOPT=True;
@@ -481,27 +484,28 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 if  progSpec.typeIsInteger(objName):
                     strFieldType = fieldType[0]
                     if(strFieldType == "BigInt"):
-                        CODE_RVAL='makeStr('+VarTag+'.child'+')'
+                        CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
                     elif(strFieldType == "HexNum"):
-                        CODE_RVAL='makeHexInt('+VarTag+'.child'+')'
+                        CODE_RVAL='makeHexInt('+VarTag+'.child.next'+')'
                     elif(strFieldType == "BinNum"):
-                        CODE_RVAL='makeBinInt('+VarTag+'.child'+')'
+                        CODE_RVAL='makeBinInt('+VarTag+'.child.next'+')'
                     else:
-                        CODE_RVAL='makeStr('+VarTag+'.child'+')'
+                        CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
                     toIsStruct=False; # false because it is really a base type.
-                elif (objName=='ws' or objName=='wsc' or objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID'
+                elif (objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID'
                       or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq'):
-                    CODE_RVAL='makeStr('+VarTag+'.child'+')'
+                    CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
+                    toIsStruct=False; # false because it is really a base type.
+                elif (objName=='ws' or objName=='wsc'):
+                    CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
+                    optionalWhiteSpace = True
                     toIsStruct=False; # false because it is really a base type.
                 else:
                     #print "toObjName:", objName, memVersionName, fieldName
                     [toMemObj, toMemVersionName]=fetchMemVersion(classes, objName)
                     if toMemVersionName==None:
                         # make alternate finalCodeStr. Also, write the extractor that extracts toStruct fields to memVersion of this
-                        childStr = ".child"
-                        if fromIsOPT:
-                            childStr += ".next"
-                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'('+VarTag+"<LVL_SUFFIX>"+childStr+', memStruct)\n')
+                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'(getChildStateRec('+VarTag+"<LVL_SUFFIX>"+'), memStruct)\n')
                         objSpec = progSpec.findSpecOf(classes[0], objName, 'string')
                         ToFields=objSpec['fields']
                         FromStructName=objName
@@ -527,8 +531,8 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         CODE_RVAL='tmpVar'
         globalFieldCount +=1
         childRecName='SRec' + str(globalFieldCount)
-        gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child.next'
-        gatherFieldCode+='\n'+indent+'while('+childRecName+'){\n'
+        gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child'
+        gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and '+childRecName+'.child !=NULL){\n'
         if fromIsALT:
           #  print "ALT-#1"
             gatherFieldCode+=Write_ALT_Extracter(classes, fieldType[0], fields, childRecName, '', 'tmpVar', indent+'    ', level)
@@ -561,7 +565,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         oldIndent=indent
         if (fromIsOPT):
             setTrueCode=''
-            assignerCode+='\n'+indent+'if('+VarTag+'.child.next' +' == NULL){'
+            assignerCode+='\n'+indent+'if('+VarTag+'.child' +' == NULL){'
             if toFieldOwner=='me':
                 if debugTmp: print('        toFieldOwner:', toFieldOwner)
                 ## if fieldName==None and a model of fromFieldType has no cooresponding model But we are in EXTRACT_ mode:
@@ -584,7 +588,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 print("ERROR: OPTional fields must not be '"+toFieldOwner+"'.\n")
                 exit(1)
             assignerCode+='\n'+indent+'} else {\n'
-            levelSuffix='.child.next'
+            levelSuffix='.child'
             indent+='    '
             assignerCode+=indent+setTrueCode+'\n'
 
@@ -602,11 +606,15 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             childRecNameBase='childSRec' + str(globalFieldCount)
             childRecName=childRecNameBase+str(level)
             assignerCode+='\n'+indent+'our stateRec: '+childRecName+' <- '+VarTag+levelSuffix+'.child\n'
+            advance=False
             for innerField in field['innerDefs']:
-                assignerCode+=Write_fieldExtracter(classes, ToStructName, innerField, memObjFields, childRecNameBase, '', True, '    ', level, logLvl+1)
+                assignerCode+=Write_fieldExtracter(classes, ToStructName, innerField, memObjFields, childRecNameBase, '', advance, '    ', level, logLvl+1)
+                advance = True
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr.replace("<LVL_SUFFIX>", levelSuffix);
             if debugTmp: print('        assignerCode:', assignerCode)
+        elif optionalWhiteSpace:
+            assignerCode += '\n'+indent+'if('+VarTag+'.child' +' != NULL){'+CODE_LVAR+' <- '+CODE_RVAL+'}\n'
         else:
            # if toFieldOwner == 'const': print "Error: Attempt to extract a parse to const field.\n"; exit(1);
             if CODE_RVAL!="":
@@ -637,11 +645,13 @@ def Write_structExtracter(classes, ToStructName, FromStructName, fields, nameFor
     memObjFields=[]
     progSpec.populateCallableStructFields(memObjFields, classes, ToStructName)
     if memObjFields==None: cdErr("struct {} is not defined".format(ToStructName.replace('str','mem')))
-    S='    me string: tmpStr\n'
+    S='        me string: tmpStr;\n'
+    advance=False
     for field in fields: # Extract all the fields in the string version.
-        S+=Write_fieldExtracter(classes, ToStructName, field, memObjFields, 'SRec', '', True, '    ', 0, logLvl+1)
+        S+=Write_fieldExtracter(classes, ToStructName, field, memObjFields, 'SRec', '', advance, '    ', 0, logLvl+1)
+        advance=True
     if  ToStructName== FromStructName and progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessing'):
-        S += 'memStruct.postParseProcessing()\n'
+        S += '        memStruct.postParseProcessing()\n'
     return S
 
 def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
@@ -680,7 +690,7 @@ struct GLOBAL{
         if (parser.doesParseHaveError()) {
             print("Parse Error:" + parser.errorMesg + "\\n")
         } else {
-            our stateRec: topItem <- parser.resolve(parser.lastTopLevelItem, "")
+            our stateRec: topItem <- parser.topDownResolve(parser.lastTopLevelItem, "")
             Allocate(result)
             parser.Extract_<CLASSNAME>_to_<CLASSNAME>(topItem, result)
         }
