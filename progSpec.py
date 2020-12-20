@@ -28,9 +28,9 @@ templatesDefined={}
 classImplementationOptions = {}
 libLevels = {}
 
-def setLibLevels(CFL):
+def setLibLevels(childLibList):
     global libLevels
-    libLevels = CFL
+    libLevels = childLibList
 
 def getLibLevel(libName):
     global libLevels
@@ -153,8 +153,7 @@ def addObject(objSpecs, objectNameList, name, stateType, configType, libName = N
 
     if libName != None:
         level = getLibLevel(libName)
-    else:
-        level = 0
+    else: level = 0
 
     if stateType=='model': name='%'+name
     elif stateType=='string': name='$'+name

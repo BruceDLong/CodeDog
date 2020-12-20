@@ -157,20 +157,19 @@ def LanguageSpecificDecorations(S, segType, owner):
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(lhsTypeSpec)
     RHS_KeyType = progSpec.fieldTypeKeyword(rhsTypeSpec)
-    if LHS_KeyType == 'bool' and progSpec.typeIsPointer(RHS_KeyType): return '(' + RHScodeStr + ' != null)'
-    if (LHS_KeyType == 'bool' or LHS_KeyType == 'boolean') and (RHS_KeyType=='int' or RHS_KeyType=='flag'):
-        if RHScodeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
-        else: return '(' + RHScodeStr + ' != 0)'
+    if LHS_KeyType == 'bool'or LHS_KeyType == 'boolean':
+        if progSpec.typeIsPointer(rhsTypeSpec):
+            return '(' + RHScodeStr + ' != null)'
+        if (RHS_KeyType=='int' or RHS_KeyType=='flag'):
+            if RHScodeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
+            else: return '(' + RHScodeStr + ' != 0)'
+        if RHScodeStr == "0": return "false"
+        if RHScodeStr == "1": return "true"
     return RHScodeStr
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
         if progSpec.isOldContainerTempFunc(itemTypeSpec): print("Deprecated container type:", itemTypeSpec); exit(2);
-        if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '', False]
-        if progSpec.typeIsPointer(itemTypeSpec):
-            owner=progSpec.getTypeSpecOwner(itemTypeSpec)
-            if owner!='itr':
-                return ['(*', ')', True]
     return ['', '', False]
 
 def derefPtr(varRef, itemTypeSpec):
@@ -235,7 +234,6 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
             S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
         else: S= '[' + idx +']'
     else:
-        print("containerType:",containerType)
         if containerType== 'ArrayList' or containerType== 'Java_Map': S = '.get('+idx+')'
         else: S= '[' + idx +']'
     return S
@@ -354,7 +352,15 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
             S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
         else:
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
-            elif (item0[0]=='"'): S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
+            elif (item0[0]=='"'):
+                if returnType != None and returnType["fieldType"]=="char":
+                    retTypeSpec='char'
+                    innerS=item0[1:-1]
+                    if len(innerS)==1:
+                        S+="'"+item0[1:-1] +"'"
+                    else:
+                        cdErr("Characters must have exactly 1 character.")
+                else: S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
             else:
                 S+=item0;
                 expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
@@ -466,7 +472,9 @@ def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
         for i in item[1]:
             #print('      IsEq ', i)
             if (i[0] == '&'):
+                S  = checkForTypeCastNeed('bool', retTypeSpec, S)
                 [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' & ' + S2
             else: print("ERROR: '&' expected in code generator."); exit(2)
     return [S, retTypeSpec]
@@ -477,7 +485,9 @@ def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             if (i[0] == '^'):
+                S  = checkForTypeCastNeed('bool', retTypeSpec, S)
                 [S2, retTypeSpec] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' ^ ' + S2
             else: print("ERROR: '^' expected in code generator."); exit(2)
     return [S, retTypeSpec]
@@ -488,7 +498,9 @@ def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
     if len(item) > 1 and len(item[1])>0:
         for i in item[1]:
             if (i[0] == '|'):
+                S  = checkForTypeCastNeed('bool', retTypeSpec, S)
                 [S2, retTypeSpec] = codeXOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' | ' + S2
             else: print("ERROR: 'and' expected in code generator."); exit(2)
     return [S, retTypeSpec]
@@ -502,7 +514,7 @@ def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
             if (i[0] == 'and'):
                 S = checkForTypeCastNeed('bool', retTypeSpec, S)
                 [S2, retTypeSpec] = codeBar(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                S2= checkForTypeCastNeed('bool', retTypeSpec, S2)
+                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' && ' + S2
             else: print("ERROR: 'and' expected in code generator."); exit(2)
             retTypeSpec='bool'
@@ -516,8 +528,10 @@ def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
         for i in item[1]:
             #print('   OR ', i)
             if (i[0] == 'or'):
+                S = checkForTypeCastNeed('bool', retTypeSpec, S)
                 [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 [S2, isDerefd]=derefPtr(S2, retTypeSpec)
+                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
                 S+=' || ' + S2
             else: print("ERROR: 'or' expected in code generator."); exit(2)
             retTypeSpec='bool'
@@ -544,9 +558,7 @@ def adjustConditional(S2, conditionType):
             if S2[0]=='!': S2 = S2[1:]+ " == true"
             else: S2+=" != null"
         elif conditionType['owner']=='me' and (conditionType['fieldType']=='flag' or progSpec.typeIsInteger(conditionType['fieldType'])):
-            if S2[0]=='!':
-                S2 = '('+S2[1:]+' ==0)'
-            else:S2+=" !=0"
+            if S2[0]=='!':S2 = '('+S2[1:]+' ==0)'
         conditionType='bool'
     return [S2, conditionType]
 
@@ -573,6 +585,8 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 if fieldType == "timeValue" or fieldType == "int" or fieldType == "double": S2 = '('+S2+')'
                 S+=S2
             S+=")"
+            retOwner='me'
+            fieldType='string'
         elif(funcName=='AllocateOrClear'):
             [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, xlator)
             S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
@@ -729,7 +743,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                     assignValue = " = " + CPL   # Act like a copy constructor
                 elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
                     assignValue = " = " + CPL
-                else: assignValue = " = new " + fieldType + CPL
+                else: assignValue = " = " + CPL
             else: assignValue = " = new " + fieldType + CPL
         elif varTypeIsValueType(fieldType):
             if fieldType == 'long' or fieldType == 'int' or fieldType == 'float'or fieldType == 'double': assignValue=' = 0'

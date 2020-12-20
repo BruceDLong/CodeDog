@@ -155,7 +155,9 @@ def CheckObjectVars(className, itemName, fieldIDArgList):
         progSpec.setCurrentCheckObjectVars(message)
         return 0
     retVal=None
-    #if("libLevel" in classDef and classDef["libLevel"] == 2):if(classDef["libLevel"] == 2): cdErr(searchFieldID+ " is not defined in parent library of "+str(ClassDef["libName"]))
+    if("libLevel" in classDef and classDef["libLevel"] == 2 and not 'implements' in classDef):
+        if(classDef["libLevel"] == 2):
+            cdErr(searchFieldID+ " is not defined in parent library of "+str(classDef["libName"]))
 
     wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, className)
     if(wrappedTypeSpec != None):
@@ -601,6 +603,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 T1Type = progSpec.getTypeFromTemplateArg(reqTagList[1])
                 convertedName = convertedName.replace("%T1Type",T1Type)
             else: cdErr("ERROR: looking for T1Type in codeConverter but reqTagList found in TypeSpec.")
+        #print("codeConverter ",name,"->",convertedName, typeSpecOut)
         name = convertedName
         callAsGlobal=name.find("%G")
         if(callAsGlobal >= 0): namePrefix=''

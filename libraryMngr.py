@@ -16,7 +16,7 @@ libPaths = []
 featuresHandled = []
 tagsFromLibFiles = {}
 currentFilesPath = ""
-CFL = []
+childLibList = []
 '''
 T h e   b e s t   l i b r a r y   c h o i c e s   f o r   y o u r   p r o g r a m
   And the best programs for your library
@@ -234,7 +234,7 @@ def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
     return [LibCanWork, Requirements]
 
 def constructORListFromFiles(tags, need, files, indent):
-    global CFL
+    global childLibList
     OR_List = ['OR', []]
     for libFile in files:
         #print("{}LIB FILE: {}".format(indent, libFile))
@@ -243,7 +243,7 @@ def constructORListFromFiles(tags, need, files, indent):
             #print("{} LIB CAN WORK: {}".format(indent, libFile))
             childFileList = findLibraryChildren(os.path.basename(libFile)[:-8])
             if len(childFileList)>0:
-                CFL = CFL + childFileList
+                childLibList = childLibList + childFileList
                 solutionOptions = constructANDListFromNeeds(tags, Requirements, childFileList, indent + "|   ")
                 solutionOptions[1] = [libFile] + solutionOptions[1]
                 OR_List[1].append(solutionOptions)
@@ -269,7 +269,7 @@ def constructANDListFromNeeds(tags, needs, files, indent):
             solutionOptions = constructORListFromFiles(tags, need, filesToTry, indent + "|   ")
             if len(solutionOptions[1])>0:
                 AND_List[1].append(solutionOptions)
-    progSpec.setLibLevels(CFL)
+    progSpec.setLibLevels(childLibList)
     return AND_List
 
 def ChooseLibs(classes, buildTags, tags):

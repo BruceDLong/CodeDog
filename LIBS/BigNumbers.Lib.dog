@@ -4,6 +4,6 @@ requirements = [
     [require, BigNumbers_implementation]
 ]
 
-
-
+struct BigInt{}
+struct BigFloat{}
 
