@@ -296,7 +296,7 @@ me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: mas
 
 /////////////////////////////////   Event callbacks
 struct GLOBAL{
-me IOS_eventDispatcher: EventDispatcher
+    me IOS_eventDispatcher: EventDispatcher
 }
 
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
@@ -354,9 +354,5 @@ struct guiFillPattern{
     me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, %2.red/265, %2.green/256, %2.blue/256)%>
 }
 
-struct APP {
+struct APP{}
 
-}
-struct GLOBAL{
-    me APP: thisApp
-}

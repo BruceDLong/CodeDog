@@ -1092,19 +1092,15 @@ struct timeStringer{
 
 /////////////////////////////////  G L O B A L
 struct GLOBAL: inherits=AppCompatActivity{
-    me APP: thisApp
     their LinearLayout: window
     me int: widgetHeight() <- <%!%G%1.getHeight()%>
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
-    me Map<me string, me INK_Image: InkImgCache
     me long: ticksPerSec() <- <%!%G1000%>
     me SubMenu: parentMenu
     me AssetManager: assetManager
     me Toolbar: toolbar
     me int: displayHeightPx
     me int: displayWidthPx
-    me float: displayDensity
-
 
     void: attachBaseContext(me Context: newBase) <- <%{
         Context context = ScaledContextWrapper.wrap(newBase);
@@ -1350,10 +1346,7 @@ struct GLOBAL{
         <- <%!%Gnew Handler(%1).post(%5)%>
 }
 struct APP: inherits=LinearLayout{
-    me LinearLayout: thisFrame
-    me GUI: gui
     me ourSubMenu: menubar{"menubar"}
-
     me none: APP() <- <%{super(GLOBAL.static_Global);}%>
 }
 

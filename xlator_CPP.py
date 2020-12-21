@@ -1007,7 +1007,6 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                     elif leftOwner=='their' and rightOwner == 'our' : rightMod = ".get()"
                     if(not useCtor): assignValue += " = "    # Use a copy constructor
                     assignValue += allocStr + "(" + leftMod + CPL + rightMod + ")"
-                    print("CURLY5:" , fieldType + " " + varName + assignValue)
 
             if(assignValue==''):
                 owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
