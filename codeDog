@@ -114,7 +114,7 @@ libraryMngr.findLibraryFiles()
 
 filename = abspath(os.getcwd()) + "/" + arg1
 [ProgSpec, objNames, macroDefs] = [ {}, [], {} ]
-[tagStore, buildSpecs, classes] = CodeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
+[tagStore, buildSpecs, classes, newClasses] = CodeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
 print("Marker: Parse Successful")
 tagStore['dogFilename']=filename
 if len(buildSpecs)==0: cdErr('No Build specification was found')

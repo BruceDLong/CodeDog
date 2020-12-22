@@ -261,3 +261,5 @@ struct JSON {
         return ("NOT_FOUND")
     }
 }
+
+struct JSONValue{}
