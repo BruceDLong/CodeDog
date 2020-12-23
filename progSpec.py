@@ -268,10 +268,14 @@ def appendToFuncsCalled(funcName,funcParams):
 def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReqTagList, thisName, thisArgList, paramList, thisValue, isAllocated, hasFuncBody):
     codeConverter=None
     packedField = {'isNext': thisIsNext, 'typeSpec':{'owner':thisOwner, 'fieldType':thisType, 'arraySpec':thisArraySpec, 'reqTagList':thisReqTagList, 'argList':thisArgList}, 'fieldName':thisName, 'paramList':paramList, 'value':thisValue, 'isAllocated':isAllocated}
-    if( thisValue!=None and (not isinstance(thisValue, str)) and len(thisValue)>1 and thisValue[1]!='' and thisValue[1][0]=='!'):
-        # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
-        codeConverter = thisValue[1][1:]
-        packedField['typeSpec']['codeConverter']=codeConverter
+    if(thisValue!=None and (not isinstance(thisValue, str)) and len(thisValue)>1 and thisValue[1]!=''):
+        if thisValue[1][0]=='!':
+            # This is where the definitions of code conversions are loaded. E.g., 'setRGBA' might get 'setColor(new Color(%1, %2, %3, %4))'
+            codeConverter = thisValue[1][1:]
+            packedField['typeSpec']['codeConverter']=codeConverter
+        elif thisValue[1]!='':
+            verbatimText=thisValue[1][1:]
+            #packedField['typeSpec']['verbatimText']=verbatimText
     if hasFuncBody:
         packedField['hasFuncBody']=True
     else:

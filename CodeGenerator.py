@@ -1593,68 +1593,7 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
                     headerStr += xlator['includeDirective'](libHdr)
     return [headerStr, headerTopStr]
 
-def clearLogFile():
-    try:
-        os.makedirs("libraryLogs")
-    except OSError as exception:
-        if exception.errno != errno.EEXIST: raise
-    logClear = open("libraryLogs/missingFuncs.txt","w")
-    logClear.close()
-
-clearLogFile()
-missingFuncsDict = {}
-
-def addMissingFunc(lib, missingObject, libLevel, value):
-    #print("LIB: ", lib, "LIB LEVEL: ", libLevel)
-    global missingFuncsDict
-    lib = lib.split('.')[0]
-    lib = lib.split('/')[-1] + "_" + str(libLevel)
-    if lib not in missingFuncsDict:
-        missingFuncsDict[lib] = {}
-    if missingObject in missingFuncsDict[lib]:
-        return
-    missingFuncsDict[lib][missingObject + " \n"] = value
-
-def outputUndefinedFunctions():
-    global missingFuncsDict
-    logFile = open("libraryLogs/missingFuncs.txt","a")
-    libkeys = missingFuncsDict.keys()
-    for lib in libkeys:
-        logFile.write("From library: "+str(lib) + "\n")
-        for obj in missingFuncsDict[lib]:
-            logFile.write(" " + obj + " " + missingFuncsDict[lib][obj])
-    logFile.close()
-
-librariesFieldsList = []
-def addToLibFieldsList(libFilename, FileClasses, newClasses):
-    global librariesFieldsList
-    libraryClasses = []
-    for className in newClasses:
-        fieldsList = []
-        classDef = FileClasses[0][className]
-        if 'fields' in classDef:
-            for fieldDef in classDef['fields']:
-                if progSpec.fieldIsFunction(fieldDef['typeSpec']):
-                    if fieldDef['hasFuncBody'] and fieldDef['value'] != None:
-                        status = 'Implemented'
-                    elif not fieldDef['hasFuncBody']:
-                        status = 'Abstract'
-                    elif fieldDef['hasFuncBody'] and (fieldDef['value'] == None or fieldDef['value'] == ''):
-                        status = 'Empty'
-                    else:
-                        status = 'Unknown'
-                    fieldIDandStatus = {'fieldID':fieldDef['fieldID'], 'status':status}
-                else: fieldIDandStatus = {'fieldID':fieldDef['fieldID']}
-                fieldsList.append(fieldIDandStatus)
-        if len(fieldsList)>0:
-            libraryClass = {'className':className, 'fields': fieldsList}
-            libraryClasses.append(libraryClass)
-    if len(libraryClasses)>0:
-        library = [libFilename, libraryClasses]
-        librariesFieldsList.append(library)
-
 def connectLibraries(classes, tags, libsToUse, xlator):
-    global librariesFieldsList
     headerStr = ''
     tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
     for libFilename in libsToUse:
@@ -1663,10 +1602,6 @@ def connectLibraries(classes, tags, libsToUse, xlator):
         headerStr = headerTopStr + headerStr + headerStrOut
         macroDefs= {}
         [tagStore, buildSpecs, FileClasses, newClasses] = loadProgSpecFromDogFile(libFilename, classes[0], classes[1], tags[0], macroDefs)
-        addToLibFieldsList(libFilename, FileClasses, newClasses)
-    fileName = "librariesFieldsList.txt"
-    cdlog(1, "WRITING FILE: "+fileName)
-    with open(fileName, 'wt') as out: pprint(librariesFieldsList, stream=out)
     return headerStr
 
 def convertTemplateClasses(classes, tags):
