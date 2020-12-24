@@ -1,0 +1,7 @@
+[['LIBS/Networking.IOS.Lib.dog',
+  [{'className': 'MemoryStruct',
+    'fields': [{'fieldID': 'MemoryStruct::memory'},
+               {'fieldID': 'MemoryStruct::size'}]},
+   {'className': 'NetConnection',
+    'fields': [{'fieldID': 'NetConnection::retrieve(string)',
+                'status': 'Impl'}]}]]]

@@ -1,0 +1,9 @@
+[['LIBS/Threads.Java.Lib.dog',
+  [{'className': 'Threads',
+    'fields': [{'fieldID': 'Threads::Threads'},
+               {'fieldID': 'Threads::notDone'},
+               {'fieldID': 'Threads::ID', 'status': 'Impl'},
+               {'fieldID': 'Threads::run', 'status': 'Empty'},
+               {'fieldID': 'Threads::isActive', 'status': 'Convtr'},
+               {'fieldID': 'Threads::start', 'status': 'Convtr'},
+               {'fieldID': 'Threads::waitForExit', 'status': 'Convtr'}]}]]]

@@ -1,0 +1,6 @@
+[['LIBS/Networking.Java.Lib.dog',
+  [{'className': 'HTTPRetCode',
+    'fields': [{'fieldID': 'HTTPRetCode::HTTPRetCode'}]},
+   {'className': 'NetConnection',
+    'fields': [{'fieldID': 'NetConnection::retrieve(string)',
+                'status': 'Impl'}]}]]]

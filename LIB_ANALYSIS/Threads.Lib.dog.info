@@ -1,0 +1,13 @@
+[['LIBS/Threads.Lib.dog',
+  [{'className': 'Threads',
+    'fields': [{'fieldID': 'Threads::notDone'},
+               {'fieldID': 'Threads::run', 'status': 'Abstract'},
+               {'fieldID': 'Threads::ID', 'status': 'Abstract'},
+               {'fieldID': 'Threads::isActive', 'status': 'Abstract'},
+               {'fieldID': 'Threads::start', 'status': 'Abstract'},
+               {'fieldID': 'Threads::waitForExit', 'status': 'Abstract'},
+               {'fieldID': 'Threads::requestClose', 'status': 'Impl'}]},
+   {'className': 'Mutex', 'fields': []},
+   {'className': 'MutexMngr', 'fields': []},
+   {'className': 'SyncLock', 'fields': []},
+   {'className': 'Semaphore', 'fields': []}]]]

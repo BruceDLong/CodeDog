@@ -26,7 +26,7 @@ def runCMD(myCMD):
 def connectLibraries():
     global libPaths
     for filename in libPaths:
-        runCMD("python3 AnalyzeLib.py "+filename+"")
+        runCMD("python3 getLibInfo.py "+filename+"")
 
 def collectLibFilenamesFromFolder(folderPath):
     global libPaths

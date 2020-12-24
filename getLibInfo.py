@@ -65,7 +65,7 @@ def addToLibFieldsList(filename, fileClasses, newClasses):
             for fieldDef in classDef['fields']:
                 if progSpec.fieldIsFunction(fieldDef['typeSpec']):
                     #print("VALUE: ", fieldDef['value'])
-                    if fieldDef['hasFuncBody'] and fieldDef['value'][0]:
+                    if fieldDef['hasFuncBody'] and (fieldDef['value'][0] or fieldDef['value'][1]):
                         status = 'Impl'
                     elif not fieldDef['hasFuncBody']:
                         status = 'Abstract'
@@ -74,9 +74,9 @@ def addToLibFieldsList(filename, fileClasses, newClasses):
                     elif 'verbatimText' in fieldDef['typeSpec']:
                         status = 'Impl'
                     elif 'codeConverter' in fieldDef['typeSpec']:
-                        status = 'Convtr'
+                        status = 'Impl'
                     else:
-                        print("Unknown: ", fieldDef)
+                        print("Unknown: ", fieldDef['value'])
                         status = 'Unknown'
                     fieldIDandStatus = {'fieldID':fieldDef['fieldID'], 'status':status}
                 else: fieldIDandStatus = {'fieldID':fieldDef['fieldID']}
