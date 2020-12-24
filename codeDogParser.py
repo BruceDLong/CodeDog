@@ -250,7 +250,7 @@ def packFieldDef(fieldResult, className, indent):
     if(fieldResult.arraySpec):
         arraySpec=fieldResult.arraySpec
         isAContainer = True
-        #print("         ****Old ArraySpec found: ")
+        print("         ****Deprecated ArraySpec found: ", arraySpec)
     else: arraySpec=None
 
     reqTagList=None

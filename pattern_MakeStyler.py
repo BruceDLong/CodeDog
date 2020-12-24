@@ -159,7 +159,7 @@ struct GLOBAL{
     our Styler:: styler
 }
 struct Styler{
-    our cdColor[map string]: userColors
+    me Map<me string, our cdColor>: userColors
     me cdColor:  frGndColor      <- Black
     me cdColor:  bkGndColor      <- White
     me cdColor:  highlight1Color <- Black
@@ -198,7 +198,7 @@ struct Styler{
 
 
     // FONT NAMES
-    me string[map string]: userFontNames
+    me Map<me string, me string>: userFontNames
     me string: titleFont
     me string: normalFont
     me string: H1_font
@@ -216,10 +216,10 @@ struct Styler{
     void: setCustomFont(me string: ID, me string: fontName) <- {
         userFontNames.insert(ID, fontName)
     }
-    me string: font(me string: ID) <- {return(userFontNames.get(ID))}
+    me string: font(me string: ID) <- {return(userFontNames.at(ID))}
 
     // FONT SIZES
-    me int[map string]: userFontSizes
+    me Map<me string, me int>: userFontSizes
     me int: fontSizeVerySmall
     me int: fontSizeSmall
     me int: fontSizeNormalSize
@@ -230,7 +230,7 @@ struct Styler{
         userFontSizes.insert(ID, fontSize)
     }
     me int: fontSize(me string: ID) <- {
-        return(userFontSizes.get(ID))
+        return(userFontSizes.at(ID))
     }
 
     // FONT SIZE MODES
