@@ -71,9 +71,11 @@ Examples/iPhoneBuild/
 Examples/LinuxBuild/
 Examples/AndroidBuild/
 Examples/MacBuild/
+
+# Testing
 xlatorTests/
 LIB_ANALYSIS/
-
+*.info
 
 
 
