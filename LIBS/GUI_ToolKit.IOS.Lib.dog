@@ -33,11 +33,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate{
     func applicationWillResignActive(_ application: UIApplication) -> Void {
         var application = application
     }
-
     func applicationDidEnterBackground(_ application: UIApplication) -> Void {
         var application = application
     }
-
     func applicationWillEnterForeground(_ application: UIApplication) -> Void {
         var application = application
     }
@@ -48,8 +46,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate{
         var application = application
     }
 }
-
-
 class ViewController: UIViewController {
 // var appView: UIView!
 var headerView: UIView!
@@ -126,8 +122,6 @@ var appView: UIView!
     }
 }
 
-
-
 class topAppWidget: UIView {
     override func draw(_ rect: CGRect) {
     let context = UIGraphicsGetCurrentContext()
@@ -159,7 +153,7 @@ class topAppWidget: UIView {
 
 /////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-struct GUI_offset{their GtkAdjustment:GUI_offset}
+//struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{their UIView: GUI_item}
 struct GUI_Frame{their UIView: GUI_Frame}
 struct GUI_menuBar{their UIView: GUI_menuBar}
@@ -168,7 +162,7 @@ struct GUI_menuItem{their UIView: GUI_menuItem}
 struct GUI_canvas{their UIView: GUI_canvas}
 struct GUI_container{their UIView:GUI_container}
 struct GUI_ScrollingWindow{their UIView: GUI_ScrollingWindow}
-struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
+//struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_Scalar{me Int: GUI_Scalar}
 //struct GUI_Label{their textView: GUI_Label}
@@ -177,57 +171,51 @@ struct listWidget{their HWND: listWidget}
 
 /////////////////////////////////  HANDLE GUI
 struct GUI{
-    me uint32: GUI_Init() <- {
-        return(0)
-    }
-    me uint32: GUI_Run() <- {
-        me uint32: status <- 0
-        return(status)
-    }
-    me void: GUI_Deinit() <- {
-    }
+    me uint32: GUI_Init()
+    me uint32: GUI_Run()
+    me void: GUI_Deinit()
 }
 struct GUI_rect{me CGRect:GUI_rect}
 struct GUI_Frame{me UIView:GUI_Frame}
 
 struct GUI{
-    me void: showWidget(me GUI_item: widget) <- <%!%1.isHidden=false%>
-    me GUI_item: newCanvas() <- <%!%GUIView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
-    me GUI_item: newScrollingWindow() <- <%!%Gscroller()%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%G%1.addSubview(%2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%Ggtk_container_add(GTK_CONTAINER (%1), %2)%>
-    //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
-    //me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
-    //me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_TopSubMenu(%1, %2)%>
-    //me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
-    me void: setCallback() <- <%!%Gg_signal_connect(%1, %2, %3, 0)%>
-    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!%Gcairo_create(cairo_pdf_surface_create(%1.data(), %2*70, %3*70))%>
+    me void: showWidget(me GUI_item: widget)
+    me GUI_item: newCanvas()
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height)
+    me GUI_item: newScrollingWindow()
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget)
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget)
+    //me void: addMenuBar(me GUI_menuBar: menubar)
+    //me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)
+    //me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)
+    //me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)
+    me void: setCallback()
+    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh)
 }
 
 struct GUI_ctxt {
     their CGContext:GUI_ctxt
-    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%> {}
-    me void: reset() <- <%!%G %>
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, Double(%1 / 256), Double(%2 / 256), Double(%3 / 256), Double(%4 / 256))%>
-    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, Double(%1 / 256), Double(%2 / 256), Double(%3 / 256))%>
-    me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
-    me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
-    me void: setScale() <- <%!scaleBy(x:%1, y:%2)%>
-    me void: moveTo(me double: x, me double: y) <- <%!move(to:CGPoint(x:%1, y:%2))%>
-    me void: lineTo(me double: x, me double: y) <- <%!addLine(to:CGPoint(x:%1, y:%2))%>
-    me void: moveRel(me double: dx, me double: dy) <- <%!cairo_rel_move_to(%0, %1, %2)%>
-    me void: lineRel(me double: dx, me double: dy) <- <%!cairo_rel_line_to(%0, %1, %2)%>
-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
-    me void: closePath() <- <%!closePath()%>
-    me void: rectangle() <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
-    me void: paintNow() <- <%!cairo_paint(%0)%>
-    me void: strokeNow() <- <%!strokePath()%>
-    me void: fillNow() <- <%!fillPath()%>
-    me void: strokeKeep() <- <%!strokePath()%>
-    me void: fillKeep() <- <%!fillPath()%>
-    me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
+    me void: fetchAreaToBeDrawn(me GUI_rect: area)
+    me void: reset()
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
+    me void: setRGB (me double: red, me double: green, me double: blue)
+    me void: setLineWidth(me double: width)
+    me void: finishPDF()
+    me void: setScale()
+    me void: moveTo(me double: x, me double: y)
+    me void: lineTo(me double: x, me double: y)
+    me void: moveRel(me double: dx, me double: dy)
+    me void: lineRel(me double: dx, me double: dy)
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3)
+    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3)
+    me void: closePath()
+    me void: rectangle()
+    me void: paintNow()
+    me void: strokeNow()
+    me void: fillNow()
+    me void: strokeKeep()
+    me void: fillKeep()
+    me void: setFillPattern()
 }
 
 /*
@@ -287,16 +275,16 @@ window = UIWindow(frame: UIScreen.main.bounds)
 /////////////////////////////////  EVENT DISPATCHER
 struct IOS_eventDispatcher{
 their widget: topWidget
-me bool: dispatchPointerMotionEvent(me UIView: event) <- {return(false)}
-// me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
-// me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+me bool: dispatchPointerMotionEvent(me UIView: event)
+// me bool: dispatchKeyboardEvent(their GdkEventKey: event)
+// me bool: dispatchWindowEvent(their GdkEventConfigure: event)
 // Also: timer, data and user events
-me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{topWidget = masterWidget;}%>
+me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget)
 }
 
 /////////////////////////////////   Event callbacks
 struct GLOBAL{
-me IOS_eventDispatcher: EventDispatcher
+    me IOS_eventDispatcher: EventDispatcher
 }
 
 struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
@@ -322,41 +310,16 @@ struct tm{
 
 struct timeStringer{
     me tm: timeRec
-    me none: timeStringer() <- <%{
-        //var rawtime: time_t
-        //time(rawtime);
-        //timeRec = localtime(rawtime);
+    me none: timeStringer()
 
-    } %>
-
-    me string: time12Hour() <- <%{
-        var AmPm: String = "am";
-        var hours: Int32 = timeRec.tm_hour;
-        if (hours>=12) {hours = hours-12; AmPm="pm";}
-        if (hours==0) {hours = 12;}
-        var SH: String = (String(hours)+":");
-        var min: Int32 = timeRec.tm_min;
-        if (min<10){SH = SH+"0";}
-        SH = SH + String(min);
-
-        SH=SH+":";
-        var sec: Int32 = timeRec.tm_sec;
-        if (sec<10){SH = SH+"0";}
-        SH = SH + String(sec);
-        SH=SH+AmPm;
-        return(SH);
-    } %>
+    me string: time12Hour()
 }
 struct guiFillPattern{
-    their cairo_pattern_t: guiFillPattern
-    me void: init() <- <%!%0 = cairo_pattern_create_linear(%1, %2, %3, %4)%>
-    me void: AddColorStopRGBA(me double: offset, their Color: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, %2.red/265, %2.green/256, %2.blue/256, %3/256)%>
-    me void: AddColorStop(me double: offset, their Color: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, %2.red/265, %2.green/256, %2.blue/256)%>
+    //their cairo_pattern_t: guiFillPattern
+    me void: init()
+    me void: AddColorStopRGBA(me double: offset, their Color: color, me int: alpha)
+    me void: AddColorStop(me double: offset, their Color: color)
 }
 
-struct APP {
+struct APP{}
 
-}
-struct GLOBAL{
-    me APP: thisApp
-}

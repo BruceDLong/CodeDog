@@ -284,9 +284,8 @@ def ChooseLibs(classes, buildTags, tags):
     initialNeeds1 = []
     for feature in featuresNeeded:
         featuresNeeded.extend(fetchFeaturesNeededByLibrary(feature))
-        initialNeeds1.append(feature)
+        if not feature in initialNeeds1: initialNeeds1.append(feature)
 
-    initialNeeds1 = list(set(initialNeeds1))
     initialNeeds2 =[]
     for feature in initialNeeds1:
         initialNeeds2.append(['feature',feature])

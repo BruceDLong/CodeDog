@@ -409,10 +409,6 @@ struct GLOBAL{
     }
 }
 
-struct APP{
-    my GUI: gui
-}
-
 // TODO:
 // clean opening screen
 // Music playing

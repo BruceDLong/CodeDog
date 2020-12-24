@@ -658,8 +658,6 @@ struct timeStringer{
 
 /////////////////////////////////  G L O B A L
 struct GLOBAL{
-    me APP: thisApp
-
     // DRAWING ROUTINES:
     me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
         HFONT hFont;
@@ -754,7 +752,6 @@ struct GLOBAL{
         cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
     } %>
 
-    me Map<me string, me INK_Image>: InkImgCache
     me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         filename = "./assets/" + filename;
         map< string, cairo_surface_t* >::iterator picPtr=InkImgCache.find(filename);

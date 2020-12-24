@@ -3,7 +3,7 @@
 requirements = [
     [require, BigNumbers_implementation]
 ]
-
+struct GLOBAL{}
 struct BigInt{}
 struct BigFloat{}
 

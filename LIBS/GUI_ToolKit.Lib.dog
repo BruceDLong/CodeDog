@@ -205,6 +205,11 @@ struct Styler{
 }
 
 struct GLOBAL{
+    me APP: thisApp
+    me Map<me string, me INK_Image>: InkImgCache
+    me float: displayDensity
+    me double: scaleFactor <- 1.0
+
     me floatWidget:     makeFloatWidget(me string: label)
     me numRangeWidget:  makeNumRangeWidget(me string: label)
     me rangeWidget:     makeRangeWidget(me string: label)
@@ -488,3 +493,7 @@ struct timeStringer{}
 /////////////////////////////////  INTER-THREAD COMMUNICATION
 struct MessagePasser{}
 struct workerMsgThread{}
+struct APP {
+    me GUI: gui
+    me GUI_Frame: thisFrame
+}

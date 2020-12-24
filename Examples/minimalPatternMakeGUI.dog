@@ -167,7 +167,6 @@ struct GUI{
 }
 
 struct APP{
-    my GUI: gui
     me GUI_ScrollingWindow: scrollerRef
 
     me void: createAppMenu(me GUI_Frame: frame) <- {}

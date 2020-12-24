@@ -149,9 +149,7 @@ struct Swing_eventDispatcher{
 /////////////////////////////////   Event callbacks for GTK3
 struct GLOBAL{
     me Swing_eventDispatcher: EventDispatcher
-
 }
-
 
 /////////////////////////////////  HANDLE GUI
 struct GUI {
@@ -281,17 +279,12 @@ struct timeStringer{
 
 /////////////////////////////////  G L O B A L
 struct GLOBAL{
-    me APP: thisApp
     // DRAWING ROUTINES:
-
     me void: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me int: x, me int: y) <- <%{
         cr.gr.setFont(new Font(font.na/me, Font.PLAIN, (int)(font.size*1.4)));
         cr.gr.drawString(text, x, y);
     } %>
 
-
-
-    me Map<me string, me INK_Image>: InkImgCache
     me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         filename = "assets/" + filename;
         BufferedImage picPtr=InkImgCache.get(filename);
@@ -320,5 +313,4 @@ struct GLOBAL{
 
     me int: widgetHeight() <- <%!%G%1.getHeight()%>
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
-
 }
