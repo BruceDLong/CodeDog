@@ -3,7 +3,9 @@
 import os
 from pprint import pprint
 
-libPaths = {}
+libPaths  = {}
+libReport = ""
+
 def infoFromFile(filename):
     libInfo = []
     f=open(filename)
@@ -11,6 +13,14 @@ def infoFromFile(filename):
     f.close()
     libInfo = eval(infoStr)
     return libInfo
+
+def writeReportFile():
+    global libReport
+    fileName = "LibraryAnalysisReport.txt"
+    print("WRITING FILE: "+fileName)
+    fo=open(fileName, 'w')
+    fo.write(libReport)
+    fo.close()
 
 def collectLibFilenamesFromFolder():
     global libPaths
@@ -41,7 +51,8 @@ def findInChild(className, parentID, childInfo):
     return False
 
 def analyzeParentChild(parent, child):
-    print("CHILD LIB: ", child)
+    global libReport
+    libReport = libReport + "CHILD LIB: "+ child + "\n"
     parentInfo = infoFromFile(parent)
     childInfo  = infoFromFile(child)
     for parentClass in parentInfo[0][1]:
@@ -53,8 +64,11 @@ def analyzeParentChild(parent, child):
                 if parentField['status'] != 'Impl':
                     parentID = parentField['fieldID']
                     found = findInChild(className, parentID, childInfo)
-                    if found == False:print ("    ", parentID,"    missing in child.")
-                    elif found != True: print ("    @@@",  parentID," is ", found," in child:")
+                    if found == False:
+                        libReport = libReport + "    " + parentID + "    missing in child.\n"
+                    elif found != True:
+                        libReport = libReport + "    " + parentID + " is " + found+ " in child.\n"
+    #print(libReport)
 
 def getParentChild():
     global libPaths
@@ -69,4 +83,4 @@ def getParentChild():
 
 collectLibFilenamesFromFolder()
 getParentChild()
-
+writeReportFile()
