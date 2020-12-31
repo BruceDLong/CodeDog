@@ -213,6 +213,17 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
 
+def determinePtrConfigForNewVars(lhsTypeSpec, rhsTypeSpec, useCtor):
+    leftOwner =progSpec.getTypeSpecOwner(lhsTypeSpec)
+    rightOwner=progSpec.getTypeSpecOwner(rhsTypeSpec)
+    if ((leftOwner=="me" or leftOwner=="literal") and rightOwner=="our"):
+        return["*", ""]
+    elif leftOwner=='their' and rightOwner == 'our' and not useCtor:
+        return["*", ""]
+    elif leftOwner=='their' and rightOwner == 'our' :
+        return["", ".get()"]
+    return["", ""]
+
 def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
     #TODO: make test case
     # Returns left and right text decorations for both LHS and RHS of assignment
@@ -576,7 +587,6 @@ def codePlus(item, objsRefed, returnType, expectedTypeSpec, xlator):
             keyType = progSpec.varTypeKeyWord(retTypeSpec)
             retTypeSpec={'owner': 'me', 'fieldType': keyType}
         for  i in item[1]:
-            #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
             elif (i[0] == '-'): S+=' - '
             else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
@@ -615,7 +625,6 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
         leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
         [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print '      IsEq ', i
             if   (i[0] == '=='): op=' == '
             elif (i[0] == '!='): op=' != '
             elif (i[0] == '==='): op=' == '
@@ -951,7 +960,6 @@ struct GLOBAL{
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
 def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
-    #TODO: make test case
     [fieldType, innerType] = convertType(classes, lhsTypeSpec, 'var', '', xlator)
     varDeclareStr=''
     assignValue=''
@@ -962,52 +970,30 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
         del fieldDef['paramList'][-1]
         useCtor = True
     if(fieldDef['value']):
-        [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, xlator)
-        if(isAllocated):
-            if progSpec.typeIsPointer(rhsTypeSpec):
-                leftOwner =progSpec.getTypeSpecOwner(lhsTypeSpec)
-                rightOwner=progSpec.getTypeSpecOwner(rhsTypeSpec)
-                if leftOwner==rightOwner:
-                    assignValue = " = " + S2
-                elif leftOwner=='their' and rightOwner == 'our':
-                    assignValue = " = " + S2 + ".get()"
-                else:
-                    print("TODO: handle case to alloc pointer ", leftOwner, "to", rightOwner, "for variable ", varName)
-                    exit(2)
-            else:
-                assignValue = " = " + getCodeAllocSetStr(innerType, owner, S2)
-        else:
-            [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)
-            if(useCtor==False):    # { } constructor
-                assignValue += " = "
-            assignValue += leftMod+S2+rightMod
+        [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, xlator)
+        [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod] = determinePtrConfigForAssignments(lhsTypeSpec, rhsTypeSpec, "" , RHS)
+        if(isAllocated and not progSpec.typeIsPointer(rhsTypeSpec)): RHS = getCodeAllocSetStr(innerType, owner, RHS)
+        else: RHS = RHS_leftMod+RHS+RHS_rightMod
+        if(isAllocated or useCtor==False): assignValue = " = " + RHS
+        else: assignValue = RHS
 
     else: # If no value was given:
         CPL=''
-        itemsTypeCat = progSpec.fieldsTypeCategory(lhsTypeSpec)
         if fieldDef['paramList'] != None:
             # Code the constructor's arguments
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
-                    #exit(1)
+                    exit(1)
                 rhsTypeSpec = paramTypeList[0]
                 rhsType     = progSpec.getFieldType(rhsTypeSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(rhsType, str) and fieldType==rhsType[0]:
-                    CPL = CPL[1:-1]
-                    leftOwner =progSpec.getTypeSpecOwner(lhsTypeSpec)
-                    rightOwner=progSpec.getTypeSpecOwner(rhsTypeSpec)
-                    allocStr = ""
-                    leftMod = ""
-                    rightMod = ""
-                    if(isAllocated): allocStr = getCodeAllocStr(innerType, owner)
-                    if ((leftOwner=="me" or leftOwner=="literal")  and rightOwner=="our") or (leftOwner=='their' and rightOwner == 'our' and not useCtor): leftMod = "*"
-                    elif leftOwner=='their' and rightOwner == 'our' : rightMod = ".get()"
+                    [leftMod, rightMod] = determinePtrConfigForNewVars(lhsTypeSpec, rhsTypeSpec, useCtor)
                     if(not useCtor): assignValue += " = "    # Use a copy constructor
-                    assignValue += allocStr + "(" + leftMod + CPL + rightMod + ")"
-
+                    if(isAllocated): assignValue += getCodeAllocStr(innerType, owner)
+                    assignValue += "(" + leftMod + CPL[1:-1] + rightMod + ")"
             if(assignValue==''):
                 owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
                 assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
@@ -1056,7 +1042,7 @@ def codeConstField_Str(convertedType, fieldName, fieldValueText, className, inde
     return [defn, decl]
 
 def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
-    # TODO: make test case
+    #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
         defn = indent + convertedType + ' ' + fieldName +';\n'
@@ -1218,6 +1204,7 @@ def fetchXlators():
     xlators['blockPrefix']           = ""
     xlators['usePrefixOnStatics']    = "False"
     xlators['codeExpr']                     = codeExpr
+    xlators['applyOwner']                     = applyOwner
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
     xlators['codeMain']                     = codeMain

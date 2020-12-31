@@ -138,39 +138,28 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     buildStr = ''
     libStr = ''
     fileExtension = '.swift'
-    sourcePath = buildName + "/" + fileName + "/" + "Sources"
     currentDirectory = currentWD = os.getcwd()
-    workingDirectory = currentDirectory + "/" + buildName + "/" + fileName
+    workingDirectory = currentDirectory + "/" + buildName
     makeDir(buildName)
-    makeDir(buildName + "/" + fileName)
-    #runCMD("swift package init --type executable", workingDirectory)
-    writeFile(sourcePath, "main", fileSpecs, fileExtension)
-
-    for libFile in libFiles:
-        if libFile.startswith('pkg-config'):
-            libStr += "`"
-            libStr += libFile
-            libStr += "`"
-        else:
-            libStr += libFile
-        #print "libStr: " + libStr
-
-    buildStr = "swift build"
-    runStr = ".build/debug/" + fileName
+    writeFile(workingDirectory, fileName, fileSpecs, fileExtension)
+    buildStr = "swiftc " + fileName + fileExtension
+    runStr = "./" + fileName
     return [workingDirectory, buildStr, runStr]
 
 def printResults(workingDirectory, buildStr, runStr):
     cdlog(1, "Compiling From: {}".format(workingDirectory))
     print("     NOTE: Build Command is: ", buildStr, "\n")
     print("     NOTE: Run Command is: ", runStr, "\n")
-    #print "workingDirectory: ", workingDirectory
+    #print ("workingDirectory: ", workingDirectory)
     pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
     if out: print("Result: ",out)
     if err:
-        print("Error Messages:\n--------------------------\n", err.decode('UTF-8'), end=' ')
-        print("--------------------------", end=' ')
-        exit(2)
+        decodedErr = err.decode()
+        if "error:" in decodedErr:
+            print("Error Messages:\n--------------------------\n", err.decode('UTF-8'), end=' ')
+            print("--------------------------", end=' ')
+            exit(2)
     else: cdlog(1, "SUCCESS!")
 
 def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs):
@@ -181,7 +170,7 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
         [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Android':
         buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs)
-    elif platform == 'IOS':
+    elif platform == 'Swift':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Windows':
         [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)

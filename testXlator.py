@@ -503,8 +503,6 @@ def RunCodeDogPrg(testString):
     writeFile(path, fileName, testString)
     runString ="codeDog " + fileName
     workingDirectory = os.getcwd() + "/" + path
-    #print"    workingDirectory: ", workingDirectory
-    #print"    runString: " ,runString
     out, err = runCmd(workingDirectory, runString)
     return out, err
 
@@ -634,10 +632,10 @@ elif(xlatorName == "swing" or xlatorName == "java" or xlatorName == "Java"):
     buildSpec = "SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';"
     runSpec = "java GLOBAL"
     runDirectory = workingDirectory + "/SwingBuild"
-elif(xlatorName == "swift"):
-    buildSpec = "iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';"
-    runSpec = ".build/debug/testXlator"
-    runDirectory = workingDirectory + "/SwiftBuild/testXlator"
+elif(xlatorName == "swift" or xlatorName == "Swift" ):
+    buildSpec = "SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';"
+    runSpec = "./testXlator"
+    runDirectory = workingDirectory + "/SwiftBuild"
 else:
     print(("UNKNOWN XLATOR: ", xlatorName))
     exit(0)

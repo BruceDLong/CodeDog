@@ -595,12 +595,16 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             typeSpecOut['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         if "%T0Type" in convertedName:
             if(reqTagList != None):
-                T0Type = progSpec.getTypeFromTemplateArg(reqTagList[0])
+                T0Type  = progSpec.getTypeFromTemplateArg(reqTagList[0])
+                T0Owner = progSpec.getOwnerFromTemplateArg(reqTagList[0])
+                T0Type  = xlator['applyOwner'](T0Owner, T0Type, "")
                 convertedName = convertedName.replace("%T0Type",T0Type)
             else: cdErr("ERROR: looking for T0Type in codeConverter but reqTagList found in TypeSpec.")
         if "%T1Type" in convertedName:
             if(reqTagList != None):
-                T1Type = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                T1Type  = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                T1Owner = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+                T1Type  = xlator['applyOwner'](T1Owner, T1Type, "")
                 convertedName = convertedName.replace("%T1Type",T1Type)
             else: cdErr("ERROR: looking for T1Type in codeConverter but reqTagList found in TypeSpec.")
         #print("codeConverter ",name,"->",convertedName, typeSpecOut)
