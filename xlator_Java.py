@@ -46,8 +46,10 @@ def adjustBaseTypes(fieldType, isContainer):
                 javaType = fieldType
         else:
             if(fieldType=='int32'):      javaType= 'int'
-            elif(fieldType=='uint32'  or fieldType=='uint'):javaType='int'  # these should be long but Java won't allow
-            elif(fieldType=='int64'or fieldType=='uint64'):    javaType= 'long'
+            elif(fieldType=='uint32'or fieldType=='uint'):  javaType='int'  # these should be long but Java won't allow
+            elif(fieldType=='int64' or fieldType=='uint64'):javaType= 'long'
+            elif(fieldType=='uint8' or fieldType=='uint16'):javaType='uint32'
+            elif(fieldType=='int8'  or fieldType=='int16'): javaType='int32'
             elif(fieldType=='char' ):    javaType= 'char'
             elif(fieldType=='bool' ):    javaType= 'boolean'
             elif(fieldType=='string'):   javaType= 'String'
@@ -89,8 +91,6 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     if progSpec.isOldContainerTempFunc(typeSpec): print("Deprecated container type:", typeSpec); exit(2);
     if(isinstance(fieldType, str)):
-        if(fieldType=='uint8' or fieldType=='uint16'): fieldType='uint32'
-        elif(fieldType=='int8' or fieldType=='int16'): fieldType='int32'
         langType = adjustBaseTypes(fieldType, progSpec.isNewContainerTempFunc(typeSpec))
     else: langType = progSpec.flattenObjectName(fieldType[0])
     langType = applyOwner(owner, langType, progSpec.isNewContainerTempFunc(typeSpec), actionOrField, varMode)

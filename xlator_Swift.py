@@ -27,7 +27,7 @@ def getContainerType(typeSpec, actionOrField):
         datastructID = 'None'
     return [datastructID, idxType, owner]
 
-def adjustBaseTypes(fieldType):
+def adjustBaseTypes(fieldType, isContainer):
     if(isinstance(fieldType, str)):
         if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='uint32'): fieldType='UInt32'
         elif(fieldType=='int8' or fieldType=='int16' or fieldType=='int32'): fieldType='Int32'
@@ -82,29 +82,33 @@ def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
 
 def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
+    if progSpec.isOldContainerTempFunc(typeSpec): print("Deprecated container type:", typeSpec); exit(2);
     fieldAttrs=''
-    langType = adjustBaseTypes(fieldType)
+    if(isinstance(fieldType, str)):
+        langType = adjustBaseTypes(fieldType, progSpec.isNewContainerTempFunc(typeSpec))
+    else: langType = progSpec.flattenObjectName(fieldType[0])
+    langType = applyOwner(owner, langType, varMode)
+    if langType=='TYPE ERROR': print(langType, owner, fieldType);
+    InnerLangType = langType
+    reqTagList = progSpec.getReqTagList(typeSpec)
+    if(reqTagList != None):
+        reqTagString = "<"
+        count = 0
+        for reqTag in reqTagList:
+            reqOwner = progSpec.getOwnerFromTemplateArg(reqTag)
+            varTypeKeyword = progSpec.getTypeFromTemplateArg(reqTag)
+            unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc', reqOwner)
+            unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
+            reqType = adjustBaseTypes(unwrappedTypeKeyword, True)
+            if(count>0):reqTagString += ", "
+            reqTagString += reqType
+            count += 1
+        reqTagString += ">"
+        langType += reqTagString
+    if progSpec.isNewContainerTempFunc(typeSpec):
+        return [langType, InnerLangType]
     if varMode != 'alloc':
         fieldAttrs = applyOwner(owner, langType, varMode)
-    if 'arraySpec' in typeSpec:
-        arraySpec=typeSpec['arraySpec']
-        if(arraySpec): # Make list, map, etc
-            [containerType, idxType, owner]=getContainerType(typeSpec, '')
-            if 'owner' in typeSpec['arraySpec']:
-                containerOwner=typeSpec['arraySpec']['owner']
-            else: containerOwner='me'
-            idxType=adjustBaseTypes(idxType)
-            if idxType=='timeValue': idxType = 'Int64'
-
-            if containerType=='list':
-                langType="[ "+langType+" ]"
-            elif containerType=='map':
-                langType="#2 NSMutableOrderedSet< "+idxType+', '+langType+" >"
-            elif containerType=='multimap':
-                langType="multimap< "+idxType+', '+langType+" >"
-            if varMode != 'alloc':
-                fieldAttrs=applyOwner(containerOwner, langType, varMode)
-
     if varMode != 'alloc' and progSpec.typeIsPointer(typeSpec):
         langType+='?'    # Make pointer func args optionals
     return [langType, fieldAttrs]   # E.g.: langType='uint', file
@@ -124,6 +128,8 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
         owner=baseType['owner']
         fieldType=baseType['fieldType']
     if(fieldType=='<%'): return fieldType[1][0]
+    unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
+    ownerOut=getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn)
     retVal = xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator)
     return retVal
 
@@ -307,40 +313,36 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
         exit(2)
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContainer,datastructID,keyFieldType,ContainerOwner, isBackward, actionOrField, indent,xlator):
+def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerName,datastructID,keyFieldType,containerOwner,isBackward,actionOrField, indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText       = ""
-    loopCounterName  = ""
+    loopCounterName  = repName+'_key'
+    containedType    = progSpec.getContainerFirstElementType(containerType)
+    ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     owner            = progSpec.getContainerFirstElementOwner(containerType)
-    containedType    = progSpec.getFieldType(containerType)
     if datastructID=='multimap' or datastructID=='map':
-        ctrlVarsTypeSpec = {'owner':'me', 'fieldType':containedType}
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.key')}
         localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.value')
-
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for " + repName+' in '+ repContainer + " {\n")
-
-    elif datastructID=='list' or (datastructID=='list' and not willBeModifiedDuringTraversal):
-        ctrlVarsTypeSpec = {'owner':'me', 'fieldType':containedType}
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':'me', 'fieldType':'Int'}
-        localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for " + repName+' in '+ repContainer + " {\n")
-    elif datastructID=='list' and willBeModifiedDuringTraversal:
-        ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-        loopCounterName=repName+'_key'
-        keyVarSpec = {'owner':'me', 'fieldType':'Int'}
-        localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        lvName=repName+"Itr"
-       # [containerType, containedType] = convertType(classes, ctrlVarsTypeSpec, 'var', '', xlator)
-        actionText += ( indent + "for " + lvName + " in 0..<" +  repContainer+".count {\n"
-                    + indent+"var "+repName + ':' + containerType + " = "+repContainer+"["+lvName+"];\n")
+        actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
+    elif datastructID=='list' or datastructID=='Swift_Array':
+        if not willBeModifiedDuringTraversal:
+            keyVarSpec = {'owner':'me', 'fieldType':'Int'}
+            localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+            localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+            actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
+        else:
+            containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
+            keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
+            [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
+            loopVarName=repName+"Idx";
+            localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+            localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+            actionText += ( indent + "for " + loopVarName + " in 0..<" +  containerName+".count {\n"
+                        + indent+"var "+repName + ':' + containerType + " = "+containerName+"["+loopVarName+"];\n")
     else:
-        print("DSID:",datastructID,containerType)
+        print("DSID:",datastructID,containerType, willBeModifiedDuringTraversal)
         exit(2)
 
     return [actionText, loopCounterName]
@@ -999,6 +1001,7 @@ def fetchXlators():
     xlators['blockPrefix']           = "do"
     xlators['usePrefixOnStatics']    = "True"
     xlators['codeExpr']                     = codeExpr
+    xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
     xlators['codeMain']                     = codeMain
