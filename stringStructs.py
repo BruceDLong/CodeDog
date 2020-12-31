@@ -533,7 +533,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         globalFieldCount +=1
         childRecName='SRec' + str(globalFieldCount)
         gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child'
-        gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and '+childRecName+'.child !=NULL){\n'
+        gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and getNextStateRec('+childRecName+') !=NULL){\n'
         if fromIsALT:
           #  print "ALT-#1"
             gatherFieldCode+=Write_ALT_Extracter(classes, fieldType[0], fields, childRecName, '', 'tmpVar', indent+'    ', level)

@@ -955,7 +955,7 @@ struct EParser{
                     }
                 }
             }
-            log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
+       //     log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
 //withEach SRecI in SSet.stateRecs {log("    SLOT:" + SRecI.mySymbol()+": "+SRecI.stringify(self))} log("#############################")
             crntPos <+- 1
         }
