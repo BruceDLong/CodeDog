@@ -196,7 +196,7 @@ struct testClass{
      'actions/lessThanEq':    ['struct testClass{me void: runTest()<-{if(1<=2)   {print("p")}}}','PGBR:p'],
      'actions/greaterThan':   ['struct testClass{me void: runTest()<-{if(2>1)    {print("p")}}}','PGBR:p'],
      'actions/greaterThanEq': ['struct testClass{me void: runTest()<-{if(2>=2)   {print("p")}}}','PGBR:p'],
-     'actions/compNullPtrs':  ['struct testClass{me void: runTest()<-{our string: Q \n their string: P \n if(P or Q){print("p")}}}','PGBR:p'],
+     'actions/compNullPtrs':  ['struct testClass{me void: runTest()<-{our string: Q \n their string: P \n if(!(P or Q)){print("p")}}}','PGBR:p'],
      'actions/operators':     ['''
 struct testClass{
     me void: runTest()<-{
@@ -220,7 +220,7 @@ struct testClass{
         if(2>=1)   {print(">=p")}
         our string: Q
         their string: P
-        if(P or Q){print(" Ptr p")}
+        if(!(P or Q)){print(" Ptr p")}
     }
     me void: testAnd()<-{
         me int: a <- 0
@@ -455,13 +455,13 @@ struct testClass{
 
 }
 
-tags = """BuildCmd = ""
-Title = "Infomage - DataDog"
+tags = """
+Title = "testXlator"
 FileName = "testXlator"
 Version = "0.1"
 CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long"
-Description = "DataDog gives you the numbers of your life."
+Description = "Xlator Tests."
 ProgramOrLibrary = "program"
 featuresNeeded = [List]
 LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`

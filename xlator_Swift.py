@@ -159,7 +159,7 @@ def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
     RHS_KeyType = progSpec.fieldTypeKeyword(rhsTypeSpec)
     if LHS_KeyType == 'bool'or LHS_KeyType == 'boolean':
         if progSpec.typeIsPointer(rhsTypeSpec):
-            return '(' + RHScodeStr + ' != nil)'
+            return '(' + RHScodeStr + ' == nil)'
         if (RHS_KeyType=='int' or RHS_KeyType=='flag'):
             if RHScodeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
             else: return '(' + RHScodeStr + ' != 0)'
