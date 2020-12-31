@@ -197,7 +197,7 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "public static final int "+fieldName + " = " + fieldValue+ ";\n"
+    S= "public static final int "+fieldName+ " = " + fieldValue+ ";\n"
     return(S)
 
 def getEnumStr(fieldName, enumList):
@@ -215,6 +215,7 @@ def getEnumStringifyFunc(className, enumList):
 
 def codeIdentityCheck(S1, S2, retType1, retType2):
     print("TODO: finish codeIdentityCheck")
+    return S1 + " == "+ S2
 ###################################################### CONTAINERS
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
@@ -351,6 +352,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
             typeKeyword = adjustBaseTypes(typeKeyword, True)
             S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
         else:
+            expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
             elif (item0[0]=='"'):
                 if returnType != None and returnType["fieldType"]=="char":
@@ -360,12 +362,16 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                         S+="'"+item0[1:-1] +"'"
                     else:
                         cdErr("Characters must have exactly 1 character.")
-                else: S+='"'+item0[1:-1] +'"';                retTypeSpec='String'
+                else:
+                    S+='"'+item0[1:-1] +'"'
+                    retTypeSpec='String'
             else:
                 S+=item0;
-                expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
+                if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):
+                    retTypeSpec=expected_KeyType
+                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):
+                    retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
                 if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):retTypeSpec=expected_KeyType
-                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
     else: # CODEDOG LITERALS
         if isinstance(item0[0], str):
             S+=item0[0]
@@ -375,7 +381,9 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
             else:  retTypeSpec = 'int32'
         else:
             [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, xlator)
-            if(codeStr=="NULL"): codeStr="null"
+            if(codeStr=="NULL"):
+                codeStr="null"
+                retTypeSpec={'owner':"PTR"}
             typeKeyword = progSpec.fieldTypeKeyword(retTypeSpec)
             if (len(item0[0]) > 1  and item0[0][0]==typeKeyword and item0[0][1] and item0[0][1]=='('):
                 codeStr = 'new ' + codeStr
@@ -386,6 +394,7 @@ def codeTerm(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('               term item:', item)
     [S, retTypeSpec]=codeFactor(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
+        [S, isDerefd]=derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print '               term:', i
             if   (i[0] == '*'): S+=' * '
@@ -393,6 +402,7 @@ def codeTerm(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (i[0] == '%'): S+=' % '
             else: print("ERROR: One of '*', '/' or '%' expected in code generator."); exit(2)
             [S2, retType2] = codeFactor(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2
     return [S, retTypeSpec]
 
@@ -400,12 +410,16 @@ def codePlus(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('            plus item:', item)
     [S, retTypeSpec]=codeTerm(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
+        [S, isDerefd]=derefPtr(S, retTypeSpec)
+        if isDerefd:
+            keyType = progSpec.varTypeKeyWord(retTypeSpec)
+            retTypeSpec={'owner': 'me', 'fieldType': keyType}
         for  i in item[1]:
-            #print '            plus ', i
             if   (i[0] == '+'): S+=' + '
             elif (i[0] == '-'): S+=' - '
             else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
             [S2, retType2] = codeTerm(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2
     return [S, retTypeSpec]
 
@@ -413,13 +427,19 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('         Comp item', item)
     [S, retTypeSpec]=codePlus(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
+        if len(item[1])>1: print("Error: Chained comparisons.\n"); exit(1);
+        [S, isDerefd]=derefPtr(S, retTypeSpec)
         for  i in item[1]:
             if   (i[0] == '<'): S+=' < '
             elif (i[0] == '>'): S+=' > '
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
             else: print("ERROR: One of <, >, <= or >= expected in code generator."); exit(2)
-            [S2, retTypeSpec] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            [S2, retType2] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            if retTypeSpec!=None and not isinstance(retTypeSpec, str) and isinstance(retTypeSpec['fieldType'], str) and isinstance(retType2, str):
+                if retTypeSpec['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
+                    S2 = "'" + S2[1:-1] + "'"
+            [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
@@ -431,33 +451,22 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
         if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
+        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
         for i in item[1]:
-            #print '      IsEq ', i
             if   (i[0] == '=='): op=' == '
             elif (i[0] == '!='): op=' != '
             elif (i[0] == '==='): op=' == '
             else: print("ERROR: '==' or '!=' or '===' expected."); exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            rightOwner=progSpec.getTypeSpecOwner(retType2)
-            if 'fieldType' in retType2:
-                rightFieldType = progSpec.getFieldTypeNew(retType2)
-            else:
-                rightFieldType =  retType2
-                if not isinstance(rightFieldType, str):
-                    rightFieldType = rightFieldType[0]
-            if 'fieldType' in retTypeSpec:
-                leftFieldType = progSpec.getFieldTypeNew(retTypeSpec)
-            else:
-                leftFieldType =  retTypeSpec
-                if not isinstance(leftFieldType, str):
-                    leftFieldType = leftFieldType[0]
+            rightFieldType = progSpec.getFieldTypeNew(retType2)
+            leftFieldType = progSpec.getFieldTypeNew(retTypeSpec)
             if rightFieldType == "string":rightFieldType = "String"
             if leftFieldType == "string":leftFieldType = "String"
             if not isinstance(retTypeSpec, str) and isinstance(retTypeSpec['fieldType'], str) and isinstance(retType2, str):
-                if retTypeSpec['fieldType'] == "char" and retType2 == 'String'and S2[0] == '"':
+                if retTypeSpec['fieldType'] == "char" and retType2 == 'String' and S2[0] == '"':
                     S2 = "'" + S2[1:-1] + "'"
             if i[0] == '===':
-                S = S + " == "+ S2
+                S=codeIdentityCheck(S, S2, retTypeSpec, retType2)
             else:
                 if rightFieldType == "String" and item[1][0][0]=="==" and leftFieldType=='String':
                     S+= '.equals('+S2+')'
@@ -467,54 +476,56 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
 
 def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('      iOR item:', item)
-    [S, retTypeSpec]=codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    [S, retTypeSpec] = codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
+        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print('      IsEq ', i)
-            if (i[0] == '&'):
-                S  = checkForTypeCastNeed('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
-                S+=' & ' + S2
-            else: print("ERROR: '&' expected in code generator."); exit(2)
+            S  = checkForTypeCastNeed('bool', retTypeSpec, S)
+            [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
+            S+= ' & '+S2
     return [S, retTypeSpec]
 
 def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('   xOR item:', item)
     [S, retTypeSpec]=codeAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
+        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
         for i in item[1]:
-            if (i[0] == '^'):
-                S  = checkForTypeCastNeed('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
-                S+=' ^ ' + S2
-            else: print("ERROR: '^' expected in code generator."); exit(2)
+            S  = checkForTypeCastNeed('bool', retTypeSpec, S)
+            [S2, retType2] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
+            S+= ' ^ '+S2
     return [S, retTypeSpec]
 
 def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print ('   Bar item:', item)
-    [S, retTypeSpec]=codeXOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    [S, retTypeSpec] = codeXOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
+        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
         for i in item[1]:
-            if (i[0] == '|'):
-                S  = checkForTypeCastNeed('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeXOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
-                S+=' | ' + S2
-            else: print("ERROR: 'and' expected in code generator."); exit(2)
+            S  = checkForTypeCastNeed('bool', retTypeSpec, S)
+            [S2, retType2] = codeXOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
+            S+= ' | '+S2
     return [S, retTypeSpec]
 
 def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print('   And item:', item)
     [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
+        [S, isDerefd]=derefPtr(S, retTypeSpec)
         for i in item[1]:
             #print '   AND ', i
             if (i[0] == 'and'):
                 S = checkForTypeCastNeed('bool', retTypeSpec, S)
                 [S2, retTypeSpec] = codeBar(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
                 S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
+                [S2, isDerefd]=derefPtr(S2, retTypeSpec)
                 S+=' && ' + S2
             else: print("ERROR: 'and' expected in code generator."); exit(2)
             retTypeSpec='bool'
@@ -571,7 +582,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
         paramList=segSpec[2]
         if(funcName=='print'):
             S+='System.out.print('
-            count=0
+            count = 0
             for P in paramList:
                 if(count!=0): S+=" + "
                 count+=1
@@ -651,7 +662,7 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
     if len(attrList)>0:
         for attr in attrList:
             if attr=='abstract': classAttrs += 'abstract '
-    if (parentClass != ""):
+    if parentClass != "":
         parentClass = parentClass.replace('::', '_')
         parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, structName)
         parentClass=' extends ' +parentClass
@@ -691,10 +702,9 @@ struct GLOBAL{
 }
     """ % (specialCode)
 
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code' )
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code')
 
 def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
-    [fieldTypeSpec, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, xlator)
     varDeclareStr=''
     assignValue=''
     isAllocated = fieldDef['isAllocated']
@@ -703,6 +713,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
+    [fieldTypeSpec, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, xlator)
     containerTypeSpec = progSpec.getContainerSpec(lhsTypeSpec)
     if progSpec.isOldContainerTempFunc(lhsTypeSpec): print("Deprecated container type:", lhsTypeSpec); exit(2);
     isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)
@@ -731,15 +742,14 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
         CPL=''
         if fieldDef['paramList'] != None:       # call constructor
             # Code the constructor's arguments
-        #TODO: make test case
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
-                    #exit(1)
-
-                paramFieldType=progSpec.getFieldType(paramTypeList[0])
-                if not isinstance(paramFieldType, str) and fieldType==paramFieldType[0]:
+                    exit(1)
+                rhsTypeSpec = paramTypeList[0]
+                rhsType     = progSpec.getFieldType(rhsTypeSpec)
+                if not isinstance(rhsType, str) and fieldType==rhsType[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
                 elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
                     assignValue = " = " + CPL
@@ -986,5 +996,4 @@ def fetchXlators():
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['codeConstructorCall']          = codeConstructorCall
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
-
     return(xlators)
