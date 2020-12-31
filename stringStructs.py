@@ -59,6 +59,7 @@ struct EParser{
         clearGrammar()
 #GRAMMAR_CODE_HERE
         preCalcNullability()
+        preCalcStreamPoints()
     }
 }
     """
@@ -151,12 +152,12 @@ def populateBaseRules():
     appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
     appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
     appendRule('HexNum_str',      'term', 'parseAUTO', "a hexidecimal number")
-    appendRule('BinNum_str',      'term', 'parseAUTO', "a hexidecimal number")
+    appendRule('BinNum_str',      'term', 'parseAUTO', "a binary number")
     appendRule('BigInt',      'term', 'parseAUTO', "an integer")
     appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
     appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier for the current locale')
     appendRule('printables',  'term', 'parseAUTO', "a seqence of printable chars")
-    appendRule('toEOL',       'term', 'parseAUTO', "to read chars to End Of Line, including EOL.")
+    appendRule('toEOL',       'term', 'parseAUTO', "read to End Of Line, including EOL.")
     # TODO: delimited List, keyWord
 
 
@@ -356,10 +357,10 @@ def Write_ALT_Extracter(classes, parentStructName, fields, VarTagBase, VarTagSuf
 
 
 def CodeRValExpr(toFieldType, VarTag, suffix):
-    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child'+suffix+')'+"\n"
-    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child'+suffix+')'+"\n"
-    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child'+suffix+')'+"\n"
-    elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child'+suffix+')'+"\n"
+    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child.next'+suffix+')'+"\n"
+    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child.next'+suffix+')'+"\n"
+    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child.next'+suffix+')'+"\n"
+    elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child.next'+suffix+')'+"\n"
     elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
     elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
     elif toFieldType[0:4]=='flag':       CODE_RVAL=''
@@ -516,7 +517,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                         #print "FUNC:", getFunctionName(fromFieldTypeCID, toFieldTypeCID)
                         if fromFieldTypeCID != toFieldTypeCID:
                             Write_Extracter(classes, toFieldTypeCID, fromFieldTypeCID, logLvl+1)
-                        finalCodeStr=indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fromFieldTypeCID, toFieldTypeCID)+'('+VarTag+"<LVL_SUFFIX>"+'.child, '+CODE_LVAR_v2+')\n'
+                        finalCodeStr=indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fromFieldTypeCID, toFieldTypeCID)+'(getChildStateRec('+VarTag+"<LVL_SUFFIX>"+'), '+CODE_LVAR_v2+')\n'
             else: pass
 
         else:
@@ -532,7 +533,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         globalFieldCount +=1
         childRecName='SRec' + str(globalFieldCount)
         gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child'
-        gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and '+childRecName+'.child !=NULL){\n'
+        gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and getNextStateRec('+childRecName+') !=NULL){\n'
         if fromIsALT:
           #  print "ALT-#1"
             gatherFieldCode+=Write_ALT_Extracter(classes, fieldType[0], fields, childRecName, '', 'tmpVar', indent+'    ', level)
@@ -542,7 +543,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
             #print "##### FUNCT:", getFunctionName(fieldType[0], fieldType[0])
-            gatherFieldCode+='\n'+indent+getFunctionName(fieldType[0], toFieldType[0])+'('+childRecName+'.child, tmpVar)\n'
+            gatherFieldCode+='\n'+indent+getFunctionName(fieldType[0], toFieldType[0])+'(getChildStateRec('+childRecName+') , tmpVar)\n'
 
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, ".next")
@@ -565,7 +566,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         oldIndent=indent
         if (fromIsOPT):
             setTrueCode=''
-            assignerCode+='\n'+indent+'if('+VarTag+'.child' +' == NULL){'
+            assignerCode+='\n'+indent+'if('+VarTag+'.child' +' == NULL or '+VarTag+'.child.next' +' == NULL){'
             if toFieldOwner=='me':
                 if debugTmp: print('        toFieldOwner:', toFieldOwner)
                 ## if fieldName==None and a model of fromFieldType has no cooresponding model But we are in EXTRACT_ mode:
