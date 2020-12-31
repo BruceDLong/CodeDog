@@ -357,10 +357,10 @@ def Write_ALT_Extracter(classes, parentStructName, fields, VarTagBase, VarTagSuf
 
 
 def CodeRValExpr(toFieldType, VarTag, suffix):
-    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child'+suffix+')'+"\n"
-    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child'+suffix+')'+"\n"
-    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child'+suffix+')'+"\n"
-    elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child'+suffix+')'+"\n"
+    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child.next'+suffix+')'+"\n"
+    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child.next'+suffix+')'+"\n"
+    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child.next'+suffix+')'+"\n"
+    elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child.next'+suffix+')'+"\n"
     elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
     elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
     elif toFieldType[0:4]=='flag':       CODE_RVAL=''
@@ -566,7 +566,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         oldIndent=indent
         if (fromIsOPT):
             setTrueCode=''
-            assignerCode+='\n'+indent+'if('+VarTag+'.child' +' == NULL){'
+            assignerCode+='\n'+indent+'if('+VarTag+'.child' +' == NULL or '+VarTag+'.child.next' +' == NULL){'
             if toFieldOwner=='me':
                 if debugTmp: print('        toFieldOwner:', toFieldOwner)
                 ## if fieldName==None and a model of fromFieldType has no cooresponding model But we are in EXTRACT_ mode:
