@@ -222,6 +222,7 @@ To be able to instantiate a model make a struct form of it.
 
 Structs
 *******
+Classes denoted *struct*s are similar to classes of other languages and can be implemented.
 
 Strings
 *******
@@ -242,7 +243,16 @@ String classes are described in detail in the section Generating Parsers.
 
 A struct named GLOBAL
 *********************
+CodeDog uses the special struct named GLOBAL to represent fields that should have a global scope. To make a variable with global scope,
+simply place it inside the GLOBAL struct. The following example declares a global integer named globalCount and on program start it is initialized to 1.
 
+.. code-block:: codeDog
+
+    struct GLOBAL{
+        me int: globalCount <- 1
+    }
+
+In languages (Java) that are unable to support global variables, a commonly used work-around is used to get the same effect as global scope.
 
 Fields
 ------
@@ -356,8 +366,47 @@ Name and field and optionally give an initial value
 Functions
 ---------
 
+Fields that are declared with an argument list in the name are considered functions.
+
+.. code-block:: codeDog
+
+    me int: addOne(me int: num) <- {
+        return(num + 1)
+    }
+
 Expressions and Operators
 -------------------------
+
+The following operators are supported in CodeDog:
+Basic Arithmetic::
+
+    12 + 3      // addition, evaluates to 15
+    11 - 4      // subtraction, evaluates to 7
+    2 * 6       // multiplication, evaluates to 12
+    4 / 2       // division, evaluates to 2
+    5 % 2       // modulus, evaluates to 1
+
+Equality::
+
+    myInt == 5          // test for equality, this evaluates to true if myInt is 5
+    counter != 10       // test for inequality, this evaluates to true if counter is not 10
+    ourObj1 === ourObj2 // test for pointer equality, this evaluates to true if both point to the same object
+
+There are also the standard <, <=, > and >= operators for comparison.
+
+Logical Operators::
+
+    !
+    and
+    or
+
+Bitwise Operators::
+
+    |    // bitwise OR
+    &    // bitwise AND
+    ^    // bitwise XOR
+
+In CodeDog, operator precedence is the same as in C++ and most C-like languages.
 
 Actions
 -------
@@ -365,20 +414,62 @@ Actions
 New variable declarations and assignment Actions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Sequence Actions
-^^^^^^^^^^^^^^^^
+Declare variables inside functions the same way they are declared as fields in classes.
+
+.. code-block:: codeDog
+
+    me int: A <- 5
+
+*Compound Assignments*
+
+Compound assignments can be made by inserting an operator in the middle of an assignment operator. For example, inserting the sum operator between the leading "<" and the closing "-" of a standard assignment operator, "<+-".::
+
+    counter <+- 1      // shorthand for counter <- counter + 1
+    counter <-- 1      // shorthand for counter <- counter - 1
+    multiplier <*- 2   // shorthand for multiplier <- multiplier * 2
+    multiplier </- 2   // shorthand for multiplier <- multiplier / 2
+    <%-
+    <|-
+    <&-
+    <^-
+    <deep-              // copy the contents even if there is a pointer
 
 Function call Actions
 ^^^^^^^^^^^^^^^^^^^^^
 
+Call a function in the normal way::
+
+    a <- sqrt(9)
+
 Conditional Actions
 ^^^^^^^^^^^^^^^^^^^
 
-if
-**
+if / else
+*******
+
+.. code-block:: codeDog
+
+    if(day=="Saturday"){
+        print("It's the weekend.")
+    }else if(day=="Monday"){
+        print("Coffee Please.")
+    }else{
+        print("Another day another dollar.")
+    }
+Notice that after an *else* curly braces are not needed if the next statement is an *if*.
 
 switch
 ******
+
+.. code-block:: codeDog
+
+    switch(day){
+        case SAT:{print("It's the weekend.")}
+        case MON:{print("Coffee Please.")}
+        case default:{print("Another day another dollar.")}
+    }
+
+Switch cases do not need to have a break at the end.
 
 Repetition Actions
 ^^^^^^^^^^^^^^^^^^
@@ -386,9 +477,30 @@ Repetition Actions
 withEach
 ********
 
+.. code-block:: codeDog
+
+    me List<me int>: data {5, 7, 9}
+    withEach num in data{
+        print(num)
+    }
+
+You can also loop over a range
+
+.. code-block:: codeDog
+
+    withEach num in RANGE(5..10){
+        print(num)
+    }
+
 while
 *****
 
+.. code-block:: codeDog
+
+    me bool: done <- false
+    while(! done){
+        done <- getStatus()
+    }
 
 Advanced Features
 -----------------
