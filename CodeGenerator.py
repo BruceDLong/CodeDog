@@ -155,9 +155,7 @@ def CheckObjectVars(className, itemName, fieldIDArgList):
         progSpec.setCurrentCheckObjectVars(message)
         return 0
     retVal=None
-    if("libLevel" in classDef and classDef["libLevel"] == 2 and not 'implements' in classDef):
-        if(classDef["libLevel"] == 2):
-            cdErr(searchFieldID+ " is not defined in parent library of "+str(classDef["libName"]))
+    #if("libLevel" in classDef and classDef["libLevel"] == 2 and not 'implements' in classDef): if(classDef["libLevel"] == 2): cdErr(searchFieldID+ " is not defined in parent library of "+str(classDef["libName"]))
 
     wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, className)
     if(wrappedTypeSpec != None):
@@ -1001,29 +999,29 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
             print("File iteration not implemeted yet.\n")
             exit(2)
         elif(keyRange):
-            [repContainer, containerTypeSpec] = xlator['codeExpr'](keyRange[0][0], objsRefed, None, None, xlator)
+            [containerName, containerTypeSpec] = xlator['codeExpr'](keyRange[0][0], objsRefed, None, None, xlator)
             [StartKey, StartTypeSpec] = xlator['codeExpr'](keyRange[2][0], objsRefed, None, None, xlator)
             [EndKey,   EndTypeSpec] = xlator['codeExpr'](keyRange[4][0], objsRefed, None, None, xlator)
 
-            [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerTypeSpec, '')
+            [datastructID, keyFieldType, containerOwner]=xlator['getContainerType'](containerTypeSpec, '')
             wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.getFieldType(containerTypeSpec)[0])
             if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
 
-            [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTypeSpec,ContainerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator)
+            [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTypeSpec,containerOwner,repName,containerName,datastructID,keyFieldType,indent,xlator)
             actionText += actionTextOut
 
         else: # interate over a container
-            [repContainer, containerTypeSpec] = xlator['codeExpr'](action['repList'][0], objsRefed, None, None, xlator)
-            if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+repContainer+"' is not a container so cannot be iterated over.")
-            [datastructID, keyFieldType, ContainerOwner]=xlator['getContainerType'](containerTypeSpec, 'action')
-
-            wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.getFieldType(containerTypeSpec)[0])
+            [containerName, containerTypeSpec] = xlator['codeExpr'](action['repList'][0], objsRefed, None, None, xlator)
+            if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+containerName+"' is not a container so cannot be iterated over.")
+            [datastructID, keyFieldType, containerOwner]=xlator['getContainerType'](containerTypeSpec, 'action')
+            containerFieldTypeKey = progSpec.getFieldTypeKeyWord(containerTypeSpec)
+            wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerFieldTypeKey)
             if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
             if(traversalMode=='Forward' or traversalMode==None):
                 isBackward=False
             elif(traversalMode=='Backward'):
                 isBackward=True
-            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,repContainer,datastructID,keyFieldType, ContainerOwner, isBackward, 'action', indent,xlator)
+            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,keyFieldType, containerOwner, isBackward, 'action', indent,xlator)
             actionText += actionTextOut
 
         if action['whereExpr']:
@@ -1506,10 +1504,7 @@ def codeStructureCommands(classes, tags, xlator):
             calledFuncName = progSpec.fieldNameID(calledFuncID)
             if calledFuncName in progSpec.funcsCalled:
                 calledFuncInstances = progSpec.funcsCalled[calledFuncName]
-                #print '     addImplements:'
-                #print '          calledFuncName:', calledFuncName
                 for funcCalledParams in calledFuncInstances:
-                    #print '\n funcCalledParams:',funcCalledParams
                     paramList = funcCalledParams[0]
                     commandArgs = command[2]
                     if paramList != None:
@@ -1737,10 +1732,8 @@ def generate(classes, tags, libsToUse, langName, xlator):
     buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(classes, tags, libsToUse, xlator)
 
-    cdlog(0, "\n##############  C O N V E R T I N G    T E M P L A T E S")
-    convertTemplateClasses(classes, tags)
-
     cdlog(0, "\n##############  G E N E R A T I N G   "+langName+"   C O D E . . .")
+    convertTemplateClasses(classes, tags)
     cdlog(1, "GENERATING: Top-level (e.g., main())...")
     appendGLOBALInitCode(classes, tags, xlator)
     addGLOBALSpecialCode(classes, tags, xlator)

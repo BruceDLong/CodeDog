@@ -70,6 +70,8 @@ def applyOwner(owner, langType, innerType, actionOrField, varMode):
         langType = langType
     elif owner=='itr':
         langType = 'Itr-Error'
+        print("TODO: design iterators in Java!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        exit(2)
     elif owner=='we':
         langType = 'static '+langType
     else:
@@ -763,7 +765,6 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
             else: assignValue=''
         else:assignValue= " = new " + fieldType + "()"
     varDeclareStr= fieldType + " " + varName + assignValue
-    if(useCtor): print("useCtor:"+varDeclareStr)
     return(varDeclareStr)
 
 def codeIncrement(varName):

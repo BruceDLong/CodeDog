@@ -15,16 +15,9 @@ testDefinitions = {
 #####################################################################################################
      'actions/emptyList':    ['struct testClass{\nme void: runTest()<-{\nme List<me int>:wrappedList\nprint("isEmpty:"+wrappedList.isEmpty())\n}\n}', 'PGBR:isEmpty:true'],
      'lists/lists':  ['''
-struct gloop<key, value>{
-    me int: i
-    me key: k
-    our value: val
-}
-
 struct testClass{
     me List<me int>: classList
     we List<me string>: weList
-    me gloop<me int, me string>: gloopList
 
     me void: runTest()<-{
         me List<me int>:wrappedList
@@ -65,7 +58,13 @@ struct testClass{
 ###################################################################################################
      'class/charDecl':      ['struct testClass{me char: myChar}', 'PGB:'],
      'maps/maps':     ['''
+struct gloop<key, value>{
+    me int: i
+    me key: k
+    our value: val
+}
 struct testClass{
+    me gloop<me int, me string>: gloopList
     me void: runTest()<-{
         me Map<me int, me string>: mapIntString
         print(" isEmpty:"+toString(mapIntString.isEmpty()))

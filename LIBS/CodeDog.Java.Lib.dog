@@ -22,7 +22,6 @@ LibDescription ={
 initCode = ""
 deinitCode = ""
 
-/*
 struct FileStream{
     me RandomAccessFile: RAFileStream <- NULL
     me bool: failureFlag <- false
@@ -135,7 +134,7 @@ struct sessionFile{
     }%>
     me void: closeReading() <- {session.close()}
 }
-*/
+
 struct GLOBAL{
     we GLOBAL: static_Global
     me Random: javaRandomVar

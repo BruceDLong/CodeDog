@@ -179,6 +179,6 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     else:
         print("buildDog.py error: build string not generated for "+ buildName)
         exit(2)
-    printResults(workingDirectory, buildStr, runStr)
+    if platform != 'Android': printResults(workingDirectory, buildStr, runStr)
     print("--------------------------")
     return

@@ -47,6 +47,7 @@ struct Java_ArrayList<nodeType>: implements = List wraps = ArrayList specs = {ap
 struct Java_Map<keyType, valueType>: implements = Map wraps = TreeMap specs = {insert = logarithmic}{
     keyType: at(keyType: key)                   <- <%!%0.get(%1)%>
     void: clear()                               <- <%!clear()%>
+    me bool: containsKey(keyType: key)          <- <%!containsKey(%1))%>
     //itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
     itr nodeType: erase(keyType: key)           <- <%!remove(%1)%>
     itr nodeType: find(valueType: val)          <- <%!get(%1)%>
