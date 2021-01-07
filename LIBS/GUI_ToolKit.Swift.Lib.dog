@@ -1,0 +1,19 @@
+//////////////  Add GUI-Toolkit features using Android
+requirements = [
+    [tagOneOf, Language, [Swift]]
+]
+
+interface={
+    provides=[GUI_ToolKit_implementation]
+    libFiles=[]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus  = dynamic
+    description='GUI for Android '
+    features   =[]
+    platforms  =[]
+    bindings   =[]
+    CPUs       =[]
+}

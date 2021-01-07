@@ -1,0 +1,21 @@
+//############  Add libWebSockets Implementation
+requirements = [
+    [tagOneOf, Platform, [Windows]]
+]
+
+interface={
+    provides=[webSockets_implementation]
+    libFiles=[websockets]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description ='Library for Websockets'
+    features    =[Websockets]
+    platforms   =[Windows]
+    bindings    =[C, CPP]
+    CPUs        =[]
+}
+
+

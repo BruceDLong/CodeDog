@@ -1,0 +1,21 @@
+//############  Add libWebSockets Implementation
+requirements = [
+    [tagOneOf, Platform, [IOS, MacOS]]
+]
+
+interface={
+    provides=[webSockets_implementation]
+    libFiles=[websockets]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description ='Library for Websockets'
+    features    =[Websockets]
+    platforms   =[IOS, MacOS]
+    bindings    =[Swift]
+    CPUs        =[]
+}
+
+

@@ -1,0 +1,21 @@
+// CodeDog Unicode Library
+requirements = [
+    [tagOneOf, Lang, [Swift]]
+]
+
+interface={
+    provides =[Unicode_implementation]
+    libFiles =[]
+    headers  =[]
+}
+
+LibDescription  ={
+    useStatus   ='dynamic'
+    description ='Unicode for Swift'
+    features    =[Unicode]
+    platforms   =[IOS, MacOS]
+    bindings    =[Swift]
+    CPUs        =[]
+    Lang        =[Swift]
+}
+

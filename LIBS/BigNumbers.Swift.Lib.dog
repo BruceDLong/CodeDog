@@ -1,0 +1,17 @@
+/////////// Add routines for Swift
+requirements = [
+    [tagOneOf, Lang, [Swift]]
+]
+
+interface={
+    provides = [BigNumbers_implementation]
+    libFiles = []
+    headers  = []
+}
+
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in routines for Swift'
+}
+

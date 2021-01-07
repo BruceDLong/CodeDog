@@ -1,0 +1,18 @@
+//////////////  Add Game-Toolkit features using Swift
+requirements = [
+    [tagOneOf, Language, [Swift]]
+]
+
+interface={
+    provides=[GameToolkit_implementation]
+    libFiles=[]
+    headers=[]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description ='A CodeDog Toolkit for making games'
+    features    =[]
+    platforms   =[IOS, MacOS]
+    bindings    =[Swift]
+}

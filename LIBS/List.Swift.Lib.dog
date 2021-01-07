@@ -1,0 +1,66 @@
+// List.Swift.Lib.dog
+requirements = [
+    [tagOneOf, Lang, [Swift]]
+]
+
+interface={
+    provides = [List_implementation]
+    libFiles = []
+    headers  = []
+}
+
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'List in routines for Swift'
+}
+
+struct Swift_Array<nodeType>: implements = List wraps = Array specs = {insert = linear append = constant prepend = constant}{
+    void: append(nodeType: value)               <- <%!append(%1)%>
+    nodeType: at(me int: position)              <- <%!%0[%1]%>
+    void: clear()                               <- <%!%>
+    void: clipToSize(me int: size)              <- <%!%>
+    itr nodeType: deleteNth(me int: position)   <- <%!%>
+    itr nodeType: end()                         <- <%!%>           // returns itr to past-the-end element
+    itr nodeType: erase(itr nodeType: position) <- <%!%>
+    nodeType: first()                           <- <%!%0[0]%>
+    itr nodeType: front()                       <- <%!%>
+    nodeType: __getAt(me int: position)         <- <%!%>
+    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%2, %1)%>
+    itr nodeType: insertIdx(me int: position, nodeType: value)    <- <%!%>
+    me bool: isEmpty()                          <- <%!isEmpty%>
+    nodeType: last()                            <- <%!last%>
+    itr nodeType: nthItr()                      <- <%!%>
+    nodeType: popFirst()                        <- <%!%>
+    nodeType: popLast()                         <- <%!%>
+    me void: prepend(nodeType: value)           <- <%!%>
+    void: resize(me int: size)                  <- <%!%>
+    me uint: size()                             <- <%!count()%>
+    /////////////////////////////////////////
+    me void: pushFirst(nodeType: value)         <- <%!%0.insert(%1, at: 0)%>
+    me void: pushLast(nodeType: value)          <- <%!%0.append(%1)%>
+    // TODO: need Reverse Iterators working first
+    //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
+}
+
+struct Swift_Map<keyType, valueType>: implements = Map wraps = `NSMutableOrderedSet` specs = {insert = logarithmic}{
+    valueType: at(keyType)                      <- <%!%>
+    void: clear()                               <- <%!removeAllObjects()%>
+    me bool: containsKey(keyType: key)          <- <%!%>
+    itr nodeType: end()                         <- <%!%>           // returns itr to past-the-end element
+    itr nodeType: erase(itr nodeType: position) <- <%!%>
+    itr nodeType: eraseInterval(itr nodeType: start, itr nodeType: end) <- <%!%>
+    itr nodeType: find(valueType: val)          <- <%!%>
+    nodeType: first()                           <- <%!%>
+    itr nodeType: front()                       <- <%!%>
+    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%1)%>
+    me bool:  isEmpty()                         <- <%!%>
+    nodeType: last()                            <- <%!%>
+    itr valueType: lower_bound(keyType: key)    <- <%!%>
+    //nodeType: popFirst()                        <- <%!%>
+    //nodeType: popLast()                         <- <%!%>
+    me uint:  size()                            <- <%!%>
+    /////////////////////////////////////////
+    // TODO: need Reverse Iterators working first
+    //itr nodeType: back() <- <%!%>             // returns reverse iterator to the reverse ene of the sequence container
+}

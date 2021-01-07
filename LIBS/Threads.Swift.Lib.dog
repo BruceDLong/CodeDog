@@ -1,0 +1,19 @@
+// CodeDog Threads Library
+
+requirements = [
+   [tagOneOf, Lang, [Swift]]
+]
+
+interface={
+    provides=[threads_implementation]
+    libFiles=[]
+    headers =[]
+}
+
+LibDescription  = {
+    useStatus   = dynamic
+    description = 'Library for multi-thread programming'
+    features    = [Threads]
+    Lang        = [Swift]
+}
+
