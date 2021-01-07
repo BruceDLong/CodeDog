@@ -176,7 +176,6 @@ struct stringScanner{
 }
 
 struct FileStream{
-    me fstream: FileStream
     me void: open(me string: filename)
     me void: openNew(me string: filename)
     me void: openAppend(me string: filename)
@@ -186,6 +185,5 @@ struct FileStream{
     me void: write(me string: S)
     me bool: EOF()
     me bool: failure()
-    me bool: flush()
 }
 struct sessionFile{}

@@ -1,6 +1,6 @@
 /////////// Add routines for C++
 requirements = [
-    [tagOneOf, Lang, [Java]]
+    [tagOneOf, Platform, [Android]]
 ]
 
 interface={
@@ -22,7 +22,7 @@ struct logger{
 
 struct logManager{
     me void: openLogFile() <- <%{}%>
-    me void: writeToLog (me string: txt) <- <%{
+    me void: writeToLog(me string: txt) <- <%{
         System.out.println(txt+"\n");
     }%>
 }
