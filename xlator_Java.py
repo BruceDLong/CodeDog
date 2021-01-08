@@ -296,7 +296,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             count += 1
         iteratorTypeStr="Map.Entry<"+reqTagString+ ">"
         actionText += indent + "for("+iteratorTypeStr+" " + repName+' :'+ containerName+".entrySet()){\n"
-    else:
+    elif datastructID=='list' or datastructID=='Java_ArrayList':
         containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
         keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
         [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
@@ -307,6 +307,9 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
         else:
             actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + containerName+'.size(); ' + loopVarName+' += 1){\n'
                         + indent + indent + iteratorTypeStr+' '+repName+" = "+containerName+".get("+loopVarName+");\n")
+    else:
+        print("DSID:",datastructID,containerType)
+        exit(2)
     localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
     localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     return [actionText, loopCounterName]

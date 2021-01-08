@@ -802,6 +802,77 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
         S='(' + S + ')'
     return [S, paramTypeList]
 
+def codeRepetition(action, objsRefed, returnType, indent, xlator):
+    actionText = ""
+    repBody    = action['repBody']
+    repName    = action['repName']
+    cdlog(5, "Repetition stmt: loop var is:'{}'".format(repName))
+    traversalMode = action['traversalMode']
+    rangeSpec  = action['rangeSpec']
+    whileSpec  = action['whileSpec']
+    keyRange   = action['keyRange']
+    fileSpec   = False #action['fileSpec']
+    ctrType    =xlator['typeForCounterInt']
+    # TODO: add cases for traversing trees and graphs in various orders or ways.
+    loopCounterName=''
+    if(rangeSpec): # iterate over range
+        [S_low, lowValTypeSpec] = xlator['codeExpr'](rangeSpec[2][0], objsRefed, None, None, xlator)
+        [S_hi,   hiValTypeSpec] = xlator['codeExpr'](rangeSpec[4][0], objsRefed, None, None, xlator)
+        ctrlVarsTypeSpec = lowValTypeSpec
+        actionText += xlator['codeRangeSpec'](traversalMode, ctrType, repName, S_low, S_hi, indent, xlator)
+        localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+    elif(whileSpec):
+        [whileExpr, whereConditionTypeSpec] = xlator['codeExpr'](whileSpec[2], objsRefed, None, None, xlator)
+        [whileExpr, whereConditionTypeSpec] =  xlator['adjustConditional'](whileExpr, whereConditionTypeSpec)
+        actionText += indent + "while(" + whileExpr + "){\n"
+        loopCounterName=repName
+    elif(fileSpec):
+        [filenameExpr, filenameTypeSpec] = xlator['codeExpr'](fileSpec[2], objsRefed, None, None, xlator)
+        if filenameTypeSpec!='string':
+            cdErr("Filename must be a string.\n")
+        print("File iteration not implemeted yet.\n")
+        exit(2)
+    elif(keyRange):
+        [containerName, containerTypeSpec] = xlator['codeExpr'](keyRange[0][0], objsRefed, None, None, xlator)
+        [StartKey, StartTypeSpec] = xlator['codeExpr'](keyRange[2][0], objsRefed, None, None, xlator)
+        [EndKey,   EndTypeSpec] = xlator['codeExpr'](keyRange[4][0], objsRefed, None, None, xlator)
+        [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, '')
+        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.getFieldType(containerTypeSpec)[0])
+        if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
+        [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTypeSpec,containerOwner,repName,containerName,datastructID,indexTypeKeyWord,indent,xlator)
+        actionText += actionTextOut
+    else: # interate over a container
+        [containerName, containerTypeSpec] = xlator['codeExpr'](action['repList'][0], objsRefed, None, None, xlator)
+        if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+containerName+"' is not a container so cannot be iterated over.")
+        [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, 'action')
+        containerFieldTypeKey = progSpec.getFieldTypeKeyWord(containerTypeSpec)
+        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerFieldTypeKey)
+        if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
+        if(traversalMode=='Forward' or traversalMode==None):
+            isBackward=False
+        elif(traversalMode=='Backward'):
+            isBackward=True
+        [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,indexTypeKeyWord, containerOwner, isBackward, 'action', indent,xlator)
+        actionText += actionTextOut
+
+    if action['whereExpr']:
+        [whereExpr, whereConditionTypeSpec] = xlator['codeExpr'](action['whereExpr'], objsRefed, None, None, xlator)
+        actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
+    if action['untilExpr']:
+        [untilExpr, untilConditionTypeSpec] = xlator['codeExpr'](action['untilExpr'], objsRefed, None, None, xlator)
+        actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
+    repBodyText = ''
+    for repAction in repBody:
+        actionOut = codeAction(repAction, indent + "    ", objsRefed, returnType, xlator)
+        repBodyText += actionOut
+    if loopCounterName!='':
+        actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
+        repBodyText += indent + "    " + xlator['codeIncrement'](loopCounterName) + ";\n"
+        ctrlVarsTypeSpec = {'owner':'me', 'fieldType':'uint'}
+        localVarsAllocated.append([loopCounterName, ctrlVarsTypeSpec])  # Tracking local vars for scope
+    actionText += repBodyText + indent + '}\n'
+    return actionText
+
 def codeFuncCall(funcCallSpec, objsRefed, returnType, xlator):
     S=''
     [codeStr, typeSpec, LHSParentType, AltIDXFormat]=codeItemRef(funcCallSpec, 'RVAL', objsRefed, returnType, xlator)
@@ -970,76 +1041,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
                 actionText += indent + "else " + elseText.lstrip()
             else:  print("Unrecognized item after else"); exit(2);
     elif (typeOfAction =='repetition'):
-        repBody = action['repBody']
-        repName = action['repName']
-        cdlog(5, "Repetition stmt: loop var is:'{}'".format(repName))
-        traversalMode = action['traversalMode']
-        rangeSpec = action['rangeSpec']
-        whileSpec = action['whileSpec']
-        keyRange  = action['keyRange']
-        fileSpec  = False #action['fileSpec']
-        ctrType=xlator['typeForCounterInt']
-        # TODO: add cases for traversing trees and graphs in various orders or ways.
-        loopCounterName=''
-        if(rangeSpec): # iterate over range
-            [S_low, lowValTypeSpec] = xlator['codeExpr'](rangeSpec[2][0], objsRefed, None, None, xlator)
-            [S_hi,   hiValTypeSpec] = xlator['codeExpr'](rangeSpec[4][0], objsRefed, None, None, xlator)
-            ctrlVarsTypeSpec = lowValTypeSpec
-            actionText += xlator['codeRangeSpec'](traversalMode, ctrType, repName, S_low, S_hi, indent, xlator)
-            localVarsAllocated.append([repName, ctrlVarsTypeSpec])  # Tracking local vars for scope
-        elif(whileSpec):
-            [whileExpr, whereConditionTypeSpec] = xlator['codeExpr'](whileSpec[2], objsRefed, None, None, xlator)
-            [whileExpr, whereConditionTypeSpec] =  xlator['adjustConditional'](whileExpr, whereConditionTypeSpec)
-            actionText += indent + "while(" + whileExpr + "){\n"
-            loopCounterName=repName
-        elif(fileSpec):
-            [filenameExpr, filenameTypeSpec] = xlator['codeExpr'](fileSpec[2], objsRefed, None, None, xlator)
-            if filenameTypeSpec!='string':
-                cdErr("Filename must be a string.\n")
-            print("File iteration not implemeted yet.\n")
-            exit(2)
-        elif(keyRange):
-            [containerName, containerTypeSpec] = xlator['codeExpr'](keyRange[0][0], objsRefed, None, None, xlator)
-            [StartKey, StartTypeSpec] = xlator['codeExpr'](keyRange[2][0], objsRefed, None, None, xlator)
-            [EndKey,   EndTypeSpec] = xlator['codeExpr'](keyRange[4][0], objsRefed, None, None, xlator)
-
-            [datastructID, keyFieldType, containerOwner]=xlator['getContainerType'](containerTypeSpec, '')
-            wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.getFieldType(containerTypeSpec)[0])
-            if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
-
-            [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTypeSpec,containerOwner,repName,containerName,datastructID,keyFieldType,indent,xlator)
-            actionText += actionTextOut
-
-        else: # interate over a container
-            [containerName, containerTypeSpec] = xlator['codeExpr'](action['repList'][0], objsRefed, None, None, xlator)
-            if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+containerName+"' is not a container so cannot be iterated over.")
-            [datastructID, keyFieldType, containerOwner]=xlator['getContainerType'](containerTypeSpec, 'action')
-            containerFieldTypeKey = progSpec.getFieldTypeKeyWord(containerTypeSpec)
-            wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerFieldTypeKey)
-            if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
-            if(traversalMode=='Forward' or traversalMode==None):
-                isBackward=False
-            elif(traversalMode=='Backward'):
-                isBackward=True
-            [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,keyFieldType, containerOwner, isBackward, 'action', indent,xlator)
-            actionText += actionTextOut
-
-        if action['whereExpr']:
-            [whereExpr, whereConditionTypeSpec] = xlator['codeExpr'](action['whereExpr'], objsRefed, None, None, xlator)
-            actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
-        if action['untilExpr']:
-            [untilExpr, untilConditionTypeSpec] = xlator['codeExpr'](action['untilExpr'], objsRefed, None, None, xlator)
-            actionText += indent + '    ' + 'if (' + untilExpr + ') break;\n'
-        repBodyText = ''
-        for repAction in repBody:
-            actionOut = codeAction(repAction, indent + "    ", objsRefed, returnType, xlator)
-            repBodyText += actionOut
-        if loopCounterName!='':
-            actionText=indent + ctrType+" " + loopCounterName + "=0;\n" + actionText
-            repBodyText += indent + "    " + xlator['codeIncrement'](loopCounterName) + ";\n"
-            ctrlVarsTypeSpec = {'owner':'me', 'fieldType':'uint'}
-            localVarsAllocated.append([loopCounterName, ctrlVarsTypeSpec])  # Tracking local vars for scope
-        actionText += repBodyText + indent + '}\n'
+        actionText = codeRepetition(action, objsRefed, returnType, indent, xlator)
     elif (typeOfAction =='funcCall'):
         calledFunc = action['calledFunc']
         if calledFunc[0][0] == 'if' or calledFunc=='withEach' or calledFunc=='until' or calledFunc=='where':

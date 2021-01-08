@@ -7,7 +7,7 @@ from CodeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAlloc
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
     idxType=''
-    if progSpec.isAContainer(typeSpec):
+    if progSpec.isNewContainerTempFunc(typeSpec):
         containerTypeSpec = progSpec.getContainerSpec(typeSpec)
         if 'owner' in containerTypeSpec: owner=progSpec.getOwnerFromTypeSpec(containerTypeSpec)
         else: owner='me'
@@ -18,10 +18,14 @@ def getContainerType(typeSpec, actionOrField):
                 idxType=applyOwner(idxOwner, idxType, '')
             else:
                 idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
+        else:
+            idxType = progSpec.getFieldType(typeSpec)
+        adjustBaseTypes(idxType, True)
         if(isinstance(containerTypeSpec['datastructID'], str)):
             datastructID = containerTypeSpec['datastructID']
         else:   # it's a parseResult
             datastructID = containerTypeSpec['datastructID'][0]
+    elif progSpec.isOldContainerTempFunc(typeSpec): print("Deprecated container type:", typeSpec); exit(2);
     else:
         owner = progSpec.getOwnerFromTypeSpec(typeSpec)
         datastructID = 'None'
@@ -29,18 +33,17 @@ def getContainerType(typeSpec, actionOrField):
 
 def adjustBaseTypes(fieldType, isContainer):
     if(isinstance(fieldType, str)):
-        if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='uint32'): fieldType='UInt32'
-        elif(fieldType=='int8' or fieldType=='int16' or fieldType=='int32'): fieldType='Int32'
-        elif(fieldType=='uint64'):fieldType='UInt64'
-        elif(fieldType=='int64'):fieldType='Int64'
-        elif(fieldType=='int'):fieldType='Int'
-        elif(fieldType=='bool'):fieldType='Bool'
-        elif(fieldType=='void'):fieldType='Void'
-        elif(fieldType=='float'):fieldType='Float'
-        elif(fieldType=='double'):fieldType='Double'
-        elif(fieldType=='string'):fieldType='String'
-        elif(fieldType=='char'):fieldType='Character'
-
+        if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='uint32'): return 'UInt32'
+        elif(fieldType=='int8' or fieldType=='int16' or fieldType=='int32'): return 'Int32'
+        elif(fieldType=='uint64'): return 'UInt64'
+        elif(fieldType=='int64'):  return 'Int64'
+        elif(fieldType=='int'):    return 'Int'
+        elif(fieldType=='bool'):   return 'Bool'
+        elif(fieldType=='void'):   return 'Void'
+        elif(fieldType=='float'):  return 'Float'
+        elif(fieldType=='double'): return 'Double'
+        elif(fieldType=='string'): return 'String'
+        elif(fieldType=='char'):   return 'Character'
         langType=progSpec.flattenObjectName(fieldType)
     else: langType=progSpec.flattenObjectName(fieldType[0])
     return langType
@@ -53,7 +56,7 @@ def applyOwner(owner, langType, varMode):
     elif owner=='our':
         langType = langType
     elif owner=='their':
-        langType  = langType
+        langType = langType
     elif owner=='itr':
         langType += '::iterator'
     elif owner=='const':
@@ -116,21 +119,12 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
 def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
-    owner     = typeSpec['owner']
     fieldType = progSpec.getFieldTypeNew(typeSpec)
     if not isinstance(fieldType, str):
-        if len(fieldType) > 1 and fieldType[1] == "..":
-            fieldType = "int"
-        else:
-            fieldType=fieldType[0]
-    baseType = progSpec.isWrappedType(classes, fieldType)
-    if(baseType!=None):
-        owner=baseType['owner']
-        fieldType=baseType['fieldType']
-    if(fieldType=='<%'): return fieldType[1][0]
+        fieldType=fieldType[0]
     unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
     ownerOut=getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn)
-    retVal = xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator)
+    retVal = xlateLangType(classes, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, xlator)
     return retVal
 
 def codeIteratorOperation(itrCommand, fieldType):
@@ -275,7 +269,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     return(name, typeSpecOut, paramList, convertedIdxType)
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
-    if (containerType == "string"):
+    if (containerType == 'string'):
         S= '[index: '+idx+']'
     else:
         S= '[' + idx +']'
@@ -313,38 +307,33 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
         exit(2)
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerName,datastructID,keyFieldType,containerOwner,isBackward,actionOrField, indent,xlator):
+def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerName,datastructID,indexTypeKeyWord,containerOwner,isBackward,actionOrField, indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText       = ""
     loopCounterName  = repName+'_key'
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-    owner            = progSpec.getContainerFirstElementOwner(containerType)
+    indexTypeKeyWord = adjustBaseTypes(indexTypeKeyWord, False)
     if datastructID=='multimap' or datastructID=='map':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.key')}
-        localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.value')
-        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
     elif datastructID=='list' or datastructID=='Swift_Array':
-        if not willBeModifiedDuringTraversal:
-            keyVarSpec = {'owner':'me', 'fieldType':'Int'}
-            localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-            localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-            actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
-        else:
+        if willBeModifiedDuringTraversal:
             containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
             keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
             [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)
             loopVarName=repName+"Idx";
-            localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-            localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-            actionText += ( indent + "for " + loopVarName + " in 0..<" +  containerName+".count {\n"
-                        + indent+"var "+repName + ':' + containerType + " = "+containerName+"["+loopVarName+"];\n")
+            actionText += (indent + "for " + loopVarName + " in 0..<" +  containerName+".count {\n"
+                        + indent+"var "+repName + ':' + indexTypeKeyWord + " = "+containerName+"["+loopVarName+"];\n")
+        else:
+            keyVarSpec = {'owner':'me', 'fieldType':'Int'}
+            actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
     else:
-        print("DSID:",datastructID,containerType, willBeModifiedDuringTraversal)
+        print("DSID:",datastructID,containerType)
         exit(2)
-
+    localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
+    localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     return [actionText, loopCounterName]
 ###################################################### EXPRESSION CODING
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
