@@ -1,6 +1,6 @@
 //////////////  Add GUI-Toolkit features using Android
 requirements = [
-    [tagOneOf, Language, [Swift]]
+    [tagOneOf, Lang, [Swift]]
 ]
 
 interface={

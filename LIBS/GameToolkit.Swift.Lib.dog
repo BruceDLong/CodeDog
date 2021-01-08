@@ -1,6 +1,6 @@
 //////////////  Add Game-Toolkit features using Swift
 requirements = [
-    [tagOneOf, Language, [Swift]]
+    [tagOneOf, Lang, [Swift]]
 ]
 
 interface={
