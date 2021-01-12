@@ -3,7 +3,16 @@
 requirements = [
     [require, BigNumbers_implementation]
 ]
-struct GLOBAL{}
+struct GLOBAL{
+    me BigInt: min(me BigInt: A, me BigInt: B) <-{
+        if(A<=B){return(A)}
+        return(B)
+    }
+    me BigInt: max(me BigInt: A, me BigInt: B) <-{
+        if(A>=B){return(A)}
+        return(B)
+    }
+}
 struct BigInt{}
 struct BigFloat{}
 

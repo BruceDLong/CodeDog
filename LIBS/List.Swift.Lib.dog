@@ -18,7 +18,7 @@ LibDescription ={
 struct Swift_Array<nodeType>: implements = List wraps = Array specs = {insert = linear append = constant prepend = constant}{
     void: append(nodeType: value)               <- <%!append(%1)%>
     nodeType: at(me int: position)              <- <%!%0[%1]%>
-    void: clear()                               <- <%!%>
+    void: clear()                               <- <%!removeAll()%>
     void: clipToSize(me int: size)              <- <%!%>
     itr nodeType: deleteNth(me int: position)   <- <%!%>
     itr nodeType: end()                         <- <%!%>           // returns itr to past-the-end element
@@ -31,11 +31,11 @@ struct Swift_Array<nodeType>: implements = List wraps = Array specs = {insert = 
     me bool: isEmpty()                          <- <%!isEmpty%>
     nodeType: last()                            <- <%!last%>
     itr nodeType: nthItr()                      <- <%!%>
-    nodeType: popFirst()                        <- <%!%>
-    nodeType: popLast()                         <- <%!%>
+    nodeType: popFirst()                        <- <%!%0.first; %0.removeFirst()%>
+    nodeType: popLast()                         <- <%!popLast()%>
     me void: prepend(nodeType: value)           <- <%!%>
     void: resize(me int: size)                  <- <%!%>
-    me uint: size()                             <- <%!count()%>
+    me uint: size()                             <- <%!count%>
     /////////////////////////////////////////
     me void: pushFirst(nodeType: value)         <- <%!%0.insert(%1, at: 0)%>
     me void: pushLast(nodeType: value)          <- <%!%0.append(%1)%>
