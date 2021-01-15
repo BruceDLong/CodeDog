@@ -15,8 +15,6 @@ LibDescription ={
 }
 
 struct logger{
-    me void: Show()                                             <- <%{isVisible = true;}%>
-    me void: Hide()                                             <- <%{isVisible = false;}%>
     me void: Route(me string: routeSpec)                        <- <%{System.out.println(routeSpec+"\n");}%>
 }
 

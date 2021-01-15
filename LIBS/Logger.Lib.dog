@@ -8,8 +8,8 @@ featuresNeeded = [List]
 struct logger{
     me string: logStr
     me bool: isVisible
-    me void: Show()
-    me void: Hide()
+    me void: Show()             <- {isVisible <- true}
+    me void: Hide()             <- {isVisible <- false}
     me void: Route(me string: routeSpec)
     me void: LogEntry(me string: loggerName, me string: logText) <- {logMgr.writeToLog(loggerName+logText)}
 }

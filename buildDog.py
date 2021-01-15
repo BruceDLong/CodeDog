@@ -166,7 +166,7 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
     if platform == 'Linux':
         [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
-    elif platform == 'Java':
+    elif platform == 'Java' or  platform == 'Swing':
         [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Android':
         buildAndroid.AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs)

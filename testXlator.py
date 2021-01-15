@@ -626,19 +626,19 @@ testListSpec = sys.argv[2:]
 workingDirectory = os.getcwd() + "/xlatorTests"
 if (xlatorName == "cpp"):
     buildSpec = "LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';\n"
-    buildSpec += "//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';\n"
+    buildSpec += "//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
     buildSpec += "//SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';"
     runSpec = "./testXlator"
     runDirectory = workingDirectory + "/LinuxBuild"
 elif(xlatorName == "swing" or xlatorName == "java" or xlatorName == "Java"):
-    buildSpec = "SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';\n"
+    buildSpec = "SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
     buildSpec += "//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';\n"
     buildSpec += "//SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';"
     runSpec = "java GLOBAL"
     runDirectory = workingDirectory + "/SwingBuild"
 elif(xlatorName == "swift" or xlatorName == "Swift" ):
     buildSpec = "SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';\n"
-    buildSpec += "//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';\n"
+    buildSpec += "//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
     buildSpec += "//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';"
     runSpec = "./testXlator"
     runDirectory = workingDirectory + "/SwiftBuild"

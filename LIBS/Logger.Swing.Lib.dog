@@ -1,6 +1,6 @@
 /////////// Add routines for C++
 requirements = [
-    [tagOneOf, Platform, [Java]]
+    [tagOneOf, Platform, [Swing]]
 ]
 
 interface={
@@ -15,8 +15,6 @@ LibDescription={
 }
 
 struct logger{
-    me void: Show() <- {}
-    me void: Hide() <- {}
     me void: Route(me string: routeSpec) <- {}
 }
 

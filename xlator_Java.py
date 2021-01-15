@@ -352,7 +352,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                         tmp+="L"
                         retTypeSpec = 'Long'
             tmp+="))"
-            reqType = progSpec.getNewContainerFirstElementTypeTempFunc(returnType)
+            reqType = progSpec.getContainerFirstElementType(returnType)
             typeKeyword = progSpec.fieldTypeKeyword(reqType)
             typeKeyword = adjustBaseTypes(typeKeyword, True)
             S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
