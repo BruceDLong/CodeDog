@@ -4,6 +4,8 @@ requirements = [
     [require, CodeDog_implementation]
 ]
 
+featuresNeeded = [List, Logger]
+
 struct GLOBAL{
     const double: pi <- 3.1415926535897
 

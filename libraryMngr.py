@@ -158,7 +158,12 @@ def extractLibTags(library):
     interfaceTags = progSpec.fetchTagValue([libTags], 'interface')
     if interfaceTags == None:
         interfaceTags =[]
-    return [ReqTags,interfaceTags]
+    featuresTags = progSpec.fetchTagValue([libTags], 'featuresNeeded')
+    featuresNeeded =[]
+    if featuresTags:
+        for feature in featuresTags:
+            featuresNeeded.append(['feature',feature])
+    return [ReqTags,interfaceTags,featuresNeeded]
 
 def libListType(libList):
     if isinstance(libList, str): return "STRING"
@@ -204,7 +209,7 @@ def fetchFeaturesNeededByLibrary(feature):
     return []
 
 def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
-    [ReqTags,interfaceTags] = extractLibTags(libFile)
+    [ReqTags,interfaceTags,featuresNeeded] = extractLibTags(libFile)
     Requirements = []
     LibCanWork=True
     if need[0] == 'require':
@@ -229,22 +234,20 @@ def checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent):
                 LibCanWork=False
                 cdErr("ERROR: The tag '"+ tagToCheck + "' was not found in" + libFile + ".\n")
             if not parentTag in validValues: LibCanWork=False
-            else: cdlog(1, "  Validated: "+tagToCheck+" = "+parentTag)
-
-    return [LibCanWork, Requirements]
+    return [LibCanWork, Requirements, featuresNeeded]
 
 def constructORListFromFiles(tags, need, files, indent):
     global childLibList
     OR_List = ['OR', []]
     for libFile in files:
         #print("{}LIB FILE: {}".format(indent, libFile))
-        [LibCanWork, Requirements] = checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent)
+        [LibCanWork, Requirements, featuresNeeded] = checkIfLibFileMightSatisyNeedWithRequirements(tags, need, libFile, indent)
         if(LibCanWork):
             #print("{} LIB CAN WORK: {}".format(indent, libFile))
             childFileList = findLibraryChildren(os.path.basename(libFile)[:-8])
             if len(childFileList)>0:
                 childLibList = childLibList + childFileList
-                solutionOptions = constructANDListFromNeeds(tags, Requirements, childFileList, indent + "|   ")
+                solutionOptions = constructANDListFromNeeds(tags, Requirements+featuresNeeded, childFileList, indent + "|   ")
                 solutionOptions[1] = [libFile] + solutionOptions[1]
                 OR_List[1].append(solutionOptions)
             else: OR_List[1].append(libFile)

@@ -47,6 +47,7 @@ NOTE:
 
  */
 
+featuresNeeded = [IOBuffer, Threads]
 
 struct production{
     flag: isTerm

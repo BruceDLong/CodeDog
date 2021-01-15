@@ -3,6 +3,7 @@
 requirements = [
     [require, Logger_implementation]
 ]
+featuresNeeded = [List]
 
 struct logger{
     me string: logStr
