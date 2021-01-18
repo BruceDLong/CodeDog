@@ -303,7 +303,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     elif datastructID=='list' and willBeModifiedDuringTraversal:
         pass;
     else:
-        print("DSID:",datastructID,containerType)
+        print("DSID iterateRangeContainerStr:",datastructID,containerType)
         exit(2)
     return [actionText, loopCounterName]
 
@@ -314,7 +314,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     indexTypeKeyWord = adjustBaseTypes(indexTypeKeyWord, False)
-    if datastructID=='multimap' or datastructID=='map':
+    if datastructID=='multimap' or datastructID=='map' or datastructID=='Swift_Map':
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.key')}
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.value')
         actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
@@ -330,7 +330,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             keyVarSpec = {'owner':'me', 'fieldType':'Int'}
             actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
     else:
-        print("DSID:",datastructID,containerType)
+        print("DSID iterateContainerStr:",datastructID,containerType)
         exit(2)
     localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
     localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
@@ -944,7 +944,7 @@ def codeSwitchBreak(caseAction, indent, xlator):
     return indent+"    break;\n"
 
 def applyTypecast(typeInCodeDog, itemToAlterType):
-    platformType = adjustBaseTypes(typeInCodeDog)
+    platformType = adjustBaseTypes(typeInCodeDog, False)
     return platformType+'('+itemToAlterType+')';
 
 #######################################################

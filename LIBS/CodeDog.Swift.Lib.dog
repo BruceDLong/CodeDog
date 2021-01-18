@@ -20,10 +20,30 @@ deinitCode = ""
 
 
 struct stream{
-    me void: open(me string: filename) <- <%!open(%1)%>
-    me int: getChar() <- <%!get()%>
-    me void: getLine(me string: S) <- <%!getLine(%1)%>
-    me bool: EOF() <- <%!eof()%>
+    void: copyFile(me InputStream: inStream, me OutputStream: outStream) <- {}
+    me void: open(me string: filename) <- {}
+    me void: openNew(me string: filename) <- {}
+    me void: openAppend(me string: filename) <- {}
+    me void: close() <- {}
+    me int:  getChar() <- {return(0)}
+    me string: getLine() <- {return("")}
+    me void: write(me string: S) <- {}
+    me bool: EOF()  <- {return(false)}
+    me bool: failure() <- {return(false)}
+}
+
+struct FileStream{
+    me bool: failureFlag <- false
+    void: copyFile(me InputStream: inStream, me OutputStream: outStream) <- {}
+    me void: open(me string: filename) <- {}
+    me void: openNew(me string: filename) <- {}
+    me void: openAppend(me string: filename) <- {}
+    me void: close() <- {}
+    me int:  getChar() <- {return(0)}
+    me string: getLine() <- {return("")}
+    me void: write(me string: S) <- {}
+    me bool: EOF()  <- {return(false)}
+    me bool: failure() <- {return(false)}
 }
 
 struct GLOBAL{
@@ -64,4 +84,5 @@ struct GLOBAL{
 
 
 }
+
 struct timeValue{me int64: timeValue}

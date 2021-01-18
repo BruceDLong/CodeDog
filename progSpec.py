@@ -753,7 +753,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
     if reqTagList:
         if fieldTypeKeyword=='CPP_Deque' or fieldTypeKeyword=='Java_ArrayList' or fieldTypeKeyword=='Swift_Array':
             return(reqTagList[0]['tArgType'])
-        if fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map':
+        if fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map' or fieldTypeKeyword=='Swift_Map':
             return(reqTagList[0]['tArgType'])
         print("WARNING: Container type not found for fieldTypeKeyword: ", fieldTypeKeyword,reqTagList)
     elif reqTagList == None: return(None)

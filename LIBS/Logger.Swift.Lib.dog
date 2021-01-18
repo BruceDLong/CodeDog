@@ -19,8 +19,6 @@ struct logger{
 }
 
 struct logManager{
-    me ofstream: logfile
-
     me void: openLogFile() <- <%{}%>
     me void: writeToLog (me string: txt) <- <%{}%>
 }
