@@ -1134,6 +1134,9 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
         if funcDefCode[:7]=="static ": funcDefCode=funcDefCode[7:]
     return [structCode, funcDefCode, globalFuncs]
 
+def getVirtualFuncText(field):
+    return ""
+
 def codeTypeArgs(typeArgList):
     typeArgsCode = "<"
     count = 0
@@ -1265,5 +1268,5 @@ def fetchXlators():
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['codeConstructorCall']          = codeConstructorCall
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
-
+    xlators['getVirtualFuncText']           = getVirtualFuncText
     return(xlators)

@@ -150,7 +150,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     return S
 
 def LanguageSpecificDecorations(S, segType, owner):
-    if segType!= 0 and progSpec.typeIsPointer(segType) and owner!='itr' and S!='NULL' and S[-1]!=']':
+    if segType!= 0 and progSpec.typeIsPointer(segType) and segType['owner']!='itr' and S!='NULL' and S[-1]!=']':
         S+='!'  # optionals
     return S
 
@@ -277,7 +277,7 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
 ###################################################### CONTAINER REPETITIONS
 def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
     if(traversalMode=='Forward' or traversalMode==None):
-        S = indent + "for "+ repName+' in '+ S_low + "...Int(" + S_hi + ") {\n"
+        S = indent + "for "+ repName+' in '+ S_low + "..<Int(" + S_hi + ") {\n"
     elif(traversalMode=='Backward'):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; "+ repName + "-=1){\n"
     return (S)
@@ -916,6 +916,10 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
             structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + returnType
     return [structCode, funcDefCode, globalFuncs]
 
+def getVirtualFuncText(field):
+    field['value'] = '{fatalError("Must Override")}'
+    return field['value']
+
 def extraCodeForTopOfFuntion(argList):
     if len(argList)==0:
         topCode=''
@@ -1039,4 +1043,5 @@ def fetchXlators():
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['codeConstructorCall']          = codeConstructorCall
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
+    xlators['getVirtualFuncText']           = getVirtualFuncText
     return(xlators)

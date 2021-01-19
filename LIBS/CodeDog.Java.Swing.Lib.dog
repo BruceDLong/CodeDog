@@ -1,0 +1,46 @@
+////////// Add routines for Java Swing
+requirements = [
+    [tagOneOf, Platform, [Swing]]
+]
+
+interface={
+    provides = [CodeDog_platform_implementation]
+    libFiles = []
+    headers  = []
+}
+
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in routines for Java'
+}
+
+struct GLOBAL{
+
+}
+
+struct FileStream{
+    me RandomAccessFile: RAFileStream <- NULL
+    me bool: failureFlag <- false
+    void: copyFile(me InputStream: inStream, me OutputStream: outStream) <- {}
+    me void: open(me string: filename) <- {}
+    me void: openNew(me string: filename) <- {}
+    me void: openAppend(me string: filename) <- {}
+    me void: close() <- {}
+    me int:  getChar() <- {return(0)}
+    me string: getLine() <- {return("")}
+    me void: write(me string: S) <- {}
+    me bool: EOF()  <- {return(false)}
+    me bool: failure() <- {return(false)}
+}
+
+struct sessionFile{
+    our FileStream: session <- NULL
+    me void: openSession(me string: filename) <- {}
+    me void: closeSession() <- {session.close()}
+    me void: writeEntry(me string: entry) <- {}
+    me bool: openToRead(me string: filename) <- {return(false)}
+    me string: readEntry() <- {return("")}
+    me bool: eof() <- {return(false)}
+    me void: closeReading() <- {}
+}

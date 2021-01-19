@@ -1298,6 +1298,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             #### FUNC BODY
             if abstractFunction: # i.e., if no function body is given.
                 cdlog(5, "Function "+fieldID+" has no implementation defined.")
+                funcText = xlator['getVirtualFuncText'](field)
             else:
                 extraCodeForTopOfFuntion = xlator['extraCodeForTopOfFuntion'](argList)
                 if typeDefName=='' and 'flagsVarNeeded' in ObjectDef and ObjectDef['flagsVarNeeded']==True:

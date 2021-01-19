@@ -863,6 +863,9 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
     elif inheritMode=='override': pass
     return [structCode, funcDefCode, globalFuncs]
 
+def getVirtualFuncText(field):
+    return ""
+
 def codeTypeArgs(typeArgList):
     print("TODO: finish codeTypeArgs")
 
@@ -1000,4 +1003,5 @@ def fetchXlators():
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['codeConstructorCall']          = codeConstructorCall
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
+    xlators['getVirtualFuncText']           = getVirtualFuncText
     return(xlators)

@@ -61,7 +61,7 @@ struct testClass{
      'class/funcDefn':          ['struct testClass{me int: myInt <- 7-3}', 'PGB:'],
      'class/funcDecl':          ['struct testClass{me void: runTest()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
      'class/funcCallArgs':      ['struct testClass{me void: runTest()<-{testFunc2("Pass func arg.")}\nme void: testFunc2(me string: strArg)<-{print(strArg)}}', 'PGBR:Pass func arg.'],
-     #'class/pureVirtualFunc':   ['struct testClass{me void: runTest()<-{me pureVirtualClass::derivedClass: DC\nDC.pureVirtualFunc ()}}\nstruct pureVirtualClass{me void: pureVirtualFunc()}\nstruct pureVirtualClass::derivedClass{me void: pureVirtualFunc()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
+     'class/pureVirtualFunc':   ['struct testClass{me void: runTest()<-{me derivedClass: DC; DC.pureVirtualFunc()}} \nstruct pureVirtualClass{me void: pureVirtualFunc()} \nstruct derivedClass: inherits=pureVirtualClass{me void: pureVirtualFunc()<-{print("Function was called.")}}', 'PGBR:Function was called.'],
      'class/funcDefaultParams': ['struct testClass{me void: runTest()<-{DefaultParams()}\nme void: DefaultParams(me string: defaultParam<-"Default func param1.  ",me string: defaultParam2<-"Default func param2. ")<-{print(defaultParam,defaultParam2)}}', 'PGBR:Default func param1.  Default func param2. '],
      'class/funcPassAndDefault':['struct testClass{me void: runTest()<-{PassAndDefault("Pass func arg.  ")}\nme void: PassAndDefault(me string: defaultParam<-"Default func param1.  ",me string: defaultParam2<-"Default func param2. ")<-{print(defaultParam,defaultParam2)}}', 'PGBR:Pass func arg.  Default func param2. '],
      'class/funcs':             ['''
@@ -89,7 +89,7 @@ struct derivedClass: inherits=pureVirtualClass{
         print("Function was called.")
     }
 }
-''', 'PGBR:Pass func arg.  Function was called.Default func param1.  Default func param2. Pass func arg.  Default func param2. ',['class/funcDefn','class/funcDecl','class/funcCallArgs', 'class/funcDefaultParams', 'class/funcPassAndDefault']],
+''', 'PGBR:Pass func arg.  Function was called.Default func param1.  Default func param2. Pass func arg.  Default func param2. ',['class/funcDefn','class/funcDecl','class/funcCallArgs', 'class/pureVirtualFunc', 'class/funcDefaultParams', 'class/funcPassAndDefault']],
 #####################################################################################################
      'actions/varDecl':      ['struct testClass{me void: runTest()<-{me int: actionVarDecl}}', 'PGB:'],
      'actions/mapDecl':      ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap}}', 'PGB:'],
@@ -442,11 +442,6 @@ struct testClass{
         else{
             print("stoi fail")
         }
-    }
-    me void: insdeExpr()<-{ // not tested
-        me uint64: ui64 <- stoi("123456789012345678901234567890")
-        me uint32: ui32 <- stoi("123456789012345678901234567890")
-        print(ui64+ui32)
     }
 }''', 'PGBR:true1233264pass',['actions/intToString','actions/32intToString','actions/64intToString','actions/stringToInt']],
 #####################################################################################################
