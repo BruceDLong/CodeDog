@@ -5,29 +5,45 @@ requirements = [
 ]
 
 model List<nodeType>{   //model is abstract class
-    void: append()             <- {}
-    nodeType: at()             <- {}
-    me void: clear()           <- {}
-    me void: clipToSize()      <- {}
-    itr nodeType: deleteNth()  <- {}
-    itr nodeType: end()        <- {}
-    itr nodeType: erase()      <- {}
-    nodeType: first()          <- {}
-    itr nodeType: front()      <- {}
-    nodeType: __getAt()        <- {}
-    itr nodeType: insert()     <- {}
-    itr nodeType: insertIdx()  <- {}
-    me bool: isEmpty()         <- {}
-    nodeType: last()           <- {}
-    itr nodeType: nthItr()     <- {}
-    nodeType: popFirst()       <- {}
-    nodeType: popLast()        <- {}
-    me void: prepend()         <- {}
-    itr nodeType: __putAt()    <- {}
-    me uint: size()            <- {}
-    me void: pushFirst()       <- {}
-    me void: pushLast()        <- {}
-    me void: begin()           <- {}
-    me void: rEnd()            <- {}
-    nodeType: back()           <- {}
+    void: append()
+    nodeType: at()
+    me void: clear()
+    me void: clipToSize()
+    itr nodeType: deleteNth()
+    itr nodeType: end()
+    itr nodeType: erase()
+    nodeType: first()
+    itr nodeType: front()
+    nodeType: __getAt()
+    itr nodeType: insert()
+    itr nodeType: insertIdx()
+    me bool: isEmpty()
+    nodeType: last()
+    itr nodeType: nthItr()
+    nodeType: popFirst()
+    nodeType: popLast()
+    me void: prepend()
+    itr nodeType: __putAt()
+    me uint: size()
+    me void: pushFirst()
+    me void: pushLast()
+    me void: begin()
+    me void: rEnd()
+    nodeType: back()
+}
+
+model Map<keyType, valueType>{
+    valueType: at(keyType)
+    void: clear()
+    me bool: containsKey(keyType: key)
+    itr nodeType: end()
+    itr nodeType: erase(itr nodeType: position)
+    itr nodeType: find(valueType: val)
+    nodeType: first()
+    itr nodeType: front()
+    itr nodeType: insert(itr nodeType: position, nodeType: value)
+    me bool:  isEmpty()
+    nodeType: last()
+    itr valueType: lower_bound(keyType: key)
+    me uint:  size()
 }

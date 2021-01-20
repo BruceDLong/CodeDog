@@ -195,8 +195,7 @@ def reduceSolutionOptions(options, indent):
                     if (optOp=='AND' or optOp=='OR') and (optOp==optionsOp or len(opt[1])==1):  # Both AND or both OR so unwrap child list
                         options[1][i:i+1]=opt[1]
                         changesMade=True
-                    elif optionsOp=='AND' and optOp=='OR':
-                        print("CROSS")
+                    #elif optionsOp=='AND' and optOp=='OR':print("CROSS")
                    # removeDuplicates(options)  # TODO: Make this line remove duplicates
             i+=1
 

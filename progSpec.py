@@ -217,7 +217,6 @@ def appendToAncestorList(objRef, className, subClassMode, parentClassList):
             objRef[subClassMode].append(parentClass)
 
         if subClassMode=='implements':
-            print("ADDING:", className, ' implements ', parentClass)
             if not (parentClass in classImplementationOptions):
                 classImplementationOptions[parentClass] = [className]
             else: classImplementationOptions[parentClass].append(className)
