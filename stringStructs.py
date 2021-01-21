@@ -698,6 +698,90 @@ struct GLOBAL{
         return(result)
     }
 }
+struct <CLASSNAME>ExtracterThread: inherits=Threads{
+    their Threaded_<CLASSNAME>ParseAndExtractor: ctrls
+    our stateRec: parseTree
+    our <CLASSNAME>: topItem
+
+    void: init(their Threaded_<CLASSNAME>ParseAndExtractor: Ctrls, our stateRec: ParseTree, our <CLASSNAME>: TopItem) <- {
+        topItem <- TopItem
+        parseTree <- ParseTree
+        ctrls <- Ctrls
+        ctrls.extractCompleted <- false
+    }
+    void: run() <- {
+        log("OPENING EXTRACT THREAD")
+        ctrls.parser.Extract_<CLASSNAME>_to_<CLASSNAME>(parseTree, topItem)
+        log("Finished_<CLASSNAME>:"+toString(topItem))
+        log("CLOSING EXTRACT THREAD")
+        //me SyncLock: lock<-{ctrls.chkExtractDone}
+        //ctrls.extractCompleted <- true
+        //lock.notify_one();
+    }
+}
+
+struct <CLASSNAME>ParserThread: inherits=Threads{
+    their Threaded_<CLASSNAME>ParseAndExtractor: ctrls
+    our strBuf: userStream
+
+    void: init(their Threaded_<CLASSNAME>ParseAndExtractor: Ctrls) <- {
+        ctrls <- Ctrls
+        ctrls.parseCompleted <- false
+    }
+    void: run() <- {
+        log("OPENING_PARSE_THREAD")
+        ctrls.parser.doParse()
+        log("CLOSING_PARSE_THREAD")
+        log("parser.lastTopLevelItem:"+ctrls.parser.lastTopLevelItem.mySymbol())
+        ctrls.parser.dumpGraph("ParseDone", 1)
+        our <CLASSNAME>: crnt_<CLASSNAME>
+        if(ctrls.parser.doesParseHaveError()){
+            ctrls.parser.errorMesg <- "Proteus syntax error: " + ctrls.parser.errorMesg + " at line " + toString(ctrls.parser.errLineNum) + ":" + toString(ctrls.parser.errCharPos)
+            log(ctrls.parser.errorMesg)
+            crnt_<CLASSNAME> <- NULL
+        }
+    }
+}
+struct Threaded_<CLASSNAME>ParseAndExtractor{
+    their EParser: parser
+    our stateRec: leftParseNode
+    me bool: parseCompleted
+    me bool: extractCompleted
+    me Mutex: chkParseDone
+    me Mutex: chkExtractDone
+    me SyncLock: parseDoneLock
+    me SyncLock: extractDoneLock
+    me <CLASSNAME>ParserThread: parserThread
+    me <CLASSNAME>ExtracterThread: extracterThread
+
+    void: waitForParseCompletion()<-{
+        me MutexMngr: MtxMgr{chkParseDone}
+        while(!parseCompleted){
+            parseDoneLock.wait(MtxMgr)
+        }
+    }
+    void: waitForExtractCompletion()<-{
+        me MutexMngr: MtxMgr{chkExtractDone}
+        while(!extractCompleted){
+            extractDoneLock.wait(MtxMgr)
+        }
+    }
+    void: waitForThreadsToExit() <- {
+        parserThread.waitForExit()
+        extracterThread.waitForExit()
+    }
+    void: start(their EParser: iParser, their strBuf: streamToParse, our <CLASSNAME>: topItem) <- {
+        parser<-iParser
+        me int: startProduction <- parser.<CLASSNAME>_str
+        parser.errorMesg <- ""
+        parser.setStreamingMode(true)
+        leftParseNode <- parser.initParseFromStream(startProduction, streamToParse)
+        extracterThread.init(self, leftParseNode, topItem)
+        extracterThread.start()
+        parserThread.init(self)
+        parserThread.start()
+    }
+}
 '''.replace('<CLASSNAME>', className)
     codeDogParser.AddToObjectFromText(classes[0], classes[1], S, 'Parse_'+className+'()')
 
