@@ -47,7 +47,7 @@ def makeDir(dirToGen):
 
 def writeFile(libPath):
     global libsFields
-    dirName = "LIB_ANALYSIS"
+    dirName = "testLibResults"
     makeDir(dirName)
     libsDir, libName = os.path.split(abspath(libPath))
     base=os.path.basename(libPath)

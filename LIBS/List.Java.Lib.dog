@@ -51,12 +51,12 @@ struct Java_Map<keyType, valueType>: implements = Map wraps = TreeMap specs = {i
     //itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
     itr nodeType: erase(keyType: key)           <- <%!remove(%1)%>
     itr nodeType: find(valueType: val)          <- <%!get(%1)%>
-    keyType: first()                            <- <%!get(0)%>
+    valueType: first()                            <- <%!get(0)%>
     itr nodeType: front()                       <- <%!firstEntry().getValue()%>
-    itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!put(%1, %2)%>
+    itr nodeType: insert(keyType: key, valueType: value) <- <%!put(%1, %2)%>
     me bool:  isEmpty()                         <- <%!isEmpty()%>
-    keyType: last()                             <- <%!%0.get(%0.size()-1)%>
-    keyType: lower_bound()                      <- <%!firstKey()%>
+    valueType: last()                             <- <%!%0.get(%0.size()-1)%>
+    itr valueType: lower_bound(keyType: key)                      <- <%!firstKey()%>
     //nodeType: popFirst()                        <- <%!%0.remove(%0.firstKey())%>
     //nodeType: popLast()                         <- <%!pollLastEntry()%>
     me uint:  size()                            <- <%!size()%>

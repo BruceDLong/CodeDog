@@ -754,7 +754,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
             return(reqTagList[0]['tArgType'])
         if fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map' or fieldTypeKeyword=='Swift_Map':
             return(reqTagList[0]['tArgType'])
-        print("WARNING: Container type not found for fieldTypeKeyword: ", fieldTypeKeyword,reqTagList)
+        if fieldTypeKeyword!="RBNode" and fieldTypeKeyword!="RBTreeMap": print("WARNING: Container type not found for fieldTypeKeyword: ", fieldTypeKeyword,reqTagList)
     elif reqTagList == None: return(None)
     return(None)
 
@@ -835,6 +835,16 @@ def getOwnerFromTypeSpec(typeSpec):
     if (typeSpec == 0):
         cdErr(currentCheckObjectVars)
     return typeSpec['owner']
+
+def getCodeConverterByFieldID(classes, structName, fieldID):
+    structSpec=findSpecOf(classes[0], structName, 'struct')
+    if structSpec==None: return None
+    for field in structSpec["fields"]:
+        if field['fieldID']==fieldID:
+            if 'typeSpec' in field and field['typeSpec']!=None and 'codeConverter' in field['typeSpec']:
+                return field['typeSpec']['codeConverter']
+            return None
+    return None
 
 #### Packed Template Arg Handling Functions ####
 def getOwnerFromTemplateArg(tArg):
