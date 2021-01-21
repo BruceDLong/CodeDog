@@ -40,4 +40,4 @@ def analyzeAllLibs():
     connectLibraries()
 
 analyzeAllLibs()
-
+runCMD("python3 AnalyzeLibInfo.py ")

@@ -5,10 +5,12 @@ from pprint import pprint
 
 libPaths  = {}
 libReport = ""
+folderPath = ""
 
 def infoFromFile(filename):
+    global folderPath
     libInfo = []
-    f=open(filename)
+    f=open(folderPath+"/"+filename)
     infoStr = f.read()
     f.close()
     libInfo = eval(infoStr)
@@ -24,7 +26,8 @@ def writeReportFile():
 
 def collectLibFilenamesFromFolder():
     global libPaths
-    folderPath = os.getcwd()
+    global folderPath
+    folderPath = os.getcwd()+"/testLibResults"
     for filename in os.listdir(folderPath):
         if filename.endswith("Lib.dog.info"):
             dotPos=filename.find(".")

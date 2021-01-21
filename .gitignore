@@ -76,6 +76,7 @@ Examples/MacBuild/
 xlatorTests/
 testLibResults/
 *.info
+LibraryAnalysisReport.txt
 
 
 
