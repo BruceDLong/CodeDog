@@ -80,7 +80,7 @@ def rollBack(classes, tags):
         #print("DELETING KEY: ", key, "      WITH CONTENTS: ", funcsCalled[key])
         del funcsCalled[key]'''
 
-    # Delete platform-specific items in CodeGenerator.structsNeedingModification {}
+    # Delete platform-specific items in codeGenerator.structsNeedingModification {}
     itemsToDelete=[]
     for itm in structsNeedingModification:
         if structsNeedingModification[itm][3] == True:

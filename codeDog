@@ -9,7 +9,7 @@ import TestDog
 
 ##########  Library Shells
 import libraryMngr
-import CodeGenerator
+import codeGenerator
 import xlator_CPP
 import xlator_Java
 #import xlator_JavaScript
@@ -62,7 +62,7 @@ def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     else:
         cdErr( "ERROR: No language generator found for ".format( langGenTag))
         exit(1)
-    result=CodeGenerator.generate(classes, tagsList, libsToUse, langName, xlator)
+    result=codeGenerator.generate(classes, tagsList, libsToUse, langName, xlator)
     return result
 
 def GenerateSystem(classes, buildSpecs, tags, macroDefs):
@@ -114,7 +114,7 @@ libraryMngr.findLibraryFiles()
 
 filename = abspath(os.getcwd()) + "/" + arg1
 [ProgSpec, objNames, macroDefs] = [ {}, [], {} ]
-[tagStore, buildSpecs, classes, newClasses] = CodeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
+[tagStore, buildSpecs, classes, newClasses] = codeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
 print("Marker: Parse Successful")
 tagStore['dogFilename']=filename
 if len(buildSpecs)==0: cdErr('No Build specification was found')

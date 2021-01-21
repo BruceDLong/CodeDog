@@ -1,4 +1,4 @@
-# CodeGenerator.py
+# codeGenerator.py
 import re
 import copy
 import datetime
