@@ -32,6 +32,12 @@ model List<nodeType>{   //model is abstract class
     nodeType: back()
 }
 
+model MapNode<keyType, valueType>{
+    keyType: key
+    valueType: value
+    our RBNode<keyType, valueType>: goNext()
+    our RBNode<keyType, valueType>: goPrev()
+}
 model Map<keyType, valueType>{
     valueType: at(keyType)
     void: clear()
@@ -48,13 +54,20 @@ model Map<keyType, valueType>{
     me uint:  size()
 }
 /*
-struct RBNode<keyType, valueType>{
+struct RBNode<keyType, valueType>: implements = MapNode{
     keyType: key
     valueType: value
     me bool: isBlack
     our RBNode<keyType, valueType>: left
     our RBNode<keyType, valueType>: right
     our RBNode<keyType, valueType>: parent
+    our RBNode<keyType, valueType>: goNext() <- {return(right)}
+    our RBNode<keyType, valueType>: goPrev() <- {return(left)}
+    none: RBNode(keyType: _key, valueType: _val) <-{
+        key   <- _key
+        value <- _val
+    }
+    none: RBNode() <-{}
 }
 
 struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = constant append = constant prepend = constant}{
@@ -76,7 +89,15 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         if(getNode(Root, key)){return(true)}
         else{return(false)}
     }
-    our RBNode<keyType, valueType>: end() <- {}
+    our RBNode<keyType, valueType>: end() <- {
+        our RBNode<keyType, valueType>: crntNode <- Root
+        our RBNode<keyType, valueType>: prevNode
+        while(!(crntNode === Leaf)){
+            prevNode <- crntNode
+            crntNode <- crntNode.right
+        }
+        return(prevNode)
+    }
     me void: erase(keyType: key) <- {
         our RBNode<keyType, valueType>: node
         node <- getNode(Root, key)
@@ -88,7 +109,7 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
     valueType: first() <- {
         our RBNode<keyType, valueType>: crntNode <- Root
         our RBNode<keyType, valueType>: prevNode
-        while(crntNode != NULL){
+        while(!(crntNode === Leaf)){
             prevNode <- crntNode
             crntNode <- crntNode.left
         }
@@ -125,13 +146,13 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         return(newNode)
     }
     me bool: isEmpty() <- {
-        if(mapSize==0){return(true)}
+        if(Root==NULL){return(true)}
         return(false)
     }
     valueType: last() <- {
         our RBNode<keyType, valueType>: crntNode <- Root
         our RBNode<keyType, valueType>: prevNode
-        while(crntNode != NULL){
+        while(!(crntNode === Leaf)){
             prevNode <- crntNode
             crntNode <- crntNode.right
         }

@@ -44,6 +44,12 @@ struct CPP_Deque<nodeType>: implements = List wraps = deque specs = {insert = li
     //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
 }
 
+struct CPP_Map<keyType, valueType>: implements = MapNode{
+    keyType: key
+    valueType: value
+    our RBNode<keyType, valueType>: goNext() <- <%!%G++%>
+    our RBNode<keyType, valueType>: goPrev() <- <%!%G--%>
+}
 struct CPP_Map<keyType, valueType>: implements = Map wraps = map specs = {insert = logarithmic}{
     valueType: at(keyType)                      <- <%!at(%1)%>
     void: clear()                               <- <%!clear()%>

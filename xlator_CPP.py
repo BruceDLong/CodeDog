@@ -393,7 +393,7 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
 ###################################################### CONTAINER REPETITIONS
 def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
     if(traversalMode=='Forward' or traversalMode==None):
-        S = indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ xlator['codeIncrement'](repName) + "){\n"
+        S = indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ codeIncrement(repName) + "){\n"
     elif(traversalMode=='Backward'):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
