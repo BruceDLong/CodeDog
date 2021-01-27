@@ -754,7 +754,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
             return(reqTagList[0]['tArgType'])
         if fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map' or fieldTypeKeyword=='Swift_Map':
             return(reqTagList[0]['tArgType'])
-        if fieldTypeKeyword!="RBNode" and fieldTypeKeyword!="RBTreeMap": print("WARNING: Container type not found for fieldTypeKeyword: ", fieldTypeKeyword,reqTagList)
+        if fieldTypeKeyword!="RBNode" and fieldTypeKeyword!="RBTreeMap" and fieldTypeKeyword!="List" and fieldTypeKeyword!="Map": print("WARNING: Container type not found for fieldTypeKeyword: ", fieldTypeKeyword,reqTagList)
     elif reqTagList == None: return(None)
     return(None)
 
@@ -767,11 +767,11 @@ def getContainerValueOwnerAndType(typeSpec):
         fromImplemented = typeSpec['fromImplemented']
         if 'typeArgList' in fromImplemented:
             typeArgList = fromImplemented['typeArgList']
-        if 'fieldDefAt' in fromImplemented:
-            fieldDefAt = fromImplemented['fieldDefAt']
+        if 'atTypeSpec' in fromImplemented:
+            fieldDefAt = fromImplemented['atTypeSpec']
         if typeArgList and fieldDefAt:
-            atOwner  = fieldDefAt['typeSpec']['owner']
-            atTypeKW = getFieldTypeKeyWord(fieldDefAt['typeSpec'])
+            atOwner  = fieldDefAt['owner']
+            atTypeKW = getFieldTypeKeyWord(fieldDefAt)
             if atTypeKW in typeArgList:
                 idxAt = typeArgList.index(atTypeKW)
                 valType = reqTagList[idxAt]
@@ -836,13 +836,15 @@ def getOwnerFromTypeSpec(typeSpec):
         cdErr(currentCheckObjectVars)
     return typeSpec['owner']
 
-def getCodeConverterByFieldID(classes, structName, fieldID):
+def getCodeConverterByFieldID(classes, structName, fieldName):
     structSpec=findSpecOf(classes[0], structName, 'struct')
+    fieldID = structName+ "::" +fieldName
     if structSpec==None: return None
     for field in structSpec["fields"]:
         if field['fieldID']==fieldID:
             if 'typeSpec' in field and field['typeSpec']!=None and 'codeConverter' in field['typeSpec']:
-                return field['typeSpec']['codeConverter']
+                codeConverter = field['typeSpec']['codeConverter']
+                return codeConverter
             return None
     return None
 

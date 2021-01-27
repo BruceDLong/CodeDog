@@ -405,6 +405,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     owner            = progSpec.getContainerFirstElementOwner(containerType)
     containedType    = progSpec.getFieldType(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
+    itrName          = repName + "Itr"
     if progSpec.ownerIsPointer(containerOwner): connector="->"
     else: connector = "."
     reqTagList       = progSpec.getReqTagList(containerType)
@@ -417,8 +418,8 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
         localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+connector+'lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + repContainer+connector+'upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
-                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+        actionText += (indent + "for( auto " + itrName+' ='+ repContainer+connector+'lower_bound('+StartKey+')' + "; " + itrName + " !=" + repContainer+connector+'upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
@@ -438,38 +439,38 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(containerType)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
+    itrName          = repName + "Itr"
     if containerType['fieldType'][0]=='DblLinkedList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        repItrName = repName+'Itr'
-        actionText += (indent + "for( auto " + repItrName+' ='+ repContainer+RDeclP+'begin()' + "; " + repItrName + " !=" + repContainer+RDeclP+'end()' +"; "+ repItrName + " = " + repItrName+"->next ){\n"
-                    + indent+"    "+"shared_ptr<infon> "+repName+" = "+repItrName+"->item;\n")
+        actionText += (indent + "for( auto " + itrName+' ='+ repContainer+RDeclP+'begin()' + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; "+ itrName + " = " + itrName+"->next ){\n"
+                    + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->item;\n")
         return [actionText, loopCounterName]
     if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map' or datastructID=='RBTreeMap':
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
-        keyVarSpec = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        keyVarSpec  = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        frontKW = progSpec.getCodeConverterByFieldID(classes, datastructID, datastructID+"::front")
+        frontKW = progSpec.getCodeConverterByFieldID(classes, datastructID, "front")
         if frontKW==None: frontKW='front()'
-        actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+frontKW + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n"
-                    + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
+        actionText += (indent + "for( auto " + itrName+' ='+ repContainer+RDeclP+frontKW + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; ++"+ itrName + " ){\n"
+                    + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':owner, 'fieldType':containedType}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         if isBackward:
-            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'rbegin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'rend()' +"; ++"+ repName + "Itr ){\n")
+            actionText += (indent + "for( auto " + itrName+' ='+ repContainer+RDeclP+'rbegin()' + "; " + itrName + " !=" + repContainer+RDeclP+'rend()' +"; ++"+ itrName + " ){\n")
         else:
-            actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+RDeclP+'begin()' + "; " + repName + "Itr !=" + repContainer+RDeclP+'end()' +"; ++"+ repName + "Itr ){\n")
-        actionText += indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n"
+            actionText += (indent + "for( auto " + itrName+' ='+ repContainer+RDeclP+'begin()' + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; ++"+ itrName + " ){\n")
+        actionText += indent+"    "+"auto "+repName+" = *"+itrName+";\n"
     elif (datastructID=='deque' or datastructID=='CPP_Deque' ) and willBeModifiedDuringTraversal:
         loopCounterName=repName+'_key'
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}

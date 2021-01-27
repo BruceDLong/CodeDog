@@ -445,17 +445,23 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
                     if(implScore > highestScore):
                         highestScore = implScore
                         highestScoreClassName = optionClassDef['name']
-            typeArgList = progSpec.getTypeArgList(highestScoreClassName)
-            fieldDefAt=CheckObjectVars(highestScoreClassName, "at", "")
-            return(highestScoreClassName,typeArgList,fieldDefAt)
-    return(None, None, None)
+            typeArgList  = progSpec.getTypeArgList(highestScoreClassName)
+            fieldDefAt   = CheckObjectVars(highestScoreClassName, "at", "")
+            fieldDefFind = CheckObjectVars(highestScoreClassName, "find", "")
+            atTypeSpec   = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefAt['typeSpec']), "fieldType":progSpec.getFieldTypeKeyWord(fieldDefAt['typeSpec'])}
+            fromImpl     = {"typeArgList":typeArgList, "atTypeSpec":atTypeSpec}
+            if fieldDefFind:
+                nodeTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.getFieldTypeKeyWord(fieldDefFind['typeSpec'])}
+                fromImpl['nodeTypeSpec'] = nodeTypeSpec
+            return(highestScoreClassName,fromImpl)
+    return(None, None)
     #    choose highest score and mark the typedef
 
 def applyStructImplemetation(typeSpec,currentObjName,fieldName):
-    [structToImplement, typeArgList, fieldDefAt] = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
+    [structToImplement, fromImpl] = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
     if(structToImplement != None):
         typeSpec['fieldType'][0] = structToImplement
-        typeSpec['fromImplemented']  = {"typeArgList":typeArgList, "fieldDefAt":fieldDefAt}
+        typeSpec['fromImplemented']  = fromImpl
     return typeSpec
 
 def codeAllocater(typeSpec, xlator):
