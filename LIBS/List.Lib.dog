@@ -63,6 +63,7 @@ struct RBNode<keyType, valueType>: implements = MapNode{
     our RBNode<keyType, valueType>: parent
     our RBNode<keyType, valueType>: goNext() <- {return(right)}
     our RBNode<keyType, valueType>: goPrev() <- {return(left)}
+    valueType: val()                         <- <%!%0.value%>
     none: RBNode(keyType: _key, valueType: _val) <-{
         key   <- _key
         value <- _val
@@ -117,8 +118,8 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
     }
     our RBNode<keyType, valueType>: front() <- {
         our RBNode<keyType, valueType>: crntNode <- Root
-        our RBNode<keyType, valueType>: prevNode
-        while(crntNode != NULL){
+        our RBNode<keyType, valueType>: prevNode <- Root
+        while(crntNode != Leaf){
             prevNode <- crntNode
             crntNode <- crntNode.left
         }
@@ -430,7 +431,7 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
     }
 
     our RBNode<keyType, valueType>: getNode(our RBNode<keyType, valueType>: node, keyType: searchKey) <- {
-        while(node != NULL){
+        while(node != Leaf){
             if(searchKey < node.key){node <- node.left}
             else if(searchKey > node.key){node <- node.right}
             else if(searchKey == node.key){return(node)}

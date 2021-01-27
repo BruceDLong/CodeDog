@@ -47,8 +47,9 @@ struct CPP_Deque<nodeType>: implements = List wraps = deque specs = {insert = li
 struct CPP_MapNode<keyType, valueType>: implements = MapNode{
     keyType: key
     valueType: value
-    our RBNode<keyType, valueType>: goNext() <- <%!%G++%>
-    our RBNode<keyType, valueType>: goPrev() <- <%!%G--%>
+    our RBNode<keyType, valueType>: goNext() <- <%!++%0%>
+    our RBNode<keyType, valueType>: goPrev() <- <%!--%0%>
+    valueType: val()                         <- <%!%0.second%>
 }
 struct CPP_Map<keyType, valueType>: implements = Map wraps = map specs = {insert = logarithmic}{
     valueType: at(keyType)                      <- <%!at(%1)%>
@@ -59,7 +60,7 @@ struct CPP_Map<keyType, valueType>: implements = Map wraps = map specs = {insert
     itr CPP_MapNode: eraseInterval(itr CPP_MapNode: start, itr CPP_MapNode: end) <- <%!erase(%1, %2)%>
     itr CPP_MapNode: find(valueType: val)          <- <%!find(%1)%>
     valueType: first()                           <- <%!begin()->second%>
-    itr CPP_MapNode: front()                       <- <%!begin()%>
+    itr CPP_MapNode: front()                       <- <%!%0.begin()%>
     itr CPP_MapNode: insert(keyType: key, valueType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>
     me bool:  isEmpty()                         <- <%!empty()%>
     valueType: last()                            <- <%!rbegin()->second%>

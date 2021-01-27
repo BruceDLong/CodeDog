@@ -439,6 +439,10 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(containerType)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
+    nodeTypeSpec     = progSpec.getNodeTypeOfDataStruct(datastructID, containerType)
+    nodeFieldType    = progSpec.getFieldTypeKeyWord(nodeTypeSpec)
+    nodeOwner        = progSpec.getOwnerFromTypeSpec(nodeTypeSpec)
+    [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(nodeOwner)
     itrName          = repName + "Itr"
     if containerType['fieldType'][0]=='DblLinkedList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
@@ -455,11 +459,12 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec  = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-        ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+        getNodeVal  = progSpec.getCodeConverterByFieldID(classes, nodeFieldType, "val", repName,RNodeP)
+        ctrlVarsTypeSpec['codeConverter'] = (getNodeVal)
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        frontKW = progSpec.getCodeConverterByFieldID(classes, datastructID, "front")
-        if frontKW==None: frontKW='front()'
-        actionText += (indent + "for( auto " + itrName+' ='+ repContainer+RDeclP+frontKW + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; ++"+ itrName + " ){\n"
+        goNextItr   = progSpec.getCodeConverterByFieldID(classes, nodeFieldType, "goNext", itrName,RNodeP)
+        frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , repContainer , RDeclP)
+        actionText += (indent + "for( auto " + itrName+' ='+frontItr + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; "+goNextItr + " ){\n"
                     + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         loopCounterName=repName+'_key'

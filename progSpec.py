@@ -787,6 +787,7 @@ def getFieldType(typeSpec):
     return None
 
 def getFieldTypeKeyWord(typeSpec):
+    if(typeSpec==None):return None
     fieldType = getFieldType(typeSpec)
     if isinstance(fieldType, str): return fieldType
     if isinstance(fieldType[0], str): return fieldType[0]
@@ -834,9 +835,10 @@ def getOwnerFromTypeSpec(typeSpec):
     global currentCheckObjectVars
     if (typeSpec == 0):
         cdErr(currentCheckObjectVars)
+    if(typeSpec==None):return None
     return typeSpec['owner']
 
-def getCodeConverterByFieldID(classes, structName, fieldName):
+def getCodeConverterByFieldID(classes, structName, fieldName, prevNameSeg, connector):
     structSpec=findSpecOf(classes[0], structName, 'struct')
     fieldID = structName+ "::" +fieldName
     if structSpec==None: return None
@@ -844,8 +846,17 @@ def getCodeConverterByFieldID(classes, structName, fieldName):
         if field['fieldID']==fieldID:
             if 'typeSpec' in field and field['typeSpec']!=None and 'codeConverter' in field['typeSpec']:
                 codeConverter = field['typeSpec']['codeConverter']
+                codeConverter = codeConverter.replace("%G", '')
+                codeConverter = codeConverter.replace("%0", prevNameSeg)
                 return codeConverter
-            return None
+            return prevNameSeg+connector+fieldName+"()"
+    return prevNameSeg+connector+fieldName+"()"
+
+def getNodeTypeOfDataStruct(datastructID, containerType):
+    if 'fromImplemented' in containerType:
+        fromImplemented = containerType['fromImplemented']
+        if 'nodeTypeSpec' in fromImplemented:
+            return fromImplemented['nodeTypeSpec']
     return None
 
 #### Packed Template Arg Handling Functions ####
