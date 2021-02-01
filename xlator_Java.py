@@ -870,7 +870,7 @@ def codeTypeArgs(typeArgList):
     print("TODO: finish codeTypeArgs")
 
 def codeTemplateHeader(structName, typeArgList):
-    templateHeader = "\n class "+structName+"<"
+    templateHeader = "\nclass "+structName+"<"
     count = 0
     for typeArg in typeArgList:
         if(count>0):templateHeader+=", "

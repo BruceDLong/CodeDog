@@ -108,22 +108,12 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         return(getNode(Root, val))
     }
     valueType: first() <- {
-        our RBNode<keyType, valueType>: crntNode <- Root
-        our RBNode<keyType, valueType>: prevNode
-        while(!(crntNode === Leaf)){
-            prevNode <- crntNode
-            crntNode <- crntNode.left
-        }
-        return(prevNode.value)
+        our RBNode<keyType, valueType>: smallestNode <- findSmallest(Root)
+        return(smallestNode.value)
     }
     our RBNode<keyType, valueType>: front() <- {
-        our RBNode<keyType, valueType>: crntNode <- Root
-        our RBNode<keyType, valueType>: prevNode <- Root
-        while(crntNode != Leaf){
-            prevNode <- crntNode
-            crntNode <- crntNode.left
-        }
-        return(prevNode)
+        our RBNode<keyType, valueType>: smallestNode <- findSmallest(Root)
+        return(smallestNode)
     }
     our RBNode<keyType, valueType>: insert(keyType: key, valueType: value) <- {
         our RBNode<keyType, valueType>: newNode
@@ -345,14 +335,14 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         }
     }
 
-    our RBNode<keyType, valueType>: findSmallest(our RBNode<keyType, valueType>: node) <- {
-        our RBNode<keyType, valueType>: prev <- NULL
-        //while(node != NULL and node != Leaf){
-            //prev <- node
-            //node <- node.left
-        //}
-        //if(prev != NULL){return(prev)}
-        return(node)
+    our RBNode<keyType, valueType>: findSmallest(our RBNode<keyType, valueType>: crntNode) <- {
+        our RBNode<keyType, valueType>: prevNode <- NULL
+        while(!(crntNode == NULL or crntNode === Leaf)){
+            prevNode <- crntNode
+            crntNode <- crntNode.left
+        }
+        if(prevNode != NULL){return(prevNode)}
+        return(crntNode)
     }
 
     me void: deleteCase1(our RBNode<keyType, valueType>: doubleBlackNode) <- {
@@ -431,7 +421,7 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
     }
 
     our RBNode<keyType, valueType>: getNode(our RBNode<keyType, valueType>: node, keyType: searchKey) <- {
-        while(node != Leaf){
+        while(!(node === Leaf)){
             if(searchKey < node.key){node <- node.left}
             else if(searchKey > node.key){node <- node.right}
             else if(searchKey == node.key){return(node)}
