@@ -1,4 +1,4 @@
-FROM gitpod/workspace-python-tk-vnc
+FROM gitpod/workspace-full:latest
 
 # Install custom tools, runtime, etc.
 USER root
