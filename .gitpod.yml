@@ -1,7 +1,7 @@
-image: gitpod/workspace-full
-FROM gitpod/workspace-full
+FROM gitpod/workspace-python-tk-vnc
 
 # Install custom tools, runtime, etc.
+USER root
 RUN sudo apt-get update \
     && sudo apt-get install -y \
     geany geany-plugins synaptic meld \
@@ -11,3 +11,6 @@ RUN sudo apt-get update \
     && wget https://bootstrap.pypa.io/get-pip.py \
     && sudo apt install -y python3 python3-pip \
     && sudo pip3 install -y pyparsing
+
+USER gitpod
+ENV PATH="$HOME/workspace/CodeDog/:$PATH"
