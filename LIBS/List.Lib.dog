@@ -38,16 +38,22 @@ model MapNode<keyType, valueType>{
     our RBNode<keyType, valueType>: goNext()
     our RBNode<keyType, valueType>: goPrev()
 }
+model MapItr<keyType, valueType>{
+    our MapNode<keyType, valueType>: node
+    our MapNode<keyType, valueType>: goNext()
+    //our MapNode<keyType, valueType>: goPrev()
+    valueType: val()
+}
 model Map<keyType, valueType>{
     valueType: at(keyType)
     void: clear()
     me bool: containsKey(keyType: key)
-    itr nodeType: end()
+    our MapItr: end()
     void: erase(keyType: key)
-    itr nodeType: find(valueType: val)
+    our MapItr: find(valueType: val)
     valueType: first()
-    itr nodeType: front()
-    itr nodeType: insert(keyType: key, valueType: value)
+    our MapItr: front()
+    our MapItr: insert(keyType: key, valueType: value)
     me bool:  isEmpty()
     valueType: last()
     //itr valueType: lower_bound(keyType: key)
@@ -58,12 +64,12 @@ struct RBNode<keyType, valueType>: implements = MapNode{
     keyType: key
     valueType: value
     me bool: isBlack
+    me bool: isLeaf
     our RBNode<keyType, valueType>: left
     our RBNode<keyType, valueType>: right
     our RBNode<keyType, valueType>: parent
-    our RBNode<keyType, valueType>: goNext() <- {return(right)}
-    our RBNode<keyType, valueType>: goPrev() <- {return(left)}
     valueType: val()                         <- <%!%0.value%>
+    // CONSTRUCTORS
     none: RBNode(keyType: _key, valueType: _val) <-{
         key   <- _key
         value <- _val
@@ -71,9 +77,40 @@ struct RBNode<keyType, valueType>: implements = MapNode{
     none: RBNode() <-{}
 }
 
+struct RBTreeItr<keyType, valueType>: implements = MapItr{
+    our RBNode<keyType, valueType>: node
+    their RBTreeMap<keyType, valueType>: container
+    our RBNode<keyType, valueType>: goNext() <- {
+        if(node.right != NULL and !node.right.isLeaf){
+            node <- findSmallest(node.right)
+            if(node==NULL or node.isLeaf){return(container.edge)}
+            return(node)
+        }
+        our RBNode<keyType, valueType>: parentTemp <- node.parent
+        our RBNode<keyType, valueType>: nodeTemp   <- node
+        while(parentTemp!=NULL and nodeTemp===parentTemp.right){
+            nodeTemp   <- parentTemp
+            parentTemp <- parentTemp.parent
+        }
+        node <- parentTemp
+        if(node==NULL or node.isLeaf){return(container.edge)}
+        return(node)
+    }
+    our RBNode<keyType, valueType>: findSmallest(our RBNode<keyType, valueType>: crntNode) <- {
+        our RBNode<keyType, valueType>: prevNode <- NULL
+        while(!(crntNode == NULL or crntNode.isLeaf)){
+            prevNode <- crntNode
+            crntNode <- crntNode.left
+        }
+        if(prevNode != NULL){return(prevNode)}
+        return(crntNode)
+    }
+}
+
 struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = constant append = constant prepend = constant}{
     our RBNode<keyType, valueType>: Root
     our RBNode<keyType, valueType>: Leaf
+    our RBNode<keyType, valueType>: edge
     me int: mapSize
 
     valueType: at(keyType: searchKey) <- {
@@ -90,14 +127,9 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         if(getNode(Root, key)){return(true)}
         else{return(false)}
     }
-    our RBNode<keyType, valueType>: end() <- {
-        our RBNode<keyType, valueType>: crntNode <- Root
-        our RBNode<keyType, valueType>: prevNode
-        while(!(crntNode === Leaf)){
-            prevNode <- crntNode
-            crntNode <- crntNode.right
-        }
-        return(prevNode)
+    our RBTreeItr<keyType, valueType>: end() <- {
+        our RBTreeItr<keyType, valueType>:: retItr; retItr.node <- edge
+        return(retItr)
     }
     me void: erase(keyType: key) <- {
         our RBNode<keyType, valueType>: node
@@ -111,15 +143,18 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         our RBNode<keyType, valueType>: smallestNode <- findSmallest(Root)
         return(smallestNode.value)
     }
-    our RBNode<keyType, valueType>: front() <- {
-        our RBNode<keyType, valueType>: smallestNode <- findSmallest(Root)
-        return(smallestNode)
+    our RBTreeItr<keyType, valueType>: front() <- {
+        our RBTreeItr<keyType, valueType>:: retItr; retItr.node <- findSmallest(Root)
+        retItr.container <- self
+        return(retItr)
     }
     our RBNode<keyType, valueType>: insert(keyType: key, valueType: value) <- {
         our RBNode<keyType, valueType>: newNode
         if(Root == NULL){
             Allocate(Leaf)
+            Allocate(edge)
             Leaf.isBlack <-true
+            Leaf.isLeaf  <-true
             Allocate(newNode, key, value)
             newNode.isBlack <-true
             newNode.left <- Leaf

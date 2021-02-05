@@ -870,11 +870,12 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
             count += 1
     S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
     typeArgList = progSpec.getTypeArgList(structName)
+    templateHeader = ""
     if(typeArgList != None):
         forwardDecls = ""
-        templateHeader = codeTemplateHeader(structName, typeArgList)
+        templateHeader = codeTemplateHeader(structName, typeArgList)+" "
         S=templateHeader+S
-    else: forwardDecls="struct " + structName + ";  \t// Forward declaration\n"
+    forwardDecls=templateHeader+"struct " + structName + ";  \t// Forward declaration\n"
     return([S,forwardDecls])
 
 def produceTypeDefs(typeDefMap, xlator):

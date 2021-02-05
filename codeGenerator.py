@@ -1404,6 +1404,7 @@ def fetchListOfStructsToImplement(classes, tags):
     libNameList.sort()
     progNameList.sort()
     classList=libNameList + progNameList
+    # TODO: make list global then return early if global list the same size as classList
     classList=sortClassesForDependancies(classes, classList)
     return classList
 
