@@ -20,4 +20,41 @@ struct GLOBAL{
 struct BigInt{}
 struct BigFloat{}
 struct BigFrac{}
+struct FlexNum{
+    me bool: asDecimal
+    me BigFrac: val
+
+    void: setNumerator(me string: numr)
+
+    me string: stringify() <- {
+        if(!asDecimal){
+            return(toString(val))
+        }
+        return("HELLO")
+    }
+    void: fromString(me string: str) <- {
+        me int: size <- str.size()
+        me int: dotPos <- -1
+        withEach idx in RANGE(0..size){
+            if(str[idx]=="."){
+                dotPos <- idx
+                break()
+            }
+        }
+        if(dotPos!=-1){
+            asDecimal <- true
+            me int: decPlaces      <- size-dotPos
+            me string: numerator   <- str.subStr(0,decPlaces)+ str.subStr(decPlaces+1,size-decPlaces-1)
+            me string: denominator <- "1"
+            withEach n in RANGE(1..decPlaces){
+                denominator <+- "0"
+            }
+
+            setNumerator(numerator)
+            setDenominator(denominator)
+            log("#### val:" + toString(val))
+
+        }
+    }
+}
 

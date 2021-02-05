@@ -9,7 +9,6 @@ interface={
     headers  = [gmp.h, gmpxx.h]
 }
 
-
 LibDescription ={
     useStatus   = dynamic
     description = 'Built in routines for CPP'
@@ -17,6 +16,7 @@ LibDescription ={
 
 struct GLOBAL{
     me string: toString(me BigInt: val) <- <%!%1.get_str(10)%>
+    me string: toString(me BigFrac: val) <- <%!%1.get_str(10)%>
 }
 struct BigInt: wraps = mpz_class{
     me int64: convertToIntVal() <- <%!%0.get_ui()%>
@@ -25,5 +25,21 @@ struct BigInt: wraps = mpz_class{
     me int: decNumToBigInt(me string: val) <- <%!%0.set_str(%1, 10)%>
 }
 struct BigFloat{me mpf_class: BigFloat}
-//???struct BigInt{me BigFrac: BigFrac}
+
+struct BigFrac: wraps = mpq_class{
+    me double: convertToFloat() <- <%!%0.get_d()%>
+    me double: normalize() <- <%!%0.canonicalize()%>
+    me int: hexNumToBigFrac(me string: val) <- <%!%0.set_str(%1, 16)%>
+    me int: binNumToBigFrac(me string: val) <- <%!%0.set_str(%1, 2)%>
+    me int: decNumToBigFrac(me string: val) <- <%!%0.set_str(%1, 10)%>
+}
+struct FlexNum{
+    void: setNumerator(me string: numerator)     <- <%{
+        //mpz_t A = val.get_num_mpz_t();
+        //A->set_str(numerator,10);
+    }%>
+    void: setDenominator(me string: denominator) <- {
+        //<%!%0.get_den_mpz_t().set_str(%1, 10)%>
+    }
+}
 

@@ -1,6 +1,9 @@
 // BigNumbersTest.dog
 TestsToRun = `
-    intTest/add1
+    intTest/parse1
+    fracTest/parse1
+    fracTest/asInt
+    flexTest/parseInt
 `
 runCode=`
     logMgr.init(OFile)
@@ -9,15 +12,34 @@ runCode=`
 `
 FileName = "BigNumbersTest"
 
-#define INT_TEST (NAME, IN1, IN2, OUT) <%void: DESLASH(NAME)()<-{intTest(IN1, IN2, OUT)}%>
+#define INT_TEST  (NAME, IN1, IN2, OUT) <%void: DESLASH(NAME)()<-{intTest(IN1, IN2, OUT)}%>
+#define FRAC_TEST (NAME, IN1, IN2, OUT) <%void: DESLASH(NAME)()<-{fracTest(IN1, IN2, OUT)}%>
+#define FLEX_TEST (NAME, IN1, IN2, OUT) <%void: DESLASH(NAME)()<-{flexTest(IN1, IN2, OUT)}%>
 do ManageCmdLine(cmd)
 struct GLOBAL {
-    INT_TEST(intTest/add1,    "",  "",  "")
+    INT_TEST(intTest/parse1,    "1234567890123456789012345678901234567890",  "",  "1234567890123456789012345678901234567890")
+    FRAC_TEST(fracTest/parse1,    "4/8",  "",  "1/2")
+    FRAC_TEST(fracTest/asInt,    "5/1",  "",  "5")
+    FLEX_TEST(flexTest/parseInt,    "78945.6123",  "",  "789456123")
 
     me void: intTest(me string: in1, me string: in2, me string: expected) <- {
-        me string: S <- "1234567890123456789012345678901234567890"
-        me BigInt: A; A.decNumToBigInt(S)
+        me BigInt: A; A.decNumToBigInt(in1)
         me string: Astr <- toString(A)
-        REQUIRE(Astr==S)
+        REQUIRE(Astr==expected)
+    }
+
+    me void: fracTest(me string: in1, me string: in2, me string: expected) <- {
+        me BigFrac: A; A.decNumToBigFrac(in1)
+        A.normalize()
+        me string: Astr <- toString(A)
+        REQUIRE(Astr==expected)
+    }
+
+    me void: flexTest(me string: in1, me string: in2, me string: expected) <- {
+        me FlexNum: A; A.fromString(in1)
+        log("----")
+        me string: Astr <- A.stringify()
+        log("----")
+        REQUIRE(Astr==expected)
     }
 }
