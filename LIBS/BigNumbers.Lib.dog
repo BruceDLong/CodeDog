@@ -1,8 +1,12 @@
 //####### Native CodeDog library
-
+LinuxTestBuild: Platform='Linux' Lang='CPP'  testMode='makeTests';
+featuresNeeded = [BigNumbers.CPP]
 requirements = [
     [require, BigNumbers_implementation]
 ]
+ProgramOrLibrary = "program"
+TestSpec = "BigNumbersTest.dog"
+
 struct GLOBAL{
     me BigInt: min(me BigInt: A, me BigInt: B) <-{
         if(A<=B){return(A)}
@@ -15,4 +19,5 @@ struct GLOBAL{
 }
 struct BigInt{}
 struct BigFloat{}
+struct BigFrac{}
 

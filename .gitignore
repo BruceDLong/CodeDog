@@ -71,6 +71,7 @@ Examples/iPhoneBuild/
 Examples/LinuxBuild/
 Examples/AndroidBuild/
 Examples/MacBuild/
+LIBS/Tests/LinuxTestBuild/
 
 # Testing
 xlatorTests/

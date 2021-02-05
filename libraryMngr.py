@@ -4,6 +4,7 @@ from inspect import getsourcefile
 import os
 from os.path import abspath
 import re
+from pprint import pprint
 
 import codeDogParser
 import progSpec
@@ -74,7 +75,7 @@ def findLibraryFiles():
     dogFileFolder = os.getcwd()
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
     collectFromFolderOrLIB(dogFileFolder)
-    if (dogFileFolder!=codeDogFolder):
+    if(dogFileFolder!=codeDogFolder and dogFileFolder!=codeDogFolder+"/LIBS"):
         collectFromFolderOrLIB(codeDogFolder)
     libPaths.sort()
 

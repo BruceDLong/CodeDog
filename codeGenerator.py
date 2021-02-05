@@ -1781,10 +1781,11 @@ def GroomTags(tags):
         TopLevelTags['Platform']=platformID
 
     # Find any needed features based on types used
+    #TODO: fix automatic featuresNeeded
     for typeName in progSpec.storeOfBaseTypesUsed:
-        if(typeName=='BigNum' or typeName=='BigFrac'):
+        if(typeName=='BigInt' or typeName=='BigFrac'):
             print('NOTE: Need Large Numbers')
-            progSpec.setFeatureNeeded(TopLevelTags, 'largeNumbers', progSpec.storeOfBaseTypesUsed[typeName])
+            progSpec.setFeatureNeeded(TopLevelTags, 'BigNumbers', progSpec.storeOfBaseTypesUsed[typeName])
 
 def ScanAndApplyPatterns(classes, topTags, newTags):
     global globalTagStore
