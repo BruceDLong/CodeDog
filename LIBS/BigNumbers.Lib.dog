@@ -32,7 +32,6 @@ struct FlexNum{
         if(decPlaces == -1){
             return(toString(val))
         }
-
         me string: T <- toString(getNumerator())
         me int: TSize <- T.size()
         me int: lDecPlace <- TSize-decPlaces+1
@@ -51,15 +50,14 @@ struct FlexNum{
         }
         if(dotPos!=-1){
             decPlaces <- size-dotPos
-            me string: numerator   <- str.subStr(0,decPlaces)+ str.subStr(decPlaces+1,size-decPlaces-1)
+            me string: numerator   <- str.subStr(0,dotPos)+ str.subStr(dotPos+1,size-decPlaces-1)
             me string: denominator <- "1"
-            withEach n in RANGE(1..decPlaces){
+            withEach n in RANGE(1..decPlaces-1){
                 denominator <+- "0"
             }
             setNumerator(numerator)
             setDenominator(denominator)
         }
     }
-
 }
 
