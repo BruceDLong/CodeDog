@@ -20,7 +20,7 @@ struct GLOBAL {
     INT_TEST(intTest/parse1,    "1234567890123456789012345678901234567890",  "",  "1234567890123456789012345678901234567890")
     FRAC_TEST(fracTest/parse1,    "4/8",  "",  "1/2")
     FRAC_TEST(fracTest/asInt,    "5/1",  "",  "5")
-    FLEX_TEST(flexTest/parseInt,    "78945.6123",  "",  "789456123")
+    FLEX_TEST(flexTest/parseInt,    "78945.6123",  "",  "78945.6123")
 
     me void: intTest(me string: in1, me string: in2, me string: expected) <- {
         me BigInt: A; A.decNumToBigInt(in1)

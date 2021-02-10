@@ -35,11 +35,20 @@ struct BigFrac: wraps = mpq_class{
 }
 struct FlexNum{
     void: setNumerator(me string: numerator)     <- <%{
-        //mpz_t A = val.get_num_mpz_t();
-        //A->set_str(numerator,10);
+        mpz_ptr A = val.get_num_mpz_t();
+        mpz_set_str(A,numerator.data(),10);
     }%>
-    void: setDenominator(me string: denominator) <- {
-        //<%!%0.get_den_mpz_t().set_str(%1, 10)%>
-    }
+    void: setDenominator(me string: denominator) <- <%{
+        mpz_ptr A = val.get_den_mpz_t();
+        mpz_set_str(A,denominator.data(),10);
+    }%>
+    me BigInt: getNumerator()     <- <%{
+        mpz_ptr A = val.get_num_mpz_t();
+        return(mpz_class(A));
+    }%>
+    me BigInt: getDenominator() <- <%{
+        mpz_ptr A = val.get_den_mpz_t();
+        return(mpz_class(A));
+    }%>
 }
 

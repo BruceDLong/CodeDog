@@ -21,16 +21,24 @@ struct BigInt{}
 struct BigFloat{}
 struct BigFrac{}
 struct FlexNum{
-    me bool: asDecimal
+    me int: decPlaces <- -1
     me BigFrac: val
 
-    void: setNumerator(me string: numr)
-
+    void: setNumerator(me string: numerator)
+    void: setDenominator(me string: denominator)
+    me BigInt: getNumerator()
+    me BigInt: getDenominator()
     me string: stringify() <- {
-        if(!asDecimal){
+        if(decPlaces == -1){
             return(toString(val))
         }
-        return("HELLO")
+
+        me string: T <- toString(getNumerator())
+        me int: TSize <- T.size()
+        me int: lDecPlace <- TSize-decPlaces+1
+        me string: S <- T.subStr(0,lDecPlace)+"."
+        S <+- T.subStr(lDecPlace, TSize)
+        return(S)
     }
     void: fromString(me string: str) <- {
         me int: size <- str.size()
@@ -42,19 +50,16 @@ struct FlexNum{
             }
         }
         if(dotPos!=-1){
-            asDecimal <- true
-            me int: decPlaces      <- size-dotPos
+            decPlaces <- size-dotPos
             me string: numerator   <- str.subStr(0,decPlaces)+ str.subStr(decPlaces+1,size-decPlaces-1)
             me string: denominator <- "1"
             withEach n in RANGE(1..decPlaces){
                 denominator <+- "0"
             }
-
             setNumerator(numerator)
             setDenominator(denominator)
-            log("#### val:" + toString(val))
-
         }
     }
+
 }
 
