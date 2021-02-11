@@ -6,7 +6,7 @@ requirements = [
 ]
 ProgramOrLibrary = "program"
 TestSpec = "BigNumbersTest.dog"
-
+do ManageCmdLine(cmd)
 struct GLOBAL{
     me BigInt: min(me BigInt: A, me BigInt: B) <-{
         if(A<=B){return(A)}
@@ -28,15 +28,57 @@ struct FlexNum{
     void: setDenominator(me string: denominator)
     me BigInt: getNumerator()
     me BigInt: getDenominator()
+
+    me int: countDigits(me BigInt:num) <- {
+        // TODO: make this use log10(num) + 1
+        return(toString(num).size())
+    }
+
+    me FlexNum: __plus(me FlexNum: RHS) <- {
+        me FlexNum: flexVal;
+        flexVal.val         <- val + RHS.val
+        me BigInt:flexDenom <- flexVal.getDenominator()
+        flexVal.decPlaces   <- countDigits(flexDenom)
+        return(flexVal)
+    }
+    me FlexNum: __minus(me FlexNum: RHS) <- {
+        // TODO: make this work for all cases
+        me FlexNum: flexVal; flexVal.val <- val - RHS.val
+        me BigInt:flexDenom <- flexVal.getDenominator()
+        flexVal.decPlaces   <- countDigits(flexDenom)
+        return(flexVal)
+    }
+    me FlexNum: __times(me FlexNum: RHS) <- {
+        // TODO: make this work for all cases
+        me FlexNum: flexVal; flexVal.val <- val * RHS.val
+        me BigInt:flexDenom <- flexVal.getDenominator()
+        flexVal.decPlaces   <- countDigits(flexDenom)
+        log("TIMES:"+toString(flexVal.val))
+        return(flexVal)
+    }
+    me FlexNum: __divide(me FlexNum: RHS) <- {
+        // TODO: make this work for all cases
+        me FlexNum: flexVal; flexVal.val <- val / RHS.val
+        me BigInt:flexDenom <- flexVal.getDenominator()
+        flexVal.decPlaces   <- countDigits(flexDenom)
+        return(flexVal)
+    }
     me string: stringify() <- {
         if(decPlaces == -1){
             return(toString(val))
         }
-        me string: T <- toString(getNumerator())
-        me int: TSize <- T.size()
-        me int: lDecPlace <- TSize-decPlaces+1
-        me string: S <- T.subStr(0,lDecPlace)+"."
-        S <+- T.subStr(lDecPlace, TSize)
+        me BigInt: numerator <- getNumerator()
+        me BigInt: denominator <- getDenominator()
+        //TODO: finish BigFloat{} then replace calculation of S with commented code below
+        //me BigFloat: Q <- numerator/denominator
+        //me string: S <- Q.stringify()
+        me string: numerator <- toString(getNumerator())
+        me int: NSize <- numerator.size()
+        me int: lDecPlace <- NSize-decPlaces+1
+        me string: S <- numerator.subStr(0,lDecPlace)
+        if(lDecPlace != NSize){
+            S <+- "." + numerator.subStr(lDecPlace, NSize)
+        }
         return(S)
     }
     void: fromString(me string: str) <- {
@@ -50,13 +92,16 @@ struct FlexNum{
         }
         if(dotPos!=-1){
             decPlaces <- size-dotPos
-            me string: numerator   <- str.subStr(0,dotPos)+ str.subStr(dotPos+1,size-decPlaces-1)
+            me string: numerator   <- str.subStr(0,dotPos)+ str.subStr(dotPos+1,size-decPlaces)
             me string: denominator <- "1"
-            withEach n in RANGE(1..decPlaces-1){
+            withEach n in RANGE(1..decPlaces){
                 denominator <+- "0"
             }
             setNumerator(numerator)
             setDenominator(denominator)
+        }
+        else{
+            val <- str
         }
     }
 }

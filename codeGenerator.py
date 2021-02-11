@@ -1252,6 +1252,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
         ###### ArgList exists so this is a FUNCTION###########
         else:
+            if fieldName[0:2] == "__" and xlator['overrideOperators'] == "True":
+                fieldName = xlator['specialFunction'](fieldName, xlator)
+                print("fieldName:",fieldName)
             #### ARGLIST
             argList=field['typeSpec']['argList']
             if len(argList)==0:

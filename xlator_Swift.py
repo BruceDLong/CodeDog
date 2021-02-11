@@ -993,6 +993,7 @@ def fetchXlators():
     xlators['funcsDefInClass']       = "True"
     xlators['blockPrefix']           = "do"
     xlators['usePrefixOnStatics']    = "True"
+    xlators['overrideOperators']     = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional

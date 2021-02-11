@@ -1113,6 +1113,14 @@ def codeConstructorCall(className):
 def codeSuperConstructorCall(parentClassName):
     return parentClassName+'()'
 
+def specialFunction(fieldName, xlator):
+    if fieldName == "__plus": newFieldName = "operator+"
+    elif fieldName == "__minus": newFieldName = "operator-"
+    elif fieldName == "__times": newFieldName = "operator*"
+    elif fieldName == "__divide": newFieldName = "operator/"
+    else:  newFieldName = fieldName
+    return newFieldName
+
 def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
@@ -1226,6 +1234,7 @@ def fetchXlators():
     xlators['MakeConstructors']      = "True"
     xlators['blockPrefix']           = ""
     xlators['usePrefixOnStatics']    = "False"
+    xlators['overrideOperators']     = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['applyOwner']                     = applyOwner
     xlators['adjustConditional']            = adjustConditional
@@ -1278,4 +1287,5 @@ def fetchXlators():
     xlators['codeConstructorCall']          = codeConstructorCall
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
     xlators['getVirtualFuncText']           = getVirtualFuncText
+    xlators['specialFunction']              = specialFunction
     return(xlators)

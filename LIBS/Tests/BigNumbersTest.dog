@@ -5,6 +5,17 @@ TestsToRun = `
     fracTest/asInt
     flexTest/parseDec
     flexTest/parseDec2
+    flexTest/parseDec3
+    flexTest/parseDec4
+    flexMath/add1
+    flexMath/add2
+    flexMath/minus1
+    flexMath/minus2
+    flexMath/multi1
+    flexMath/multi2
+    flexMath/div1
+    flexMath/div2
+    flexMath/div3
 `
 runCode=`
     logMgr.init(OFile)
@@ -16,13 +27,25 @@ FileName = "BigNumbersTest"
 #define INT_TEST  (NAME, IN1, IN2, OUT) <%void: DESLASH(NAME)()<-{intTest(IN1, IN2, OUT)}%>
 #define FRAC_TEST (NAME, IN1, IN2, OUT) <%void: DESLASH(NAME)()<-{fracTest(IN1, IN2, OUT)}%>
 #define FLEX_TEST (NAME, IN1, IN2, OUT) <%void: DESLASH(NAME)()<-{flexTest(IN1, IN2, OUT)}%>
-do ManageCmdLine(cmd)
+#define FLEX_MATH (NAME, IN1, IN2, OPR, OUT) <%void: DESLASH(NAME)()<-{flexMath(IN1, IN2, OPR, OUT)}%>
+
 struct GLOBAL {
     INT_TEST(intTest/parse1,      "1234567890123456789012345678901234567890",  "",  "1234567890123456789012345678901234567890")
     FRAC_TEST(fracTest/parse1,    "4/8",  "",  "1/2")
     FRAC_TEST(fracTest/asInt,     "5/1",  "",  "5")
     FLEX_TEST(flexTest/parseDec,  "78945.6123",  "",  "78945.6123")
     FLEX_TEST(flexTest/parseDec2, "78945.0",  "",  "78945.0")
+    FLEX_TEST(flexTest/parseDec3, "5.1",  "",  "5.1")
+    FLEX_TEST(flexTest/parseDec4, "14.85",  "",  "14.85")
+    FLEX_MATH(flexMath/add1,      "22.10",  "23.01", "+",  "45.11")
+    FLEX_MATH(flexMath/add2,      "22.10",  "23.90", "+",  "46")
+    FLEX_MATH(flexMath/minus1,    "30.00",  "20.00", "-",  "10")
+    FLEX_MATH(flexMath/minus2,    "30.56",  "20.32", "-",  "10.24")
+    FLEX_MATH(flexMath/multi1,    "2.0",    "3.0",   "*",  "6")
+    FLEX_MATH(flexMath/multi2,    "3.3",    "5.5",   "*",  "18.15")
+    FLEX_MATH(flexMath/div1,      "6.0",    "2.0",   "/",  "3")
+    FLEX_MATH(flexMath/div2,      "14.76",  "1.2",   "/",  "12.3")
+    FLEX_MATH(flexMath/div3,      "38.875", "3.5",   "/",  "10.25")
 
     me void: intTest(me string: in1, me string: in2, me string: expected) <- {
         me BigInt: A; A.decNumToBigInt(in1)
@@ -41,5 +64,19 @@ struct GLOBAL {
         me FlexNum: A; A.fromString(in1)
         me string: Astr <- A.stringify()
         REQUIRE(Astr==expected)
+    }
+
+    me void: flexMath(me string: in1, me string: in2, me string: mathOpr, me string: expected) <- {
+        me FlexNum: A; A.fromString(in1)
+        me FlexNum: B; B.fromString(in2)
+        me FlexNum: C
+        if(mathOpr=="+"){C <- A + B}
+        else if(mathOpr=="-"){C <- A - B}
+        else if(mathOpr=="*"){C <- A * B}
+        else if(mathOpr=="/"){C <- A / B}
+        else{}
+
+        me string: Cstr <- C.stringify()
+        REQUIRE(Cstr==expected)
     }
 }
