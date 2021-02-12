@@ -13,9 +13,21 @@ TestsToRun = `
     flexMath/minus2
     flexMath/multi1
     flexMath/multi2
+    flexMath/multi3
     flexMath/div1
     flexMath/div2
     flexMath/div3
+    flexMath/div4
+    flexMath/div5
+    flexMath/div6
+    flexMath/div7
+    flexMath/div8
+    flexMath/div9
+    flexMath/div10
+    flexMath/div11
+    flexMath/div12
+    flexMath/div13
+    flexMath/div14
 `
 runCode=`
     logMgr.init(OFile)
@@ -43,9 +55,21 @@ struct GLOBAL {
     FLEX_MATH(flexMath/minus2,    "30.56",  "20.32", "-",  "10.24")
     FLEX_MATH(flexMath/multi1,    "2.0",    "3.0",   "*",  "6")
     FLEX_MATH(flexMath/multi2,    "3.3",    "5.5",   "*",  "18.15")
+    FLEX_MATH(flexMath/multi3,    "3.3",    "0",   "*",  "0")
     FLEX_MATH(flexMath/div1,      "6.0",    "2.0",   "/",  "3")
     FLEX_MATH(flexMath/div2,      "14.76",  "1.2",   "/",  "12.3")
     FLEX_MATH(flexMath/div3,      "38.875", "3.5",   "/",  "10.25")
+    FLEX_MATH(flexMath/div4,      "1234567", "1",   "/",  "1234567")
+    FLEX_MATH(flexMath/div5,      "1234567", "10",   "/",  "123456.7")
+    FLEX_MATH(flexMath/div6,      "1234567", "100",   "/",  "12345.67")
+    FLEX_MATH(flexMath/div7,      "1234567", "1000",   "/",  "1234.567")
+    FLEX_MATH(flexMath/div8,      "1234567", "10000",   "/",  "123.4567")
+    FLEX_MATH(flexMath/div9,      "1234567", "100000",   "/",  "12.34567")
+    FLEX_MATH(flexMath/div10,      "1234567", "1000000",   "/",  "1.234567")
+    FLEX_MATH(flexMath/div11,      "1234567", "10000000",   "/",  "0.1234567")
+    FLEX_MATH(flexMath/div12,      "1234567", "100000000",   "/",  "0.01234567")
+    FLEX_MATH(flexMath/div13,      "1234567", "1000000000",   "/",  "0.001234567")
+    FLEX_MATH(flexMath/div14,      "10000", "1",   "/",  "10000")
 
     me void: intTest(me string: in1, me string: in2, me string: expected) <- {
         me BigInt: A; A.decNumToBigInt(in1)

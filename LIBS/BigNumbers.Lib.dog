@@ -18,7 +18,9 @@ struct GLOBAL{
     }
 }
 struct BigInt{}
-struct BigFloat{}
+struct BigFloat{
+    me string: stringify()
+}
 struct BigFrac{}
 struct FlexNum{
     me int: decPlaces <- -1
@@ -53,7 +55,6 @@ struct FlexNum{
         me FlexNum: flexVal; flexVal.val <- val * RHS.val
         me BigInt:flexDenom <- flexVal.getDenominator()
         flexVal.decPlaces   <- countDigits(flexDenom)
-        log("TIMES:"+toString(flexVal.val))
         return(flexVal)
     }
     me FlexNum: __divide(me FlexNum: RHS) <- {
@@ -67,18 +68,18 @@ struct FlexNum{
         if(decPlaces == -1){
             return(toString(val))
         }
-        me BigInt: numerator <- getNumerator()
-        me BigInt: denominator <- getDenominator()
+        me BigInt: N <- getNumerator()
+        me BigInt: D <- getDenominator()
         //TODO: finish BigFloat{} then replace calculation of S with commented code below
-        //me BigFloat: Q <- numerator/denominator
-        //me string: S <- Q.stringify()
-        me string: numerator <- toString(getNumerator())
+        me BigFloat: Q <- val
+        me string: S   <- toString(Q)
+        /*me string: numerator <- toString(getNumerator())
         me int: NSize <- numerator.size()
         me int: lDecPlace <- NSize-decPlaces+1
-        me string: S <- numerator.subStr(0,lDecPlace)
+        S <- numerator.subStr(0,lDecPlace)
         if(lDecPlace != NSize){
             S <+- "." + numerator.subStr(lDecPlace, NSize)
-        }
+        }*/
         return(S)
     }
     void: fromString(me string: str) <- {

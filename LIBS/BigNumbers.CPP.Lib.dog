@@ -17,6 +17,12 @@ LibDescription ={
 struct GLOBAL{
     me string: toString(me BigInt: val) <- <%!%1.get_str(10)%>
     me string: toString(me BigFrac: val) <- <%!%1.get_str(10)%>
+    me string: toString(me BigFloat: val) <- <%{
+        int64_t exp;
+        string S = val.get_str(exp,10,12);
+        logMgr.Mesg.LogEntry("  ", "     exp:"+std::to_string(exp)+ "   S:"+S);
+        return(S);
+    }%>
 }
 struct BigInt: wraps = mpz_class{
     me int64: convertToIntVal() <- <%!%0.get_ui()%>
@@ -24,7 +30,12 @@ struct BigInt: wraps = mpz_class{
     me int: binNumToBigInt(me string: val) <- <%!%0.set_str(%1, 2)%>
     me int: decNumToBigInt(me string: val) <- <%!%0.set_str(%1, 10)%>
 }
-struct BigFloat{me mpf_class: BigFloat}
+struct BigFloat: wraps = mpf_class{
+    me double: convertToFloat() <- <%!%0.get_d()%>
+    me int: hexNumToBigFloat(me string: val) <- <%!%0.set_str(%1, 16)%>
+    me int: binNumToBigFloat(me string: val) <- <%!%0.set_str(%1, 2)%>
+    me int: decNumToBigFloat(me string: val) <- <%!%0.set_str(%1, 10)%>
+}
 
 struct BigFrac: wraps = mpq_class{
     me double: convertToFloat() <- <%!%0.get_d()%>
