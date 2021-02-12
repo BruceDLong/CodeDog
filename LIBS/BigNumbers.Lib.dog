@@ -70,16 +70,8 @@ struct FlexNum{
         }
         me BigInt: N <- getNumerator()
         me BigInt: D <- getDenominator()
-        //TODO: finish BigFloat{} then replace calculation of S with commented code below
         me BigFloat: Q <- val
         me string: S   <- toString(Q)
-        /*me string: numerator <- toString(getNumerator())
-        me int: NSize <- numerator.size()
-        me int: lDecPlace <- NSize-decPlaces+1
-        S <- numerator.subStr(0,lDecPlace)
-        if(lDecPlace != NSize){
-            S <+- "." + numerator.subStr(lDecPlace, NSize)
-        }*/
         return(S)
     }
     void: fromString(me string: str) <- {
@@ -93,7 +85,7 @@ struct FlexNum{
         }
         if(dotPos!=-1){
             decPlaces <- size-dotPos
-            me string: numerator   <- str.subStr(0,dotPos)+ str.subStr(dotPos+1,size-decPlaces)
+            me string: numerator   <- str.subStr(0,dotPos)+ str.subStr(dotPos+1,size)
             me string: denominator <- "1"
             withEach n in RANGE(1..decPlaces){
                 denominator <+- "0"
