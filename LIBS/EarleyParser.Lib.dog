@@ -555,6 +555,22 @@ struct EParser{
         }
         return(charsUsed)
     }
+    me int64: scrapeFlexNum(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        me bool: sepCharFound <- false  // '.' or '/' was found.
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(!(isdigit(ch) or ((ch=="." or ch=="/") and !sepCharFound))){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            if(ch=="." or ch=="/"){sepCharFound <- true}
+            txtItr.goNext()
+            charsUsed <+- 1
+        }
+        return(charsUsed)
+    }
     me int64: scrapeAlphaNum_Seq(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
@@ -679,6 +695,7 @@ struct EParser{
                 switch(ProdID){
                     case alphaSeq:    {return(scrapeAlphaSeq(pos))}
                     case uintSeq:     {return(scrapeUintSeq(pos))}
+                    case FlexNum:     {return(scrapeFlexNum(pos))}
                     case alphaNumSeq: {return(scrapeAlphaNumSeq(pos))}
                     case printables:  {return(scrapePrintableSeq(pos))}
                     case ws:          {return(scrapeWS(pos))}

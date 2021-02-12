@@ -154,6 +154,7 @@ def populateBaseRules():
     appendRule('HexNum_str',      'term', 'parseAUTO', "a hexidecimal number")
     appendRule('BinNum_str',      'term', 'parseAUTO', "a binary number")
     appendRule('BigInt',      'term', 'parseAUTO', "an integer")
+    appendRule('FlexNum',     'term', 'parseAUTO', "a rational number")
     appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
     appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier for the current locale')
     appendRule('printables',  'term', 'parseAUTO', "a seqence of printable chars")
@@ -484,9 +485,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 objName=toFieldType[0]
                 if  progSpec.typeIsInteger(objName):
                     strFieldType = fieldType[0]
-                    if(strFieldType == "BigInt"):
-                        CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
-                    elif(strFieldType == "HexNum"):
+                    if(strFieldType == "HexNum"):
                         CODE_RVAL='makeHexInt('+VarTag+'.child.next'+')'
                     elif(strFieldType == "BinNum"):
                         CODE_RVAL='makeBinInt('+VarTag+'.child.next'+')'

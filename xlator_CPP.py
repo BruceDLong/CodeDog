@@ -845,8 +845,10 @@ def codeMain(classes, tags, objsRefed, xlator):
         return ["\n\n// Globals\n" + structCode + "\n// Global Functions\n" + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeArgText(argFieldName, argType, xlator):
-    return argType + " " +argFieldName
+def codeArgText(argFieldName, argType, makeConst, xlator):
+    argTypeStr = argType
+    if makeConst: argTypeStr = "const "+argTypeStr
+    return argTypeStr + " " +argFieldName
 
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
     if parentClass != "":
@@ -1118,6 +1120,14 @@ def specialFunction(fieldName, xlator):
     elif fieldName == "__minus": newFieldName = "operator-"
     elif fieldName == "__times": newFieldName = "operator*"
     elif fieldName == "__divide": newFieldName = "operator/"
+    elif fieldName == "__negate": newFieldName = "operator-"
+    elif fieldName == "__plusEqual": newFieldName = "operator+="
+    elif fieldName == "__lessThan": newFieldName = "operator<"
+    elif fieldName == "__lessOrEq": newFieldName = "operator<="
+    elif fieldName == "__greaterThan": newFieldName = "operator>"
+    elif fieldName == "__greaterOrEq": newFieldName = "operator>="
+    elif fieldName == "__equalEqual": newFieldName = "operator=="
+    elif fieldName == "__notEqual": newFieldName = "operator!="
     else:  newFieldName = fieldName
     return newFieldName
 

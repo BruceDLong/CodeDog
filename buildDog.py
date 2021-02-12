@@ -59,6 +59,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     libStr = "-I " + codeDogFolder + " "
     langStr = 'g++'
     langStr += ' -fdiagnostics-color '  # Add color to the output
+    langStr += ' -fcompare-debug-second '  # supress compiler notes
     minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
     fileStr = fileName + fileExtension

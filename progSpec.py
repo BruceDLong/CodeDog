@@ -1030,7 +1030,7 @@ def typeIsInteger(fieldType):
     if typeIsNumRange(fieldType): return True
     if not isinstance(fieldType, str):
         fieldType= fieldType[0]
-    if fieldType=="int" or fieldType=="BigInt"or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32":
+    if fieldType=="int" or fieldType=="BigInt"or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32" or fieldType=="FlexNum":
         return True
     return False
 
