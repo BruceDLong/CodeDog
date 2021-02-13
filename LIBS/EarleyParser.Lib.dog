@@ -559,13 +559,19 @@ struct EParser{
         me int64: charsUsed <- 0
         me bool: sepCharFound <- false  // '.' or '/' was found.
         our strBufItr: txtItr <- getItrAt(pos)
+        if(txtItr.ch()=="." or txtItr.ch()=="/"){return(-1)}
+        me char: prevCH <- " "
         while(txtItr != NULL and txtItr.status==bfOK){
             me char: ch <- txtItr.ch()
             if(!(isdigit(ch) or ((ch=="." or ch=="/") and !sepCharFound))){
                 if(charsUsed==0){return(-1)}
-                else{return(charsUsed)}
+                else{
+                    if(prevCH!="." and prevCH!="/"){return(charsUsed)}
+                    else{return(-1)}
+                }
             }
             if(ch=="." or ch=="/"){sepCharFound <- true}
+            prevCH <- ch
             txtItr.goNext()
             charsUsed <+- 1
         }

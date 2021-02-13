@@ -21,6 +21,7 @@ struct GLOBAL{
     me bool: __greaterThan(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val > RHS.val)}
     me bool: __greaterOrEq(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val >= RHS.val)}
     me bool: __equalEqual(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val == RHS.val)}
+    me bool: __equalEqual(me FlexNum: LHS, me int: RHS) <- {return(LHS.val == RHS)}
     me bool: __notEqual(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val != RHS.val)}
     me string: toString(me FlexNum: FN)<-{return(FN.stringify())}
 }
@@ -30,6 +31,7 @@ struct BigFloat{
 }
 struct BigFrac{}
 struct FlexNum{
+    //TODO: fix decPlaces
     me int: decPlaces <- -1
     me BigFrac: val
 
@@ -50,9 +52,23 @@ struct FlexNum{
         flexVal.decPlaces   <- countDigits(flexDenom)
         return(flexVal)
     }
+    me FlexNum: __plus(me int: RHS) <- {
+        me FlexNum: flexVal;
+        flexVal.val         <- val + RHS
+        me BigInt:flexDenom <- flexVal.getDenominator()
+        flexVal.decPlaces   <- countDigits(flexDenom)
+        return(flexVal)
+    }
     me FlexNum: __minus(me FlexNum: RHS) <- {
         // TODO: make this work for all cases
         me FlexNum: flexVal; flexVal.val <- val - RHS.val
+        me BigInt:flexDenom <- flexVal.getDenominator()
+        flexVal.decPlaces   <- countDigits(flexDenom)
+        return(flexVal)
+    }
+    me FlexNum: __minus(me int: RHS) <- {
+        // TODO: make this work for all cases
+        me FlexNum: flexVal; flexVal.val <- val - RHS
         me BigInt:flexDenom <- flexVal.getDenominator()
         flexVal.decPlaces   <- countDigits(flexDenom)
         return(flexVal)
@@ -64,14 +80,31 @@ struct FlexNum{
         flexVal.decPlaces   <- countDigits(flexDenom)
         return(flexVal)
     }
+    me FlexNum: __times(me int: RHS) <- {
+        // TODO: make this work for all cases
+        me FlexNum: flexVal; flexVal.val <- val * RHS
+        me BigInt:flexDenom <- flexVal.getDenominator()
+        flexVal.decPlaces   <- countDigits(flexDenom)
+        return(flexVal)
+    }
     me FlexNum: __divide(me FlexNum: RHS) <- {
         me FlexNum: flexVal; flexVal.val <- val / RHS.val
         me BigInt:flexDenom <- flexVal.getDenominator()
         flexVal.decPlaces   <- countDigits(flexDenom)
         return(flexVal)
     }
+    me FlexNum: __divide(me int: RHS) <- {
+        me FlexNum: flexVal; flexVal.val <- val / RHS
+        me BigInt:flexDenom <- flexVal.getDenominator()
+        flexVal.decPlaces   <- countDigits(flexDenom)
+        return(flexVal)
+    }
     me FlexNum: __plusEqual(me FlexNum: RHS) <- {
         val <- val + RHS.val
+        return(self)
+    }
+    me FlexNum: __plusEqual(me int: RHS) <- {
+        val <- val + RHS
         return(self)
     }
     me FlexNum: __negate() <- {
