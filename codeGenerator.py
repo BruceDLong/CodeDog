@@ -1405,8 +1405,6 @@ def fetchListOfStructsToImplement(classes, tags):
             continue
         if className in progSpec.MarkedObjects: libNameList.append(className)
         else: progNameList.append(className)
-    libNameList.sort()
-    progNameList.sort()
     classList=libNameList + progNameList
     # TODO: make list global then return early if global list the same size as classList
     classList=sortClassesForDependancies(classes, classList)
