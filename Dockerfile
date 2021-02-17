@@ -14,7 +14,7 @@ RUN apt  install -y python3 python3-pip
 RUN pip3 install pyparsing
 
 USER gitpod
-# ENV PATH="$PATH:$HOME/workspace/CodeDog/"
+ENV PATH="$PATH:$HOME/workspace/CodeDog/"
 
 # Give back control
 USER root
