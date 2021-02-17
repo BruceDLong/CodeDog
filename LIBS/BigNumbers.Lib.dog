@@ -20,8 +20,8 @@ struct GLOBAL{
     me bool: __lessOrEq(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val <= RHS.val)}
     me bool: __greaterThan(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val > RHS.val)}
     me bool: __greaterOrEq(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val >= RHS.val)}
-    me bool: __equalEqual(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val == RHS.val)}
-    me bool: __equalEqual(me FlexNum: LHS, me int: RHS) <- {return(LHS.val == RHS)}
+    me bool: __isEqual(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val == RHS.val)}
+    me bool: __isEqual(me FlexNum: LHS, me int: RHS) <- {return(LHS.val == RHS)}
     me bool: __notEqual(me FlexNum: LHS, me FlexNum: RHS) <- {return(LHS.val != RHS.val)}
     me string: toString(me FlexNum: FN)<-{return(FN.stringify())}
 }

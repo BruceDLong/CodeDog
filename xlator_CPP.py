@@ -1126,8 +1126,11 @@ def specialFunction(fieldName, xlator):
     elif fieldName == "__lessOrEq": newFieldName = "operator<="
     elif fieldName == "__greaterThan": newFieldName = "operator>"
     elif fieldName == "__greaterOrEq": newFieldName = "operator>="
-    elif fieldName == "__equalEqual": newFieldName = "operator=="
+    elif fieldName == "__isEqual": newFieldName = "operator=="
     elif fieldName == "__notEqual": newFieldName = "operator!="
+    elif fieldName == "__inc": newFieldName = "operator++"
+    elif fieldName == "__opAssign": newFieldName = "operator="
+    elif fieldName == "__derefPtr": newFieldName = "operator*"
     else:  newFieldName = fieldName
     return newFieldName
 
