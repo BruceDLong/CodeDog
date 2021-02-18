@@ -17,19 +17,39 @@ struct strBuf{
     me SyncLock: bufLock
     me bool: bufferClosed
 
-    void: putStr(their string: data) <- {
+    void: putStr(me string: data) <- { 
+	// Part 1: count carriage returns and add it to previous one and assign to endingLineNumber
         log("PUTTING:"+data)
         me MutexMngr: bufMtxMgr{bufMutex}
-        if(bufferClosed){log("BUFF_CLOSED:"+data); return()}
+        if(bufferClosed){
+	    log("BUFF_CLOSED:"+data)
+	    return()
+	}
         their strInnerBuf:: innerBuf
         innerBuf.buf <- data
         innerBuf.myOffset <- crntStreamSize
         innerBuf.refCount <- 1
         crntStreamSize <+- data.size()
-        if(tail==NULL){head <- innerBuf}
-        else{tail.next <- innerBuf; innerBuf.prev <- tail}
+	me int: newLines <- 0
+	me int: dataSize <- data.size()
+	withEach idx in RANGE(0..dataSize){
+            if(data[idx] == "\n"){
+                newLines <+- 1
+            }
+        }
+	// prev hasn't been set... how do I get prev?
+	innerBuf.endingLineNumber <- innerBuf.prev.endingLineNumber + newLines
+        if(tail==NULL){
+	    head <- innerBuf
+	    //innerBuf.endingLineNumber <- newLines
+	} else {
+	    tail.next <- innerBuf
+	    innerBuf.prev <- tail
+	    //innerBuf.endingLineNumber <- innerBuf.prev.endingLineNumber + newLines
+	}
         tail <- innerBuf
         //log("NOTIFYING:")
+	log("endingLineNumber of InnerBuf:"+toString(innerBuf.endingLineNumber))
         bufLock.notifyOne()
     }
     their strInnerBuf: findInrBufWithPos(me int64: pos) <- {
@@ -90,7 +110,9 @@ struct strBuf{
         bufLock.notifyOne()
         //log("CLOSE-NOTIFYING:")
     }
-    me int64: size() <- {return(crntStreamSize)}
+    me int64: size() <- {
+	return(crntStreamSize)
+    }
     me string: stringify() <- {
         me string: retVal
         their strInnerBuf: crnt <- head

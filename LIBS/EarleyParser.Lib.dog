@@ -36,7 +36,7 @@ To use it manually:
                 our myStruct: Parse_myStruct(string textIn)
 
             * For streaming parses it generates a class:
-                struct ThreadedInfonParseAndExtractor
+                struct Threaded_infonParseAndExtractor
 
 NOTE:
     The Earley parser by default resolves 'nullable' productions by going into them.
@@ -963,15 +963,19 @@ struct EParser{
         parseTreeFinished <- true
        // log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
     }
-
-    void: countLinesToCharPos(me int64: charPos) <- {
-        errLineNum <- 1
+    // call findInrBufWithPos to get the inr buf with the character prev.EndingLineNumber and count up to current position
+    void: getLineNumberAtCharPos(me int64: charPos) <- {
+	their strInnerBuf: bufWithChar <- streamToParse.findInrBufWithPos(charPos)
+        errLineNum <- bufWithChar.prev.endingLineNumber
         me int64: lastLinePos <- 0
-        withEach C in RANGE(0..charPos){
-            me char: ch <- streamToParse.at(C)
-            if(ch == "\n"){
-                errLineNum <- errLineNum+1
-                lastLinePos <- C
+	me int: bufSize <- bufWithChar.buf.size()
+        withEach idx in RANGE(0..bufSize) {
+	    if(bufWithChar.myOffset + idx > charPos){
+		break()
+	    }
+            if(bufWithChar.buf[idx] == "\n"){
+                errLineNum <+- 1
+                lastLinePos <- idx
             }
         }
         errCharPos <- charPos-lastLinePos+1
@@ -1013,7 +1017,7 @@ struct EParser{
         if(isTerminal!=0){
             if(seqPos==0){
                 errorMesg <- "Expected '" + prod.constStr + "'"
-                countLinesToCharPos(lastPosWithItems)
+                getLineNumberAtCharPos(lastPosWithItems)
             }
         }
 
@@ -1089,6 +1093,7 @@ struct EParser{
                 }
             }
         }
+	//sleep(100) // test with this, extractionComplete, tell Bruce if it breaks
         SRec.resolved <- true
         return(NULL)
     }
