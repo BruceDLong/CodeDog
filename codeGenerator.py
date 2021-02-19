@@ -1121,7 +1121,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, xlator):
         fieldType=progSpec.getFieldTypeKeyWord(typeSpec)
         if(fieldType=='flag' or fieldType=='mode'): continue
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
-        if progSpec.isAContainer(typeSpec): continue
+        if progSpec.isAContainer(typeSpec) and not progSpec.typeIsPointer(typeSpec): continue
         fieldOwner=progSpec.getOwnerFromTypeSpec(typeSpec)
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
         [convertedType, innerType] = xlator['convertType'](classes, typeSpec, 'var', 'constructor', xlator)

@@ -74,7 +74,6 @@ struct RBNode<keyType, valueType>: implements = MapNode{
         key   <- _key
         value <- _val
     }
-    none: RBNode() <-{}
 }
 
 struct RBTreeItr<keyType, valueType>: implements = MapItr{

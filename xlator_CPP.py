@@ -462,9 +462,8 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
         getNodeVal  = progSpec.getCodeConverterByFieldID(classes, nodeFieldType, "val", repName,RNodeP)
         ctrlVarsTypeSpec['codeConverter'] = (getNodeVal)
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        goNextItr   = progSpec.getCodeConverterByFieldID(classes, nodeFieldType, "goNext", itrName,RNodeP)
         frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , repContainer , RDeclP)
-        actionText += (indent + "for( auto " + itrName+' ='+frontItr + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; "+goNextItr + " ){\n"
+        actionText += (indent + "for( auto " + itrName+' ='+frontItr + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
                     + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         loopCounterName=repName+'_key'
