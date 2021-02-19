@@ -1133,10 +1133,11 @@ def specialFunction(fieldName, xlator):
     elif fieldName == "__inc": newFieldName = "operator++"
     elif fieldName == "__opAssign": newFieldName = "operator="
     elif fieldName == "__derefPtr": newFieldName = "operator*"
+    elif fieldName == "__index": newFieldName = "operator[]"
     else:  newFieldName = fieldName
     return newFieldName
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
         if fieldName=='main':
@@ -1152,6 +1153,9 @@ def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsA
             className = className + codeTypeArgs(typeArgList)
         else:
             templateHeader = ""
+        if overRideOper:
+            if fieldName == "operator[]":
+                typeDefName += "&"
         if inheritMode=='normal' or inheritMode=='override':
             structCode += indent + typeDefName +' ' + fieldName +"("+argListText+");\n";
             objPrefix = progSpec.flattenObjectName(className) +'::'

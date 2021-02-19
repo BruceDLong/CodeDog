@@ -50,7 +50,7 @@ struct Swift_Map<keyType, valueType>: implements = Map wraps = `NSMutableOrdered
     itr nodeType: end()                         <- <%!%>           // returns itr to past-the-end element
     itr nodeType: erase(itr nodeType: position) <- <%!%>
     itr nodeType: eraseInterval(itr nodeType: start, itr nodeType: end) <- <%!%>
-    itr nodeType: find(valueType: val)          <- <%!%>
+    itr nodeType: find(keyType: key)            <- <%!%>
     nodeType: first()                           <- <%!%>
     itr nodeType: front()                       <- <%!%>
     itr nodeType: insert(itr nodeType: position, nodeType: value) <- <%!insert(%1)%>

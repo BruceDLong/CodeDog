@@ -58,7 +58,7 @@ struct CPP_Map<keyType, valueType>: implements = Map wraps = map specs = {insert
     itr CPP_MapNode: end()                         <- <%!end()%>           // returns itr to past-the-end element
     void: erase(keyType: key)                   <- <%!erase(%1)%>
     itr CPP_MapNode: eraseInterval(itr CPP_MapNode: start, itr CPP_MapNode: end) <- <%!erase(%1, %2)%>
-    itr CPP_MapNode: find(valueType: val)          <- <%!find(%1)%>
+    itr CPP_MapNode: find(keyType: key)          <- <%!find(%1)%>
     valueType: first()                           <- <%!begin()->second%>
     itr CPP_MapNode: front()                       <- <%!%0.begin()%>
     itr CPP_MapNode: insert(keyType: key, valueType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>

@@ -1,5 +1,6 @@
 #Getting base image
-FROM gitpod/workspace-full-vnc
+#FROM gitpod/workspace-full-vnc
+FROM ubuntu
 
 # Install custom tools, runtime, etc.
 USER root

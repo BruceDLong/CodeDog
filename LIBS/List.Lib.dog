@@ -50,7 +50,7 @@ model Map<keyType, valueType>{
     me bool: containsKey(keyType: key)
     our MapItr: end()
     void: erase(keyType: key)
-    our MapItr: find(valueType: val)
+    our MapItr: find(keyType: key)
     valueType: first()
     our MapItr: front()
     our MapItr: insert(keyType: key, valueType: value)
@@ -68,7 +68,6 @@ struct RBNode<keyType, valueType>: implements = MapNode{
     their RBNode<keyType, valueType>: left
     their RBNode<keyType, valueType>: right
     their RBNode<keyType, valueType>: parent
-    valueType: val()                         <- <%!%0%>
     // CONSTRUCTORS
     none: RBNode(keyType: _key, valueType: _val) <-{
         key   <- _key
@@ -117,11 +116,12 @@ struct RBTreeItr<keyType, valueType>: implements = MapItr{
     me bool: __notEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
         return(node != RHS.node)
     }
-    me valueType: __derefPtr() <- {return(node.value)}
+    valueType: __derefPtr() <- {return(node.value)}
     me bool: __isEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
         print("__isEqual:MEMBER!!!!!!!!!!!!!\n")
         return(node === RHS.node)
     }
+    valueType: val()                         <- <%!%0%>
 }
 
 struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = constant append = constant prepend = constant}{
@@ -153,8 +153,11 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         node <- getNode(Root, key)
         removeHelper(node, key)
     }
-    their RBNode<keyType, valueType>: find(valueType: val) <- {
-        return(getNode(Root, val))
+    me RBTreeItr<keyType, valueType>: find(keyType: key) <- {
+        their RBNode<keyType, valueType>: retNode <- getNode(Root, key)
+        if(retNode==NULL){retNode <- edge}
+        me RBTreeItr<keyType, valueType>: retItr; retItr.node <- retNode
+        return(retItr)
     }
     valueType: first() <- {
         their RBNode<keyType, valueType>: smallestNode <- findSmallest(Root)
@@ -203,6 +206,14 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
     }
     //itr valueType: lower_bound(keyType: key) <- {}
     me uint:  size() <- {return(mapSize)}
+    valueType: __index(keyType: searchKey) <- {
+        me RBTreeItr<keyType, valueType>: retItr <- find(searchKey)
+        if(retItr.node == edge){
+            me valueType: newVal
+            retItr.node <- insert(searchKey,  newVal)
+        }
+        return(retItr.node.value)
+    }
     ////////////////////////////////////////////////////////////////////
     me bool: isLeftChild(their RBNode<keyType, valueType>: node) <- {
         if(node.parent != NULL and node === node.parent.left){return(true)}
