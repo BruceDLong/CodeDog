@@ -1269,11 +1269,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     if(count>0): argListText+=", "
                     count+=1
                     argTypeSpec =arg['typeSpec']
+                    argOwner    =argTypeSpec['owner']
                     argFieldName=arg['fieldName']
                     if progSpec.typeIsPointer(argTypeSpec): arg
                     applyStructImplemetation(argTypeSpec,className,argFieldName)
                     [argType, innerType] = xlator['convertType'](classes, argTypeSpec, 'arg', 'field', xlator)
-                    argListText+= xlator['codeArgText'](argFieldName, argType, overRideOper, xlator)
+                    argListText+= xlator['codeArgText'](argFieldName, argType, argOwner, overRideOper, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
 
             #### RETURN TYPE

@@ -845,9 +845,12 @@ def codeMain(classes, tags, objsRefed, xlator):
         return ["\n\n// Globals\n" + structCode + "\n// Global Functions\n" + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeArgText(argFieldName, argType, makeConst, xlator):
+def codeArgText(argFieldName, argType, argOwner, makeConst, xlator):
     argTypeStr = argType
-    if makeConst: argTypeStr = "const "+argTypeStr
+    if makeConst:
+        if argOwner == "me": argMod = "&"
+        else: argMod = ""
+        argTypeStr = "const "+argTypeStr+argMod
     return argTypeStr + " " +argFieldName
 
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):

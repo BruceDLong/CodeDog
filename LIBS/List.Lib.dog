@@ -68,7 +68,7 @@ struct RBNode<keyType, valueType>: implements = MapNode{
     their RBNode<keyType, valueType>: left
     their RBNode<keyType, valueType>: right
     their RBNode<keyType, valueType>: parent
-    valueType: val()                         <- <%!%0.value%>
+    valueType: val()                         <- <%!%0%>
     // CONSTRUCTORS
     none: RBNode(keyType: _key, valueType: _val) <-{
         key   <- _key
@@ -115,12 +115,11 @@ struct RBTreeItr<keyType, valueType>: implements = MapItr{
         }
         return(self)
     }
-    me bool: __notEqual(their RBTreeItr<keyType, valueType>: RHS) <- {
-        print("__notEqual:MEMBER!!!!!!!!!!!!!\n")
-        return(!(node === RHS.node))
+    me bool: __notEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
+        return(node != RHS.node)
     }
-    me int: __derefPtr() <- {print("#####################"); return(node.value)}
-    me bool: __isEqual(their RBTreeItr<keyType, valueType>: RHS) <- {
+    me valueType: __derefPtr() <- {return(node.value)}
+    me bool: __isEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
         print("__isEqual:MEMBER!!!!!!!!!!!!!\n")
         return(node === RHS.node)
     }
@@ -146,8 +145,8 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         if(getNode(Root, key)){return(true)}
         else{return(false)}
     }
-    their RBTreeItr<keyType, valueType>: end() <- {
-        their RBTreeItr<keyType, valueType>:: retItr; retItr.node <- edge
+    me RBTreeItr<keyType, valueType>: end() <- {
+        me RBTreeItr<keyType, valueType>: retItr; retItr.node <- edge
         return(retItr)
     }
     me void: erase(keyType: key) <- {
@@ -162,8 +161,8 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         their RBNode<keyType, valueType>: smallestNode <- findSmallest(Root)
         return(smallestNode.value)
     }
-    their RBTreeItr<keyType, valueType>: front() <- {
-        their RBTreeItr<keyType, valueType>:: retItr; retItr.node <- findSmallest(Root)
+    me RBTreeItr<keyType, valueType>: front() <- {
+        me RBTreeItr<keyType, valueType>: retItr; retItr.node <- findSmallest(Root)
         retItr.container <- self
         return(retItr)
     }

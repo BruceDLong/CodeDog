@@ -754,7 +754,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
             return(reqTagList[0]['tArgType'])
         if fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map' or fieldTypeKeyword=='Swift_Map':
             return(reqTagList[0]['tArgType'])
-        if fieldTypeKeyword!="RBNode" and fieldTypeKeyword!="RBTreeMap" and fieldTypeKeyword!="List" and fieldTypeKeyword!="Map": print("WARNING: Container type not found for fieldTypeKeyword: ", fieldTypeKeyword,reqTagList)
+        if fieldTypeKeyword!="RBNode" and fieldTypeKeyword!="RBTreeMap" and fieldTypeKeyword!="RBTreeItr" and fieldTypeKeyword!="List" and fieldTypeKeyword!="Map": print("WARNING: Container type not found for fieldTypeKeyword: ", fieldTypeKeyword,reqTagList)
     elif reqTagList == None: return(None)
     return(None)
 
