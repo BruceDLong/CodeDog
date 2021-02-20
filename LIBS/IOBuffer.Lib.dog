@@ -18,7 +18,6 @@ struct strBuf{
     me bool: bufferClosed
 
     void: putStr(me string: data) <- { 
-	// Part 1: count carriage returns and add it to previous one and assign to endingLineNumber
         log("PUTTING:"+data)
         me MutexMngr: bufMtxMgr{bufMutex}
         if(bufferClosed){
