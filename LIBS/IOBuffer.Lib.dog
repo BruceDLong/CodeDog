@@ -37,15 +37,13 @@ struct strBuf{
                 newLines <+- 1
             }
         }
-	// prev hasn't been set... how do I get prev?
-	innerBuf.endingLineNumber <- innerBuf.prev.endingLineNumber + newLines
         if(tail==NULL){
 	    head <- innerBuf
-	    //innerBuf.endingLineNumber <- newLines
+	    innerBuf.endingLineNumber <- newLines
 	} else {
 	    tail.next <- innerBuf
 	    innerBuf.prev <- tail
-	    //innerBuf.endingLineNumber <- innerBuf.prev.endingLineNumber + newLines
+	    innerBuf.endingLineNumber <- innerBuf.prev.endingLineNumber + newLines
 	}
         tail <- innerBuf
         //log("NOTIFYING:")
