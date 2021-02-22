@@ -1253,7 +1253,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         ###### ArgList exists so this is a FUNCTION###########
         else:
             overRideOper = False
-            if fieldName[0:2] == "__" and xlator['overrideOperators'] == "True":
+            if fieldName[0:2] == "__" and xlator['iteratorsUseOperators'] == "True":
                 fieldName = xlator['specialFunction'](fieldName, xlator)
                 overRideOper = True
             #### ARGLIST
@@ -1304,7 +1304,11 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             # TODO: this is hard coded to compensate for when virtual func class has base class and child class
             if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):inheritMode = 'virtual'
             # ####################################################################
-            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, indent)
+            fieldTypeKW=progSpec.getFieldTypeKeyWord(typeSpec)
+            if fieldTypeKW =='none': isConstructor = True
+            else:
+                isConstructor = False
+            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, indent)
 
             #### FUNC BODY
             if abstractFunction: # i.e., if no function body is given.

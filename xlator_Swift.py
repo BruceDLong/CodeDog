@@ -659,7 +659,7 @@ def codeMain(classes, tags, objsRefed, xlator):
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeArgText(argFieldName, argType, xlator):
+def codeArgText(argFieldName, argType, argOwner, makeConst, xlator):
     return "_ " + argFieldName + ": " + argType
 
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
@@ -680,6 +680,10 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
             count += 1
     if classInherits!=None:
         parentClass=': ' + classInherits[0][0]
+    typeArgList = progSpec.getTypeArgList(structName)
+    if(typeArgList != None):
+        templateHeader = codeTemplateHeader(structName, typeArgList)+" "
+        structName= structName+templateHeader
     S= "\n"+classAttrs+"class "+structName+parentClass+"{\n" + structCode + '};\n'
     forwardDecls=""
     return([S,forwardDecls])
@@ -895,7 +899,7 @@ def codeConstructorCall(className):
 def codeSuperConstructorCall(parentClassName):
     return '        super.init();\n'
 
-def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, indent):
+def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, indent):
     #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
     if returnType!='': returnType = '-> '+returnType
@@ -911,14 +915,27 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
             fieldName = "INIT_"+className
             structCode += indent + "func "  + fieldName +"("+argListText+")"
         else:
-            funcAttrs=''
-            if inheritMode=='override': funcAttrs='override '
-            structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + returnType
+            if isConstructor:
+                structCode += indent + "init "  +"("+argListText+") " + returnType
+            else:
+                funcAttrs=''
+                if inheritMode=='override': funcAttrs='override '
+                structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + returnType
     return [structCode, funcDefCode, globalFuncs]
 
 def getVirtualFuncText(field):
     field['value'] = '{fatalError("Must Override")}'
     return field['value']
+
+def codeTemplateHeader(structName, typeArgList):
+    templateHeader = "<"
+    count = 0
+    for typeArg in typeArgList:
+        if(count>0):templateHeader+=", "
+        templateHeader+=typeArg
+        count+=1
+    templateHeader+=">"
+    return(templateHeader)
 
 def extraCodeForTopOfFuntion(argList):
     if len(argList)==0:
@@ -993,7 +1010,7 @@ def fetchXlators():
     xlators['funcsDefInClass']       = "True"
     xlators['blockPrefix']           = "do"
     xlators['usePrefixOnStatics']    = "True"
-    xlators['overrideOperators']     = "True"
+    xlators['iteratorsUseOperators'] = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional

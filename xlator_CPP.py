@@ -1137,7 +1137,7 @@ def specialFunction(fieldName, xlator):
     else:  newFieldName = fieldName
     return newFieldName
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
         if fieldName=='main':
@@ -1253,7 +1253,7 @@ def fetchXlators():
     xlators['MakeConstructors']      = "True"
     xlators['blockPrefix']           = ""
     xlators['usePrefixOnStatics']    = "False"
-    xlators['overrideOperators']     = "True"
+    xlators['iteratorsUseOperators'] = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['applyOwner']                     = applyOwner
     xlators['adjustConditional']            = adjustConditional

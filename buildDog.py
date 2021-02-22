@@ -143,7 +143,7 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     workingDirectory = currentDirectory + "/" + buildName
     makeDir(buildName)
     writeFile(workingDirectory, fileName, fileSpecs, fileExtension)
-    buildStr = "swiftc " + fileName + fileExtension
+    buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
     runStr = "./" + fileName
     return [workingDirectory, buildStr, runStr]
 

@@ -658,7 +658,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
 def codeMain(classes, tags, objsRefed, xlator):
     return ["", ""]
 
-def codeArgText(argFieldName, argType, xlator):
+def codeArgText(argFieldName, argType, argOwner, makeConst, xlator):
     return argType + " " +argFieldName
 
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
@@ -844,7 +844,7 @@ def codeConstructorCall(className):
 def codeSuperConstructorCall(parentClassName):
     return '        '+parentClassName+'();\n'
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, indent):
 #    if fieldName == 'init':
 #        fieldName = fieldName+'_'+className
     if inheritMode=='pure-virtual':
@@ -955,7 +955,7 @@ def fetchXlators():
     xlators['MakeConstructors']      = "True"
     xlators['blockPrefix']           = ""
     xlators['usePrefixOnStatics']    = "False"
-    xlators['overrideOperators']     = "False"
+    xlators['iteratorsUseOperators'] = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
