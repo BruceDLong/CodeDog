@@ -1044,7 +1044,7 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, isTemplateStruct, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, typeArgList, xlator):
     fieldValueText=""
     #TODO: make test case
     if paramList!=None:
@@ -1065,7 +1065,7 @@ def codeConstField_Str(convertedType, fieldName, fieldValueText, className, inde
         decl = convertedType[7:] + ' ' + progSpec.flattenObjectName(className) + "::"+ fieldName + fieldValueText +';\n\n'
     return [defn, decl]
 
-def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
     #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':

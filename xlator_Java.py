@@ -782,7 +782,7 @@ def varTypeIsValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, isTemplateStruct, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, typeArgList, xlator):
     fieldValueText=""
     if fieldOwner=='we':
         convertedType = convertedType.replace('static ', '', 1)
@@ -794,7 +794,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramLi
                 del paramList[-1]
             [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
             fieldValueText=" = new " + convertedType + CPL
-        elif not isTemplateStruct:
+        elif typeArgList == None:
             fieldValueText=" = new " + convertedType + "()"
     return fieldValueText
 
@@ -803,7 +803,7 @@ def codeConstField_Str(convertedType, fieldName, fieldValueText, className, inde
     decl = ''
     return [defn, decl]
 
-def codeVarField_Str(convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
     # TODO: make test case
     S=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)

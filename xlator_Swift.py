@@ -756,7 +756,7 @@ struct GLOBAL{
     """ % (specialCode)
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE)
-def variableDefaultValueString(fieldType):
+def variableDefaultValueString(fieldType, isTypeArg):
     if (fieldType == "String"):
         fieldValueText='""'
     elif (fieldType.startswith("[")):
@@ -767,6 +767,8 @@ def variableDefaultValueString(fieldType):
         fieldValueText='0'
     elif (fieldType == "Character"):
         fieldValueText='"\\0"'
+    elif(isTypeArg):
+        fieldValueText = '['+fieldType +']()'
     else:
         fieldValueText = fieldType +'()'
     return fieldValueText
@@ -802,7 +804,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                 if True or not isinstance(rhsType, str) and fieldType==rhsType[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
         else:
-            assignValue = ' = '+variableDefaultValueString(allocFieldType)
+            assignValue = ' = '+variableDefaultValueString(allocFieldType, False)
     if (assignValue == ""):
         varDeclareStr= "var " + varName + ": "+ fieldType + " = " + allocFieldType + '()'
     else:
@@ -821,14 +823,18 @@ def isNumericType(convertedType):
     else:
         return False
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, isTemplateStruct, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, typeArgList, xlator):
     fieldValueText=""
+    isTypeArg = False
+    if typeArgList:
+        for typeArg in typeArgList:
+            if convertedType == typeArg: isTypeArg = True
     if paramList!=None:
         [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
         fieldValueText=" = " + convertedType + CPL
     else:
         if fieldOwner=='me' or fieldOwner=='we':
-            fieldValueText = ' = '+variableDefaultValueString(convertedType)
+            fieldValueText = ' = '+variableDefaultValueString(convertedType, isTypeArg)
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
@@ -836,17 +842,22 @@ def codeConstField_Str(convertedType, fieldName, fieldValueText, className, inde
     decl =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
     return [defn, decl]
 
-def codeVarField_Str(intermediateType, fieldAttrs, typeSpec, fieldName, fieldValueText, className, tags, indent):
+def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
     #TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
-        defn = indent + "public static var "+ indent + fieldName + ": " +  intermediateType  +  fieldValueText + '\n'
+        defn = indent + "public static var "+ indent + fieldName + ": " +  convertedType  +  fieldValueText + '\n'
         decl = ''
     else:
+        isTypeArg = False
+        if typeArgList:
+            for typeArg in typeArgList:
+                if convertedType == typeArg: isTypeArg = True
         fieldTypeMod=''
     #    if progSpec.typeIsPointer(typeSpec):
     #        fieldTypeMod += '?CUSTARD'    # Make pointer field variables optionals
-        defn = indent + "var "+ fieldName + ": " +  intermediateType + fieldTypeMod + fieldValueText + '\n'
+        if isTypeArg: defn = indent + "var "+ fieldName + fieldTypeMod + fieldValueText + '\n'
+        else: defn = indent + "var "+ fieldName + ": " +  convertedType + fieldTypeMod + fieldValueText + '\n'
         decl = ''
     return [defn, decl]
 
@@ -886,7 +897,7 @@ def codeConstructorInit(fieldName, count, defaultVal, xlator):
         exit(2)
 
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
-    if defaultVal == "NULL": defaultVal = "0"
+    if defaultVal == "NULL": defaultVal = ""
     if defaultVal: argType = argType + '=' + defaultVal
     return "_ arg_" + argFieldName  + ': ' +argType
 

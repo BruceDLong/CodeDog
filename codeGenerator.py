@@ -1185,8 +1185,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     topFuncDefCodeAcc="" # For defns that must appear first in the code. TODO: sort items instead
     ObjectDef = classes[0][className]
     typeArgList = progSpec.getTypeArgList(className)
-    if(typeArgList != None): isTemplateStruct = True
-    else: isTemplateStruct = False
     for field in progSpec.generateListOfFieldsToImplement(classes, className):
         ################################################################
         ### extracting FIELD data
@@ -1228,7 +1226,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
                 isAllocated = False
                 paramList = None
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, isTemplateStruct, xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, typeArgList, xlator)
             #print ("    RHS none: ", fieldValueText)
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, str):
@@ -1248,7 +1246,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         if(fieldOwner=='const'):
             [structCode, topFuncDefCode] = xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, className, indent, xlator )
         elif(fieldArglist==None):
-            [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, innerType, typeSpec, fieldName, fieldValueText, className, tags, indent)
+            [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent)
 
         ###### ArgList exists so this is a FUNCTION###########
         else:
