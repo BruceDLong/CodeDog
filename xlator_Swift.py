@@ -475,8 +475,9 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
         for i in item[1]:
             if   (i[0] == '=='): op=' == '
             elif (i[0] == '!='): op=' != '
-            elif (i[0] == '==='): op=' == '
-            else: print("ERROR: '==' or '!=' or '===' expected."); exit(2)
+            elif (i[0] == '!=='): op=' !== '
+            elif (i[0] == '==='): op=' === '
+            else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
             [S2, retTypeSpec] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightOwner=progSpec.getTypeSpecOwner(retTypeSpec)
             if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
@@ -906,9 +907,12 @@ def codeConstructorCall(className):
 def codeSuperConstructorCall(parentClassName):
     return '        super.init();\n'
 
-def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, indent):
+def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, indent):
     #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
+    if typeArgList:
+        for typeArg in typeArgList:
+            if returnType == typeArg: returnType = '['+returnType+']'
     if returnType!='': returnType = '-> '+returnType
     if(className=='AppDelegate'):
         if fieldName=='application':

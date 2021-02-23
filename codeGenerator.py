@@ -1306,7 +1306,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if fieldTypeKW =='none': isConstructor = True
             else:
                 isConstructor = False
-            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, indent)
+            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, indent)
 
             #### FUNC BODY
             if abstractFunction: # i.e., if no function body is given.

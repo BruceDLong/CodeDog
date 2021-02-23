@@ -640,8 +640,9 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
         for i in item[1]:
             if   (i[0] == '=='): op=' == '
             elif (i[0] == '!='): op=' != '
+            elif (i[0] == '!=='): op=' != '
             elif (i[0] == '==='): op=' == '
-            else: print("ERROR: '==' or '!=' or '===' expected."); exit(2)
+            else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             if not isinstance(retTypeSpec, str) and isinstance(retTypeSpec['fieldType'], str) and isinstance(retType2, str):
                 if retTypeSpec['fieldType'] == "char" and retType2 == 'string' and S2[0] == '"':
@@ -1131,7 +1132,7 @@ def specialFunction(fieldName, xlator):
     else:  newFieldName = fieldName
     return newFieldName
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
         if fieldName=='main':

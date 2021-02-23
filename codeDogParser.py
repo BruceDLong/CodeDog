@@ -78,7 +78,7 @@ factor = Group( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRe
 term = Group( factor + Optional(Group(OneOrMore(Group(oneOf('* / %') + factor )))))
 plus = Group( term  + Optional(Group(OneOrMore(Group(oneOf('+ -') + term )))))
 comparison = Group( plus + Optional(Group(OneOrMore(Group(oneOf('< > <= >=') + ~FollowedBy("-") + plus )))))
-isEQ = Group( comparison  + Optional(Group(OneOrMore(Group(oneOf('== != ===') + comparison )))))
+isEQ = Group( comparison  + Optional(Group(OneOrMore(Group(oneOf('== != === !==') + comparison )))))
 iOr = Group( isEQ  + Optional(Group(OneOrMore(Group('&' + isEQ )))))
 xOr = Group( iOr  + Optional(Group(OneOrMore(Group('^' + iOr )))))
 bar = Group( xOr  + Optional(Group(OneOrMore(Group('|' + xOr )))))

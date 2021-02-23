@@ -460,8 +460,9 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
         for i in item[1]:
             if   (i[0] == '=='): op=' == '
             elif (i[0] == '!='): op=' != '
+            elif (i[0] == '!=='): op=' != '
             elif (i[0] == '==='): op=' == '
-            else: print("ERROR: '==' or '!=' or '===' expected."); exit(2)
+            else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             rightFieldType = progSpec.getFieldTypeNew(retType2)
             leftFieldType = progSpec.getFieldTypeNew(retTypeSpec)
@@ -846,7 +847,7 @@ def codeConstructorCall(className):
 def codeSuperConstructorCall(parentClassName):
     return '        '+parentClassName+'();\n'
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, indent):
 #    if fieldName == 'init':
 #        fieldName = fieldName+'_'+className
     if inheritMode=='pure-virtual':
