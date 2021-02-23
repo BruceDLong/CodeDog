@@ -658,7 +658,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
 def codeMain(classes, tags, objsRefed, xlator):
     return ["", ""]
 
-def codeArgText(argFieldName, argType, argOwner, makeConst, xlator):
+def codeArgText(argFieldName, argType, argOwner, makeConst, typeArgList, xlator):
     return argType + " " +argFieldName
 
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
@@ -674,6 +674,8 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
     elif classInherits!=None:
         parentClass=' extends ' + classInherits[0][0]
     if classImplements!=None:
+        # TODO: verify if classImplements is used
+        #print(structName, "Implements: " , classImplements)
         parentClass+=' implements '
         count =0
         for item in classImplements[0]:

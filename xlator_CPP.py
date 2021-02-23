@@ -844,7 +844,7 @@ def codeMain(classes, tags, objsRefed, xlator):
         return ["\n\n// Globals\n" + structCode + "\n// Global Functions\n" + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeArgText(argFieldName, argType, argOwner, makeConst, xlator):
+def codeArgText(argFieldName, argType, argOwner, makeConst, typeArgList, xlator):
     argTypeStr = argType
     if makeConst:
         if argOwner == "me": argMod = "&"
@@ -858,12 +858,6 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
         parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, structName)
         parentClass=': public '+parentClass+' '
         print("Warning: old style inheritance used: " , parentClass)
-    if classImplements!=None:
-        #print(structName, "Implements: " , classImplements)
-        for classToImplement in classImplements[0]:
-            [implementsParent, failedFuncName] = progSpec.doesChildImplementParentClass(classes[0], classToImplement, structName)
-            if not implementsParent:
-                cdErr("Template class "+ structName+"{} does not implement " + failedFuncName)
     if classInherits!=None:
         parentClass=': public '
         count =0

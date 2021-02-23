@@ -150,8 +150,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     return S
 
 def LanguageSpecificDecorations(S, segType, owner):
-    if segType!= 0 and progSpec.typeIsPointer(segType) and segType['owner']!='itr' and S!='NULL' and S[-1]!=']':
-        S+='!'  # optionals
+    #if segType!= 0 and progSpec.typeIsPointer(segType) and segType['owner']!='itr' and S!='NULL' and S[-1]!=']': S+='!'  # optionals
     return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -659,7 +658,13 @@ def codeMain(classes, tags, objsRefed, xlator):
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeArgText(argFieldName, argType, argOwner, makeConst, xlator):
+def codeArgText(argFieldName, argType, argOwner, makeConst, typeArgList, xlator):
+    isTypeArg = False
+    if typeArgList:
+        for typeArg in typeArgList:
+            if argType == typeArg: isTypeArg = True
+    if isTypeArg:
+        argType = "[" + argType + "]"
     return "_ " + argFieldName + ": " + argType
 
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
@@ -670,14 +675,6 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
     if parentClass != "":
         parentClass = ': '+parentClass+' '
         parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(structName)
-    if classImplements!=None:
-        parentClass=': '
-        count =0
-        for item in classImplements[0]:
-            if count>0:
-                parentClass+= ', '
-            parentClass+= item
-            count += 1
     if classInherits!=None:
         parentClass=': ' + classInherits[0][0]
     typeArgList = progSpec.getTypeArgList(structName)
@@ -833,8 +830,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramLi
         [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
         fieldValueText=" = " + convertedType + CPL
     else:
-        if fieldOwner=='me' or fieldOwner=='we':
-            fieldValueText = ' = '+variableDefaultValueString(convertedType, isTypeArg)
+        fieldValueText = ' = '+variableDefaultValueString(convertedType, isTypeArg)
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
