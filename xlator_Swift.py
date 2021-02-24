@@ -108,12 +108,8 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, xlator):
             count += 1
         reqTagString += ">"
         langType += reqTagString
-    if progSpec.isNewContainerTempFunc(typeSpec):
-        return [langType, InnerLangType]
-    if varMode != 'alloc':
-        fieldAttrs = applyOwner(owner, langType, varMode)
-    if varMode != 'alloc' and progSpec.typeIsPointer(typeSpec):
-        langType+='?'    # Make pointer func args optionals
+    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
+    if varMode != 'alloc': fieldAttrs = applyOwner(owner, langType, varMode)
     return [langType, fieldAttrs]   # E.g.: langType='uint', file
 
 def convertType(classes, typeSpec, varMode, actionOrField, xlator):
@@ -126,6 +122,11 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     ownerOut=getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn)
     retVal = xlateLangType(classes, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, xlator)
     return retVal
+
+def makePtrOpt(typeSpec):
+    # Make pointer field variables optionals
+    if progSpec.typeIsPointer(typeSpec): return('?')
+    return('')
 
 def codeIteratorOperation(itrCommand, fieldType):
     result = ''
@@ -149,8 +150,9 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(S, segType, owner):
-    #if segType!= 0 and progSpec.typeIsPointer(segType) and segType['owner']!='itr' and S!='NULL' and S[-1]!=']': S+='!'  # optionals
+def LanguageSpecificDecorations(S, segType, owner, LorR_Val):
+    if segType!= 0 and progSpec.typeIsPointer(segType) and segType['owner']!='itr' and S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and LorR_Val !="LVAL":
+        S+='!'  # optionals
     return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -659,14 +661,13 @@ def codeMain(classes, tags, objsRefed, xlator):
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeArgText(argFieldName, argType, argOwner, makeConst, typeArgList, xlator):
+def codeArgText(argFieldName, argType, argOwner, typeSpec, makeConst, typeArgList, xlator):
     isTypeArg = False
     if typeArgList:
         for typeArg in typeArgList:
-            if argType == typeArg: isTypeArg = True
-    if isTypeArg:
-        argType = "[" + argType + "]"
-    return "_ " + argFieldName + ": " + argType
+            if argType == typeArg: argType = "[" + argType + "]"
+    fieldTypeMod = makePtrOpt(typeSpec)
+    return "_ " + argFieldName + ": " + argType + fieldTypeMod
 
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
     classAttrs=''
@@ -803,10 +804,11 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                     assignValue = " = " + CPL   # Act like a copy constructor
         else:
             assignValue = ' = '+variableDefaultValueString(allocFieldType, False)
+    fieldTypeMod = makePtrOpt(lhsTypeSpec)
     if (assignValue == ""):
-        varDeclareStr= "var " + varName + ": "+ fieldType + " = " + allocFieldType + '()'
+        varDeclareStr= "var " + varName + ": "+ fieldType + fieldTypeMod + " = " + allocFieldType + '()'
     else:
-        varDeclareStr= "var " + varName + ": "+ fieldType + assignValue
+        varDeclareStr= "var " + varName + ": "+ fieldType + fieldTypeMod + assignValue
     return(varDeclareStr)
 
 def codeIncrement(varName):
@@ -850,9 +852,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         if typeArgList:
             for typeArg in typeArgList:
                 if convertedType == typeArg: isTypeArg = True
-        fieldTypeMod=''
-    #    if progSpec.typeIsPointer(typeSpec):
-    #        fieldTypeMod += '?CUSTARD'    # Make pointer field variables optionals
+        fieldTypeMod = makePtrOpt(typeSpec)
         if isTypeArg: defn = indent + "var "+ fieldName + fieldTypeMod + fieldValueText + '\n'
         else: defn = indent + "var "+ fieldName + ": " +  convertedType + fieldTypeMod + fieldValueText + '\n'
         decl = ''
@@ -907,7 +907,7 @@ def codeConstructorCall(className):
 def codeSuperConstructorCall(parentClassName):
     return '        super.init();\n'
 
-def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, indent):
+def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, typeSpec, indent):
     #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
     if typeArgList:
@@ -929,9 +929,10 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
             if isConstructor:
                 structCode += indent + "init "  +"("+argListText+") " + returnType
             else:
+                fieldTypeMod = makePtrOpt(typeSpec)
                 funcAttrs=''
                 if inheritMode=='override': funcAttrs='override '
-                structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + returnType
+                structCode += indent + funcAttrs + "func " + fieldName +"("+argListText+") " + returnType + fieldTypeMod
     return [structCode, funcDefCode, globalFuncs]
 
 def getVirtualFuncText(field):

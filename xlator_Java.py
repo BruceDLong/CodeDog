@@ -153,7 +153,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(S, segType, owner):
+def LanguageSpecificDecorations(S, segType, owner, LorR_Val):
         return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -659,7 +659,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
 def codeMain(classes, tags, objsRefed, xlator):
     return ["", ""]
 
-def codeArgText(argFieldName, argType, argOwner, makeConst, typeArgList, xlator):
+def codeArgText(argFieldName, argType, argOwner, typeSpec, makeConst, typeArgList, xlator):
     return argType + " " +argFieldName
 
 def codeStructText(classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
@@ -847,7 +847,7 @@ def codeConstructorCall(className):
 def codeSuperConstructorCall(parentClassName):
     return '        '+parentClassName+'();\n'
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, typeSpec, indent):
 #    if fieldName == 'init':
 #        fieldName = fieldName+'_'+className
     if inheritMode=='pure-virtual':

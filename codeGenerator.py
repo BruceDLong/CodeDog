@@ -729,7 +729,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
 
 
         # Language specific dereferencing of ->[...], etc.
-        S = xlator['LanguageSpecificDecorations'](S, segTypeSpec, owner)
+        S = xlator['LanguageSpecificDecorations'](S, segTypeSpec, owner, LorR_Val)
 
         objsRefed[canonicalName]=0
         previousSegName = segName
@@ -933,21 +933,19 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
         typeSpec= fieldDef['typeSpec']
         fieldName =fieldDef['fieldName']
         applyStructImplemetation(typeSpec,currentObjName,fieldName)
-        varName = fieldDef['fieldName']
-        cdlog(5, "Action newVar: {}".format(varName))
-        varDeclareStr = xlator['codeNewVarStr'](globalClassStore, typeSpec, varName, fieldDef, indent, objsRefed, 'action', xlator)
+        cdlog(5, "Action newVar: {}".format(fieldName))
+        varDeclareStr = xlator['codeNewVarStr'](globalClassStore, typeSpec, fieldName, fieldDef, indent, objsRefed, 'action', xlator)
         actionText = indent + varDeclareStr + ";\n"
-        localVarsAllocated.append([varName, typeSpec])  # Tracking local vars for scope
+        localVarsAllocated.append([fieldName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         cdlog(5, "PREASSIGN:" + str(action['LHS']))
         # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
         cdlog(5, "Pre-assignment... ")
-        [codeStr, lhsTypeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', objsRefed, returnType, xlator)
+        [LHS, lhsTypeSpec, LHSParentType, AltIDXFormat] = codeItemRef(action['LHS'], 'LVAL', objsRefed, returnType, xlator)
         assignTag = action['assignTag']
-        LHS = codeStr
         cdlog(5, "Assignment: {}".format(LHS))
         [S2, rhsTypeSpec]=xlator['codeExpr'](action['RHS'][0], objsRefed, None, lhsTypeSpec, xlator)
-        [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](lhsTypeSpec, rhsTypeSpec, assignTag,codeStr)
+        [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod]=xlator['determinePtrConfigForAssignments'](lhsTypeSpec, rhsTypeSpec, assignTag,LHS)
         LHS = LHS_leftMod+LHS+LHS_rightMod
         RHS = RHS_leftMod+S2+RHS_rightMod
         cdlog(5, "Assignment: {} = {}".format(lhsTypeSpec, rhsTypeSpec))
@@ -1272,9 +1270,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     if progSpec.typeIsPointer(argTypeSpec): arg
                     applyStructImplemetation(argTypeSpec,className,argFieldName)
                     [argType, innerType] = xlator['convertType'](classes, argTypeSpec, 'arg', 'field', xlator)
-                    argListText+= xlator['codeArgText'](argFieldName, argType, argOwner, overRideOper, typeArgList, xlator)
+                    argListText+= xlator['codeArgText'](argFieldName, argType, argOwner, argTypeSpec, overRideOper, typeArgList, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
-
             #### RETURN TYPE
             FirstReturnType = {'owner':fieldOwner, 'fieldType':fieldType}
             if(fieldType[0] != '<%'):
@@ -1306,7 +1303,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if fieldTypeKW =='none': isConstructor = True
             else:
                 isConstructor = False
-            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, indent)
+            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, typeSpec, indent)
 
             #### FUNC BODY
             if abstractFunction: # i.e., if no function body is given.

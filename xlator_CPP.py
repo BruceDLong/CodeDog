@@ -165,7 +165,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(S, segType, owner):
+def LanguageSpecificDecorations(S, segType, owner, LorR_Val):
         return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -845,7 +845,7 @@ def codeMain(classes, tags, objsRefed, xlator):
         return ["\n\n// Globals\n" + structCode + "\n// Global Functions\n" + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
-def codeArgText(argFieldName, argType, argOwner, makeConst, typeArgList, xlator):
+def codeArgText(argFieldName, argType, argOwner, typeSpec, makeConst, typeArgList, xlator):
     argTypeStr = argType
     if makeConst:
         if argOwner == "me": argMod = "&"
@@ -1132,7 +1132,7 @@ def specialFunction(fieldName, xlator):
     else:  newFieldName = fieldName
     return newFieldName
 
-def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, indent):
+def codeFuncHeaderStr(className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, typeSpec, indent):
     structCode=''; funcDefCode=''; globalFuncs='';
     if(className=='GLOBAL'):
         if fieldName=='main':
