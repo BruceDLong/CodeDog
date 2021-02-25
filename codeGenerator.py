@@ -670,10 +670,12 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
     segIDX=0
     AltFormat=None
     AltIDXFormat=''
+    numNameSegs = len(name)
     for segSpec in name:
         LHSParentType='#'
         owner=progSpec.getTypeSpecOwner(segTypeSpec)
         segName=segSpec[0]
+        isLastSeg = numNameSegs == segIDX+1
         if(segIDX>0):
             # Detect connector to use '.' '->', '', (*...).
             connector='.'
@@ -695,7 +697,6 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
         else:
             segStr= codeUnknownNameSeg(segSpec, objsRefed, xlator)
         prevLen=len(S)
-
 
         if(isinstance(segTypeSpec, int)):
             cdErr("Segment '{}' in the name '{}' is not recognized.".format(segSpec[0], dePythonStr(name)))
@@ -729,7 +730,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
 
 
         # Language specific dereferencing of ->[...], etc.
-        S = xlator['LanguageSpecificDecorations'](S, segTypeSpec, owner, LorR_Val)
+        S = xlator['LanguageSpecificDecorations'](S, segTypeSpec, owner, LorR_Val, isLastSeg)
 
         objsRefed[canonicalName]=0
         previousSegName = segName

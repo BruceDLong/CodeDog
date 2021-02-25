@@ -234,9 +234,19 @@ def packFieldDef(fieldResult, className, indent):
     else: owner='me';
     isAllocated = False
     hasFuncBody = False
+    packedTArgList = None
 
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType[0];
+        if 'reqTagList' in fieldType:
+            reqTagList = fieldType['reqTagList']
+            packedTArgList = []
+            for reqTag in reqTagList[0]:
+                reqTagVarType = reqTag['varType'][0][0]
+                reqTagOwner = 'me'
+                if 'owner' in reqTag: reqTagOwner = reqTag['owner']
+                packedReqTag={'tArgOwner': reqTagOwner, 'tArgType': reqTagVarType}
+                packedTArgList.append(packedReqTag)
         if not isinstance(fieldType, str) and (fieldType[0]=='[' or fieldType[0]=='{'):
             #print("FIELDTYPE is an inline SEQ or ALT")
             if   fieldType[0]=='{': fieldList=fieldType[1:-1]
@@ -252,8 +262,6 @@ def packFieldDef(fieldResult, className, indent):
         isAContainer = True
         print("         ****Deprecated ArraySpec found: ", arraySpec)
     else: arraySpec=None
-
-    reqTagList=None
 
     varOwner = owner
     if isAContainer:
@@ -310,16 +318,15 @@ def packFieldDef(fieldResult, className, indent):
         givenValue = None;
         fieldName=None;
 
-
     if(fieldResult.flagDef):
         cdlog(3,"FLAG: {}".format(fieldResult))
         if(arraySpec): cdErr("Lists of flags are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, reqTagList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, False, owner, 'flag', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.modeDef):
         cdlog(3,"MODE: {}".format(fieldResult))
         modeList=fieldResult.modeList
         if(arraySpec): cdErr("Lists of modes are not allowed.\n"); exit(2);
-        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, reqTagList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, False, owner, 'mode', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
         fieldDef['typeSpec']['enumList']=modeList
     elif(fieldResult.constStr):
         if fieldName==None: fieldName="constStr"+str(nameIDX); nameIDX+=1;
@@ -328,27 +335,17 @@ def packFieldDef(fieldResult, className, indent):
             if(len(fieldResult)>3 and fieldResult[3]!=''):
                 fieldName=fieldResult[3]
         givenValue = fieldResult.constStr[1:-1]
-        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, reqTagList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, True, 'const', 'string', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.constNum):
         cdlog(3,"CONST Num: {}".format(fieldResult))
         if fieldName==None: fieldName="constNum"+str(nameIDX); nameIDX+=1;
-        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, reqTagList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, True, 'const', 'int', arraySpec, packedTArgList, fieldName, None, paramList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.nameVal):
         cdlog(3,"NameAndVal: {}".format(fieldResult))
-        fieldDef=progSpec.packField(className, None, None, None, arraySpec, reqTagList, fieldName, argList, paramList, givenValue, isAllocated, hasFuncBody)
+        fieldDef=progSpec.packField(className, None, None, None, arraySpec, packedTArgList, fieldName, argList, paramList, givenValue, isAllocated, hasFuncBody)
     elif(fieldResult.fullFieldDef):
         fieldTypeStr=str(fieldType)[:50]
-        cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, reqTagList, fieldName])))
-        if 'reqTagList' in fieldType:
-            reqTagList = fieldType['reqTagList']
-            packedTArgList = []
-            for reqTag in reqTagList[0]:
-                reqTagVarType = reqTag['varType'][0][0]
-                reqTagOwner = 'me'
-                if 'owner' in reqTag: reqTagOwner = reqTag['owner']
-                packedReqTag={'tArgOwner': reqTagOwner, 'tArgType': reqTagVarType}
-                packedTArgList.append(packedReqTag)
-        else: packedTArgList = None
+        cdlog(3,"FULL FIELD: {}".format(str([isNext, owner, fieldTypeStr+'... ', arraySpec, packedTArgList, fieldName])))
         fieldDef=progSpec.packField(className, isNext, owner, fieldType, arraySpec, packedTArgList, fieldName, argList, paramList, givenValue, isAllocated, hasFuncBody)
     else:
         cdErr("Error in packing FieldDefs: {}".format(fieldResult))

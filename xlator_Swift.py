@@ -150,8 +150,8 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(S, segType, owner, LorR_Val):
-    if segType!= 0 and progSpec.typeIsPointer(segType) and segType['owner']!='itr' and S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and LorR_Val !="LVAL":
+def LanguageSpecificDecorations(S, segType, owner, LorR_Val, isLastSeg):
+    if segType!= 0 and progSpec.typeIsPointer(segType) and segType['owner']!='itr' and S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not(LorR_Val =="LVAL" and isLastSeg):
         S+='!'  # optionals
     return S
 
