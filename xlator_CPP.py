@@ -403,7 +403,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     actionText       = ""
     loopCounterName  = ""
     owner            = progSpec.getContainerFirstElementOwner(containerType)
-    containedType    = progSpec.getFieldType(containerType)
+    containedType    = progSpec.fieldTypeKeyword(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     itrName          = repName + "Itr"
     if progSpec.ownerIsPointer(containerOwner): connector="->"
@@ -435,12 +435,12 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
     actionText       = ""
     loopCounterName  = ""
     owner            = progSpec.getContainerFirstElementOwner(containerType)
-    containedType    = progSpec.getFieldType(containerType)
+    containedType    = progSpec.fieldTypeKeyword(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(containerType)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
     nodeTypeSpec     = progSpec.getNodeTypeOfDataStruct(datastructID, containerType)
-    nodeFieldType    = progSpec.getFieldTypeKeyWord(nodeTypeSpec)
+    nodeFieldType    = progSpec.fieldTypeKeyword(nodeTypeSpec)
     nodeOwner        = progSpec.getOwnerFromTypeSpec(nodeTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(nodeOwner)
     itrName          = repName + "Itr"
@@ -788,8 +788,8 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
         elif(funcName=='callPeriodically'):
             [objName,  typeSpec]=codeExpr(paramList[1][0], objsRefed, None, None, xlator)
             [interval,  intTypeSpec]   =codeExpr(paramList[2][0], objsRefed, None, None, xlator)
-            fieldType = progSpec.getFieldTypeNew(typeSpec)
-            varTypeSpec= fieldType[0]
+            fieldType = progSpec.fieldTypeKeyword(typeSpec)
+            varTypeSpec= fieldType
             wrapperName="cb_wraps_"+varTypeSpec
             S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
 
@@ -1006,7 +1006,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
                     exit(1)
                 rhsTypeSpec = paramTypeList[0]
-                rhsType     = progSpec.getFieldType(rhsTypeSpec)
+                rhsType     = progSpec.fieldTypeKeyword(rhsTypeSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(rhsType, str) and fieldType==rhsType[0]:
                     [leftMod, rightMod] = determinePtrConfigForNewVars(lhsTypeSpec, rhsTypeSpec, useCtor)

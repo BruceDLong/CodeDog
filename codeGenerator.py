@@ -287,7 +287,7 @@ def fetchItemsTypeSpec(segSpec, objsRefed, xlator):
             REF=CheckObjectVars(currentObjName, itemName, fieldIDArgList)
             if (REF):
                 if useClassTag != "":
-                    fieldType=progSpec.getFieldType(REF['typeSpec'])
+                    fieldType=progSpec.fieldTypeKeyword(REF['typeSpec'])
                     if progSpec.doesClassHaveProperty(globalClassStore, fieldType, 'metaClass'):
                         REF['typeSpec']['fieldType'][0] = useClassTag
                 RefType="OBJVAR"
@@ -448,10 +448,10 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
             typeArgList  = progSpec.getTypeArgList(highestScoreClassName)
             fieldDefAt   = CheckObjectVars(highestScoreClassName, "at", "")
             fieldDefFind = CheckObjectVars(highestScoreClassName, "find", "")
-            atTypeSpec   = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefAt['typeSpec']), "fieldType":progSpec.getFieldTypeKeyWord(fieldDefAt['typeSpec'])}
+            atTypeSpec   = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefAt['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefAt['typeSpec'])}
             fromImpl     = {"typeArgList":typeArgList, "atTypeSpec":atTypeSpec}
             if fieldDefFind:
-                nodeTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.getFieldTypeKeyWord(fieldDefFind['typeSpec'])}
+                nodeTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
                 fromImpl['nodeTypeSpec'] = nodeTypeSpec
             return(highestScoreClassName,fromImpl)
     return(None, None)
@@ -467,9 +467,6 @@ def applyStructImplemetation(typeSpec,currentObjName,fieldName):
 def codeAllocater(typeSpec, xlator):
     S     = ''
     owner = progSpec.getTypeSpecOwner(typeSpec)
-    fType = progSpec.getFieldType(typeSpec)
-    if isinstance(fType, str): varTypeStr1=fType;
-    else: varTypeStr1=fType[0]
 
     [varTypeStr, innerType] = xlator['convertType'](globalClassStore, typeSpec, 'alloc', '', xlator)
     S= xlator['getCodeAllocStr'](varTypeStr, owner);
@@ -508,7 +505,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     name=segSpec[0]
     owner=progSpec.getTypeSpecOwner(typeSpecIn)
     if 'fieldType' in typeSpecIn:
-        fieldTypeIn = progSpec.getFieldType(typeSpecIn)
+        fieldTypeIn = progSpec.fieldTypeKeyword(typeSpecIn)
     else: fieldTypeIn = None
 
 
@@ -516,7 +513,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     if progSpec.isNewContainerTempFunc(typeSpecIn): isNewContainer = True
 
     IsAContainer = progSpec.isAContainer(typeSpecIn)
-    if (fieldTypeIn!=None and isinstance(fieldTypeIn, str) and not IsAContainer):
+    if (fieldTypeIn!=None and not IsAContainer):
         if fieldTypeIn=="string":
             [name, tmpTypeSpec] = xlator['recodeStringFunctions'](name, typeSpecOut)
             typeSpecOut = copy.copy(tmpTypeSpec)
@@ -524,7 +521,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     if owner=='itr':
         typeSpecOut = copy.copy(typeSpecIn)
         typeSpecOut['arraySpec'] = None
-        fieldTypeOut=progSpec.getFieldTypeNew(typeSpecOut)
+        fieldTypeOut=progSpec.fieldTypeKeyword(typeSpecOut)
         codeCvrtText = xlator['codeIteratorOperation'](name, fieldTypeOut)
         if codeCvrtText!='':
             typeSpecOut['codeConverter'] = codeCvrtText
@@ -589,7 +586,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, xlator)
-        typeSpecOutKeyWord = progSpec.getFieldTypeKeyWord(typeSpecOut)
+        typeSpecOutKeyWord = progSpec.fieldTypeKeyword(typeSpecOut)
         reqTagList = progSpec.getReqTagList(typeSpecIn)
         if typeSpecOutKeyWord == "keyType":
             if typeSpecOut['owner']!="itr":typeSpecOut['owner'] = progSpec.getOwnerFromTemplateArg(reqTagList[0])
@@ -688,7 +685,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
         AltFormat=None
         if segTypeSpec!=None:
             if segTypeSpec and 'fieldType' in segTypeSpec:
-                LHSParentType = progSpec.fieldTypeKeyword(progSpec.getFieldType(segTypeSpec))
+                LHSParentType = progSpec.fieldTypeKeyword(segTypeSpec)
             else: LHSParentType = progSpec.fieldTypeKeyword(currentObjName)   # Landed here because this is the first segment
             [segStr, segTypeSpec, AltIDXFormat, nameSource]=codeNameSeg(segSpec, segTypeSpec, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, returnType, xlator)
             if nameSource!='': canonicalName+=nameSource
@@ -739,7 +736,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
 
     # Handle cases where seg's type is flag or mode
     if segTypeSpec and LorR_Val=='RVAL' and 'fieldType' in segTypeSpec:
-        fieldType=progSpec.getFieldType(segTypeSpec)
+        fieldType=progSpec.fieldTypeKeyword(segTypeSpec)
         if fieldType=='flag':
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName, LHSParentType, xlator)
@@ -844,7 +841,7 @@ def codeRepetition(action, objsRefed, returnType, indent, xlator):
         [StartKey, StartTypeSpec] = xlator['codeExpr'](keyRange[2][0], objsRefed, None, None, xlator)
         [EndKey,   EndTypeSpec] = xlator['codeExpr'](keyRange[4][0], objsRefed, None, None, xlator)
         [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, '')
-        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.getFieldType(containerTypeSpec)[0])
+        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.fieldTypeKeyword(containerTypeSpec)[0])
         if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
         [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTypeSpec,containerOwner,repName,containerName,datastructID,indexTypeKeyWord,indent,xlator)
         actionText += actionTextOut
@@ -852,7 +849,7 @@ def codeRepetition(action, objsRefed, returnType, indent, xlator):
         [containerName, containerTypeSpec] = xlator['codeExpr'](action['repList'][0], objsRefed, None, None, xlator)
         if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+containerName+"' is not a container so cannot be iterated over.")
         [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, 'action')
-        containerFieldTypeKey = progSpec.getFieldTypeKeyWord(containerTypeSpec)
+        containerFieldTypeKey = progSpec.fieldTypeKeyword(containerTypeSpec)
         wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerFieldTypeKey)
         if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
         if(traversalMode=='Forward' or traversalMode==None):
@@ -955,7 +952,7 @@ def codeAction(action, indent, objsRefed, returnType, xlator):
             #TODO: make test case
             print('Problem: lhsTypeSpec is', lhsTypeSpec, '\n');
             LHS_FieldType='string'
-        else: LHS_FieldType=progSpec.getFieldType(lhsTypeSpec)
+        else: LHS_FieldType=progSpec.fieldTypeKeyword(lhsTypeSpec)
 
         if assignTag == '':
             if LHS_FieldType=='flag':
@@ -1117,7 +1114,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, xlator):
     count=0
     for field in progSpec.generateListOfFieldsToImplement(classes, ClassName):
         typeSpec =field['typeSpec']
-        fieldType=progSpec.getFieldTypeKeyWord(typeSpec)
+        fieldType=progSpec.fieldTypeKeyword(typeSpec)
         if(fieldType=='flag' or fieldType=='mode'): continue
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
         if progSpec.isAContainer(typeSpec) and not progSpec.typeIsPointer(typeSpec): continue
@@ -1129,7 +1126,6 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, xlator):
         else: isTemplateVar = False
 
         cdlog(4, "Coding Constructor: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
-        if not isinstance(fieldType, str): fieldType=fieldType[0]
         defaultVal=''
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
@@ -1198,7 +1194,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         typeSpec          = field['typeSpec']
         fieldName         = field['fieldName']
         applyStructImplemetation(typeSpec,className,fieldName)
-        fieldType=progSpec.getFieldType(typeSpec)
+        fieldType=progSpec.fieldTypeKeyword(typeSpec)
         if progSpec.doesClassHaveProperty(globalClassStore, fieldType, 'metaClass'):
             tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
             classOptionsTag = progSpec.fetchTagValue(tags, tagToFind)
@@ -1300,7 +1296,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             # TODO: this is hard coded to compensate for when virtual func class has base class and child class
             if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):inheritMode = 'virtual'
             # ####################################################################
-            fieldTypeKW=progSpec.getFieldTypeKeyWord(typeSpec)
+            fieldTypeKW=progSpec.fieldTypeKeyword(typeSpec)
             if fieldTypeKW =='none': isConstructor = True
             else:
                 isConstructor = False

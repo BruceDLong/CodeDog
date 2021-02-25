@@ -594,9 +594,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
                 count+=1
                 [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, xlator)
                 if 'fieldType' in argTypeSpec:
-                    fieldType = progSpec.getFieldTypeNew(argTypeSpec)
-                    if not isinstance(fieldType, str):
-                        fieldType=fieldType[0]
+                    fieldType = progSpec.fieldTypeKeyword(argTypeSpec)
                     fieldType = adjustBaseTypes(fieldType, False)
                 else: fieldType = argTypeSpec
                 if fieldType == "timeValue" or fieldType == "int" or fieldType == "double": S2 = '('+S2+')'
@@ -609,9 +607,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
             [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, xlator)
-            fieldType = progSpec.getFieldType(varTypeSpec)
-            if not isinstance(fieldType, str):
-                fieldType = fieldType[0]
+            fieldType = progSpec.fieldTypeKeyword(varTypeSpec)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
             if fieldType=='workerMsgThread':

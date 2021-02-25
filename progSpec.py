@@ -760,7 +760,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
 
 def getContainerValueOwnerAndType(typeSpec):
     owner     = getContainerFirstElementOwner(typeSpec)
-    fieldType = getFieldType(typeSpec)
+    fieldType = fieldTypeKeyword(typeSpec)
     if not isNewContainerTempFunc(typeSpec): return[owner, fieldType]
     reqTagList = getReqTagList(typeSpec)
     if "fromImplemented" in typeSpec:
@@ -771,7 +771,7 @@ def getContainerValueOwnerAndType(typeSpec):
             fieldDefAt = fromImplemented['atTypeSpec']
         if typeArgList and fieldDefAt:
             atOwner  = fieldDefAt['owner']
-            atTypeKW = getFieldTypeKeyWord(fieldDefAt)
+            atTypeKW = fieldTypeKeyword(fieldDefAt)
             if atTypeKW in typeArgList:
                 idxAt = typeArgList.index(atTypeKW)
                 valType = reqTagList[idxAt]
@@ -961,10 +961,7 @@ def findSpecOf(objMap, structName, stateTypeWanted):
 
 def getUnwrappedClassFieldTypeKeyWord(classes, structName):
     baseType = isWrappedType(classes, structName)
-    if(baseType!=None):
-        baseType = getFieldType(baseType)
-        if isinstance(baseType, str): return baseType
-        return baseType[0]
+    if(baseType!=None): return fieldTypeKeyword(baseType)
     else: return structName
 
 def baseStructName(structName):
@@ -978,7 +975,7 @@ def fieldTypeKeyword(fieldType):
     if 'owner' in fieldType and fieldType['owner']=='PTR':
         return 'NONE'
     if 'fieldType' in fieldType:    # if var fieldType is typeSpec
-        fieldType = getFieldType(fieldType)
+        fieldType = getFieldTypeKeyWord(fieldType)
     if isinstance(fieldType, str):
         return fieldType
     if('varType' in fieldType[0]):
@@ -1105,7 +1102,7 @@ def varTypeKeyWord(typeSpec):
 
 def typeSpecsAreCompatible(typeSpec1, typeSpec2):
     if getTypeSpecOwner(typeSpec1) != getTypeSpecOwner(typeSpec2): return False
-    if fieldTypeKeyword(getFieldType(typeSpec1)) != fieldTypeKeyword(getFieldType(typeSpec2)): return False
+    if fieldTypeKeyword(typeSpec1) != fieldTypeKeyword(typeSpec2): return False
     leftContainerNull  = not(isAContainer(typeSpec1))
     rightContainerNull = not(isAContainer(typeSpec2))
     if not leftContainerNull and rightContainerNull: return False
