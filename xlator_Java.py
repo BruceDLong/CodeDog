@@ -153,7 +153,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(S, segType, owner, LorR_Val, isLastSeg):
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, L_R_or_param, isLastSeg, xlator):
         return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):

@@ -150,9 +150,14 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(S, segType, owner, LorR_Val, isLastSeg):
-    if segType!= 0 and progSpec.typeIsPointer(segType) and segType['owner']!='itr' and S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not(LorR_Val =="LVAL" and isLastSeg):
-        S+='!'  # optionals
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, L_R_or_param, isLastSeg, xlator):
+    if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr':
+        if L_R_or_param == "param":
+            if  S=="nil":
+                [paramType, innerType] = convertType(classes, typeSpec, 'arg', '', xlator)        #"RBNode<keyType, valueType>"
+                S = 'Optional<'+paramType+'>.none'
+        elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not(L_R_or_param =="LVAL" and isLastSeg):
+            S+='!'  # optionals
     return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):

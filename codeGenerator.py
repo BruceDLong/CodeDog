@@ -650,6 +650,7 @@ def codeUnknownNameSeg(segSpec, objsRefed, xlator):
     print("UNKNOWN NAME SEGMENT:", S)
     return S;
 
+#### codeItemRef ##################################################
 def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
     # Returns information related to a variable, function, etc.
     # NOTE: objsRefed is used to accumulate a list of which vars are read and/or written by a function.
@@ -727,7 +728,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, xlator):
 
 
         # Language specific dereferencing of ->[...], etc.
-        S = xlator['LanguageSpecificDecorations'](S, segTypeSpec, owner, LorR_Val, isLastSeg)
+        S = xlator['LanguageSpecificDecorations'](globalClassStore, S, segTypeSpec, owner, LorR_Val, isLastSeg, xlator)
 
         objsRefed[canonicalName]=0
         previousSegName = segName
@@ -797,8 +798,12 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
             [S2, argTypeSpec]=xlator['codeExpr'](P[0], objsRefed, None, None, xlator)
             paramTypeList.append(argTypeSpec)
             if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
-                [leftMod, rightMod]=xlator['chooseVirtualRValOwner'](modelParams[count]['typeSpec'], argTypeSpec)
-                S += leftMod+S2+rightMod
+                paramTypeSpec  = modelParams[count]['typeSpec']
+                [leftMod, rightMod] = xlator['chooseVirtualRValOwner'](paramTypeSpec, argTypeSpec)
+                S2 = leftMod+S2+rightMod
+                modelFullFieldType  = progSpec.getFieldType(paramTypeSpec)
+                paramOwner      = progSpec.getOwnerFromTypeSpec(paramTypeSpec)
+                S += xlator['LanguageSpecificDecorations'](globalClassStore, S2, paramTypeSpec, paramOwner, 'param', False, xlator)
             else:
                 listOfFuncsWithUnknownArgTypes[(name+'()')]=1
                 S += S2
@@ -918,6 +923,7 @@ def encodeConditionalStatement(action, indent, objsRefed, returnType, xlator):
         else:  print("Unrecognized item after else"); exit(2);
     return actionText
 
+#### codeAction ##################################################
 def codeAction(action, indent, objsRefed, returnType, xlator):
     #make a string and return it
     global localVarsAllocated
@@ -1164,6 +1170,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, xlator):
 
     return constructCode
 
+#### codeStructFields ##################################################
 def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     global currentObjName
     global ForwardDeclsForGlobalFuncs
@@ -1269,15 +1276,15 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     [argType, innerType] = xlator['convertType'](classes, argTypeSpec, 'arg', 'field', xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, argOwner, argTypeSpec, overRideOper, typeArgList, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
-            #### RETURN TYPE
-            FirstReturnType = {'owner':fieldOwner, 'fieldType':fieldType}
+            #### RETURN TYPE ###########################################
+            FirstReturnType = copy.copy(typeSpec) # TODO: Un-Hardcode FirstReturnType, typeSpec?
             if(fieldType[0] != '<%'):
                 pass #registerType(className, fieldName, convertedType, typeDefName)
             else: typeDefName=convertedType
             if(typeDefName=='none'):
                 typeDefName=''
 
-            #### FUNC HEADER: for both decl and defn.
+            #### FUNC HEADER: for both decl and defn. ##################
             inheritMode='normal'
             # TODO: But it should NOT be virtual if there are no calls of the function from a pointer to the base class
             if not progSpec.doesParentClassImplementFunc(classes, className, fieldID) and progSpec.doesChildClassImplementFunc(classes, className, fieldID):
