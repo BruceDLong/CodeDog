@@ -104,7 +104,7 @@ struct RBTreeItr<keyType, valueType>: implements = MapItr{
         return(crntNode)
     }
     their RBTreeItr<keyType, valueType>: __opAssign(their RBTreeItr<keyType, valueType>: RHS) <- {
-        node <- RHS
+        node <- RHS.node
         return(self)
     }
     their RBTreeItr<keyType, valueType>: __inc() <- { // Prefix ++ overload
@@ -114,11 +114,10 @@ struct RBTreeItr<keyType, valueType>: implements = MapItr{
         return(self)
     }
     me bool: __notEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
-        return(node != RHS.node)
+        return(node !== RHS.node)
     }
     valueType: __derefPtr() <- {return(node.value)}
     me bool: __isEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
-        print("__isEqual:MEMBER!!!!!!!!!!!!!\n")
         return(node === RHS.node)
     }
     valueType: val()                         <- <%!%0%>
@@ -128,7 +127,7 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
     their RBNode<keyType, valueType>: Root
     their RBNode<keyType, valueType>: Leaf
     their RBNode<keyType, valueType>: edge
-    me int: mapSize
+    me uint: mapSize
 
     valueType: at(keyType: searchKey) <- {
         their RBNode<keyType, valueType>: node
@@ -206,14 +205,14 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
     }
     //itr valueType: lower_bound(keyType: key) <- {}
     me uint:  size() <- {return(mapSize)}
-    valueType: __index(keyType: searchKey) <- {
-        me RBTreeItr<keyType, valueType>: retItr <- find(searchKey)
-        if(retItr.node == edge){
-            me valueType: newVal
-            retItr.node <- insert(searchKey,  newVal)
-        }
-        return(retItr.node.value)
-    }
+    //valueType: __index(keyType: searchKey) <- {
+        //me RBTreeItr<keyType, valueType>: retItr <- find(searchKey)
+        //if(retItr.node == edge){
+            //me valueType: newVal
+            //retItr.node <- insert(searchKey, newVal)
+        //}
+        //return(retItr.node.value)
+    //}
     ////////////////////////////////////////////////////////////////////
     me bool: isLeftChild(their RBNode<keyType, valueType>: node) <- {
         if(node.parent != NULL and node === node.parent.left){return(true)}
@@ -364,7 +363,7 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
         return(rightHeight)
     }
 
-    me void: removeHelper(their RBNode<keyType, valueType>: node, their int: key) <- {
+    me void: removeHelper(their RBNode<keyType, valueType>: node, keyType: key) <- {
         if(node === Leaf or node == NULL){return()}
         if(node.key == key){
             if(node.right === Leaf or node.left === Leaf){deleteOneChild(node)}

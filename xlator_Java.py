@@ -129,6 +129,11 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     retVal = xlateLangType(classes, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, actionOrField, xlator)
     return retVal
 
+def isComparableType(typeSpec):
+    fieldTypeKW = progSpec.fieldTypeKeyword(typeSpec)
+    if fieldTypeKW == "keyType": return True
+    return False
+
 def codeIteratorOperation(itrCommand, fieldType):
     result = ''
     if itrCommand=='goNext':  result='%0.next()'
@@ -257,7 +262,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
 
     if datastructID=='TreeMap':
-        valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(progSpec.getFieldType(containerType)), True)
+        valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(containerType), True)
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
@@ -280,7 +285,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     loopCounterName  = repName+'_key'
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-    if datastructID=='TreeMap' or datastructID=='Java_Map':
+    if datastructID=='TreeMap' or datastructID=='Java_Map' or datastructID=='RBTreeMap':
         keyVarSpec   = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
         reqTagList   = progSpec.getReqTagList(containerType)
@@ -435,8 +440,17 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
         if len(item[1])>1: print("Error: Chained comparisons.\n"); exit(1);
         [S, isDerefd]=derefPtr(S, retTypeSpec)
         for  i in item[1]:
-            if   (i[0] == '<'): S+=' < '
-            elif (i[0] == '>'): S+=' > '
+            S3 = ""
+            if   (i[0] == '<'):
+                if isComparableType(retTypeSpec):
+                    S+='.compareTo('
+                    S3= ") < 0"
+                else: S+=' < '
+            elif (i[0] == '>'):
+                if isComparableType(retTypeSpec):
+                    S+='.compareTo('
+                    S3= ") > 0"
+                else: S+=' > '
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
             else: print("ERROR: One of <, >, <= or >= expected in code generator."); exit(2)
@@ -445,7 +459,7 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
                 if retTypeSpec['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
                     S2 = "'" + S2[1:-1] + "'"
             [S2, isDerefd]=derefPtr(S2, retType2)
-            S+=S2
+            S+=S2+S3
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
@@ -874,6 +888,7 @@ def codeTemplateHeader(structName, typeArgList):
     for typeArg in typeArgList:
         if(count>0):templateHeader+=", "
         templateHeader+=typeArg
+        if isComparableType(typeArg):templateHeader+=" extends Comparable"
         count+=1
     templateHeader+=">"
     return(templateHeader)
