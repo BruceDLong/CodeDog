@@ -717,6 +717,7 @@ def isOldContainerTempFunc(typeSpec):
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def isAContainer(typeSpec):
+    if typeSpec==None:return(False)
     if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
     return(isOldContainerTempFunc(typeSpec))
 
