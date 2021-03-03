@@ -56,6 +56,10 @@ def adjustBaseTypes(fieldType, isContainer):
             else: javaType=progSpec.flattenObjectName(fieldType)
     return javaType
 
+def isJavaPrimativeType(fieldType):
+    if fieldType=="int" or fieldType=="boolean" or fieldType=="float" or fieldType=="double" or fieldType=="long" or fieldType=="char": return True
+    return False
+
 def applyOwner(owner, langType, innerType, actionOrField, varMode):
     if owner=='const':
         if actionOrField=="field": langType = "final static "+langType
@@ -253,7 +257,7 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, containerType, containerOwner,repName,repContainer,datastructID,keyFieldType,loopCount,indent,xlator):
+def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, containerType, containerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
     actionText       = ""
     loopCounterName  = ""
@@ -262,7 +266,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
 
     if datastructID=='TreeMap':
-        loopCounterName  = repName+'_key_'+ str(loopCount)
+        loopCounterName  = repName+'_key'
         valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(containerType), True)
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
@@ -281,9 +285,9 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
         exit(2)
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerName,datastructID,keyFieldType,containerOwner,isBackward,actionOrField,loopCount, indent,xlator):
+def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerName,datastructID,keyFieldType,containerOwner,isBackward,actionOrField, indent,xlator):
     actionText       = ""
-    loopCounterName  = repName+'_key_'+ str(loopCount)
+    loopCounterName  = repName+'_key'
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     if datastructID=='TreeMap' or datastructID=='Java_Map' or datastructID=='RBTreeMap':
@@ -775,7 +779,9 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                     assignValue = " = " + CPL   # Act like a copy constructor
                 elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
                     assignValue = " = " + CPL
-                else: assignValue  = " = new " + fieldType + CPL
+                else:
+                    if isJavaPrimativeType(fieldType): assignValue  = " =  " + CPL
+                    else: assignValue  = " = new " + fieldType + CPL
             else: assignValue = " = new " + fieldType + CPL
         elif varTypeIsValueType(fieldType):
             if fieldType == 'long' or fieldType == 'int' or fieldType == 'float'or fieldType == 'double': assignValue=' = 0'

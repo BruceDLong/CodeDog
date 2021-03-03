@@ -52,7 +52,6 @@ localVarsAllocated = []   # Format: [varName, typeSpec]
 localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
 inheritedEnums = {}
-loopCount=0
 
 def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
     # Handle print, return, break, etc.
@@ -811,7 +810,6 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
     return [S, paramTypeList]
 
 def codeRepetition(action, objsRefed, returnType, indent, xlator):
-    global loopCount
     actionText = ""
     repBody    = action['repBody']
     repName    = action['repName']
@@ -848,9 +846,8 @@ def codeRepetition(action, objsRefed, returnType, indent, xlator):
         [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, '')
         wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.fieldTypeKeyword(containerTypeSpec)[0])
         if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
-        [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTypeSpec,containerOwner,repName,containerName,datastructID,indexTypeKeyWord,loopCount,indent,xlator)
+        [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTypeSpec,containerOwner,repName,containerName,datastructID,indexTypeKeyWord,indent,xlator)
         actionText += actionTextOut
-        loopCount += 1
     else: # interate over a container
         [containerName, containerTypeSpec] = xlator['codeExpr'](action['repList'][0], objsRefed, None, None, xlator)
         if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+containerName+"' is not a container so cannot be iterated over.")
@@ -862,9 +859,8 @@ def codeRepetition(action, objsRefed, returnType, indent, xlator):
             isBackward=False
         elif(traversalMode=='Backward'):
             isBackward=True
-        [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,indexTypeKeyWord, containerOwner, isBackward, 'action',loopCount, indent,xlator)
+        [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,indexTypeKeyWord, containerOwner, isBackward, 'action', indent,xlator)
         actionText += actionTextOut
-        loopCount += 1
     if action['whereExpr']:
         [whereExpr, whereConditionTypeSpec] = xlator['codeExpr'](action['whereExpr'], objsRefed, None, None, xlator)
         actionText += indent + "    " + 'if (!' + whereExpr + ') continue;\n'
@@ -1219,7 +1215,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         [intermediateType, innerType] = xlator['convertType'](classes, typeSpec, 'var', 'field', xlator)
         convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
-
         ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
             fieldName='operator='
