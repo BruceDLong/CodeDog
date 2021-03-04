@@ -853,11 +853,11 @@ def getCodeConverterByFieldID(classes, structName, fieldName, prevNameSeg, conne
             return prevNameSeg+connector+fieldName+"()"
     return prevNameSeg+connector+fieldName+"()"
 
-def getNodeTypeOfDataStruct(datastructID, containerType):
+def getItrTypeOfDataStruct(datastructID, containerType):
     if 'fromImplemented' in containerType:
         fromImplemented = containerType['fromImplemented']
-        if 'nodeTypeSpec' in fromImplemented:
-            return fromImplemented['nodeTypeSpec']
+        if 'itrTypeSpec' in fromImplemented:
+            return fromImplemented['itrTypeSpec']
     return None
 
 #### Packed Template Arg Handling Functions ####

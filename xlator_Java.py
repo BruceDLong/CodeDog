@@ -290,9 +290,8 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     loopCounterName  = repName+'_key'
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
+    itrName          = repName + "Itr"
     if datastructID=='TreeMap' or datastructID=='Java_Map' or datastructID=='RBTreeMap':
-        keyVarSpec   = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
-        ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
         reqTagList   = progSpec.getReqTagList(containerType)
         if(reqTagList == None): print("reqTagList not found in iterateContainerStr"); exit(1)
         reqTagString = ""
@@ -304,8 +303,16 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             if(count>0):reqTagString += ", "
             reqTagString += reqType
             count += 1
-        iteratorTypeStr="Map.Entry<"+reqTagString+ ">"
-        actionText += indent + "for("+iteratorTypeStr+" " + repName+' :'+ containerName+".entrySet()){\n"
+        if datastructID=='TreeMap' or datastructID=='Java_Map':
+            keyVarSpec   = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
+            ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
+            iteratorTypeStr="Map.Entry<"+reqTagString+ ">"
+            actionText += indent + "for("+iteratorTypeStr+" " + repName+' :'+ containerName+".entrySet()){\n"
+        else:
+            keyVarSpec   = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.node.key')}
+            ctrlVarsTypeSpec['codeConverter'] = (repName+'.node.value')
+            itrType     = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, containerType))+'<'+reqTagString+'>'
+            actionText += (indent + 'for('+itrType+repName+'='+containerName+'.front(); '+repName+'.node!='+containerName+'.end().node'+'; '+repName+'.goNext()){\n')
     elif datastructID=='list' or datastructID=='Java_ArrayList':
         containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
         keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
@@ -666,8 +673,10 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
         S=AltIDXFormat[0] + '= replaceCharAt(' +AltIDXFormat[0]+', '+ AltIDXFormat[2] + ', ' + RHS + ');\n'
     elif containerType == 'ArrayList':
         S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
-    elif containerType == 'TreeMap' or containerType == 'Java_Map' or containerType == 'RBTreeMap':
+    elif containerType == 'TreeMap' or containerType == 'Java_Map':
         S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
+    elif containerType == 'RBTreeMap':
+        S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     else:
         print("ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType)
         exit(1)

@@ -438,10 +438,10 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(containerType)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
-    nodeTypeSpec     = progSpec.getNodeTypeOfDataStruct(datastructID, containerType)
-    nodeFieldType    = progSpec.fieldTypeKeyword(nodeTypeSpec)
-    nodeOwner        = progSpec.getOwnerFromTypeSpec(nodeTypeSpec)
-    [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(nodeOwner)
+    itrTypeSpec     = progSpec.getItrTypeOfDataStruct(datastructID, containerType)
+    itrFieldType    = progSpec.fieldTypeKeyword(itrTypeSpec)
+    itrOwner        = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
+    [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
     itrName          = repName + "Itr"
     if containerType['fieldType'][0]=='DblLinkedList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
@@ -457,7 +457,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec  = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        getNodeVal  = progSpec.getCodeConverterByFieldID(classes, nodeFieldType, "val", repName,RNodeP)
+        getNodeVal  = progSpec.getCodeConverterByFieldID(classes, itrFieldType, "val", repName,RNodeP)
         ctrlVarsTypeSpec['codeConverter'] = (getNodeVal)
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , repContainer , RDeclP)

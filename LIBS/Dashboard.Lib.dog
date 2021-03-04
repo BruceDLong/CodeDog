@@ -87,8 +87,8 @@ struct Dashboard: inherits=dash{
         width <- widgetWidth(canvas);
         height <- widgetHeight(canvas)
         if(! isTouchingMe(event.x, event.y)){return(false)}
-        withEach Dash in dashChildren{
-            Dash.primaryClick(event)
+        withEach child in dashChildren{
+            child.primaryClick(event)
         }
         withEach Dash in dependentItems{
             if(! Dash.isHidden){
@@ -104,8 +104,8 @@ struct Dashboard: inherits=dash{
         width <- widgetWidth(canvas);
         height <- widgetHeight(canvas)
         if(! isTouchingMe(event.x, event.y)){return(false)}
-        withEach Dash in dashChildren{
-            Dash.secondaryClick(event)
+        withEach child in dashChildren{
+            child.secondaryClick(event)
         }
         withEach Dash in dependentItems{
             if(! Dash.isHidden){
@@ -121,8 +121,8 @@ struct Dashboard: inherits=dash{
         width <- widgetWidth(canvas);
         height <- widgetHeight(canvas)
         if(! isTouchingMe(event.x, event.y)){return(false)}
-        withEach Dash in dashChildren{
-            Dash.primaryDn(event)
+        withEach child in dashChildren{
+            child.primaryDn(event)
         }
         withEach Dash in dependentItems{
             if(! Dash.isHidden){
@@ -136,8 +136,8 @@ struct Dashboard: inherits=dash{
         width <- widgetWidth(canvas);
         height <- widgetHeight(canvas)
         if(! isTouchingMe(event.x, event.y)){return(false)}
-        withEach Dash in dashChildren{
-            Dash.primaryUp(event)
+        withEach child in dashChildren{
+            child.primaryUp(event)
         }
         withEach Dash in dependentItems{
             if(! Dash.isHidden){
@@ -151,8 +151,8 @@ struct Dashboard: inherits=dash{
         width <- widgetWidth(canvas);
         height <- widgetHeight(canvas)
         if(! isTouchingMe(event.x, event.y)){return(false)}
-        withEach Dash in dashChildren{
-            Dash.mouseMoved(event)
+        withEach child in dashChildren{
+            child.mouseMoved(event)
         }
         withEach Dash in dependentItems{
             if(! Dash.isHidden){
@@ -187,12 +187,12 @@ struct Dashboard: inherits=dash{
             Dash.isHidden<-true
             Dash.posIsSet<-false
         }
-        withEach Dash in dashChildren{
+        withEach child in dashChildren{
             extY <- YCursor+25
-            Dash.setPos(x, YCursor, extY)
-            width<-max(width, Dash.extX)
-            height<-max(height, Dash.height+YCursor)
-            YCursor <- Dash.extY + 30
+            child.setPos(x, YCursor, extY)
+            width<-max(width, child.extX)
+            height<-max(height, child.height+YCursor)
+            YCursor <- child.extY + 30
         }
         withEach depDash in dependentItems{
             if(!depDash.isHidden){

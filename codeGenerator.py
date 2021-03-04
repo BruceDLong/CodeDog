@@ -449,8 +449,8 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
             atTypeSpec   = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefAt['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefAt['typeSpec'])}
             fromImpl     = {"typeArgList":typeArgList, "atTypeSpec":atTypeSpec}
             if fieldDefFind:
-                nodeTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
-                fromImpl['nodeTypeSpec'] = nodeTypeSpec
+                itrTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
+                fromImpl['itrTypeSpec'] = itrTypeSpec
             return(highestScoreClassName,fromImpl)
     return(None, None)
     #    choose highest score and mark the typedef

@@ -13,8 +13,8 @@ runDirectory = ""
 
 testDefinitions = {
 #####################################################################################################
-     'actions/emptyList':    ['struct testClass{\nme void: runTest()<-{\nme List<me int>:wrappedList\nprint("isEmpty:"+wrappedList.isEmpty())\n}\n}', 'PGBR:isEmpty:true'],
-     'lists/lists':  ['''
+     'lists/lists':   ['', 'PGB:'],
+     'lists/lists':   ['''
 struct testClass{
     me List<me int>: classList
     we List<me string>: weList
@@ -56,7 +56,7 @@ struct testClass{
 }''', 'PGBR: isEmpty:true7486513valAt:8firstItm:7lastItm:3firstPop:7lastPop:3Size:5   item:4   item:8   item:6   item:5   item:1Size after clear:0',
         ['','']],
 ###################################################################################################
-     'class/charDecl':      ['struct testClass{me char: myChar}', 'PGB:'],
+     'maps/maps':     ['', 'PGB:'],
      'maps/maps':     ['''
 struct gloop<key, value>{
     me int: i
@@ -82,10 +82,8 @@ struct testClass{
     }
 }''', 'PGBR: isEmpty:true bb aa 3 ccaabbcc 0',
         ['', '']],
-
 ###################################################################################################
-###################################################################################################
-     'class/charDecl':      ['struct testClass{me char: myChar}', 'PGB:'],
+     'maps/maps2':     ['', 'PGB:'],
      'maps/maps2':     ['''
 struct testClass{
     me int: runTest()<-{
@@ -100,11 +98,9 @@ struct testClass{
     }
 }''', 'PGBR: isEmpty:true012 at(cc)=2',
         ['', '']],
-
 ###################################################################################################
-# TODO: make tests for 'actions/repetitions':  'actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep'
-     'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in RANGE(2..6){print(spec," ")}}}', 'PGBR:2 3 4 5 '],
-     'actions/repetitions':  ['''
+     'reps/repetitions':  ['', 'PGB:'],
+     'reps/repetitions':  ['''
 struct testClass{
     me void: runTest()<-{
         withEach spec in RANGE(2..6) {print(spec," ")}
@@ -130,6 +126,19 @@ struct testClass{
         }
     }
 }''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good B-boy D-does E-every F-fine G-good 2 3 5 13 21 ',
+    ['','']],
+###################################################################################################
+     'itrs/iterators':    ['', 'PGB:'],
+     'itrs/iterators':    ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me int, me string>: testMap
+        testMap.insert(1, "A")
+        itr Map<me int, me string>: testItr <- testMap.find(1)
+        if(testItr == testMap.end()){print("End")}
+        else{print("Found")}
+    }
+}''', 'PGBR:Found',
     ['','']],
 ###################################################################################################
 }
