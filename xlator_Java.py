@@ -989,6 +989,7 @@ def fetchXlators():
     xlators['blockPrefix']           = ""
     xlators['usePrefixOnStatics']    = "False"
     xlators['iteratorsUseOperators'] = "False"
+    xlators['renderGenerics']        = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective

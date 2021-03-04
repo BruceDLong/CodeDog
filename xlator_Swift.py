@@ -1028,6 +1028,7 @@ def fetchXlators():
     xlators['blockPrefix']           = "do"
     xlators['usePrefixOnStatics']    = "True"
     xlators['iteratorsUseOperators'] = "False"
+    xlators['renderGenerics']        = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional

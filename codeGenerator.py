@@ -52,6 +52,7 @@ localVarsAllocated = []   # Format: [varName, typeSpec]
 localArgsAllocated = []   # Format: [varName, typeSpec]
 currentObjName=''
 inheritedEnums = {}
+genericStructsGenerated = [ {}, [] ]
 
 def CheckBuiltinItems(currentObjName, segSpec, objsRefed, xlator):
     # Handle print, return, break, etc.
@@ -844,7 +845,7 @@ def codeRepetition(action, objsRefed, returnType, indent, xlator):
         [StartKey, StartTypeSpec] = xlator['codeExpr'](keyRange[2][0], objsRefed, None, None, xlator)
         [EndKey,   EndTypeSpec] = xlator['codeExpr'](keyRange[4][0], objsRefed, None, None, xlator)
         [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, '')
-        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.fieldTypeKeyword(containerTypeSpec)[0])
+        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.getFieldTypeKeyWordOld(containerTypeSpec)[0])
         if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
         [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTypeSpec,containerOwner,repName,containerName,datastructID,indexTypeKeyWord,indent,xlator)
         actionText += actionTextOut
@@ -852,7 +853,7 @@ def codeRepetition(action, objsRefed, returnType, indent, xlator):
         [containerName, containerTypeSpec] = xlator['codeExpr'](action['repList'][0], objsRefed, None, None, xlator)
         if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+containerName+"' is not a container so cannot be iterated over.")
         [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, 'action')
-        containerFieldTypeKey = progSpec.fieldTypeKeyword(containerTypeSpec)
+        containerFieldTypeKey = progSpec.getFieldTypeKeyWordOld(containerTypeSpec)
         wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerFieldTypeKey)
         if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
         if(traversalMode=='Forward' or traversalMode==None):
@@ -1212,8 +1213,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         fieldValue=field['value']
         fieldArglist = typeSpec['argList']
         paramList = field['paramList']
+        reqTagList = progSpec.getReqTagList(typeSpec)
         [intermediateType, innerType] = xlator['convertType'](classes, typeSpec, 'var', 'field', xlator)
-        convertedType = progSpec.flattenObjectName(intermediateType)
+        if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType):
+           convertedType = generateGenericStructName(classes, fieldType, reqTagList)
+        else:
+            convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
@@ -1299,8 +1304,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             # TODO: this is hard coded to compensate for when virtual func class has base class and child class
             if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):inheritMode = 'virtual'
             # ####################################################################
-            fieldTypeKW=progSpec.fieldTypeKeyword(typeSpec)
-            if fieldTypeKW =='none': isConstructor = True
+            fTypeKW=progSpec.fieldTypeKeyword(typeSpec)
+            if fTypeKW =='none': isConstructor = True
             else:
                 isConstructor = False
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, typeSpec, indent)
@@ -1470,14 +1475,37 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
     currentObjName=''
     return classRecord
 
-def codeAllNonGlobalStructs(classes, tags, xlator):
+def generateGenericStructName(classes, className, reqTagList):
+    global genericStructsGenerated
+    classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
+    genericStructName = "__"+className
+    for reqTag in reqTagList: genericStructName+="_"+progSpec.getTypeFromTemplateArg(reqTag)
+    if not genericStructName in genericStructsGenerated:
+        typeArgList = progSpec.getTypeArgList(className)
+        genericClassDef = copy.copy(classDef)
+        genericClassDef['name'] = genericStructName
+        for fieldDef in genericClassDef['fields']:
+            typeSpec = fieldDef['typeSpec']
+            fTypeKW  = progSpec.fieldTypeKeyword(typeSpec)
+            idx = 0
+            for typeArg in typeArgList:
+                if fTypeKW == typeArg:
+                    reqFType = progSpec.getTypeFromTemplateArg(reqTagList[idx])
+                    typeSpec['fieldType'] = reqFType
+                idx += 1
+        genericStructsGenerated[0][genericStructName]=genericClassDef
+        classes[0][genericStructName]=genericClassDef
+        genericStructsGenerated[1].append(genericStructName)
+        classes[1].append(genericStructName)
+    return genericStructName
+
+def codeAllNonGlobalStructs(classes, tags, fileSpecs, xlator):
     global currentObjName
     global structsNeedingModification
     cdlog(2, "CODING FLAGS and MODES...")
     needsFlagsVar=False;
     CodeDogAddendumsAcc=''
     constFieldAccs={}
-    fileSpecs={}
     structsToImplement = fetchListOfStructsToImplement(classes, tags)
 
     # Set up flag and mode fields
@@ -1497,9 +1525,12 @@ def codeAllNonGlobalStructs(classes, tags, xlator):
 
     # Write the class
     for className in structsToImplement:
-        classRecord = codeOneStruct(classes, tags, constFieldAccs[progSpec.flattenObjectName(className)], className, xlator)
-        if classRecord != None:
-            fileSpecs[className]=classRecord
+        typeArgList = progSpec.getTypeArgList(className)
+        classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
+        if xlator['renderGenerics']=='False' or typeArgList == None or progSpec.isWrappedType(globalClassStore, className):
+            classRecord = codeOneStruct(classes, tags, constFieldAccs[progSpec.flattenObjectName(className)], className, xlator)
+            if classRecord != None:
+                fileSpecs[className]=classRecord
 
     # Check for final class attributes to add. E.g., 'abstract' or 'mutating'
  #   for className in structsToImplement:
@@ -1681,12 +1712,13 @@ def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, fileSpecs, headerInfo,
         header = makeFileHeader(tags, filename, xlator)
         structsToImplement = fetchListOfStructsToImplement(classes, tags)
         for className in structsToImplement:
-            if((xlator['doesLangHaveGlobals']=='False') or className != 'GLOBAL'):
-                fileSpec = fileSpecs[className]
-                constsEnums   += fileSpec[0]
-                forwardDecls  += fileSpec[1]
-                structCodeAcc += fileSpec[2]
-                funcCodeAcc   += fileSpec[3]
+            typeArgList = progSpec.getTypeArgList(className)
+            if(xlator['doesLangHaveGlobals']=='False' or className != 'GLOBAL') and (xlator['renderGenerics']=='False' or typeArgList == None):
+                    fileSpec = fileSpecs[className]
+                    constsEnums   += fileSpec[0]
+                    forwardDecls  += fileSpec[1]
+                    structCodeAcc += fileSpec[2]
+                    funcCodeAcc   += fileSpec[3]
 
         forwardDecls += globalFuncDeclAcc
         funcCodeAcc  += globalFuncDefnAcc
@@ -1755,7 +1787,8 @@ def generate(classes, tags, libsToUse, langName, xlator):
 
     codeStructureCommands(classes, tags, xlator)
     cdlog(1, "GENERATING: Classes...")
-    fileSpecs=codeAllNonGlobalStructs(classes, tags, xlator)
+    fileSpecs=codeAllNonGlobalStructs(classes, tags, {}, xlator)
+    fileSpecs=codeAllNonGlobalStructs(genericStructsGenerated, tags, fileSpecs, xlator)
     topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 

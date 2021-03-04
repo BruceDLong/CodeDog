@@ -787,7 +787,8 @@ def getFieldType(typeSpec):
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
-def getFieldTypeKeyWord(typeSpec):
+def getFieldTypeKeyWordOld(typeSpec):
+    # TODO: delete this function when dynamic types working
     if(typeSpec==None):return None
     fieldType = getFieldType(typeSpec)
     if isinstance(fieldType, str): return fieldType
@@ -976,7 +977,7 @@ def fieldTypeKeyword(fieldType):
     if 'owner' in fieldType and fieldType['owner']=='PTR':
         return 'NONE'
     if 'fieldType' in fieldType:    # if var fieldType is typeSpec
-        fieldType = getFieldTypeKeyWord(fieldType)
+        fieldType = fieldType['fieldType']
     if isinstance(fieldType, str):
         return fieldType
     if('varType' in fieldType[0]):

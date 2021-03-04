@@ -403,7 +403,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     actionText       = ""
     loopCounterName  = ""
     owner            = progSpec.getContainerFirstElementOwner(containerType)
-    containedType    = progSpec.fieldTypeKeyword(containerType)
+    containedType    = progSpec.getFieldTypeKeyWordOld(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     itrName          = repName + "Itr"
     if progSpec.ownerIsPointer(containerOwner): connector="->"
@@ -434,7 +434,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
     actionText       = ""
     loopCounterName  = repName+'_key'
     owner            = progSpec.getContainerFirstElementOwner(containerType)
-    containedType    = progSpec.fieldTypeKeyword(containerType)
+    containedType    = progSpec.getFieldTypeKeyWordOld(containerType)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(containerType)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
@@ -1245,6 +1245,7 @@ def fetchXlators():
     xlators['blockPrefix']           = ""
     xlators['usePrefixOnStatics']    = "False"
     xlators['iteratorsUseOperators'] = "True"
+    xlators['renderGenerics']        = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['applyOwner']                     = applyOwner
     xlators['adjustConditional']            = adjustConditional
