@@ -706,8 +706,8 @@ def isNewContainerTempFunc(typeSpec):
     if not 'fieldType' in typeSpec: return(False)
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(False)
-    fieldTypeKeyword = fieldType[0]
-    if fieldTypeKeyword=='DblLinkedList': return(True)
+    fieldTypeKW = fieldType[0]
+    if fieldTypeKW=='DblLinkedList': return(True)
     reqTagList = getReqTagList(typeSpec)
     if reqTagList: return(True)
     elif reqTagList == None: return(False)
@@ -717,6 +717,7 @@ def isOldContainerTempFunc(typeSpec):
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def isAContainer(typeSpec):
+    if typeSpec==None:return(False)
     if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
     return(isOldContainerTempFunc(typeSpec))
 
@@ -746,16 +747,16 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
     if not 'fieldType' in typeSpec: return(None)
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(None)
-    fieldTypeKeyword = fieldType[0]
-    if fieldTypeKeyword=='DblLinkedList': return(['infon'])
+    fieldTypeKW = fieldType[0]
+    if fieldTypeKW=='DblLinkedList': return(['infon'])
     reqTagList = getReqTagList(typeSpec)
     if reqTagList:
-        if fieldTypeKeyword=='CPP_Deque' or fieldTypeKeyword=='Java_ArrayList' or fieldTypeKeyword=='Swift_Array':
+        if fieldTypeKW=='CPP_Deque' or fieldTypeKW=='Java_ArrayList' or fieldTypeKW=='Swift_Array':
             return(reqTagList[0]['tArgType'])
-        if fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map' or fieldTypeKeyword=='Swift_Map':
+        if fieldTypeKW=='CPP_Map' or fieldTypeKW=='Java_Map' or fieldTypeKW=='Swift_Map':
             return(reqTagList[0]['tArgType'])
-        if fieldTypeKeyword!="RBNode" and fieldTypeKeyword!="RBTreeMap" and fieldTypeKeyword!="RBTreeItr" and fieldTypeKeyword!="List" and fieldTypeKeyword!="Map":
-            cdErr("Template class '"+fieldTypeKeyword+"' not found for" + str(reqTagList))
+        if fieldTypeKW!="RBNode" and fieldTypeKW!="RBTreeMap" and fieldTypeKW!="RBTreeItr" and fieldTypeKW!="List" and fieldTypeKW!="Map":
+            cdErr("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
     elif reqTagList == None: return(None)
     return(None)
 
@@ -990,8 +991,8 @@ def fieldTypeKeyword(fieldType):
 def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
     funcField = doesClassContainFunc(classes, className, funcName)
     if(funcField):
-        funcFieldKeyWord = fieldTypeKeyword(funcField['typeSpec'])
-        if(funcFieldKeyWord == matchName):
+        funcFieldKW = fieldTypeKeyword(funcField['typeSpec'])
+        if(funcFieldKW == matchName):
             typeArgList = getTypeArgList(className)
             reqTagList  = getReqTagList(typeSpecIn)
             count = 0

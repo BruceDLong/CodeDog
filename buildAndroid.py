@@ -151,7 +151,12 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconNam
     writeFile(workingDir, packageDir, moduleName, outStr, fileExt, packageName)
     gradleFile(topDomain, domain, moduleName, workingDir)
     androidManifest(topDomain, domain, moduleName, labelName, launchIconName, workingDir+'/src/main')
+    # TODO: add missing files to workingDir
     #[out, err] = runCMD( './gradlew tasks ', workingDir)
     #[out, err] = runCMD( './gradlew assembleDebug --stacktrace', workingDir)
     #[out, err] = runCMD( './gradlew installDebug ', workingDir)
+    print('     NOTE: Working Directory is  '+currentDir + '/' + buildName)
+    print('     NOTE: Build Debug command:    ./gradlew assembleDebug --stacktrace')
+    print('     NOTE: Build Release command:  ./gradlew assembleRelease --stacktrace')
+    print('     NOTE: Install command:        ./gradlew installDebug')
     print('Finished Building for Android')

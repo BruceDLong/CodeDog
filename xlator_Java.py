@@ -56,6 +56,10 @@ def adjustBaseTypes(fieldType, isContainer):
             else: javaType=progSpec.flattenObjectName(fieldType)
     return javaType
 
+def isJavaPrimativeType(fieldType):
+    if fieldType=="int" or fieldType=="boolean" or fieldType=="float" or fieldType=="double" or fieldType=="long" or fieldType=="char": return True
+    return False
+
 def applyOwner(owner, langType, innerType, actionOrField, varMode):
     if owner=='const':
         if actionOrField=="field": langType = "final static "+langType
@@ -129,6 +133,11 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
     retVal = xlateLangType(classes, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, actionOrField, xlator)
     return retVal
 
+def isComparableType(typeSpec):
+    fieldTypeKW = progSpec.fieldTypeKeyword(typeSpec)
+    if fieldTypeKW == "keyType": return True
+    return False
+
 def codeIteratorOperation(itrCommand, fieldType):
     result = ''
     if itrCommand=='goNext':  result='%0.next()'
@@ -153,7 +162,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(S, segType, owner, LorR_Val, isLastSeg):
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, L_R_or_param, isLastSeg, xlator):
         return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -231,13 +240,13 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
         #Next line may be cause of bug with printing modes.  remove 'not'?
         if (previousSegName in getModeStateNames()):
             S= '.get((int)' + idx + ')'
-        elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Map' or containerType== 'multimap'or containerType== 'Java_Map'):
+        elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Java_ArrayList' or containerType== 'Map' or containerType== 'multimap'or containerType== 'Java_Map'):
             S= '.get(' + idx + ')'
         elif (containerType== 'string'):
             S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
         else: S= '[' + idx +']'
     else:
-        if containerType== 'ArrayList' or containerType== 'Java_Map': S = '.get('+idx+')'
+        if containerType== 'ArrayList' or containerType== 'Java_Map' or containerType== 'Java_ArrayList': S = '.get('+idx+')'
         else: S= '[' + idx +']'
     return S
 ###################################################### CONTAINER REPETITIONS
@@ -257,15 +266,16 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
 
     if datastructID=='TreeMap':
-        valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(progSpec.getFieldType(containerType)), True)
+        loopCounterName  = repName+'_key'
+        valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(containerType), True)
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-        localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
+        localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         keyFieldType = adjustBaseTypes(keyFieldType, True)
         repContainerTypeSpec = (repContainer)
         actionText += (indent + 'for(Map.Entry<'+keyFieldType+','+valueFieldType+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
                        indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
-                       indent + '    ' +keyFieldType +' '+ repName + '_key = ' + repName+'Entry.getKey();\n\n'  )
+                       indent + '    ' +keyFieldType +' '+ loopCounterName + ' = ' + repName+'Entry.getKey();\n\n'  )
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
         pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
@@ -280,7 +290,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     loopCounterName  = repName+'_key'
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
-    if datastructID=='TreeMap' or datastructID=='Java_Map':
+    if datastructID=='TreeMap' or datastructID=='Java_Map' or datastructID=='RBTreeMap':
         keyVarSpec   = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.getKey()')}
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
         reqTagList   = progSpec.getReqTagList(containerType)
@@ -352,9 +362,12 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
                         tmp+="L"
                         retTypeSpec = 'Long'
             tmp+="))"
-            reqType = progSpec.getContainerFirstElementType(returnType)
-            typeKeyword = progSpec.fieldTypeKeyword(reqType)
-            typeKeyword = adjustBaseTypes(typeKeyword, True)
+            if isinstance(exprTypeSpec,str):typeKeyword = exprTypeSpec
+            elif progSpec.isAContainer(returnType):
+                reqType = progSpec.getContainerFirstElementType(returnType)
+                typeKeyword = progSpec.fieldTypeKeyword(reqType)
+                typeKeyword = adjustBaseTypes(typeKeyword, True)
+            else: print("TODO: handle new array codeFactor for unknown type:"); exit(2)
             S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
         else:
             expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
@@ -435,8 +448,17 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
         if len(item[1])>1: print("Error: Chained comparisons.\n"); exit(1);
         [S, isDerefd]=derefPtr(S, retTypeSpec)
         for  i in item[1]:
-            if   (i[0] == '<'): S+=' < '
-            elif (i[0] == '>'): S+=' > '
+            S3 = ""
+            if   (i[0] == '<'):
+                if isComparableType(retTypeSpec):
+                    S+='.compareTo('
+                    S3= ") < 0"
+                else: S+=' < '
+            elif (i[0] == '>'):
+                if isComparableType(retTypeSpec):
+                    S+='.compareTo('
+                    S3= ") > 0"
+                else: S+=' > '
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
             else: print("ERROR: One of <, >, <= or >= expected in code generator."); exit(2)
@@ -445,7 +467,7 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
                 if retTypeSpec['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
                     S2 = "'" + S2[1:-1] + "'"
             [S2, isDerefd]=derefPtr(S2, retType2)
-            S+=S2
+            S+=S2+S3
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
@@ -644,7 +666,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
         S=AltIDXFormat[0] + '= replaceCharAt(' +AltIDXFormat[0]+', '+ AltIDXFormat[2] + ', ' + RHS + ');\n'
     elif containerType == 'ArrayList':
         S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
-    elif containerType == 'TreeMap' or containerType == 'Java_Map':
+    elif containerType == 'TreeMap' or containerType == 'Java_Map' or containerType == 'RBTreeMap':
         S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     else:
         print("ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType)
@@ -757,7 +779,9 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                     assignValue = " = " + CPL   # Act like a copy constructor
                 elif 'codeConverter' in paramTypeList[0]: #ktl 12.14.17
                     assignValue = " = " + CPL
-                else: assignValue = " = " + CPL
+                else:
+                    if isJavaPrimativeType(fieldType): assignValue  = " =  " + CPL
+                    else: assignValue  = " = new " + fieldType + CPL
             else: assignValue = " = new " + fieldType + CPL
         elif varTypeIsValueType(fieldType):
             if fieldType == 'long' or fieldType == 'int' or fieldType == 'float'or fieldType == 'double': assignValue=' = 0'
@@ -808,7 +832,7 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     # TODO: make next line so it is not hard coded
-    if(Platform == 'Android' and (convertedType == "TextView" or convertedType == "CanvasView" or convertedType == "FragmentTransaction" or convertedType == "FragmentManager" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "Toolbar" or convertedType == "NestedScrollView" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI"or convertedType == "CheckBox" or convertedType == "HorizontalScrollView"or convertedType == "GUI_ZStack"or convertedType == "widget"or convertedType == "GLOBAL")):
+    if(Platform == 'Android' and (convertedType == "TextView" or convertedType == "ViewGroup" or convertedType == "CanvasView" or convertedType == "FragmentTransaction" or convertedType == "FragmentManager" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "Toolbar" or convertedType == "NestedScrollView" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI"or convertedType == "CheckBox" or convertedType == "HorizontalScrollView"or convertedType == "GUI_ZStack"or convertedType == "widget"or convertedType == "GLOBAL")):
         S += indent + "public " + convertedType + ' ' + fieldName +';\n';
     else:
         S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
@@ -874,6 +898,7 @@ def codeTemplateHeader(structName, typeArgList):
     for typeArg in typeArgList:
         if(count>0):templateHeader+=", "
         templateHeader+=typeArg
+        if isComparableType(typeArg):templateHeader+=" extends Comparable"
         count+=1
     templateHeader+=">"
     return(templateHeader)
