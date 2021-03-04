@@ -348,8 +348,8 @@ def Write_ALT_Extracter(classes, parentStructName, fields, VarTagBase, VarTagSuf
             for coFact in altField['coFactuals']:
                 coFactualCode+= indent2 +'        ' + VarName + '.' + coFact[0] + ' <- ' + coFact[2] + "\n"
                 cdlog(logLvl+2, "Cofactual: "+coFactualCode)
-        S+=Write_fieldExtracter(classes, parentStructName, altField, InnerMemObjFields, VarTagBase, VarName, False, indent2+'        ', level, logLvl+1)
         S+=coFactualCode
+        S+=Write_fieldExtracter(classes, parentStructName, altField, InnerMemObjFields, VarTagBase, VarName, False, coFactualCode, indent2+'        ', level, logLvl+1)
         S+=indent2+"    }\n"
         count+=1
     S+=indent2+"}"
@@ -369,7 +369,7 @@ def CodeRValExpr(toFieldType, VarTag, suffix):
     return CODE_RVAL
 
 
-def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase, VarName, advancePtr, indent, level, logLvl):
+def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase, VarName, advancePtr, coFactualCode, indent, level, logLvl):
     debugTmp=False # Erase this line
     VarTag=VarTagBase+str(level)
     ###################   G a t h e r   N e e d e d   I n f o r m a t i o n
@@ -536,19 +536,21 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         if fromIsALT:
           #  print "ALT-#1"
             gatherFieldCode+=Write_ALT_Extracter(classes, fieldType[0], fields, childRecName, '', 'tmpVar', indent+'    ', level)
+            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
 
         elif fromIsStruct and toIsStruct:
             gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpVar'
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
+            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
             #print "##### FUNCT:", getFunctionName(fieldType[0], fieldType[0])
             gatherFieldCode+='\n'+indent+getFunctionName(fieldType[0], toFieldType[0])+'(getChildStateRec('+childRecName+') , tmpVar)\n'
 
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, ".next")
+            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
 
-        # Now code to push the chosen alternative into the data field# This is a LIST, not an OPT:
-        gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
+        #gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
 
         gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
         # UNCOMMENT FOR DEGUG: S+= '    docPos('+str(level)+', '+VarTag+', "Get Next in LIST for: '+humanIDType+'")\n'
@@ -608,7 +610,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             assignerCode+='\n'+indent+'our stateRec: '+childRecName+' <- '+VarTag+levelSuffix+'.child\n'
             advance=False
             for innerField in field['innerDefs']:
-                assignerCode+=Write_fieldExtracter(classes, ToStructName, innerField, memObjFields, childRecNameBase, '', advance, '    ', level, logLvl+1)
+                assignerCode+=Write_fieldExtracter(classes, ToStructName, innerField, memObjFields, childRecNameBase, '', advance, coFactualCode, '    ', level, logLvl+1)
                 advance = True
         elif fromIsStruct and toIsStruct:
             assignerCode+=finalCodeStr.replace("<LVL_SUFFIX>", levelSuffix);
@@ -632,7 +634,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     #print ("##########################\n",S,"\n#####################################\n")
     if LHS_IsPointer: # LVAL is a pointer and should be allocated or cleared.
         S+= indent + 'AllocateOrClear(' +CODE_LVAR +')\n'
-
+        S+=coFactualCode
     S+=gatherFieldCode
     #print "ASSIGN_CODE", S
  #   if debugTmp: exit(2)
@@ -648,7 +650,7 @@ def Write_structExtracter(classes, ToStructName, FromStructName, fields, nameFor
     S='        me string: tmpStr;\n'
     advance=False
     for field in fields: # Extract all the fields in the string version.
-        S+=Write_fieldExtracter(classes, ToStructName, field, memObjFields, 'SRec', '', advance, '    ', 0, logLvl+1)
+        S+=Write_fieldExtracter(classes, ToStructName, field, memObjFields, 'SRec', '', advance, '', '    ', 0, logLvl+1)
         advance=True
     if  ToStructName== FromStructName and progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessing'):
         S += '        memStruct.postParseProcessing()\n'

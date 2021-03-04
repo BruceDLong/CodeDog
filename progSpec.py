@@ -754,7 +754,8 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
             return(reqTagList[0]['tArgType'])
         if fieldTypeKeyword=='CPP_Map' or fieldTypeKeyword=='Java_Map' or fieldTypeKeyword=='Swift_Map':
             return(reqTagList[0]['tArgType'])
-        if fieldTypeKeyword!="RBNode" and fieldTypeKeyword!="RBTreeMap" and fieldTypeKeyword!="RBTreeItr" and fieldTypeKeyword!="List" and fieldTypeKeyword!="Map": print("WARNING: Container type not found for fieldTypeKeyword: ", fieldTypeKeyword,reqTagList)
+        if fieldTypeKeyword!="RBNode" and fieldTypeKeyword!="RBTreeMap" and fieldTypeKeyword!="RBTreeItr" and fieldTypeKeyword!="List" and fieldTypeKeyword!="Map":
+            cdErr("Template class '"+fieldTypeKeyword+"' not found for" + str(reqTagList))
     elif reqTagList == None: return(None)
     return(None)
 
@@ -1140,9 +1141,10 @@ def dePythonStr(pyItem):
         itemName = S[:parenPos]
         itemName = itemName.replace(',','.')
         paramList = S[parenPos+1:]
-        paramList = paramList.replace(',,,,,,', '!')
-        paramList = paramList.replace(',', '')
-        paramList = paramList[:-1].replace('!', ', ')
+        if len(paramList)>1 and paramList[0]==",": paramList = paramList[1:]
+       # paramList = paramList.replace(', ', '!')
+       # paramList = paramList.replace(',', '')
+        paramList = paramList.replace(',', ', ')
         S = itemName[:-1] + '('+paramList+')'
     else:
         S=S.replace(',','.')
