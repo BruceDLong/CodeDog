@@ -284,6 +284,7 @@ def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReq
     return packedField
 
 def addDependancyToStruct(structName, nameOfDependancy):
+    #print("############ addDependancyToStruct:", structName, " --> ", nameOfDependancy)
     global DependanciesMarked
     global DependanciesUnmarked
     if structName == nameOfDependancy: return
@@ -311,6 +312,7 @@ def addField(objSpecs, className, stateType, packedField):
     fieldID = packedField['fieldID']
     typeSpec = packedField['typeSpec']
     fieldType = typeSpec['fieldType']
+
     if stateType=='model': taggedClassName='%'+className
     elif stateType=='string': taggedClassName='$'+className
     else: taggedClassName = className
@@ -756,7 +758,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
         if fieldTypeKW=='CPP_Map' or fieldTypeKW=='Java_Map' or fieldTypeKW=='Swift_Map':
             return(reqTagList[0]['tArgType'])
         if fieldTypeKW!="RBNode" and fieldTypeKW!="RBTreeMap" and fieldTypeKW!="RBTreeItr" and fieldTypeKW!="List" and fieldTypeKW!="Map":
-            cdErr("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
+            print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
     elif reqTagList == None: return(None)
     return(None)
 
@@ -1029,7 +1031,7 @@ def typeIsInteger(fieldType):
     if typeIsNumRange(fieldType): return True
     if not isinstance(fieldType, str):
         fieldType= fieldType[0]
-    if fieldType=="int" or fieldType=="BigInt"or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32" or fieldType=="FlexNum":
+    if fieldType=="int" or fieldType=="BigInt" or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32" or fieldType=="FlexNum":
         return True
     return False
 
@@ -1075,12 +1077,13 @@ def TypeSpecsMinimumBaseType(classes, typeSpec):
 
 def innerTypeCategory(fieldType):
     typeKey = fieldTypeKeyword(fieldType)
-    if typeKey=='flag' or typeKey=='mode' or typeKey=='timeValue' or typeKey=='void' or typeKey=='char' or typeKey=='double' or typeKey=='float' or typeKey=='string' or typeKey=='bool' or typeKey=='BigInt' or typeKey=='BigFloat' or typeKey=='BigFrac': return typeKey
-    if typeIsInteger(fieldType): return 'int'
+    if typeKey=='flag' or typeKey=='mode' or typeKey=='timeValue' or typeKey=='void' or typeKey=='char' or typeKey=='double' or typeKey=='float' or typeKey=='string' or typeKey=='bool': return typeKey
     if isStruct(fieldType): return 'struct'
+    if typeIsInteger(fieldType): return 'int'
     return 'ERROR'
 
 def varsTypeCategory(typeSpec):
+    fieldType=''
     if isinstance(typeSpec, str): fieldType=typeSpec
     else:
         fieldType=getFieldType(typeSpec)
