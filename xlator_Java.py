@@ -291,7 +291,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     itrName          = repName + "Itr"
-    if datastructID=='TreeMap' or datastructID=='Java_Map' or datastructID=='RBTreeMap':
+    if datastructID=='TreeMap' or datastructID=='Java_Map' or datastructID=='RBTreeMap' or "__Map_" in datastructID:
         reqTagList   = progSpec.getReqTagList(containerType)
         if(reqTagList == None): print("reqTagList not found in iterateContainerStr"); exit(1)
         reqTagString = ""
@@ -313,7 +313,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.node.value')
             itrType     = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, containerType))+'<'+reqTagString+'>'
             actionText += (indent + 'for('+itrType+repName+'='+containerName+'.front(); '+repName+'.node!='+containerName+'.end().node'+'; '+repName+'.goNext()){\n')
-    elif datastructID=='list' or datastructID=='Java_ArrayList':
+    elif datastructID=='list' or datastructID=='Java_ArrayList' or "__List_" in datastructID:
         containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
         keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
         [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, xlator)

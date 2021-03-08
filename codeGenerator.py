@@ -1478,6 +1478,8 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
 def generateGenericStructName(classes, className, reqTagList):
     global genericStructsGenerated
     classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
+    if classDef == None:
+        classDef = progSpec.findSpecOf(globalClassStore[0], className, "model")
     genericStructName = "__"+className
     for reqTag in reqTagList: genericStructName+="_"+progSpec.getTypeFromTemplateArg(reqTag)
     if not genericStructName in genericStructsGenerated:
