@@ -1246,6 +1246,7 @@ def fetchXlators():
     xlators['usePrefixOnStatics']    = "False"
     xlators['iteratorsUseOperators'] = "True"
     xlators['renderGenerics']        = "False"
+    xlators['renameInitFuncs']       = "False"
     xlators['codeExpr']                     = codeExpr
     xlators['applyOwner']                     = applyOwner
     xlators['adjustConditional']            = adjustConditional

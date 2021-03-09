@@ -835,6 +835,8 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramLi
         for typeArg in typeArgList:
             if convertedType == typeArg: isTypeArg = True
     if paramList!=None:
+        if paramList[-1] == "^&useCtor//8":
+            del paramList[-1]
         [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
         fieldValueText=" = " + convertedType + CPL
     else:
@@ -870,7 +872,7 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
             callSuperConstructor = callSuperConstructor + ', '
     elif constructorInit != '':
         constructorInit = ': ' + constructorInit
-    S = "    " + "init" + "(" + constructorArgs + ")" + " {\n" + funcBody + "    };\n"
+    S = '    init(' + constructorArgs + ') {\n' + funcBody + '    };\n'
     return (S)
 
 def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
@@ -907,7 +909,7 @@ def codeCopyConstructor(fieldName, convertedType, isTemplateVar, xlator):
     return ""
 
 def codeConstructorCall(className):
-    return '        INIT_'+className+'();\n'
+    return '        __INIT_'+className+'();\n'
 
 def codeSuperConstructorCall(parentClassName):
     return '        super.init();\n'
@@ -928,7 +930,7 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
             structCode +="func " + fieldName +"("+argListText+") " + returnType
     else:
         if fieldName=="init":
-            fieldName = "INIT_"+className
+            fieldName = "__INIT_"+className
             structCode += indent + "func "  + fieldName +"("+argListText+")"
         else:
             if isConstructor:
@@ -942,7 +944,7 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
 
 def getVirtualFuncText(field):
     field['value'] = '{fatalError("Must Override")}'
-    return field['value']
+    return field['value']+'\n'
 
 def codeTemplateHeader(structName, typeArgList):
     templateHeader = "<"
@@ -1029,6 +1031,7 @@ def fetchXlators():
     xlators['usePrefixOnStatics']    = "True"
     xlators['iteratorsUseOperators'] = "False"
     xlators['renderGenerics']        = "True"
+    xlators['renameInitFuncs']       = "True"
     xlators['codeExpr']                     = codeExpr
     xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional
