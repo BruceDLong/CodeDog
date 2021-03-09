@@ -620,7 +620,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         modelParams=None
         if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList'];
         [CPL, paramTypeList] = codeParameterList(name, paramList, modelParams, objsRefed, xlator)
-        if xlator['renameInitFuncs'] and name=='init':
+        if xlator['renameInitFuncs']=='True' and name=='init':
             if not 'dummyType' in typeSpecIn:
                 fTypeKW=progSpec.fieldTypeKeyword(typeSpecIn)
             else: fTypeKW=currentObjName
