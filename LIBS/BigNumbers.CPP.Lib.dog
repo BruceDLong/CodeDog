@@ -74,6 +74,7 @@ struct BigFrac: wraps = mpq_class{
 }
 struct FlexNum{
     me double: convertToFloat() <- <%!%0.val.get_d()%>
+    void: normalize() <- <%!%0.val.canonicalize()%>
     void: setNumerator(me string: numerator)     <- <%{
         mpz_ptr A = val.get_num_mpz_t();
         mpz_set_str(A,numerator.data(),10);
@@ -100,4 +101,3 @@ struct FlexNum{
     none: FlexNum(me int64:num) <- <%{val = num;}%>
     none: FlexNum(me uint64:num) <- <%{val = num;}%>
 }
-

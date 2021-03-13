@@ -151,8 +151,8 @@ def populateBaseRules():
     appendRule('quotedStr',   'term', 'parseAUTO', "a quoted string with single or double quotes and escapes")
     appendRule('quotedStr1',  'term', 'parseAUTO', "a single quoted string with escapes")
     appendRule('quotedStr2',  'term', 'parseAUTO', "a double quoted string with escapes")
-    appendRule('HexNum_str',      'term', 'parseAUTO', "a hexidecimal number")
-    appendRule('BinNum_str',      'term', 'parseAUTO', "a binary number")
+    appendRule('HexNum_str',  'term', 'parseAUTO', "a hexadecimal number")
+    appendRule('BinNum_str',  'term', 'parseAUTO', "a binary number")
     appendRule('BigInt',      'term', 'parseAUTO', "an integer")
     appendRule('FlexNum',     'term', 'parseAUTO', "a rational number")
     appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
@@ -711,10 +711,10 @@ struct <CLASSNAME>ExtracterThread: inherits=Threads{
         ctrls.extractCompleted <- false
     }
     void: run() <- {
-        log("OPENING EXTRACT THREAD")
+        log("OPENING EXTRACT_THREAD")
         ctrls.parser.Extract_<CLASSNAME>_to_<CLASSNAME>(parseTree, topItem)
         log("Finished_<CLASSNAME>:"+toString(topItem))
-        log("CLOSING EXTRACT THREAD")
+        log("CLOSING EXTRACT_THREAD")
         //me SyncLock: lock<-{ctrls.chkExtractDone}
         //ctrls.extractCompleted <- true
         //lock.notify_one();
@@ -730,9 +730,9 @@ struct <CLASSNAME>ParserThread: inherits=Threads{
         ctrls.parseCompleted <- false
     }
     void: run() <- {
-        log("OPENING_PARSE_THREAD")
+        log("OPENING PARSE_THREAD")
         ctrls.parser.doParse()
-        log("CLOSING_PARSE_THREAD")
+        log("CLOSING PARSE_THREAD")
         log("parser.lastTopLevelItem:"+ctrls.parser.lastTopLevelItem.mySymbol())
         ctrls.parser.dumpGraph("ParseDone", 1)
         our <CLASSNAME>: crnt_<CLASSNAME>

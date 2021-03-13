@@ -39,6 +39,7 @@ struct FlexNum{
     void: setDenominator(me string: denominator)
     me BigInt: getNumerator()
     me BigInt: getDenominator()
+    void: normalize()
 
     me int: countDigits(me BigInt:num) <- {
         // TODO: make this use log10(num) + 1
@@ -149,4 +150,3 @@ struct FlexNum{
         fromString(str)
     }
 }
-
