@@ -262,7 +262,7 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "static const int "+fieldName+ " = " + fieldValue+ ";"
+    S= "static const uint64_t "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
 def getEnumStr(fieldName, enumList):
