@@ -652,7 +652,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
     return ""
 
-############################################
+######################################################
 def codeMain(classes, tags, objsRefed, xlator):
     cdlog(3, "\n            Generating GLOBAL...")
     if("GLOBAL" in classes[1]):
@@ -762,19 +762,19 @@ struct GLOBAL{
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE)
 def variableDefaultValueString(fieldType, isTypeArg):
     if (fieldType == "String"):
-        fieldValueText='""'
+        fieldValueText=' = ""'
     elif (fieldType.startswith("[")):
-        fieldValueText=fieldType + "()"
+        fieldValueText=' = '+fieldType + '()'
     elif (fieldType == "Bool"):
-        fieldValueText='false'
+        fieldValueText=' = false'
     elif (isNumericType(fieldType)):
-        fieldValueText='0'
+        fieldValueText=' = 0'
     elif (fieldType == "Character"):
-        fieldValueText='"\\0"'
+        fieldValueText=' = "\\0"'
     elif(isTypeArg):
-        fieldValueText = '['+fieldType +']()'
+        fieldValueText = ' = ['+fieldType +']()'
     else:
-        fieldValueText = fieldType +'()'
+        fieldValueText = ' = ' + fieldType +'()'
     return fieldValueText
 
 def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
@@ -808,7 +808,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                 if True or not isinstance(rhsType, str) and fieldType==rhsType[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
         else:
-            assignValue = ' = '+variableDefaultValueString(allocFieldType, False)
+            assignValue = variableDefaultValueString(allocFieldType, False)
     fieldTypeMod = makePtrOpt(lhsTypeSpec)
     if (assignValue == ""):
         varDeclareStr= "var " + varName + ": "+ fieldType + fieldTypeMod + " = " + allocFieldType + '()'
@@ -840,7 +840,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramLi
         [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
         fieldValueText=" = " + convertedType + CPL
     else:
-        fieldValueText = ' = '+variableDefaultValueString(convertedType, isTypeArg)
+        fieldValueText = variableDefaultValueString(convertedType, isTypeArg)
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
@@ -866,29 +866,24 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
     return [defn, decl]
 
 ###################################################### CONSTRUCTORS
-def codeConstructor(className, constructorArgs, callSuperConstructor, constructorInit, funcBody):
-    if callSuperConstructor != '':
-        callSuperConstructor = ':' + callSuperConstructor
-        if constructorInit != '':
-            callSuperConstructor = callSuperConstructor + ', '
-    elif constructorInit != '':
-        constructorInit = ': ' + constructorInit
-    S = '    init(' + constructorArgs + ') {\n' + funcBody + '    };\n'
+def codeConstructor(className, ctorArgs, callSuper, ctorInit, funcBody):
+    if callSuper != '':
+        callSuper = ':' + callSuper
+        if ctorInit != '':
+            callSuper = callSuper + ', '
+    elif ctorInit != '':
+        ctorInit = ': ' + ctorInit
+    S = '    init(' + ctorArgs + ') {\n' + funcBody + '    };\n'
     return (S)
 
-def codeConstructors(className, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
-    S = ''
-    if constructorArgs != '':
-        S += codeConstructor(className, constructorArgs, callSuperConstructor, constructorInit, funcBody)
-    S += codeConstructor(className, '', callSuperConstructor, '', funcBody)
-    return S
+def codeConstructors(className, ctorArgs, ctorInit, copyCtorArgs, funcBody, callSuper, xlator):
     #TODO: Swift should only have constructors if they are called somewhere.
-    if callSuperConstructor != "":
-        S="    override init(){\n"+callSuperConstructor+funcBody+"    }\n"
+    if ctorArgs != "":
+        S = "    init(" + ctorArgs+"){\n"+callSuper+ctorInit+funcBody+"    }\n"
+    if callSuper != "":
+        S += "    override init(){\n"+callSuper+funcBody+"    }\n"
     else:
-        S="    init(){\n"+callSuperConstructor+funcBody+"    }\n"
-    if constructorArgs != "":
-        S += "    init(" + constructorArgs+"){\n"+callSuperConstructor+constructorInit+funcBody+"    }\n"
+        S += "    init(){\n"+callSuper+funcBody+"    }\n"
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -908,6 +903,7 @@ def codeConstructorCall(className):
 def codeSuperConstructorCall(parentClassName):
     return '        super.init();\n'
 
+######################################################
 def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, typeSpec, indent):
     #TODO: add \n before func
     structCode=''; funcDefCode=''; globalFuncs='';
@@ -981,7 +977,7 @@ def applyTypecast(typeInCodeDog, itemToAlterType):
     platformType = adjustBaseTypes(typeInCodeDog, False)
     return platformType+'('+itemToAlterType+')';
 
-#######################################################
+######################################################
 
 def includeDirective(libHdr):
     S = 'import '+libHdr+'\n'
@@ -997,7 +993,7 @@ def generateMainFunctionality(classes, tags):
     me void: main() <- {
         //initialize()
         """ + runCode + """
-        //deinitialize()
+        deinitialize()
     }
 
 """

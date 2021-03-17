@@ -1117,9 +1117,9 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, xlator):
     cdlog(4, "Generating Constructor for: {}".format(ClassName))
     ObjectDef = classes[0][ClassName]
     flatClassName = progSpec.flattenObjectName(ClassName)
-    constructorInit=""
-    constructorArgs=""
-    copyConstructorArgs=""
+    ctorInit=""
+    ctorArgs=""
+    copyCtorArgs=""
     count=0
     for field in progSpec.generateListOfFieldsToImplement(classes, ClassName):
         typeSpec =field['typeSpec']
@@ -1149,29 +1149,29 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, xlator):
                     [defaultVal, defaultValueTypeSpec] = xlator['codeExpr'](field['value'][0], objsRefed, None, typeSpec, xlator)
         if defaultVal != '':
         #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
-            constructorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
-            constructorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
+            ctorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
+            ctorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
 
             count += 1
-        copyConstructorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, isTemplateVar, xlator)
+        copyCtorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, isTemplateVar, xlator)
 
     funcBody = ''
-    constructCode=''
-    callSuperConstructor=''
+    ctorCode=''
+    callSuper=''
     parentClasses = progSpec.getParentClassList(classes, ClassName)
     if parentClasses:
         parentClasses[0] = progSpec.filterClassesToString(parentClasses[0])
-        callSuperConstructor = xlator['codeSuperConstructorCall'](parentClasses[0])
+        callSuper = xlator['codeSuperConstructorCall'](parentClasses[0])
 
     fieldID  = ClassName+'::INIT'
     if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
         funcBody += xlator['codeConstructorCall'](ClassName)
     if(count>0):
-        constructorArgs=constructorArgs[0:-1]
+        ctorArgs=ctorArgs[0:-1]
     if count>0 or funcBody != '':
-        constructCode += xlator['codeConstructors'](flatClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator)
+        ctorCode += xlator['codeConstructors'](flatClassName, ctorArgs, ctorInit, copyCtorArgs, funcBody, callSuper, xlator)
 
-    return constructCode
+    return ctorCode
 
 #### codeStructFields ##################################################
 def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
@@ -1183,7 +1183,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     global localArgsAllocated
     funcBodyIndent   = xlator['funcBodyIndent']
     funcsDefInClass  = xlator['funcsDefInClass']
-    MakeConstructors = xlator['MakeConstructors']
+    makeCtors = xlator['MakeConstructors']
     globalFuncsAcc=""
     funcDefCodeAcc=""
     structCodeAcc=""
@@ -1310,10 +1310,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):inheritMode = 'virtual'
             # ####################################################################
             fTypeKW=progSpec.fieldTypeKeyword(typeSpec)
-            if fTypeKW =='none': isConstructor = True
+            if fTypeKW =='none': isCtor = True
             else:
-                isConstructor = False
-            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isConstructor, typeArgList, typeSpec, indent)
+                isCtor = False
+            [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isCtor, typeArgList, typeSpec, indent)
 
             #### FUNC BODY
             if abstractFunction: # i.e., if no function body is given.
@@ -1361,9 +1361,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         topFuncDefCodeAcc += topFuncDefCode
 
     # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
-    if MakeConstructors=='True' and (className!='GLOBAL')  and (className!='widget'):
-        constructCode=codeConstructor(classes, className, tags, objsRefed, typeArgList, xlator)
-        structCodeAcc+= "\n"+constructCode
+    if makeCtors=='True' and (className!='GLOBAL')  and (className!='widget'):
+        ctorCode=codeConstructor(classes, className, tags, objsRefed, typeArgList, xlator)
+        structCodeAcc+= "\n"+ctorCode
     funcDefCodeAcc = topFuncDefCodeAcc + funcDefCodeAcc
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
