@@ -856,6 +856,7 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
         withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
     copyConstructor = "    public " + ClassName + "(final " + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
     noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+'\n    };\n'
+    # TODO: remove hardCoding
     if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"or ClassName =="GUI_ZStack"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor

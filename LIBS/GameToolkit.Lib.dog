@@ -254,7 +254,6 @@ struct ColorScheme{}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{}
 struct GUI_item{}
-struct GUI_canvas{}
 struct GUI_container{}
 struct INK_Image{}
 struct CGContext {}

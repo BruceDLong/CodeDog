@@ -151,7 +151,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     return S
 
 def LanguageSpecificDecorations(classes, S, typeSpec, owner, L_R_or_param, isLastSeg, xlator):
-    if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr':
+    if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
         if L_R_or_param == "param":
             if  S=="nil":
                 [paramType, innerType] = convertType(classes, typeSpec, 'arg', '', xlator)        #"RBNode<keyType, valueType>"
@@ -849,7 +849,7 @@ def codeConstField_Str(convertedType, fieldName, fieldValueText, className, inde
     return [defn, decl]
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
-    #TODO: make test case
+    # TODO: make test case
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
         defn = indent + "public static var "+ indent + fieldName + ": " +  convertedType  +  fieldValueText + '\n'
@@ -865,7 +865,8 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         decl = ''
     return [defn, decl]
 
-def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody):
+###################################################### CONSTRUCTORS
+def codeConstructor(className, constructorArgs, callSuperConstructor, constructorInit, funcBody):
     if callSuperConstructor != '':
         callSuperConstructor = ':' + callSuperConstructor
         if constructorInit != '':
@@ -875,11 +876,11 @@ def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructo
     S = '    init(' + constructorArgs + ') {\n' + funcBody + '    };\n'
     return (S)
 
-def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
+def codeConstructors(className, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
     S = ''
     if constructorArgs != '':
-        S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
-    S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
+        S += codeConstructor(className, constructorArgs, callSuperConstructor, constructorInit, funcBody)
+    S += codeConstructor(className, '', callSuperConstructor, '', funcBody)
     return S
     #TODO: Swift should only have constructors if they are called somewhere.
     if callSuperConstructor != "":
@@ -888,17 +889,10 @@ def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructo
         S="    init(){\n"+callSuperConstructor+funcBody+"    }\n"
     if constructorArgs != "":
         S += "    init(" + constructorArgs+"){\n"+callSuperConstructor+constructorInit+funcBody+"    }\n"
-    print("S: ", S)
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
-    if (count > 0):
-        return "        self." + fieldName +" = arg_"+fieldName+";\n"
-    elif(count == 0):
-        return "        self." + fieldName +" = arg_"+fieldName+";\n"
-    else:
-        print("Error in codeConstructorInit.")
-        exit(2)
+    return "        self." + fieldName +" = arg_"+fieldName+";\n"
 
 def codeConstructorArgText(argFieldName, count, argType, defaultVal, xlator):
     if defaultVal == "NULL": defaultVal = ""
