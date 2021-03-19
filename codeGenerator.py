@@ -816,16 +816,58 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
     return [S, paramTypeList]
 
 #################################################################
+def codeTerm(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator):
+    [S, retTypeSpec]=xlator['codeFactor'](item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+    if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
+        [S, isDerefd]=xlator['derefPtr'](S, retTypeSpec)
+        for i in item[1]:
+            #print '               term:', i
+            if   (i[0] == '*'): S+=' * '
+            elif (i[0] == '/'): S+=' / '
+            elif (i[0] == '%'): S+=' % '
+            else: print("ERROR: One of '*', '/' or '%' expected in code generator."); exit(2)
+            [S2, retType2] = xlator['codeFactor'](i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+            [S2, isDerefd]=xlator['derefPtr'](S2, retType2)
+            S+=S2
+    return [S, retTypeSpec]
+
+def codePlus(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator):
+    [S, retTypeSpec]=codeTerm(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        [S, isDerefd]=xlator['derefPtr'](S, retTypeSpec)
+        if isDerefd:
+            keyType = progSpec.varTypeKeyWord(retTypeSpec)
+            retTypeSpec={'owner': 'me', 'fieldType': keyType}
+        for  i in item[1]:
+            if   (i[0] == '+'): S+=' + '
+            elif (i[0] == '-'): S+=' - '
+            else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
+            [S2, retType2] = codeTerm(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+            [S2, isDerefd]=xlator['derefPtr'](S2, retType2)
+            if i[0]=='+' :S2 = xlator['checkForTypeCastNeed']('string', retType2, S2)
+            S+=S2
+    return [S, retTypeSpec]
+
+def codeComparison(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator):
+    [S, retTypeSpec]=codePlus(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        if len(item[1])>1: print("Error: Chained comparisons.\n"); exit(1);
+        [S, isDerefd]=xlator['derefPtr'](S, retTypeSpec)
+        for i in item[1]:
+            [S2, retType2] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+            S = xlator['codeComparisonStr'](S, S2, retTypeSpec, retType2, i[0])
+            retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
+    return [S, retTypeSpec]
 
 def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator):
-    [S, retTypeSpec]=xlator['codeComparison'](item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         for i in item[1]:
-            [S2, retType2] = xlator['codeComparison'](i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
             S  = xlator['codeIdentityCheck'](S, S2, retTypeSpec, retType2, i[0])
-            retTypeSpec = 'bool'
+            retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
     return [S, retTypeSpec]
 
 def codeAnd(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator):
