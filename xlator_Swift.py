@@ -150,13 +150,13 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(classes, S, typeSpec, owner, L_R_or_param, isLastSeg, xlator):
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
     if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
-        if L_R_or_param == "param":
+        if LorRorP_Val == "PARAM":
             if  S=="nil":
                 [paramType, innerType] = convertType(classes, typeSpec, 'arg', '', xlator)        #"RBNode<keyType, valueType>"
                 S = 'Optional<'+paramType+'>.none'
-        elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not(L_R_or_param =="LVAL" and isLastSeg):
+        elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not(LorRorP_Val =="LVAL" and isLastSeg):
             S+='!'  # optionals
     return S
 
@@ -349,22 +349,22 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, xlator):
     #print("ITEM0=", item0, ">>>>>", item)
     if (isinstance(item0, str)):
         if item0=='(':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, 'XVAL', xlator)
             S+='(' + S2 +')'
         elif item0=='!':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, 'XVAL', xlator)
             if progSpec.varsTypeCategory(retTypeSpec) != 'bool':
                 if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
                 S2='('+S2+' != nil)'
                 retTypeSpec='bool'
             else: S+='!' + S2
         elif item0=='-':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, 'XVAL', xlator)
             S+='-' + S2
         elif item0=='[':
             tmp="["
             for expr in item[1:-1]:
-                [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, expectedTypeSpec, xlator)
+                [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, expectedTypeSpec, 'XVAL', xlator)
                 if len(tmp)>1: tmp+=", "
                 tmp+=S2
             tmp+="]"
@@ -493,40 +493,6 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
-def codeAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print('      iOR item:', item)
-    [S, retTypeSpec] = codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if len(item) > 1 and len(item[1])>0:
-        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
-        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            #print('      IsEq ', i)
-            [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            S+= ' & '+S2
-    return [S, retTypeSpec]
-
-def codeXOR(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print('   xOR item:', item)
-    [S, retTypeSpec]=codeAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if len(item) > 1 and len(item[1])>0:
-        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
-        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            [S2, retType2] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            S+= ' ^ '+S2
-    return [S, retTypeSpec]
-
-def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print ('   Bar item:', item)
-    [S, retTypeSpec] = codeXOR(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if len(item) > 1 and len(item[1])>0:
-        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
-        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            [S2, retType2] = codeXOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            S+= ' | '+S2
-    return [S, retTypeSpec]
-
 ######################################################
 def adjustConditional(S2, conditionType):
     if conditionType!=None and not isinstance(conditionType, str):
@@ -550,31 +516,31 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             S+='print('
             count = 0
             for P in paramList:
-                [S2, argType]=codeExpr(P[0], objsRefed, None, None, xlator)
+                [S2, argType]=codeExpr(P[0], objsRefed, None, None, 'PARAM', xlator)
                 if(count>0): S+=', '
                 S+=S2
                 count= count + 1
             S+=',separator:"", terminator:"")'
         elif(funcName=='AllocateOrClear'):
-            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, xlator)
+            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', xlator)
             if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
             if(varName[-1]=='!'): varNameUnRefed=varName[:-1]  # Remove a reference. It would be better to do this in codeExpr but may take some work.
             else: varNameUnRefed=varName
             S+='if('+varNameUnRefed+' != nil){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
-            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, xlator)
+            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', xlator)
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
             for P in paramList[1:]:
                 if(count>0): S+=', '
-                [S2, argType]=codeExpr(P[0], objsRefed, None, None, xlator)
+                [S2, argType]=codeExpr(P[0], objsRefed, None, None, 'PARAM', xlator)
                 S+=S2
                 count=count+1
             S+=")"
         elif(funcName=='callPeriodically'):
-            [objName,  fieldType]=codeExpr(paramList[1][0], objsRefed, None, None, xlator)
-            [interval,  intSpec] = codeExpr(paramList[2][0], objsRefed, None, None, xlator)
+            [objName,  fieldType]=codeExpr(paramList[1][0], objsRefed, None, None, 'PARAM', xlator)
+            [interval,  intSpec] = codeExpr(paramList[2][0], objsRefed, None, None, 'PARAM', xlator)
             varTypeSpec= fieldType['fieldType'][0]
             wrapperName="cb_wraps_"+varTypeSpec
             S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
@@ -589,7 +555,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             if len(paramList)==0: S+='return'
         elif(funcName=='toStr'):
             if len(paramList)==1:
-                [S2, argType]=codeExpr(P[0][0], objsRefed, None, None, xlator)
+                [S2, argType]=codeExpr(P[0][0], objsRefed, None, None, 'PARAM', xlator)
                 S2=derefPtr(S2, argType)
                 S+='to_string('+S2+')'
                 returnType='string'
@@ -739,7 +705,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
     [fieldType, innerType]            = convertType(classes, lhsTypeSpec, 'var', actionOrField, xlator)
     [allocFieldType, allocFieldAttrs] = convertType(classes, lhsTypeSpec, 'alloc', '', xlator)
     if(fieldDef['value']):
-        [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, xlator)
+        [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', xlator)
         [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)
         RHS = leftMod+RHS+rightMod
         RHS = xlator['checkForTypeCastNeed'](lhsTypeSpec, rhsTypeSpec, RHS)
@@ -971,7 +937,7 @@ def fetchXlators():
     xlators['iteratorsUseOperators'] = "False"
     xlators['renderGenerics']        = "True"
     xlators['renameInitFuncs']       = "True"
-    xlators['codeBar']                      = codeBar
+    xlators['codeIsEQ']                     = codeIsEQ
     xlators['derefPtr']                     = derefPtr
     xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional
