@@ -816,18 +816,47 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
     return [S, paramTypeList]
 
 #################################################################
+def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
+    [S, retTypeSpec] = xlator['codeBar'](item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        [S, isDerefd]=xlator['derefPtr'](S, retTypeSpec)
+        for i in item[1]:
+            if (i[0] == 'and'):
+                S = xlator['checkForTypeCastNeed']('bool', retTypeSpec, S)
+                [S2, retTypeSpec] = xlator['codeBar'](i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                S2 = xlator['checkForTypeCastNeed']('bool', retTypeSpec, S2)
+                [S2, isDerefd]=xlator['derefPtr'](S2, retTypeSpec)
+                S+=' && ' + S2
+            else: print("ERROR: 'and' expected in code generator."); exit(2)
+            retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
+    return [S, retTypeSpec]
+
+def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
+    [S, retTypeSpec] = codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        [S, isDerefd]=xlator['derefPtr'](S, retTypeSpec)
+        for i in item[1]:
+            if (i[0] == 'or'):
+                S = xlator['checkForTypeCastNeed']('bool', retTypeSpec, S)
+                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                [S2, isDerefd]=xlator['derefPtr'](S2, retTypeSpec)
+                S2 = xlator['checkForTypeCastNeed']('bool', retTypeSpec, S2)
+                S+=' || ' + S2
+            else: print("ERROR: 'or' expected in code generator."); exit(2)
+            retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
+    return [S, retTypeSpec]
+
 def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print("codeExpr:",item)
-    [S, retTypeSpec] = xlator['codeLogOr'](item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    [S, retTypeSpec] = codeLogOr(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
-        [S, isDerefd]=derefPtr(S, retTypeSpec)
+        [S, isDerefd]=xlator['derefPtr'](S, retTypeSpec)
         for i in item[1]:
             if (i[0] == '<-'):
-                [S2, retTypeSpec] = xlator['codeLogOr'](i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                [S2, isDerefd]=derefPtr(S2, retTypeSpec)
+                [S2, retTypeSpec] = codeLogOr(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+                [S2, isDerefd]=xlator['derefPtr'](S2, retTypeSpec)
                 S+=' = ' + S2
             else: print("ERROR: '<-' expected in code generator."); exit(2)
-            retTypeSpec='bool'
+            retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
     return [S, retTypeSpec]
 
 #################################################################

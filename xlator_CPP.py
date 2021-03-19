@@ -169,8 +169,6 @@ def LanguageSpecificDecorations(classes, S, typeSpec, owner, L_R_or_param, isLas
         return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
-    LHS_KeyType = progSpec.fieldTypeKeyword(lhsTypeSpec)
-    RHS_KeyType = progSpec.fieldTypeKeyword(rhsTypeSpec)
     return RHScodeStr
 
 def getTheDerefPtrMods(itemTypeSpec):
@@ -691,41 +689,7 @@ def codeBar(item, objsRefed, returnType, expectedTypeSpec, xlator):
             [S2, retType2] = codeXOR(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
             S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
             S+= ' | '+S2
-    return [S, retTypeSpec]
-
-def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print('   And item:', item)
-    [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if len(item) > 1 and len(item[1])>0:
-        [S, isDerefd]=derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            #print '   AND ', i
-            if (i[0] == 'and'):
-                S = checkForTypeCastNeed('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeBar(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
-                [S2, isDerefd]=derefPtr(S2, retTypeSpec)
-                S+=' && ' + S2
-            else: print("ERROR: 'and' expected in code generator."); exit(2)
-            retTypeSpec='bool'
-    return [S, retTypeSpec]
-
-def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print('Or item:', item)
-    [S, retTypeSpec] = codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if len(item) > 1 and len(item[1])>0:
-        retTypeSpec={'owner': 'me', 'fieldType': 'bool'}
-        [S, isDerefd]=derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            #print('   OR ', i)
-            if (i[0] == 'or'):
-                S = checkForTypeCastNeed('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                retTypeSpec={'owner': 'me', 'fieldType': 'bool'}
-                [S2, isDerefd]=derefPtr(S2, retTypeSpec)
-                S2 = checkForTypeCastNeed('bool', retTypeSpec, S2)
-                S+=' || ' + S2
-            else: print("ERROR: 'or' expected in code generator."); exit(2)
+        retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
     return [S, retTypeSpec]
 
 ######################################################
@@ -1233,7 +1197,10 @@ def fetchXlators():
     xlators['iteratorsUseOperators'] = "True"
     xlators['renderGenerics']        = "False"
     xlators['renameInitFuncs']       = "False"
-    xlators['codeLogOr']                    = codeLogOr
+    xlators['codeBar']                      = codeBar
+    xlators['derefPtr']                     = derefPtr
+    xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
