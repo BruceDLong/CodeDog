@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, isStruct
-from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
+from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -125,7 +125,7 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
 
 def makePtrOpt(typeSpec):
     # Make pointer field variables optionals
-    if progSpec.typeIsPointer(typeSpec): return('?')
+    if progSpec.typeIsPointer(typeSpec): return('!')
     return('')
 
 def codeIteratorOperation(itrCommand, fieldType):
@@ -563,20 +563,6 @@ def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
-def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print("codeExpr:",item)
-    [S, retTypeSpec]=codeLogOr(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
-        [S, isDerefd]=derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            if (i[0] == '<-'):
-                [S2, retTypeSpec] = codeLogOr(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                [S2, isDerefd]=derefPtr(S2, retTypeSpec)
-                S+=' = ' + S2
-            else: print("ERROR: '<-' expected in code generator."); exit(2)
-            retTypeSpec='bool'
-    return [S, retTypeSpec]
-
 ######################################################
 def adjustConditional(S2, conditionType):
     if conditionType!=None and not isinstance(conditionType, str):
@@ -859,9 +845,8 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         if typeArgList:
             for typeArg in typeArgList:
                 if convertedType == typeArg: isTypeArg = True
-        fieldTypeMod = makePtrOpt(typeSpec)
-        if isTypeArg: defn = indent + "var "+ fieldName + fieldTypeMod + fieldValueText + '\n'
-        else: defn = indent + "var "+ fieldName + ": " +  convertedType + fieldTypeMod + fieldValueText + '\n'
+        if isTypeArg: defn = indent + "var "+ fieldName + fieldValueText + '\n'
+        else: defn = indent + "var "+ fieldName + ": " +  convertedType + fieldValueText + '\n'
         decl = ''
     return [defn, decl]
 
@@ -1022,7 +1007,7 @@ def fetchXlators():
     xlators['iteratorsUseOperators'] = "False"
     xlators['renderGenerics']        = "True"
     xlators['renameInitFuncs']       = "True"
-    xlators['codeExpr']                     = codeExpr
+    xlators['codeLogOr']                    = codeLogOr
     xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective

@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, logLvl
-from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction
+from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -728,20 +728,6 @@ def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, xlator):
             else: print("ERROR: 'or' expected in code generator."); exit(2)
     return [S, retTypeSpec]
 
-def codeExpr(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print("codeExpr:",item)
-    [S, retTypeSpec]=codeLogOr(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
-        [S, isDerefd]=derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            if (i[0] == '<-'):
-                [S2, retTypeSpec] = codeLogOr(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-                [S2, isDerefd]=derefPtr(S2, retTypeSpec)
-                S+=' = ' + S2
-            else: print("ERROR: '<-' expected in code generator."); exit(2)
-            retTypeSpec='bool'
-    return [S, retTypeSpec]
-
 ######################################################
 def adjustConditional(S2, conditionType):
     return [S2, conditionType]
@@ -1247,8 +1233,8 @@ def fetchXlators():
     xlators['iteratorsUseOperators'] = "True"
     xlators['renderGenerics']        = "False"
     xlators['renameInitFuncs']       = "False"
-    xlators['codeExpr']                     = codeExpr
-    xlators['applyOwner']                     = applyOwner
+    xlators['codeLogOr']                    = codeLogOr
+    xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional
     xlators['includeDirective']             = includeDirective
     xlators['codeMain']                     = codeMain
