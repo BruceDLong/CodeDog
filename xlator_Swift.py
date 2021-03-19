@@ -264,6 +264,9 @@ def getEnumStr(fieldName, enumList):
     S += "\n"
     return(S)
 
+def codeIdentityCheck(S1, S2, retType1, retType2, op):
+    return S+' === '+S2
+
 ###################################################### CONTAINERS
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
@@ -452,7 +455,6 @@ def codePlus(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print('         Comp item', item)
     [S, retTypeSpec]=codePlus(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print("Error: Chained comparisons.\n"); exit(1);
@@ -463,14 +465,14 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (i[0] == '<='): S+=' <= '
             elif (i[0] == '>='): S+=' >= '
             else: print("ERROR: One of <, >, <= or >= expected in code generator."); exit(2)
-            [S2, retTypeSpec] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            [S2, isDerefd]=derefPtr(S2, retTypeSpec)
+            [S2, retType2] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
+            [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
 def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print('      IsEq item:', item)
     [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
@@ -483,17 +485,22 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (i[0] == '!=='): op=' !== '
             elif (i[0] == '==='): op=' === '
             else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
-            [S2, retTypeSpec] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            rightOwner=progSpec.getTypeSpecOwner(retTypeSpec)
-            if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
-                if (S2!='nil' ): S=S_derefd
+            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
+            if i[0] == '===':
+                S=codeIdentityCheck(S, S2, retTypeSpec, retType2)
+            else:
+                if S2!='nil': S=S_derefd
                 elif S[-1]=='!': S=S[:-1]   # Todo: Better detect this
                 [S2, isDerefd]=derefPtr(S2, retTypeSpec)
-            S+= op+S2
+                S+= op+S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
 ######################################################
+def adjustQuotesForChar(typeSpec1, typeSpec2, S):
+    return(S)
+
 def adjustConditional(S2, conditionType):
     if conditionType!=None and not isinstance(conditionType, str):
         if conditionType['owner']=='our' or conditionType['owner']=='their' or conditionType['owner']=='my' or progSpec.isStruct(conditionType['fieldType']):

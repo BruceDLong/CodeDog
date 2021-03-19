@@ -603,7 +603,6 @@ def codePlus(item, objsRefed, returnType, expectedTypeSpec, xlator):
     return [S, retTypeSpec]
 
 def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print('         Comp item', item)
     [S, retTypeSpec]=codePlus(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print("Error: Chained comparisons.\n"); exit(1);
@@ -615,16 +614,13 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (i[0] == '>='): S+=' >= '
             else: print("ERROR: One of <, >, <= or >= expected in code generator."); exit(2)
             [S2, retType2] = codePlus(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            if retTypeSpec!=None and not isinstance(retTypeSpec, str) and isinstance(retTypeSpec['fieldType'], str) and isinstance(retType2, str):
-                if retTypeSpec['fieldType'] == "char" and retType2 == "string" and S2[0] == '"':
-                    S2 = "'" + S2[1:-1] + "'"
+            S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
             [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
 def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    #print('      IsEq item:', item)
     [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
     if len(item) > 1 and len(item[1])>0:
         if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
@@ -638,20 +634,24 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
             elif (i[0] == '==='): op=' == '
             else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
             [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            if not isinstance(retTypeSpec, str) and isinstance(retTypeSpec['fieldType'], str) and isinstance(retType2, str):
-                if retTypeSpec['fieldType'] == "char" and retType2 == 'string' and S2[0] == '"':
-                    S2 = "'" + S2[1:-1] + "'"
-            rightOwner=progSpec.getTypeSpecOwner(retType2)
-            if not( leftOwner=='itr' and rightOwner=='itr') and i[0] != '===':
-                if (S2!='NULL' and S2!='nullptr' ): S=S_derefd
-                [S2, isDerefd]=derefPtr(S2, retType2)
+            S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
             if i[0] == '===':
                 S=codeIdentityCheck(S, S2, retTypeSpec, retType2)
-            else: S+= op+S2
+            else:
+                if S2!='NULL' and S2!='nullptr': S=S_derefd
+                [S2, isDerefd]=derefPtr(S2, retType2)
+                S+= op+S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
 ######################################################
+def adjustQuotesForChar(typeSpec1, typeSpec2, S):
+    fieldType1 = progSpec.fieldTypeKeyword(typeSpec1)
+    fieldType2 = progSpec.fieldTypeKeyword(typeSpec2)
+    if fieldType1 == "char" and (fieldType2 == 'string' or fieldType2 == 'String') and S[0] == '"':
+        return("'" + S[1:-1] + "'")
+    return(S)
+
 def adjustConditional(S2, conditionType):
     return [S2, conditionType]
 
