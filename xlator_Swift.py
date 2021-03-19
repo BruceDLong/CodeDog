@@ -264,8 +264,20 @@ def getEnumStr(fieldName, enumList):
     S += "\n"
     return(S)
 
-def codeIdentityCheck(S1, S2, retType1, retType2, op):
-    return S+' === '+S2
+def codeIdentityCheck(S, S2, retType1, retType2, opIn):
+    if opIn == '===':
+        return S+' === '+S2
+    else:
+        if   (opIn == '=='): opOut=' == '
+        elif (opIn == '!='): opOut=' != '
+        elif (opIn == '!=='): opOut=' !== '
+        else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
+        [S_derefd, isDerefd] = derefPtr(S, retType1)
+        if S2!='nil': S=S_derefd
+        elif S[-1]=='!': S=S[:-1]   # Todo: Better detect this
+        [S2, isDerefd]=derefPtr(S2, retType1)
+        S+= opOut+S2
+        return S
 
 ###################################################### CONTAINERS
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
@@ -469,31 +481,6 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
             S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
             [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2
-            retTypeSpec='bool'
-    return [S, retTypeSpec]
-
-def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if len(item) > 1 and len(item[1])>0:
-        if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
-        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
-        leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
-        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            if   (i[0] == '=='): op=' == '
-            elif (i[0] == '!='): op=' != '
-            elif (i[0] == '!=='): op=' !== '
-            elif (i[0] == '==='): op=' === '
-            else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
-            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
-            if i[0] == '===':
-                S=codeIdentityCheck(S, S2, retTypeSpec, retType2)
-            else:
-                if S2!='nil': S=S_derefd
-                elif S[-1]=='!': S=S[:-1]   # Todo: Better detect this
-                [S2, isDerefd]=derefPtr(S2, retTypeSpec)
-                S+= op+S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
@@ -944,7 +931,8 @@ def fetchXlators():
     xlators['iteratorsUseOperators'] = "False"
     xlators['renderGenerics']        = "True"
     xlators['renameInitFuncs']       = "True"
-    xlators['codeIsEQ']                     = codeIsEQ
+    xlators['codeComparison']               = codeComparison
+    xlators['codeIdentityCheck']            = codeIdentityCheck
     xlators['derefPtr']                     = derefPtr
     xlators['applyOwner']                   = applyOwner
     xlators['adjustConditional']            = adjustConditional

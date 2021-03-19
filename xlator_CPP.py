@@ -280,18 +280,29 @@ def getEnumStringifyFunc(className, enumList):
     S += '};\n\n'
     return S
 
-def codeIdentityCheck(S1, S2, retType1, retType2):
-    if progSpec.typeSpecsAreCompatible(retType1, retType2): retStr = S1+' == '+S2
-    elif progSpec.typeIsPointer(retType1) and progSpec.typeIsPointer(retType2):
-        LHS = S1
-        RHS = S2
-        LeftOwner  = progSpec.getTypeSpecOwner(retType1)
-        RightOwner = progSpec.getTypeSpecOwner(retType2)
-        if LeftOwner =='our' or LeftOwner =='my': LHS+='.get()'
-        if RightOwner=='our' or RightOwner=='my': RHS+='.get()'
-        retStr =  "(void*)("+LHS+") == (void*)("+RHS+")"
-    else: retStr =  S1+' == '+S2
-    return retStr
+def codeIdentityCheck(S, S2, retType1, retType2, opIn):
+    S2 = adjustQuotesForChar(retType1, retType2, S2)
+    leftOwner  = progSpec.getTypeSpecOwner(retType1)
+    rightOwner = progSpec.getTypeSpecOwner(retType2)
+    if opIn == '===':
+        if progSpec.typeSpecsAreCompatible(retType1, retType2):
+            return S+' == '+S2
+        elif progSpec.typeIsPointer(retType1) and progSpec.typeIsPointer(retType2):
+            if leftOwner =='our' or leftOwner =='my': S+='.get()'
+            if rightOwner=='our' or rightOwner=='my': S2+='.get()'
+            return "(void*)("+ S +") == (void*)("+S2+")"
+        else:
+            return S+' == '+S2
+    else:
+        if (opIn == '=='): opOut=' == '
+        elif (opIn == '!='): opOut=' != '
+        elif (opIn == '!=='): opOut=' != '
+        if not(leftOwner=='itr' and rightOwner=='itr'):
+            [S_derefd, isDerefd] = derefPtr(S, retType1)
+            if S2!='NULL' and S2!='nullptr': S=S_derefd
+            [S2, isDerefd]=derefPtr(S2, retType2)
+        return S+ opOut+S2
+    return S
 ###################################################### CONTAINERS
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
     convertedIdxType = ""
@@ -617,30 +628,6 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
             S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
             [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2
-            retTypeSpec='bool'
-    return [S, retTypeSpec]
-
-def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if len(item) > 1 and len(item[1])>0:
-        if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
-        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
-        leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
-        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            if   (i[0] == '=='): op=' == '
-            elif (i[0] == '!='): op=' != '
-            elif (i[0] == '!=='): op=' != '
-            elif (i[0] == '==='): op=' == '
-            else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
-            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
-            if i[0] == '===':
-                S=codeIdentityCheck(S, S2, retTypeSpec, retType2)
-            else:
-                if S2!='NULL' and S2!='nullptr': S=S_derefd
-                [S2, isDerefd]=derefPtr(S2, retType2)
-                S+= op+S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
@@ -1156,7 +1143,8 @@ def fetchXlators():
     xlators['iteratorsUseOperators'] = "True"
     xlators['renderGenerics']        = "False"
     xlators['renameInitFuncs']       = "False"
-    xlators['codeIsEQ']                     = codeIsEQ
+    xlators['codeComparison']               = codeComparison
+    xlators['codeIdentityCheck']            = codeIdentityCheck
     xlators['derefPtr']                     = derefPtr
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed

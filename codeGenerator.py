@@ -817,13 +817,24 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
 
 #################################################################
 
+def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator):
+    [S, retTypeSpec]=xlator['codeComparison'](item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    if len(item) > 1 and len(item[1])>0:
+        if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
+        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
+        for i in item[1]:
+            [S2, retType2] = xlator['codeComparison'](i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            S  = xlator['codeIdentityCheck'](S, S2, retTypeSpec, retType2, i[0])
+            retTypeSpec = 'bool'
+    return [S, retTypeSpec]
+
 def codeAnd(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator):
-    [S, retTypeSpec] = xlator['codeIsEQ'](item[0], objsRefed, returnType, expectedTypeSpec, xlator)
+    [S, retTypeSpec] = codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         [S_derefd, isDerefd] = xlator['derefPtr'](S, retTypeSpec)
         for i in item[1]:
-            [S2, retTypeSpec] = xlator['codeIsEQ'](i[1], objsRefed, returnType, expectedTypeSpec, xlator)
+            [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
             S+= ' & '+S2
     return [S, retTypeSpec]
 

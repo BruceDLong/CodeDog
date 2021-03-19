@@ -223,9 +223,23 @@ def getEnumStr(fieldName, enumList):
 def getEnumStringifyFunc(className, enumList):
     print("TODO: finish getEnumStringifyFunc")
 
-def codeIdentityCheck(S1, S2, retType1, retType2):
-    print("TODO: finish codeIdentityCheck")
-    return S1 + " == "+ S2
+def codeIdentityCheck(S, S2, retType1, retType2, opIn):
+    S2 = adjustQuotesForChar(retType1, retType2, S2)
+    if opIn == '===':
+        print("TODO: finish codeIdentityCk")
+        return S + " == "+ S2
+    else:
+        lFType = progSpec.fieldTypeKeyword(retType1)
+        rFType = progSpec.fieldTypeKeyword(retType2)
+        if (lFType=='String' or lFType == "string") and opIn=="==" and (rFType == "String" or rFType == "string"):
+            return S+'.equals('+S2+')'
+        else:
+            if   (opIn == '=='): opOut=' == '
+            elif (opIn == '!='): opOut=' != '
+            elif (opIn == '!=='): opOut=' != '
+            else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
+            return S+opOut+S2
+    return S
 
 def codeIsEQ(S1, S2, retType1, retType2):
     return S1 + " == "+ S2
@@ -474,34 +488,6 @@ def codeComparison(item, objsRefed, returnType, expectedTypeSpec, xlator):
             S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
             [S2, isDerefd]=derefPtr(S2, retType2)
             S+=S2+S3
-            retTypeSpec='bool'
-    return [S, retTypeSpec]
-
-def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, xlator):
-    [S, retTypeSpec]=codeComparison(item[0], objsRefed, returnType, expectedTypeSpec, xlator)
-    if len(item) > 1 and len(item[1])>0:
-        if len(item[1])>1: print("Error: Chained == or !=.\n"); exit(1);
-        if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
-        leftOwner=owner=progSpec.getTypeSpecOwner(retTypeSpec)
-        [S_derefd, isDerefd] = derefPtr(S, retTypeSpec)
-        for i in item[1]:
-            if   (i[0] == '=='): op=' == '
-            elif (i[0] == '!='): op=' != '
-            elif (i[0] == '!=='): op=' != '
-            elif (i[0] == '==='): op=' == '
-            else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
-            [S2, retType2] = codeComparison(i[1], objsRefed, returnType, expectedTypeSpec, xlator)
-            S2 = adjustQuotesForChar(retTypeSpec, retType2, S2)
-            if i[0] == '===':
-                S=codeIdentityCheck(S, S2, retTypeSpec, retType2)
-            else:
-                rightFieldType = progSpec.fieldTypeKeyword(retType2)
-                if rightFieldType == "string":rightFieldType = "String"
-                leftFieldType = progSpec.fieldTypeKeyword(retTypeSpec)
-                if leftFieldType == "string":leftFieldType = "String"
-                if rightFieldType == "String" and item[1][0][0]=="==" and leftFieldType=='String':
-                    S+= '.equals('+S2+')'
-                else: S+= op+S2
             retTypeSpec='bool'
     return [S, retTypeSpec]
 
@@ -908,7 +894,8 @@ def fetchXlators():
     xlators['iteratorsUseOperators'] = "False"
     xlators['renderGenerics']        = "True"
     xlators['renameInitFuncs']       = "False"
-    xlators['codeIsEQ']                     = codeIsEQ
+    xlators['codeComparison']               = codeComparison
+    xlators['codeIdentityCheck']            = codeIdentityCheck
     xlators['derefPtr']                     = derefPtr
     xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['adjustConditional']            = adjustConditional
