@@ -19,7 +19,7 @@ struct logger{
 }
 
 struct logManager{
-    me URL: logfile
+    our URL:: logfile // TODO: try making this a me variable type with the ability to run on Linux
 
     me void: openLogFile() <- <%{}%>
     me void: writeToLog (me string: txt) <- <%{

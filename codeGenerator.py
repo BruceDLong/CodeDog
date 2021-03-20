@@ -807,7 +807,7 @@ def codeParameterList(name, paramList, modelParams, objsRefed, xlator):
                 S2 = leftMod+S2+rightMod
                 modelFullFieldType  = progSpec.getFieldType(paramTypeSpec)
                 paramOwner      = progSpec.getOwnerFromTypeSpec(paramTypeSpec)
-                S += xlator['LanguageSpecificDecorations'](globalClassStore, S2, paramTypeSpec, paramOwner, 'PARAM', False, xlator)
+                S += S2
             else:
                 listOfFuncsWithUnknownArgTypes[(name+'()')]=1
                 S += S2

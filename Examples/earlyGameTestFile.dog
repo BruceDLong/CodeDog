@@ -1,0 +1,61 @@
+// earlyGameTestFile.dog
+
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+
+Title = "earlyGameTestFile"
+FileName = "earlyGameTestFile"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is for bringing up new platforms on the GameToolkit."
+ProgramOrLibrary = "program"
+
+featuresNeeded = [GameToolkit]
+
+LicenseText = `Public Domain`
+
+runCode=`
+    initializeGraphics(true)
+    setUpGame()
+    gameLooper.play(1, 40)
+    deinitGraphics()
+`
+////////////   A p p l i c a t i o n   a n d   G l o b a l s
+struct GameMenuScreen: inherits=GameMode{
+
+    void: update() <- {}
+    void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
+        cr.setColor(mainStyle.Green)
+        cr.rectangle(0,0,screenWidth, screenHeight)
+        cr.fillNow()
+        cr.setColor(mainStyle.White)
+        cr.rectangle(100, 100, 200, 200)
+        cr.strokeNow()
+        window.requestRedraw()
+    }
+    void: pause() <- {}
+    void: resume() <- {}
+    /*void: keyDownEventHandler(their KeyInfo: event) <- {
+        switch (event.sym){
+            case KEY_ESCAPE:{looper.quitGame()}
+        }
+    }*/
+    void: init(our GameLooper: ourLooper) <- {looper <- ourLooper}
+    void: deInit() <- {}
+}
+struct GLOBAL{
+    me int: fontSize
+    our GameLooper:: gameLooper
+    our GameMenuScreen:: gameMenuScreen
+    me Styler: mainStyle
+
+    void: setUpGame() <- {
+        gameMenuScreen.init(gameLooper)
+        gameLooper.setGameMode(gameMenuScreen)
+    }
+}
+
