@@ -152,10 +152,9 @@ def langStringFormatterCommand(fmtStr, argStr):
 
 def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
     if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
-        if LorRorP_Val == "PARAM":
-            if  S=="nil":
-                [paramType, innerType] = convertType(classes, typeSpec, 'arg', '', xlator)        #"RBNode<keyType, valueType>"
-                S = 'Optional<'+paramType+'>.none'
+        if LorRorP_Val == "PARAM" and S=="nil":
+            [paramType, innerType] = convertType(classes, typeSpec, 'arg', '', xlator)        #"RBNode<keyType, valueType>"
+            S = 'Optional<'+paramType+'>.none'
         elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not(LorRorP_Val =="LVAL" and isLastSeg):
             S+='!'  # optionals
     return S
@@ -375,22 +374,22 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlato
     #print("ITEM0=", item0, ">>>>>", item)
     if (isinstance(item0, str)):
         if item0=='(':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, 'XVAL', xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
             S+='(' + S2 +')'
         elif item0=='!':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, 'XVAL', xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
             if progSpec.varsTypeCategory(retTypeSpec) != 'bool':
                 if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
                 S2='('+S2+' != nil)'
                 retTypeSpec='bool'
             else: S+='!' + S2
         elif item0=='-':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, 'XVAL', xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
             S+='-' + S2
         elif item0=='[':
             tmp="["
             for expr in item[1:-1]:
-                [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, expectedTypeSpec, 'XVAL', xlator)
+                [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
                 if len(tmp)>1: tmp+=", "
                 tmp+=S2
             tmp+="]"
@@ -435,7 +434,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlato
             if isinstance(S, int): retTypeSpec = 'int64'
             else:  retTypeSpec = 'int32'
         else:
-            [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, xlator)
+            [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, LorRorP_Val, xlator)
             if(codeStr=="NULL"):
                 codeStr="nil"
                 retTypeSpec={'owner':"PTR"}
@@ -480,7 +479,7 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             else: varNameUnRefed=varName
             S+='if('+varNameUnRefed+' != nil){'+varName+'.clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
         elif(funcName=='Allocate'):
-            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', xlator)
+            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'LVAL', xlator)
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
             S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
@@ -628,7 +627,7 @@ struct GLOBAL{
     """ % (specialCode)
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE)
-def variableDefaultValueString(fieldType, isTypeArg):
+def variableDefaultValueString(fieldType, isTypeArg, owner):
     if (fieldType == "String"):
         fieldValueText=' = ""'
     elif (fieldType.startswith("[")):
@@ -642,7 +641,8 @@ def variableDefaultValueString(fieldType, isTypeArg):
     elif(isTypeArg):
         fieldValueText = ' = ['+fieldType +']()'
     else:
-        fieldValueText = ' = ' + fieldType +'()'
+        if progSpec.ownerIsPointer(owner):fieldValueText = '!'
+        else:fieldValueText = ' = ' + fieldType +'()'
     return fieldValueText
 
 def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
@@ -676,7 +676,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                 if True or not isinstance(rhsType, str) and fieldType==rhsType[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
         else:
-            assignValue = variableDefaultValueString(allocFieldType, False)
+            assignValue = variableDefaultValueString(allocFieldType, False, owner)
     fieldTypeMod = makePtrOpt(lhsTypeSpec)
     if (assignValue == ""):
         varDeclareStr= "var " + varName + ": "+ fieldType + fieldTypeMod + " = " + allocFieldType + '()'
@@ -708,7 +708,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramLi
         [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
         fieldValueText=" = " + convertedType + CPL
     else:
-        fieldValueText = variableDefaultValueString(convertedType, isTypeArg)
+        fieldValueText = variableDefaultValueString(convertedType, isTypeArg, fieldOwner)
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
