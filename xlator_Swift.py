@@ -529,7 +529,7 @@ def codeMain(classes, tags, objsRefed, xlator):
         [structCode, funcCode, globalFuncs]=codeStructFields(classes, "GLOBAL", tags, '', objsRefed, xlator)
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
-        funcCode = "\n\n"+funcCode+"\nmain();"
+        funcCode = "\n\n"+funcCode+"\nmain();" # TODO: figure out why call to main isn't generated and un-hardcode this
         return ["\n\n// Globals\n" + structCode + globalFuncs, funcCode]
     return ["// No Main Globals.\n", "// No main() function defined.\n"]
 
@@ -599,6 +599,15 @@ extension Character {
             return Int(s[s.startIndex].value)
         }
     }
+}
+
+func joinCmdStrings(count: Int, argv: [Character]) -> String{
+    var acc: String=""
+    for i in 1...count{
+        if(i>1){acc+=" "}
+        acc += String(argv[i])
+    }
+    return(acc)
 }
     """
 
@@ -712,8 +721,8 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramLi
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
-    defn = ''
-    decl =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
+    decl = ''
+    defn =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
     return [defn, decl]
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
@@ -858,7 +867,7 @@ def generateMainFunctionality(classes, tags):
     runCode = progSpec.fetchTagValue(tags, 'runCode')
     mainFuncCode="""
     me void: main() <- {
-        //initialize()
+        initialize("")        // TODO: get command line args and pass to initialize(joinCmdStrings(argc, argv))
         """ + runCode + """
         deinitialize()
     }

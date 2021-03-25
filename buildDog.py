@@ -6,6 +6,7 @@ import progSpec
 import os
 import subprocess
 import buildAndroid
+import buildMac
 import errno
 import shutil
 from progSpec import cdlog, cdErr
@@ -137,7 +138,6 @@ def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
     # reference https://swift.org/getting-started/#using-the-package-manager
     buildStr = ''
-    libStr = ''
     fileExtension = '.swift'
     currentDirectory = currentWD = os.getcwd()
     workingDirectory = currentDirectory + "/" + buildName
@@ -176,10 +176,10 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     elif platform == 'Windows':
         [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'MacOS':
-        [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        [workingDirectory, buildStr, runStr] = buildMac.macBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     else:
         print("buildDog.py error: build string not generated for "+ buildName)
         exit(2)
-    if platform != 'Android': printResults(workingDirectory, buildStr, runStr)
+    if platform!='Android': printResults(workingDirectory, buildStr, runStr)
     print("--------------------------")
     return
