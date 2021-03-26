@@ -19,15 +19,27 @@ struct logger{
 }
 
 struct logManager{
+    our URL:: logfile // TODO: try making this a me variable type with the ability to run on Linux
+
     me void: openLogFile() <- <%{}%>
-    me void: writeToLog (me string: txt) <- <%{}%>
+    me void: writeToLog (me string: txt) <- <%{
+        if (useConsole){print(txt+"\n")}
+        if (useLogFile){
+            do {
+                try txt.write(to: logfile, atomically: false, encoding: String.Encoding.utf8)
+            }
+            catch let error as NSError {
+                print("Unable to write to file")
+            }
+        }
+    }%>
 }
 
 struct GLOBAL{
-    me void: log(me string: MSG) <- <%{}%>
-    me void: logInfo(me string: MSG) <- <%{}%>
-    me void: logCritical(me string: MSG) <- <%{}%>
-    me void: logFatalError(me string: MSG) <- <%{}%>
-    me void: logWarn(me string: MSG) <- <%{}%>
-    me void: logDbg(me string: MSG) <- <%{}%>
+    me void: log(me string: MSG)            <- <%!logMgr.Mesg.LogEntry("MESG: ", %1)%>
+    me void: logInfo(me string: MSG)        <- <%!logMgr.Info.LogEntry("INFO: ", %1)%>
+    me void: logCritical(me string: MSG)    <- <%!logMgr.Critical.LogEntry("CRITICAL ERROR: ", %1)%>
+    me void: logFatalError(me string: MSG)  <- <%!logMgr.FatalError.LogEntry("FATAL ERROR: ", %1); exit(1);%>
+    me void: logWarn(me string: MSG)        <- <%!logMgr.Warning.LogEntry("WARNING: ", %1)%>
+    me void: logDbg(me string: MSG)         <- <%!logMgr.Debug.LogEntry("DEBUG: ", %1)%>
 }

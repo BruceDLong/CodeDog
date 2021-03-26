@@ -373,7 +373,6 @@ struct GamePlayScreen: inherits=GameMode{
     void: deInit() <- {}
 }
 struct GLOBAL{
-    their GUI_canvas: drawing_area
     me int: fontSize
     our GameLooper:: gameLooper
     our GameMenuScreen:: gameMenuScreen

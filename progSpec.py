@@ -790,7 +790,8 @@ def getFieldType(typeSpec):
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
-def getFieldTypeKeyWord(typeSpec):
+def getFieldTypeKeyWordOld(typeSpec):
+    # TODO: delete this function when dynamic types working
     if(typeSpec==None):return None
     fieldType = getFieldType(typeSpec)
     if isinstance(fieldType, str): return fieldType
@@ -856,11 +857,11 @@ def getCodeConverterByFieldID(classes, structName, fieldName, prevNameSeg, conne
             return prevNameSeg+connector+fieldName+"()"
     return prevNameSeg+connector+fieldName+"()"
 
-def getNodeTypeOfDataStruct(datastructID, containerType):
+def getItrTypeOfDataStruct(datastructID, containerType):
     if 'fromImplemented' in containerType:
         fromImplemented = containerType['fromImplemented']
-        if 'nodeTypeSpec' in fromImplemented:
-            return fromImplemented['nodeTypeSpec']
+        if 'itrTypeSpec' in fromImplemented:
+            return fromImplemented['itrTypeSpec']
     return None
 
 #### Packed Template Arg Handling Functions ####
@@ -979,7 +980,7 @@ def fieldTypeKeyword(fieldType):
     if 'owner' in fieldType and fieldType['owner']=='PTR':
         return 'NONE'
     if 'fieldType' in fieldType:    # if var fieldType is typeSpec
-        fieldType = getFieldTypeKeyWord(fieldType)
+        fieldType = fieldType['fieldType']
     if isinstance(fieldType, str):
         return fieldType
     if('varType' in fieldType[0]):

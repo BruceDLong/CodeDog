@@ -189,11 +189,8 @@ struct Styler{
     }
     me cdColor: color(me string: ID, me cdColor: defaultColor) <- {
         our cdColor[itr map string]: colorItr <- userColors.find(ID)
-        if(colorItr == userColors.end()){
-            return(defaultColor)
-        }else{
-            return(colorItr.val)
-        }
+        if(colorItr != userColors.end()){return(colorItr.val)}
+        return(defaultColor)
     }
 
 
@@ -214,9 +211,9 @@ struct Styler{
     me string: monoFont
 
     void: setCustomFont(me string: ID, me string: fontName) <- {
-        userFontNames.insert(ID, fontName)
+        //userFontNames.insert(ID, fontName)
     }
-    me string: font(me string: ID) <- {return(userFontNames.at(ID))}
+    me string: font(me string: ID) <- {/*return(userFontNames.at(ID))*/}
 
     // FONT SIZES
     me Map<me string, me int>: userFontSizes
@@ -230,7 +227,8 @@ struct Styler{
         userFontSizes.insert(ID, fontSize)
     }
     me int: fontSize(me string: ID) <- {
-        return(userFontSizes.at(ID))
+        //return(userFontSizes.at(ID))
+        return(0)
     }
 
     // FONT SIZE MODES
