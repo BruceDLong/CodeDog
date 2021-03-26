@@ -68,18 +68,14 @@ struct SoundData{their Mix_Chunk: SoundData}
 struct GameSurface{their SurfaceView: GameSurface}
 /////////////////////////////////  GLOBAL
 struct GLOBAL: inherits=Activity{
+    const int: SCREEN_WIDTH  <- 900
+    const int: SCREEN_HEIGHT <- 700
+
     void: deallocateWindow(their GRWindow: window)      <- <%!%GTODO:deallocateWindow%>
     void: deallocateGraphicsSystem()                    <- <%!%GTODO:deallocateGraphicsSystem%>
     void: getTickCount()                                <- <%!%GSystemClock.uptimeMillis()%>
     void: sleep()                                       <- <%!%GSystemClock.sleep(%1)%>
     their GUI_ctxt: createGUI_ctxt()                    <- <%!%G new GUI_ctxt()%>
-    their GameSurface: screenSurface
-    our Canvas:   canvas
-    me int: screenWidth
-    me int: screenHeight
-    const int: SCREEN_WIDTH  <- 900
-    const int: SCREEN_HEIGHT <- 700
-
     void: onCreate(me Bundle: savedInstanceState) <- <%{
         super.onCreate(savedInstanceState);
         GLOBAL.static_Global = this;
@@ -294,9 +290,6 @@ struct GameSound{
     }%>
     void: play() <-  <%{}%>
 }
-
-
-
 struct GameMode{
     our GameModeView: gameModeView
 
