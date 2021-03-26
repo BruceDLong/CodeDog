@@ -120,12 +120,12 @@ struct GameLooper{
     me bool: running
     me bool: printFPS <- true
     our GameMode: crntGameMode
-
     me int: framesDrawnCount
     me double: latestTickCount
     me double: lastTickLog
     me double: recentFPS
     me int: framesLog
+    me List<our GameMode>: modeStack
 
     void: setGameMode(our GameMode: gameMode) <- {
         crntGameMode <- gameMode
@@ -150,8 +150,6 @@ struct GameLooper{
             crntGameMode.handleEvent(event);
         }
     }
-    me List<our GameMode>: modeStack
-
     void: outputFPS() <- {
         latestTickCount <- getTickCount()
         if ((latestTickCount - lastTickLog) >= 3000) {
@@ -293,7 +291,11 @@ struct Styler{
 
 struct GLOBAL{
     their GRWindow: window
+    their GameSurface: screenSurface
+    their INK_Image:   canvas
     me Map<me string, their INK_Image>: picCache
+    me int: screenWidth
+    me int: screenHeight
 
     void: deinitGraphics() <- {
         deallocateWindow(window)
@@ -339,4 +341,3 @@ struct GameSound{
     their SoundData: data
 }
 struct GUI_Scalar{}
-

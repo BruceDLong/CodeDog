@@ -1,10 +1,10 @@
 // earlyGameTestFile.dog
 
-//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 //AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
-MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
 
 Title = "earlyGameTestFile"
 FileName = "earlyGameTestFile"
@@ -26,7 +26,6 @@ runCode=`
 `
 ////////////   A p p l i c a t i o n   a n d   G l o b a l s
 struct GameMenuScreen: inherits=GameMode{
-
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {
         cr.setColor(mainStyle.Green)
@@ -48,7 +47,6 @@ struct GameMenuScreen: inherits=GameMode{
     void: deInit() <- {}
 }
 struct GLOBAL{
-    me int: fontSize
     our GameLooper:: gameLooper
     our GameMenuScreen:: gameMenuScreen
     me Styler: mainStyle
@@ -58,4 +56,3 @@ struct GLOBAL{
         gameLooper.setGameMode(gameMenuScreen)
     }
 }
-

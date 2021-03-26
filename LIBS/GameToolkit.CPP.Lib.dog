@@ -36,31 +36,24 @@ struct SoundData{their Mix_Chunk: SoundData}
 struct GameSurface{their SDL_Surface: GameSurface}
 /////////////////////////////////  GLOBAL
 struct GLOBAL{
+    const int: SCREEN_WIDTH  <- 900
+    const int: SCREEN_HEIGHT <- 700
+
     void: deallocateWindow(their GRWindow: window)      <- <%!%GSDL_DestroyWindow(%1)%>
     void: deallocateGraphicsSystem()                    <- <%!%GSDL_Quit()%>
     void: getTickCount()                                <- <%!%GSDL_GetTicks()%>
     their GUI_ctxt: createGUI_ctxt() <- <%!%Gcairo_create(canvas)%>
-    their GameSurface: screenSurface
-    their INK_Image:   canvas
-    me int: screenWidth
-    me int: screenHeight
-    const int: SCREEN_WIDTH  <- 900
-    const int: SCREEN_HEIGHT <- 700
-
     me bool: getFullScreenMode() <- <%{
         return(SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN);
     }%>
-
     void: fullScreenModeOn() <- <%{
         SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
         SDL_SetRelativeMouseMode(SDL_TRUE);
     }%>
-
     void: fullScreenModeOff() <- <%{
         SDL_SetWindowFullscreen(window, SDL_FALSE);
         SDL_SetRelativeMouseMode(SDL_FALSE);
     }%>
-
     void: initializeGraphics(me bool: startFullScreen) <- <%{
         //The surface contained by the window
         screenSurface = NULL;
@@ -83,7 +76,6 @@ struct GLOBAL{
             }
         }
     }%>
-
     void: resetWindowSize(me int: width, me int: height) <- <%{
         screenWidth  = width;
         screenHeight = height;
@@ -95,7 +87,6 @@ struct GLOBAL{
         screenSurface = SDL_GetWindowSurface(window);
         canvas = cairo_image_surface_create_for_data((unsigned char*) screenSurface->pixels,CAIRO_FORMAT_RGB24, width, height, screenSurface->pitch);
     }%>
-
     // //DRAWING ROUTINES:
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         cairo_move_to(cr,x,y);
