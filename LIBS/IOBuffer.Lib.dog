@@ -16,37 +16,38 @@ struct strBuf{
     me Mutex: bufMutex
     me SyncLock: bufLock
     me bool: bufferClosed
+    me string: streamName
 
-    void: putStr(me string: data) <- { 
+    void: putStr(me string: data) <- {
         log("PUTTING:"+data)
         me MutexMngr: bufMtxMgr{bufMutex}
         if(bufferClosed){
-	    log("BUFF_CLOSED:"+data)
-	    return()
-	}
+            log("WARNING: Buffer already closed in putStr:"+data)
+            return()
+        }
         their strInnerBuf:: innerBuf
         innerBuf.buf <- data
         innerBuf.myOffset <- crntStreamSize
         innerBuf.refCount <- 1
-        crntStreamSize <+- data.size()
-	me int: newLines <- 0
-	me int: dataSize <- data.size()
-	withEach idx in RANGE(0..dataSize){
+        me int64: dataSize <- data.size()
+        crntStreamSize <+- dataSize
+        me int64: newLines <- 0
+        withEach idx in RANGE(0..dataSize){
             if(data[idx] == "\n"){
                 newLines <+- 1
             }
         }
         if(tail==NULL){
-	    head <- innerBuf
-	    innerBuf.endingLineNumber <- newLines
-	} else {
-	    tail.next <- innerBuf
-	    innerBuf.prev <- tail
-	    innerBuf.endingLineNumber <- innerBuf.prev.endingLineNumber + newLines
-	}
+            head <- innerBuf
+            innerBuf.endingLineNumber <- newLines
+        } else {
+            tail.next <- innerBuf
+            innerBuf.prev <- tail
+            innerBuf.endingLineNumber <- innerBuf.prev.endingLineNumber + newLines
+        }
         tail <- innerBuf
         //log("NOTIFYING:")
-	log("endingLineNumber of InnerBuf:"+toString(innerBuf.endingLineNumber))
+        log("endingLineNumber of InnerBuf:"+toString(innerBuf.endingLineNumber))
         bufLock.notifyOne()
     }
     their strInnerBuf: findInrBufWithPos(me int64: pos) <- {
@@ -101,6 +102,29 @@ struct strBuf{
         }
         return("BufERROR")
     }
+        // call findInrBufWithPos to get the inr buf with the character prev.EndingLineNumber and count up to current position
+    me string: getLocationAtCharPos(me int64: charPos) <- {
+        their strInnerBuf: bufWithChar <- findInrBufWithPos(charPos)
+        me int64: lastLinePos <- 0
+        me int64: errLineNum <- 1
+        me int64: errCharPos <- 0
+        if(bufWithChar.prev){
+            errLineNum <- bufWithChar.prev.endingLineNumber
+        }
+        me int: bufSize <- bufWithChar.buf.size()
+        withEach idx in RANGE(0..bufSize) {
+            if(bufWithChar.myOffset + idx > charPos){
+                break()
+            }
+            if(bufWithChar.buf[idx] == "\n"){
+                errLineNum <+- 1
+                lastLinePos <- idx
+            }
+        }
+        errCharPos <- charPos-(lastLinePos+bufWithChar.myOffset)
+        return(streamName+":"+toString(errLineNum)+":"+toString(errCharPos))
+    }
+
     void: close() <- {
         me MutexMngr: bufMtxMgr{bufMutex}
         bufferClosed <- true
@@ -108,7 +132,7 @@ struct strBuf{
         //log("CLOSE-NOTIFYING:")
     }
     me int64: size() <- {
-	return(crntStreamSize)
+        return(crntStreamSize)
     }
     me string: stringify() <- {
         me string: retVal
@@ -119,11 +143,12 @@ struct strBuf{
         }
         return(retVal)
     }
-    void: init() <- {
+    void: init(me string: StreamName) <- {
         head <- NULL
         tail <- NULL
         crntStreamSize <- 0
         bufferClosed   <- false
+        streamName <- StreamName
     }
 }
 
@@ -165,4 +190,3 @@ struct strBufRange{
     void: INIT(me int64: start, me int64: end) <- {}  // inc RefCount
     void: DEINIT() <- {} // dec RefCOunt
 }
-

@@ -687,7 +687,7 @@ struct GLOBAL{
         our <CLASSNAME>: result
         me EParser: parser
         parser.populateGrammar()
-        parser.initParseFromString(parser.<CLASSNAME>_str, textIn)
+        parser.initParseFromString("<CLASSNAME>", parser.<CLASSNAME>_str, textIn)
         parser.doParse()
         if (parser.doesParseHaveError()) {
             print("Parse Error:" + parser.errorMesg + "\\n")

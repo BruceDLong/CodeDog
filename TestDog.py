@@ -82,10 +82,10 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             me bool: listOnly <- false
             me bool: CrashProof <- false
             me int: testNum <- 1
-            withEach test in testToRun{
+            withEach testname in testToRun{
                 if(! listOnly){
                     if (!CrashProof){
-                        RUN_TEST(testNum, test, verboseMode)
+                        RUN_TEST(testNum, testname, verboseMode)
                     } else {
      //                   ExecSelf with timer and fetch result
                     }
@@ -112,8 +112,8 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
                 // TODO: make test selection work with multiple tests.
                 me int: strSize <- testListSpec.size()
                 if(testListSpec[strSize-1] == "/"){
-                    withEach item in testList{
-                        if(item.subStr(0,strSize) == testListSpec){testToRun.pushLast(item)}
+                    withEach testname in testList{
+                        if(testname.subStr(0,strSize) == testListSpec){testToRun.pushLast(testname)}
                     }
                 }
                 else{testToRun.pushLast(testListSpec)}
@@ -151,7 +151,7 @@ def generateTestCode(classes, buildTags, tags, macroDefs):
         count+=1
         TestArrayText += '"'+T+'"'
 
-        SwitchCaseText += 'if(testName=="'+T+'"){' + T.replace('/', '_') +'()}\n'
+        SwitchCaseText += 'if(testName=="'+T+'"){' + T.replace('/', '_') +'(testName)}\n'
 
     testBedUtilities = setUtilityCode(TestArrayText, SwitchCaseText)
 

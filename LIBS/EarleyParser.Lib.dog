@@ -7,7 +7,7 @@ To use it manually:
         1. Create a parser:           me EParser: parser
         2. Initialize your grammar:   parser.populateGrammar()
         3. Register the start symbol (an int from your grammar) and the string or stream to parse:
-                parser.initParseFromString(startSymbol, textIn)
+                parser.initParseFromString(streamName, startSymbol, textIn)
           OR    parser.initParseFromStream(startSymbol, IOBufferIn)
         4. Run the parse:             parser.doParse()
         5. Check for parse errors:    if(parser.doesParseHaveError()){print("Parse Error:" + parser.errorMesg)}
@@ -21,7 +21,7 @@ To use it manually:
             It is also possible to have the extraction done while parsing is happening for a streaming parse.
 
         For a non-streaming parse:
-            * Initialize with parser.initParseFromString(startSymbol, textIn).
+            * Initialize with parser.initParseFromString(streamName, startSymbol, textIn).
             * Call topDownResolve after the parse (because it is faster to do so).
             * Extract the parse after resolve.
 
@@ -929,7 +929,7 @@ struct EParser{
                 //log("ALLOC:"+newStateRecPtr.mySymbol() + ": "+newStateRecPtr.stringify(self))
                 newStateRecPtr.pedigrees.pushLast(pedigree(pred, cause, productionID))
                 if(productionID==startProduction and origin==0) {lastTopLevelItem <- newStateRecPtr}
-                log("  AddToCol:"+toString(crntPos)+" cause:"+cause.mySymbol()+" pred:"+ pred.mySymbol()+": "+newStateRecPtr.mySymbol() + ": "+newStateRecPtr.stringify(self))
+                //log("  AddToCol:"+toString(crntPos)+" cause:"+cause.mySymbol()+" pred:"+ pred.mySymbol()+": "+newStateRecPtr.mySymbol() + ": "+newStateRecPtr.stringify(self))
                 SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
                 if(!doQuickParse){applyPartialCompletion(newStateRecPtr)}
             }
@@ -1053,7 +1053,6 @@ struct EParser{
         //log(indent+" FAIL:"+failed.mySymbol()+" : "+failed.stringify(self))
         if(ProdType==parseREP) {
             failed.failed <- true
-    //setSRecChildTo(failed, NULL, "notfy:")
             me int64: numItems <- failed.SeqPosition
             our stateRec: nextItem <- failed
             our stateRec: topItem  <- nextItem
@@ -1137,7 +1136,7 @@ struct EParser{
         while(crntPos<SSets.size()){
             their stateSets: SSet <- SSets[crntPos]
 
-            log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: " + toString(crntPos)+ " '" + streamToParse.atSafe(crntPos)+"'")
+            //log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: " + toString(crntPos)+ " '" + streamToParse.atSafe(crntPos)+"'")
             resetCompletions(crntPos)
             withEach SRec in SSet.stateRecs {
                 their production: prod <- grammar[SRec.productionID]
@@ -1174,38 +1173,22 @@ struct EParser{
             crntPos <+- 1
         }
         parseTreeFinished <- true
-        log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
-    }
-    // call findInrBufWithPos to get the inr buf with the character prev.EndingLineNumber and count up to current position
-    void: getLineNumberAtCharPos(me int64: charPos) <- {
-        their strInnerBuf: bufWithChar <- streamToParse.findInrBufWithPos(charPos)
-        errLineNum <- bufWithChar.prev.endingLineNumber
-        me int64: lastLinePos <- 0
-        me int: bufSize <- bufWithChar.buf.size()
-        withEach idx in RANGE(0..bufSize) {
-            if(bufWithChar.myOffset + idx > charPos){
-                break()
-            }
-            if(bufWithChar.buf[idx] == "\n"){
-                errLineNum <+- 1
-                lastLinePos <- idx
-            }
-        }
-        errCharPos <- charPos-lastLinePos+1
+        //log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
     }
 
     me bool: doesParseHaveError() <- {
-  //      log("\n\nChecking for Parse Errors...\n")
+        //log("\n\nChecking for Parse Errors...\n")
         errorMesg <- ""
         me int64: lastSSetIDX <- SSets.size()
         me int64: lastPosWithItems <- 0
         withEach ssetIDX in Backward RANGE(0 .. lastSSetIDX){
             their stateSets: SSet <- SSets[ssetIDX]
             me int64: numItems <- SSet.stateRecs.size()
-            if(numItems>0 and lastPosWithItems==0){lastPosWithItems <- ssetIDX}
-         //   print("Position ", ssetIDX, " has ", numItems, "items.\n")
+            //me int64: sidx <- ssetIDX; log("Position "+ toString(sidx)+ " has "+ toString(numItems)+ "items.\n")
+            if(numItems>0 and lastPosWithItems==0){lastPosWithItems <- ssetIDX; break()}
+
         }
-  //      print("lastPosWithItems:", lastPosWithItems, "\n")
+        //log("lastPosWithItems:"+ toString(lastPosWithItems)+ "\n")
 
         their stateSets: lastSSet <- SSets[lastPosWithItems]
 
@@ -1229,13 +1212,14 @@ struct EParser{
         }
         if(isTerminal!=0){
             if(seqPos==0){
-                errorMesg <- "Expected '" + prod.constStr + "'"
-                getLineNumberAtCharPos(lastPosWithItems)
+                me string: errLocation <- streamToParse.getLocationAtCharPos(lastPosWithItems)
+                errorMesg <- errLocation+ " ERROR: Expected '" + prod.constStr + "'."
             }
         }
 
         if(errorMesg=="" and (lastPosWithItems+1)!=lastSSetIDX){
-            errorMesg<-'Parse failed for unknown reason.'
+            me string: errLocation <- streamToParse.getLocationAtCharPos(lastPosWithItems)
+            errorMesg <- errLocation+ " ERROR: Parse failed for unknown reason."
         }
         if(errorMesg=="") {return(false)}
         else {return(true)}
@@ -1287,8 +1271,8 @@ struct EParser{
             me int: count <- 0
             withEach ped in lastSRec.pedigrees {
                 our stateRec: cause <- ped.cause
-    log("COUNT:"+toString(count))
-    if(lastSRec.mySymbol()=="stateRec170" and count==0){count<+-1; log("SKIPPING:"+cause.mySymbol()); cause.pathNotChosen<-true; dumpGraph("Skipping", 1) continue()}
+   // log("COUNT:"+toString(count))
+  //  if(lastSRec.mySymbol()=="stateRec170" and count==0){count<+-1; log("SKIPPING:"+cause.mySymbol()); cause.pathNotChosen<-true; dumpGraph("Skipping", 1) continue()}
                 if(cause){
                     setSRecChildTo(cause, lastSRec, indent +"r   ")
                     if(lastSRec.parseDone){
@@ -1297,13 +1281,7 @@ struct EParser{
                     if(level==1){
                         if(lastSRec.child!=NULL and grammar[lastSRec.productionID].prodType==parseREP){cause.MARKer1<-true
                             //log("REP_RESOLVE):"+lastSRec.mySymbol()+"  cause:"+cause.mySymbol())
-                            bottomUpResolve(cause, 2, indent+"|x  ") // TODO: This makes redundant calls. Fix it
-                         /*   our stateRec: parent <- chosenPed(cause).cause
-                            if(parent!=NULL){setSRecChildTo(parent, cause, indent +"S   ")}
-                            if(parent!=NULL and parent.next!=NULL){
-                              //  closeRepStateRec(cause)
-                                log("RULE_IS_DONE:"+cause.stringify(self))
-                            }*/
+                            bottomUpResolve(cause, 2, indent+"|x  ") // TODO: This makes redundant calls. Improve it
                         }
                     }else {bottomUpResolve(cause, level-1, indent+"|   ")}
                 }
@@ -1460,10 +1438,10 @@ struct EParser{
         return(topParseNode)
     }
 
-    our stateRec: initParseFromString(me int: startProd, me string: txt) <- {
+    our stateRec: initParseFromString( me string: streamName, me int: startProd, me string: txt) <- {
         // print('Will parse "', txt, '" with rule ', startProd, '.\n')
         their strBuf:: bufToParse
-        bufToParse.init()
+        bufToParse.init(streamName)
         bufToParse.putStr(txt)
         bufToParse.close()
         our stateRec: topParseNode <- initParseFromStream(startProd, bufToParse)
