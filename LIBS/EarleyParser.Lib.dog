@@ -7,7 +7,7 @@ To use it manually:
         1. Create a parser:           me EParser: parser
         2. Initialize your grammar:   parser.populateGrammar()
         3. Register the start symbol (an int from your grammar) and the string or stream to parse:
-                parser.initParseFromString(startSymbol, textIn)
+                parser.initParseFromString(streamName, startSymbol, textIn)
           OR    parser.initParseFromStream(startSymbol, IOBufferIn)
         4. Run the parse:             parser.doParse()
         5. Check for parse errors:    if(parser.doesParseHaveError()){print("Parse Error:" + parser.errorMesg)}
@@ -21,7 +21,7 @@ To use it manually:
             It is also possible to have the extraction done while parsing is happening for a streaming parse.
 
         For a non-streaming parse:
-            * Initialize with parser.initParseFromString(startSymbol, textIn).
+            * Initialize with parser.initParseFromString(streamName, startSymbol, textIn).
             * Call topDownResolve after the parse (because it is faster to do so).
             * Extract the parse after resolve.
 
@@ -58,11 +58,15 @@ struct production{
     me List<me int>: items
     flag: isNullable
     flag: nullabilityCalced
+    me bool: isP_nullable() <- { // for analysis, not for parsing
+        return(isNullable or myIndex==EParser.wsc or myIndex==EParser.ws)
+    }
     me string: nameToStr(their List<me string>: rnames) <- {
         me string: retval
         if(isTerm){retval <- constStr}
         else if(myIndex < rnames.size()){retval <- rnames[myIndex]}
         else{retval<-"UNKNOWN"}
+        if(isTerm){retval <- "'"+retval+"'"}
         return(retval)
     }
     me string: toStr(me int64: seqPos, me int64: originPos, me int64: crntPos, their List<me string>: rnames) <- {
@@ -116,6 +120,7 @@ struct stateRec{
     me List<me pedigree>: pedigrees
     our stateRec: next
     our stateRec: child
+    flag: pathNotChosen
     flag: resolved
 
     // The following flags are used in streaming mode:
@@ -143,6 +148,11 @@ flag: MARKer2  // They are for debugging and can be removed
 
 struct stateSets{
     me List<our stateRec>: stateRecs
+}
+
+struct productionChainItem{
+    me int: prodID
+    me int: index
 }
 
 struct EParser{
@@ -271,7 +281,7 @@ struct EParser{
     me bool: calcStreamPointsFromProd(me int: prodID, their Map<me int, me int>: prod2TimesUsed, me int:level) <- {
         their production: prod<-grammar[prodID]
         if(prod.isTerm){
-            //log(indentedStr("",level,0)+":'"+prod.nameToStr(rnames)+"' "+toString(level))
+            //log(indentedStr("",level,0)+":"+prod.nameToStr(rnames)+" "+toString(level))
             me int: timesUsed <-  incProductionCount(prodID, prod2TimesUsed)
             if(timesUsed==1){prod.lvlsToBackApprove <- level} else {prod.lvlsToBackApprove <- 1} // min(prod.lvlsToBackApprove, level)}
         } else{
@@ -298,7 +308,179 @@ struct EParser{
         me Map<me int, me int>: prod2TimesUsed
         calcStreamPointsFromProd(infon_str, prod2TimesUsed, 0)
         //withEach prod in prod2TimesUsed{log(toString(prod_key)+"-PROD:"+grammar[prod_key].nameToStr(rnames)+ ": times used:"+toString(prod2TimesUsed[prod_key]) + "  lvlsToBackApprove:"+toString(grammar[prod_key].lvlsToBackApprove))}
+
+    ///    tryToFindAmbiguities(); exit(2)
     }
+/*
+    me string: stringifyParsePos(their List<productionChainItem>: parsePos) <- {
+        me string: S
+        me int: count <- 0
+        withEach pItem in parsePos{
+            their production: prod<-grammar[pItem.prodID]
+            if(prod.isTerm){S <+- ":'"+prod.nameToStr(rnames)+"' "}
+            else{
+                S <+- ":"+prod.nameToStr(rnames)
+                if(prod.prodType==parseSEQ){
+                    S <+- "$"+toString(pItem.index)
+                } else if(prod.prodType==parseALT){
+                    S <+- "@"+toString(pItem.index)
+                } else{
+                    S <+- "&"+toString(pItem.index)
+                }
+            }
+            count <+- 1
+        }
+        return(S)
+    }
+
+    void: goPotentialNextProd(their List<productionChainItem>: parsePos) <- {
+        me int: lastItemIdx <- parsePos.size()-1
+        their production: crntPred <- grammar[parsePos.last().prodID]
+        if(lastItemIdx > 0){
+            me int: prevItemIdx <- lastItemIdx-1
+            me int: prevProdID  <- parsePos[prevItemIdx].prodID
+            me int: prevProdIdx <- parsePos[prevItemIdx].index+1
+            their production: prevProd<-grammar[prevProdID]
+            me int: maxIdx <- prevProd.items.size()
+            if(prevProd.prodType==parseREP){
+                if(prevProd.items[2]==0){maxIdx <- 2}
+                else{maxIdx <- min(prevProd.items[2], 1)}  // 2
+                //log("parseREP:"+toString(prevProdIdx)+" >=  maxIdx:"+toString(maxIdx) + "  in:"+prevProd.nameToStr(rnames))
+            }
+            if(prevProd.isTerm or prevProdIdx >= maxIdx){
+                parsePos[prevItemIdx].index  <- prevProdIdx
+                parsePos.popLast()
+                goPotentialNextProd(parsePos)
+            } else {
+                parsePos[prevItemIdx].index  <- prevProdIdx
+                if(prevProd.prodType==parseREP){prevProdIdx<-0}
+                parsePos[lastItemIdx].prodID <- prevProd.items[prevProdIdx]
+                parsePos[lastItemIdx].index  <- 0
+            }
+        }
+        return()
+    }
+
+    me string: testForAmbig_simple(their production: prodL, their production: prodR, me string: LPath, me string: RPath) <- {
+        //log("######## TESTING:"+prodL.nameToStr(rnames)+"   R:"+prodR.nameToStr(rnames)); log("######## ^^^^^^^:"+LPath+"   R:"+RPath)
+        if(prodL.isP_nullable() and prodR.isP_nullable()){
+            if((prodL.myIndex==ws or prodL.myIndex==wsc) and (prodR.myIndex==ws or prodR.myIndex==wsc)){
+                log("######## Ambiguity-WS L:"+prodL.nameToStr(rnames)+"   R:"+prodR.nameToStr(rnames))
+                log("^^^^^^^^ L:"+LPath)
+                log("^^^^^^^^ R:"+RPath)
+            } else if(prodL.myIndex == prodR.myIndex){
+                log("######## Ambiguity L:"+prodL.nameToStr(rnames)+"   R:"+prodR.nameToStr(rnames))
+                log("^^^^^^^^ L:"+LPath)
+                log("^^^^^^^^ R:"+RPath)
+            }
+        }
+        me string: logNullability <- ""; if(prodR.isP_nullable()){logNullability <- "-N"}
+        return(prodR.nameToStr(rnames)+logNullability)
+    }
+    me string: testForAmbig_wAlts(their production: prodL, their production: prodR, me string: LPath, me string: RPath) <- {
+        me string: ret
+        ret <+- testForAmbig_simple(prodL, prodR, LPath, RPath)
+        if(!prodR.isTerm){
+            if(prodR.prodType==parseALT){
+                ret <+- "^["
+                withEach altID in prodR.items{
+                    their production: prodAlt<-grammar[altID]
+                    ret <+- testForAmbig_wAlts(prodL, prodAlt, LPath, RPath + "^"+prodAlt.nameToStr(rnames))
+                }
+                ret <+- "]"
+            }else if(prodR.prodType==parseSEQ){
+                their production: prodSEQ<-grammar[prodR.items[0]]
+                ret <+- "^" + testForAmbig_wAlts(prodL, prodSEQ, LPath, RPath + "^"+prodSEQ.nameToStr(rnames))
+            }else if(prodR.prodType==parseREP){
+            }
+        }
+        return(ret)
+    }
+
+    void: CheckProdChainForAmbiguity(their List<productionChainItem>: parsePos) <- {
+        me int: prodID <- parsePos.last().prodID
+        their production: prodL <- grammar[prodID]
+        //log("****** CONSIDER:"+prodL.nameToStr(rnames))
+
+        me string: Str
+        me int: count <- 0
+        me List<productionChainItem>: parsePos2
+        withEach pItem in parsePos{
+            parsePos2.pushLast(pItem)
+            if(count>0){Str <+- "   |"} else{count <- 1}
+        }
+        if(prodL.isTerm){Str <+- ":'"+prodL.nameToStr(rnames)+"' "}else{Str <+- ":"+prodL.nameToStr(rnames)} Str <+- " --> <"
+
+        me bool: getANext <- true
+        me string: sepChar <- ""
+        while(getANext){
+            goPotentialNextProd(parsePos2)
+            their production: prod2 <- grammar[parsePos2[parsePos2.size()-1].prodID]
+            if(parsePos2.first().index < grammar[parsePos2.first().prodID].items.size() and (parsePos2.size()>1 or parsePos.size()>1)){
+                //log("$$$$$$ CHECKING:"+prodL.nameToStr(rnames)+"   R:"+prod2.nameToStr(rnames)); log("$$$$$$ -------- L:"+stringifyParsePos(parsePos) +"  R:"+ stringifyParsePos(parsePos2))
+                Str <+- sepChar
+                Str <+- testForAmbig_wAlts(prodL, prod2, stringifyParsePos(parsePos), stringifyParsePos(parsePos2))
+                if(!prod2.isP_nullable()){getANext <- false}
+                if(getANext){sepChar <- ", "}
+            }else{Str <+- " DONE"; getANext <- false}
+        }
+        Str <+- "> "
+        log(Str)
+    }
+
+    me bool: constructParseMap(their Map<me int, me int>: prod2TimesUsed, their List<productionChainItem>: parsePos, me int:level) <- {
+        me int: prodID <- parsePos.last().prodID
+        their production: prod<-grammar[prodID]
+        CheckProdChainForAmbiguity(parsePos)
+        if(prod.isTerm){
+            me int: timesUsed <-  incProductionCount(prodID, prod2TimesUsed)
+        } else{
+            me int: timesUsed <-  incProductionCount(prodID, prod2TimesUsed)
+            if(timesUsed>1){return(false)}
+            if(prod.prodType==parseSEQ){
+                withEach p in prod.items{
+                    me productionChainItem: PCItm; PCItm.prodID <- p;  PCItm.index <- 0;
+                    parsePos.pushLast(PCItm)
+                      if(constructParseMap(prod2TimesUsed, parsePos, level+1)){parsePos.popLast(); return(true)}
+                    parsePos.popLast()
+                    parsePos.last().index <+- 1
+                }
+            } else if(prod.prodType==parseREP){
+                me productionChainItem: PCItm; PCItm.prodID <- prod.items[0];  PCItm.index <- 0;
+                parsePos.pushLast(PCItm)
+                  if(constructParseMap(prod2TimesUsed, parsePos, level+1)){parsePos.popLast(); return(true)}
+                  parsePos.popLast()
+                if(prod.items[2]>1 or prod.items[2]==0){ // Is more than one repetition allowed?
+                    //log("MULTIPLE REPS: MIN:"+toString(prod.items[1]) + "  MAX:"+toString(prod.items[2])+"  :"+stringifyParsePos(parsePos))
+                    parsePos.pushLast(PCItm)
+                      if(constructParseMap(prod2TimesUsed, parsePos, level+1)){parsePos.popLast(); return(true)}
+                    parsePos.popLast()
+                }
+              //  parsePos.popLast()
+            } else if(prod.prodType==parseALT){
+                withEach p in prod.items{
+                    parsePos.last().index <+- prod.items.size()
+                    me productionChainItem: PCItm; PCItm.prodID <- p;  PCItm.index <- 0;
+                    parsePos.pushLast(PCItm)
+                      if(constructParseMap(prod2TimesUsed, parsePos, level+1)){parsePos.popLast(); return(true)}
+                    parsePos.popLast()
+                }
+            } else {logFatalError("Unexpected productionType:"+toString(prod.prodType))}
+        }
+        return(false)
+    }
+
+
+    void: tryToFindAmbiguities() <- {
+        log("=================================================== Search for ambiguities")
+        me Map<me int, me int>: prod2TimesUsed
+        me List<productionChainItem>: parsePos
+        me productionChainItem: PCItm; PCItm.prodID <- infon_str;  PCItm.index <- 0;
+        parsePos.pushLast(PCItm)
+        constructParseMap(prod2TimesUsed, parsePos, 0)
+        //withEach prod in prod2TimesUsed{log(toString(prod_key)+"-PROD:"+grammar[prod_key].nameToStr(rnames)+ ": times used:"+toString(prod2TimesUsed[prod_key]) + "  lvlsToBackApprove:"+toString(grammar[prod_key].lvlsToBackApprove))}
+    }
+*/
     void: dump() <- {
         withEach crntPos in RANGE(0 .. SSets.size()) {
             their stateSets: SSet <- SSets[crntPos]
@@ -381,10 +563,10 @@ struct EParser{
                     me string: cntStr <- ""
                     if(count>0){cntStr<-toString(count)}
                     if(ped.pred!=NULL){
-                        grapher.addArrow(sRecSym, ped.pred.mySymbol(), "pred"+cntStr, "color=green")
+              //          grapher.addArrow(sRecSym, ped.pred.mySymbol(), "pred"+cntStr, "color=green")
                     }
                     if(ped.cause!=NULL){
-                        grapher.addArrow(sRecSym, ped.cause.mySymbol(), "cause"+cntStr, "color=darkgreen")
+              //          grapher.addArrow(sRecSym, ped.cause.mySymbol(), "cause"+cntStr, "color=darkgreen")
                     }
                     count <+- 1
                 }
@@ -747,6 +929,7 @@ struct EParser{
                 //log("ALLOC:"+newStateRecPtr.mySymbol() + ": "+newStateRecPtr.stringify(self))
                 newStateRecPtr.pedigrees.pushLast(pedigree(pred, cause, productionID))
                 if(productionID==startProduction and origin==0) {lastTopLevelItem <- newStateRecPtr}
+                //log("  AddToCol:"+toString(crntPos)+" cause:"+cause.mySymbol()+" pred:"+ pred.mySymbol()+": "+newStateRecPtr.mySymbol() + ": "+newStateRecPtr.stringify(self))
                 SSets[crntPos].stateRecs.pushLast(newStateRecPtr)
                 if(!doQuickParse){applyPartialCompletion(newStateRecPtr)}
             }
@@ -783,8 +966,15 @@ struct EParser{
         from.childIsFilled<-true
         streamingSRecChildLock.notifyOne()
     }
-
+    me bool: predIsNotChosen(our stateRec: SRec) <- {
+        our stateRec: pred <- chosenPed(SRec).pred
+        if(pred!=NULL and pred.pathNotChosen){
+            return(true)
+        }
+        return(false)
+    }
     our stateRec: advanceCompletion(our stateRec: SRec, our stateRec: backSRec) <- {
+        if(predIsNotChosen(SRec)){return(NULL)}
         our stateRec: newItem <- NULL
         me int: backSRecProductionID <- backSRec.productionID
         me int64: backSRecOriginPos  <- backSRec.originPos
@@ -863,7 +1053,6 @@ struct EParser{
         //log(indent+" FAIL:"+failed.mySymbol()+" : "+failed.stringify(self))
         if(ProdType==parseREP) {
             failed.failed <- true
-    //setSRecChildTo(failed, NULL, "notfy:")
             me int64: numItems <- failed.SeqPosition
             our stateRec: nextItem <- failed
             our stateRec: topItem  <- nextItem
@@ -984,38 +1173,22 @@ struct EParser{
             crntPos <+- 1
         }
         parseTreeFinished <- true
-       // log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
-    }
-    // call findInrBufWithPos to get the inr buf with the character prev.EndingLineNumber and count up to current position
-    void: getLineNumberAtCharPos(me int64: charPos) <- {
-	their strInnerBuf: bufWithChar <- streamToParse.findInrBufWithPos(charPos)
-        errLineNum <- bufWithChar.prev.endingLineNumber
-        me int64: lastLinePos <- 0
-	me int: bufSize <- bufWithChar.buf.size()
-        withEach idx in RANGE(0..bufSize) {
-	    if(bufWithChar.myOffset + idx > charPos){
-		break()
-	    }
-            if(bufWithChar.buf[idx] == "\n"){
-                errLineNum <+- 1
-                lastLinePos <- idx
-            }
-        }
-        errCharPos <- charPos-lastLinePos+1
+        //log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
     }
 
     me bool: doesParseHaveError() <- {
-  //      log("\n\nChecking for Parse Errors...\n")
+        //log("\n\nChecking for Parse Errors...\n")
         errorMesg <- ""
         me int64: lastSSetIDX <- SSets.size()
         me int64: lastPosWithItems <- 0
         withEach ssetIDX in Backward RANGE(0 .. lastSSetIDX){
             their stateSets: SSet <- SSets[ssetIDX]
             me int64: numItems <- SSet.stateRecs.size()
-            if(numItems>0 and lastPosWithItems==0){lastPosWithItems <- ssetIDX}
-         //   print("Position ", ssetIDX, " has ", numItems, "items.\n")
+            //me int64: sidx <- ssetIDX; log("Position "+ toString(sidx)+ " has "+ toString(numItems)+ "items.\n")
+            if(numItems>0 and lastPosWithItems==0){lastPosWithItems <- ssetIDX; break()}
+
         }
-  //      print("lastPosWithItems:", lastPosWithItems, "\n")
+        //log("lastPosWithItems:"+ toString(lastPosWithItems)+ "\n")
 
         their stateSets: lastSSet <- SSets[lastPosWithItems]
 
@@ -1039,13 +1212,14 @@ struct EParser{
         }
         if(isTerminal!=0){
             if(seqPos==0){
-                errorMesg <- "Expected '" + prod.constStr + "'"
-                getLineNumberAtCharPos(lastPosWithItems)
+                me string: errLocation <- streamToParse.getLocationAtCharPos(lastPosWithItems)
+                errorMesg <- errLocation+ " ERROR: Expected '" + prod.constStr + "'."
             }
         }
 
         if(errorMesg=="" and (lastPosWithItems+1)!=lastSSetIDX){
-            errorMesg<-'Parse failed for unknown reason.'
+            me string: errLocation <- streamToParse.getLocationAtCharPos(lastPosWithItems)
+            errorMesg <- errLocation+ " ERROR: Parse failed for unknown reason."
         }
         if(errorMesg=="") {return(false)}
         else {return(true)}
@@ -1094,29 +1268,27 @@ struct EParser{
             crntRec <- setPredsNext(crntRec, indent+"-A  ")
         }
         if(lastSRec!=NULL){  // TODO: Try not recursing if already done
+            me int: count <- 0
             withEach ped in lastSRec.pedigrees {
                 our stateRec: cause <- ped.cause
+   // log("COUNT:"+toString(count))
+  //  if(lastSRec.mySymbol()=="stateRec170" and count==0){count<+-1; log("SKIPPING:"+cause.mySymbol()); cause.pathNotChosen<-true; dumpGraph("Skipping", 1) continue()}
                 if(cause){
                     setSRecChildTo(cause, lastSRec, indent +"r   ")
                     if(lastSRec.parseDone){
-                        setPredsNext(cause, indent+"cuase: ") // only do if lastSRec is totally done, no more reps.
+                        setPredsNext(cause, indent+"cause: ") // only do if lastSRec is totally done, no more reps.
                     }
                     if(level==1){
                         if(lastSRec.child!=NULL and grammar[lastSRec.productionID].prodType==parseREP){cause.MARKer1<-true
                             //log("REP_RESOLVE):"+lastSRec.mySymbol()+"  cause:"+cause.mySymbol())
-                            bottomUpResolve(cause, 2, indent+"|x  ") // TODO: This makes redundant calls. Fix it
-                         /*   our stateRec: parent <- chosenPed(cause).cause
-                            if(parent!=NULL){setSRecChildTo(parent, cause, indent +"S   ")}
-                            if(parent!=NULL and parent.next!=NULL){
-                              //  closeRepStateRec(cause)
-                                log("RULE_IS_DONE:"+cause.stringify(self))
-                            }*/
+                            bottomUpResolve(cause, 2, indent+"|x  ") // TODO: This makes redundant calls. Improve it
                         }
                     }else {bottomUpResolve(cause, level-1, indent+"|   ")}
                 }
+                count <+- 1
             }
         }
-	//sleep(100) // test with this, extractionComplete, tell Bruce if it breaks
+        //sleep(100) // test with this, extractionComplete, tell Bruce if it breaks
         SRec.resolved <- true
         return(NULL)
     }
@@ -1266,10 +1438,10 @@ struct EParser{
         return(topParseNode)
     }
 
-    our stateRec: initParseFromString(me int: startProd, me string: txt) <- {
+    our stateRec: initParseFromString( me string: streamName, me int: startProd, me string: txt) <- {
         // print('Will parse "', txt, '" with rule ', startProd, '.\n')
         their strBuf:: bufToParse
-        bufToParse.init()
+        bufToParse.init(streamName)
         bufToParse.putStr(txt)
         bufToParse.close()
         our stateRec: topParseNode <- initParseFromStream(startProd, bufToParse)
