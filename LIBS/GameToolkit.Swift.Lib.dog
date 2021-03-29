@@ -22,7 +22,7 @@ embedVeryHigh = `
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         window = NSWindow(contentRect: NSMakeRect(0, 0, NSScreen.main?.frame.width ?? 500, NSScreen.main?.frame.height ?? 500),
-            styleMask: [.closable],
+            styleMask: [.miniaturizable, .closable, .resizable, .titled],
             backing: .buffered,
             defer: false)
         window.contentViewController = ViewController()
@@ -31,12 +31,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 // VIEW CONTROLLER ///////////////////////////////////////////////
 class ViewController: NSViewController {
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        view.addSubview(screenSurface!)
-    }
     override func loadView() {
-        self.view = NSView(frame: NSRect(x: 0, y: 0, width: NSScreen.main?.frame.width ?? 100, height: NSScreen.main?.frame.height ?? 100))
+        screenSurface = Canvas(frame: NSRect(x: 0, y: 0, width: NSScreen.main?.frame.width ?? 100, height: NSScreen.main?.frame.height ?? 100))
+        self.view = screenSurface
     }
 }
 // CUSTOM VIEW ///////////////////////////////////////////////
@@ -66,8 +63,7 @@ struct GLOBAL{
     their GUI_ctxt: createGUI_ctxt()                    <- <%!NSGraphicsContext.current?.cgContext%>
     //void: fullScreenModeOn()                            <- <%{}%>
     //void: fullScreenModeOff()                           <- <%{}%>
-    void: initializeGraphics(me bool: startFullScreen)  <- <%{ // screenSurface, window, canvas
-        screenSurface = Canvas(frame: NSRect(x: 0, y: 0, width: 500, height: 500))
+    void: initializeGraphics(me bool: startFullScreen)  <- <%{ // window, canvas
         let delegate = AppDelegate()
         NSApplication.shared.delegate = delegate
         _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
@@ -79,7 +75,7 @@ struct GUI_ctxt{
     //me void: reset()                                  <- <%!%>
     //me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%>
     //me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%>
-    me void: setColor(me cdColor: color)                <- <%!%0.setFillColor(red:CGFloat(%1.red/256), green:CGFloat(%1.green/256), blue:CGFloat(%1.blue/256), alpha:1);%0.setStrokeColor(red:CGFloat(%1.red/256), green:CGFloat(%1.green/256), blue:CGFloat(%1.blue/256), alpha:1)%>
+    me void: setColor(me cdColor: color)                <- <%!%0.setFillColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1);%0.setStrokeColor(red:CGFloat(%1.red/256), green:CGFloat(%1.green/256), blue:CGFloat(%1.blue/256), alpha:1)%>
     me void: setLineWidth(me double: width)             <- <%!cr!.setLineWidth(%1)%>
     //me void: finishPDF()                              <- <%!%>
     //me void: setScale()                               <- <%!%>
@@ -94,7 +90,7 @@ struct GUI_ctxt{
     me void: rectangle()                                <- <%!addRect(CGRect(x:%1, y:%2, width:%3, height:%4))%>
     //me void: paintNow()                               <- <%!%>
     me void: strokeNow()                                <- <%!drawPath(using: .fillStroke)%>
-    me void: fillNow()                                  <- <%!fill()%>
+    me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:screenWidth, height:screenHeight))%>
     //me void: strokeKeep()                             <- <%!%>
     //me void: fillKeep()                               <- <%!%>
     //me void: setFillPattern()                         <- <%!%>
