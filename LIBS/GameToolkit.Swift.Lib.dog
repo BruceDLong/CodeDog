@@ -1,6 +1,6 @@
 //////////////  Add Game-Toolkit features using Swift
 requirements = [
-    [tagOneOf, Lang, [Swift]]
+    [tagOneOf, Platform, [MacOS]]
 ]
 
 interface={
@@ -13,7 +13,7 @@ LibDescription ={
     useStatus   = dynamic
     description ='A CodeDog Toolkit for making games'
     features    =[]
-    platforms   =[IOS, MacOS]
+    platforms   =[MacOS]
     bindings    =[Swift]
 }
 
@@ -41,7 +41,6 @@ class Canvas: NSView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         let context: CGContext! = NSGraphicsContext.current?.cgContext
-        gameMenuScreen!.draw(context!, 1.0)
     }
 }
 `
@@ -55,7 +54,7 @@ struct GameEvent:               wraps = NSEvent{}
 //struct WindowEvent:           wraps = NSEvent{}
 //struct KeyboardEvent:         wraps = NSEvent{}
 //struct MouseButtonEvent:      wraps = NSEvent{}
-//struct MouseMotionEvent:      wraps = NSEvent{}
+//struct MouseMotionEvent:      wraps = NSEvent.EventType.mouseMoved{}
 //struct MouseWheelEvent:       wraps = NSEvent{}
 //struct KeyInfo:               wraps = NSEvent{}
 //struct Keycode:               wraps = NSEvent{}
@@ -112,7 +111,18 @@ struct GRWindow{
     void: requestRedraw()                               <- <%!update()%>
 }
 struct GameEvent{
+    //https://nexo.dev/post/2019/04/27/how-to-open-window-in-macos-programmatically-using-swift/
+}
+struct UserEvent{
+}
+struct WindowEvent{
+}
+struct KeyboardEvent{
+}
+struct KeyInfo{
+}
+struct MouseButtonEvent{
 }
 struct GameLooper{
-    //me bool: PollForEvent(their GameEvent: event)       <- <%!%>
+    me bool: PollForEvent(their GameEvent: event)       <- <%!nextEvent(matching: .any, until: nil, inMode: .default, dequeue: true)%>
 }
