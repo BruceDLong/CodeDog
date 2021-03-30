@@ -325,7 +325,7 @@ struct posRecStore{
     me string: s
     me Map<me int, me posRec>:  ps
     their Map<their void, me int>: colorCodes
-    none: posRecStore(me string: text <- "", me int[their map their void]: colCode<-0) <- {s<-text; colorCodes<-colCode;}
+   // none: posRecStore(me string: text <- "", their map<their void, int>: colCode<-0) <- {s<-text; colorCodes<-colCode;}
 }
 
 struct readMultiLine {

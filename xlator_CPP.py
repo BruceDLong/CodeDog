@@ -97,7 +97,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
             if(count>0):reqTagString += ", "
             reqTagString += reqType
             count += 1
-        reqTagString += ">"
+        reqTagString += " >"
         langType += reqTagString
         InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
@@ -260,7 +260,7 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     return S
 
 def getConstIntFieldStr(fieldName, fieldValue):
-    S= "static const int "+fieldName+ " = " + fieldValue+ ";"
+    S= "static const uint64_t "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
 def getEnumStr(fieldName, enumList):

@@ -3,11 +3,12 @@
 requirements = [
     [require, GraphLogger_implementation]
 ]
-featuresNeeded = [List]
+featuresNeeded = [List, Threads]
 
 struct graphLogger{
     me List<me string>: items
     me Map<me string, me string>: rankSlots
+    me Mutex: graphLoggerMutex
 
     me string: deQuote(me string: S) <-{
         me string: sOut
@@ -17,10 +18,12 @@ struct graphLogger{
         return(sOut)
     }
     void: addItem(me string: itemStr)<-{
+        me MutexMngr: MtxMgr{graphLoggerMutex}
         itemStr <+- "\n"
         items.append(itemStr)
     }
     void: addNode(me string: nodeID, me string: label, me string: attrs) <-{
+        me MutexMngr: MtxMgr{graphLoggerMutex}
         me string: nodeStr <- "    \""+deQuote(nodeID)+"\" "
         me string: labelStr
         if(label != ""){
@@ -32,11 +35,13 @@ struct graphLogger{
         items.append(nodeStr)
     }
     void: setNodeSlot(me string: nodeID, me string: slotID) <-{
+        me MutexMngr: MtxMgr{graphLoggerMutex}
         me string: slot <- rankSlots[slotID]
         slot <+- "\""+nodeID+"\"; "
         rankSlots[slotID] <- slot
     }
     void: addArrow(me string: fromID, me string: toID, me string: label, me string: attrs) <-{
+        me MutexMngr: MtxMgr{graphLoggerMutex}
         me string: edgeStr <- "    \""+deQuote(fromID)+"\" -> \"" + deQuote(toID) + "\""
         me string: labelStr
         if(label != ""){
@@ -47,8 +52,13 @@ struct graphLogger{
         edgeStr <+- attrStr+";\n"
         items.append(edgeStr)
     }
-    void: clear()<-{items.clear(); rankSlots.clear()}
+    void: clear()<-{
+        me MutexMngr: MtxMgr{graphLoggerMutex}
+        items.clear();
+        rankSlots.clear()
+    }
     void: saveGraph(me string: graphName, me string: filename) <- {
+        me MutexMngr: MtxMgr{graphLoggerMutex}
         me FileStream: out
         out.openNew(filename)
         me string: header <- "digraph \""+deQuote(graphName)+"\"{\n"

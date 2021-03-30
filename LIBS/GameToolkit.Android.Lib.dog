@@ -23,7 +23,7 @@ LibDescription ={
     bindings    =[Java]
 }
 
-initCode  = ``
+initCode = ``
 embedHigh = `
 class GameModeView extends SurfaceView implements SurfaceHolder.Callback, OnTouchListener{
     public SurfaceHolder surfaceHolder;
@@ -51,30 +51,28 @@ class GameModeView extends SurfaceView implements SurfaceHolder.Callback, OnTouc
     }
 }
 `
+initCode = ``
 
 /////////////////////////////////  STRUCT CONVERTERS
-struct GRWindow{their WindowManager: GRWindow}
-struct GameEvent{their MotionEvent:GameEvent}
-struct UserEvent{their MotionEvent:UserEvent}
-struct WindowEvent{their MotionEvent:WindowEvent}
-struct KeyboardEvent{their KeyEvent:KeyboardEvent}
-struct MouseButtonEvent{their MotionEvent:MouseButtonEvent}
-struct MouseMotionEvent{their MotionEvent:MouseMotionEvent}
-struct MouseWheelEvent{their MotionEvent:MouseWheelEvent}
-struct KeyInfo{their MotionEvent:KeyInfo}
-struct Keycode{their MotionEvent:Keycode}
-struct INK_Image{their Paint: INK_Image}
-struct SoundData{their Mix_Chunk: SoundData}
-struct GameSurface{their SurfaceView: GameSurface}
+struct GRWindow:                wraps = WindowManager{}
+struct GUI_ctxt:                wraps = cairo_t{}
+struct INK_Image:               wraps = Paint{}
+struct GameSurface:             wraps = SurfaceView{}
+struct GameEvent:               wraps = MotionEvent{}
+struct UserEvent:               wraps = MotionEvent{}
+struct WindowEvent:             wraps = MotionEvent{}
+struct KeyboardEvent:           wraps = KeyEvent{}
+struct MouseButtonEvent:        wraps = MotionEvent{}
+struct MouseMotionEvent:        wraps = MotionEvent{}
+struct MouseWheelEvent:         wraps = MotionEvent{}
+struct KeyInfo:                 wraps = MotionEvent{}
+struct Keycode:                 wraps = MotionEvent{}
+struct SoundData:               wraps = Mix_Chunk{}
 /////////////////////////////////  GLOBAL
 struct GLOBAL: inherits=Activity{
     const int: SCREEN_WIDTH  <- 900
     const int: SCREEN_HEIGHT <- 700
 
-    void: deallocateWindow(their GRWindow: window)      <- <%!%GTODO:deallocateWindow%>
-    void: deallocateGraphicsSystem()                    <- <%!%GTODO:deallocateGraphicsSystem%>
-    void: getTickCount()                                <- <%!%GSystemClock.uptimeMillis()%>
-    void: sleep()                                       <- <%!%GSystemClock.sleep(%1)%>
     their GUI_ctxt: createGUI_ctxt()                    <- <%!%G new GUI_ctxt()%>
     void: onCreate(me Bundle: savedInstanceState) <- <%{
         super.onCreate(savedInstanceState);
@@ -83,94 +81,6 @@ struct GLOBAL: inherits=Activity{
         runDogCode();
         setContentView(gameLooper.crntGameMode.gameModeView);
     }%>
-    me bool: getFullScreenMode() <- <%{
-        return(false);
-    }%>
-
-    void: fullScreenModeOn() <- <%{
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    }%>
-
-    void: fullScreenModeOff() <- <%{}%>
-
-    void: initializeGraphics(me bool: startFullScreen) <- <%{
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-    }%>
-
-    void: resetWindowSize(me int: width, me int: height) <- <%{}%>
-
-    // //DRAWING ROUTINES:
-    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
-        cr.paint.setStyle(Paint.Style.FILL);
-        cr.paint.setTextSize(font.size);
-        cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-        cr.GCanvas.drawText(text, (float)x, (float)y, cr.paint);
-        deltaSize size = getTextSize(cr, text, font);
-        return(size);
-    }%>
-
-    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
-        deltaSize size = getTextSize(cr, text, font);
-        cr.paint.setTextSize(font.size);
-        cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-        renderText(cr, text, font, x-size.width/2, y);
-        return(size);
-    }%>
-
-    me deltaSize: renderTextRotate(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
-        double radians    = degrees*(Math.PI/180.);
-        deltaSize size    = getTextSize(cr, text, font);
-        double hypotenuse = size.width;
-        deltaSize tmpSize = new deltaSize(0,0);
-
-        if(justify == "right"){x=x-hypotenuse;}
-        else if(justify == "center"){x=x-hypotenuse/2;}
-        cr.GCanvas.save();
-        cr.GCanvas.rotate(45, (float)x, (float)y);
-        renderText (cr, text, font, x, y);
-        cr.GCanvas.restore();
-        //TODO: calculate height and width more accurately
-        tmpSize.width = size.width;
-        tmpSize.height = size.width;
-        return(tmpSize);
-    }%>
-
-    me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
-        cr.GCanvas.save();
-        cr.GCanvas.rotate(degrees, (float)x, (float)y);
-    }%>
-
-    me void: restore(me GUI_ctxt: cr) <- <%!%G%1.GCanvas.restore()%>
-
-    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
-        Rect bounds = new Rect();
-        deltaSize size = new deltaSize(0,0);
-        cr.paint.setTextSize(font.size);
-        cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-        cr.paint.getTextBounds(text, 0, text.length(), bounds);
-        size.height = bounds.height();
-        size.width = bounds.width();
-        return(size);
-    } %>
-
-    me void: roundedRectangle(their GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{} %>
-
-    void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: xScale, me double: yScale) <- <%{
-        boolean filter = false;
-        try {
-            assetManager = getAssets();
-            InputStream is = assetManager.open(filename);
-            Bitmap  bitmap = BitmapFactory.decodeStream(is);
-            int width  = Math.round((float)scale * bitmap.getWidth());
-            int height = Math.round((float)scale * bitmap.getHeight());
-            Bitmap newBitmap = Bitmap.createScaledBitmap(bitmap, width,height, filter);
-            cr.GCanvas.drawBitmap(newBitmap, (float)x, (float)y, cr.paint);
-            Log.v("TAG", "display image: " + filename);
-        } catch (IOException e) {Log.e("TAG", e.getMessage());}
-    }%>
-    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{}%>
 }
 /////////////////////////////////  GUI_ctxt
 struct GUI_ctxt: inherits=Canvas{
@@ -180,81 +90,31 @@ struct GUI_ctxt: inherits=Canvas{
     me double: cur_y
     me Canvas: GCanvas
 
+    me void: setColor(me cdColor: color)                <- <%!%0.paint.setColor( Color.rgb(%1.red, %1.green, %1.blue))%>
+    me void: setLineWidth(me double: width)             <- <%!paint.setStrokeWidth(%1)%>
+    me void: moveTo(me double: x, me double: y)         <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo((float)(%1), (float)(%2))%>
+    me void: lineTo(me double: x, me double: y)         <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo((float)(%1), (float)(%2))%>
+    me void: strokeNow()                                <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
+    me void: fillNow()                                  <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!%0.GCanvas.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
     me none: GUI_ctxt () <- {
         Allocate(paint)
         Allocate(GPath)
     }
-
     me none: GUI_ctxt(me Canvas: canvas) <- {
         Allocate(paint)
         Allocate(GPath)
         GCanvas <- canvas
     }
-
-    //me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!%>
-    //me void: reset() <- <%!GPath = new Path()%>
-    //me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!paint.setColor(Color.argb((int)%4, %1, %2, %3))%>
-    //me void: setRGB (me double: red, me double: green, me double: blue) <- <%!paint.setColor(Color.rgb(%1, %2, %3))%>
-    me void: setColor(me cdColor: color) <- <%!%0.paint.setColor( Color.rgb(%1.red, %1.green, %1.blue))%>
-    //me void: setLineWidth(me double: width) <- <%!paint.setStrokeWidth(%1)%>
-    //me void: setScale() <- <%!%>
-    //me void: moveTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo((float)(%1), (float)(%2))%>
-    //me void: lineTo(me double: x, me double: y) <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo((float)(%1), (float)(%2))%>
-    //me void: moveRel(me double: dx, me double: dy) <- <%!GPath.moveTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
-    //me void: lineRel(me double: dx, me double: dy) <- <%!GPath.lineTo((float)(cr.cur_x+%1), (float)(cr.cur_y+%2))%>
-    //me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!GPath.curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    //me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!rel_curve_to(cr, %1, %2, %3, %4, %5, %6)%>
-    //me void: closePath()      <- <%!GPath.close()%>
-    me void: rectangle()      <- <%!%0.GCanvas.drawRect((float)%1, (float)%2, (float)%3, (float)%4, cr.paint)%>
-    //me void: paintNow()       <- <%!paint.setStyle(Paint.Style.FILL);cr.GCanvas.drawPaint(cr.paint)%>
-    me void: strokeNow()      <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
-    me void: fillNow()        <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
-    //me void: strokeKeep()     <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
-    //me void: fillKeep()       <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
-    //me void: renderFrame()    <- <%!repaint()%>
-    //me void: setFillPattern() <- <%!%>
-    //me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!%0.paint.setStyle(Paint.Style.STROKE);%0.paint.setStrokeWidth(2);%0.GCanvas.drawCircle(%1, %2, %3, cr.paint)%>
 }
-
-/////////////////////////////////  GRWindow
+/////////////////////////////////  WINDOW
 struct GRWindow{
-    void: requestRedraw()       <- <%!%G%>
+    void: requestRedraw()                               <- <%!%G%>
 }
-/////////////////////////////////  HANDLE EVENTS
-struct GameEvent{
-    me int32: type
-    me UserEvent: user
-    me WindowEvent: window
-    me KeyboardEvent: key
-    me MouseButtonEvent: button
-    me MouseMotionEvent: motion
-    me MouseWheelEvent: wheel
-}
-
-struct UserEvent{
-    me int32: code
-}
-struct WindowEvent{
-    me int32: event
-    me int32: data1
-    me int32: data2
-}
-struct KeyboardEvent{
-    me KeyInfo: keysym
-}
-struct KeyInfo{
-    me Keycode: sym
-}
-struct MouseButtonEvent{
-    me int32: type
-    me int32: x
-    me int32: y
-}
+/////////////////////////////////  LOOPER
 struct GameLooper: inherits=Thread{
     our Canvas: canvas
-
-    me bool: PollForEvent(their GameEvent: event)       <- <%!SDL_PollEvent(%1)%>
-
+    //me bool: PollForEvent(their GameEvent: event)       <- <%!%>
     void: run() <- <%{
         while(running){
             canvas = null;
@@ -277,19 +137,6 @@ struct GameLooper: inherits=Thread{
         }
     }%>
 }
-struct GameImage{
-    void: loadFromFile(me string: fileName) <- <%{
-        name = fileName;
-    }%>
-    void: draw(their GUI_ctxt: cr, me double: x, me double: y, me double: scale) <- <%{}%>
-}
-struct GameSound{
-    void: loadFromFile(me string: fileName) <- <%{
-        name = fileName;
-        data=Mix_LoadWAV(name.data());
-    }%>
-    void: play() <-  <%{}%>
-}
 struct GameMode{
     our GameModeView: gameModeView
 
@@ -299,3 +146,6 @@ struct GameMode{
         gameModeView = new GameModeView(GLOBAL.static_Global);
     }%>
 }
+/////////////////////////////////  EVENTS
+/////////////////////////////////  IMAGES
+/////////////////////////////////  SOUND
