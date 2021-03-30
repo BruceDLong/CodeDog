@@ -650,7 +650,7 @@ def variableDefaultValueString(fieldType, isTypeArg, owner):
     elif(isTypeArg):
         fieldValueText = ' = ['+fieldType +']()'
     else:
-        if progSpec.ownerIsPointer(owner):fieldValueText = '!'
+        if progSpec.ownerIsPointer(owner):fieldValueText = ''
         else:fieldValueText = ' = ' + fieldType +'()'
     return fieldValueText
 
@@ -718,6 +718,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramLi
         fieldValueText=" = " + convertedType + CPL
     else:
         fieldValueText = variableDefaultValueString(convertedType, isTypeArg, fieldOwner)
+        fieldValueText += makePtrOpt(fieldOwner)
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):

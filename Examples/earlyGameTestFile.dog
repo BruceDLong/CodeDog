@@ -4,7 +4,7 @@
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
-//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
 
 Title = "earlyGameTestFile"
 FileName = "earlyGameTestFile"
@@ -22,7 +22,6 @@ runCode=`
     initializeGraphics(true)
     setUpGame()
     gameLooper.play(1, 40)
-    deinitGraphics()
 `
 ////////////   A p p l i c a t i o n   a n d   G l o b a l s
 struct GameMenuScreen: inherits=GameMode{
