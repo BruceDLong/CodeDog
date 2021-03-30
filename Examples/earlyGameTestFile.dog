@@ -24,10 +24,6 @@ runCode=`
     gameLooper.play(1, 40)
 `
 ////////////   A p p l i c a t i o n   a n d   G l o b a l s
-struct Styler{
-    const cdColor: Green              {0, 255, 0}
-    const cdColor: White              {255, 255, 255}
-}
 struct GameMenuScreen: inherits=GameMode{
     void: update() <- {}
     void: draw(their GUI_ctxt: cr, me double: interpolation) <- {

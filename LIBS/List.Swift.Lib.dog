@@ -32,7 +32,7 @@ struct Swift_Array<nodeType>: implements = List wraps = Array specs = {insert = 
     nodeType: last()                            <- <%!%0[%0.endIndex-1]%>
     itr nodeType: nthItr()                      <- <%!%>
     nodeType: popFirst()                        <- <%!%0[0]; %0.removeFirst()%>
-    nodeType: popLast()                         <- <%!%0[%0.endIndex-1]; %0.remove(at:%0.endIndex-1)%>
+    nodeType: popLast()                         <- <%!%0.remove(at:%0.endIndex-1)%>
     me void: prepend(nodeType: value)           <- <%!%>
     void: resize(me int: size)                  <- <%!%>
     me uint: size()                             <- <%!count%>

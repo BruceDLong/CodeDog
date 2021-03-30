@@ -50,7 +50,17 @@ initCode = ``
 /////////////////////////////////  STRUCT CONVERTERS
 struct GRWindow:                wraps = NSWindow{}
 struct GUI_ctxt:                wraps = CGContext{}
+struct GameEvent:               wraps = NSEvent{}
+//struct UserEvent:             wraps = NSEvent{}
+//struct WindowEvent:           wraps = NSEvent{}
+//struct KeyboardEvent:         wraps = NSEvent{}
+//struct MouseButtonEvent:      wraps = NSEvent{}
+//struct MouseMotionEvent:      wraps = NSEvent{}
+//struct MouseWheelEvent:       wraps = NSEvent{}
+//struct KeyInfo:               wraps = NSEvent{}
+//struct Keycode:               wraps = NSEvent{}
 struct INK_Image:               wraps = Canvas{}
+//struct SoundData{}
 struct GameSurface:             wraps = Canvas{}
 /////////////////////////////////  GLOBAL
 struct GLOBAL{
@@ -59,7 +69,7 @@ struct GLOBAL{
 
     //void: deallocateWindow(their GRWindow: window)      <- <%!%>
     //void: deallocateGraphicsSystem()                    <- <%!%>
-    //void: getTickCount()                                <- <%!%>
+    void: getTickCount()                                <- <%!Double(ProcessInfo.processInfo.systemUptime)%>
     their GUI_ctxt: createGUI_ctxt()                    <- <%!NSGraphicsContext.current?.cgContext%>
     //void: fullScreenModeOn()                            <- <%{}%>
     //void: fullScreenModeOff()                           <- <%{}%>
@@ -100,4 +110,9 @@ struct GUI_ctxt{
 /////////////////////////////////  GRWindow
 struct GRWindow{
     void: requestRedraw()                               <- <%!update()%>
+}
+struct GameEvent{
+}
+struct GameLooper{
+    //me bool: PollForEvent(their GameEvent: event)       <- <%!%>
 }

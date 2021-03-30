@@ -886,7 +886,8 @@ def ownerIsPointer(owner):
     return isPointer
 
 def typeIsPointer(typeSpec):
-    owner=getTypeSpecOwner(typeSpec)
+    if isinstance(typeSpec,str): owner = typeSpec   # typeSpec is really Owner field
+    else: owner=getTypeSpecOwner(typeSpec)          # typeSpec is full typeSpec
     return ownerIsPointer(owner)
 
 def fieldIsFunction(typeSpec):
