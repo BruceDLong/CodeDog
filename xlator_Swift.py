@@ -823,17 +823,6 @@ def codeTemplateHeader(structName, typeArgList):
     templateHeader+=">"
     return(templateHeader)
 
-def extraCodeForTopOfFuntion(argList):
-    if len(argList)==0:
-        topCode=''
-    else:
-        topCode=""
-        for arg in argList:
-            argTypeSpec =arg['typeSpec']
-            argFieldName=arg['fieldName']
-            topCode+=  '        var '+argFieldName+' = '+argFieldName+'\n'
-    return topCode
-
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
         item = LHS_Left+"flags"
@@ -933,7 +922,6 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
-    xlators['extraCodeForTopOfFuntion']     = extraCodeForTopOfFuntion
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality

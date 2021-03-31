@@ -1449,7 +1449,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 cdlog(5, "Function "+fieldID+" has no implementation defined.")
                 funcText = xlator['getVirtualFuncText'](field)
             else:
-                extraCodeForTopOfFuntion = xlator['extraCodeForTopOfFuntion'](argList)
+                extraCodeForTopOfFuntion = ''
                 if typeDefName=='' and 'flagsVarNeeded' in ObjectDef and ObjectDef['flagsVarNeeded']==True:
                     extraCodeForTopOfFuntion+="    flags=0;"
                 verbatimText=field['value'][1]
