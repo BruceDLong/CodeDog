@@ -6,7 +6,7 @@ requirements = [
 
 interface={
     provides=[threads_implementation]
-    libFiles=[pthread]
+    libFiles=[]
     headers =[android.os.HandlerThread, java.lang.Thread.*]
 }
 
@@ -25,7 +25,4 @@ struct Threads{
     bool: isActive()        <- <%!isAlive();%>
     void: start()           <- <%!start();%>
     void: waitForExit()     <- <%!join(0);%>
-
-
-
 }

@@ -24,40 +24,14 @@ LibDescription ={
 }
 
 initCode = ``
-embedHigh = `
-class GameModeView extends SurfaceView implements SurfaceHolder.Callback, OnTouchListener{
-    public SurfaceHolder surfaceHolder;
 
-    public GameModeView(Context context) {
-        super(context);
-        getHolder().addCallback(this);
-        surfaceHolder = getHolder();
-        setFocusable(true);
-    }
-    @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {}
-    @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-        GLOBAL.static_Global.gameLooper.start();
-    }
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {}
-    public void update() {}
-    @Override
-    public void draw(Canvas canvas) {}
-    public boolean onTouch(View v, MotionEvent event){
-        // Handle touch events
-        return true;
-    }
-}
-`
 initCode = ``
 
 /////////////////////////////////  STRUCT CONVERTERS
 struct GRWindow:                wraps = WindowManager{}
-struct GUI_ctxt:                wraps = cairo_t{}
-struct INK_Image:               wraps = Paint{}
-struct GameSurface:             wraps = SurfaceView{}
+struct GUI_ctxt:                inherits = Canvas{}
+struct INK_Image:               wraps = Canvas{}
+struct GameSurface:             wraps = CanvasView{}
 struct GameEvent:               wraps = MotionEvent{}
 struct UserEvent:               wraps = MotionEvent{}
 struct WindowEvent:             wraps = MotionEvent{}
@@ -79,18 +53,34 @@ struct GLOBAL: inherits=Activity{
         GLOBAL.static_Global = this;
         initialize("");
         runDogCode();
-        setContentView(gameLooper.crntGameMode.gameModeView);
+        setContentView(GLOBAL.static_Global.screenSurface);
+    }%>
+    void: initializeGraphics(me bool: startFullScreen)  <- <%{ // screenSurface, window, canvas
+        screenSurface = new CanvasView();
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
     }%>
 }
 /////////////////////////////////  GUI_ctxt
-struct GUI_ctxt: inherits=Canvas{
+struct CanvasView: inherits=View{
+    me GUI_ctxt: cr
+
+    me none: CanvasView() <- <%{
+        super(GLOBAL.static_Global);
+    }%>
+    me void: onDraw(me Canvas: canvas) <- <%{
+        super.onDraw(canvas);
+        cr = new GUI_ctxt(canvas);
+    }%>
+}
+struct GUI_ctxt{
     me Paint: paint
     me Path: GPath
     me double: cur_x
     me double: cur_y
     me Canvas: GCanvas
 
-    me void: setColor(me cdColor: color)                <- <%!%0.paint.setColor( Color.rgb(%1.red, %1.green, %1.blue))%>
+    me void: setColor(me cdColor: color)                <- <%!%0.paint.setColor(Color.rgb(%1.red, %1.green, %1.blue))%>
     me void: setLineWidth(me double: width)             <- <%!paint.setStrokeWidth(%1)%>
     me void: moveTo(me double: x, me double: y)         <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.moveTo((float)(%1), (float)(%2))%>
     me void: lineTo(me double: x, me double: y)         <- <%!%0.cur_x=%1; %0.cur_y=%2; %0.GPath.lineTo((float)(%1), (float)(%2))%>
@@ -112,39 +102,12 @@ struct GRWindow{
     void: requestRedraw()                               <- <%!%G%>
 }
 /////////////////////////////////  LOOPER
-struct GameLooper: inherits=Thread{
-    our Canvas: canvas
+struct GameLooper{
+    //our Canvas: canvas
     //me bool: PollForEvent(their GameEvent: event)       <- <%!%>
-    void: run() <- <%{
-        while(running){
-            canvas = null;
-            try {
-                canvas = crntGameMode.gameModeView.getHolder().lockCanvas();
-                GUI_ctxt cr = new GUI_ctxt(canvas);
-                synchronized(crntGameMode.gameModeView.surfaceHolder) {
-                    this.crntGameMode.gameModeView.update();
-                    this.crntGameMode.draw(cr, 0);
-                }
-            } catch (Exception e) {} finally {
-                if (canvas != null) {
-                    try {
-                        crntGameMode.gameModeView.surfaceHolder.unlockCanvasAndPost(canvas);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        }
-    }%>
 }
 struct GameMode{
-    our GameModeView: gameModeView
-
     void: update() <- {}
-
-    void: INIT() <- <%{
-        gameModeView = new GameModeView(GLOBAL.static_Global);
-    }%>
 }
 /////////////////////////////////  EVENTS
 /////////////////////////////////  IMAGES

@@ -116,21 +116,22 @@ struct testClass{
         me int: actionVarAsgn
         actionVarAsgn<-4567
         print(actionVarAsgn)
+        print(" Bool:")
         print(isStart)
-        print("-")
         isStart<-true
-        print(isStart+ "-")
-        print(myModeStrings[myMode]+ "-")
+        print(" Bool:")
+        print(isStart)
+        print(" Mode:"+myModeStrings[myMode])
         myMode<- large
-        print(myModeStrings[myMode]+ "-")
+        print(" Mode:"+myModeStrings[myMode])
         me string: actionStrAsgn
         actionStrAsgn<-"Hello"
-        print(actionStrAsgn+"-")
+        print(" AsgnStr:"+actionStrAsgn)
         me Map<me string, me string>:testMap
         testMap["key0"]<-"value0"
-        print(testMap["key0"])
+        print(" IDX:"+testMap["key0"])
     }
-}''', 'PGBR:45670-small-large-Hello-value0',['actions/varAsgn','actions/flagAsgn','actions/modeAsgn','actions/stringAsgn','actions/mapAsgn']],
+}''', 'PGBR:4567 Bool:0 Bool:1 Mode:small Mode:large AsgnStr:Hello IDX:value0',['actions/varAsgn','actions/flagAsgn','actions/modeAsgn','actions/stringAsgn','actions/mapAsgn']],
 #####################################################################################################
      'actions/conditional':  ['struct testClass{me void: runTest()<-{testFunc(true)}\nme void: testFunc(me bool: isTrue)<-{if (isTrue){print("true")}\nelse{print("false")}}}', 'PGB:'],
      'actions/switch':       ['struct testClass{me void: runTest()<-{me int:myInt<-3\nswitch(myInt){case 3:{print("3")}case 2:{print("2")}default:{print("default")}}}}', 'PGBR:3'],
@@ -413,6 +414,7 @@ struct testClass{
      'actions/32intToString':   ['struct testClass{me void: runTest()<-{me int32: A<-123   \n me string:B<-toString(A) \n print(B)}}', 'PGBR:123'],
      'actions/64intToString':   ['struct testClass{me void: runTest()<-{me int64: A<-123   \n me string:B<-toString(A) \n print(B)}}', 'PGBR:123'],
      'actions/stringToInt':     ['struct testClass{me void: runTest()<-{me string: A<-"123"\n me int:B<-stoi(A)        \n print(B)}}', 'PGBR:123'],
+     'actions/boolToInt':       ['struct testClass{me void: runTest()<-{me bool: b <- true \n print(toString(b))}}', 'PGBR:true'],
      'actions/typeConversions': ['''
 struct testClass{
     me void: runTest()<-{
@@ -425,7 +427,6 @@ struct testClass{
         print(toString(b))
         me int32: eye32 <- 32
         me int64: eye64 <- 64
-        //b <- toString(b)
         me string: s <- toString(a)
         me string: s32 <- toString(eye32)
         me string: s64 <- toString(eye64)
@@ -443,7 +444,7 @@ struct testClass{
             print("stoi fail")
         }
     }
-}''', 'PGBR:true1233264pass',['actions/intToString','actions/32intToString','actions/64intToString','actions/stringToInt']],
+}''', 'PGBR:true1233264pass',['actions/intToString','actions/32intToString','actions/64intToString','actions/stringToInt','actions/boolToInt']],
 #####################################################################################################
 ## TODO: add more loop tests?
 ########################################
