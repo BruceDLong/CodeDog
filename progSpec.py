@@ -682,6 +682,10 @@ def getImplementationOptionsFor(fieldType):
         return classImplementationOptions[fieldType]
     return None
 ###############  Various Dynamic Type-handling functions
+def getGenericArgs(ObjectDef):
+    if('genericArgs' in ObjectDef): return(ObjectDef['genericArgs'])
+    else: return(None)
+
 def getTypeArgList(className):
     if(className in templatesDefined):
         return(templatesDefined[className])

@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, logLvl
-from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr
+from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr, convertType
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -97,7 +97,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
             if(count>0):reqTagString += ", "
             reqTagString += reqType
             count += 1
-        reqTagString += " >"
+        reqTagString += ">"
         langType += reqTagString
         InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
@@ -129,20 +129,6 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
             if varMode != 'alloc':
                 langType=applyOwner(containerOwner, langType, varMode)
     return [langType, InnerLangType]
-
-def convertType(classes, typeSpec, varMode, actionOrField, xlator):
-    # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
-    fieldType = progSpec.getFieldTypeNew(typeSpec)
-    if not isinstance(fieldType, str):
-        if len(fieldType) > 1 and fieldType[1] == "..":
-            fieldType = "int"
-        else:
-            fieldType=fieldType[0]
-    unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
-    ownerOut=getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn)
-    retVal = xlateLangType(classes, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, actionOrField, xlator)
-    return retVal
 
 def codeIteratorOperation(itrCommand, fieldType):
     result = ''
@@ -316,7 +302,7 @@ def codeComparisonStr(S, S2, retType1, retType2, op):
     return S
 
 ###################################################### CONTAINERS
-def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, xlator):
+def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, genericArgs, xlator):
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     if progSpec.isNewContainerTempFunc(typeSpecIn): return(name, typeSpecOut, paramList, convertedIdxType)
@@ -347,7 +333,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=adjustBaseTypes(idxType)
-        [convertedItmType, innerType] = convertType(classes, typeSpecOut, 'var', '', xlator)
+        [convertedItmType, innerType] = convertType(classes, typeSpecOut, 'var', '', genericArgs, xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0.count(%1)>0)';
         elif name=='containsKey2'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0->count(%1)>0)';
@@ -371,7 +357,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=adjustBaseTypes(idxType)
-        [convertedItmType, innerType] = convertType(classes, typeSpecOut, 'var', '', xlator)
+        [convertedItmType, innerType] = convertType(classes, typeSpecOut, 'var', '', genericArgs, xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='count(%1)>=1';
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -449,7 +435,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
         exit(2)
     return [actionText, loopCounterName]
 
-def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContainer,datastructID,keyFieldType,containerOwner, isBackward, actionOrField, indent,xlator):
+def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContainer,datastructID,keyFieldType,containerOwner, isBackward, actionOrField, indent, genericArgs,xlator):
     #TODO: handle isBackward
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText       = ""
@@ -507,7 +493,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
         cdErr("iterateContainerStr() datastructID = " + datastructID)
     return [actionText, loopCounterName]
 ###################################################### EXPRESSION CODING
-def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator):
+def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
     #print('                  factor: ', item)
     S=''
@@ -516,18 +502,18 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlato
     #print("ITEM0=", item0, ">>>>>", item)
     if (isinstance(item0, str)):
         if item0=='(':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
             S+='(' + S2 +')'
         elif item0=='!':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
             S+='!' + S2
         elif item0=='-':
-            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+            [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
             S+='-' + S2
         elif item0=='[':
             tmp="{"
             for expr in item[1:-1]:
-                [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+                [S2, retTypeSpec] = codeExpr(expr, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
                 if len(tmp)>1: tmp+=", "
                 tmp+=S2
             tmp+="}"
@@ -537,7 +523,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlato
             idx=1
             while idx <  len(item)-1:
                 valExpr = item[idx+2]
-                [S2, retTypeSpec] = codeExpr(valExpr, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlator)
+                [S2, retTypeSpec] = codeExpr(valExpr, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
                 if len(tmp)>1: tmp+=", "
                 tmp+="{" + item[idx] + ", " + S2 + "}"
                 idx += 3
@@ -585,7 +571,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, xlato
             if isinstance(S, int): retTypeSpec = 'int64'
             else:  retTypeSpec = 'int32'
         else:
-            [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, LorRorP_Val, xlator)
+            [codeStr, retTypeSpec, prntType, AltIDXFormat]=codeItemRef(item0, 'RVAL', objsRefed, returnType, LorRorP_Val, genericArgs, xlator)
             if(codeStr=="NULL"):
                 codeStr="nullptr"
                 retTypeSpec={'owner':"PTR"}
@@ -603,7 +589,7 @@ def adjustQuotesForChar(typeSpec1, typeSpec2, S):
 def adjustConditional(S2, conditionType):
     return [S2, conditionType]
 
-def codeSpecialReference(segSpec, objsRefed, xlator):
+def codeSpecialReference(segSpec, objsRefed, genericArgs, xlator):
     S=''
     fieldType='void'   # default to void
     retOwner='me'    # default to 'me'
@@ -614,33 +600,33 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             # TODO: have a tag to choose cout vs printf()
             S+='cout'
             for P in paramList:
-                [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'PARAM', xlator)
+                [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
                 [S2, isDerefd]=derefPtr(S2, argTypeSpec)
                 S+=' << '+S2
             S+=" << flush"
         elif(funcName=='input'):
             P=paramList[0]
-            [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'PARAM', xlator)
+            [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
             [S2, isDerefd]=derefPtr(S2, argTypeSpec)
             S+='getline(cin, '+S2+')'
         elif(funcName=='AllocateOrClear'):
-            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', xlator)
+            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
             if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
-            S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, xlator)+"();}"
+            S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+codeAllocater(varTypeSpec, genericArgs, xlator)+"();}"
         elif(funcName=='Allocate'):
-            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'LVAL', xlator)
+            [varName,  varTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'LVAL', genericArgs, xlator)
             if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
-            S+=varName+" = "+codeAllocater(varTypeSpec, xlator)+'('
+            S+=varName+" = "+codeAllocater(varTypeSpec, genericArgs, xlator)+'('
             count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
             for P in paramList[1:]:
                 if(count>0): S+=', '
-                [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'PARAM', xlator)
+                [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
                 S+=S2
                 count=count+1
             S+=")"
         elif(funcName=='callPeriodically'):
-            [objName,  typeSpec]=codeExpr(paramList[1][0], objsRefed, None, None, 'PARAM', xlator)
-            [interval,  intTypeSpec]   =codeExpr(paramList[2][0], objsRefed, None, None, 'PARAM', xlator)
+            [objName,  typeSpec]=codeExpr(paramList[1][0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
+            [interval,  intTypeSpec]   =codeExpr(paramList[2][0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
             fieldType = progSpec.fieldTypeKeyword(typeSpec)
             varTypeSpec= fieldType
             wrapperName="cb_wraps_"+varTypeSpec
@@ -656,15 +642,15 @@ def codeSpecialReference(segSpec, objsRefed, xlator):
             if len(paramList)==0: S+='return'
         elif(funcName=='toStr'):
             if len(paramList)==1:
-                [S2, argTypeSpec]=codeExpr(P[0][0], objsRefed, None, None, 'PARAM', xlator)
+                [S2, argTypeSpec]=codeExpr(P[0][0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
                 [S2, isDerefd]=derefPtr(S2, argTypeSpec)
                 S+='to_string('+S2+')'
                 fieldType='string'
         elif(funcName=='asClass'):
             if len(paramList)==2:
-                [newTypeStr, argTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', xlator)
+                [newTypeStr, argTypeSpec]=codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
                 [newTypeStr, isDerefd]=derefPtr(newTypeStr, argTypeSpec)
-                [toCvtStr, toCvtTypeSpec]=codeExpr(paramList[1][0], objsRefed, None, None, 'PARAM', xlator)
+                [toCvtStr, toCvtTypeSpec]=codeExpr(paramList[1][0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
                # [toCvtStr, isDerefd]=derefPtr(toCvtStr, toCvtTypeSpec)
                 varOwner=progSpec.getTypeSpecOwner(toCvtTypeSpec)
                 if(varOwner=='their'): S="static_cast<"+newTypeStr+"*>("+toCvtStr+")"
@@ -831,8 +817,8 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, xlator):
-    [fieldType, innerType] = convertType(classes, lhsTypeSpec, 'var', '', xlator)
+def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
+    [fieldType, innerType] = convertType(classes, lhsTypeSpec, 'var', '', genericArgs, xlator)
     varDeclareStr=''
     assignValue=''
     isAllocated = fieldDef['isAllocated']
@@ -842,7 +828,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
         del fieldDef['paramList'][-1]
         useCtor = True
     if(fieldDef['value']):
-        [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', xlator)
+        [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs, xlator)
         [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod] = determinePtrConfigForAssignments(lhsTypeSpec, rhsTypeSpec, "" , RHS)
         if(isAllocated and not progSpec.typeIsPointer(rhsTypeSpec)): RHS = getCodeAllocSetStr(innerType, owner, RHS)
         else: RHS = RHS_leftMod+RHS+RHS_rightMod
@@ -853,7 +839,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
         CPL=''
         if fieldDef['paramList'] != None:
             # Code the constructor's arguments
-            [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, xlator)
+            [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs, xlator)
             if len(paramTypeList)==1:
                 if not isinstance(paramTypeList[0], dict):
                     print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
@@ -899,7 +885,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList
     if paramList!=None:
         if paramList[-1] == "^&useCtor//8":
             del paramList[-1]
-        [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, xlator)
+        [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, genericArgs, xlator)
         fieldValueText += CPL
     if isAllocated == True:
         fieldValueText = " = " + getCodeAllocSetStr(fieldType, fieldOwner, "")
@@ -1117,7 +1103,6 @@ def fetchXlators():
     xlators['codeMain']                     = codeMain
     xlators['produceTypeDefs']              = produceTypeDefs
     xlators['addSpecialCode']               = addSpecialCode
-    xlators['convertType']                  = convertType
     xlators['applyTypecast']                = applyTypecast
     xlators['codeIteratorOperation']        = codeIteratorOperation
     xlators['xlateLangType']                = xlateLangType
@@ -1163,4 +1148,6 @@ def fetchXlators():
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
     xlators['getVirtualFuncText']           = getVirtualFuncText
     xlators['specialFunction']              = specialFunction
+    xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
+    xlators['xlateLangType']                = xlateLangType
     return(xlators)
