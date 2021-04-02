@@ -892,8 +892,9 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, typeArgList, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, xlator):
     fieldValueText=""
+    fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     #TODO: make test case
     if paramList!=None:
         if paramList[-1] == "^&useCtor//8":

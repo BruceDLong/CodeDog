@@ -238,22 +238,24 @@ def packFieldDef(fieldResult, className, indent):
 
     if(fieldResult.fieldType):
         fieldType=fieldResult.fieldType[0];
-        if 'reqTagList' in fieldType:
-            reqTagList = fieldType['reqTagList']
-            packedTArgList = []
-            for reqTag in reqTagList[0]:
-                reqTagVarType = reqTag['varType'][0][0]
-                reqTagOwner = 'me'
-                if 'owner' in reqTag: reqTagOwner = reqTag['owner']
-                packedReqTag={'tArgOwner': reqTagOwner, 'tArgType': reqTagVarType}
-                packedTArgList.append(packedReqTag)
-        if not isinstance(fieldType, str) and (fieldType[0]=='[' or fieldType[0]=='{'):
-            #print("FIELDTYPE is an inline SEQ or ALT")
-            if   fieldType[0]=='{': fieldList=fieldType[1:-1]
-            elif fieldType[0]=='[': fieldList=fieldType[1]
-            for innerField in fieldList:
-                innerFieldDef=packFieldDef(innerField, className, indent+'    ')
-                innerDefs.append(innerFieldDef)
+        if not isinstance(fieldType, str):
+            if 'reqTagList' in fieldType:
+                reqTagList = fieldType['reqTagList']
+                packedTArgList = []
+                for reqTag in reqTagList[0]:
+                    reqTagVarType = reqTag['varType'][0][0]
+                    reqTagOwner = 'me'
+                    if 'owner' in reqTag: reqTagOwner = reqTag['owner']
+                    packedReqTag={'tArgOwner': reqTagOwner, 'tArgType': reqTagVarType}
+                    packedTArgList.append(packedReqTag)
+                fieldType=[fieldType[0],packedTArgList]
+            if(fieldType[0]=='[' or fieldType[0]=='{'):
+                if   fieldType[0]=='{': fieldList=fieldType[1:-1]
+                elif fieldType[0]=='[': fieldList=fieldType[1]
+                for innerField in fieldList:
+                    innerFieldDef=packFieldDef(innerField, className, indent+'    ')
+                    innerDefs.append(innerFieldDef)
+                #print("FIELDTYPE is an inline SEQ or ALT:",innerFieldDef)
     else: fieldType=None;
 
     isAContainer = False

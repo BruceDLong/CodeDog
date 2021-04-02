@@ -1350,7 +1350,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         reqTagList = progSpec.getReqTagList(typeSpec)
         [intermediateType, innerType] = xlator['convertType'](classes, typeSpec, 'var', 'field', xlator)
         if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType):
-           convertedType = generateGenericStructName(classes, fieldType, reqTagList)
+           convertedType = generateGenericStruct(classes, fieldType, reqTagList)
         else:
             convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
@@ -1363,7 +1363,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
                 isAllocated = False
                 paramList = None
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, fieldOwner, paramList, objsRefed, isAllocated, typeArgList, xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, xlator)
             #print ("    RHS none: ", fieldValueText)
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, str):
@@ -1449,7 +1449,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 cdlog(5, "Function "+fieldID+" has no implementation defined.")
                 funcText = xlator['getVirtualFuncText'](field)
             else:
-                extraCodeForTopOfFuntion = ''
+                extraCodeForTopOfFuntion = xlator['extraCodeForTopOfFuntion'](argList)
                 if typeDefName=='' and 'flagsVarNeeded' in ObjectDef and ObjectDef['flagsVarNeeded']==True:
                     extraCodeForTopOfFuntion+="    flags=0;"
                 verbatimText=field['value'][1]
@@ -1609,30 +1609,37 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
     currentObjName=''
     return classRecord
 
-def generateGenericStructName(classes, className, reqTagList):
+def replaceGenericType(typeSpec, fTypeKW, typeArgList, reqTagList):
+    idx = 0
+    for typeArg in typeArgList:
+        if fTypeKW == typeArg:
+            reqFType = progSpec.getTypeFromTemplateArg(reqTagList[idx])
+            typeSpec['fieldType']  = reqFType
+            typeSpec['reqTagList'] = None
+        idx += 1
+
+def generateGenericStruct(classes, className, reqTagList):
     global genericStructsGenerated
     classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
     if classDef == None:
         classDef = progSpec.findSpecOf(globalClassStore[0], className, "model")
+    if classDef == None: print("NO CLASS DEF FOR: ", className)
     genericStructName = "__"+className
     for reqTag in reqTagList: genericStructName+="_"+progSpec.getTypeFromTemplateArg(reqTag)
-    if not genericStructName in genericStructsGenerated:
+    if not genericStructName in genericStructsGenerated[1]:
+        genericStructsGenerated[1].append(genericStructName)
+        classes[1].append(genericStructName)
         typeArgList = progSpec.getTypeArgList(className)
         genericClassDef = copy.copy(classDef)
+        if 'implements' in genericClassDef: genericClassDef.pop('implements')
+        if 'tags' in genericClassDef and 'implements' in genericClassDef['tags']:genericClassDef['tags'].pop('implements')
         genericClassDef['name'] = genericStructName
         for fieldDef in genericClassDef['fields']:
             typeSpec = fieldDef['typeSpec']
             fTypeKW  = progSpec.fieldTypeKeyword(typeSpec)
-            idx = 0
-            for typeArg in typeArgList:
-                if fTypeKW == typeArg:
-                    reqFType = progSpec.getTypeFromTemplateArg(reqTagList[idx])
-                    typeSpec['fieldType'] = reqFType
-                idx += 1
+            replaceGenericType(typeSpec, fTypeKW, typeArgList, reqTagList)
         genericStructsGenerated[0][genericStructName]=genericClassDef
         classes[0][genericStructName]=genericClassDef
-        genericStructsGenerated[1].append(genericStructName)
-        classes[1].append(genericStructName)
     return genericStructName
 
 def codeAllNonGlobalStructs(classes, tags, fileSpecs, xlator):

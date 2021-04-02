@@ -125,7 +125,8 @@ def convertType(classes, typeSpec, varMode, actionOrField, xlator):
 
 def makePtrOpt(typeSpec):
     # Make pointer field variables optionals
-    if progSpec.typeIsPointer(typeSpec): return('!')
+    fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
+    if progSpec.typeIsPointer(typeSpec) and fTypeKW != 'string': return('!')
     return('')
 
 def codeIteratorOperation(itrCommand, fieldType):
@@ -705,8 +706,9 @@ def isNumericType(convertedType):
     else:
         return False
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, typeArgList, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, xlator):
     fieldValueText=""
+    fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     isTypeArg = False
     if typeArgList:
         for typeArg in typeArgList:
@@ -718,7 +720,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramLi
         fieldValueText=" = " + convertedType + CPL
     else:
         fieldValueText = variableDefaultValueString(convertedType, isTypeArg, fieldOwner)
-        fieldValueText += makePtrOpt(fieldOwner)
+        fieldValueText += makePtrOpt(typeSpec)
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
@@ -823,6 +825,17 @@ def codeTemplateHeader(structName, typeArgList):
     templateHeader+=">"
     return(templateHeader)
 
+def extraCodeForTopOfFuntion(argList):
+    if len(argList)==0:
+        topCode=''
+    else:
+        topCode=""
+        for arg in argList:
+            argTypeSpec =arg['typeSpec']
+            argFieldName=arg['fieldName']
+            topCode+=  '        var '+argFieldName+' = '+argFieldName+'\n'
+    return topCode
+
 def codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
     if (LHS_FieldType =='flag' ):
         item = LHS_Left+"flags"
@@ -922,6 +935,7 @@ def fetchXlators():
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['extraCodeForTopOfFuntion']     = extraCodeForTopOfFuntion
     xlators['codeArrayIndex']               = codeArrayIndex
     xlators['codeSetBits']                  = codeSetBits
     xlators['generateMainFunctionality']    = generateMainFunctionality

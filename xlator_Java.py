@@ -674,8 +674,9 @@ def varTypeIsValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, fieldOwner, paramList, objsRefed, isAllocated, typeArgList, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, xlator):
     fieldValueText=""
+    fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
         convertedType = convertedType.replace('static ', '', 1)
     if (not varTypeIsValueType(convertedType) and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const')):
