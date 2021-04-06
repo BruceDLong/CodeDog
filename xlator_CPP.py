@@ -817,16 +817,16 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
-    [fieldType, innerType] = convertType(classes, lhsTypeSpec, 'var', '', genericArgs, xlator)
-    varDeclareStr=''
-    assignValue=''
-    isAllocated = fieldDef['isAllocated']
-    owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
-    useCtor = False
+def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
+    varDeclareStr = ''
+    assignValue   = ''
+    isAllocated   = fieldDef['isAllocated']
+    owner         = progSpec.getTypeSpecOwner(lhsTypeSpec)
+    useCtor       = False
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
+    [convertedType, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs, xlator)
         [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod] = determinePtrConfigForAssignments(lhsTypeSpec, rhsTypeSpec, "" , RHS)
@@ -837,7 +837,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
 
     else: # If no value was given:
         CPL=''
-        if fieldDef['paramList'] != None:
+        if fieldDef['paramList'] != None:       # call constructor
             # Code the constructor's arguments
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs, xlator)
             if len(paramTypeList)==1:
@@ -847,7 +847,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                 rhsTypeSpec = paramTypeList[0]
                 rhsType     = progSpec.fieldTypeKeyword(rhsTypeSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                if True or not isinstance(rhsType, str) and fieldType==rhsType[0]:
+                if True or not isinstance(rhsType, str) and convertedType==rhsType[0]:
                     [leftMod, rightMod] = determinePtrConfigForNewVars(lhsTypeSpec, rhsTypeSpec, useCtor)
                     if(not useCtor): assignValue += " = "    # Use a copy constructor
                     if(isAllocated): assignValue += getCodeAllocStr(innerType, owner)
@@ -869,7 +869,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
             elif(fieldTypeCat=='bool'):
                 assignValue = '= false'
 
-    varDeclareStr= fieldType + " " + varName + assignValue
+    varDeclareStr= convertedType + " " + varName + assignValue
     return(varDeclareStr)
 
 def codeIncrement(varName):

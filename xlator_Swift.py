@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, isStruct
-from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr, convertType
+from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr, convertType, generateGenericStructName
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -644,16 +644,20 @@ def variableDefaultValueString(fieldType, isTypeArg, owner):
         else:fieldValueText = ' = ' + fieldType +'()'
     return fieldValueText
 
-def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
-    varDeclareStr=''
-    assignValue=''
-    isAllocated = fieldDef['isAllocated']
-    owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
-    useCtor = False
+def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
+    varDeclareStr = ''
+    assignValue   = ''
+    isAllocated   = fieldDef['isAllocated']
+    owner         = progSpec.getTypeSpecOwner(lhsTypeSpec)
+    useCtor       = False
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    [fieldType, innerType]            = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    [convertedType, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    reqTagList = progSpec.getReqTagList(lhsTypeSpec)
+    fieldType = progSpec.fieldTypeKeyword(lhsTypeSpec)
+    if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType):
+        convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
     [allocFieldType, allocFieldAttrs] = convertType(classes, lhsTypeSpec, 'alloc', '', genericArgs, xlator)
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
@@ -672,15 +676,15 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
                 rhsTypeSpec = paramTypeList[0]
                 rhsType     = progSpec.getFieldType(rhsTypeSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                if True or not isinstance(rhsType, str) and fieldType==rhsType[0]:
+                if True or not isinstance(rhsType, str) and convertedType==rhsType[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
         else:
             assignValue = variableDefaultValueString(allocFieldType, False, owner)
     fieldTypeMod = makePtrOpt(lhsTypeSpec)
     if (assignValue == ""):
-        varDeclareStr= "var " + varName + ": "+ fieldType + fieldTypeMod + " = " + allocFieldType + '()'
+        varDeclareStr= "var " + varName + ": "+ convertedType + fieldTypeMod + " = " + allocFieldType + '()'
     else:
-        varDeclareStr= "var " + varName + ": "+ fieldType + fieldTypeMod + assignValue
+        varDeclareStr= "var " + varName + ": "+ convertedType + fieldTypeMod + assignValue
     return(varDeclareStr)
 
 def codeIncrement(varName):

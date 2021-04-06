@@ -1026,6 +1026,13 @@ def isAltStruct(classes, fieldType):
     if (fieldObjConfig=='ALT'): return [True, Objfields]
     else: return [False, [] ]
 
+def isAbstractStruct(classes, className):
+    modelDef = findSpecOf(classes, className, 'model')
+    if modelDef:
+        classDef = findSpecOf(classes, className, 'struct')
+        if classDef == None: return True
+    return False
+
 def typeIsNumRange(fieldType):
     if isinstance(fieldType, str): return False
     if len(fieldType)==3:

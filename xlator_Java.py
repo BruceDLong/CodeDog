@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, logLvl
-from codeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getModeStateNames, codeExpr, convertType
+from codeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getModeStateNames, codeExpr, convertType, generateGenericStructName
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -588,20 +588,24 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code')
 
-def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
-    varDeclareStr=''
-    assignValue=''
-    isAllocated = fieldDef['isAllocated']
-    owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
-    useCtor = False
+def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
+    varDeclareStr = ''
+    assignValue   = ''
+    isAllocated   = fieldDef['isAllocated']
+    owner         = progSpec.getTypeSpecOwner(lhsTypeSpec)
+    useCtor       = False
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    [fieldTypeSpec, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    [convertedType, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    reqTagList = progSpec.getReqTagList(lhsTypeSpec)
+    fieldType = progSpec.fieldTypeKeyword(lhsTypeSpec)
+    if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType):
+        convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
     containerTypeSpec = progSpec.getContainerSpec(lhsTypeSpec)
     if progSpec.isOldContainerTempFunc(lhsTypeSpec): print("Deprecated container type:", lhsTypeSpec); exit(2);
     isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)
-    fieldType = adjustBaseTypes(fieldTypeSpec, isAContainer)
+    fieldType = adjustBaseTypes(convertedType, isAContainer)
     if isinstance(containerTypeSpec, str) and containerTypeSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
@@ -611,7 +615,7 @@ def codeNewVarStr(classes, lhsTypeSpec, varName, fieldDef, indent, objsRefed, ac
         else: assignValue=''
     elif(fieldDef['value']):
         [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs, xlator)
-        S2=checkForTypeCastNeed(fieldTypeSpec, rhsTypeSpec, S2)
+        S2=checkForTypeCastNeed(convertedType, rhsTypeSpec, S2)
         RHS = S2
         if varTypeIsValueType(fieldType):
             assignValue=' = '+ RHS

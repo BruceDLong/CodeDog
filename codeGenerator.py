@@ -1094,7 +1094,7 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
         fieldName =fieldDef['fieldName']
         applyStructImplemetation(typeSpec,currentObjName,fieldName)
         cdlog(5, "Action newVar: {}".format(fieldName))
-        varDeclareStr = xlator['codeNewVarStr'](globalClassStore, typeSpec, fieldName, fieldDef, indent, objsRefed, 'action', genericArgs, xlator)
+        varDeclareStr = xlator['codeNewVarStr'](globalClassStore, globalTagStore, typeSpec, fieldName, fieldDef, indent, objsRefed, 'action', genericArgs, xlator)
         actionText = indent + varDeclareStr + ";\n"
         localVarsAllocated.append([fieldName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
@@ -1435,9 +1435,14 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     argTypeSpec =arg['typeSpec']
                     argOwner    =argTypeSpec['owner']
                     argFieldName=arg['fieldName']
+                    argFieldType=progSpec.fieldTypeKeyword(argTypeSpec)
                     if progSpec.typeIsPointer(argTypeSpec): arg
                     applyStructImplemetation(argTypeSpec,className,argFieldName)
-                    [argType, innerType] = convertType(classes, argTypeSpec, 'arg', 'field', genericArgs, xlator)
+                    reqTagList = progSpec.getReqTagList(argTypeSpec)
+                    if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, argFieldType) and not progSpec.isAbstractStruct(globalClassStore[0], argFieldType):
+                        argType = generateGenericStructName(classes, tags, argFieldType, reqTagList, genericArgs, xlator)
+                    else:
+                        [argType, innerType] = convertType(classes, argTypeSpec, 'arg', 'field', genericArgs, xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, argOwner, argTypeSpec, overRideOper, typeArgList, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
             #### RETURN TYPE ###########################################
@@ -1665,6 +1670,7 @@ def generateGenericStructName(classes, tags, className, reqTagList, genericArgs,
         for gArg in genericArgs:
             genericStructName+="_"+progSpec.getTypeFromTemplateArg(genericArgs[gArg])
     if not genericStructName in genericStructsGenerated[1]:
+        print("ADD:",genericStructName)
         genericStructsGenerated[1].append(genericStructName)
         classes[1].append(genericStructName)
         genericClassDef = copy.copy(classDef)
