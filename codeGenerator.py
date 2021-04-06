@@ -52,6 +52,7 @@ localVarsAllocated  = []   # Format: [varName, typeSpec]
 localArgsAllocated  = []   # Format: [varName, typeSpec]
 currentObjName      = ''
 inheritedEnums      = {}
+constFieldAccs      = {}
 genericStructsGenerated = [ {}, [] ]
 
 def CheckBuiltinItems(currentObjName, segSpec, objsRefed, genericArgs, xlator):
@@ -1269,6 +1270,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, genericArg
     cdlog(4, "Generating Constructor for: {}".format(ClassName))
     ObjectDef = classes[0][ClassName]
     flatClassName = progSpec.flattenObjectName(ClassName)
+    genericArgs =  progSpec.getGenericArgs(ObjectDef)
     ctorInit=""
     ctorArgs=""
     copyCtorArgs=""
@@ -1282,6 +1284,9 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, genericArg
         fieldOwner=progSpec.getOwnerFromTypeSpec(typeSpec)
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
         [convertedType, innerType] = convertType(classes, typeSpec, 'var', 'constructor', genericArgs, xlator)
+        reqTagList = progSpec.getReqTagList(typeSpec)
+        if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType):
+            convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
         fieldName=field['fieldName']
         if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
         else: isTemplateVar = False
@@ -1374,7 +1379,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         reqTagList = progSpec.getReqTagList(typeSpec)
         [intermediateType, innerType] = convertType(classes, typeSpec, 'var', 'field', genericArgs, xlator)
         if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType):
-            convertedType = generateGenericStruct(classes, fieldType, reqTagList,genericArgs)
+            convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
         else:
             convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
@@ -1642,7 +1647,7 @@ def replaceGenericType(typeSpec, fTypeKW, typeArgList, reqTagList):
             typeSpec['reqTagList'] = None
         idx += 1
 
-def generateGenericStruct(classes, className, reqTagList, genericArgs):
+def generateGenericStructName(classes, tags, className, reqTagList, genericArgs, xlator):
     global genericStructsGenerated
     classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
     if classDef == None: classDef = progSpec.findSpecOf(globalClassStore[0], className, "model")
@@ -1667,13 +1672,18 @@ def generateGenericStruct(classes, className, reqTagList, genericArgs):
         if 'tags' in genericClassDef and 'implements' in genericClassDef['tags']:genericClassDef['tags'].pop('implements')
         genericClassDef['name'] = genericStructName
         genericClassDef['genericArgs'] = genericArgs
+        for field in genericClassDef["fields"]: # handle constructors
+            typeSpec          = field['typeSpec']
+            fTypeKW           = progSpec.fieldTypeKeyword(typeSpec)
+            if fTypeKW == "none" and 'argList' in typeSpec: field['fieldName'] = genericStructName
         genericStructsGenerated[0][genericStructName]=genericClassDef
         classes[0][genericStructName]=genericClassDef
+        setUpFlagAndModeFields(classes, tags, [genericStructName], xlator)
     return genericStructName
 
 def setUpFlagAndModeFields(classes, tags, structsToSetUp, xlator):
     global currentObjName
-    constFieldAccs = {}
+    global constFieldAccs
     needsFlagsVar  = False
     CodeDogAddendumsAcc=''
     # Set up flag and mode fields
@@ -1690,17 +1700,12 @@ def setUpFlagAndModeFields(classes, tags, structsToSetUp, xlator):
         if CodeDogAddendumsAcc!='':
             codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(className,  CodeDogAddendumsAcc ), 'Flags and Modes for class '+className)
         currentObjName=''
-    return constFieldAccs
 
 def codeAllNonGlobalStructs(classes, tags, fileSpecs, structsToImplement, xlator):
     global currentObjName
     global structsNeedingModification
+    global constFieldAccs
     cdlog(2, "CODING FLAGS and MODES...")
-    needsFlagsVar=False;
-    CodeDogAddendumsAcc=''
-
-    # Set up flag and mode fields
-    constFieldAccs = setUpFlagAndModeFields(classes, tags, structsToImplement, xlator)
 
     # Write the class
     for className in structsToImplement:
@@ -1759,7 +1764,7 @@ def makeTagText(tags, tagName):
     if tagVal==None: return "Tag '"+tagName+"' is not set in the dog file."
     return tagVal
 
-libInterfacesText=''
+libInterfacesText =''
 def makeFileHeader(tags, filename, xlator):
     global buildStr_libs
     global libInterfacesText
@@ -1967,8 +1972,9 @@ def generate(classes, tags, libsToUse, langName, xlator):
     codeStructureCommands(classes, tags, xlator)
     cdlog(1, "GENERATING: Classes...")
     structsToImpl = fetchListOfStructsToImplement(classes, tags)
+    setUpFlagAndModeFields(classes, tags, structsToImpl, xlator)
     fileSpecs=codeAllNonGlobalStructs(classes, tags, {}, structsToImpl, xlator)
-    fileSpecs=codeAllNonGlobalStructs(genericStructsGenerated, tags, fileSpecs, genericStructsGenerated[1], xlator)
+    fileSpecs=codeAllNonGlobalStructs(classes, tags, fileSpecs, genericStructsGenerated[1], xlator)
     topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 
