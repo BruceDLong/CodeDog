@@ -46,12 +46,12 @@ def bitsNeeded(n):
         return 1 + bitsNeeded((n + 1) // 2)
 ###### Routines to track types of identifiers and to look up type based on identifier.
 
-globalClassStore=[]
-globalTagStore=None
-localVarsAllocated = []   # Format: [varName, typeSpec]
-localArgsAllocated = []   # Format: [varName, typeSpec]
-currentObjName=''
-inheritedEnums = {}
+globalClassStore    = []
+globalTagStore      = None
+localVarsAllocated  = []   # Format: [varName, typeSpec]
+localArgsAllocated  = []   # Format: [varName, typeSpec]
+currentObjName      = ''
+inheritedEnums      = {}
 genericStructsGenerated = [ {}, [] ]
 
 def CheckBuiltinItems(currentObjName, segSpec, objsRefed, genericArgs, xlator):
@@ -1374,7 +1374,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         reqTagList = progSpec.getReqTagList(typeSpec)
         [intermediateType, innerType] = convertType(classes, typeSpec, 'var', 'field', genericArgs, xlator)
         if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType):
-           convertedType = generateGenericStruct(classes, fieldType, reqTagList)
+            convertedType = generateGenericStruct(classes, fieldType, reqTagList,genericArgs)
         else:
             convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
@@ -1642,34 +1642,31 @@ def replaceGenericType(typeSpec, fTypeKW, typeArgList, reqTagList):
             typeSpec['reqTagList'] = None
         idx += 1
 
-def generateGenericArgs(typeArgList, reqTagList):
-    idx = 0
-    retVal = {}
-    for typeArg in typeArgList:
-        reqTag = reqTagList[idx]
-        retVal[typeArg]=reqTag
-        idx += 1
-    return retVal
-
-def generateGenericStruct(classes, className, reqTagList):
+def generateGenericStruct(classes, className, reqTagList, genericArgs):
     global genericStructsGenerated
     classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
-    if classDef == None:
-        classDef = progSpec.findSpecOf(globalClassStore[0], className, "model")
+    if classDef == None: classDef = progSpec.findSpecOf(globalClassStore[0], className, "model")
     if classDef == None: print("NO CLASS DEF FOR: ", className)
+    typeArgList  = progSpec.getTypeArgList(className)
     genericStructName = "__"+className
-    for reqTag in reqTagList: genericStructName+="_"+progSpec.getTypeFromTemplateArg(reqTag)
+    if genericArgs == None:
+        genericArgs = {}
+        count = 0
+        for reqTag in reqTagList:
+            genericStructName+="_"+progSpec.getTypeFromTemplateArg(reqTag)
+            genericArgs[typeArgList[count]]=reqTag
+            count += 1
+    else:
+        for gArg in genericArgs:
+            genericStructName+="_"+progSpec.getTypeFromTemplateArg(genericArgs[gArg])
     if not genericStructName in genericStructsGenerated[1]:
         genericStructsGenerated[1].append(genericStructName)
         classes[1].append(genericStructName)
-        typeArgList = progSpec.getTypeArgList(className)
         genericClassDef = copy.copy(classDef)
         if 'implements' in genericClassDef: genericClassDef.pop('implements')
         if 'tags' in genericClassDef and 'implements' in genericClassDef['tags']:genericClassDef['tags'].pop('implements')
         genericClassDef['name'] = genericStructName
-        for fieldDef in genericClassDef['fields']:
-            typeSpec = fieldDef['typeSpec']
-            fTypeKW  = progSpec.fieldTypeKeyword(typeSpec)
+        genericClassDef['genericArgs'] = genericArgs
         genericStructsGenerated[0][genericStructName]=genericClassDef
         classes[0][genericStructName]=genericClassDef
     return genericStructName

@@ -687,6 +687,8 @@ def getGenericArgs(ObjectDef):
     else: return(None)
 
 def getTypeArgList(className):
+    if not isinstance(className, str):
+        print("ERROR: in progSpec.getTypeArgList(): expected a string not: "+ str(className))
     if(className in templatesDefined):
         return(templatesDefined[className])
     else:
