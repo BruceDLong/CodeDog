@@ -1671,17 +1671,13 @@ def generateGenericStruct(classes, className, reqTagList, genericArgs):
         classes[0][genericStructName]=genericClassDef
     return genericStructName
 
-def codeAllNonGlobalStructs(classes, tags, fileSpecs, xlator):
+def setUpFlagAndModeFields(classes, tags, structsToSetUp, xlator):
     global currentObjName
-    global structsNeedingModification
-    cdlog(2, "CODING FLAGS and MODES...")
-    needsFlagsVar=False;
+    constFieldAccs = {}
+    needsFlagsVar  = False
     CodeDogAddendumsAcc=''
-    constFieldAccs={}
-    structsToImplement = fetchListOfStructsToImplement(classes, tags)
-
     # Set up flag and mode fields
-    for className in structsToImplement:
+    for className in structsToSetUp:
         currentObjName=className
         CodeDogAddendumsAcc=''
         [needsFlagsVar, strOut, CodeDogAddendums]=codeFlagAndModeFields(classes, className, tags, xlator)
@@ -1694,6 +1690,17 @@ def codeAllNonGlobalStructs(classes, tags, fileSpecs, xlator):
         if CodeDogAddendumsAcc!='':
             codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(className,  CodeDogAddendumsAcc ), 'Flags and Modes for class '+className)
         currentObjName=''
+    return constFieldAccs
+
+def codeAllNonGlobalStructs(classes, tags, fileSpecs, structsToImplement, xlator):
+    global currentObjName
+    global structsNeedingModification
+    cdlog(2, "CODING FLAGS and MODES...")
+    needsFlagsVar=False;
+    CodeDogAddendumsAcc=''
+
+    # Set up flag and mode fields
+    constFieldAccs = setUpFlagAndModeFields(classes, tags, structsToImplement, xlator)
 
     # Write the class
     for className in structsToImplement:
@@ -1959,8 +1966,9 @@ def generate(classes, tags, libsToUse, langName, xlator):
 
     codeStructureCommands(classes, tags, xlator)
     cdlog(1, "GENERATING: Classes...")
-    fileSpecs=codeAllNonGlobalStructs(classes, tags, {}, xlator)
-    fileSpecs=codeAllNonGlobalStructs(genericStructsGenerated, tags, fileSpecs, xlator)
+    structsToImpl = fetchListOfStructsToImplement(classes, tags)
+    fileSpecs=codeAllNonGlobalStructs(classes, tags, {}, structsToImpl, xlator)
+    fileSpecs=codeAllNonGlobalStructs(genericStructsGenerated, tags, fileSpecs, genericStructsGenerated[1], xlator)
     topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 
