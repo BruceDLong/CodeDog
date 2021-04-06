@@ -491,8 +491,12 @@ def convertType(classes, typeSpec, varMode, actionOrField, genericArgs, xlator):
 def codeAllocater(typeSpec, genericArgs, xlator):
     S     = ''
     owner = progSpec.getTypeSpecOwner(typeSpec)
-    [varTypeStr, innerType] = convertType(globalClassStore, typeSpec, 'alloc', '', genericArgs, xlator)
-    S= xlator['getCodeAllocStr'](varTypeStr, owner);
+    fieldType = progSpec.fieldTypeKeyword(typeSpec)
+    reqTagList = progSpec.getReqTagList(typeSpec)
+    if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType) and not progSpec.isAbstractStruct(globalClassStore[0], fieldType):
+        convertedType = generateGenericStructName(globalClassStore, globalTagStore, fieldType, reqTagList, genericArgs, xlator)
+    else: [convertedType, innerType] = [convertedType, innerType] = convertType(globalClassStore, typeSpec, 'alloc', '', genericArgs, xlator)
+    S= xlator['getCodeAllocStr'](convertedType, owner);
     return S
 
 def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator):
@@ -530,7 +534,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     if 'fieldType' in typeSpecIn:
         fieldTypeIn = progSpec.fieldTypeKeyword(typeSpecIn)
     else: fieldTypeIn = None
-
 
     isNewContainer = False
     if progSpec.isNewContainerTempFunc(typeSpecIn): isNewContainer = True
@@ -570,6 +573,17 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             # TODO: if flags or modes have a non-zero default this should account for that.
         else:
             [typeSpecOut, SRC]=fetchItemsTypeSpec(segSpec, objsRefed, genericArgs, xlator) # Possibly adds a codeConversion to typeSpecOut
+            if typeSpecOut:
+                outKW = progSpec.fieldTypeKeyword(typeSpecOut)
+                reqTagList = progSpec.getReqTagList(typeSpecOut)
+                if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, outKW) and not progSpec.isAbstractStruct(globalClassStore[0], outKW):
+                    convertedType = generateGenericStructName(globalClassStore, globalTagStore, outKW, reqTagList, genericArgs, xlator)
+                    typeSpecOut['reqTagList'] = None
+                    typeSpecOut['fieldType'] = convertedType
+                elif genericArgs and outKW in genericArgs:
+                    [ownerOut, fTypeOut] = convertGenericType(genericArgs, typeSpecOut)
+                    typeSpecOut['fieldType'] = fTypeOut
+                    typeSpecOut['owner'] = ownerOut
         if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
@@ -595,8 +609,18 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 tmpTypeSpec = CheckObjectVars(fType, name, fieldIDArgList)
                 typeSpecOut = copy.copy(tmpTypeSpec)
                 if typeSpecOut!=0:
+                    segTypeKW = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
+                    reqTagList = progSpec.getReqTagList(typeSpecOut['typeSpec'])
+                    segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
+                    if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, segTypeKW)and not progSpec.isAbstractStruct(globalClassStore[0], segTypeKW):
+                        convertedType = generateGenericStructName(globalClassStore, globalTagStore, segTypeKW, reqTagList, genericArgs, xlator)
+                        typeSpecOut['typeSpec']['reqTagList'] = None
+                        typeSpecOut['typeSpec']['fieldType'] = convertedType
+                    elif genericArgs and segTypeKeyWord in genericArgs:
+                        [ownerOut, fTypeOut] = convertGenericType(genericArgs, typeSpecOut['typeSpec'])
+                        typeSpecOut['typeSpec']['fieldType'] = fTypeOut
+                        typeSpecOut['typeSpec']['owner'] = ownerOut
                     if isNewContainer == True:
-                        segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
                         segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut['typeSpec'])
                         [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
                         if(innerTypeOwner and segTypeOwner != 'itr'):
@@ -1188,8 +1212,6 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
         [S2, conditionTypeSpec] =  xlator['adjustConditional'](S2, conditionTypeSpec)
         cdlog(5, "If-statement: Condition is ".format(S2))
         ifCondition = S2
-
-
         ifBodyText = genIfBody(action['ifBody'], indent, objsRefed, returnType, genericArgs, xlator)
         actionText =  indent + "if (" + ifCondition + ") " + "{\n" + ifBodyText + indent + "}\n"
         elseBodyText = ""
@@ -1285,7 +1307,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, genericArg
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
         [convertedType, innerType] = convertType(classes, typeSpec, 'var', 'constructor', genericArgs, xlator)
         reqTagList = progSpec.getReqTagList(typeSpec)
-        if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType):
+        if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType)and not progSpec.isAbstractStruct(globalClassStore[0], fieldType):
             convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
         fieldName=field['fieldName']
         if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
@@ -1378,7 +1400,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         paramList = field['paramList']
         reqTagList = progSpec.getReqTagList(typeSpec)
         [intermediateType, innerType] = convertType(classes, typeSpec, 'var', 'field', genericArgs, xlator)
-        if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType):
+        if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType)and not progSpec.isAbstractStruct(globalClassStore[0], fieldType):
             convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
         else:
             convertedType = progSpec.flattenObjectName(intermediateType)
@@ -1643,17 +1665,9 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
     currentObjName=''
     return classRecord
 
-def replaceGenericType(typeSpec, fTypeKW, typeArgList, reqTagList):
-    idx = 0
-    for typeArg in typeArgList:
-        if fTypeKW == typeArg:
-            reqFType = progSpec.getTypeFromTemplateArg(reqTagList[idx])
-            typeSpec['fieldType']  = reqFType
-            typeSpec['reqTagList'] = None
-        idx += 1
-
 def generateGenericStructName(classes, tags, className, reqTagList, genericArgs, xlator):
     global genericStructsGenerated
+    global currentObjName
     classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
     if classDef == None: classDef = progSpec.findSpecOf(globalClassStore[0], className, "model")
     if classDef == None: print("NO CLASS DEF FOR: ", className)
@@ -1684,7 +1698,9 @@ def generateGenericStructName(classes, tags, className, reqTagList, genericArgs,
             if fTypeKW == "none" and 'argList' in typeSpec: field['fieldName'] = genericStructName
         genericStructsGenerated[0][genericStructName]=genericClassDef
         classes[0][genericStructName]=genericClassDef
+        previousObjName=currentObjName
         setUpFlagAndModeFields(classes, tags, [genericStructName], xlator)
+        currentObjName=previousObjName
     return genericStructName
 
 def setUpFlagAndModeFields(classes, tags, structsToSetUp, xlator):
