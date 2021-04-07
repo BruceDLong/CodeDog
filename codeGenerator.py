@@ -1692,10 +1692,14 @@ def generateGenericStructName(classes, tags, className, reqTagList, genericArgs,
         if 'tags' in genericClassDef and 'implements' in genericClassDef['tags']:genericClassDef['tags'].pop('implements')
         genericClassDef['name'] = genericStructName
         genericClassDef['genericArgs'] = genericArgs
-        for field in genericClassDef["fields"]: # handle constructors
+        for field in genericClassDef["fields"]: # handle constructors and function return types
             typeSpec          = field['typeSpec']
-            fTypeKW           = progSpec.fieldTypeKeyword(typeSpec)
-            if fTypeKW == "none" and 'argList' in typeSpec: field['fieldName'] = genericStructName
+            if 'argList' in typeSpec:
+                fTypeKW                = progSpec.fieldTypeKeyword(typeSpec)
+                if typeSpec['reqTagList']:
+                    typeSpec['reqTagList'] = reqTagList
+                typeSpec['fieldType']  = fTypeKW
+                if fTypeKW == "none": field['fieldName'] = genericStructName
         genericStructsGenerated[0][genericStructName]=genericClassDef
         classes[0][genericStructName]=genericClassDef
         previousObjName=currentObjName

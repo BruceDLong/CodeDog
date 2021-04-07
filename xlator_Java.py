@@ -215,7 +215,7 @@ def getEnumStringifyFunc(className, enumList):
 def codeIdentityCheck(S, S2, retType1, retType2, opIn):
     S2 = adjustQuotesForChar(retType1, retType2, S2)
     if opIn == '===':
-        print("TODO: finish codeIdentityCk")
+        #print("TODO: finish codeIdentityCk")
         return S + " == "+ S2
     else:
         lFType = progSpec.fieldTypeKeyword(retType1)
