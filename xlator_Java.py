@@ -314,7 +314,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     itrName          = repName + "Itr"
-    if datastructID=='TreeMap' or datastructID=='Java_Map' or datastructID=='RBTreeMap' or "__Map_" in datastructID:
+    if datastructID=='TreeMap' or datastructID=='Java_Map' or 'RBTreeMap' in datastructID or "__Map_" in datastructID:
         reqTagList   = progSpec.getReqTagList(containerType)
         if(reqTagList == None): print("reqTagList not found in iterateContainerStr"); exit(1)
         reqTagString = ""

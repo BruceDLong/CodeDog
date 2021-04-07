@@ -759,12 +759,9 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
     if fieldTypeKW=='DblLinkedList': return(['infon'])
     reqTagList = getReqTagList(typeSpec)
     if reqTagList:
-        if fieldTypeKW=='CPP_Deque' or fieldTypeKW=='Java_ArrayList' or fieldTypeKW=='Swift_Array':
-            return(reqTagList[0]['tArgType'])
-        if fieldTypeKW=='CPP_Map' or fieldTypeKW=='Java_Map' or fieldTypeKW=='Swift_Map':
-            return(reqTagList[0]['tArgType'])
-        if fieldTypeKW!="RBNode" and fieldTypeKW!="RBTreeMap" and fieldTypeKW!="RBTreeItr" and fieldTypeKW!="List" and fieldTypeKW!="Map":
-            print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
+        if fieldTypeKW=="RBNode" or fieldTypeKW=="RBTreeMap" or fieldTypeKW=="RBTreeItr" or fieldTypeKW=="List" or fieldTypeKW=="Map":
+            return(None)
+        return(reqTagList[0]['tArgType'])
     elif reqTagList == None: return(None)
     return(None)
 
