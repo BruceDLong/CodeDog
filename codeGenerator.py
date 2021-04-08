@@ -422,6 +422,17 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
+def getGenericClassInfo(className):
+    typeArgList  = progSpec.getTypeArgList(className)
+    fieldDefAt   = CheckObjectVars(className, "at", "")
+    fieldDefFind = CheckObjectVars(className, "find", "")
+    atTypeSpec   = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefAt['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefAt['typeSpec'])}
+    classInfo    = {"typeArgList":typeArgList, "atTypeSpec":atTypeSpec}
+    if fieldDefFind:
+        itrTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
+        classInfo['itrTypeSpec'] = itrTypeSpec
+    return classInfo
+
 def chooseStructImplementationToUse(typeSpec,className,fieldName):
     fieldType = progSpec.getFieldType(typeSpec)
     if not isinstance(fieldType, str) and  len(fieldType) >1:
@@ -445,14 +456,9 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
                     if(implScore > highestScore):
                         highestScore = implScore
                         highestScoreClassName = optionClassDef['name']
-            typeArgList  = progSpec.getTypeArgList(highestScoreClassName)
-            fieldDefAt   = CheckObjectVars(highestScoreClassName, "at", "")
-            fieldDefFind = CheckObjectVars(highestScoreClassName, "find", "")
-            atTypeSpec   = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefAt['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefAt['typeSpec'])}
-            fromImpl     = {"typeArgList":typeArgList, "atTypeSpec":atTypeSpec}
-            if fieldDefFind:
-                itrTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
-                fromImpl['itrTypeSpec'] = itrTypeSpec
+            if highestScoreClassName != None:
+                fromImpl = getGenericClassInfo(highestScoreClassName)
+            else: fromImpl = None
             return(highestScoreClassName,fromImpl)
     return(None, None)
     #    choose highest score and mark the typedef
@@ -461,7 +467,7 @@ def applyStructImplemetation(typeSpec,currentObjName,fieldName):
     [structToImplement, fromImpl] = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
     if(structToImplement != None):
         typeSpec['fieldType'][0] = structToImplement
-        typeSpec['fromImplemented']  = fromImpl
+        if fromImpl != None: typeSpec['fromImplemented']  = fromImpl
     return typeSpec
 
 def getGenericTypeSpec(genericArgs, typeSpec, xlator):
@@ -470,10 +476,33 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fTypeKW) and not progSpec.isAbstractStruct(globalClassStore[0], fTypeKW):
         convertedType = generateGenericStructName(globalClassStore, globalTagStore, fTypeKW, reqTagList, genericArgs, xlator)
         typeSpec['fieldType'] = [convertedType]
+        if 'fromImplemented' in typeSpec:
+            fromImpl = typeSpec['fromImplemented']
+            tArgList = fromImpl['typeArgList']
+            atTSpec  = fromImpl['atTypeSpec']
+            atTypeKW = progSpec.fieldTypeKeyword(atTSpec)
+            itrSpec  = fromImpl['itrTypeSpec']
+            fieldDefAt   = CheckObjectVars(fTypeKW, "at", "")
+            fieldDefFind = CheckObjectVars(fTypeKW, "find", "")
+            genericArgsOut = {}
+            count = 0
+            for reqTag in reqTagList:
+                genericArgsOut[tArgList[count]]=reqTag
+                count += 1
+            fromImpl['genericArgs'] = genericArgsOut
+            if atTypeKW in genericArgsOut:
+                atTSpec['owner']     = genericArgsOut[atTypeKW]['tArgOwner']
+                atTSpec['fieldType'] = genericArgsOut[atTypeKW]['tArgType']
+            classInfo = getGenericClassInfo(fTypeKW)
+            if classInfo['typeArgList']==None:
+                classInfo['typeArgList'] = tArgList
+            typeSpec['fromImplemented'] = classInfo
+        typeSpec['generic'] = True
     elif genericArgs and fTypeKW in genericArgs:
         [ownerOut, fTypeOut] = getGenericType(genericArgs, typeSpec)
         typeSpec['fieldType'] = fTypeOut
         typeSpec['owner'] = ownerOut
+        typeSpec['generic'] = True
     return typeSpec
 
 def getGenericType(genericArgs, typeSpec):
@@ -1687,15 +1716,21 @@ def generateGenericStructName(classes, tags, className, reqTagList, genericArgs,
         genericClassDef['name'] = genericStructName
         genericClassDef['genericArgs'] = genericArgs
         for field in genericClassDef["fields"]: # handle constructors and function return types
-            typeSpec          = field['typeSpec']
+            typeSpec  = field['typeSpec']
             if 'argList' in typeSpec:
-                fTypeKW                = progSpec.fieldTypeKeyword(typeSpec)
+                fieldName = field['fieldName']
+                fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
                 if typeSpec['reqTagList']:
                     typeSpec['reqTagList'] = reqTagList
-                typeSpec['fieldType']  = fTypeKW
+                if fTypeKW in genericArgs:
+                    typeSpec['fieldType'] = genericArgs[fTypeKW]['tArgType']
+                    typeSpec['owner'] = genericArgs[fTypeKW]['tArgOwner']
+                if not isinstance(typeSpec['fieldType'], str) and len(typeSpec['fieldType'])>1:
+                    fTypeKW = generateGenericStructName(classes, tags, fTypeKW, reqTagList, genericArgs, xlator)
+                    typeSpec['fieldType'] = [fTypeKW]
                 if fTypeKW == "none": field['fieldName'] = genericStructName
-        genericStructsGenerated[0][genericStructName]=genericClassDef
-        classes[0][genericStructName]=genericClassDef
+        genericStructsGenerated[0][genericStructName] = genericClassDef
+        classes[0][genericStructName] = genericClassDef
         previousObjName=currentObjName
         setUpFlagAndModeFields(classes, tags, [genericStructName], xlator)
         currentObjName=previousObjName

@@ -332,10 +332,11 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             iteratorTypeStr="Map.Entry<"+reqTagString+ ">"
             actionText += indent + "for("+iteratorTypeStr+" " + repName+' :'+ containerName+".entrySet()){\n"
         else:
-            keyVarSpec   = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.node.key')}
+            keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.node.key')}
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.node.value')
-            itrType     = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, containerType))+'<'+reqTagString+'>'
-            actionText += (indent + 'for('+itrType+repName+'='+containerName+'.front(); '+repName+'.node!='+containerName+'.end().node'+'; '+repName+'.goNext()){\n')
+            itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, containerType))
+            if not 'generic' in containerType and not containerType['generic']==True: itrType +='<'+reqTagString+'>'
+            actionText += (indent + 'for('+itrType+" "+repName+'='+containerName+'.front(); '+repName+'.node!='+containerName+'.end().node'+'; '+repName+'.goNext()){\n')
     elif datastructID=='list' or datastructID=='Java_ArrayList' or "__List_" in datastructID:
         containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
         keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
