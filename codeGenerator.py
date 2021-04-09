@@ -470,6 +470,66 @@ def applyStructImplemetation(typeSpec,currentObjName,fieldName):
         if fromImpl != None: typeSpec['fromImplemented']  = fromImpl
     return typeSpec
 
+#### GENERIC TYPE HANDLING #############################################
+def generateGenericStructName(classes, tags, className, reqTagList, genericArgs, xlator):
+    global genericStructsGenerated
+    global currentObjName
+    classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
+    if classDef == None: classDef = progSpec.findSpecOf(globalClassStore[0], className, "model")
+    if classDef == None: print("NO CLASS DEF FOR: ", className)
+    typeArgList  = progSpec.getTypeArgList(className)
+    if typeArgList == None: return className
+    genericStructName = "__"+className
+    if genericArgs == None:
+        genericArgs = {}
+        count = 0
+        for reqTag in reqTagList:
+            genericStructName+="_"+progSpec.getTypeFromTemplateArg(reqTag)
+            genericArgs[typeArgList[count]]=reqTag
+            count += 1
+    else:
+        for gArg in genericArgs:
+            genericStructName+="_"+progSpec.getTypeFromTemplateArg(genericArgs[gArg])
+    if not genericStructName in genericStructsGenerated[1]:
+        print("ADD:",genericStructName)
+        genericStructsGenerated[1].append(genericStructName)
+        classes[1].append(genericStructName)
+        genericClassDef = copy.copy(classDef)
+        if 'implements' in genericClassDef: genericClassDef.pop('implements')
+        if 'tags' in genericClassDef and 'implements' in genericClassDef['tags']:genericClassDef['tags'].pop('implements')
+        genericClassDef['name'] = genericStructName
+        genericClassDef['genericArgs'] = genericArgs
+        for field in genericClassDef["fields"]: # handle constructors and function return types
+            typeSpec  = field['typeSpec']
+            if 'argList' in typeSpec:
+                fieldName = field['fieldName']
+                fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
+                if typeSpec['reqTagList']:
+                    typeSpec['reqTagList'] = reqTagList
+                typeSpec = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
+                if not isinstance(typeSpec['fieldType'], str) and len(typeSpec['fieldType'])>1:
+                    fTypeKW = generateGenericStructName(classes, tags, fTypeKW, reqTagList, genericArgs, xlator)
+                    typeSpec['fieldType'] = [fTypeKW]
+                if fTypeKW == "none": field['fieldName'] = genericStructName
+        genericStructsGenerated[0][genericStructName] = genericClassDef
+        classes[0][genericStructName] = genericClassDef
+        previousObjName=currentObjName
+        setUpFlagAndModeFields(classes, tags, [genericStructName], xlator)
+        currentObjName=previousObjName
+    return genericStructName
+
+def getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator):
+    if genericArgs == None: return typeSpec
+    fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
+    if fTypeKW in genericArgs:
+        genericType = genericArgs[fTypeKW]
+        fTypeOut       = progSpec.getTypeFromTemplateArg(genericType)
+        ownerOut      = progSpec.getOwnerFromTemplateArg(genericType)
+        typeSpec['fieldType'] = fTypeOut
+        typeSpec['owner']     = ownerOut
+        typeSpec['generic']   = True
+    return typeSpec
+
 def getGenericTypeSpec(genericArgs, typeSpec, xlator):
     fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
     reqTagList = progSpec.getReqTagList(typeSpec)
@@ -498,27 +558,15 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
                 classInfo['typeArgList'] = tArgList
             typeSpec['fromImplemented'] = classInfo
         typeSpec['generic'] = True
-    elif genericArgs and fTypeKW in genericArgs:
-        [ownerOut, fTypeOut] = getGenericType(genericArgs, typeSpec)
-        typeSpec['fieldType'] = fTypeOut
-        typeSpec['owner'] = ownerOut
-        typeSpec['generic'] = True
+    else:
+        typeSpec = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
     return typeSpec
-
-def getGenericType(genericArgs, typeSpec):
-    fieldType = progSpec.getFieldTypeNew(typeSpec)
-    fTyepKW = progSpec.fieldTypeKeyword(typeSpec)
-    typeOwner = progSpec.getOwnerFromTypeSpec(typeSpec)
-    if genericArgs and fTyepKW in genericArgs:
-        genericType = genericArgs[fTyepKW]
-        gType       = progSpec.getTypeFromTemplateArg(genericType)
-        gOwner      = progSpec.getOwnerFromTemplateArg(genericType)
-        return [gOwner, gType]
-    return[typeOwner,fieldType]
 
 def convertType(classes, typeSpec, varMode, actionOrField, genericArgs, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    [ownerIn, fieldType] = getGenericType(genericArgs, typeSpec)
+    typeSpec  = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
+    ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
+    fieldType = progSpec.getFieldTypeNew(typeSpec)
     if not isinstance(fieldType, str):
         if len(fieldType) > 1 and fieldType[1] == "..":
             fieldType = "int"
@@ -1686,55 +1734,6 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
     currentObjName=''
     return classRecord
-
-def generateGenericStructName(classes, tags, className, reqTagList, genericArgs, xlator):
-    global genericStructsGenerated
-    global currentObjName
-    classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
-    if classDef == None: classDef = progSpec.findSpecOf(globalClassStore[0], className, "model")
-    if classDef == None: print("NO CLASS DEF FOR: ", className)
-    typeArgList  = progSpec.getTypeArgList(className)
-    if typeArgList == None: return className
-    genericStructName = "__"+className
-    if genericArgs == None:
-        genericArgs = {}
-        count = 0
-        for reqTag in reqTagList:
-            genericStructName+="_"+progSpec.getTypeFromTemplateArg(reqTag)
-            genericArgs[typeArgList[count]]=reqTag
-            count += 1
-    else:
-        for gArg in genericArgs:
-            genericStructName+="_"+progSpec.getTypeFromTemplateArg(genericArgs[gArg])
-    if not genericStructName in genericStructsGenerated[1]:
-        print("ADD:",genericStructName)
-        genericStructsGenerated[1].append(genericStructName)
-        classes[1].append(genericStructName)
-        genericClassDef = copy.copy(classDef)
-        if 'implements' in genericClassDef: genericClassDef.pop('implements')
-        if 'tags' in genericClassDef and 'implements' in genericClassDef['tags']:genericClassDef['tags'].pop('implements')
-        genericClassDef['name'] = genericStructName
-        genericClassDef['genericArgs'] = genericArgs
-        for field in genericClassDef["fields"]: # handle constructors and function return types
-            typeSpec  = field['typeSpec']
-            if 'argList' in typeSpec:
-                fieldName = field['fieldName']
-                fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
-                if typeSpec['reqTagList']:
-                    typeSpec['reqTagList'] = reqTagList
-                if fTypeKW in genericArgs:
-                    typeSpec['fieldType'] = genericArgs[fTypeKW]['tArgType']
-                    typeSpec['owner'] = genericArgs[fTypeKW]['tArgOwner']
-                if not isinstance(typeSpec['fieldType'], str) and len(typeSpec['fieldType'])>1:
-                    fTypeKW = generateGenericStructName(classes, tags, fTypeKW, reqTagList, genericArgs, xlator)
-                    typeSpec['fieldType'] = [fTypeKW]
-                if fTypeKW == "none": field['fieldName'] = genericStructName
-        genericStructsGenerated[0][genericStructName] = genericClassDef
-        classes[0][genericStructName] = genericClassDef
-        previousObjName=currentObjName
-        setUpFlagAndModeFields(classes, tags, [genericStructName], xlator)
-        currentObjName=previousObjName
-    return genericStructName
 
 def setUpFlagAndModeFields(classes, tags, structsToSetUp, xlator):
     global currentObjName
