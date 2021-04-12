@@ -123,7 +123,8 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
 
 def isComparableType(typeSpec):
     fieldTypeKW = progSpec.fieldTypeKeyword(typeSpec)
-    if fieldTypeKW == "keyType": return True
+    if fieldTypeKW == 'keyType': return True
+    if 'generic' in typeSpec and typeSpec['generic'] == 'keyType': return True
     return False
 
 def codeIteratorOperation(itrCommand, fieldType):
@@ -335,7 +336,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             keyVarSpec = {'owner':containerType['owner'], 'fieldType':keyFieldType, 'codeConverter':(repName+'.node.key')}
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.node.value')
             itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, containerType))
-            if not 'generic' in containerType and not containerType['generic']==True: itrType +='<'+reqTagString+'>'
+            if not 'generic' in containerType: itrType +='<'+reqTagString+'>'
             actionText += (indent + 'for('+itrType+" "+repName+'='+containerName+'.front(); '+repName+'.node!='+containerName+'.end().node'+'; '+repName+'.goNext()){\n')
     elif datastructID=='list' or datastructID=='Java_ArrayList' or "__List_" in datastructID:
         containedOwner = progSpec.getOwnerFromTypeSpec(containerType)

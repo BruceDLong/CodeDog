@@ -523,11 +523,11 @@ def getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator):
     fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
     if fTypeKW in genericArgs:
         genericType = genericArgs[fTypeKW]
-        fTypeOut       = progSpec.getTypeFromTemplateArg(genericType)
-        ownerOut      = progSpec.getOwnerFromTemplateArg(genericType)
+        fTypeOut    = progSpec.getTypeFromTemplateArg(genericType)
+        ownerOut    = progSpec.getOwnerFromTemplateArg(genericType)
         typeSpec['fieldType'] = fTypeOut
         typeSpec['owner']     = ownerOut
-        typeSpec['generic']   = True
+        typeSpec['generic']   = fTypeKW
     return typeSpec
 
 def getGenericTypeSpec(genericArgs, typeSpec, xlator):
