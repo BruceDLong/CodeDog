@@ -682,7 +682,13 @@ def getImplementationOptionsFor(fieldType):
         return classImplementationOptions[fieldType]
     return None
 ###############  Various Dynamic Type-handling functions
+def getGenericArgs(ObjectDef):
+    if('genericArgs' in ObjectDef): return(ObjectDef['genericArgs'])
+    else: return(None)
+
 def getTypeArgList(className):
+    if not isinstance(className, str):
+        print("ERROR: in progSpec.getTypeArgList(): expected a string not: "+ str(className))
     if(className in templatesDefined):
         return(templatesDefined[className])
     else:
@@ -1019,6 +1025,13 @@ def isAltStruct(classes, fieldType):
     Objfields=fieldObj['fields']
     if (fieldObjConfig=='ALT'): return [True, Objfields]
     else: return [False, [] ]
+
+def isAbstractStruct(classes, className):
+    modelDef = findSpecOf(classes, className, 'model')
+    if modelDef:
+        classDef = findSpecOf(classes, className, 'struct')
+        if classDef == None: return True
+    return False
 
 def typeIsNumRange(fieldType):
     if isinstance(fieldType, str): return False
