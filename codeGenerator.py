@@ -541,9 +541,6 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
             tArgList = fromImpl['typeArgList']
             atTSpec  = fromImpl['atTypeSpec']
             atTypeKW = progSpec.fieldTypeKeyword(atTSpec)
-            itrSpec  = fromImpl['itrTypeSpec']
-            fieldDefAt   = CheckObjectVars(fTypeKW, "at", "")
-            fieldDefFind = CheckObjectVars(fTypeKW, "find", "")
             genericArgsOut = {}
             count = 0
             for reqTag in reqTagList:
