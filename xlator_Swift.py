@@ -280,6 +280,14 @@ def codeComparisonStr(S, S2, retType1, retType2, op):
     return S
 
 ###################################################### CONTAINERS
+def getContaineCategory(containerSpec):
+    fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
+    if fTypeKW=='multimap' or fTypeKW=='map' or fTypeKW=='Swift_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
+        return 'MAP'
+    elif fTypeKW=='list' or fTypeKW=='Swift_Array' or "__List_" in fTypeKW:
+        return 'LIST'
+    return None
+
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, genericArgs, xlator):
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
@@ -296,7 +304,7 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
 ###################################################### CONTAINER REPETITIONS
 def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
     if(traversalMode=='Forward' or traversalMode==None):
-        S = indent + "for "+ repName+' in '+ S_low + "..<Int(" + S_hi + ") {\n"
+        S = indent + "for "+ repName+' in '+ S_low + "..<Int(" + S_hi + "){\n"
     elif(traversalMode=='Backward'):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; "+ repName + "-=1){\n"
     return (S)
@@ -308,15 +316,14 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     containedType    = progSpec.getFieldTypeNew(containerType)
     containerOwner   = progSpec.getOwnerFromTypeSpec(containerType)
     ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
-
-    if datastructID=='multimap' or datastructID=='map':
+    containerCat = getContaineCategory(containerType)
+    if containerCat == "MAP":
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for( auto " + repName+'Itr ='+ repContainer+'->lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + repContainer+'->upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
-
     elif datastructID=='list' or (datastructID=='list' and not willBeModifiedDuringTraversal):
         pass;
     elif datastructID=='list' and willBeModifiedDuringTraversal:
@@ -333,11 +340,12 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     indexTypeKeyWord = adjustBaseTypes(indexTypeKeyWord, False)
-    if datastructID=='multimap' or datastructID=='map' or datastructID=='Swift_Map':
+    containerCat = getContaineCategory(containerType)
+    if containerCat == "MAP":
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.key')}
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.value')
         actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
-    elif datastructID=='list' or datastructID=='Swift_Array':
+    elif containerCat == "LIST":
         if willBeModifiedDuringTraversal:
             containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
             keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
@@ -656,9 +664,10 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     [convertedType, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     reqTagList = progSpec.getReqTagList(lhsTypeSpec)
     fieldType = progSpec.fieldTypeKeyword(lhsTypeSpec)
-    if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType):
-        convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
     [allocFieldType, allocFieldAttrs] = convertType(classes, lhsTypeSpec, 'alloc', '', genericArgs, xlator)
+    if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType) and not progSpec.isAbstractStruct(classes[0], fieldType):
+        convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
+        allocFieldType = convertedType
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)

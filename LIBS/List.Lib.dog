@@ -59,7 +59,7 @@ model Map<keyType, valueType>{
     //itr valueType: lower_bound(keyType: key)
     me uint:  size()
 }
-/*
+
 struct RBNode<keyType, valueType>: implements = MapNode{
     keyType: key
     valueType: value
@@ -293,7 +293,7 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
 
     me void: correctTree(their RBNode<keyType, valueType>: node)<-{
         if(node.parent===Root){
-            print ("****************************** PARENT ", node.parent.key," is Root.  Node key is ", node.key, "\n")
+            print ("ERROR: PARENT ", node.parent.key," is Root.  Node key is ", node.key, "\n")
             exit(1)
         }
         //// PARENT IS LEFT CHILD
@@ -519,4 +519,4 @@ struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = con
     }
 
 }
-*/
+

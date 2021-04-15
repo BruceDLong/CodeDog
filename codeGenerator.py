@@ -918,10 +918,12 @@ def codeParameterList(name, paramList, modelParams, objsRefed, genericArgs, xlat
             paramTypeList.append(argTypeSpec)
             if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
                 paramTypeSpec  = modelParams[count]['typeSpec']
-                [leftMod, rightMod] = xlator['chooseVirtualRValOwner'](paramTypeSpec, argTypeSpec)
-                S2 = leftMod+S2+rightMod
-                modelFullFieldType  = progSpec.getFieldType(paramTypeSpec)
-                paramOwner      = progSpec.getOwnerFromTypeSpec(paramTypeSpec)
+                if name == 'return' and S2 == 'nil':  # Swift return nil, provide context and make optional
+                    paramTypeKW = progSpec.fieldTypeKeyword(paramTypeSpec)
+                    S2 = paramTypeKW +"?("+S2+")"
+                else:
+                    [leftMod, rightMod] = xlator['chooseVirtualRValOwner'](paramTypeSpec, argTypeSpec)
+                    S2 = leftMod+S2+rightMod
                 S += S2
             else:
                 listOfFuncsWithUnknownArgTypes[(name+'()')]=1

@@ -315,7 +315,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
         pass;
     else:
-        print("unknown dataStrct type:",datastructID,containerType)
+        print("DSID iterateRangeContainerStr:",datastructID,containerType)
         exit(2)
     return [actionText, loopCounterName]
 
@@ -361,7 +361,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + containerName+'.size(); ' + loopVarName+' += 1){\n'
                         + indent + indent + iteratorTypeStr+' '+repName+" = "+containerName+".get("+loopVarName+");\n")
     else:
-        print("DSID:",datastructID,containerType)
+        print("DSID  iterateContainerStr:",datastructID,containerType)
         exit(2)
     localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
     localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
