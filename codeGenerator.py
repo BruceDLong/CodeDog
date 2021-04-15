@@ -1071,7 +1071,8 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
     whileSpec  = action['whileSpec']
     keyRange   = action['keyRange']
     fileSpec   = False #action['fileSpec']
-    ctrType    =xlator['typeForCounterInt']
+    ctrType    = xlator['typeForCounterInt']
+    itrIncStr  = ""
     # TODO: add cases for traversing trees and graphs in various orders or ways.
     loopCounterName=''
     if(rangeSpec): # iterate over range
@@ -1111,7 +1112,7 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
             isBackward=False
         elif(traversalMode=='Backward'):
             isBackward=True
-        [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,indexTypeKeyWord, containerOwner, isBackward, 'action', indent, genericArgs ,xlator)
+        [actionTextOut, loopCounterName, itrIncStr] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,indexTypeKeyWord, containerOwner, isBackward, 'action', indent, genericArgs ,xlator)
         actionText += actionTextOut
     if action['whereExpr']:
         [whereExpr, whereConditionTypeSpec] = codeExpr(action['whereExpr'], objsRefed, None, None, 'RVAL', genericArgs, xlator)
@@ -1128,7 +1129,7 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
         repBodyText += indent + "    " + xlator['codeIncrement'](loopCounterName) + ";\n"
         ctrlVarsTypeSpec = {'owner':'me', 'fieldType':'uint'}
         localVarsAllocated.append([loopCounterName, ctrlVarsTypeSpec])  # Tracking local vars for scope
-    actionText += repBodyText + indent + '}\n'
+    actionText += repBodyText + itrIncStr + indent + '}\n'
     return actionText
 
 def codeFuncCall(funcCallSpec, objsRefed, returnType, genericArgs, xlator):

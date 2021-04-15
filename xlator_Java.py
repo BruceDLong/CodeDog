@@ -325,7 +325,8 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     itrName          = repName + "Itr"
-    containerCat = getContaineCategory(containerType)
+    containerCat     = getContaineCategory(containerType)
+    itrIncStr        = ""
     if containerCat == "MAP":
         reqTagList   = progSpec.getReqTagList(containerType)
         if(reqTagList == None): print("reqTagList not found in iterateContainerStr"); exit(1)
@@ -365,7 +366,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
         exit(2)
     localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
     localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-    return [actionText, loopCounterName]
+    return [actionText, loopCounterName, itrIncStr]
 ###################################################### EXPRESSION CODING
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))

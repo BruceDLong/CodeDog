@@ -445,11 +445,12 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(containerType)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
-    itrTypeSpec     = progSpec.getItrTypeOfDataStruct(datastructID, containerType)
-    itrFieldType    = progSpec.fieldTypeKeyword(itrTypeSpec)
-    itrOwner        = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
+    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, containerType)
+    itrFieldType     = progSpec.fieldTypeKeyword(itrTypeSpec)
+    itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
     itrName          = repName + "Itr"
+    itrIncStr        = ""
     if containerType['fieldType'][0]=='DblLinkedList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
@@ -491,7 +492,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n"
     else:
         cdErr("iterateContainerStr() datastructID = " + datastructID)
-    return [actionText, loopCounterName]
+    return [actionText, loopCounterName, itrIncStr]
 ###################################################### EXPRESSION CODING
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
