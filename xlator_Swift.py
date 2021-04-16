@@ -145,7 +145,7 @@ def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLast
         if LorRorP_Val == "PARAM" and S=="nil":
             [paramType, innerType] = convertType(classes, typeSpec, 'arg', '', genericArgs, xlator)        #"RBNode<keyType, valueType>"
             S = 'Optional<'+paramType+'>.none'
-        elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not(LorRorP_Val =="LVAL" and isLastSeg):
+        elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not isLastSeg:
             S+='!'  # optionals
     return S
 
@@ -176,7 +176,7 @@ def getTheDerefPtrMods(itemTypeSpec):
         if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
             if owner=='itr':
-                containerType = itemTypeSpec['arraySpec'][2]
+                containerType = progSpec.fieldTypeKeyword(itemTypeSpec)
                 if containerType =='map' or containerType == 'multimap':
                     return ['', '->value', False]
             return ['', '', False]
@@ -363,11 +363,17 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
             [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, genericArgs, xlator)
             loopVarName=repName+"Idx";
-            actionText += (indent + "for " + loopVarName + " in 0..<" +  containerName+".count {\n"
-                        + indent+"    var "+repName + ':' + keyFieldType + " = "+containerName+"["+loopVarName+"];\n")
+            if(isBackward):
+                actionText += (indent + "for " + repName+' in '+ containerName +".reversed() {\n")
+            else:
+                actionText += (indent + "for " + loopVarName + " in 0..<" +  containerName+".count {\n"
+                            + indent+"    var "+repName + ':' + keyFieldType + " = "+containerName+"["+loopVarName+"];\n")
         else:
             keyVarSpec = {'owner':'me', 'fieldType':'Int'}
-            actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
+            if(isBackward):
+                actionText += (indent + "for " + repName+' in ('+ containerName +".count - 1).stride(through: 0, by: -1) {\n")
+            else:
+                actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
     else:
         print("DSID iterateContainerStr:",datastructID,containerType)
         exit(2)
@@ -725,7 +731,7 @@ def isNumericType(convertedType):
     else:
         return False
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator):
     fieldValueText=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     isTypeArg = False
