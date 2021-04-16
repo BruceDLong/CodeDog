@@ -450,8 +450,13 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
             for option in implementationOptions:
                 optionClassDef =  progSpec.findSpecOf(globalClassStore[0], option, "struct")
                 if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
-                    optionSpecs = optionClassDef['tags']['specs']
+                    optionTags  = optionClassDef['tags']
+                    optionSpecs = optionTags['specs']
                     [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
+                    if 'native' in optionTags:
+                        nativeTag   = optionTags['native']
+                        if nativeTag == "lang": implScore += 6
+                        if nativeTag == "platform": implScore += 5
                     if(errorMsg != ""): cdErr(errorMsg)
                     if(implScore > highestScore):
                         highestScore = implScore

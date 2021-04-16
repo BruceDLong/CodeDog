@@ -123,7 +123,7 @@ struct RBTreeItr<keyType, valueType>: implements = MapItr{
     valueType: val()                         <- <%!%0%>
 }
 
-struct RBTreeMap<keyType, valueType>: implements = Map {// specs = {insert = constant append = constant prepend = constant}{
+struct RBTreeMap<keyType, valueType>: implements = Map native = codeDog specs = {insert = logarithmic find = logarithmic at = logarithmic}{// find = logarithmic at = logarithmic}{  // constant
     their RBNode<keyType, valueType>: Root
     their RBNode<keyType, valueType>: Leaf
     their RBNode<keyType, valueType>: edge

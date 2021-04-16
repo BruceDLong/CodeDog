@@ -15,7 +15,7 @@ LibDescription ={
     description = 'List in routines for CPP'
 }
 
-struct CPP_Deque<nodeType>: implements = List wraps = deque specs = {insert = linear append = constant prepend = constant}{
+struct CPP_Deque<nodeType>: implements = List wraps = deque native = lang specs = {insert = linear append = constant prepend = constant}{
     void: append(nodeType: value)               <- <%!push_back(%1)%>
     nodeType: at(me int: position)              <- <%!at(%1)%>
     void: clear()                               <- <%!clear()%>
@@ -51,7 +51,7 @@ struct CPP_MapNode<keyType, valueType>: implements = MapNode{
     our RBNode<keyType, valueType>: goPrev() <- <%!--%0%>
     valueType: val()                         <- <%!%0.second%>
 }
-struct CPP_Map<keyType, valueType>: implements = Map wraps = map specs = {insert = logarithmic}{
+struct CPP_Map<keyType, valueType>: implements = Map wraps = map native = lang specs = {insert = logarithmic find = logarithmic at = logarithmic}{
     valueType: at(keyType)                      <- <%!at(%1)%>
     void: clear()                               <- <%!clear()%>
     me bool: containsKey(keyType: key)          <- <%!count(%1)>0%>
