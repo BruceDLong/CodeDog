@@ -458,7 +458,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for( auto " + itrName+' ='+ repContainer+RDeclP+'begin()' + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; "+ itrName + " = " + itrName+"->next ){\n"
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->item;\n")
-        return [actionText, loopCounterName]
+        return [actionText, loopCounterName, itrIncStr]
     if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map' or datastructID=='RBTreeMap':
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
