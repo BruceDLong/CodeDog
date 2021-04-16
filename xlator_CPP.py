@@ -669,7 +669,12 @@ def codeSpecialReference(segSpec, objsRefed, genericArgs, xlator):
     return [S, retOwner, fieldType]
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
-    return ""
+    # Check for string A[x] = B;  If so, render A.insert(B,x)
+    S = ''
+    [containerType, idxType, owner]=getContainerType(AltIDXFormat[1], "")
+    if containerType == 'RBTreeMap':
+        S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
+    return S
 
 ############################################
 def codeMain(classes, tags, objsRefed, xlator):

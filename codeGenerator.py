@@ -587,6 +587,8 @@ def codeAllocater(typeSpec, genericArgs, xlator):
 
 def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator):
     newName = typeSpecOut['codeConverter']
+    if newName == "":
+        cdErr("ERROR: empty codeConverter for: "+name)
     if paramList != None:
         count=1
         for P in paramList:

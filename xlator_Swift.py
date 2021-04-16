@@ -306,7 +306,7 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
     if(traversalMode=='Forward' or traversalMode==None):
         S = indent + "for "+ repName+' in '+ S_low + "..<Int(" + S_hi + "){\n"
     elif(traversalMode=='Backward'):
-        S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; "+ repName + "-=1){\n"
+        S = indent + "for " + repName + " in stride(from:"+ S_hi+"-1" + ", through: " + S_low + ", by: -1){\n"
     return (S)
 
 def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, containerType, containerOwner,repName,repContainer,datastructID,keyFieldType,indent,xlator):
@@ -341,18 +341,20 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     keyFieldType     = adjustBaseTypes(keyFieldType, False)
     itrName          = repName + "Itr"
+    endItrName          = repName + "EndItr"
     containerCat     = getContaineCategory(containerType)
     itrIncStr        = ""
     if containerCat == "MAP":
-        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'.key')}
+        keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType, 'codeConverter':(repName+'!.key')}
         ctrlVarsTypeSpec['codeConverter'] = (repName+'!.value')
-        itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, containerType))
-        itrDeclStr = indent + 'var '+itrName+":"+itrType+' = '+containerName+'.front()\n'
-        #endItrStr  = indent + 'var endItr:'+itrType+' = '+containerName+'.end()\n'
-        endItrStr  = indent + 'var endItr:'+itrType+' = '+containerName+'.end()\n'
+        itrType    = progSpec.getItrTypeOfDataStruct(datastructID, containerType)
+        itrTypeKW  = progSpec.fieldTypeKeyword(itrType)
+        itrDeclStr = indent + 'var '+itrName+":"+itrTypeKW+' = '+containerName+'.front()\n'
+        localVarsAlloc.append([itrName, itrType])
+        endItrStr  = indent + 'var ' + endItrName + ':'+itrTypeKW+' = '+containerName+'.end()\n'
         itrIncStr  = indent + "    " + itrName + " = " + itrName + ".__inc()\n"
         actionText += itrDeclStr + endItrStr
-        actionText += (indent + "while " + itrName + ".node !== endItr.node {\n")
+        actionText += (indent + 'while ' + itrName + '.node !== '+endItrName+'.node {\n')
         actionText += (indent + "    var  " + repName + " = " + itrName + ".node\n")
         # TODO: increment ITR
     elif containerCat == "LIST":
@@ -362,7 +364,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, genericArgs, xlator)
             loopVarName=repName+"Idx";
             actionText += (indent + "for " + loopVarName + " in 0..<" +  containerName+".count {\n"
-                        + indent+"var "+repName + ':' + keyFieldType + " = "+containerName+"["+loopVarName+"];\n")
+                        + indent+"    var "+repName + ':' + keyFieldType + " = "+containerName+"["+loopVarName+"];\n")
         else:
             keyVarSpec = {'owner':'me', 'fieldType':'Int'}
             actionText += (indent + "for " + repName+' in '+ containerName + " {\n")
@@ -525,7 +527,12 @@ def codeSpecialReference(segSpec, objsRefed, genericArgs, xlator):
     return [S, retOwner, fieldType]
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
-    return ""
+    # Check for string A[x] = B;  If so, render A.insert(B,x)
+    S = ''
+    [containerType, idxType, owner]=getContainerType(AltIDXFormat[1], "")
+    if containerType == 'RBTreeMap' or containerType[:2]=="__" and 'Map' in containerType:
+        S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
+    return S
 
 ######################################################
 def codeMain(classes, tags, objsRefed, xlator):

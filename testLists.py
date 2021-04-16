@@ -99,33 +99,39 @@ struct testClass{
 }''', 'PGBR: isEmpty:true012 at(cc)=2',
         ['', '']],
 ###################################################################################################
-     'reps/repetitions':  ['', 'PGB:'],
-     'reps/repetitions':  ['''
+     'reps/Lists':  ['', 'PGB:'],
+     'reps/Lists':  ['''
 struct testClass{
     me void: runTest()<-{
+        print("RANGE:")
         withEach spec in RANGE(2..6) {print(spec," ")}
+        print(" RANGEBKWD:")
         withEach RB in Backward RANGE(2..6) {print(RB," ")}
         me List<me int>:testList<-[2,13,-22,188]
+        print(" LIST:")
         withEach T in testList {print(T," ")}
         me List<me int>:testListBackward<-[2,13,-22,188]
+        print(" LISTBKWD:")
         withEach TB in Backward testListBackward {print(TB," ")}
         me List<me int>:testKeyList<-[2,3,5,8,13,21]
+        print(" LISTKEY:")
         withEach TK in testKeyList {print(TK_key,"-", TK, " ")}
+     }
+}''', 'PGBR:RANGE:2 3 4 5  RANGEBKWD:5 4 3 2  LIST:2 13 -22 188  LISTBKWD:188 -22 13 2  LISTKEY:0-2 1-3 2-5 3-8 4-13 5-21 ',
+    ['','']],
+###################################################################################################
+     'reps/Maps':  ['', 'PGB:'],
+     'reps/Maps':  ['''
+struct testClass{
+    me void: runTest()<-{
         me Map<me string, me string>:testMap
         testMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"
         withEach M in testMap {print(M," ")}
         me Map<me string, me string>:testMapKey
         testMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
         withEach MK in testMapKey {print(MK_key,"-",MK," ")}
-        me List<me int>:testDelList<-[2,3,5,8,13,21]
-        withEach TD in testDelList {
-            if(TD_key==3){
-                testDelList.erase(TD_key)
-                TDIdx<-TDIdx-1
-            }else{print(TD, " ")}
-        }
     }
-}''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good B-boy D-does E-every F-fine G-good 2 3 5 13 21 ',
+}''', 'PGBR:boy does every fine good B-boy D-does E-every F-fine G-good ',
     ['','']],
 ###################################################################################################
      'itrs/iterators':    ['', 'PGB:'],
