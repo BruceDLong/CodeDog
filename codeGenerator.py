@@ -450,8 +450,13 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
             for option in implementationOptions:
                 optionClassDef =  progSpec.findSpecOf(globalClassStore[0], option, "struct")
                 if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
-                    optionSpecs = optionClassDef['tags']['specs']
+                    optionTags  = optionClassDef['tags']
+                    optionSpecs = optionTags['specs']
                     [implScore, errorMsg] = progSpec.scoreImplementation(optionSpecs, reqTags)
+                    if 'native' in optionTags:
+                        nativeTag   = optionTags['native']
+                        if nativeTag == "lang": implScore += 6
+                        if nativeTag == "platform": implScore += 5
                     if(errorMsg != ""): cdErr(errorMsg)
                     if(implScore > highestScore):
                         highestScore = implScore
@@ -541,9 +546,6 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
             tArgList = fromImpl['typeArgList']
             atTSpec  = fromImpl['atTypeSpec']
             atTypeKW = progSpec.fieldTypeKeyword(atTSpec)
-            itrSpec  = fromImpl['itrTypeSpec']
-            fieldDefAt   = CheckObjectVars(fTypeKW, "at", "")
-            fieldDefFind = CheckObjectVars(fTypeKW, "find", "")
             genericArgsOut = {}
             count = 0
             for reqTag in reqTagList:
@@ -590,6 +592,8 @@ def codeAllocater(typeSpec, genericArgs, xlator):
 
 def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator):
     newName = typeSpecOut['codeConverter']
+    if newName == "":
+        cdErr("ERROR: empty codeConverter for: "+name)
     if paramList != None:
         count=1
         for P in paramList:
@@ -921,10 +925,12 @@ def codeParameterList(name, paramList, modelParams, objsRefed, genericArgs, xlat
             paramTypeList.append(argTypeSpec)
             if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
                 paramTypeSpec  = modelParams[count]['typeSpec']
-                [leftMod, rightMod] = xlator['chooseVirtualRValOwner'](paramTypeSpec, argTypeSpec)
-                S2 = leftMod+S2+rightMod
-                modelFullFieldType  = progSpec.getFieldType(paramTypeSpec)
-                paramOwner      = progSpec.getOwnerFromTypeSpec(paramTypeSpec)
+                if name == 'return' and S2 == 'nil':  # Swift return nil, provide context and make optional
+                    paramTypeKW = progSpec.fieldTypeKeyword(paramTypeSpec)
+                    S2 = paramTypeKW +"?("+S2+")"
+                else:
+                    [leftMod, rightMod] = xlator['chooseVirtualRValOwner'](paramTypeSpec, argTypeSpec)
+                    S2 = leftMod+S2+rightMod
                 S += S2
             else:
                 listOfFuncsWithUnknownArgTypes[(name+'()')]=1
@@ -1072,7 +1078,8 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
     whileSpec  = action['whileSpec']
     keyRange   = action['keyRange']
     fileSpec   = False #action['fileSpec']
-    ctrType    =xlator['typeForCounterInt']
+    ctrType    = xlator['typeForCounterInt']
+    itrIncStr  = ""
     # TODO: add cases for traversing trees and graphs in various orders or ways.
     loopCounterName=''
     if(rangeSpec): # iterate over range
@@ -1112,7 +1119,7 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
             isBackward=False
         elif(traversalMode=='Backward'):
             isBackward=True
-        [actionTextOut, loopCounterName] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,indexTypeKeyWord, containerOwner, isBackward, 'action', indent, genericArgs ,xlator)
+        [actionTextOut, loopCounterName, itrIncStr] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,indexTypeKeyWord, containerOwner, isBackward, 'action', indent, genericArgs ,xlator)
         actionText += actionTextOut
     if action['whereExpr']:
         [whereExpr, whereConditionTypeSpec] = codeExpr(action['whereExpr'], objsRefed, None, None, 'RVAL', genericArgs, xlator)
@@ -1129,7 +1136,7 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
         repBodyText += indent + "    " + xlator['codeIncrement'](loopCounterName) + ";\n"
         ctrlVarsTypeSpec = {'owner':'me', 'fieldType':'uint'}
         localVarsAllocated.append([loopCounterName, ctrlVarsTypeSpec])  # Tracking local vars for scope
-    actionText += repBodyText + indent + '}\n'
+    actionText += repBodyText + itrIncStr + indent + '}\n'
     return actionText
 
 def codeFuncCall(funcCallSpec, objsRefed, returnType, genericArgs, xlator):
@@ -1484,7 +1491,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
                 isAllocated = False
                 paramList = None
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator)
             #print ("    RHS none: ", fieldValueText)
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, str):

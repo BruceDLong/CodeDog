@@ -654,7 +654,7 @@ def doesClassContainFunc(classes, structName, funcName):
         if fieldName == funcName: return field
     return False
 
-templateSpecKeyWords = {'verySlow':0, 'slow':1, 'normal':2, 'fast':3, 'veryFast':4, 'polynomial':0, 'exponential':0, 'nLog_n':1, 'linear':2, 'logarithmic':3, 'constant':4}
+templateSpecKeyWords = {'verySlow':0, 'slow':10, 'normal':20, 'fast':30, 'veryFast':40, 'polynomial':0, 'exponential':0, 'nLog_n':10, 'linear':20, 'logarithmic':30, 'constant':40}
 def scoreImplementation(optionSpecs, reqTags):
     returnScore = 0
     errorStr = ""

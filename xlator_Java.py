@@ -15,7 +15,7 @@ def getContainerType(typeSpec, actionOrField):
             if 'IDXowner' in containerTypeSpec['indexType']:
                 idxOwner=containerTypeSpec['indexType']['IDXowner'][0]
                 idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
-                idxType=applyOwner(idxOwner, idxType, '')
+                idxType=applyOwner(typeSpec, idxOwner, idxType, '')
             else:
                 idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
         else:
@@ -60,7 +60,7 @@ def isJavaPrimativeType(fieldType):
     if fieldType=="int" or fieldType=="boolean" or fieldType=="float" or fieldType=="double" or fieldType=="long" or fieldType=="char": return True
     return False
 
-def applyOwner(owner, langType, innerType, actionOrField, varMode):
+def applyOwner(typeSpec, owner, langType, actionOrField, varMode):
     if owner=='const':
         if actionOrField=="field": langType = "final static "+langType
         else: langType = "final "+langType
@@ -73,8 +73,9 @@ def applyOwner(owner, langType, innerType, actionOrField, varMode):
     elif owner=='their':
         langType = langType
     elif owner=='itr':
-        langType = 'Itr-Error'
-        print("TODO: design iterators in Java!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(langType, typeSpec))
+        langType = itrType
+        print("TODO: design iterators in Java!!!!!!!!!!!!!!!!!!!!!!!!!!",langType)
         exit(2)
     elif owner=='we':
         langType = 'static '+langType
@@ -98,7 +99,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if(isinstance(fieldType, str)):
         langType = adjustBaseTypes(fieldType, progSpec.isNewContainerTempFunc(typeSpec))
     else: langType = progSpec.flattenObjectName(fieldType[0])
-    langType = applyOwner(owner, langType, progSpec.isNewContainerTempFunc(typeSpec), actionOrField, varMode)
+    langType = applyOwner(typeSpec, owner, langType, actionOrField, varMode)
     if langType=='TYPE ERROR': print(langType, owner, fieldType);
     InnerLangType = langType
     reqTagList = progSpec.getReqTagList(typeSpec)
@@ -122,9 +123,10 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     return [langType, InnerLangType]
 
 def isComparableType(typeSpec):
-    fieldTypeKW = progSpec.fieldTypeKeyword(typeSpec)
-    if fieldTypeKW == 'keyType': return True
-    if 'generic' in typeSpec and typeSpec['generic'] == 'keyType': return True
+    fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
+    if fTypeKW == 'keyType': return True
+    if 'generic' in typeSpec and typeSpec['generic'] == 'keyType' and fTypeKW == 'string':
+        return True
     return False
 
 def codeIteratorOperation(itrCommand, fieldType):
@@ -252,6 +254,14 @@ def codeComparisonStr(S, S2, retType1, retType2, op):
     return S
 
 ###################################################### CONTAINERS
+def getContaineCategory(containerSpec):
+    fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
+    if fTypeKW=='TreeMap' or fTypeKW=='Java_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
+        return 'MAP'
+    elif fTypeKW=='list' or fTypeKW=='Java_ArrayList' or "__List_" in fTypeKW:
+        return 'LIST'
+    return None
+
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, genericArgs, xlator):
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
@@ -288,8 +298,8 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     containedType    = progSpec.getFieldTypeNew(containerType)
     containerOwner   = progSpec.getOwnerFromTypeSpec(containerType)
     ctrlVarsTypeSpec = {'owner':containerOwner, 'fieldType':containedType}
-
-    if datastructID=='TreeMap':
+    containerCat = getContaineCategory(containerType)
+    if containerCat == "MAP":
         loopCounterName  = repName+'_key'
         valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(containerType), True)
         keyVarSpec = {'owner':containerType['owner'], 'fieldType':containedType}
@@ -305,7 +315,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc, StartKey, EndKey, container
     elif datastructID=='deque' and willBeModifiedDuringTraversal:
         pass;
     else:
-        print("unknown dataStrct type:",datastructID,containerType)
+        print("DSID iterateRangeContainerStr:",datastructID,containerType)
         exit(2)
     return [actionText, loopCounterName]
 
@@ -315,7 +325,9 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     containedType    = progSpec.getContainerFirstElementType(containerType)
     ctrlVarsTypeSpec = {'owner':containerType['owner'], 'fieldType':containedType}
     itrName          = repName + "Itr"
-    if datastructID=='TreeMap' or datastructID=='Java_Map' or 'RBTreeMap' in datastructID or "__Map_" in datastructID:
+    containerCat     = getContaineCategory(containerType)
+    itrIncStr        = ""
+    if containerCat == "MAP":
         reqTagList   = progSpec.getReqTagList(containerType)
         if(reqTagList == None): print("reqTagList not found in iterateContainerStr"); exit(1)
         reqTagString = ""
@@ -338,7 +350,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, containerType))
             if not 'generic' in containerType: itrType +='<'+reqTagString+'>'
             actionText += (indent + 'for('+itrType+" "+repName+'='+containerName+'.front(); '+repName+'.node!='+containerName+'.end().node'+'; '+repName+'.goNext()){\n')
-    elif datastructID=='list' or datastructID=='Java_ArrayList' or "__List_" in datastructID:
+    elif containerCat == "LIST":
         containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
         keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
         [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, genericArgs, xlator)
@@ -350,11 +362,11 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
             actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + containerName+'.size(); ' + loopVarName+' += 1){\n'
                         + indent + indent + iteratorTypeStr+' '+repName+" = "+containerName+".get("+loopVarName+");\n")
     else:
-        print("DSID:",datastructID,containerType)
+        print("DSID  iterateContainerStr:",datastructID,containerType)
         exit(2)
     localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
     localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-    return [actionText, loopCounterName]
+    return [actionText, loopCounterName, itrIncStr]
 ###################################################### EXPRESSION CODING
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
@@ -526,7 +538,7 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
         S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     elif containerType == 'TreeMap' or containerType == 'Java_Map':
         S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
-    elif containerType == 'RBTreeMap':
+    elif containerType == 'RBTreeMap' or containerType[:2]=="__" and 'Map' in containerType:
         S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
     else:
         print("ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for ", containerType)
@@ -669,7 +681,7 @@ def varTypeIsValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator):
     fieldValueText=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
@@ -901,5 +913,4 @@ def fetchXlators():
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
     xlators['getVirtualFuncText']           = getVirtualFuncText
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
-    xlators['xlateLangType']                = xlateLangType
     return(xlators)

@@ -445,11 +445,12 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(containerType)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
-    itrTypeSpec     = progSpec.getItrTypeOfDataStruct(datastructID, containerType)
-    itrFieldType    = progSpec.fieldTypeKeyword(itrTypeSpec)
-    itrOwner        = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
+    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, containerType)
+    itrFieldType     = progSpec.fieldTypeKeyword(itrTypeSpec)
+    itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
     itrName          = repName + "Itr"
+    itrIncStr        = ""
     if containerType['fieldType'][0]=='DblLinkedList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
@@ -457,7 +458,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for( auto " + itrName+' ='+ repContainer+RDeclP+'begin()' + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; "+ itrName + " = " + itrName+"->next ){\n"
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->item;\n")
-        return [actionText, loopCounterName]
+        return [actionText, loopCounterName, itrIncStr]
     if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map' or datastructID=='RBTreeMap':
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
@@ -491,7 +492,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+repContainer+RDeclA+"["+lvName+"];\n"
     else:
         cdErr("iterateContainerStr() datastructID = " + datastructID)
-    return [actionText, loopCounterName]
+    return [actionText, loopCounterName, itrIncStr]
 ###################################################### EXPRESSION CODING
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
@@ -668,7 +669,12 @@ def codeSpecialReference(segSpec, objsRefed, genericArgs, xlator):
     return [S, retOwner, fieldType]
 
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
-    return ""
+    # Check for string A[x] = B;  If so, render A.insert(B,x)
+    S = ''
+    [containerType, idxType, owner]=getContainerType(AltIDXFormat[1], "")
+    if containerType == 'RBTreeMap':
+        S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
+    return S
 
 ############################################
 def codeMain(classes, tags, objsRefed, xlator):
@@ -878,7 +884,7 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, xlator):
+def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator):
     fieldValueText=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     #TODO: make test case
