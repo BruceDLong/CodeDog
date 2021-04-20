@@ -1,0 +1,638 @@
+//############  NativeWidgets GTK3
+requirements = [
+    [tagOneOf, Platform, [Linux]]
+]
+
+interface={
+    provides=[Native_Widget_implementation]
+    libFiles=[`pkg-config --cflags --libs gtk+-3.0`]
+    headers=[gtk/gtk.h, cairo-pdf.h]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description ='Native Widgets for GTK'
+    features    =[GUI_ToolKit, Mouse, Keyboard, Audio]
+    platforms   =[Linux]
+    bindings    =[C, CPP]
+}
+
+initCode = ``
+/////////////////////////////////  STRUCT CONVERTERS
+struct GUI_offset:              wraps = GtkAdjustment ownerMe = their{}
+struct GUI_menuBar:             wraps = GtkWidget ownerMe = their{}
+struct GUI_menu:                wraps = GtkWidget ownerMe = their{}
+struct GUI_menuItem:            wraps = GtkWidget ownerMe = their{}
+struct GUI_ScrollingWindow:     wraps = GtkWidget ownerMe = their{}
+struct GUI_VerticalScroller:    wraps = GtkWidget ownerMe = their{}
+struct listWidget:              wraps = GtkWidget ownerMe = their{}
+struct GUI_XStack:              wraps = GtkWidget ownerMe = their{}
+struct GUI_YStack:              wraps = GtkWidget ownerMe = their{}
+struct GUI_ZStack:              wraps = GtkWidget ownerMe = their{}
+struct GUI_CompleterList:       wraps = GtkListStore ownerMe = their{}
+
+struct guiFillPattern{
+    their cairo_pattern_t: guiFillPattern
+    me void: init() <- <%!%0 = cairo_pattern_create_linear(%1, %2, %3, %4)%>
+    me void: AddColorStopRGBA(me double: offset, their cdColor: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
+    me void: AddColorStop(me double: offset, cdColor: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
+    me void: destroy() <- <%!cairo_pattern_destroy(%0)%>
+}
+///////////////////////////////// TIME
+struct tm{
+    me tm: tm
+    me int: tm_hour
+    me int: tm_min
+    me int: tm_sec
+}
+struct timeStringer{
+    me tm: timeRec
+    me none: timeStringer() <- <%{
+        time_t rawtime;
+        time (&rawtime);
+        timeRec = *localtime(&rawtime);
+    } %>
+
+    me string: time12Hour() <- <%{
+        string AmPm = "am";
+        int hours = timeRec.tm_hour;
+        if (hours>=12) {hours = hours-12; AmPm="pm";}
+        if (hours==0) {hours = 12;}
+        string SH = (to_string(hours)+":");
+        int min = timeRec.tm_min;
+        if (min<10){SH = SH+"0";}
+        SH = SH + to_string(min);
+
+        SH=SH+":";
+        int sec = timeRec.tm_sec;
+        if (sec<10){SH = SH+"0";}
+        SH = SH + to_string(sec);
+        SH=SH+AmPm;
+        return(SH);
+    } %>
+}
+///////////////////////////////// MENU
+struct GUI{
+    me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%G %>
+    me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_MenuItem(%1, %2)%>
+    me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+    me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)<- <%!%Gcreate_SubMenu(%1, %2)%>
+}
+struct GLOBAL{
+    me GUI_menuItem: create_MenuItem(me GUI_menu: ParentMenu, me string: label) <- <%{
+        GtkWidget *menuitem;
+        menuitem = gtk_menu_item_new_with_label (label.data());
+        //gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
+        gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
+        gtk_widget_show (menuitem);
+        return menuitem;
+    } %>
+    me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
+        GtkWidget *SubMenu = gtk_menu_new ();
+        GtkWidget *menuitem;
+        menuitem = gtk_menu_item_new_with_label (label.data());
+        gtk_menu_item_set_submenu (GTK_MENU_ITEM (menuitem), SubMenu);
+        gtk_menu_shell_append (GTK_MENU_SHELL (ParentMenu), menuitem);
+        gtk_widget_show (menuitem);
+        return SubMenu;
+    } %>
+}
+///////////////////////////////// NATIVE WIDGETS ///////////////////////
+struct GUI_storyBoard{  // TODO: GUI_storyBoard should be GUI_ZStack
+    their GtkWidget: GUI_storyBoard
+    me void: addPane(their GUI_Frame: frame) <- <%!gtk_stack_add_named((GtkStack*)%0, (GtkWidget*)%1, %2)%>
+}
+struct boolWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their GUI_Bool:  dataValue
+
+    me bool: getValue()            <- {return(dataValue.getValue())}
+    void: setValue(me bool: value) <- {dataValue.setValue(value)}
+    me void: clear() <- {
+        dataValue.setValue(true)
+    }
+    their GUI_Frame: initWidget(me string: name)  <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(name.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
+        dataValue = gtk_check_button_new();
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        return box;
+    }%>
+}
+struct intWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their GUI_Text:  dataValue
+    me double: initialValue  <- 0
+    me double: minValue      <- -1000
+    me double: maxValue      <- 1000
+    me double: stepIncrement <- 1
+    me double: pageIncrement <- 10
+    me double: pageSize      <- 10
+    me double: climbRate     <- 1
+    me int:    decimalPlaces <- 0
+
+    me int: getValue() <- <%{
+        return(atoi(gtk_entry_get_text((GtkEntry*)dataValue)));
+    }%>
+    me void: setValue(me int: value) <- <%{
+        gtk_entry_set_text((GtkEntry*)dataValue, to_string(value).data());
+    }%>
+    me void: clear() <- <%{
+        gtk_entry_set_text((GtkEntry*)dataValue, "");
+    }%>
+    their GUI_Frame: initWidget(me string: name)  <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(name.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
+        dataValue = gtk_entry_new();
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        gtk_widget_show_all (box);
+        return box;
+    }%>
+}
+struct intRangeWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their GUI_Text:  dataValue
+    me double: initialValue  <- 0
+    me double: minValue      <- -1000
+    me double: maxValue      <- 1000
+    me double: stepIncrement <- 1
+    me double: pageIncrement <- 10
+    me double: pageSize      <- 10
+    me double: climbRate     <- 1
+    me int:    decimalPlaces <- 0
+
+    me int: getValue() <- <%!gtk_spin_button_get_value_as_int ((GtkSpinButton*)%0->dataValue)%>
+    me void: setValue(me int: val) <- <%!gtk_spin_button_set_value ((GtkSpinButton*)%0->box, %1)%>
+    //me void: clear() <- <%{}%>
+
+    their GUI_Frame: initWidget(me string: name)  <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(name.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
+        GtkAdjustment *adjustment = gtk_adjustment_new (initialValue,minValue,maxValue,stepIncrement,pageIncrement,pageSize);
+        dataValue = gtk_spin_button_new(adjustment, climbRate, decimalPlaces);
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        return box;
+    }%>
+}
+struct stringWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their GUI_Text:  dataValue
+
+    me string: getValue() <- <%{
+        return(gtk_entry_get_text((GtkEntry*)dataValue));
+    }%>
+    me void: setValue(me string: value) <- <%{
+        gtk_entry_set_text((GtkEntry*)dataValue, value.data());
+    }%>
+    me void: clear() <- <%{
+        gtk_entry_set_text((GtkEntry*)dataValue, "");
+    }%>
+    their GUI_Frame: initWidget(me string: name) <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(name.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
+        dataValue = gtk_entry_new();
+        g_signal_connect(G_OBJECT(dataValue), "changed", G_CALLBACK(stringWidget_onChanged_CB), this);
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        gtk_widget_show_all (box);
+        return box;
+    } %>
+}
+struct dateWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their GtkWidget:  dataValue
+
+    me timeValue: getValue() <- <%{
+        guint year;
+        guint month;
+        guint day;
+        gtk_calendar_get_date ((GtkCalendar*)dataValue,&year,&month,&day);
+        int64_t retVal = unicodeMgr.epocTimeFromDateTime(year, month, day, 0, 0, 0);
+        return(retVal);
+    }%>
+    me void: setValue(me timeValue: val) <- <%{
+        DateTimeFields dateTimeFields;
+        unicodeMgr.dateTimeFromEpocTime(val, &dateTimeFields);
+        guint year = dateTimeFields.year;
+        guint month = dateTimeFields.month;
+        guint day = dateTimeFields.day;
+        gtk_calendar_select_month((GtkCalendar*)dataValue, month+1, year);
+        gtk_calendar_select_day((GtkCalendar*)dataValue, day);
+        //cout<<"Set DATE:"<< year << " / " <<  month+1 << " / " << day  <<"\n"<<flush;
+    }%>
+    me void: clear() <- <%{
+        gtk_calendar_clear_marks ((GtkCalendar*)dataValue);
+    }%>
+    their GUI_Frame: initWidget(me string: name)  <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(name.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
+        dataValue = gtk_calendar_new();
+        g_signal_connect(G_OBJECT(dataValue), "day-selected", G_CALLBACK(dateWidget_onChanged_CB), this);
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        return box;
+    }%>
+}
+struct enumWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
+    their GUI_Frame: box
+    their GUI_Label: dataLabel
+    their GtkWidget: dataValue
+    me List<me string>: options
+
+    me int: getValue() <- <%!gtk_combo_box_get_active((GtkComboBox*)%0->dataValue)%>
+    me void: setValue(me int: val) <- <%!gtk_combo_box_set_active((GtkComboBox*)%0->dataValue, %1)%>
+    me void: clear() <- <%{}%>
+    their GUI_Frame: initWidget(me string: label, me List<me string>: Options)  <- <%{
+        options = Options;
+        box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        dataLabel = gtk_label_new(label.data());
+        gtk_label_set_width_chars((GtkLabel*)dataLabel, 15);
+        gtk_label_set_xalign((GtkLabel*)dataLabel, 0.9);
+        gtk_container_add(GTK_CONTAINER (box), dataLabel);
+        dataValue = gtk_combo_box_text_new();
+        g_signal_connect(G_OBJECT(dataValue), "changed", G_CALLBACK(enumWidget_onChanged_CB), this);
+        int idx=0;
+        for (string option : options){
+            gtk_combo_box_text_append((GtkComboBoxText*)dataValue, to_string(idx).data(), option.data());
+            idx+=1;
+        }
+        gtk_container_add(GTK_CONTAINER (box), dataValue);
+        return box;
+    }%>
+}
+struct DateWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
+    their GUI_Entry:    yearBox
+    their GUI_ComboBox: monthBox
+    their GUI_ComboBox: dayBox
+
+    me timeValue: getValue() <- {
+        me timeValue: tempYear  <- yearBox.getValueAsInt()
+        me timeValue: tempMonth <- monthBox.comboBoxGetActive()+1
+        me timeValue: tempDay   <- dayBox.comboBoxGetActive()+1
+        me timeValue: dateVal   <- unicodeMgr.epocTimeFromDateTime(tempYear, tempMonth, tempDay, 0, 0, 0)
+        print ("GET-DATE Y/M/D = TOTAL: ", tempYear, " / ", tempMonth, " / ", tempDay, " / ", dateVal, "\n")
+        return(dateVal)
+    }
+    void: setValue(me timeValue: setDate) <- {}
+    me void: clear() <- <%{
+        gtk_entry_set_text((GtkEntry*)yearBox, "");
+    }%>
+    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
+        ///// YEAR ///////////////////////////////////
+        their GUI_Label: yearLabel <- makeLabelWidget("Year");
+        yearBox <- makeEntryBox("")
+        ///// MONTH //////////////////////////////////
+        their GUI_Label: monthLabel <- makeLabelWidget("Month");
+        monthBox <- makeComboBox()
+        me int: count <-0
+        withEach monthName in months{
+            monthBox.appendStringComboBox(toString(count),monthName, monthArrayAdapter)
+            count <- count +1
+        }
+        ///// DAY ////////////////////////////////////
+        their GUI_Label: dayLabel <- makeLabelWidget("Day")
+        dayBox <- makeComboBox()
+        withEach i in RANGE(1..31){
+            dayBox.appendComboBox(i, i, dayArrayAdapter)
+        }
+        ///// RETURN BOX //////////////////////////////
+        box <- makeXStack("")
+        addToContainer(box, yearLabel)
+        addToContainer(box, yearBox)
+        addToContainer(box, monthLabel)
+        addToContainer(box, monthBox)
+        addToContainer(box, dayLabel)
+        addToContainer(box, dayBox)
+        return(box)
+    }
+}
+struct TimeWidget: COMMAND_addCallProxy=["widgetData:onChanged"]{
+    their GUI_ComboBox: hourBox
+    their GUI_ComboBox: minuteBox
+    me timeValue:       data
+    me List<int>:       hours
+    me List<int>:       minutes
+
+    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- {
+        ///// HOUR //////////////////////////////////
+        their GUI_Label: hourLabel <- makeLabelWidget("Hour");
+        hourBox <- makeComboBox()
+        withEach i in RANGE(1..25){
+            hourBox.appendComboBox(i, i, hourArrayAdapter)
+        }
+        ///// MINUTE //////////////////////////////////
+        their GUI_Label: minuteLabel <- makeLabelWidget("Minute");
+        minuteBox <- makeComboBox()
+        withEach i in RANGE(0..60){
+            minuteBox.appendComboBox(i,i, minuteArrayAdapter)
+        }
+        ///// RETURN BOX //////////////////////////////
+        box <- makeXStack("")
+        addToContainer(box, hourLabel)
+        addToContainer(box, hourBox)
+        addToContainer(box, minuteLabel)
+        addToContainer(box, minuteBox)
+        return(box)
+    }
+    me timeValue: getValue() <- {
+        me int: tmpHour      <- hourBox.comboBoxGetActive()
+        tmpHour              <- tmpHour*60*60*1000
+        me int: tmpMinute    <- minuteBox.comboBoxGetActive()
+        tmpMinute            <- tmpMinute*60*1000
+        me timeValue: millisecondsSinceMidnight <- tmpHour + tmpMinute
+        return(millisecondsSinceMidnight)
+    }
+    void: setValue() <- {}
+    me void: clear() <- <%{}%>
+}
+struct scrollerWidget{
+    their GUI_Frame: layoutArea
+    their GtkWidget: scroller
+
+    their GUI_ScrollingWindow: makeScrollerWidget(their GUI_canvas: canvas) <- <%{
+        scroller = gtk_scrolled_window_new(0, 0);
+        //GtkWidget* layoutArea = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        //gtk_container_add(GTK_CONTAINER (scroller), layoutArea);
+        gtk_container_add(GTK_CONTAINER (scroller), canvas);
+        return(scroller);
+    }%>
+}
+/////////////////////////////////  GUI STRUCTS
+struct GUI_Entry: wraps = GtkWidget ownerMe = their{
+    me string: getValue()               <- <%!gtk_entry_get_text((GtkEntry *)%0)%>
+    me string: getValueAsInt()          <- <%!atoi(gtk_entry_get_text((GtkEntry *)%0))%>
+}
+struct GUI_CompleterBox: wraps = GtkWidget ownerMe = their{
+    me string: getValue()               <- <%!gtk_entry_get_text((GtkEntry *)%0)%>
+    me string: getValueAsInt()          <- <%!atoi(gtk_entry_get_text((GtkEntry *)%0))%>
+}
+struct GUI_Completer: wraps = GtkEntryCompletion ownerMe = their{
+    me string: getValue()               <- <%!gtk_entry_get_text((GtkEntry *)%0)%>
+    me string: getValueAsInt()          <- <%!atoi(gtk_entry_get_text((GtkEntry *)%0))%>
+}
+struct GUI_ComboBox: wraps = GtkWidget ownerMe = their{
+    me void: appendComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)std::to_string(%1).data(),(gchar*)std::to_string(%2).data())%>
+    me void: appendStringComboBox(me string: id, me string: label)  <- <%!gtk_combo_box_text_append((GtkComboBoxText*)%0,(gchar*)%1.data(),(gchar*)%2.data())%>
+    me int: comboBoxGetActive()  <- <%!gtk_combo_box_get_active((GtkComboBox *)%0)%>
+    me void: setAndroidAdapter() <- <%!%G %>
+    me string: getValue()        <- <%!gtk_combo_box_get_active((GtkComboBox*)%0)%>
+}
+struct GUI_SpinBox: wraps = GtkWidget ownerMe = their{
+    me double: getValue()               <- <%!gtk_spin_button_get_value((GtkSpinButton *)%0)%>
+}
+struct GUI_Bool: wraps = GtkWidget ownerMe = their{
+    me string: getValue()               <- <%!gtk_toggle_button_get_active((GtkToggleButton*)%0)%>
+    me void: setValue(me int: value)    <- <%!gtk_toggle_button_set_active ((GtkToggleButton*)%0, %1)%>
+}
+struct GUI_Label: wraps = GtkWidget ownerMe = their{
+    void: setValue(me string: text)     <- <%!gtk_label_set_text (GTK_LABEL(%0), %1.data())%>
+}
+struct GUI_TextViewer: wraps = GtkWidget ownerMe = their{
+    me void: setEditable(me bool: isEditable)                 <- <%!gtk_text_view_set_editable(GTK_TEXT_VIEW(%0), %1)%>
+}
+struct GUI_button: wraps = GtkButton ownerMe = their{
+    me void: setWidgetActive            <- <%!gtk_widget_set_sensitive ((GtkWidget* )%0, %1)%>
+}
+/////////////////////////////////  LIST EDITOR WIDGET
+struct ListWidgetManager{
+    their GUI_Frame:         box
+    their GUI_Frame:         boxHeader
+    their GUI_Frame:         boxBody
+    their GUI_Frame:         boxFooter
+    their listWidget:        listWidgetView
+    their GtkWidget:         addBtn
+    their GtkWidget:         deleteBtn
+    their GtkWidget:         editBtn
+    me int:                  crntIndex <- 0
+    me int:                  listLength
+    their GtkListBoxRow:     crntRow
+
+    void: handleOnListClick(me int: idx) <- <%{
+        cout << "List Clicked at index: "<< to_string(idx)<<"\n";
+        crntIndex = idx;
+        setCurrentItem(crntIndex);
+    }%>
+    void: handleAdd() <- <%{
+        allocateNewCurrentItem();
+        GtkWidget* itemWidget = makeEditableWidget();
+        GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+        GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Add", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+        GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+        gtk_container_add (GTK_CONTAINER (contentArea), itemWidget);
+        gtk_widget_show_all(AddItemDialog);
+        int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+        if(result==1){
+            updateCrntFromEdited(crntIndex);
+            listLength = pushCrntToList(crntIndex);
+            setButtonsActive(listLength);
+        } else {cout<<"CANCELED "<<result<<"\n";}
+        gtk_widget_destroy(AddItemDialog);
+    }%>
+    void: handleDelete() <- <%{
+        crntRow = gtk_list_box_get_selected_row((GtkListBox*)listWidgetView);
+        crntIndex = gtk_list_box_row_get_index(crntRow);
+        cout << "Delete Btn Clicked at idx: "<< crntIndex <<"\n";
+        if (crntIndex >= 0) {
+            GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+            GtkWidget* DeleteItemDialog = gtk_dialog_new_with_buttons ("Delete Item", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+            GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)DeleteItemDialog);
+            gtk_widget_show_all(DeleteItemDialog);
+            int result = gtk_dialog_run ((GtkDialog*)DeleteItemDialog);
+            if(result==1){
+                cout<<"ACCEPTED "<<result<<"\n";
+                listLength = deleteNthItem(crntIndex);
+                setButtonsActive(listLength);
+                gtk_container_remove((GtkContainer*)boxBody, listWidgetView);
+                listWidgetView = makeListViewWidget();
+                gtk_box_pack_start(GTK_BOX(boxBody), listWidgetView, true, true, 0);
+                gtk_widget_show_all(listWidgetView);
+            } else {cout<<"CANCELED "<<result<<"\n";}
+            gtk_widget_destroy(DeleteItemDialog);
+        }
+    }%>
+    void: handleEdit() <- <%{
+        crntIndex = gtk_list_box_row_get_index(gtk_list_box_get_selected_row((GtkListBox*)listWidgetView));
+        cout << "Edit Btn Clicked at idx: "<< crntIndex <<"\n";
+        if (crntIndex >= 0) {
+            allocateNewCurrentItem();
+            GtkWidget* itemWidget = makeEditableWidget();
+            updateEditableWidget(crntIndex);
+            GtkDialogFlags flags = (GtkDialogFlags)(GTK_DIALOG_MODAL);
+            GtkWidget* AddItemDialog = gtk_dialog_new_with_buttons ("Edit", (GtkWindow*)window, flags, "_OK", 1, "_Cancel", 0, NULL);
+            GtkWidget* contentArea = gtk_dialog_get_content_area((GtkDialog*)AddItemDialog);
+            gtk_container_add (GTK_CONTAINER (contentArea), itemWidget);
+            gtk_widget_show_all(AddItemDialog);
+            int result = gtk_dialog_run ((GtkDialog*)AddItemDialog);
+            if(result==1){
+                cout<<"ACCEPTED "<<result<<"\n";
+                updateCrntFromEdited(crntIndex);
+                copyCrntBackToList(crntIndex);
+                gtk_container_remove((GtkContainer*)boxBody, listWidgetView);
+                listWidgetView = makeListViewWidget();
+                gtk_box_pack_start(GTK_BOX(boxBody), listWidgetView, true, true, 0);
+                gtk_widget_show_all(listWidgetView);
+            } else {cout<<"CANCELED "<<result<<"\n";}
+            gtk_widget_destroy(AddItemDialog);
+        }
+    }%>
+    void: setButtonsActive(me int: L) <- <%{
+        if(L>0){
+            gtk_widget_set_sensitive (deleteBtn, TRUE);
+            gtk_widget_set_sensitive (editBtn, TRUE);
+        }else{
+            gtk_widget_set_sensitive (deleteBtn, FALSE);
+            gtk_widget_set_sensitive (editBtn, FALSE);
+        }
+    }%>
+    their GUI_Frame: makeListBox() <- <% {
+        // BOX
+        box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+        // HEADER
+        boxHeader = makeListHeader();
+        gtk_box_pack_start(GTK_BOX(box), boxHeader, false, true, 0);
+        // BODY
+        boxBody = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+        listWidgetView = makeListViewWidget();
+        gtk_box_pack_start(GTK_BOX(box), boxBody, true, true, 0);
+        gtk_box_pack_start(GTK_BOX(boxBody), listWidgetView, true, true, 0);
+        // FOOTER
+        boxFooter = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        addBtn = gtk_button_new_with_label("Add");
+        deleteBtn = gtk_button_new_with_label("Remove");
+        editBtn = gtk_button_new_with_label("Edit");
+        listLength <- getListLength();
+        setButtonsActive(listLength);
+        gtk_box_pack_start(GTK_BOX(boxFooter), addBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(boxFooter), deleteBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(boxFooter), editBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(box), boxFooter, false, true, 0);
+        // CALLBACKS
+        g_signal_connect(G_OBJECT(listWidgetView), "row-selected", G_CALLBACK(ListEditorHandleListClick), this);
+        g_signal_connect(G_OBJECT(addBtn), "clicked", G_CALLBACK(ListEditorHandleAdd), this);
+        g_signal_connect(G_OBJECT(deleteBtn), "clicked", G_CALLBACK(ListEditorHandleDelete), this);
+        g_signal_connect(G_OBJECT(editBtn), "clicked", G_CALLBACK(ListEditorHandleEdit), this);
+        return box;
+    } %>
+}
+/////////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
+struct GLOBAL{
+    me void: setBtnProxy()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
+    me void: setItmSelectedProxy()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
+    their GtkWidget: makeBoolWidget(me string: label)           <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeFloatWidget(me string: label)          <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Ggtk_spin_button_new(gtk_adjustment_new(%1,%2,%3,1,10,10),1,%4)%>
+    their GtkWidget: makeNumRangeWidget(me string: label)       <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeRangeWidget(me string: label)          <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget(me string: label)           <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeDateWidget(me string: label)           <- <%!%Ggtk_entry_new()%>
+    their GtkWidget: makeTimeWidget()                           <- <%!%Ggtk_combo_box_text_new()%>
+    their GtkWidget: makeDateWidget()                           <- <%!%Ggtk_combo_box_text_new()%>
+    their GtkButton: makeButtonWidget(me string: label)         <- <%!%G(GtkButton*)gtk_button_new_with_label(%1)%>
+    their GtkWidget: makeListWidget(me string: label)           <- <%!%Ggtk_list_box_new()%>
+    their GtkWidget: makeRowWidget(me string: label)            <- <%!%Ggtk_list_box_row_new()%>
+    their GtkWidget: makeYStack(me string: label)               <- <%!%Ggtk_box_new(GTK_ORIENTATION_VERTICAL, 0)%>
+    their GtkWidget: makeXStack(me string: label)               <- <%!%Ggtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0)%>
+    their GtkWidget: makeZStack(me string: label)               <- <%!%Ggtk_stack_new()%>
+    their GtkWidget: makeTabbedWidget(me string: label)         <- <%!%Ggtk_notebook_new()%>
+    their GtkWidget: makeLabelWidget(me string: label)          <- <%!%Ggtk_label_new(%1)%>
+    their GtkWidget: makeLabelWidget2(me string: label)         <- <%!%Ggtk_label_new(%1.data())%>
+    their GtkWidget: makeComboBox(me string: label)             <- <%!%Ggtk_combo_box_text_new()%>
+    me void: addToComboBox(me GUI_item: box, me string: val)    <- <%!%Ggtk_combo_box_text_append_text((GtkComboBoxText *)%1, %2.data())%>
+    their GtkWidget: makeEntryBox(me string: label)             <- <%!%Ggtk_entry_new()%>
+    void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
+        <- <%!%Ggtk_entry_set_completion((GtkEntry*)%1, %2)%>
+    their GtkEntryCompletion: makeCompleter(me string: label, their GUI_CompleterList: list_store, me List<me string>: items) <- <%{
+        GtkEntryCompletion* completion = gtk_entry_completion_new();
+        list_store = gtk_list_store_new(1, G_TYPE_STRING);
+        GtkTreeIter iter;
+        gint column = 0;
+        gtk_entry_completion_set_model(completion, (GtkTreeModel*)list_store);
+        gtk_entry_completion_set_text_column(completion, column);
+        for( uint64_t itemIdx = 0; itemIdx < items.size(); ++itemIdx ){
+            string item = items[itemIdx];
+        gtk_list_store_append(list_store, &iter);
+            gtk_list_store_set(list_store, &iter, column, item.data(), -1);
+        }
+        return(completion);
+    }%>
+    their GUI_CompleterBox: makeCompleterBox(me string: label)
+        <- <%!%Ggtk_entry_new()%>
+    me void: setLabelWidth(their GtkWidget: labelWidget, me int: width) <- <%!gtk_label_set_width_chars((GtkLabel*)%1, %2)%>
+    me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!gtk_list_box_set_selection_mode((GtkListBox *)%1, GTK_SELECTION_SINGLE)%>
+    me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
+    their GtkWidget: getListRowSelected(their listWidget: listWidgetView) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
+    me void: setTabLabelText() <- <%!%Ggtk_notebook_set_tab_label_text(GTK_NOTEBOOK(%1), %2, %3)%>
+    me GUI_Scalar: convertToGUIScalar()                                    <- <%!%G%1%>
+    their GUI_Bool: makeCheckBox()                                         <- <%!%Ggtk_check_button_new()%>
+    their GUI_VerticalScroller: makeVerticalScroller()                     <- <%!%GmakeGTKVerticalScroller()%>
+    their GUI_TextViewer: makeTextViewer(me string: text)                  <- <%!%GmakeGTKTextViewer(%1)%>
+    me void: setButtonLabel(their GtkButton: btn, me string: label)        <- <%!%Ggtk_button_set_label(%1,%2)%>
+
+    their GUI_TextViewer: makeGTKTextViewer(me string: text)    <- <%{
+        GtkWidget *textViewer = gtk_text_view_new();
+        GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW (textViewer));
+        int length = strlen(text.data());
+        gtk_text_buffer_set_text (buffer,text.data(),length);
+        gtk_text_view_set_editable(GTK_TEXT_VIEW(textViewer), FALSE);
+        gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(textViewer), FALSE);
+        gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(textViewer),GTK_WRAP_WORD);
+        return textViewer;
+    }%>
+    their GUI_VerticalScroller: makeGTKVerticalScroller() <- <%{
+        GtkWidget* scroller = gtk_scrolled_window_new(NULL, NULL);
+        //gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroller),height);
+        //gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(scroller),width);
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+        return(scroller);
+    }%>
+    their GtkWidget: makeListEditorWidget(their GtkWidget: listWidgetView) <- <%{
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+        gtk_box_pack_start(GTK_BOX(box), listWidgetView, true, true, 0);
+
+        GtkWidget* btnBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        GtkWidget* addBtn = gtk_button_new_with_label("Add");
+        GtkWidget* delBtn = gtk_button_new_with_label("Remove");
+        GtkWidget* editBtn = gtk_button_new_with_label("Edit");
+
+        gtk_box_pack_start(GTK_BOX(btnBox), addBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(btnBox), delBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(btnBox), editBtn, true, true, 10);
+        gtk_box_pack_start(GTK_BOX(box), btnBox, false, true, 0);
+        return box;
+    }%>
+}
+///////////////////////////////// GLOBAL CALLBACKS
+struct GLOBAL{
+    void: ListEditorHandleListClick(their GtkListBox: box, their GtkListBoxRow: row, their void: user_data) <- <% {
+        ListWidgetManager *listMgr =(ListWidgetManager *)user_data;
+        int idx = gtk_list_box_row_get_index(gtk_list_box_get_selected_row(box));
+        listMgr->handleOnListClick(idx);
+    } %>
+    void: ListEditorHandleAdd(their GtkWidget: wid, their ListWidgetManager: listMgr) <- {
+        listMgr.handleAdd()
+    }
+    void: ListEditorHandleDelete(their GtkWidget: wid, their ListWidgetManager: listMgr) <- {
+        listMgr.handleDelete()
+    }
+    void: ListEditorHandleEdit(their GtkWidget: wid, their ListWidgetManager: listMgr) <- {
+        listMgr.handleEdit()
+    }
+}

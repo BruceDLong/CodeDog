@@ -6,824 +6,54 @@ requirements = [
 interface={
     provides=[GUI_ToolKit_implementation]
     libFiles=[]
-    headers=[android.view.View, android.view.Menu, android.view.SubMenu, android.view.MotionEvent, android.view.View.OnTouchListener,
-        android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams, android.widget.HorizontalScrollView, android.widget.ScrollView, android.widget.TextView,
-        android.widget.RelativeLayout, android.widget.FrameLayout, android.util.DisplayMetrics, android.os.Handler, android.content.res.Configuration, android.content.res.Resources,
-        android.widget.Toast, android.app.AlertDialog, android.app.AlertDialog.Builder, android.content.DialogInterface,
-        android.os.Bundle, android.app.DatePickerDialog, android.app.DatePickerDialog.OnDateSetListener,
-        android.app.FragmentTransaction, android.app.FragmentManager, android.app.Fragment,
-        android.util.Log, android.content.res.AssetManager, android.content.Context, android.content.ContextWrapper, android.graphics.Rect, android.os.Looper,  android.os.HandlerThread,
-        android.graphics.Canvas, android.graphics.Color, android.graphics.Paint, android.graphics.Path, android.graphics.LinearGradient, android.view.Gravity,
-        android.graphics.Typeface, android.graphics.Bitmap, android.graphics.BitmapFactory, android.graphics.Shader, android.graphics.Shader.TileMode,
-        android.widget.EditText, android.widget.Button, android.widget.ListView, android.widget.Spinner, android.widget.SpinnerAdapter, android.widget.ArrayAdapter, android.widget.DatePicker, android.widget.TimePicker, android.widget.CheckBox,
-        android.widget.NumberPicker, android.text.InputType, android.view.LayoutInflater, android.view.ViewGroup, android.widget.TimePicker, android.app.TimePickerDialog, android.app.TimePickerDialog.OnTimeSetListener,
-        android.widget.AdapterView, android.widget.AdapterView.OnItemClickListener, android.media.ToneGenerator, android.media.AudioManager, android.content.res.ColorStateList,
-        android.R.drawable, android.R.layout, android.graphics.drawable.Drawable, android.graphics.drawable.GradientDrawable, android.widget.AutoCompleteTextView,
-        android.widget.AdapterView.OnItemSelectedListener, android.text.TextWatcher, android.text.Editable, android.widget.AdapterView.OnItemSelectedListener,
-        androidx.appcompat.app.AppCompatActivity, androidx.fragment.app.FragmentActivity,
-        androidx.core.widget.NestedScrollView, androidx.core.content.ContextCompat, androidx.appcompat.widget.Toolbar,
-        android.app.DialogFragment, com.google.android.material.floatingactionbutton.FloatingActionButton,
-        android.graphics.pdf.PdfDocument
+    headers=[
+        androidx.appcompat.app.AppCompatActivity, androidx.appcompat.widget.Toolbar,
+        android.os.Handler, android.os.Looper,  android.os.HandlerThread,
+        android.content.Context,
+        android.content.res.Configuration,
+        android.util.DisplayMetrics,
+        // VIEW
+        android.view.View, android.view.ViewGroup,
+        android.widget.LinearLayout, android.widget.LinearLayout.LayoutParams,
+        android.widget.HorizontalScrollView, android.widget.ScrollView,
+        androidx.core.widget.NestedScrollView,
+        android.widget.Toast,
+        // GRAPHICS
+        android.graphics.Canvas, android.graphics.Color,
+        android.graphics.Paint, android.graphics.Path,
+        android.graphics.Rect, android.graphics.Typeface,
+        android.graphics.Bitmap, android.graphics.BitmapFactory,
+        android.graphics.drawable.Drawable, android.graphics.pdf.PdfDocument,
+        // EVENTS & LISTENERS
+        android.view.View.OnTouchListener, android.view.MotionEvent
     ]
 }
 
 LibDescription ={
     useStatus  = dynamic
     description='GUI for Android '
-    features   =[]
-    platforms  =[]
-    bindings   =[]
-    CPUs       =[]
 }
 
 initCode = `
    GUI_threads_messagePasser <- GUIsMesgPasser()
 `
 
-embedHigh = `
-class gui_str_list extends ArrayList<String>{};
-
-class ScaledContextWrapper extends ContextWrapper {
-
-    public ScaledContextWrapper(Context base) {
-        super(base);
-    }
-
-    @SuppressWarnings("deprecation")
-    public static ScaledContextWrapper wrap(Context context) {
-        Resources resources = context.getResources();
-        Configuration configuration = resources.getConfiguration();
-        DisplayMetrics metrics = resources.getDisplayMetrics();
-        float sScaleRatio = 0.75f;
-        configuration.densityDpi = (int) (metrics.densityDpi * sScaleRatio);
-        configuration.fontScale = sScaleRatio;
-
-        context = context.createConfigurationContext(configuration);
-        return new ScaledContextWrapper(context);
-    }
-}
-
-class Spinner_String_View extends ArrayAdapter<String> {
-    ArrayList<String> _data;
-
-    public Spinner_String_View(Context context, ArrayList<String> Data) {
-       super(context, 0, Data);
-       _data = Data;
-    }
-
-    @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        return getCustomView(position, convertView, parent);
-    }
-    @Override
-    public View getDropDownView(int position, View convertView, ViewGroup parent) {
-        return getCustomView(position, convertView, parent);
-    }
-    public View getCustomView(int position, View convertView, ViewGroup parent) {
-        TextView rowView = new TextView(GLOBAL.static_Global);
-        String rowItem = getItem(position);
-        LayoutParams stringView = new LayoutParams(350,50);
-        rowView.setLayoutParams(stringView);
-        rowView.setText(rowItem);
-        rowView.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-       return rowView;
-   }
-
-    @Override
-    public int getCount() {
-        return _data.size();
-    }
-
-    @Override
-    public String getItem(int position) {
-        return _data.get(position);
-    }
-
-    @Override
-    public long getItemId(int position) {
-        return position;
-    }
-};
-`
+embedHigh = ``
 
 /////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-struct GUI_offset{their GtkAdjustment:GUI_offset}
 struct GUI_item{me View: GUI_item}
 struct GUI_Frame{me ViewGroup:GUI_Frame}
-struct GUI_menuBar{me ourSubMenu: GUI_menuBar}
-struct GUI_menu{me ourSubMenu: GUI_menu}
-struct GUI_menuItem{me MenuItem: GUI_menuItem}
 struct GUI_canvas{me CanvasView: GUI_canvas}
 struct GUI_container{me ViewGroup:GUI_container}
-struct GUI_ScrollingWindow{me NestedScrollView: GUI_ScrollingWindow}
-struct GUI_VerticalScroller{me ScrollView: GUI_VerticalScroller}
 struct INK_Image{their Paint: INK_Image}      // How will the ink look?
 struct GUI_callback{me GCallback: GUI_callback}
 struct GUI_Scalar{me float: GUI_Scalar}
-struct GUI_Label{their TextView: GUI_Label}
-struct listWidget{their LinearLayout: listWidget}
-struct GUI_button{me Button: GUI_button}
-struct GUI_XStack{their LinearLayout: GUI_XStack}
-struct GUI_YStack{their LinearLayout: GUI_YStack}
-struct GUI_ComboBox{their Spinner: GUI_ComboBox}
-struct GUI_SpinBox{their Spinner: GUI_SpinBox}
-struct GUI_Bool{their CheckBox: GUI_Bool}
-struct GUI_Text{their EditText: GUI_Text}
-struct GUI_Entry{their TextView: GUI_Entry}
-struct GUI_CompleterList {their gui_str_list: GUI_CompleterList}
-struct GUI_CompleterBox{their AutoCompleteTextView: GUI_CompleterBox}
-struct GUI_Completer{their ArrayAdapter<String>: GUI_Completer}
-struct GUI_TextViewer{their TextView: GUI_TextViewer}
 struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
-
-/////////////////////////////////  WIDGET STRUCTS
-struct GUI_storyBoard: inherits=FragmentActivity{
-    their ViewGroup: GUI_storyBoard
-    me void: addPane(their GUI_Frame: frame) <- <%!%1.addView(%2)%>
-}
-
-struct boolWidget{
-    their GUI_Frame: box
-    their GUI_Label: dataLabel
-    their GUI_Bool:  dataValue
-
-    me bool: getValue()            <- <%{
-        if (dataValue.isChecked()){return true;}
-        return false;
-    }%>
-    void: setValue(me bool: value) <- {dataValue.setValue(value)}
-    me void: clear() <- <%{}%>
-    their GUI_Frame: initWidget(me string: label)  <- <%{
-        box = new LinearLayout(GLOBAL.static_Global);
-        dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(label);
-        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        box.addView(dataLabel);
-        dataValue = new CheckBox(GLOBAL.static_Global);
-        box.addView(dataValue);
-        return box;
-    }%>
-}
-struct intWidget{
-    their GUI_Frame: box
-    their GUI_Label: dataLabel
-    their GUI_Text:  dataValue
-
-    me int: getValue() <- <%{
-        String strVal = dataValue.getText().toString();
-        //TODO: handle no entry
-        int retVal    =  Integer.parseInt(strVal);
-        return retVal;
-    }%>
-    me void: setValue(me int: value) <- <%{
-        dataValue.setText(value, TextView.BufferType.EDITABLE);
-    }%>
-    me void: clear() <- <%{
-        dataValue.setText("", TextView.BufferType.EDITABLE);
-    }%>
-    their GUI_Frame: initWidget(me string: label)  <- <%{
-        box = new LinearLayout(GLOBAL.static_Global);
-        dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(label);
-        dataLabel.setWidth(50);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        box.addView(dataLabel);
-        dataValue = new EditText(GLOBAL.static_Global);
-        dataValue.setWidth(50);
-        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
-        dataValue.setInputType(InputType.TYPE_CLASS_NUMBER);
-        box.addView(dataValue);
-        box.setVisibility(View.VISIBLE);
-        dataValue.setVisibility(View.VISIBLE);
-        return box;
-    }%>
-}
-struct intRangeWidget{
-    their GUI_Frame: box
-    their GUI_Label: dataLabel
-    their NumberPicker:  dataValue
-    me int: initialValue  <- 0
-    me int: minValue      <- -1000
-    me int: maxValue      <- 1000
-    me int: stepIncrement <- 1
-    me int: pageIncrement <- 10
-    me int: pageSize      <- 10
-    me int: climbRate     <- 1
-
-    me int: getValue() <- <%{
-        int retVal = dataValue.getValue();
-        return retVal;
-    }%>
-    me void: setValue(me int: value) <- <%{
-
-    }%>
-    me void: clear() <- <%{}%>
-    their GUI_Frame: initWidget(me string: label)  <- <%{
-        box = new LinearLayout(GLOBAL.static_Global);
-        dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(label);
-        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        box.addView(dataLabel);
-        dataValue = new NumberPicker(GLOBAL.static_Global);
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(100, ViewGroup.LayoutParams.WRAP_CONTENT);
-        dataValue.setLayoutParams(layoutParams);
-        dataValue.setMinValue(minValue);
-        dataValue.setMaxValue(maxValue);
-        dataValue.setWrapSelectorWheel(true);
-        dataValue.setFormatter(new NumberPicker.Formatter() {
-            @Override
-            public String format(int index) {
-                return Integer.toString(index + minValue);
-            }
-        });
-        box.addView(dataValue);
-        return box;
-    }%>
-}
-struct stringWidget{
-    their GUI_Frame: box
-    their GUI_Label: dataLabel
-    their GUI_Text:  dataValue
-
-    me string: getValue() <- <%{
-        return dataValue.getText().toString();
-    }%>
-    me void: setValue(me string: value) <- <%{
-        dataValue.setText(value, TextView.BufferType.EDITABLE);
-    }%>
-    me void: clear() <- <%{
-        dataValue.setText("", TextView.BufferType.EDITABLE);
-    }%>
-    their GUI_Frame: initWidget(me string: label) <- <%{
-        box = new LinearLayout(GLOBAL.static_Global);
-        dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(label);
-        dataLabel.setWidth(100);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        box.addView(dataLabel);
-        dataValue = new EditText(GLOBAL.static_Global);
-        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
-        dataValue.setWidth(100);
-        dataValue.setInputType(InputType.TYPE_CLASS_TEXT);
-        dataValue.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                onChanged();
-            }
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
-        });
-        box.addView(dataValue);
-        box.setVisibility(View.VISIBLE);
-        dataValue.setVisibility(View.VISIBLE);
-        return box;
-    }%>
-}
-struct dateWidget{
-    their GUI_Frame:         box
-    their GUI_Label:         dataLabel
-    their GUI_Text:          dataValue
-    me timeValue:            data
-    me SimpleDateFormat:     dateFormatter
-    their DatePickerDialog:  datePickerDialog
-    their Calendar:          calendar
-    their OnDateSetListener: dateListener
-
-    me timeValue: getValue() <- <%{
-        return data;
-    }%>
-    me void: setValue(me timeValue: value) <- <%{
-        Calendar cal= Calendar.getInstance();
-        dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
-        String dateStr=dateFormatter.format(cal.getTime());
-        dataValue.setText(dateStr);
-    }%>
-    me void: clear() <- <%{}%>
-    their GUI_Frame: initWidget(me string: label)  <- <%{
-        dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
-        calendar      = Calendar.getInstance();
-        box           = new LinearLayout(GLOBAL.static_Global);
-        dataLabel     = new TextView(GLOBAL.static_Global);
-        dataValue     = new EditText(GLOBAL.static_Global);
-        dataLabel.setText(label);
-        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        dataValue.setInputType(InputType.TYPE_NULL);
-        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
-        dataValue.setWidth(120);
-        dateListener = new DatePickerDialog.OnDateSetListener() {
-            @Override
-            public void onDateSet(DatePicker datePicker, int year, int month, int day) {
-                calendar.set(year, month - 1, day, 0, 0);
-                data = calendar.getTimeInMillis();
-                month = month + 1;
-                String dateStr = month + "/" + day + "/" + year;
-                dataValue.setText(dateStr);
-                onChanged();
-            }
-        };
-        dataValue.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int year  = calendar.get(Calendar.YEAR);
-                int month = calendar.get(Calendar.MONTH);
-                int day   = calendar.get(Calendar.DAY_OF_MONTH);
-                DatePickerDialog dialog = new DatePickerDialog(GLOBAL.static_Global,android.R.style.Theme_Holo_Light_Dialog_MinWidth,dateListener,year,month,day);
-                dialog.show();
-            }
-        });
-        box.addView(dataLabel);
-        box.addView(dataValue);
-        return box;
-    }%>
-}
-struct enumWidget{
-    their GUI_Frame:    box
-    their GUI_Label:    dataLabel
-    their GUI_ComboBox: dataValue
-    me List<me string>:    options
-
-    me int: getValue() <- <%{
-        int retVal = dataValue.getSelectedItemPosition();
-        return retVal;
-    }%>
-    me void: setValue(me int: val) <- <%{
-        dataValue.setSelection((int)val);
-    }%>
-    me void: clear() <- <%{}%>
-    their GUI_Frame: initWidget(me string: label, me List<me string>: Options)  <- <%{
-        options   = Options;
-        dataLabel = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(label);
-        dataLabel.setWidth(GLOBAL.static_Global.styler.widgetLabelBoxWidth);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        dataValue = new Spinner(GLOBAL.static_Global);
-        dataValue.setDropDownWidth(150);
-        Spinner_String_View adapter = new Spinner_String_View(GLOBAL.static_Global, options);
-        dataValue.setAdapter(adapter);
-        dataValue.setOnItemSelectedListener(new OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View v, int position, long id) {
-                onChanged();
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> arg0) {}
-        });
-        ////////////////  BOX
-        box = new LinearLayout(GLOBAL.static_Global);
-        box.addView(dataLabel);
-        box.addView(dataValue);
-        return box;
-    }%>
-}
-struct DateWidget{
-    their GUI_Text:          dataValue
-    me timeValue:            data
-    me SimpleDateFormat:     dateFormatter
-    their Calendar:          calendar
-    their DatePickerDialog:  datePickerDialog
-    their OnDateSetListener: dateListener
-
-    me timeValue: getValue() <- <%{
-        return data;
-    }%>
-    me void: setValue(me timeValue: value) <- <%{
-        dataValue.setText(dateFormatter.format(value));
-    }%>
-    me void: clear() <- <%{}%>
-    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- <%{
-        dateFormatter = new SimpleDateFormat("dd-MM-yyyy");
-        calendar      = Calendar.getInstance();
-        box           = new LinearLayout(GLOBAL.static_Global);
-        dataLabel     = new TextView(GLOBAL.static_Global);
-        dataLabel.setText(label);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        dataLabel.setVisibility(View.VISIBLE);
-        dataValue     = new EditText(GLOBAL.static_Global);
-        dataValue.setInputType(InputType.TYPE_NULL);
-        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
-        dataValue.setWidth(120);
-        dateListener = new DatePickerDialog.OnDateSetListener() {
-            @Override
-            public void onDateSet(DatePicker datePicker, int year, int month, int day) {
-                calendar.set(year, month - 1, day, 0, 0);
-                data = calendar.getTimeInMillis();
-                month = month + 1;
-                String date = month + "/" + day + "/" + year;
-                dataValue.setText(date);
-            }
-        };
-        dataValue.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int year  = calendar.get(Calendar.YEAR);
-                int month = calendar.get(Calendar.MONTH);
-                int day   = calendar.get(Calendar.DAY_OF_MONTH);
-                DatePickerDialog dialog = new DatePickerDialog(GLOBAL.static_Global,android.R.style.Theme_Holo_Light_Dialog_MinWidth,dateListener,year,month,day);
-                dialog.show();
-            }
-        });
-        box.addView(dataLabel);
-        box.addView(dataValue);
-        return box;
-    }%>
-}
-struct TimeWidget{
-    their GUI_Text:          dataValue
-    me timeValue:            data
-    their Calendar:          calendar
-    their TimePickerDialog:  timePickerDialog
-    their OnTimeSetListener: timeListener
-
-    their GUI_Frame: initialize(me string: label, me timeValue: defaultTime) <- <%{
-        calendar      = Calendar.getInstance();
-        box           = new LinearLayout(GLOBAL.static_Global);
-        dataLabel     = new TextView(GLOBAL.static_Global);
-        dataValue     = new EditText(GLOBAL.static_Global);
-        dataLabel.setText(label);
-        dataLabel.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        dataValue.setInputType(InputType.TYPE_NULL);
-        dataValue.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
-        dataValue.setWidth(80);
-        timeListener = new TimePickerDialog.OnTimeSetListener() {
-            @Override
-            public void onTimeSet(TimePicker view, int hour, int minute) {
-                int tmpHour = hour*60*60*1000;
-                int tmpMinute = minute*60*1000;
-                data =  tmpHour + tmpMinute;
-                dataValue.setText(hour + ":" + minute);
-            }
-        };
-        dataValue.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                int hour      = calendar.get(Calendar.HOUR_OF_DAY);
-                int minute    = calendar.get(Calendar.MINUTE);
-                TimePickerDialog dialog = new TimePickerDialog(GLOBAL.static_Global, android.R.style.Theme_Holo_Light_Dialog_MinWidth,timeListener,hour,minute, false);
-                dialog.show();
-            }
-        });
-        dataLabel.setVisibility(View.VISIBLE);
-        box.addView(dataLabel);
-        box.addView(dataValue);
-        return box;
-    }%>
-    me timeValue: getValue() <- {
-        return(data)
-    }
-    void: setValue() <- {}
-    me void: clear() <- <%{}%>
-}
-struct scrollerWidget{
-    their NestedScrollView: scroller
-
-    their GUI_ScrollingWindow: makeScrollerWidget() <- <%{
-        scroller = new NestedScrollView(GLOBAL.static_Global);
-        scroller.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        HorizontalScrollView hScroller = new HorizontalScrollView(GLOBAL.static_Global);
-        hScroller.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
-        scroller.addView(hScroller);
-        return(scroller);
-    }%>
-}
-/////////////////////////////////  GUI STRUCTS
-struct GUI_Text{
-    me string: getValue()               <- <%!getText().toString()%>
-    me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
-    me timeValue: getValueAsTime()      <- <%!Long.parseLong(%0.getText().toString())%>
-}
-struct GUI_Entry{
-    me string: getValue()               <- <%!getText().toString()%>
-    me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
-}
-struct GUI_CompleterBox{
-    me string: getValue()               <- <%!getText().toString()%>
-    me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
-}
-struct GUI_Completer{
-    me string: getValue()               <- <%!getText().toString()%>
-    me string: getValueAsInt()          <- <%!Integer.parseInt(%0.getText().toString())%>
-}
-struct GUI_ComboBox{
-    me void: appendComboBox(me string: id, me string: label)  <- <%!%G%3.add(%2)%>
-    me void: appendStringComboBox(me string: id, me string: label)  <- <%!%G%>
-    me int: comboBoxGetActive() <- <%!%0.getSelectedItemPosition()%>
-    // TODO: fix android ArrayAdapter after dynamic types working
-    me void: setAndroidAdapter() <- <%!ArrayAdapter<%2> %1 = new ArrayAdapter<%2>(GLOBAL.static_Global, android.R.layout.simple_spinner_dropdown_item, %3); %0.setAdapter(%1)%>
-    me string: getValue()        <- <%!%0.getSelectedItemPosition()%>
-}
-struct GUI_SpinBox{
-    me double: getValue()               <- <%!%0.getSelectedItemPosition()%>
-}
-struct GUI_Bool{
-    void: setValue(me bool: value)      <- <%!setChecked(%1)%>
-    me bool: getValue()                 <- <%!%0.isChecked()%>
-}
-struct GUI_Label{
-    void: setValue(me string: text)     <- <%!setText(%1)%>
-}
-struct GUI_button{
-    me void: setWidgetActive            <- <%!%0.setEnabled (%1)%>
-}
-struct GUI_ZStack: inherits=LinearLayout{
-    me Map<me string, their GUI_Frame>: children
-
-    me none: GUI_ZStack() <- <%{
-        super(GLOBAL.static_Global);
-    }%>
-
-    me void: addZStackChild(their GUI_Frame: child, me string: childName) <- <%{
-        children.put(childName, child);
-    }%>
-    me void: setZStackChild(me string: childName)                         <- <%{
-        removeAllViews();
-        ViewGroup childView = children.get(childName);
-        addView(childView);
-    }%>
-}
-/////////////////////////////////  LIST EDITOR WIDGET
-struct ListWidgetManager{
-    their GUI_Frame:            box
-    their GUI_Frame:            boxHeader
-    their GUI_Frame:            boxBody
-    their GUI_Frame:            boxFooter
-    their View:                 listWidgetView
-    their FloatingActionButton: addBtn
-    their FloatingActionButton: deleteBtn
-    their FloatingActionButton: editBtn
-    me int:                  crntIndex <- 0
-    me int:                  listLength
-
-    void: handleOnListClick(me int: idx) <- <% {
-       Log.v("GLOBAL", "handleOnListClick\n");
-    } %>
-    void: handleAdd() <- <%{
-       allocateNewCurrentItem();
-       ViewGroup itemWidget = makeEditableWidget();
-       AlertDialog.Builder builder = new AlertDialog.Builder(GLOBAL.static_Global);
-       builder.setView(itemWidget);
-       builder.setMessage("Add To List:")
-           .setPositiveButton("Add", new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int id) {
-                    updateCrntFromEdited(crntIndex);
-                    listLength = pushCrntToList(crntIndex);
-                    setButtonsActive(listLength);
-                }
-           })
-           .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-               public void onClick(DialogInterface dialog, int id) {}
-           });
-        builder.show();
-    }%>
-    void: handleDelete() <- <% {
-       Log.v("GLOBAL", "handleDelete\n");
-    }%>
-    void: handleEdit() <- <%{
-       Log.v("GLOBAL", "handleEdit\n");
-    }%>
-    void: setButtonsActive(me int: L) <- <%{
-
-    }%>
-    their GUI_Frame: makeListBox() <- <% {
-        // BOX
-        box = GLOBAL.static_Global.makeAndroidVerticalLayout("");
-        // HEADER
-        boxHeader = makeListHeader();
-        box.addView(boxHeader);
-        // BODY
-        boxBody = GLOBAL.static_Global.makeAndroidVerticalLayout("");
-        listWidgetView = makeListViewWidget();
-        boxBody.addView(listWidgetView);
-        box.addView(boxBody);
-        // FOOTER
-        boxFooter = GLOBAL.static_Global.makeAndroidHorizontalLayout("");
-        addBtn = new FloatingActionButton(GLOBAL.static_Global);
-        addBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleAdd();}});
-        addBtn.setImageResource(android.R.drawable.ic_menu_add );
-        addBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
-        addBtn.setSize(FloatingActionButton.SIZE_MINI);
-        RelativeLayout.LayoutParams addBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
-        addBtnParams.rightMargin = 40;
-        addBtn.setLayoutParams(addBtnParams);
-        boxFooter.addView(addBtn);
-        deleteBtn = new FloatingActionButton(GLOBAL.static_Global);
-        deleteBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleDelete();}});
-        deleteBtn.setImageResource(android.R.drawable.ic_menu_delete);
-        deleteBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
-        deleteBtn.setSize(FloatingActionButton.SIZE_MINI);
-        RelativeLayout.LayoutParams deleteBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
-        deleteBtnParams.rightMargin = 40;
-        deleteBtn.setLayoutParams(deleteBtnParams);
-        boxFooter.addView(deleteBtn);
-        editBtn = new FloatingActionButton(GLOBAL.static_Global);
-        editBtn.setOnClickListener(new View.OnClickListener() {public void onClick(View v) {handleEdit();}});
-        editBtn.setImageResource(android.R.drawable.ic_menu_edit);
-        editBtn.setBackgroundTintList(ColorStateList.valueOf(Color.RED));
-        editBtn.setSize(FloatingActionButton.SIZE_MINI);
-        RelativeLayout.LayoutParams editBtnParams = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
-        editBtnParams.rightMargin = 40;
-        editBtn.setLayoutParams(editBtnParams);
-        boxFooter.addView(editBtn);
-        box.addView(boxFooter);
-        return box;
-    } %>
-}
-/////////////////////////////////  GLOBAL WIDGET CODE CONVERTERS
-struct GLOBAL{
-    me void: setBtnProxy()  <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%4();}})%>
-    me void: setItmSelectedProxy()  <- <%!%G%1.setOnItemClickListener(new AdapterView.OnItemClickListener(){@Override public void onItemClick(AdapterView<?> parent, View view, int position, long id){%4();}})%>
-    their GUI_SpinBox: makeSpinBox(me double: initialValue, me double: minValue, me double: maxValue, me int: decimalPlaces) <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
-    their rangeWidget: makeRangeWidget(me string: label)                        <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    their GUI_XStack: makeXStack(me string: label)                               <- <%!makeAndroidHorizontalLayout(%1)%>
-    their GUI_YStack: makeYStack(me string: label)                               <- <%!makeAndroidVerticalLayout(%1)%>
-    their GUI_Frame: makeZStack(me string: label)                               <- <%!%G new GUI_ZStack()%>
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget)   <- <%!%G%1.addView(%2)%>
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%2.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f)); %1.addView(%2)%>
-    me void: addToZStack(me GUI_container: container, their GUI_item: widget)   <- <%!%G%1.addZStackChild(%2,%3)%>
-    me void: setZStackActive(their GUI_item: widget, me string: S)              <- <%!%G%1.setZStackChild(%2)%>
-    their GUI_button: makeButtonWidget(me string: label)                        <- <%!makeAndroidButton(%1)%>
-    their GtkWidget: makeTabbedWidget(me string: label)                         <- <%!makeAndroidVerticalLayout(%1)%>
-    me void: setTabLabelText()                                                  <- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
-    me GUI_Scalar: convertToGUIScalar()                                         <- <%!%G (float)(%1)%>
-    their GUI_Bool: makeCheckBox()                                              <- <%!%G new CheckBox(GLOBAL.static_Global)%>
-    their GUI_VerticalScroller: makeVerticalScroller() <- <%!makeAndroidVerticalScroller()%>
-    their GUI_TextViewer: makeTextViewer(me string: text)                       <- <%!makeAndroidTextViewer(%1)%>
-    me void: setButtonLabel(their GtkButton: btn, me string: label)
-        <- <%!%G%1.setText(%2)%>
-
-    their  GUI_Frame : makeNumRangeWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        NumberPicker numberPicker  = new NumberPicker(GLOBAL.static_Global);
-        box.addView(numberPicker);
-        return box;
-    }%>
-
-    their  GUI_Frame : makeDateWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        DatePicker datePicker  = new DatePicker(GLOBAL.static_Global);
-        box.addView(datePicker);
-        return box;
-    }%>
-
-    their GUI_Frame: makeTimeWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        TimePicker timePicker = new TimePicker(GLOBAL.static_Global);
-        box.addView(timePicker);
-        return box;
-    }%>
-    their GUI_YStack: makeListWidget(me string: label)      <- <%{
-        LinearLayout box = GLOBAL.static_Global.makeAndroidVerticalLayout("");
-        TextView textView = new TextView(GLOBAL.static_Global);
-        textView.setText(label);
-        box.addView(textView);
-        return box;
-    }%>
-
-    their GtkWidget: makeRowWidget(me string: label)         <- <%!%Ggtk_list_box_row_new()%>
-
-    their GUI_Label: makeLabelWidget(me string: label)      <- <%{
-        TextView textBox = new TextView(GLOBAL.static_Global);
-        textBox.setText(label);
-        textBox.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        return textBox;
-    }%>
-    their GUI_Label: makeLabelWidget2(me string: label)      <- <%{
-        TextView textBox = new TextView(GLOBAL.static_Global);
-        textBox.setText(label);
-        textBox.setTextSize(GLOBAL.static_Global.styler.fontLabelWidgetAndroid.size);
-        return textBox;
-    }%>
-    their GtkWidget: makeComboBox(me string: label)          <- <%!%Gnew Spinner(GLOBAL.static_Global)%>
-    me void: addToComboBox(me GUI_item: box, me string: val) <- <%!%G%>
-    their GtkWidget: makeEntryBox(me string: label)          <- <%!%Gnew EditText(GLOBAL.static_Global)%>
-    void: setEntryCompleter(their GUI_Entry: box, their GUI_Completer: completer)
-        <- <%!%G%1.setAdapter(%2);%2.setNotifyOnChange(true)%>
-    their GUI_Completer: makeCompleter(me string: label, me List<me string>: completerList, me List<me string>: itemsList)  <- <%{
-        ArrayAdapter<String> suggestAdapter = new ArrayAdapter<String>(GLOBAL.static_Global, android.R.layout.select_dialog_item, itemsList);
-        return suggestAdapter;
-    }%>
-    their GUI_CompleterBox: makeCompleterBox(me string: label)  <- <%{
-        AutoCompleteTextView autoCompleter = new AutoCompleteTextView(GLOBAL.static_Global);
-        autoCompleter.setThreshold(1);
-        autoCompleter.setWidth(100);
-        return autoCompleter;
-    }%>
-    their GUI_Frame: makeFloatWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        EditText editBox = new EditText(GLOBAL.static_Global);
-        editBox.setInputType(InputType.TYPE_CLASS_NUMBER);
-        editBox.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
-        editBox.setHint(label);
-        box.addView(editBox);
-        return box;
-    }%>
-
-    their GUI_Frame: makeIntWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        EditText editText = new EditText(GLOBAL.static_Global);
-        editText.setInputType(InputType.TYPE_CLASS_NUMBER);
-        editText.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
-        editText.setHint(label);
-        //editWidget = editText;
-        box.addView(editText);
-        return box;
-    }%>
-
-    their GUI_Frame: makeStringWidget(me string: label)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        EditText editText = new EditText(GLOBAL.static_Global);
-        editText.setInputType(InputType.TYPE_CLASS_TEXT);
-        editText.setTextSize(GLOBAL.static_Global.styler.fontEntryWidgetAndroid.size);
-        editText.setHint(label);
-        //editWidget = editText;
-        box.addView(editText);
-        return box;
-    }%>
-
-    their  GUI_Frame: makeEnumWidget(me string: label, me List<me string>: options)      <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        Spinner spinner = new Spinner(GLOBAL.static_Global);
-        spinner.setPrompt(label);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(GLOBAL.static_Global, 0);
-        adapter.addAll(options);
-        spinner.setAdapter(adapter);
-        box.addView(spinner);
-        return box;
-    }%>
-    me void: setLabelWidth(their GUI_Label: labelWidget, me int: width) <- <%{
-        LayoutParams params = new LayoutParams(width, LayoutParams.WRAP_CONTENT);
-        params.width = width;
-        labelWidget.setLayoutParams(params);
-    }%>
-
-    me void: setListWidgetSelectionMode(their listWidget: listWidgetView, me string: mode) <- <%!%G %>
-
-}
 /////////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
-    me void: addToContainerAndShowWidget (their GUI_container: parentContainer, their GUI_item: childWidget) <- <%{
-        parentContainer.addView(childWidget);
-        childWidget.setVisibility(View.VISIBLE);
-    }%>
-    their GUI_XStack: makeAndroidHorizontalLayout(me string: label) <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        box.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f));
-        box.setOrientation(LinearLayout.HORIZONTAL);
-        return box;
-    }%>
-    their GUI_YStack: makeAndroidVerticalLayout(me string: label)   <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        box.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f));
-        box.setOrientation(LinearLayout.VERTICAL);
-        return box;
-    }%>
-    their GUI_TextViewer: makeAndroidTextViewer(me string: text)   <- <%{
-        TextView textViewer = new TextView(GLOBAL.static_Global);
-        textViewer.setText(text);
-        textViewer.setTextSize(GLOBAL.static_Global.styler.fontTextAndroid.size);
-        return textViewer;
-    }%>
-    their GUI_VerticalScroller: makeAndroidVerticalScroller() <- <%{
-        ScrollView  scroller = new  ScrollView(GLOBAL.static_Global);
-        scroller.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f));
-        return(scroller);
-    }%>
-    their GUI_button: makeAndroidButton(me string: label)           <- <%{
-        Button btn = new Button(GLOBAL.static_Global);
-        btn.setText(label);
-        return btn;
-    }%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%2.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f)); %1.addView(%2)%>
 }
-/////////////////////////////////  ANDROID FRAGMENTS
-struct GLOBAL{
-    their FragmentManager: fragmentManager
-    their GUI_Frame: makeAndroidFragmentView(me string: label)     <- <%{
-        LinearLayout box = new LinearLayout(GLOBAL.static_Global);
-        box.setOrientation(LinearLayout.VERTICAL);
-// TODO: make fragments work
-//        FragmentTransaction fragmentTransaction = GLOBAL.static_Global.fragmentManager.beginTransaction();
-//        Fragment fragView = new FragmentView();
-//        fragmentTransaction.add(fragView, label);
-//        fragmentTransaction.commit();
-        return box;
-    }%>
-}
-struct FragmentView: inherits=Fragment{
-    their LinearLayout: frame
-    me String: label <- "FragmentView"
-    me LinearLayout: onCreateView(me LayoutInflater: inflater, me View: container, me Bundle: savedInstanceState) <- <%{
-        LinearLayout frame = new LinearLayout(getActivity());
-        TextView tv = new TextView(GLOBAL.static_Global);
-        tv.setText(label);
-        frame.addView(tv);
-        return frame;
-    }%>
-}
-
 /////////////////////////////////  HANDLE EVENTS
 
 struct GUI_MouseEvent{
@@ -960,27 +190,7 @@ struct GUI: inherits=LinearLayout{
         return(status);
     } %>
 
-    me void: GUI_Deinit() <- {
-
-    }
-
-    me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenubar, me string: text) <- {
-        me ourSubMenu: subMenu{text}
-        GLOBAL.static_Global.thisApp.menubar.items.pushLast(subMenu)
-        return(subMenu)
-    }
-
-    me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
-        our ourSubMenu: thisMenuItem{menuLabel}
-        menu.items.pushLast(thisMenuItem)
-    }
-
-    me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: text) <- <%  {
-        ourSubMenu subMenu = new ourSubMenu(text);
-        GLOBAL.static_Global.thisApp.menubar.items.add(subMenu);
-        return(subMenu);
-    } %>
-
+    me void: GUI_Deinit() <- {}
 }
 
 struct GUI {
@@ -993,13 +203,10 @@ struct GUI {
     me void: setBtnCallback2() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%5;}})%>
     me void: setBtnCallback3() <- <%!%G%1.setOnClickListener(new View.OnClickListener(){public void onClick(View v) {%4();}})%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%Gnew LinearLayout(%1)%>
-//    me GUI_Frame: GUI_menuItemWithLabel(me string: label) <- <%!%Gnew MenuItem(%1)%>
-//    me GUI_Frame: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
-
 }
 
 struct GUI_ctxt: inherits=Canvas{
-    me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents();%>
+    //me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents();%>
     me void: reset() <- <%!GPath = new Path()%>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!paint.setColor(Color.argb((int)%4, %1, %2, %3))%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!paint.setColor(Color.rgb(%1, %2, %3))%>
@@ -1020,8 +227,8 @@ struct GUI_ctxt: inherits=Canvas{
     me void: fillNow()        <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint); cr.GPath.rewind()%>
     me void: strokeKeep()     <- <%!%0.paint.setStyle(Paint.Style.STROKE); %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
     me void: fillKeep()       <- <%!%0.paint.setStyle(Paint.Style.FILL);   %0.GCanvas.drawPath(cr.GPath, cr.paint)%>
-    me void: renderFrame()    <- <%!repaint()%>
-    me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
+    //me void: renderFrame()    <- <%!repaint()%>
+    //me void: setFillPattern() <- <%!cairo_set_source(%0, %1)%>
     me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!%0.paint.setStyle(Paint.Style.STROKE);%0.paint.setStrokeWidth(2);%0.GCanvas.drawCircle(%1, %2, %3, cr.paint)%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- <%!newAndroidPDF(%1, (int)%2, (int)%3)%>
     me GUI_ctxt: newAndroidPDF(me string: filename, me int: inchesWide, me int: inchesHigh) <- <%{
@@ -1055,79 +262,15 @@ struct GUI_ctxt {
     }
 }
 
-struct guiFillPattern{
-    // use Shader and LinearGradient Need to create shader(colorStops) first then use in LinearGradient constructor
-    their LinearGradient: guiFillPattern
-    me void: init() <- <%!%0 = new LinearGradient(%1, %2, %3, %4)%>
-    me void: AddColorStopRGBA(me double: offset, their cdColor: color, me int: alpha) <- <%!cairo_pattern_add_color_stop_rgba(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256, (double)%3/256)%>
-    me void: AddColorStop(me double: offset, their cdColor: color) <- <%!cairo_pattern_add_color_stop_rgb(%0, %1, (double)%2.red/265, (double)%2.green/256, (double)%2.blue/256)%>
-    me void: destroy() <- <%!%G // TODO: code converter for guiFillPattern.destroy()%>
-}
-
-///////////////////////////////// TIME
-struct tm{
-    me Calendar: tm
-}
-
-struct timeStringer{
-    me String: time12Hour() <- <%{
-        Calendar timeRec = Calendar.getInstance();
-        String AmPm = "am";
-        int hours = timeRec.get(Calendar.HOUR);
-        //if (hours>=12) {hours = hours-12; AmPm="pm";}
-        if (timeRec.get(Calendar.AM_PM)==Calendar.PM){AmPm="pm";}
-        if (hours==0) {hours = 12;}
-        String SH = (Integer.toString(hours)+":");
-        int min = timeRec.get(Calendar.MINUTE);
-        if (min<10){SH = SH+"0";}
-        SH = SH + Integer.toString(min);
-        SH=SH+":";
-        int sec = timeRec.get(Calendar.SECOND);
-        if (sec<10){SH = SH+"0";}
-        SH = SH + Integer.toString(sec);
-        SH=SH+AmPm;
-        return(SH);
-    } %>
-}
-
 /////////////////////////////////  G L O B A L
 struct GLOBAL: inherits=AppCompatActivity{
     their LinearLayout: window
     me int: widgetHeight() <- <%!%G%1.getHeight()%>
     me int: widgetWidth() <- <%!%G%1.getWidth()%>
     me long: ticksPerSec() <- <%!%G1000%>
-    me SubMenu: parentMenu
-    me AssetManager: assetManager
     me Toolbar: toolbar
     me int: displayHeightPx
     me int: displayWidthPx
-
-    void: attachBaseContext(me Context: newBase) <- <%{
-        Context context = ScaledContextWrapper.wrap(newBase);
-        super.attachBaseContext(context);
-    }%>
-    me string: readAssetAsString(me string: filename) <- <%{
-        String text = "";
-        try {
-            InputStream inputStream = getAssets().open(filename);
-            int size = inputStream.available();
-            byte[] buffer = new byte[size];
-            inputStream.read(buffer);
-            inputStream.close();
-            text = new String(buffer);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return text;
-   }%>
-    me string: getFilesDirAsString()<- <%{
-        File file = GLOBAL.static_Global.getFilesDir();
-        return file.getAbsolutePath();
-    }%>
-    me string: getAssetsDir()<- <%{
-        return "assets";
-    }%>
-    // TIME ROUTINES:
 
     // //DRAWING ROUTINES:
     me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
@@ -1207,7 +350,6 @@ struct GLOBAL: inherits=AppCompatActivity{
         super.onCreate(savedInstanceState);
         GLOBAL.static_Global = this;
         GLOBAL.static_Global.thisApp = new APP();
-        GLOBAL.static_Global.fragmentManager = getFragmentManager();
         GLOBAL.static_Global.initialize("");
         GLOBAL.static_Global.getMetrics();
         GLOBAL.static_Global.runDogCode();
@@ -1260,36 +402,6 @@ struct GLOBAL: inherits=AppCompatActivity{
             System.out.print(e.getMessage());
         }
     }%>
-
-
-    // //MENU ROUTINES:
-    me boolean: onCreateOptionsMenu(me Menu: androidMenu) <- <%{
-        super.onCreateOptionsMenu(androidMenu);
-        GLOBAL.static_Global.thisApp.createAppMenu(GLOBAL.static_Global.thisApp.gui.frame);
-        GLOBAL.static_Global.addAndroidMenu(androidMenu);
-        return true;
-    }%>
-
-    me void: addAndroidMenu(me Menu: androidMenu) <- <%{
-        int thisSubMenu_key=0;
-        for(int thisSubMenuIdx=0; thisSubMenuIdx != GLOBAL.static_Global.thisApp.menubar.items.size(); thisSubMenuIdx += 1){
-                ourSubMenu thisSubMenu = GLOBAL.static_Global.thisApp.menubar.items.get(thisSubMenuIdx);
-            if (thisSubMenu.items.size() == 0) {
-                androidMenu.add(thisSubMenu.name);
-            }
-            else {
-                parentMenu = androidMenu.addSubMenu(thisSubMenu.name);      // working on getting this line to generate right code
-                int item_key=0;
-                for(int itemIdx=0; itemIdx != thisSubMenu.items.size(); itemIdx += 1){
-                                ourSubMenu item = thisSubMenu.items.get(itemIdx);
-                    parentMenu.add(item.name);
-                    ++item_key;
-                }
-            }
-            ++thisSubMenu_key;
-        }
-     }%>
-
     me void: addToolbar() <- <%{
         GLOBAL.static_Global.toolbar = new Toolbar(GLOBAL.static_Global);
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, (int)(50*displayDensity));
@@ -1346,17 +458,8 @@ struct GLOBAL{
         <- <%!%Gnew Handler(%1).post(%5)%>
 }
 struct APP: inherits=LinearLayout{
-    me ourSubMenu: menubar{"menubar"}
     me none: APP() <- <%{
         super(GLOBAL.static_Global);
         gui = new GUI();
     }%>
 }
-
-struct ourSubMenu{
-    me string: name
-    me List<me ourSubMenu>: items
-    me none: ourSubMenu(me string: menuLabel) <- {name <- menuLabel}
-    me none: ourSubMenu() <- {Allocate(items)}
-}
-
