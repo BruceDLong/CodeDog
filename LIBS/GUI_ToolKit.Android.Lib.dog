@@ -162,7 +162,6 @@ struct CanvasView: inherits=View implements=OnTouchListener{
     me void: setParent(our DashboardWidget: wid) <- {parent <- wid}
 }
 
-
 /////////////////////////////////  HANDLE GUI
 struct GUI: inherits=LinearLayout{
     me LinearLayout: frame <- (GLOBAL.static_Global)
@@ -281,7 +280,6 @@ struct GLOBAL: inherits=AppCompatActivity{
         deltaSize size = getTextSize(cr, text, font);
         return(size);
     }%>
-
     me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         deltaSize size = getTextSize(cr, text, font);
         cr.paint.setTextSize(font.size);
@@ -289,14 +287,11 @@ struct GLOBAL: inherits=AppCompatActivity{
         renderText(cr, text, font, x-size.width/2, y);
         return(size);
     }%>
-
     me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
         double radians    = degrees*(Math.PI/180.);
         deltaSize size    = getTextSize(cr, text, font);
         double hypotenuse = size.width;
         deltaSize tmpSize = new deltaSize(0,0);
-
-
         if(justify == "right"){x=x-hypotenuse;}
         else if(justify == "center"){x=x-hypotenuse/2;}
         cr.GCanvas.save();
@@ -308,14 +303,11 @@ struct GLOBAL: inherits=AppCompatActivity{
         tmpSize.height = size.width;
         return(tmpSize);
     }%>
-
     me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
         cr.GCanvas.save();
         cr.GCanvas.rotate(degrees, (float)x, (float)y);
     }%>
-
     me void: restore(me GUI_ctxt: cr) <- <%!%G%1.GCanvas.restore()%>
-
     me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
         Rect bounds = new Rect();
         deltaSize size = new deltaSize(0,0);
@@ -326,11 +318,7 @@ struct GLOBAL: inherits=AppCompatActivity{
         size.width = bounds.width();
         return(size);
     } %>
-
-    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
-
-    } %>
-
+    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{} %>
     me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         boolean filter = false;
         try {
@@ -355,38 +343,31 @@ struct GLOBAL: inherits=AppCompatActivity{
         GLOBAL.static_Global.runDogCode();
         GLOBAL.static_Global.addToolbar();
     }%>
-
     me void: close_window() <- {
          // gtk_main_quit()
     }
-
     me void: onStart() <- {
         super.onStart()
         // The activity is about to become visible. Load state
         """ + runCode + """
     }
-
     me void: onResume() <- {
         super.onResume()
         // The activity has become visible (it is now "resumed"). Restart animations, etc.
     }
-
     me void:  onPause() <- {
         super.onPause()
         // Another activity is taking focus (this activity is about to be "paused"). Pause animations, etc.
     }
-
     me void:  onStop() <- {
         super.onStop()
         // The activity is no longer visible (it is now "stopped")
         // Make sure state is saved as we may quit soon.
     }
-
     me void:  onDestroy() <- {
         super.onDestroy()
         deinitialize()
     }
-
     me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{
         try {
             InputStream inStream = GLOBAL.static_Global.getAssets().open(fromPath);
