@@ -763,7 +763,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
             return(reqTagList[0]['tArgType'])
         if fieldTypeKW=='CPP_Map' or fieldTypeKW=='Java_Map' or fieldTypeKW=='Swift_Map':
             return(reqTagList[0]['tArgType'])
-        if fieldTypeKW!="RBNode" and fieldTypeKW!="RBTreeMap" and fieldTypeKW!="RBTreeItr" and fieldTypeKW!="List" and fieldTypeKW!="Map":
+        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="List" and fieldTypeKW!="Map":
             print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
     elif reqTagList == None: return(None)
     return(None)

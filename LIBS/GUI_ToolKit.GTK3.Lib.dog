@@ -23,14 +23,21 @@ initCode = `
 
 /////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-struct GUI_item:        wraps = GtkWidget ownerMe = their{}
-struct GUI_Frame:       wraps = GtkWidget ownerMe = their{}
-struct GUI_container:   wraps = GtkContainer ownerMe = their{}
-struct INK_Image:       wraps = cairo_surface_t ownerMe = their{}      // How will the ink look?
-struct GUI_callback:    wraps = GCallback ownerMe = their{}
-struct GUI_Scalar:      wraps = int{}
-struct GUI_Text:        wraps = GtkWidget ownerMe = their{}
-struct GDK_KEY_Down:    wraps = GtkWidget ownerMe = their{}
+struct GUI_item:                wraps = GtkWidget ownerMe = their{}
+struct GUI_Frame:               wraps = GtkWidget ownerMe = their{}
+struct GUI_container:           wraps = GtkContainer ownerMe = their{}
+struct INK_Image:               wraps = cairo_surface_t ownerMe = their{}      // How will the ink look?
+struct GUI_callback:            wraps = GCallback ownerMe = their{}
+struct GUI_Scalar:              wraps = int{}
+struct GUI_Text:                wraps = GtkWidget ownerMe = their{}
+struct GDK_KEY_Down:            wraps = GtkWidget ownerMe = their{}
+struct GUI_MouseEvent:          wraps = GdkEventMotion ownerMe = their{}
+struct GUI_MotionEvent:         wraps = GdkEventMotion{}
+struct GUI_ButtonEvent:         wraps = GdkEventButton ownerMe = their{}
+struct GUI_PointerEvent:        wraps = GdkEventButton ownerMe = their{}
+struct GUI_KeyboardEvent:       wraps = GdkEventKey ownerMe = their{}
+struct GUI_canvas:              wraps = GtkWidget ownerMe = their{}
+struct GUI_ctxt:                wraps = cairo_t ownerMe = their{}
 /////////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
     me void: addToContainerAndShowWidget (their GUI_container: parentContainer, their GUI_item: childWidget) <- <%{
@@ -39,7 +46,7 @@ struct GLOBAL{
     }%>
 }
 /////////////////////////////////  HANDLE EVENTS
-struct GUI_MotionEvent: wraps = GdkEventMotion ownerMe = their{
+struct GUI_MotionEvent{
     me uint: type
     // GdkWindow *window;
     // gint8 send_event;
@@ -49,7 +56,7 @@ struct GUI_MotionEvent: wraps = GdkEventMotion ownerMe = their{
     me uint: state
     me uint: button
 }
-struct GUI_ButtonEvent: wraps = GdkEventButton ownerMe = their{
+struct GUI_ButtonEvent{
     me uint: type
     // GdkWindow *window;
     // gint8 send_event;
@@ -59,7 +66,7 @@ struct GUI_ButtonEvent: wraps = GdkEventButton ownerMe = their{
     me uint: state
     me uint: button
 }
-struct GUI_PointerEvent: wraps = GdkEventButton ownerMe = their{
+struct GUI_PointerEvent{
     me uint: type
     // GdkWindow *window;
     // gint8 send_event;
@@ -70,7 +77,6 @@ struct GUI_PointerEvent: wraps = GdkEventButton ownerMe = their{
     me uint: button
 }
 struct GUI_KeyboardEvent{
-    their GdkEventKey: GUI_KeyboardEvent
     me uint: type
     me uint: state
     me uint: keyval
@@ -170,7 +176,7 @@ struct GLOBAL{
     }%>
 }
 /////////////////////////////////  HANDLE GUI
-struct GUI_canvas: wraps = GtkWidget ownerMe = their{
+struct GUI_canvas{
     me void: setParent(our DashboardWidget: wid) <- <%!%G%>
 }
 
@@ -201,7 +207,7 @@ struct GUI{
     me void: setBtnCallback3()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
 }
 
-struct GUI_ctxt: wraps = cairo_t ownerMe = their{
+struct GUI_ctxt{
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
     me void: reset() <- <%!%G %>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>

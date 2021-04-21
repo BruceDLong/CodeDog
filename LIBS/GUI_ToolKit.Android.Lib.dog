@@ -41,15 +41,21 @@ initCode = `
 embedHigh = ``
 
 /////////////////////////////////  STRUCT CONVERTERS
-struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-struct GUI_item{me View: GUI_item}
-struct GUI_Frame{me ViewGroup:GUI_Frame}
-struct GUI_canvas{me CanvasView: GUI_canvas}
-struct GUI_container{me ViewGroup:GUI_container}
-struct INK_Image{their Paint: INK_Image}      // How will the ink look?
-struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_Scalar{me float: GUI_Scalar}
-struct GDK_KEY_Down{their GtkWidget: GDK_KEY_Down}
+struct GUI_rect                {me double: x1 me double: y1 me double: x2 me double: y2}
+struct GUI_item:                wraps = View{}
+struct GUI_Frame:               wraps = ViewGroup{}
+struct GUI_canvas:              wraps = CanvasView{}
+struct GUI_container:           wraps = ViewGroup{}
+struct INK_Image:               wraps = Paint ownerMe = their{}      // How will the ink look?
+struct GUI_callback:            wraps = GCallback{}
+struct GUI_Scalar:              wraps = float{}
+//struct GUI_Text:              wraps = ???{}
+//struct GDK_KEY_Down:          wraps = ???{}
+struct GUI_MouseEvent:          wraps = MotionEvent{}
+struct GUI_MotionEvent:         wraps = MotionEvent{}
+struct GUI_ButtonEvent:         wraps = MotionEvent{}
+struct GUI_PointerEvent:        wraps = MotionEvent{}
+struct GUI_KeyboardEvent:       wraps = MotionEvent{}
 /////////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%2.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT, 0.5f)); %1.addView(%2)%>
@@ -57,25 +63,21 @@ struct GLOBAL{
 /////////////////////////////////  HANDLE EVENTS
 
 struct GUI_MouseEvent{
-    their MotionEvent: GUI_MouseEvent
     me int: x <- <%!getX()%>
     me int: y <- <%!getY()%>
 }
 
 struct GUI_MotionEvent{
-    their MotionEvent: GUI_MotionEvent
     me int: x <- <%!getX()%>
     me int: y <- <%!getY()%>
 }
 
 struct GUI_ButtonEvent{
-    their MotionEvent: GUI_ButtonEvent
     me int: x <- <%!getX()%>
     me int: y <- <%!getY()%>
 }
 
 struct GUI_PointerEvent{
-    their MotionEvent: GUI_PointerEvent
     me int: x <- <%!getX()%>
     me int: y <- <%!getY()%>
 }
@@ -192,7 +194,7 @@ struct GUI: inherits=LinearLayout{
     me void: GUI_Deinit() <- {}
 }
 
-struct GUI {
+struct GUI{
     their GUI_item: newCanvas() <- <%!%Gnew CanvasView()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%G%1.setLayoutParams(new LayoutParams(Math.round(%2*GLOBAL.static_Global.displayDensity), Math.round(%3*GLOBAL.static_Global.displayDensity)))%>
     their GUI_item: newScrollingWindow() <- <%!newScrollingView()%>
@@ -242,7 +244,7 @@ struct GUI_ctxt: inherits=Canvas{
     }%>
 }
 
-struct GUI_ctxt {
+struct GUI_ctxt{
     me Paint: paint
     me Path: GPath
     me double: cur_x
@@ -261,6 +263,12 @@ struct GUI_ctxt {
     }
 }
 
+struct APP: inherits=LinearLayout{
+    me none: APP() <- <%{
+        super(GLOBAL.static_Global);
+        gui = new GUI();
+    }%>
+}
 /////////////////////////////////  G L O B A L
 struct GLOBAL: inherits=AppCompatActivity{
     their LinearLayout: window
@@ -437,10 +445,4 @@ struct GLOBAL{
     their MessagePasser: GUIsMesgPasser()            <- <%!%GLooper.getMainLooper()%>
     void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: objToCall, their void: classToCall, their void: funcToCall, their void: arguments)
         <- <%!%Gnew Handler(%1).post(%5)%>
-}
-struct APP: inherits=LinearLayout{
-    me none: APP() <- <%{
-        super(GLOBAL.static_Global);
-        gui = new GUI();
-    }%>
 }
