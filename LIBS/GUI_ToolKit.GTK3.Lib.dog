@@ -23,14 +23,21 @@ initCode = `
 
 /////////////////////////////////  STRUCT CONVERTERS
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-struct GUI_item:        wraps = GtkWidget ownerMe = their{}
-struct GUI_Frame:       wraps = GtkWidget ownerMe = their{}
-struct GUI_container:   wraps = GtkContainer ownerMe = their{}
-struct INK_Image:       wraps = cairo_surface_t ownerMe = their{}      // How will the ink look?
-struct GUI_callback:    wraps = GCallback ownerMe = their{}
-struct GUI_Scalar:      wraps = int{}
-struct GUI_Text:        wraps = GtkWidget ownerMe = their{}
-struct GDK_KEY_Down:    wraps = GtkWidget ownerMe = their{}
+struct GUI_item:                wraps = GtkWidget ownerMe = their{}
+struct GUI_Frame:               wraps = GtkWidget ownerMe = their{}
+struct GUI_container:           wraps = GtkContainer ownerMe = their{}
+struct INK_Image:               wraps = cairo_surface_t ownerMe = their{}      // How will the ink look?
+struct GUI_callback:            wraps = GCallback ownerMe = their{}
+struct GUI_Scalar:              wraps = int{}
+struct GUI_Text:                wraps = GtkWidget ownerMe = their{}
+struct GDK_KEY_Down:            wraps = GtkWidget ownerMe = their{}
+struct GUI_MouseEvent:          wraps = GdkEventMotion ownerMe = their{}
+struct GUI_MotionEvent:         wraps = GdkEventMotion{}
+struct GUI_ButtonEvent:         wraps = GdkEventButton ownerMe = their{}
+struct GUI_PointerEvent:        wraps = GdkEventButton ownerMe = their{}
+struct GUI_KeyboardEvent:       wraps = GdkEventKey ownerMe = their{}
+struct GUI_canvas:              wraps = GtkWidget ownerMe = their{}
+struct GUI_ctxt:                wraps = cairo_t ownerMe = their{}
 /////////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
     me void: addToContainerAndShowWidget (their GUI_container: parentContainer, their GUI_item: childWidget) <- <%{
@@ -39,40 +46,37 @@ struct GLOBAL{
     }%>
 }
 /////////////////////////////////  HANDLE EVENTS
-struct GUI_MotionEvent: wraps = GdkEventMotion ownerMe = their{
-  me uint: type
- // GdkWindow *window;
- // gint8 send_event;
- // guint32 time;
-  me double: x
-  me double: y
-
-  me uint: state
-  me uint: button
+struct GUI_MotionEvent{
+    me uint: type
+    // GdkWindow *window;
+    // gint8 send_event;
+    // guint32 time;
+    me double: x
+    me double: y
+    me uint: state
+    me uint: button
 }
-struct GUI_ButtonEvent: wraps = GdkEventButton ownerMe = their{
-  me uint: type
- // GdkWindow *window;
- // gint8 send_event;
- // guint32 time;
-  me double: x
-  me double: y
-  me uint: state
-  me uint: button
+struct GUI_ButtonEvent{
+    me uint: type
+    // GdkWindow *window;
+    // gint8 send_event;
+    // guint32 time;
+    me double: x
+    me double: y
+    me uint: state
+    me uint: button
 }
-struct GUI_PointerEvent: wraps = GdkEventButton ownerMe = their{
-  me uint: type
- // GdkWindow *window;
- // gint8 send_event;
- // guint32 time;
-  me double: x
-  me double: y
-
-  me uint: state
-  me uint: button
+struct GUI_PointerEvent{
+    me uint: type
+    // GdkWindow *window;
+    // gint8 send_event;
+    // guint32 time;
+    me double: x
+    me double: y
+    me uint: state
+    me uint: button
 }
 struct GUI_KeyboardEvent{
-    their GdkEventKey: GUI_KeyboardEvent
     me uint: type
     me uint: state
     me uint: keyval
@@ -110,7 +114,7 @@ struct GUI_eventDispatcher{
         topWidget->keyTyped(event);
         return(true);
     }%>
-  //  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
+    //  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     // Also: timer, data and user events
 
     me void: registerWidgetForEventDispatcher(their GUI_item: Widget, their widget: masterWidget) <- <%{
@@ -167,12 +171,12 @@ struct GLOBAL{
         clickWidget->clickBack();
     }%>
     void: clickNext_CB(their GtkWidget: btn, their appComponentGUI: wid) <- <%{
-    appComponentGUI* clickWidget = (appComponentGUI*)wid;
+        appComponentGUI* clickWidget = (appComponentGUI*)wid;
         clickWidget->clickNext();
     }%>
 }
 /////////////////////////////////  HANDLE GUI
-struct GUI_canvas: wraps = GtkWidget ownerMe = their{
+struct GUI_canvas{
     me void: setParent(our DashboardWidget: wid) <- <%!%G%>
 }
 
@@ -203,7 +207,7 @@ struct GUI{
     me void: setBtnCallback3()  <- <%!%Gg_signal_connect(G_OBJECT(%1), %2, G_CALLBACK(%3_%4_CB), %5)%>
 }
 
-struct GUI_ctxt: wraps = cairo_t ownerMe = their{
+struct GUI_ctxt{
     me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!cairo_clip_extents(%0, &%1.x1, &%1.y1, &%1.x2, &%1.y2)%>
     me void: reset() <- <%!%G %>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
@@ -242,12 +246,10 @@ struct GLOBAL{
         cairo_move_to(cr,x,y);
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
-
         string fontDesc=font.name+' '+ std::to_string(font.size);
         PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
         pango_layout_set_font_description(layout, desc);
         pango_font_description_free(desc);
-
         cairo_set_line_width(cr, 0.5);
         pango_cairo_update_layout(cr, layout);
         pango_cairo_show_layout_line (cr, pango_layout_get_line (layout, 0));
@@ -270,7 +272,6 @@ struct GLOBAL{
         deltaSize size    = getTextSize(cr, text, font);
         double hypotenuse = size.width;
         deltaSize tmpSize;
-
         rotate(cr, x, y, -45);
         if(justify == "right"){x=x-hypotenuse;}
         else if(justify == "center"){x=x-hypotenuse/2;}
@@ -289,11 +290,11 @@ struct GLOBAL{
     }%>
 
     me void: rotate(their GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{
-    double radians = degrees*(M_PI/180.);
-    cairo_save(cr);
-    cairo_translate(cr,x,y);
-    cairo_rotate(cr, radians);
-    cairo_translate(cr,-x,-y);
+        double radians = degrees*(M_PI/180.);
+        cairo_save(cr);
+        cairo_translate(cr,x,y);
+        cairo_rotate(cr, radians);
+        cairo_translate(cr,-x,-y);
     }%>
 
     me void: restore() <- <%!cairo_restore(cr)%>
@@ -301,12 +302,10 @@ struct GLOBAL{
     me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
         PangoLayout *layout=pango_cairo_create_layout(cr);
         pango_layout_set_text(layout, text.data(), -1);
-
         string fontDesc=font.name+' '+ std::to_string(font.size);
         PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
         pango_layout_set_font_description(layout, desc);
         pango_font_description_free(desc);
-
         deltaSize size;
         pango_layout_get_pixel_size(layout, &size.width, &size.height);
         g_object_unref(layout);
@@ -340,37 +339,33 @@ struct GLOBAL{
         cairo_set_source_surface(cr,pic,x*scale,y*scale);
         cairo_paint(cr);
         cairo_restore(cr);
-   }%>
+    }%>
     // //GUI INTERFACE:
     /* Surface to store current scribbles */
     their cairo_surface_t: surface <- 0
 
-me void: close_window() <- <%{
-  if (surface){
-    cairo_surface_destroy(surface);
-  }
-  g_application_quit((GApplication*)thisApp.gui.app);
-}%>
-
-me void: getMetrics() <- <%{
-    displayDensity   = 1;
-}%>
-me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(GTK_WIDGET(%1))%>
-me void: hideWidget(their GUI_item: widget) <- <%!gtk_widget_hide(GTK_WIDGET(%1))%>
-me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
-//me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
-me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
-me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
-me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
-me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!addToContainerAndShowWidget(GTK_CONTAINER (%1), (GtkWidget*)%2)%>
-me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
-me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_stack_add_named(GTK_STACK(%1), %2, %3)%>
-me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack_set_visible_child_name(GTK_STACK(%1), %2.data())%>
-their GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(NULL, NULL)%>
+    me void: close_window() <- <%{
+        if (surface){
+            cairo_surface_destroy(surface);
+        }
+        g_application_quit((GApplication*)thisApp.gui.app);
+    }%>
+    me void: getMetrics() <- <%{displayDensity   = 1;}%>
+    me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(GTK_WIDGET(%1))%>
+    me void: hideWidget(their GUI_item: widget) <- <%!gtk_widget_hide(GTK_WIDGET(%1))%>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
+    //me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
+    me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
+    me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
+    me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!addToContainerAndShowWidget(GTK_CONTAINER (%1), (GtkWidget*)%2)%>
+    me void: addToContainerAndExpand(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
+    me void: addToZStack(me GUI_container: container, their GUI_item: widget) <-<%!%Ggtk_stack_add_named(GTK_STACK(%1), %2, %3)%>
+    me void: setZStackActive(their GUI_item: widget, me string: S) <- <%!%Ggtk_stack_set_visible_child_name(GTK_STACK(%1), %2.data())%>
+    their GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(NULL, NULL)%>
 }
 
 /////////////////////////////////  INTER-THREAD COMMUNICATION
-
 // Initialization: get main thread's "mainContext" and store it and make a global getter for it.
 struct MessagePasser {their GMainContext: MessagePasser}
 
@@ -380,17 +375,13 @@ struct workerMsgThread: inherits = Threads {
         mesgPasser = g_main_context_new();
         workerThreadMessagePasser = mesgPasser;
         GMainLoop *main_loop;
-
         /* Set up the thread’s context and run it forever. */
         g_main_context_push_thread_default (mesgPasser);
-
         main_loop = g_main_loop_new (mesgPasser, FALSE);
         g_main_loop_run (main_loop);
         g_main_loop_unref (main_loop);
-
         g_main_context_pop_thread_default (mesgPasser);
         g_main_context_unref (mesgPasser);
-
     }%>
 }
 
@@ -416,43 +407,26 @@ me void: activate(their GtkApplication: app, me gpointer: user_data) <- <%{
     gtk_window_set_default_size (GTK_WINDOW (window), 1000, 700);
     g_signal_connect (window, "destroy", G_CALLBACK (close_window), NULL);
     gtk_container_set_border_width (GTK_CONTAINER (window), 0);
-
     topBox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add (GTK_CONTAINER (window), topBox);
     gtk_widget_show (topBox);
     ////////////////////  A d d  A p p l i c a t i o n   M e n u
-
     GtkWidget *boxForMenubar;
     GtkWidget *menubar;
-
-
     boxForMenubar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add (GTK_CONTAINER (topBox), boxForMenubar);
     gtk_widget_show (boxForMenubar);
-
     menubar = gtk_menu_bar_new ();
     gtk_box_pack_start(GTK_BOX(boxForMenubar), menubar, TRUE, TRUE, 0);
     gtk_widget_show (menubar);
-
     //thisApp.createAppMenu(menubar);
-
-      /////////////////////  A d d   A p p l i c a t i o n   I t e m s
-
+    /////////////////////  A d d   A p p l i c a t i o n   I t e m s
     GtkWidget *frame;
     GtkWidget *appArea;
-
     frame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start(GTK_BOX(topBox), frame, TRUE, TRUE, 0);
-
-    //EventDispatcher.registerWidgetForEventDispatcher();
     thisApp.createAppArea(frame);
-
-
     /////////////////////  A d d  S t a t u s   A r e a
-
-
-
     gtk_widget_show_all (window);
 }%>
-
 }
