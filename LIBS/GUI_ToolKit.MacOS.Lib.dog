@@ -23,8 +23,8 @@ embedVeryHigh = `
 // APP DELEGATE /////////////////////////////////////////////////////
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        window = NSWindow(contentRect: NSMakeRect(0, 0, NSScreen.main?.frame.width ?? 1000, NSScreen.main?.frame.height ?? 1000),
-            styleMask: [.miniaturizable, .closable, .resizable, .titled],
+        window = NSWindow(contentRect: NSMakeRect(0, 0, NSScreen.main?.frame.width ?? 500, NSScreen.main?.frame.height ?? 500),
+            styleMask: [.closable],
             backing: .buffered,
             defer: false)
         window.contentViewController = ViewController()
@@ -33,11 +33,37 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 // VIEW CONTROLLER ///////////////////////////////////////////////
 class ViewController: NSViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.addSubview(drawing_area!)
+    }
     override func loadView() {
-        screenSurface = Canvas(frame: NSRect(x: 0, y: 0, width: NSScreen.main?.frame.width ?? 1000, height: NSScreen.main?.frame.height ?? 1000))
-        self.view = screenSurface
+        self.view = NSView(frame: NSRect(x: 0, y: 0, width: NSScreen.main?.frame.width ?? 100, height: NSScreen.main?.frame.height ?? 100))
+        thisApp.gui.frame = self.view
     }
 }
+
+class CanvasView: NSView{
+    var cr: CGContext!
+    var parent: DashboardWidget!
+    var scaleFactor: Float = 0
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+    }
+    required init?(coder decoder: NSCoder) {
+        super.init(coder: decoder)
+    }
+    override func draw(_ dirtyRect: NSRect) -> Void{
+        super.draw(dirtyRect)
+        cr = NSGraphicsContext.current?.cgContext
+        parent.EventDispatcher.topWidget.draw(cr)
+    }
+    func setParent(_ wid: DashboardWidget!) -> Void{
+        var wid = wid
+
+        parent = wid;
+    }
+};
 `
 
 /////////////////////////////////  STRUCT CONVERTERS
@@ -51,15 +77,19 @@ struct GUI_callback:            wraps = GCallback{}
 struct GUI_Scalar:              wraps = Int{}
 struct GUI_Text:                wraps = GtkWidget{}
 //struct GDK_KEY_Down:          wraps = ???{}
-struct GUI_MouseEvent:          wraps = MotionEvent{}
-struct GUI_MotionEvent:         wraps = MotionEvent{}
-struct GUI_ButtonEvent:         wraps = MotionEvent{}
-struct GUI_PointerEvent:        wraps = MotionEvent{}
-struct GUI_KeyboardEvent:       wraps = MotionEvent{}
+struct GUI_MouseEvent:          wraps = NSEvent{}
+struct GUI_MotionEvent:         wraps = NSEvent{}
+struct GUI_ButtonEvent:         wraps = NSEvent{}
+struct GUI_PointerEvent:        wraps = NSEvent{}
+struct GUI_KeyboardEvent:       wraps = NSEvent{}
+struct GUI_UserEvent:           wraps = NSEvent{}
+struct GUI_TimeEvent:           wraps = NSEvent{}
+struct GUI_DataEvent:           wraps = NSEvent{}
+struct GUI_WindowEvent:         wraps = NSEvent{}
 struct GUI_ctxt:                wraps = CGContext{}
 /////////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%1.addSubview(%2)%>
 }
 /////////////////////////////////  HANDLE EVENTS
 
@@ -125,25 +155,15 @@ struct GUI_eventDispatcher{
 }
 
 /////////////////////////////////  HANDLE GUI
-struct CanvasView: inherits=NSView{
-    me GUI_ctxt: cr
-    our DashboardWidget:  parent
-    me float: scaleFactor
-
-    me none: CanvasView() <- <%{}%>
-    me void: draw(me NSRect: dirtyRect) <- <%{
-        super.draw(dirtyRect)
-        let cr: CGContext! = NSGraphicsContext.current?.cgContext
-        parent.EventDispatcher.topWidget.draw(cr)
-    }%>
-    me void: setParent(our DashboardWidget: wid) <- {parent <- wid}
+struct GUI_canvas{
+    me void: setParent(our DashboardWidget: wid) <- <%!setParent(%1)%>
 }
 
 /////////////////////////////////  HANDLE GUI
 struct GUI{
-    me LinearLayout: frame
-    me LinearLayout: layoutArea
-    me NestedScrollView: scroller
+    me GUI_Frame: frame
+    //me LinearLayout: layoutArea
+    //me NestedScrollView: scroller
 
     me none: GUI() <- {}
 
@@ -151,22 +171,28 @@ struct GUI{
     }%>
 
     me uint32: GUI_Init() <- <%{
+        thisApp.createAppArea(frame)
+        let delegate = AppDelegate()
+        NSApplication.shared.delegate = delegate
+        _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
         return(0);
     }%>
 
     me uint32: GUI_Run() <- <%{
-        return(0);
+        let status: UInt32 = 0;
+        return(status);
     }%>
 
     me void: GUI_Deinit() <- {}
 }
 
 struct GUI{
-    //their GUI_item: newCanvas() <- <%!%>
-    //me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%>
+    their GUI_item: newCanvas() <- <%!%GCanvasView()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = 1280; f.size.height = 800; %1.frame = f%>
     //their GUI_item: newScrollingWindow() <- <%!%>
     //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%>
-    //me GUI_Frame: GUI_Frame(me string: label) <- <%!%>
+    me void: setCallback() <- <%!%G %>
+    me GUI_Frame: GUI_Frame(me string: label) <- <%!%GNSView()%>
 }
 
 struct GUI_ctxt{
@@ -216,16 +242,15 @@ struct GUI_ctxt{
     }
 }
 
-struct APP: inherits=LinearLayout{
+struct APP{
     //me none: APP() <- <%{}%>
 }
 /////////////////////////////////  G L O B A L
 struct GLOBAL: inherits=AppCompatActivity{
-    their LinearLayout: window
+    their NSWindow: window
     //me int: widgetHeight()    <- <%!%>
     //me int: widgetWidth()     <- <%!%>
     //me long: ticksPerSec()    <- <%!%>
-    me Toolbar: toolbar
     me int: displayHeightPx
     me int: displayWidthPx
 
@@ -240,12 +265,6 @@ struct GLOBAL: inherits=AppCompatActivity{
     //me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{}%>
 
     // //GUI INTERFACE:
-    me void: onCreate() <- <%{
-        thisApp = APP();
-        initialize("");
-        getMetrics();
-        runDogCode();
-    }%>
 
     //me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{}%>
     //me void: getMetrics()       <- <%{}%>

@@ -124,7 +124,9 @@ def processParentClass(name, parentClass):
     if not name in classHeirarchyInfo: classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': set([])}
     else:
         prevParentClassName = classHeirarchyInfo[name]['parentClass']
-        if prevParentClassName!= None and parentClass != prevParentClassName:
+        if prevParentClassName == None:
+            classHeirarchyInfo[name]['parentClass'] = parentClass
+        elif parentClass != prevParentClassName:
             cdErr("The class "+name+" cannot descend from both "+parentClass+" and "+prevParentClassName)
 
 # returns an identifier for functions that accounts for class and argument types

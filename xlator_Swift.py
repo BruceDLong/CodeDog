@@ -802,7 +802,7 @@ def codeCopyConstructor(fieldName, convertedType, isTemplateVar, xlator):
     return ""
 
 def codeConstructorCall(className):
-    return '        __INIT_'+className+'();\n'
+    return '        INIT();\n'
 
 def codeSuperConstructorCall(parentClassName):
     return '        super.init();\n'
@@ -825,7 +825,7 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
     else:
         if fieldName=="init":
             fieldName = "__INIT_"+className
-            structCode += indent + "func "  + fieldName +"("+argListText+")"
+            structCode += indent + "func "  + fieldName +"("+argListText+")" + returnType
         else:
             if isConstructor:
                 structCode += indent + "init "  +"("+argListText+") " + returnType
