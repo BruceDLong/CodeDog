@@ -76,13 +76,14 @@ struct GLOBAL{
         return ch > "\u{1f}" && ch != "\u{7f}"
     }%>
 
-    me void: endFunc(me int: val) <- <%!return(0)%>
-    me int: randInt(me int: val) <- <%!(rand() % %1)%>
-    me string: toString(me int: val) <- <%!String(%1)%>
-    me int: stoi(me string: S) <- <%!Int(%1)!%>
+    me void: endFunc(me int: val)                           <- <%!return(0)%>
+    me int: randInt(me int: val)                            <- <%!(rand() % %1)%>
+    me string: toString(me int: val)                        <- <%!String(%1)%>
+    me int: stoi(me string: S)                              <- <%!Int(%1)!%>
     /////////////////////////////////////////////////////
-
+    me timeValue: sleep(me timeValue: milliseconds)         <- <%!%Gsleep(UInt32(%1))%>
+    me timeValue: convertToTimeVal()                        <-  <%!%G(Double)(%1)%>
 
 }
 
-struct timeValue{me int64: timeValue}
+struct timeValue{me Double: timeValue}

@@ -50,7 +50,7 @@ def macBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, plat
     rmPackageCmd    = "rm Package.swift"
     packageInitCmd  = "swift package init --type executable"
     buildCmd        = "swift build -Xswiftc -suppress-warnings"
-    runCmd          = "swift run "
+    runCmd          = "swift run  -Xswiftc -suppress-warnings"
     ############################################################
     runCMD(rmPackageCmd, projectDirectory)
     runCMD(packageInitCmd, projectDirectory)

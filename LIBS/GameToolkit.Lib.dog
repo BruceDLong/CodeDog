@@ -169,7 +169,7 @@ struct GameLooper{
         }
     }
     void: runConstFPS(me int: FramesPerSec) <- {// Constant game speed and FPS
-        me timeValue: ticksToSkip <- 1000 / FramesPerSec
+        me timeValue: ticksToSkip <- 1000 / convertToTimeVal(FramesPerSec)
         me timeValue: timeToSleep <- 0
         me timeValue: nextTick <- 0
 
@@ -187,7 +187,7 @@ struct GameLooper{
         }
     }
     void: runMaxFPS(me int: gameSpeed) <- {     // Constant Game speed, max FPS
-        me int: ticksToSkip   <- 1000 / gameSpeed
+        me timeValue: ticksToSkip   <- convertToTimeVal(1000 / gameSpeed)
         me int: MAX_FRAMESKIP <- 10
         me timeValue: nextTick <- getTickCount()
         me int: loops
@@ -207,7 +207,7 @@ struct GameLooper{
         }
     }
     void: runVarFPS(me int: gameSpeed) <- { // Constant Game speed, variable FPS
-        me timeValue: ticksToSkip   <- 1000 / gameSpeed
+        me timeValue: ticksToSkip   <- convertToTimeVal(1000 / gameSpeed)
         me int: MAX_FRAMESKIP <- 5
         me timeValue: nextTick <- getTickCount()
         me int: loops
@@ -251,11 +251,9 @@ struct ColorScheme{}
 // struct FontScheme{}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{}
-struct GUI_item{}
+//struct GUI_item{}
 struct GUI_container{}
 struct INK_Image{}
-struct CGContext {}
-struct CGPoint{}
 struct deltaSize{me int: width    me int: height}
 struct GRWindow{}
 struct GameEvent{}
@@ -270,19 +268,17 @@ struct Keycode{}
 struct SoundData{}
 struct GameSurface{}
 
-struct GUI{
-    me GUI_item: newCanvas()
-}
+//struct GUI{me GUI_item: newCanvas()}
 
 struct fontSpec{
     me string: name
     me int: size
     me mode[pp, dp, sp]: pixelMode
 
-   /* none: fontSpec(me string: initName, me string: initSize) <- {
+    none: fontSpec(me string: initName, me string: initSize) <- {
         name      <- initName
         size      <- stoi(initSize)
-    }*/
+    }
 }
 
 struct Styler{

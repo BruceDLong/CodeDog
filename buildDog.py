@@ -124,10 +124,6 @@ def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     makeDir(buildName + "/assets")
     copyTree("Resources", buildName+"/assets")
-
-    for libFile in libFiles:
-        libStr += libFile
-        #print "libStr: " + libStr
     currentDirectory = currentWD = os.getcwd()
     #TODO check if above is typo
     workingDirectory = currentDirectory + "/" + buildName

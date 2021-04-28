@@ -89,6 +89,25 @@ struct testWidget: inherits=DashboardWidget{
         print("SECONDARY CLICK! (x:", eventX, ", y:", eventY, ")\n")
         return(true)
     }
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+        me GUI_Scalar: eventX <- event.x
+        me GUI_Scalar: eventY <- event.y
+        print("Primary up! (x:", eventX, ", y:", eventY, ")\n")
+        return(true)
+    }
+
+    me bool: mouseMoved(their GUI_ButtonEvent: event) <- {
+        me GUI_Scalar: eventX <- event.x
+        me GUI_Scalar: eventY <- event.y
+        print("MOVE CLICK! (x:", eventX, ", y:", eventY, ")\n")
+        return(true)
+    }
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+        me GUI_Scalar: eventX <- event.x
+        me GUI_Scalar: eventY <- event.y
+        print("Primary Down! (x:", eventX, ", y:", eventY, ")\n")
+        return(true)
+    }
 }
 
 struct GLOBAL{
@@ -98,14 +117,12 @@ struct GLOBAL{
 }
 
 struct APP{
-    me GUI_ScrollingWindow: scrollerRef
-
-    me void: createAppMenu(me GUI_Frame: frame) <- {}
-
     me void: createAppArea(me GUI_Frame: frame) <- {
-        drawing_area  <- gui.newCanvas()
-        gui.setWidgetSize(drawing_area, 1200, 1200)
         Allocate(drawAnX)
+        Allocate(drawAnX.dashboardDBW)
+        drawing_area  <- gui.newCanvas()
+        drawing_area.setParent(drawAnX)
+        gui.setWidgetSize(drawing_area, 1200, 1200)
         drawAnX.EventDispatcher.registerWidgetForEventDispatcher(drawing_area, drawAnX)
         addToContainerAndExpand (frame, drawing_area)
     }

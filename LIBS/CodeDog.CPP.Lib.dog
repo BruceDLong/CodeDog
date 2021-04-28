@@ -47,7 +47,6 @@ struct sessionFile{
     me bool: eof() <- {return(session.EOF())}
     me void: closeReading() <- {session.close()}
 }
-
 struct GLOBAL{
     me string: _strm_getLine(their istream: strm) <- <%{
         string S;
@@ -56,14 +55,8 @@ struct GLOBAL{
     }%>
     me uint: shiftLeft (me uint: bits, me uint: shft) <- <%!(%1 << %2)%>
     me uint: shiftRight(me uint: bits, me uint: shft) <- <%!(%1 >> %2)%>
-    me uint: AndBits(me uint: bits, me uint: shft) <- <%!(%1 & %2)%>
-    me uint: OrBits (me uint: bits, me uint: shft) <- <%!(%1 | %2)%>
-    me void: endFunc() <- <%!return(0)%>
-    me int: randInt(me int: val) <- <%!(rand() % %1)%>
-    me string: toString(me number_type: val) <- <%!std::to_string(%1)%>
-    me string: longToString(me long: val) <- <%!std::to_string(%1)%>
-    me int: stoi(me string: val) <- <%!std::stoi(%1)%>
-    me int: uniqueObjectID(their any:obj)  <- <%!%G(intptr_t)%1%>
+    me uint: AndBits(me uint: bits, me uint: shft)    <- <%!(%1 & %2)%>
+    me uint: OrBits (me uint: bits, me uint: shft)    <- <%!(%1 | %2)%>
     me int: sleep(me int: milliseconds) <- <%{
        struct timespec req, rem;
        if(milliseconds > 999) {
@@ -110,7 +103,7 @@ struct GLOBAL{
         return retVal;
     }%>
 
-    void: trimLeftWS(their string: str) <- <%{str->erase(0, str->find_first_not_of("\t\n\v\f\r "));}%>
+    void: trimLeftWS(their string: str)  <- <%{str->erase(0, str->find_first_not_of("\t\n\v\f\r "));}%>
     void: trimRightWS(their string: str) <- <%{str->erase(str->find_last_not_of("\t\n\v\f\r ")+1);}%>
     me string: trimWS(their string: str) <- {
         trimLeftWS(str);
@@ -118,12 +111,19 @@ struct GLOBAL{
         return(str)
     }
     me int: findString(me string: toSearch, me string: toFind) <- <%!%G%1.find(%2)%>
-    me double: sqrt(me double: input) <- <%!sqrt(%1)%>
-    me timeValue: convertToTimeVal()                        <- <%!%G%1%>
-    me timeValue: convertToLongVal()                        <- <%!%G%1%>
-    me timeValue: convertToL()                              <- <%!%G%1%>
-    me int: convertToIntVal(me int: val)                    <- <%!%G%1%>
-    me float: convertToFloatVal()                           <- <%!%G(float)%1%>
+    me void: endFunc()                                         <- <%!return(0)%>
+    me int: randInt(me int: val)                               <- <%!(rand() % %1)%>
+    me string: toString(me number_type: val)                   <- <%!std::to_string(%1)%>
+    //me string: toString(me bool: val)                          <- <%!%G((%1)?"true":"false")%>
+    me string: toString(me long: val)                          <- <%!std::to_string(%1)%>
+    me int: stoi(me string: val)                               <- <%!std::stoi(%1)%>
+    me int: uniqueObjectID(their any:obj)                      <- <%!%G(intptr_t)%1%>
+    me double: sqrt(me double: input)                          <- <%!sqrt(%1)%>
+    me timeValue: convertToTimeVal()                           <- <%!%G%1%>
+    me timeValue: convertToLongVal()                           <- <%!%G%1%>
+    me timeValue: convertToL()                                 <- <%!%G%1%>
+    me int: convertToIntVal(me int: val)                       <- <%!%G%1%>
+    me float: convertToFloatVal()                              <- <%!%G(float)%1%>
 }
 struct timeValue{me int64: timeValue}
 struct DateValue{me int64: DateValue}

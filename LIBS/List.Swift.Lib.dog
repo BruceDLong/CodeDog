@@ -22,7 +22,7 @@ struct Swift_Array<nodeType>: implements = List wraps = Array specs = {insert = 
     void: clipToSize(me int: size)              <- <%!%>
     itr nodeType: deleteNth(me int: position)   <- <%!%>
     itr nodeType: end()                         <- <%!endIndex%>           // returns itr to past-the-end element
-    itr nodeType: erase(itr nodeType: position) <- <%!%>
+    itr nodeType: erase(itr nodeType: position) <- <%!remove(at:%1)%>
     nodeType: first()                           <- <%!%0[0]%>
     itr nodeType: front()                       <- <%!%>
     nodeType: __getAt(me int: position)         <- <%!%>
@@ -32,7 +32,7 @@ struct Swift_Array<nodeType>: implements = List wraps = Array specs = {insert = 
     nodeType: last()                            <- <%!%0[%0.endIndex-1]%>
     itr nodeType: nthItr()                      <- <%!%>
     nodeType: popFirst()                        <- <%!%0[0]; %0.removeFirst()%>
-    nodeType: popLast()                         <- <%!%0[%0.endIndex-1]; %0.remove(at:%0.endIndex-1)%>
+    nodeType: popLast()                         <- <%!%0.remove(at:%0.endIndex-1)%>
     me void: prepend(nodeType: value)           <- <%!%>
     void: resize(me int: size)                  <- <%!%>
     me uint: size()                             <- <%!count%>
@@ -42,7 +42,7 @@ struct Swift_Array<nodeType>: implements = List wraps = Array specs = {insert = 
     // TODO: need Reverse Iterators working first
     //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
 }
-
+/*
 struct Swift_Map<keyType, valueType>: implements = Map wraps = `NSMutableOrderedSet` specs = {insert = logarithmic}{
     valueType: at(keyType)                      <- <%!%>
     void: clear()                               <- <%!removeAllObjects()%>
@@ -64,3 +64,4 @@ struct Swift_Map<keyType, valueType>: implements = Map wraps = `NSMutableOrdered
     // TODO: need Reverse Iterators working first
     //itr nodeType: back() <- <%!%>             // returns reverse iterator to the reverse ene of the sequence container
 }
+*/

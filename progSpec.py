@@ -654,7 +654,7 @@ def doesClassContainFunc(classes, structName, funcName):
         if fieldName == funcName: return field
     return False
 
-templateSpecKeyWords = {'verySlow':0, 'slow':1, 'normal':2, 'fast':3, 'veryFast':4, 'polynomial':0, 'exponential':0, 'nLog_n':1, 'linear':2, 'logarithmic':3, 'constant':4}
+templateSpecKeyWords = {'verySlow':0, 'slow':10, 'normal':20, 'fast':30, 'veryFast':40, 'polynomial':0, 'exponential':0, 'nLog_n':10, 'linear':20, 'logarithmic':30, 'constant':40}
 def scoreImplementation(optionSpecs, reqTags):
     returnScore = 0
     errorStr = ""
@@ -682,7 +682,13 @@ def getImplementationOptionsFor(fieldType):
         return classImplementationOptions[fieldType]
     return None
 ###############  Various Dynamic Type-handling functions
+def getGenericArgs(ObjectDef):
+    if('genericArgs' in ObjectDef): return(ObjectDef['genericArgs'])
+    else: return(None)
+
 def getTypeArgList(className):
+    if not isinstance(className, str):
+        print("ERROR: in progSpec.getTypeArgList(): expected a string not: "+ str(className))
     if(className in templatesDefined):
         return(templatesDefined[className])
     else:
@@ -757,7 +763,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
             return(reqTagList[0]['tArgType'])
         if fieldTypeKW=='CPP_Map' or fieldTypeKW=='Java_Map' or fieldTypeKW=='Swift_Map':
             return(reqTagList[0]['tArgType'])
-        if fieldTypeKW!="RBNode" and fieldTypeKW!="RBTreeMap" and fieldTypeKW!="RBTreeItr" and fieldTypeKW!="List" and fieldTypeKW!="Map":
+        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="List" and fieldTypeKW!="Map":
             print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
     elif reqTagList == None: return(None)
     return(None)
@@ -889,7 +895,8 @@ def ownerIsPointer(owner):
     return isPointer
 
 def typeIsPointer(typeSpec):
-    owner=getTypeSpecOwner(typeSpec)
+    if isinstance(typeSpec,str): owner = typeSpec   # typeSpec is really Owner field
+    else: owner=getTypeSpecOwner(typeSpec)          # typeSpec is full typeSpec
     return ownerIsPointer(owner)
 
 def fieldIsFunction(typeSpec):
@@ -1018,6 +1025,13 @@ def isAltStruct(classes, fieldType):
     Objfields=fieldObj['fields']
     if (fieldObjConfig=='ALT'): return [True, Objfields]
     else: return [False, [] ]
+
+def isAbstractStruct(classes, className):
+    modelDef = findSpecOf(classes, className, 'model')
+    if modelDef:
+        classDef = findSpecOf(classes, className, 'struct')
+        if classDef == None: return True
+    return False
 
 def typeIsNumRange(fieldType):
     if isinstance(fieldType, str): return False
