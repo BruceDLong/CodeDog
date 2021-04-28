@@ -747,14 +747,14 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, LorRorP_Val, xlator):
             prefix = staticVarNamePrefix(segName, LHSParentType, xlator)
             bitfieldMask=xlator['applyTypecast']('uint64', prefix+segName)
             flagReadCode = '('+S[0:prevLen] + connector + 'flags & ' + bitfieldMask+')'
-            S=xlator['applyTypecast']('int', flagReadCode)
+            S=xlator['applyTypecast']('uint64', flagReadCode)
         elif fieldType=='mode':
             segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName+"Mask", LHSParentType, xlator)
             bitfieldMask  =xlator['applyTypecast']('uint64', prefix+segName+"Mask")
             bitfieldOffset=xlator['applyTypecast']('uint64', prefix+segName+"Offset")
             S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+')'
-            S=xlator['applyTypecast']('int', S)
+            S=xlator['applyTypecast']('uint64', S)
 
     return [S, segTypeSpec, LHSParentType, AltFormat]
 

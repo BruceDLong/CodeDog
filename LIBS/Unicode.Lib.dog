@@ -13,6 +13,33 @@ LibDescription  ={
 
 struct GLOBAL {
     me UnicodeMgr: unicodeMgr
+
+    me int: packUTF8Char(me string: str, their int64: pos, their int32: out) <- {
+        me char: chr
+        out <- 0
+        chr   <- str[pos]
+        pos <+- 1
+        if(chr==0){return(0)}
+        me int: remaining <- remainingOctets(chr)
+        switch(remaining){
+            case 1: {chr <&- 0x3F}
+            case 2: {chr <&- 0x1F}
+            case 3: {chr <&- 0x0F}
+        }
+        if(remaining>3){return(0)} // Too many bytes.
+        out <deep- chr
+        withEach count in RANGE(0..remaining){
+            chr <- str[pos]
+            pos <+- 1
+            if(chr==0){return(0)}
+            if(isutf(chr)){return (0)}  // Invalid utf8 octet
+            chr <- chr & 0x3f
+            out <<<- 6
+            out <+- chr
+        }
+        return(1)
+    }
+
 }
 
 struct DateTimeFields{

@@ -156,7 +156,7 @@ def populateBaseRules():
     appendRule('BigInt',      'term', 'parseAUTO', "an integer")
     appendRule('FlexNum',     'term', 'parseAUTO', "a rational number")
     appendRule('CID',         'term', 'parseAUTO', 'a C-like identifier')
-    appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier for the current locale')
+    appendRule('UniID',       'term', 'parseAUTO', 'a unicode identifier')
     appendRule('printables',  'term', 'parseAUTO', "a seqence of printable chars")
     appendRule('toEOL',       'term', 'parseAUTO', "read to End Of Line, including EOL.")
     # TODO: delimited List, keyWord
@@ -737,7 +737,7 @@ struct <CLASSNAME>ParserThread: inherits=Threads{
         ctrls.parser.dumpGraph("ParseDone", 1)
         our <CLASSNAME>: crnt_<CLASSNAME>
         if(ctrls.parser.doesParseHaveError()){
-            ctrls.parser.errorMesg <- "Proteus syntax error: " + ctrls.parser.errorMesg + " at line " + toString(ctrls.parser.errLineNum) + ":" + toString(ctrls.parser.errCharPos)
+            ctrls.parser.errorMesg <- "Proteus syntax error: " + ctrls.parser.errorMesg
             log(ctrls.parser.errorMesg)
             crnt_<CLASSNAME> <- NULL
         }

@@ -84,7 +84,29 @@ struct UnicodeMgr {
         uniStrHr.toUTF8String(hour);
         return hour;
     }%>
-
+    me bool: isUnicodeAlpha(me int32: ch) <- <%{
+        return(u_isalnum(ch));
+    }%>
+    me bool: isUnicodeAlphaNum(me int32: ch) <- <%{
+        return(u_isalpha(ch));
+    }%>
+    me bool: isUnicodeWordStart(me int32: ch) <-{
+        if(isUnicodeAlpha(ch)){return(true)}
+        else if(ch==0x005f){  // Underscore
+            return(true)
+        }
+        return(false)
+    }
+    me bool: isUnicodeWordContinue(me int32: ch) <-<%{
+        int32_t props = U_GET_GC_MASK(ch);
+        //props=UTRIE2_GET16(&propsTrie, ch);
+        if((props&
+            (U_GC_ND_MASK | U_GC_L_MASK |  // Number Digits or Letters
+            U_GC_MC_MASK|U_GC_MN_MASK)     // Character modifiers
+            )!=0) return(true);
+        else if(ch==0x005f or ch==0x002d or ch==0x0027){return(true);} // "_" or "-" or "'"
+        return(false);
+    }%>
     me UnicodeStr: fromUTF8Str(me string: input) <- <%{
         UnicodeString output = UnicodeString::fromUTF8(input);
         return(output);

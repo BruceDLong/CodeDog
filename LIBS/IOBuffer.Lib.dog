@@ -47,7 +47,7 @@ struct strBuf{
         }
         tail <- innerBuf
         //log("NOTIFYING:")
-        log("endingLineNumber of InnerBuf:"+toString(innerBuf.endingLineNumber))
+        //log("endingLineNumber of InnerBuf:"+toString(innerBuf.endingLineNumber))
         bufLock.notifyOne()
     }
     their strInnerBuf: findInrBufWithPos(me int64: pos) <- {

@@ -165,8 +165,6 @@ struct EParser{
     our stateRec: topParseNode
     me int64: highestSlotSoFar
     me string: errorMesg
-    me int64: errLineNum
-    me int64: errCharPos
     me List<me string>: rnames
 
     me bool: streamingMode
@@ -667,6 +665,25 @@ struct EParser{
         }
         return(-1)
     }
+    me int64: scrapeUTF8Char(me int64: pos, their int32: out) <- {
+        our strBufItr: txtItr <- getItrAt(pos)
+        me int: count <- 0
+        me int: expectedBytes <- -1
+        me string: bufr <- ""
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me char: ch <- txtItr.ch()
+            if(count==0){
+                expectedBytes <- remainingOctets(ch) + 1
+            }
+            bufr <+- ch
+            count <+- 1
+            if(count==expectedBytes){break()}
+        }
+        if(count<expectedBytes){return(-1)}
+        me int64: p
+        packUTF8Char(bufr, p, out)
+        return(expectedBytes)
+    }
     me int64: scrapeAlphaSeq(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
@@ -773,6 +790,25 @@ struct EParser{
         }
         return(charsUsed)
     }
+
+    me int64: scrapeUnicodeWordContinue(me int64: pos) <- {
+        me int64: charsUsed <- 0
+        our strBufItr: txtItr <- getItrAt(pos)
+        while(txtItr != NULL and txtItr.status==bfOK){
+            me int32: ch
+            me int: bytesUsed <- scrapeUTF8Char(pos, ch)
+            if(charsUsed==0 and bytesUsed<=0){return(-1)}
+            if (!(unicodeMgr.isUnicodeWordContinue(ch))){
+                if(charsUsed==0){return(-1)}
+                else{return(charsUsed)}
+            }
+            pos <+- bytesUsed
+            txtItr.goNext()
+            charsUsed <+- bytesUsed
+        }
+        if(charsUsed==0){return(-1)}
+        return(1)
+    }
     me int64: scrapePrintableSeq(me int64: pos) <- {
         me int64: charsUsed <- 0
         our strBufItr: txtItr <- getItrAt(pos)
@@ -859,7 +895,33 @@ struct EParser{
         }
         return(-1)
     }
-    // TODO: me int64: scrapeUniID(me int64: pos) <- { }
+    me int64: scrapeUniID(me int64: pos) <- {
+        me int32: ch
+        me int: bytesUsed <- scrapeUTF8Char(pos, ch)
+        if(bytesUsed<=0){return(-1)}
+        me int: tmpCh <- ch
+     //    log("UNICODESTR:'"+toString(bytesUsed) +"  val:"+toString(tmpCh))
+        if(unicodeMgr.isUnicodeWordStart(ch)){
+            me int64: charsUsed <- scrapeUnicodeWordContinue(pos+bytesUsed)
+            if(charsUsed==-1){charsUsed<-0}
+    //~ me string:TXT
+    //~ withEach idx in RANGE(pos..pos+charsUsed+bytesUsed){
+        //~ me char: tChr <- getCharAt(idx))
+        //~ TXT <+- tChr
+    //~ }
+            //~ log("scrapeUniID A:"+TXT+": "+toString(charsUsed+bytesUsed)+" bytesUsed:"+toString(bytesUsed))
+            if(charsUsed<0){return(1)}
+            else{return(charsUsed+bytesUsed)}
+        }  /*else {log("Character REJEcetd:")
+            me string:TXT
+            withEach idx in RANGE(pos..pos+charsUsed+bytesUsed){
+                me char: tChr <- getCharAt(idx)
+                //log("    Byte:"+toString(tChr))
+                TXT <+- tChr
+            }
+        }*/
+        return(-1)
+    }
     me int64: scrapeIntSeq(me int64: pos) <- {
         me int64: initialChars <- 0
         me char: ch <- getCharAt(pos)
@@ -895,9 +957,9 @@ struct EParser{
                     case BinNum_str:  {return(scrapeBinNum(pos))}
                     case BigInt:      {return(scrapeUintSeq(pos))}
                     case CID:         {return(scrapeCID(pos))}
-             //       case UniID:       {return(scrapeUniID(pos))}
+                    case UniID:       {return(scrapeUniID(pos))}
                     case intSeq:      {return(scrapeIntSeq(pos))}
-             //       case RdxSeq:      {return(scrapeRdxSeq(pos))}
+             //     case RdxSeq:      {return(scrapeRdxSeq(pos))}
                     case toEOL:       {return(scrapeToEOL(pos))}
                     default: {print("Invalid AUTO-parse production type.\n")}
                 }
@@ -1293,7 +1355,7 @@ struct EParser{
         return(NULL)
     }
 
-//TODO: Fix topDOwnREsolve()
+//TODO: Fix topDownResolve()
     our stateRec: topDownResolve(our stateRec: SRec, me string: indent) <- {
         log("TopDownParser broken for now"); exit(2)
         if(SRec == NULL){print("\nStateRecPtr is null.\n\n") exit(1)}
@@ -1434,6 +1496,9 @@ struct EParser{
         highestSlotSoFar<- 0
         SSets.clear()
         topOffSSets()
+        lastTopLevelItem <- NULL
+        errorMesg <- ""
+        resetCompletions(0)
         topParseNode <- addProductionToStateSet(0, startProduction, 0, 0, NULL, NULL)
         return(topParseNode)
     }
