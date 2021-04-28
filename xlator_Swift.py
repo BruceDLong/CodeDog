@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, isStruct
-from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr, convertType, generateGenericStructName
+from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr, convertType, generateGenericStructName, getGenericTypeSpec
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -675,7 +675,7 @@ def variableDefaultValueString(fieldType, isTypeArg, owner):
         else:fieldValueText = ' = ' + fieldType +'()'
     return fieldValueText
 
-def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
+def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, localVarsAllocated, xlator):
     varDeclareStr = ''
     assignValue   = ''
     isAllocated   = fieldDef['isAllocated']
@@ -691,6 +691,11 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType) and not progSpec.isAbstractStruct(classes[0], fieldType):
         convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
         allocFieldType = convertedType
+        lhsTypeSpec = getGenericTypeSpec(genericArgs, lhsTypeSpec, xlator)
+        if 'fromImplemented' in lhsTypeSpec: lhsTypeSpec.pop('fromImplemented')
+        localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
+    else:
+        localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)

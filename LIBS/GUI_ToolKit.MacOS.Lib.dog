@@ -212,11 +212,11 @@ struct GUI_ctxt{
     //me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!%>
     //me void: closePath()                              <- <%!%>
     me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!addRect(CGRect(x:%1, y:%2, width:%3, height:%4))%>
-    //me void: paintNow()                               <- <%!%>
+    me void: paintNow()                                 <- <%!drawPath(using: .fillStroke)%>
     me void: strokeNow()                                <- <%!drawPath(using: .fillStroke)%>
     me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:screenWidth, height:screenHeight))%>
     //me void: strokeKeep()                             <- <%!%>
-    //me void: fillKeep()                               <- <%!%>
+    me void: fillKeep()                                 <- <%!fillPath()%>
     //me void: renderFrame()                            <- <%!%>
     //me void: setFillPattern()                         <- <%!%>
     //me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!%>
@@ -248,19 +248,32 @@ struct APP{
 /////////////////////////////////  G L O B A L
 struct GLOBAL: inherits=AppCompatActivity{
     their NSWindow: window
-    //me int: widgetHeight()    <- <%!%>
-    //me int: widgetWidth()     <- <%!%>
+    me int: widgetHeight() <- <%!%G(Int)(%1.bounds.size.height)%>
+    me int: widgetWidth()  <- <%!%G(Int)(%1.bounds.size.width)%>
     //me long: ticksPerSec()    <- <%!%>
     me int: displayHeightPx
     me int: displayWidthPx
 
     // //DRAWING ROUTINES:
-    //me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{}%>
+    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me GUI_Scalar: x, me GUI_Scalar: y) <- <%{
+        cr.saveGState()
+        cr.textPosition = CGPoint(x: x, y: y)
+        let color = CGColor.black
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: NSFont.boldSystemFont(ofSize: CGFloat(font.size)), .foregroundColor: color]))
+        CTLineDraw(line, cr)
+        cr.restoreGState()
+        //////////////////////////
+        var size:deltaSize = getTextSize(cr, text, font);
+        return(size);
+    }%>
     //me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{}%>
     //me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{}%>
     //me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{}%>
     //me void: restore(me GUI_ctxt: cr) <- <%!%>
-    //me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{}%>
+    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+        let size = deltaSize();
+        return(size);
+    }%>
     //me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{}%>
     //me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{}%>
 

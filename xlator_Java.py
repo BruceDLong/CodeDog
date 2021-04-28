@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, logLvl
-from codeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getModeStateNames, codeExpr, convertType, generateGenericStructName
+from codeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getModeStateNames, codeExpr, convertType, generateGenericStructName, getGenericTypeSpec
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -602,7 +602,7 @@ struct GLOBAL{
 
     codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code')
 
-def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
+def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, localVarsAllocated, xlator):
     varDeclareStr = ''
     assignValue   = ''
     isAllocated   = fieldDef['isAllocated']
@@ -616,6 +616,12 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     fieldType = progSpec.fieldTypeKeyword(lhsTypeSpec)
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType) and not progSpec.isAbstractStruct(classes[0], fieldType):
         convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
+        allocFieldType = convertedType
+        lhsTypeSpec = getGenericTypeSpec(genericArgs, lhsTypeSpec, xlator)
+        if 'fromImplemented' in lhsTypeSpec: lhsTypeSpec.pop('fromImplemented')
+        localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
+    else:
+        localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     containerTypeSpec = progSpec.getContainerSpec(lhsTypeSpec)
     if progSpec.isOldContainerTempFunc(lhsTypeSpec): print("Deprecated container type:", lhsTypeSpec); exit(2);
     isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)

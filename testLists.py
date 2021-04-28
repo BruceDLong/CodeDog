@@ -134,6 +134,17 @@ struct testClass{
 }''', 'PGBR:boy does every fine good B-boy D-does E-every F-fine G-good ',
     ['','']],
 ###################################################################################################
+     'reps/twoMaps':  ['', 'PGB:'],
+     'reps/twoMaps':  ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me string, me string>:testMapStrStr
+        me Map<me string, me int>:testMapStrInt
+
+    }
+}''', 'PGBR:f ',
+    ['','']],
+###################################################################################################
      'itrs/iterators':    ['', 'PGB:'],
      'itrs/iterators':    ['''
 struct testClass{

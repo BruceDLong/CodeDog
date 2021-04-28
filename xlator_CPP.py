@@ -823,7 +823,7 @@ struct GLOBAL{
 
     #codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE )
 
-def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
+def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, localVarsAllocated, xlator):
     varDeclareStr = ''
     assignValue   = ''
     isAllocated   = fieldDef['isAllocated']
@@ -833,6 +833,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
         del fieldDef['paramList'][-1]
         useCtor = True
     [convertedType, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs, xlator)
         [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod] = determinePtrConfigForAssignments(lhsTypeSpec, rhsTypeSpec, "" , RHS)

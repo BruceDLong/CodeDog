@@ -423,11 +423,15 @@ def registerType(objName, fieldName, typeOfField, typeDefTag):
     typeDefMap[typeOfField]=typeDefTag
 
 def getGenericClassInfo(className):
-    typeArgList  = progSpec.getTypeArgList(className)
-    fieldDefAt   = CheckObjectVars(className, "at", "")
+    classInfo   = {}
+    typeArgList = progSpec.getTypeArgList(className)
+    classInfo["typeArgList"] = typeArgList
+    fieldDefAt  = CheckObjectVars(className, "at", "")
+    if fieldDefAt:
+        typeSpecAt = fieldDefAt['typeSpec']
+        atTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(typeSpecAt), "fieldType":progSpec.fieldTypeKeyword(typeSpecAt)}
+        classInfo["atTypeSpec"] = atTypeSpec
     fieldDefFind = CheckObjectVars(className, "find", "")
-    atTypeSpec   = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefAt['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefAt['typeSpec'])}
-    classInfo    = {"typeArgList":typeArgList, "atTypeSpec":atTypeSpec}
     if fieldDefFind:
         itrTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
         classInfo['itrTypeSpec'] = itrTypeSpec
@@ -476,6 +480,26 @@ def applyStructImplemetation(typeSpec,currentObjName,fieldName):
     return typeSpec
 
 #### GENERIC TYPE HANDLING #############################################
+def copyFields(fields):
+    retVal = []
+    for field in fields:
+        copyField = {}
+        for prop in field:
+            copyField[prop] = copy.copy(field[prop])
+        retVal.append(copyField)
+    return retVal
+
+def copyClassDef(classDef):
+    retVal = {}
+    for itm in classDef:
+        if itm == "fields":
+            retVal[itm] = copyFields(classDef[itm])
+        elif classDef[itm]==None:
+            retVal[itm] = None
+        else:
+            retVal[itm] = copy.copy(classDef[itm])
+    return retVal
+
 def generateGenericStructName(classes, tags, className, reqTagList, genericArgs, xlator):
     global genericStructsGenerated
     global currentObjName
@@ -499,8 +523,9 @@ def generateGenericStructName(classes, tags, className, reqTagList, genericArgs,
         print("ADD:",genericStructName)
         genericStructsGenerated[1].append(genericStructName)
         classes[1].append(genericStructName)
-        genericClassDef = copy.copy(classDef)
+        genericClassDef = copyClassDef(classDef)
         if 'implements' in genericClassDef: genericClassDef.pop('implements')
+        if 'vFields' in genericClassDef: genericClassDef['vFields'] = None
         if 'tags' in genericClassDef and 'implements' in genericClassDef['tags']:genericClassDef['tags'].pop('implements')
         genericClassDef['name'] = genericStructName
         genericClassDef['genericArgs'] = genericArgs
@@ -544,20 +569,25 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
         if 'fromImplemented' in typeSpec:
             fromImpl = typeSpec['fromImplemented']
             tArgList = fromImpl['typeArgList']
-            atTSpec  = fromImpl['atTypeSpec']
-            atTypeKW = progSpec.fieldTypeKeyword(atTSpec)
             genericArgsOut = {}
-            count = 0
-            for reqTag in reqTagList:
-                genericArgsOut[tArgList[count]]=reqTag
-                count += 1
-            fromImpl['genericArgs'] = genericArgsOut
-            if atTypeKW in genericArgsOut:
-                atTSpec['owner']     = genericArgsOut[atTypeKW]['tArgOwner']
-                atTSpec['fieldType'] = genericArgsOut[atTypeKW]['tArgType']
+            if tArgList:
+                count = 0
+                for reqTag in reqTagList:
+                    genericArgsOut[tArgList[count]]=reqTag
+                    count += 1
+                fromImpl['genericArgs'] = genericArgsOut
+                if 'atTypeSpec' in fromImpl:
+                    atTSpec  = fromImpl['atTypeSpec']
+                    atTypeKW = progSpec.fieldTypeKeyword(atTSpec)
+                    if atTypeKW in genericArgsOut:
+                        atTSpec['owner']     = genericArgsOut[atTypeKW]['tArgOwner']
+                        atTSpec['fieldType'] = genericArgsOut[atTypeKW]['tArgType']
             classInfo = getGenericClassInfo(fTypeKW)
             if classInfo['typeArgList']==None:
                 classInfo['typeArgList'] = tArgList
+            typeSpec['fromImplemented'] = classInfo
+        else:
+            classInfo = getGenericClassInfo(fTypeKW)
             typeSpec['fromImplemented'] = classInfo
         typeSpec['generic'] = True
     else:
@@ -1110,7 +1140,7 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
         actionText += actionTextOut
     else: # interate over a container
         [containerName, containerTypeSpec] = codeExpr(action['repList'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-        if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+containerName+"' is not a container so cannot be iterated over.")
+        if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+containerName+"' is not a container so cannot be iterated over.",containerTypeSpec)
         [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, 'action')
         containerFieldTypeKey = progSpec.getFieldTypeKeyWordOld(containerTypeSpec)
         wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerFieldTypeKey)
@@ -1195,9 +1225,8 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
         fieldName =fieldDef['fieldName']
         applyStructImplemetation(typeSpec,currentObjName,fieldName)
         cdlog(5, "Action newVar: {}".format(fieldName))
-        varDeclareStr = xlator['codeNewVarStr'](globalClassStore, globalTagStore, typeSpec, fieldName, fieldDef, indent, objsRefed, 'action', genericArgs, xlator)
+        varDeclareStr = xlator['codeNewVarStr'](globalClassStore, globalTagStore, typeSpec, fieldName, fieldDef, indent, objsRefed, 'action', genericArgs, localVarsAllocated, xlator)
         actionText = indent + varDeclareStr + ";\n"
-        localVarsAllocated.append([fieldName, typeSpec])  # Tracking local vars for scope
     elif (typeOfAction =='assign'):
         cdlog(5, "PREASSIGN:" + str(action['LHS']))
         # Note: In Java, string A[x]=B must be coded like: A.put(B,x)
