@@ -14,32 +14,6 @@ LibDescription  ={
 deinitCode = "endwin()"
 
 struct GLOBAL{
-    me int: packUTF8Char(me string: str, their uint: pos, their uint: out) <- {
-        me char: chr
-        out <- 0
-        chr   <- str[pos]
-        pos <+- 1
-        if(chr==0){return(0)}
-        me int: remaining <- remainingOctets(chr)
-        switch(remaining){
-            case 1: {chr <&- 0x3F}
-            case 2: {chr <&- 0x1F}
-            case 3: {chr <&- 0x0F}
-        }
-        if(remaining>3){return(0)} // Too many bytes.
-        out <deep- chr
-        withEach count in RANGE(0..remaining){
-            chr <- str[pos]
-            pos <+- 1
-            if(chr==0){return(0)}
-            if(isutf(chr)){return (0)}  // Invalid utf8 octet
-            chr <- chr & 0x3f
-            out <<<- 6
-            out <+- chr
-        }
-        return(1)
-    }
-
     void: putCharX(their charX: chX, me uint: EntryAttrs) <- {
         if(chX.colorCode>0) {attrOn(getColorPair(chX.colorCode))}
         else if(EntryAttrs>0) {attrOn(getColorPair(AndBits(EntryAttrs, 7)))}
@@ -371,9 +345,9 @@ struct readMultiLine {
         their lineX:: lx
         me List<me uint>: colorStack
         me posRec: pr
-        me uint: chr
-        me uint: q <- 0
-        me uint: p <- 0
+        me int32: chr
+        me int64: q <- 0
+        me int64: p <- 0
         me uint: nextColor <- 4096 // 0x1000
         me uint: colorCode <- 0         //Color 0=default for this entry.
         if(text.s[0]!=0){
@@ -385,7 +359,7 @@ struct readMultiLine {
                     Allocate(lx)
                     mgr.totalLines <- mgr.totalLines + 1
                 } else {
-                     if(text.colorCodes){
+                    if(text.colorCodes){
                         itr Map<me int, me posRec>: posRecsItr <- text.ps.find(q)
                         if(posRecsItr!=text.ps.end()){ // We need to change colors.
                             pr<-posRecsItr.val

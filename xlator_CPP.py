@@ -97,7 +97,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
             if(count>0):reqTagString += ", "
             reqTagString += reqType
             count += 1
-        reqTagString += ">"
+        reqTagString += " >"
         langType += reqTagString
         InnerLangType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
@@ -129,6 +129,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
             if varMode != 'alloc':
                 langType=applyOwner(containerOwner, langType, varMode)
     return [langType, InnerLangType]
+
 
 def codeIteratorOperation(itrCommand, fieldType):
     result = ''
@@ -445,9 +446,9 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(containerType)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(containerOwner)
-    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, containerType)
-    itrFieldType     = progSpec.fieldTypeKeyword(itrTypeSpec)
-    itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
+    itrTypeSpec     = progSpec.getItrTypeOfDataStruct(datastructID, containerType)
+    itrFieldType    = progSpec.fieldTypeKeyword(itrTypeSpec)
+    itrOwner        = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
     itrName          = repName + "Itr"
     itrIncStr        = ""
@@ -457,7 +458,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,repContaine
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for( auto " + itrName+' ='+ repContainer+RDeclP+'begin()' + "; " + itrName + " !=" + repContainer+RDeclP+'end()' +"; "+ itrName + " = " + itrName+"->next ){\n"
-                    + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->item;\n")
+                    + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->pItem;\n")
         return [actionText, loopCounterName, itrIncStr]
     if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map' or datastructID=='RBTreeMap':
         if(reqTagList != None):
@@ -738,7 +739,7 @@ def addSpecialCode(filename):
     S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
 
     S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
-    S += "#define SetBits(item, mask, val) {(item) &= ~(mask); (item)|=(val);}\n"
+    S += "#define SetBits(item, mask, val) {(item) &= ~((uint64_t)mask); (item)|=((uint64_t)val);}\n"
 
     S+="""
     // Thanks to Erik Aronesty via stackoverflow.com
