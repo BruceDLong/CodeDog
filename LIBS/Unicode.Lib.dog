@@ -17,7 +17,7 @@ struct GLOBAL {
     me int: packUTF8Char(me string: str, their int64: pos, their int32: out) <- {
         me char: chr
         out <- 0
-        chr   <- str[pos]
+        chr <- str[pos]
         pos <+- 1
         if(chr==0){return(0)}
         me int: remaining <- remainingOctets(chr)
