@@ -65,21 +65,21 @@ struct decor{
 }
 
 struct arrow: inherits=decor{
-    me double: startX
-    me double: startY
-    me double: endX
-    me double: endY
+    me GUI_Scalar: startX
+    me GUI_Scalar: startY
+    me GUI_Scalar: endX
+    me GUI_Scalar: endY
 
     me void: draw(their GUI_ctxt: cr) <- {
         me double: tipLength <- 10
         me double: tipAngle <- 0.35
 
-        me double: angle <- atan2(endY - startY, endX - startX) + 3.14159265359
+        me double: angle <- atan2(double(endY) - double(startY), double(endX) - double(startX)) + 3.14159265359
 
-        me double: x1 <- endX + tipLength * cos(angle - tipAngle)
-        me double: y1 <- endY + tipLength * sin(angle - tipAngle)
-        me double: x2 <- endX + tipLength * cos(angle + tipAngle)
-        me double: y2 <- endY + tipLength * sin(angle + tipAngle)
+        me double: x1 <- double(endX) + tipLength * cos(angle - tipAngle)
+        me double: y1 <- double(endY) + tipLength * sin(angle - tipAngle)
+        me double: x2 <- double(endX) + tipLength * cos(angle + tipAngle)
+        me double: y2 <- double(endY) + tipLength * sin(angle + tipAngle)
 
         cr.moveTo(startX, startY)
         cr.lineTo(endX, endY)
