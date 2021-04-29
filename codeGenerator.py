@@ -29,6 +29,7 @@ buildStr_libs=''
 globalFuncDeclAcc=''
 globalFuncDefnAcc=''
 ForwardDeclsForGlobalFuncs=''
+buildName=''
 
 listOfFuncsWithUnknownArgTypes = {}
 
@@ -1830,6 +1831,8 @@ def makeFileHeader(tags, filename, xlator):
     global buildStr_libs
     global libInterfacesText
     filename = makeTagText(tags, 'FileName')
+    platform = makeTagText(tags, 'Platform')
+    buildStr = getBuildSting(filename,buildStr_libs,platform)
 
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
     header += "// " + makeTagText(tags, 'CopyrightMesg') +'\n'
@@ -1840,7 +1843,7 @@ def makeFileHeader(tags, filename, xlator):
     header += "\n// " + makeTagText(tags, 'Description') +'\n'
     header += "\n/*  " + makeTagText(tags, 'LicenseText') +'\n*/\n'
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
-    header += "\n// Build Command: " +buildStr_libs+'\n\n'
+    header += "\n// Build Command: " +buildStr+'\n\n'
     header += libInterfacesText
     header += xlator['addSpecialCode'](filename)
     return header
@@ -1869,8 +1872,16 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
     if 'interface' in tagsFromLibFiles[libID]:
         if 'libFiles' in tagsFromLibFiles[libID]['interface']:
             libFiles = tagsFromLibFiles[libID]['interface']['libFiles']
+
             for libFile in libFiles:
-                buildStr_libs+=libFile+' '
+                if libFile.startswith('pkg-config'):
+                    buildStr_libs += "`"
+                    buildStr_libs += libFile
+                    buildStr_libs += "` "
+                else:
+                    if libFile =='pthread': buildStr_libs += '-pthread ';
+                    else: buildStr_libs += "-l"+libFile+ " "
+
         if 'headers' in tagsFromLibFiles[libID]['interface']:
             libHeaders = tagsFromLibFiles[libID]['interface']['headers']
             for libHdr in libHeaders:
@@ -2014,11 +2025,13 @@ def generate(classes, tags, libsToUse, langName, xlator):
     global buildStr_libs
     global libInterfacesText
     global listOfFuncsWithUnknownArgTypes
+    global buildName
 
-    buildStr_libs = xlator['BuildStrPrefix']
+    # buildStr_libs = xlator['BuildStrPrefix']
     globalClassStore=classes
     globalTagStore=tags[0]
-    buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
+    buildName = tags[2]
+    # buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(classes, tags, libsToUse, xlator)
 
     cdlog(0, "\n##############  G E N E R A T I N G   "+langName+"   C O D E . . .")
@@ -2110,3 +2123,52 @@ def loadProgSpecFromDogFile(filename, ProgSpec, objNames, topLvlTags, macroDefs)
     ScanAndApplyPatterns(FileClasses, topLvlTags, tagStore)
     stringStructs.CreateStructsForStringModels(FileClasses, newClasses, tagStore)
     return [tagStore, buildSpecs, FileClasses,newClasses]
+
+def getBuildSting (fileName, buildStr_libs, platform):
+    if platform == 'Linux':
+        debugMode='-g'
+        minLangVersion='14'
+        codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+        libStr = "-I " + codeDogFolder + " "
+        langStr = 'g++'
+        langStr += ' -fdiagnostics-color '  # Add color to the output
+        langStr += ' -fcompare-debug-second '  # supress compiler notes
+        minLangStr = '-std=gnu++' + minLangVersion + ' '
+        fileExtension = '.cpp'
+        fileStr = fileName + fileExtension
+        outputFileStr = '-o ' + fileName
+        libStr += buildStr_libs
+        buildStr = langStr + debugMode + " " + minLangStr + fileStr  + " " + libStr + " " + outputFileStr
+    elif platform == 'Java' or  platform == 'Swing':
+        buildStr = ''
+        libStr = ''
+        langStr = 'javac '
+        minLangStr = ''
+        fileExtension = '.java'
+        fileStr = fileName + fileExtension
+        outputFileStr = ''
+        debugMode = ''
+        buildStr = langStr + debugMode + " " + minLangStr + fileStr + libStr + " " + outputFileStr
+    elif platform == 'Android':
+        global buildName
+        currentDir     = os.getcwd()
+        buildStr='     NOTE: Working Directory is  '+currentDir + '/' + buildName + "\n"
+        buildStr += '//     NOTE: Build Debug command:    ./gradlew assembleDebug --stacktrace \n'
+        buildStr += '//     NOTE: Build Release command:  ./gradlew assembleRelease --stacktrace \n'
+        buildStr += '//     NOTE: Install command:        ./gradlew installDebug'
+    elif platform == 'Swift':
+        fileExtension = '.swift'
+        buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
+    elif platform == 'Windows':
+        langStr = 'cl /EHsc'
+        fileExtension = '.cpp'
+        fileStr  = fileName + fileExtension
+        buildStr = langStr + " " + fileStr
+    elif platform == 'MacOS': 
+        buildStr = " rm Package.swift \n"
+        buildStr += "// swift package init --type executable \n"
+        buildStr += "// swift build -Xswiftc -suppress-warnings \n"
+        buildStr += "// swift run  -Xswiftc -suppress-warnings \n"
+    else:
+        buildStr=''
+    return buildStr
