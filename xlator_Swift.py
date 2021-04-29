@@ -115,7 +115,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
 def makePtrOpt(typeSpec):
     # Make pointer field variables optionals
     fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
-    if progSpec.typeIsPointer(typeSpec) and fTypeKW != 'string': return('!')
+    if progSpec.typeIsPointer(typeSpec) and (fTypeKW != 'string' or fTypeKW != 'String'): return('!')
     return('')
 
 def codeIteratorOperation(itrCommand, fieldType):
@@ -143,7 +143,7 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
     if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
         if LorRorP_Val == "PARAM" and S=="nil":
-            [paramType, innerType] = convertType(classes, typeSpec, 'arg', '', genericArgs, xlator)        #"RBNode<keyType, valueType>"
+            [paramType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)        #"RBNode<keyType, valueType>"
             S = 'Optional<'+paramType+'>.none'
         elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not isLastSeg:
             S+='!'  # optionals
@@ -361,7 +361,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
         if willBeModifiedDuringTraversal:
             containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
             keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
-            [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+            [iteratorTypeStr, innerType]=convertType(ctrlVarsTypeSpec, 'var', actionOrField, genericArgs, xlator)
             loopVarName=repName+"Idx";
             if(isBackward):
                 actionText += (indent + "for " + repName+' in '+ containerName +".reversed() {\n")
@@ -684,12 +684,12 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    [convertedType, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    [convertedType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     reqTagList = progSpec.getReqTagList(lhsTypeSpec)
     fieldType = progSpec.fieldTypeKeyword(lhsTypeSpec)
-    [allocFieldType, allocFieldAttrs] = convertType(classes, lhsTypeSpec, 'alloc', '', genericArgs, xlator)
+    [allocFieldType, allocFieldAttrs] = convertType(lhsTypeSpec, 'alloc', '', genericArgs, xlator)
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType) and not progSpec.isAbstractStruct(classes[0], fieldType):
-        convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
+        convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
         allocFieldType = convertedType
         lhsTypeSpec = getGenericTypeSpec(genericArgs, lhsTypeSpec, xlator)
         if 'fromImplemented' in lhsTypeSpec: lhsTypeSpec.pop('fromImplemented')

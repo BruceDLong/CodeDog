@@ -333,7 +333,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     elif containerType=='map':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=adjustBaseTypes(idxType)
-        [convertedItmType, innerType] = convertType(classes, typeSpecOut, 'var', '', genericArgs, xlator)
+        [convertedItmType, innerType] = convertType(typeSpecOut, 'var', '', genericArgs, xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0.count(%1)>0)';
         elif name=='containsKey2'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='(%0->count(%1)>0)';
@@ -357,7 +357,7 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     elif containerType=='multimap':
         if idxType=='timeValue': convertedIdxType = 'int64_t'
         else: convertedIdxType=adjustBaseTypes(idxType)
-        [convertedItmType, innerType] = convertType(classes, typeSpecOut, 'var', '', genericArgs, xlator)
+        [convertedItmType, innerType] = convertType(typeSpecOut, 'var', '', genericArgs, xlator)
         if name=='at': pass
         elif name=='containsKey'   :  typeSpecOut={'owner':'me', 'fieldType': 'bool'}; typeSpecOut['codeConverter']='count(%1)>=1';
         elif name=='size'     : typeSpecOut={'owner':'me', 'fieldType': 'uint32'}
@@ -832,7 +832,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    [convertedType, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    [convertedType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs, xlator)

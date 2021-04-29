@@ -480,12 +480,21 @@ def applyStructImplemetation(typeSpec,currentObjName,fieldName):
     return typeSpec
 
 #### GENERIC TYPE HANDLING #############################################
+def copyTypeSpec(typeSpec):
+    copyTypeSpec = {}
+    for prop in typeSpec:
+        copyTypeSpec[prop]=copy.copy(typeSpec[prop])
+    return copyTypeSpec
+
 def copyFields(fields):
     retVal = []
     for field in fields:
         copyField = {}
         for prop in field:
-            copyField[prop] = copy.copy(field[prop])
+            if prop=='typeSpec':
+                copyField[prop] = copyTypeSpec(field[prop])
+            else:
+                copyField[prop] = copy.copy(field[prop])
         retVal.append(copyField)
     return retVal
 
@@ -500,9 +509,11 @@ def copyClassDef(classDef):
             retVal[itm] = copy.copy(classDef[itm])
     return retVal
 
-def generateGenericStructName(classes, tags, className, reqTagList, genericArgs, xlator):
+def generateGenericStructName(className, reqTagList, genericArgs, xlator):
+    global globalClassStore
     global genericStructsGenerated
     global currentObjName
+    global globalTagStore
     classDef = progSpec.findSpecOf(globalClassStore[0], className, "struct")
     if classDef == None: classDef = progSpec.findSpecOf(globalClassStore[0], className, "model")
     if classDef == None: print("NO CLASS DEF FOR: ", className)
@@ -522,7 +533,7 @@ def generateGenericStructName(classes, tags, className, reqTagList, genericArgs,
     if not genericStructName in genericStructsGenerated[1]:
         print("ADD:",genericStructName)
         genericStructsGenerated[1].append(genericStructName)
-        classes[1].append(genericStructName)
+        globalClassStore[1].append(genericStructName)
         genericClassDef = copyClassDef(classDef)
         if 'implements' in genericClassDef: genericClassDef.pop('implements')
         if 'vFields' in genericClassDef: genericClassDef['vFields'] = None
@@ -538,13 +549,13 @@ def generateGenericStructName(classes, tags, className, reqTagList, genericArgs,
                     typeSpec['reqTagList'] = reqTagList
                 typeSpec = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
                 if not isinstance(typeSpec['fieldType'], str) and len(typeSpec['fieldType'])>1:
-                    fTypeKW = generateGenericStructName(classes, tags, fTypeKW, reqTagList, genericArgs, xlator)
+                    fTypeKW = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
                     typeSpec['fieldType'] = [fTypeKW]
                 if fTypeKW == "none": field['fieldName'] = genericStructName
         genericStructsGenerated[0][genericStructName] = genericClassDef
-        classes[0][genericStructName] = genericClassDef
+        globalClassStore[0][genericStructName] = genericClassDef
         previousObjName=currentObjName
-        setUpFlagAndModeFields(classes, tags, [genericStructName], xlator)
+        setUpFlagAndModeFields(globalClassStore, globalTagStore, [genericStructName], xlator)
         currentObjName=previousObjName
     return genericStructName
 
@@ -552,6 +563,7 @@ def getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator):
     if genericArgs == None: return typeSpec
     fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
     if fTypeKW in genericArgs:
+        typeSpec = copyTypeSpec(typeSpec)
         genericType = genericArgs[fTypeKW]
         fTypeOut    = progSpec.getTypeFromTemplateArg(genericType)
         ownerOut    = progSpec.getOwnerFromTemplateArg(genericType)
@@ -564,10 +576,11 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
     fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
     reqTagList = progSpec.getReqTagList(typeSpec)
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fTypeKW) and not progSpec.isAbstractStruct(globalClassStore[0], fTypeKW):
-        convertedType = generateGenericStructName(globalClassStore, globalTagStore, fTypeKW, reqTagList, genericArgs, xlator)
-        typeSpec['fieldType'] = [convertedType]
-        if 'fromImplemented' in typeSpec:
-            fromImpl = typeSpec['fromImplemented']
+        typeSpecOut = copyTypeSpec(typeSpec)
+        convertedType = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
+        typeSpecOut['fieldType'] = [copy.copy(convertedType)]
+        if 'fromImplemented' in typeSpecOut:
+            fromImpl = typeSpecOut['fromImplemented']
             tArgList = fromImpl['typeArgList']
             genericArgsOut = {}
             if tArgList:
@@ -585,17 +598,18 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
             classInfo = getGenericClassInfo(fTypeKW)
             if classInfo['typeArgList']==None:
                 classInfo['typeArgList'] = tArgList
-            typeSpec['fromImplemented'] = classInfo
+            typeSpecOut['fromImplemented'] = classInfo
         else:
             classInfo = getGenericClassInfo(fTypeKW)
-            typeSpec['fromImplemented'] = classInfo
-        typeSpec['generic'] = True
+            typeSpecOut['fromImplemented'] = classInfo
+        typeSpecOut['generic'] = True
     else:
-        typeSpec = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
-    return typeSpec
+        typeSpecOut = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
+    return typeSpecOut
 
-def convertType(classes, typeSpec, varMode, actionOrField, genericArgs, xlator):
+def convertType(typeSpec, varMode, actionOrField, genericArgs, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
+    global globalClassStore
     typeSpec  = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
     ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
     fieldType = progSpec.getFieldTypeNew(typeSpec)
@@ -604,9 +618,9 @@ def convertType(classes, typeSpec, varMode, actionOrField, genericArgs, xlator):
             fieldType = "int"
         else:
             fieldType=fieldType[0]
-    unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, fieldType)
-    ownerOut = xlator['getUnwrappedClassOwner'](classes, typeSpec, fieldType, varMode, ownerIn)
-    retVal   = xlator['xlateLangType'](classes, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, actionOrField, xlator)
+    unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, fieldType)
+    ownerOut = xlator['getUnwrappedClassOwner'](globalClassStore, typeSpec, fieldType, varMode, ownerIn)
+    retVal   = xlator['xlateLangType'](globalClassStore, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, actionOrField, xlator)
     return retVal
 
 def codeAllocater(typeSpec, genericArgs, xlator):
@@ -615,8 +629,8 @@ def codeAllocater(typeSpec, genericArgs, xlator):
     fieldType = progSpec.fieldTypeKeyword(typeSpec)
     reqTagList = progSpec.getReqTagList(typeSpec)
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType) and not progSpec.isAbstractStruct(globalClassStore[0], fieldType):
-        convertedType = generateGenericStructName(globalClassStore, globalTagStore, fieldType, reqTagList, genericArgs, xlator)
-    else: [convertedType, innerType] = [convertedType, innerType] = convertType(globalClassStore, typeSpec, 'alloc', '', genericArgs, xlator)
+        convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
+    else: [convertedType, innerType] = [convertedType, innerType] = convertType(typeSpec, 'alloc', '', genericArgs, xlator)
     S= xlator['getCodeAllocStr'](convertedType, owner);
     return S
 
@@ -1304,9 +1318,9 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
         LHS = action['LHS']
         RHS =  action['RHS']
         typeSpec   = fetchItemsTypeSpec(LHS, objsRefed, genericArgs, xlator)
-        [typeLHS, innerTypeLHS] = convertType(globalClassStore, typeSpec[0], 'var', 'action', genericArgs, xlator)
+        [typeLHS, innerTypeLHS] = convertType(typeSpec[0], 'var', 'action', genericArgs, xlator)
         typeSpec   = fetchItemsTypeSpec(RHS, objsRefed, genericArgs, xlator)
-        [typeRHS, innerTypeRHS] = convertType(globalClassStore, typeSpec[0], 'var', 'action', genericArgs, xlator)
+        [typeRHS, innerTypeRHS] = convertType(typeSpec[0], 'var', 'action', genericArgs, xlator)
         LHS = LHS[0]
         RHS = RHS[0]
         actionText = indent + typeLHS + " tmp = " + LHS + ";\n"
@@ -1411,10 +1425,10 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, genericArg
         if progSpec.isAContainer(typeSpec) and not progSpec.typeIsPointer(typeSpec): continue
         fieldOwner=progSpec.getOwnerFromTypeSpec(typeSpec)
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
-        [convertedType, innerType] = convertType(classes, typeSpec, 'var', 'constructor', genericArgs, xlator)
+        [convertedType, innerType] = convertType(typeSpec, 'var', 'constructor', genericArgs, xlator)
         reqTagList = progSpec.getReqTagList(typeSpec)
         if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType)and not progSpec.isAbstractStruct(globalClassStore[0], fieldType):
-            convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
+            convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
         fieldName=field['fieldName']
         if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
         else: isTemplateVar = False
@@ -1505,9 +1519,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         fieldArglist = typeSpec['argList']
         paramList = field['paramList']
         reqTagList = progSpec.getReqTagList(typeSpec)
-        [intermediateType, innerType] = convertType(classes, typeSpec, 'var', 'field', genericArgs, xlator)
+        [intermediateType, innerType] = convertType(typeSpec, 'var', 'field', genericArgs, xlator)
         if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fieldType)and not progSpec.isAbstractStruct(globalClassStore[0], fieldType):
-            convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
+            convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
         else:
             convertedType = progSpec.flattenObjectName(intermediateType)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
@@ -1568,9 +1582,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     applyStructImplemetation(argTypeSpec,className,argFieldName)
                     reqTagList = progSpec.getReqTagList(argTypeSpec)
                     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, argFieldType) and not progSpec.isAbstractStruct(globalClassStore[0], argFieldType):
-                        argType = generateGenericStructName(classes, tags, argFieldType, reqTagList, genericArgs, xlator)
+                        argType = generateGenericStructName(argFieldType, reqTagList, genericArgs, xlator)
                     else:
-                        [argType, innerType] = convertType(classes, argTypeSpec, 'arg', 'field', genericArgs, xlator)
+                        [argType, innerType] = convertType(argTypeSpec, 'arg', 'field', genericArgs, xlator)
                     argListText+= xlator['codeArgText'](argFieldName, argType, argOwner, argTypeSpec, overRideOper, typeArgList, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
             #### RETURN TYPE ###########################################

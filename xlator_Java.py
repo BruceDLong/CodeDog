@@ -353,7 +353,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
     elif containerCat == "LIST":
         containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
         keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
-        [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+        [iteratorTypeStr, innerType]=convertType(ctrlVarsTypeSpec, 'var', actionOrField, genericArgs, xlator)
         loopVarName=repName+"Idx";
         if(isBackward):
             actionText += (indent + "for(int "+loopVarName+'='+containerName+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+'){\n'
@@ -611,11 +611,11 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    [convertedType, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    [convertedType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     reqTagList = progSpec.getReqTagList(lhsTypeSpec)
     fieldType = progSpec.fieldTypeKeyword(lhsTypeSpec)
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType) and not progSpec.isAbstractStruct(classes[0], fieldType):
-        convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
+        convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
         allocFieldType = convertedType
         lhsTypeSpec = getGenericTypeSpec(genericArgs, lhsTypeSpec, xlator)
         if 'fromImplemented' in lhsTypeSpec: lhsTypeSpec.pop('fromImplemented')

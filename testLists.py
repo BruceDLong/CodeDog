@@ -140,9 +140,16 @@ struct testClass{
     me void: runTest()<-{
         me Map<me string, me string>:testMapStrStr
         me Map<me string, me int>:testMapStrInt
-
+        testMapStrStr.insert("aa","zero")
+        testMapStrStr.insert("bb","one")
+        testMapStrStr.insert("cc","two")
+        testMapStrInt.insert("aa",0)
+        testMapStrInt.insert("bb",1)
+        testMapStrInt.insert("cc",2)
+        withEach strItm in testMapStrStr{print(strItm)}
+        withEach intItm in testMapStrInt{print(intItm)}
     }
-}''', 'PGBR:f ',
+}''', 'PGBR:zeroonetwo012',
     ['','']],
 ###################################################################################################
      'itrs/iterators':    ['', 'PGB:'],
