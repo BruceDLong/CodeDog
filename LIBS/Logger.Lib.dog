@@ -3,16 +3,17 @@
 requirements = [
     [require, Logger_implementation]
 ]
-featuresNeeded = [List, Threads]
+featuresNeeded = [List]//, Threads]
 
 struct logger{
     me string: logStr
     me bool: isVisible
-    me Mutex: loggerMutex
+    //me Mutex: loggerMutex
     me void: Show()             <- {isVisible <- true}
     me void: Hide()             <- {isVisible <- false}
     me void: Route(me string: routeSpec)
-    me void: LogEntry(me string: loggerName, me string: logText) <- {me MutexMngr: MtxMgr{loggerMutex}; logMgr.writeToLog(loggerName+logText)}
+    //me void: LogEntry(me string: loggerName, me string: logText) <- {me MutexMngr: MtxMgr{loggerMutex}; logMgr.writeToLog(loggerName+logText)}
+    me void: LogEntry(me string: loggerName, me string: logText) <- {logMgr.writeToLog(loggerName+logText)}
 }
 
 struct logManager{
@@ -57,6 +58,7 @@ struct GLOBAL{
         logMgr.Mesg.logStr <+- logTxt
     }
     void: logSegClear() <- {logMgr.Mesg.logStr <+- ""}
-    void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
+    //void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
+    void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
     //me void: assert(me string: condition) <- {}
 }

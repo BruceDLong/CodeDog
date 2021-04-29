@@ -3,7 +3,7 @@ requirements = [
     [require, Native_Widget_implementation]
 ]
 
-featuresNeeded = []
+featuresNeeded = [Unicode]
 
 struct GUI_offset{}
 struct GUI_ScrollingWindow{}
