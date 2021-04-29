@@ -83,6 +83,7 @@ struct GLOBAL{
     /////////////////////////////////////////////////////
     me timeValue: sleep(me timeValue: milliseconds)         <- <%!%Gsleep(UInt32(%1))%>
     me timeValue: convertToTimeVal()                        <-  <%!%G(Double)(%1)%>
+    me timeValue: double()                                  <-  <%!%G(Double)(%1)%>
 
 }
 

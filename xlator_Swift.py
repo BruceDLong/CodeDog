@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, isStruct
-from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr, convertType, generateGenericStructName
+from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr, convertType, generateGenericStructName, getGenericTypeSpec
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -115,7 +115,7 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
 def makePtrOpt(typeSpec):
     # Make pointer field variables optionals
     fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
-    if progSpec.typeIsPointer(typeSpec) and fTypeKW != 'string': return('!')
+    if progSpec.typeIsPointer(typeSpec) and (fTypeKW != 'string' or fTypeKW != 'String'): return('!')
     return('')
 
 def codeIteratorOperation(itrCommand, fieldType):
@@ -143,7 +143,7 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
     if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
         if LorRorP_Val == "PARAM" and S=="nil":
-            [paramType, innerType] = convertType(classes, typeSpec, 'arg', '', genericArgs, xlator)        #"RBNode<keyType, valueType>"
+            [paramType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)        #"RBNode<keyType, valueType>"
             S = 'Optional<'+paramType+'>.none'
         elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not isLastSeg:
             S+='!'  # optionals
@@ -361,7 +361,7 @@ def iterateContainerStr(classes,localVarsAlloc,containerType,repName,containerNa
         if willBeModifiedDuringTraversal:
             containedOwner = progSpec.getOwnerFromTypeSpec(containerType)
             keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
-            [iteratorTypeStr, innerType]=convertType(classes, ctrlVarsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+            [iteratorTypeStr, innerType]=convertType(ctrlVarsTypeSpec, 'var', actionOrField, genericArgs, xlator)
             loopVarName=repName+"Idx";
             if(isBackward):
                 actionText += (indent + "for " + repName+' in '+ containerName +".reversed() {\n")
@@ -675,7 +675,7 @@ def variableDefaultValueString(fieldType, isTypeArg, owner):
         else:fieldValueText = ' = ' + fieldType +'()'
     return fieldValueText
 
-def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, xlator):
+def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, localVarsAllocated, xlator):
     varDeclareStr = ''
     assignValue   = ''
     isAllocated   = fieldDef['isAllocated']
@@ -684,13 +684,18 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    [convertedType, innerType] = convertType(classes, lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    [convertedType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     reqTagList = progSpec.getReqTagList(lhsTypeSpec)
     fieldType = progSpec.fieldTypeKeyword(lhsTypeSpec)
-    [allocFieldType, allocFieldAttrs] = convertType(classes, lhsTypeSpec, 'alloc', '', genericArgs, xlator)
+    [allocFieldType, allocFieldAttrs] = convertType(lhsTypeSpec, 'alloc', '', genericArgs, xlator)
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType) and not progSpec.isAbstractStruct(classes[0], fieldType):
-        convertedType = generateGenericStructName(classes, tags, fieldType, reqTagList, genericArgs, xlator)
+        convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
         allocFieldType = convertedType
+        lhsTypeSpec = getGenericTypeSpec(genericArgs, lhsTypeSpec, xlator)
+        if 'fromImplemented' in lhsTypeSpec: lhsTypeSpec.pop('fromImplemented')
+        localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
+    else:
+        localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [leftMod, rightMod]=chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)
@@ -802,7 +807,7 @@ def codeCopyConstructor(fieldName, convertedType, isTemplateVar, xlator):
     return ""
 
 def codeConstructorCall(className):
-    return '        __INIT_'+className+'();\n'
+    return '        INIT();\n'
 
 def codeSuperConstructorCall(parentClassName):
     return '        super.init();\n'
@@ -825,7 +830,7 @@ def codeFuncHeaderStr(className, fieldName, returnType, argListText, localArgsAl
     else:
         if fieldName=="init":
             fieldName = "__INIT_"+className
-            structCode += indent + "func "  + fieldName +"("+argListText+")"
+            structCode += indent + "func "  + fieldName +"("+argListText+")" + returnType
         else:
             if isConstructor:
                 structCode += indent + "init "  +"("+argListText+") " + returnType
