@@ -72,6 +72,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         count+=1
         buildName=buildSpec[0]
         buildTags=buildSpec[1]
+        buildTags['buildName']= buildName 
         testMode=progSpec.fetchTagValue([tags, buildTags], 'testMode')
         progSpec.MarkItems=True
         if testMode=='makeTests' or testMode=='runTests':
@@ -80,7 +81,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
             cdlog(1, "Test Program Finished")
             tagsList=[tags, buildTags, testTagStore]
         else:
-            tagsList=[tags, buildTags,buildName]
+            tagsList=[tags, buildTags]
         #print("BUILDTAGS:", buildTags)
         cdlog(0, "\n######################   G E N E R A T I N G   S O U R C E   C O D E   S Y S T E M   {}   o f   {}...   ({})".format(count, len(buildSpecs), buildName))
         libsToUse=libraryMngr.ChooseLibs(classes, buildTags, tags)

@@ -6,6 +6,7 @@ import platform
 import codeDogParser
 import libraryMngr
 import progSpec
+import buildDog
 from progSpec import cdlog, cdErr, logLvl, dePythonStr
 from progSpec import structsNeedingModification
 from pyparsing import ParseResults
@@ -29,7 +30,6 @@ buildStr_libs=''
 globalFuncDeclAcc=''
 globalFuncDefnAcc=''
 ForwardDeclsForGlobalFuncs=''
-buildName=''
 
 listOfFuncsWithUnknownArgTypes = {}
 
@@ -1875,7 +1875,8 @@ def makeFileHeader(tags, filename, xlator):
     global libInterfacesText
     filename = makeTagText(tags, 'FileName')
     platform = makeTagText(tags, 'Platform')
-    buildStr = getBuildSting(filename,buildStr_libs,platform)
+    buildName = progSpec.fetchTagValue(tags,"buildName")
+    buildStr = buildDog.getBuildSting(filename,buildStr_libs,platform,buildName)
 
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
     header += "// " + makeTagText(tags, 'CopyrightMesg') +'\n'
@@ -2068,12 +2069,10 @@ def generate(classes, tags, libsToUse, langName, xlator):
     global buildStr_libs
     global libInterfacesText
     global listOfFuncsWithUnknownArgTypes
-    global buildName
 
     # buildStr_libs = xlator['BuildStrPrefix']
     globalClassStore=classes
     globalTagStore=tags[0]
-    buildName = tags[2]
     # buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(classes, tags, libsToUse, xlator)
 
@@ -2167,51 +2166,3 @@ def loadProgSpecFromDogFile(filename, ProgSpec, objNames, topLvlTags, macroDefs)
     stringStructs.CreateStructsForStringModels(FileClasses, newClasses, tagStore)
     return [tagStore, buildSpecs, FileClasses,newClasses]
 
-def getBuildSting (fileName, buildStr_libs, platform):
-    if platform == 'Linux':
-        debugMode='-g'
-        minLangVersion='14'
-        codeDogFolder = os.path.dirname(os.path.realpath(__file__))
-        libStr = "-I " + codeDogFolder + " "
-        langStr = 'g++'
-        langStr += ' -fdiagnostics-color '  # Add color to the output
-        langStr += ' -fcompare-debug-second '  # supress compiler notes
-        minLangStr = '-std=gnu++' + minLangVersion + ' '
-        fileExtension = '.cpp'
-        fileStr = fileName + fileExtension
-        outputFileStr = '-o ' + fileName
-        libStr += buildStr_libs
-        buildStr = langStr + debugMode + " " + minLangStr + fileStr  + " " + libStr + " " + outputFileStr
-    elif platform == 'Java' or  platform == 'Swing':
-        buildStr = ''
-        libStr = ''
-        langStr = 'javac '
-        minLangStr = ''
-        fileExtension = '.java'
-        fileStr = fileName + fileExtension
-        outputFileStr = ''
-        debugMode = ''
-        buildStr = langStr + debugMode + " " + minLangStr + fileStr + libStr + " " + outputFileStr
-    elif platform == 'Android':
-        global buildName
-        currentDir     = os.getcwd()
-        buildStr='     NOTE: Working Directory is  '+currentDir + '/' + buildName + "\n"
-        buildStr += '//     NOTE: Build Debug command:    ./gradlew assembleDebug --stacktrace \n'
-        buildStr += '//     NOTE: Build Release command:  ./gradlew assembleRelease --stacktrace \n'
-        buildStr += '//     NOTE: Install command:        ./gradlew installDebug'
-    elif platform == 'Swift':
-        fileExtension = '.swift'
-        buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
-    elif platform == 'Windows':
-        langStr = 'cl /EHsc'
-        fileExtension = '.cpp'
-        fileStr  = fileName + fileExtension
-        buildStr = langStr + " " + fileStr
-    elif platform == 'MacOS': 
-        buildStr = " rm Package.swift \n"
-        buildStr += "// swift package init --type executable \n"
-        buildStr += "// swift build -Xswiftc -suppress-warnings \n"
-        buildStr += "// swift run  -Xswiftc -suppress-warnings \n"
-    else:
-        buildStr=''
-    return buildStr
