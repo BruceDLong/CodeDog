@@ -72,6 +72,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         count+=1
         buildName=buildSpec[0]
         buildTags=buildSpec[1]
+        buildTags['buildName']= buildName 
         testMode=progSpec.fetchTagValue([tags, buildTags], 'testMode')
         progSpec.MarkItems=True
         if testMode=='makeTests' or testMode=='runTests':
