@@ -184,9 +184,9 @@ struct testClass{
 
     me Map<me int, their txtOut>: txtsOut
     me void: runTest()<-{
-        their txtOut: Tzero(false, 0)
-        their txtOut: Tone(false, 1)
-        their txtOut: Ttwo(false, 2)
+        their txtOut: Tzero{false, 0}
+        their txtOut: Tone{false, 1}
+        their txtOut: Ttwo{false, 2}
         txtsOut.insert(0,Tzero)
         txtsOut.insert(1,Tone)
         txtsOut.insert(2,Ttwo)

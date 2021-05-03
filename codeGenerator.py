@@ -655,6 +655,7 @@ def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator)
 def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, returnType, LorRorP_Val, genericArgs, xlator):
     # if TypeSpecIn has 'dummyType', this is a non-member (or self) and the first segment of the reference.
     # return example: ['getData()', <typeSpec>, <alternate form>, 'OBJVAR']
+    global globalClassStore
     S=''
     S_alt=''
     SRC=''
@@ -763,6 +764,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if "%T0Type" in convertedName:
             if(reqTagList != None):
                 T0Type  = progSpec.getTypeFromTemplateArg(reqTagList[0])
+                T0Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, T0Type)
                 T0Owner = progSpec.getOwnerFromTemplateArg(reqTagList[0])
                 T0Type  = xlator['applyOwner'](T0Owner, T0Type, "")
                 convertedName = convertedName.replace("%T0Type",T0Type)
@@ -770,6 +772,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         if "%T1Type" in convertedName:
             if(reqTagList != None):
                 T1Type  = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                T1Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, T1Type)
                 T1Owner = progSpec.getOwnerFromTemplateArg(reqTagList[1])
                 T1Type  = xlator['applyOwner'](T1Owner, T1Type, "")
                 convertedName = convertedName.replace("%T1Type",T1Type)
@@ -1145,26 +1148,25 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
         print("File iteration not implemeted yet.\n")
         exit(2)
     elif(keyRange):
-        [containerName, containerTypeSpec] = codeExpr(keyRange[0][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
+        [ctnrName, containerTSpec] = codeExpr(keyRange[0][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [StartKey, StartTypeSpec] = codeExpr(keyRange[2][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [EndKey,   EndTypeSpec] = codeExpr(keyRange[4][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-        [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, '')
-        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.getFieldTypeKeyWordOld(containerTypeSpec)[0])
-        if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
-        [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTypeSpec,containerOwner,repName,containerName,datastructID,indexTypeKeyWord,indent,xlator)
+        [datastructID, indexTypeKeyWord, ctnrOwner]=xlator['getContainerType'](containerTSpec, '')
+        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.getFieldTypeKeyWordOld(containerTSpec)[0])
+        if(wrappedTypeSpec != None):containerTSpec=wrappedTypeSpec
+        [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTSpec,ctnrOwner,repName,ctnrName,datastructID,indexTypeKeyWord,indent,xlator)
         actionText += actionTextOut
     else: # interate over a container
-        [containerName, containerTypeSpec] = codeExpr(action['repList'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-        if containerTypeSpec==None or not progSpec.isAContainer(containerTypeSpec): cdErr("'"+containerName+"' is not a container so cannot be iterated over.",containerTypeSpec)
-        [datastructID, indexTypeKeyWord, containerOwner]=xlator['getContainerType'](containerTypeSpec, 'action')
-        containerFieldTypeKey = progSpec.getFieldTypeKeyWordOld(containerTypeSpec)
+        [ctnrName, containerTSpec] = codeExpr(action['repList'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
+        if containerTSpec==None or not progSpec.isAContainer(containerTSpec): cdErr("'"+ctnrName+"' is not a container so cannot be iterated over.",containerTSpec)
+        containerFieldTypeKey = progSpec.getFieldTypeKeyWordOld(containerTSpec)
         wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerFieldTypeKey)
-        if(wrappedTypeSpec != None):containerTypeSpec=wrappedTypeSpec
+        if(wrappedTypeSpec != None):containerTSpec=wrappedTypeSpec
         if(traversalMode=='Forward' or traversalMode==None):
             isBackward=False
         elif(traversalMode=='Backward'):
             isBackward=True
-        [actionTextOut, loopCounterName, itrIncStr] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTypeSpec,repName,containerName,datastructID,indexTypeKeyWord, containerOwner, isBackward, 'action', indent, genericArgs ,xlator)
+        [actionTextOut, loopCounterName, itrIncStr] = xlator['iterateContainerStr'](globalClassStore,localVarsAllocated,containerTSpec,repName,ctnrName, isBackward, indent, genericArgs ,xlator)
         actionText += actionTextOut
     if action['whereExpr']:
         [whereExpr, whereConditionTypeSpec] = codeExpr(action['whereExpr'], objsRefed, None, None, 'RVAL', genericArgs, xlator)
