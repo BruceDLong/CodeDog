@@ -134,8 +134,8 @@ struct testClass{
 }''', 'PGBR:boy does every fine good B-boy D-does E-every F-fine G-good ',
     ['','']],
 ###################################################################################################
-     'reps/twoMaps':  ['', 'PGB:'],
-     'reps/twoMaps':  ['''
+     'maps/twoMaps':  ['', 'PGB:'],
+     'maps/twoMaps':  ['''
 struct testClass{
     me void: runTest()<-{
         me Map<me string, me string>:testMapStrStr
@@ -150,6 +150,53 @@ struct testClass{
         withEach intItm in testMapStrInt{print(intItm)}
     }
 }''', 'PGBR:zeroonetwo012',
+    ['','']],
+###################################################################################################
+     'maps/wraps':  ['', 'PGB:'],
+     'maps/wraps':  ['''
+struct wrappedStr: wraps = string{}
+struct testClass{
+    me void: runTest()<-{
+        me Map<me string, me wrappedStr>: testMapStringMyString
+        testMapStringMyString.insert("aa","zero")
+        testMapStringMyString.insert("bb","one")
+        testMapStringMyString.insert("cc","two")
+        withEach strItm in testMapStringMyString{print(strItm)}
+    }
+}''', 'PGBR:zeroonetwo',
+    ['','']],
+###################################################################################################
+     'maps/reps':  ['', 'PGB:'],
+     'maps/reps':  ['''
+struct txtOut{
+    me bool: isHidden
+    me int: val
+
+    void: output() <- {
+        print(" at:", val)
+    }
+    none: txtOut(me bool: _isHidden, me int: _val) <- {
+        isHidden <- _isHidden
+        val      <- _val
+    }
+}
+struct testClass{
+
+    me Map<me int, their txtOut>: txtsOut
+    me void: runTest()<-{
+        their txtOut: Tzero(false, 0)
+        their txtOut: Tone(false, 1)
+        their txtOut: Ttwo(false, 2)
+        txtsOut.insert(0,Tzero)
+        txtsOut.insert(1,Tone)
+        txtsOut.insert(2,Ttwo)
+        withEach itm in txtsOut{
+            if(!itm.isHidden){
+                itm.output()
+            }
+        }
+    }
+}''', 'PGBR: at:0 at:1 at:2',
     ['','']],
 ###################################################################################################
      'itrs/iterators':    ['', 'PGB:'],
