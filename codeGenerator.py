@@ -6,6 +6,7 @@ import platform
 import codeDogParser
 import libraryMngr
 import progSpec
+import buildDog
 from progSpec import cdlog, cdErr, logLvl, dePythonStr
 from progSpec import structsNeedingModification
 from pyparsing import ParseResults
@@ -1873,6 +1874,9 @@ def makeFileHeader(tags, filename, xlator):
     global buildStr_libs
     global libInterfacesText
     filename = makeTagText(tags, 'FileName')
+    platform = makeTagText(tags, 'Platform')
+    buildName = progSpec.fetchTagValue(tags,"buildName")
+    buildStr = buildDog.getBuildSting(filename,buildStr_libs,platform,buildName)
 
     header  = "// " + makeTagText(tags, 'Title') + " "+ makeTagText(tags, 'Version') + '\n'
     header += "// " + makeTagText(tags, 'CopyrightMesg') +'\n'
@@ -1883,7 +1887,7 @@ def makeFileHeader(tags, filename, xlator):
     header += "\n// " + makeTagText(tags, 'Description') +'\n'
     header += "\n/*  " + makeTagText(tags, 'LicenseText') +'\n*/\n'
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
-    header += "\n// Build Command: " +buildStr_libs+'\n\n'
+    header += "\n// Build Command: " +buildStr+'\n\n'
     header += libInterfacesText
     header += xlator['addSpecialCode'](filename)
     return header
@@ -1912,8 +1916,16 @@ def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
     if 'interface' in tagsFromLibFiles[libID]:
         if 'libFiles' in tagsFromLibFiles[libID]['interface']:
             libFiles = tagsFromLibFiles[libID]['interface']['libFiles']
+
             for libFile in libFiles:
-                buildStr_libs+=libFile+' '
+                if libFile.startswith('pkg-config'):
+                    buildStr_libs += "`"
+                    buildStr_libs += libFile
+                    buildStr_libs += "` "
+                else:
+                    if libFile =='pthread': buildStr_libs += '-pthread ';
+                    else: buildStr_libs += "-l"+libFile+ " "
+
         if 'headers' in tagsFromLibFiles[libID]['interface']:
             libHeaders = tagsFromLibFiles[libID]['interface']['headers']
             for libHdr in libHeaders:
@@ -2058,10 +2070,10 @@ def generate(classes, tags, libsToUse, langName, xlator):
     global libInterfacesText
     global listOfFuncsWithUnknownArgTypes
 
-    buildStr_libs = xlator['BuildStrPrefix']
+    # buildStr_libs = xlator['BuildStrPrefix']
     globalClassStore=classes
     globalTagStore=tags[0]
-    buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
+    # buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
     libInterfacesText=connectLibraries(classes, tags, libsToUse, xlator)
 
     cdlog(0, "\n##############  G E N E R A T I N G   "+langName+"   C O D E . . .")
@@ -2153,3 +2165,4 @@ def loadProgSpecFromDogFile(filename, ProgSpec, objNames, topLvlTags, macroDefs)
     ScanAndApplyPatterns(FileClasses, topLvlTags, tagStore)
     stringStructs.CreateStructsForStringModels(FileClasses, newClasses, tagStore)
     return [tagStore, buildSpecs, FileClasses,newClasses]
+
