@@ -72,7 +72,7 @@ struct GUI_item:                wraps = NSView{}
 struct GUI_Frame:               wraps = NSView{}
 struct GUI_canvas:              wraps = CanvasView{}
 struct GUI_container:           wraps = NSView{}
-struct INK_Image:               wraps = Canvas{}      // How will the ink look?
+//struct INK_Image:               wraps = Canvas{}      // How will the ink look?
 struct GUI_callback:            wraps = GCallback{}
 struct GUI_Scalar:              wraps = Int{}
 struct GUI_Text:                wraps = GtkWidget{}
@@ -94,23 +94,23 @@ struct GLOBAL{
 /////////////////////////////////  HANDLE EVENTS
 
 struct GUI_MouseEvent{
-    me int: x <- <%!getX()%>
-    me int: y <- <%!getY()%>
+    me int: x <- <%!locationInWindow.x%>
+    me int: y <- <%!locationInWindow.y%>
 }
 
 struct GUI_MotionEvent{
-    me int: x <- <%!getX()%>
-    me int: y <- <%!getY()%>
+    me int: x <- <%!locationInWindow.x%>
+    me int: y <- <%!locationInWindow.y%>
 }
 
 struct GUI_ButtonEvent{
-    me int: x <- <%!getX()%>
-    me int: y <- <%!getY()%>
+    me int: x <- <%!locationInWindow.x%>
+    me int: y <- <%!locationInWindow.y%>
 }
 
 struct GUI_PointerEvent{
-    me int: x <- <%!getX()%>
-    me int: y <- <%!getY()%>
+    me int: x <- <%!locationInWindow.x%>
+    me int: y <- <%!locationInWindow.y%>
 }
 
 /////////////////////////////////  EVENT DISPATCHER
@@ -284,7 +284,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     //me void: setFontScale()     <- <%{}%>
     //me void: showWidget(me GUI_item: widget) <-  <%!%>
     //me void: hideWidget(their GUI_item: widget) <- <%!%>
-    //me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%>
     //me GUI_item: newCanvas() <- <%!%>
    // me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%>
 }

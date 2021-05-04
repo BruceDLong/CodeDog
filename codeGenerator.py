@@ -525,12 +525,16 @@ def generateGenericStructName(className, reqTagList, genericArgs, xlator):
         genericArgs = {}
         count = 0
         for reqTag in reqTagList:
-            genericStructName+="_"+progSpec.getTypeFromTemplateArg(reqTag)
+            genericType        = progSpec.getTypeFromTemplateArg(reqTag)
+            unwrappedFTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
+            genericStructName+="_"+unwrappedFTypeKW
             genericArgs[typeArgList[count]]=reqTag
             count += 1
     else:
         for gArg in genericArgs:
-            genericStructName+="_"+progSpec.getTypeFromTemplateArg(genericArgs[gArg])
+            genericType        = progSpec.getTypeFromTemplateArg(genericArgs[gArg])
+            unwrappedFTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
+            genericStructName += "_"+unwrappedFTypeKW
     if not genericStructName in genericStructsGenerated[1]:
         print("ADD:",genericStructName)
         genericStructsGenerated[1].append(genericStructName)
@@ -2092,8 +2096,8 @@ def generate(classes, tags, libsToUse, langName, xlator):
     structsToImpl = fetchListOfStructsToImplement(classes, tags)
     setUpFlagAndModeFields(classes, tags, structsToImpl, xlator)
     fileSpecs=codeAllNonGlobalStructs(classes, tags, {}, structsToImpl, xlator)
-    fileSpecs=codeAllNonGlobalStructs(classes, tags, fileSpecs, genericStructsGenerated[1], xlator)
     topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
+    fileSpecs=codeAllNonGlobalStructs(classes, tags, fileSpecs, genericStructsGenerated[1], xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 
     fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, fileSpecs, [], topBottomStrings, xlator)
