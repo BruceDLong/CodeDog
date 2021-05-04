@@ -148,9 +148,9 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
     if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
         if LorRorP_Val == "PARAM" and S=="nil":
-            [paramType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)        #"RBNode<keyType, valueType>"
+            [paramType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)
             S = 'Optional<'+paramType+'>.none'
-        elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and not isLastSeg:
+        elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and isLastSeg and progSpec.typeIsPointer(typeSpec):
             S+='!'  # optionals
     return S
 
@@ -183,7 +183,7 @@ def getTheDerefPtrMods(itemTypeSpec):
             if owner=='itr':
                 containerType = progSpec.fieldTypeKeyword(itemTypeSpec)
                 if containerType =='map' or containerType == 'multimap':
-                    return ['', '->value', False]
+                    return ['', '', False]
             return ['', '', False]
     return ['', '', False]
 
@@ -203,7 +203,7 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner!='itr' and RightOwner=='itr': return ["", ".value"]
+    if LeftOwner!='itr' and RightOwner=='itr': return ["", ""]
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ['', '']
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ['', '']
     #if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
@@ -362,7 +362,6 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     if containerCat=='DblLinkedList': cdErr("TODO: handle dblLinkedList")
     if containerCat=='MAP':
         if(reqTagList != None):
-            ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec  = {'owner':ctnrTSpec['owner'], 'fieldType':containedType, 'codeConverter':(repName+'!.key')}
         ctrlVarsTypeSpec['codeConverter'] = (repName+'!.value')
@@ -772,12 +771,13 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList
         fieldValueText=" = " + convertedType + CPL
     else:
         fieldValueText = variableDefaultValueString(convertedType, isTypeArg, fieldOwner)
-        fieldValueText += makePtrOpt(typeSpec)
+        if convertedType != 'String':fieldValueText += makePtrOpt(typeSpec) # Default String value can't be optional
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
     decl = ''
-    defn =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
+    if className=='GLOBAL': defn =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
+    else: defn =  indent  + "static let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
     return [defn, decl]
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
@@ -939,7 +939,7 @@ def fetchXlators():
     xlators['fileExtension']         = ".swift"
     xlators['typeForCounterInt']     = "var"
     xlators['GlobalVarPrefix']       = ""
-    xlators['PtrConnector']          = "."                      # Name segment connector for pointers.
+    xlators['PtrConnector']          = "!."                     # Name segment connector for pointers.
     xlators['ObjConnector']          = "."                      # Name segment connector for classes.
     xlators['NameSegConnector']      = "."
     xlators['NameSegFuncConnector']  = "()."
