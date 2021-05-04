@@ -661,7 +661,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
                 assignValue= ' = '+ RHS   #' = new ' + fieldType +'();\n'+ indent + varName+' = '+RHS
     else: # If no value was given:
         CPL=''
-        if fieldDef['paramList'] != None:       # call constructor
+        if fieldDef['paramList'] != None:       # call constructor  # curly bracket param list
             # Code the constructor's arguments
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs, xlator)
             if len(paramTypeList)==1:
@@ -677,7 +677,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
                 else:
                     if isJavaPrimativeType(fieldType): assignValue  = " =  " + CPL
                     else: assignValue  = " = new " + fieldType + CPL
-            else: assignValue = " = new " + fieldType + CPL
+            if(assignValue==''): assignValue = ' = '+getCodeAllocStr(fieldType, owner)+CPL
         elif varTypeIsValueType(fieldType):
             if fieldType == 'long' or fieldType == 'int' or fieldType == 'float'or fieldType == 'double': assignValue=' = 0'
             elif fieldType == 'string':  assignValue=' = ""'

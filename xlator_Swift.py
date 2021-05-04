@@ -723,7 +723,8 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
         RHS = xlator['checkForTypeCastNeed'](lhsTypeSpec, rhsTypeSpec, RHS)
         assignValue = " = " + RHS
     else: # If no value was given:
-        if fieldDef['paramList'] != None:
+        CPL=''
+        if fieldDef['paramList'] != None:       # call constructor  # curly bracket param list
             # Code the constructor's arguments
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs, xlator)
             if len(paramTypeList)==1:
@@ -735,6 +736,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
                 if True or not isinstance(rhsType, str) and convertedType==rhsType[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
+            if(assignValue==''): assignValue = ' = ' + allocFieldType + CPL
         else:
             assignValue = variableDefaultValueString(allocFieldType, False, owner)
     fieldTypeMod = makePtrOpt(lhsTypeSpec)

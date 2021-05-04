@@ -862,7 +862,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
 
     else: # If no value was given:
         CPL=''
-        if fieldDef['paramList'] != None:       # call constructor
+        if fieldDef['paramList'] != None:       # call constructor  # curly bracket param list
             # Code the constructor's arguments
             [CPL, paramTypeList] = codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs, xlator)
             if len(paramTypeList)==1:
@@ -877,9 +877,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
                     if(not useCtor): assignValue += " = "    # Use a copy constructor
                     if(isAllocated): assignValue += getCodeAllocStr(innerType, owner)
                     assignValue += "(" + leftMod + CPL[1:-1] + rightMod + ")"
-            if(assignValue==''):
-                owner = progSpec.getTypeSpecOwner(lhsTypeSpec)
-                assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
+            if(assignValue==''): assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
         elif(progSpec.typeIsPointer(lhsTypeSpec)):
             if(isAllocated):
                 assignValue = " = " + getCodeAllocSetStr(innerType, owner, "")
