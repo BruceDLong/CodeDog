@@ -211,9 +211,9 @@ struct Styler{
     me string: monoFont
 
     void: setCustomFont(me string: ID, me string: fontName) <- {
-        //userFontNames.insert(ID, fontName)
+        userFontNames.insert(ID, fontName)
     }
-    me string: font(me string: ID) <- {/*return(userFontNames.at(ID))*/}
+    me string: font(me string: ID) <- {return(userFontNames.at(ID))}
 
     // FONT SIZES
     me Map<me string, me int>: userFontSizes

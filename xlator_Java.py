@@ -329,12 +329,14 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
 
 def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBackward,indent,genericArgs,xlator):
     #TODO: handle isBackward
+    willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
     actionText       = ""
     loopCounterName  = repName+'_key'
     owner            = progSpec.getContainerFirstElementOwner(ctnrTSpec)
     containedType    = progSpec.getContainerFirstElementType(ctnrTSpec)
     ctrlVarsTypeSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
+    reqTagList       = progSpec.getReqTagList(ctnrTSpec)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ctnrOwner)
     itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)
     itrFieldType     = progSpec.fieldTypeKeyword(itrTypeSpec)
@@ -343,10 +345,12 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     itrName          = repName + "Itr"
     containerCat     = getContaineCategory(ctnrTSpec)
     itrIncStr        = ""
-    if containerCat=='DblLinkedList':
-        cdErr("TODO: handle dblLinkedList")
-    if containerCat=="MAP":
+    if containerCat=='DblLinkedList': cdErr("TODO: handle dblLinkedList")
+    if containerCat=='MAP':
         reqTagString    = getReqTagString(classes, ctnrTSpec)
+        if(reqTagList != None):
+            ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         if datastructID=='TreeMap' or datastructID=='Java_Map':
             keyVarSpec  = {'owner':ctnrTSpec['owner'], 'fieldType':idxTypeKW, 'codeConverter':(repName+'.getKey()')}
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
@@ -355,10 +359,13 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         else:
             keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':idxTypeKW, 'codeConverter':(repName+'.node.key')}
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.node.value')
-            itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec))
+            itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)) + ' '
+            frontItr   = ctnrName+'.front()'
             if not 'generic' in ctnrTSpec: itrType += reqTagString
-            actionText += (indent + 'for('+itrType+" "+repName+'='+ctnrName+'.front(); '+repName+'.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n')
-    elif containerCat == "LIST":
+            actionText += (indent + 'for('+itrType + itrName+' ='+frontItr + '; ' + itrName + '.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n')
+           #actionText += (indent + "for("+itrType + itrName+' ='+frontItr + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
+                # + indent+"    "+itrType+repName+" = *"+itrName+";\n")
+    elif containerCat=="LIST":
         containedOwner = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
         keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
         [iteratorTypeStr, innerType]=convertType(ctrlVarsTypeSpec, 'var', 'action', genericArgs, xlator)
@@ -369,9 +376,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         else:
             actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + ctnrName+'.size(); ' + loopVarName+' += 1){\n'
                         + indent + indent + iteratorTypeStr+' '+repName+" = "+ctnrName+".get("+loopVarName+");\n")
-    else:
-        print("DSID  iterateContainerStr:",datastructID,ctnrTSpec)
-        exit(2)
+    else: cdErr("iterateContainerStr() datastructID = " + datastructID)
     localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
     localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     return [actionText, loopCounterName, itrIncStr]
