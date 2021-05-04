@@ -163,10 +163,10 @@ struct Dashboard: inherits=dash{
     }
 
     me void: drawToPDF(me string: filename, me double: inchesWide, me double: inchesHigh, me double: scale) <- {
-        their GUI_ctxt: PDF <- myGUI_ctxt.newPDF_ctxt(filename, inchesWide, inchesHigh)
-        PDF.setScale(scale, scale)
-        draw(PDF)
-        PDF.finishPDF()
+        //their GUI_ctxt: PDF <- myGUI_ctxt.newPDF_ctxt(filename, inchesWide, inchesHigh)
+        //PDF.setScale(scale, scale)
+        //draw(PDF)
+        //PDF.finishPDF()
     }
 
     //me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}

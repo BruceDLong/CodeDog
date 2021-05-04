@@ -94,23 +94,23 @@ struct GLOBAL{
 /////////////////////////////////  HANDLE EVENTS
 
 struct GUI_MouseEvent{
-    me int: x <- <%!locationInWindow.x%>
-    me int: y <- <%!locationInWindow.y%>
+    me int: x <- <%!Int(%0.locationInWindow.x)%>
+    me int: y <- <%!Int(%0.locationInWindow.y)%>
 }
 
 struct GUI_MotionEvent{
-    me int: x <- <%!locationInWindow.x%>
-    me int: y <- <%!locationInWindow.y%>
+    me int: x <- <%!Int(%0.locationInWindow.x)%>
+    me int: y <- <%!Int(%0.locationInWindow.y)%>
 }
 
 struct GUI_ButtonEvent{
-    me int: x <- <%!locationInWindow.x%>
-    me int: y <- <%!locationInWindow.y%>
+    me int: x <- <%!Int(%0.locationInWindow.x)%>
+    me int: y <- <%!Int(%0.locationInWindow.y)%>
 }
 
 struct GUI_PointerEvent{
-    me int: x <- <%!locationInWindow.x%>
-    me int: y <- <%!locationInWindow.y%>
+    me int: x <- <%!Int(%0.locationInWindow.x)%>
+    me int: y <- <%!Int(%0.locationInWindow.y)%>
 }
 
 /////////////////////////////////  EVENT DISPATCHER
@@ -118,33 +118,24 @@ struct GUI_eventDispatcher{
     their widget: topWidget
 
     me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
-        var returnVal: Bool = false
+        var returnVal: Bool = false;
 
-        switch (event.getAction()) {
-        case MotionEvent.ACTION_DOWN:
-            topWidget.primaryDn(event);
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_MOVE:
-            topWidget.mouseMoved(event);
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_UP:
-            topWidget.primaryUp(event);
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_CANCEL:
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_POINTER_DOWN:
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_POINTER_UP:
-            returnVal = true;
-            break;
-        default:
-            return false;
-        }
+        switch([event type]){
+            case NSLeftMouseDown:
+                topWidget.primaryDn(event);
+                returnVal = true;
+                break;
+            case NSMouseMoved:
+                topWidget.mouseMoved(event);
+                returnVal = true;
+                break;
+            case NSLeftMouseUp:
+                topWidget.primaryUp(event);
+                returnVal = true;
+                break;
+            default:
+                return false;
+            }
 
         return returnVal;
     }%>
