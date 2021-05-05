@@ -150,8 +150,6 @@ def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLast
         if LorRorP_Val == "PARAM" and S=="nil":
             [paramType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)
             S = 'Optional<'+paramType+'>.none'
-        elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and isLastSeg and progSpec.typeIsPointer(typeSpec):
-            S+='!'  # optionals
     return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -771,7 +769,8 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList
         fieldValueText=" = " + convertedType + CPL
     else:
         fieldValueText = variableDefaultValueString(convertedType, isTypeArg, fieldOwner)
-        if convertedType != 'String':fieldValueText += makePtrOpt(typeSpec) # Default String value can't be optional
+        if fieldValueText and convertedType != 'String':
+            fieldValueText += makePtrOpt(typeSpec) # Default String value can't be optional
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
@@ -792,7 +791,9 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
             for typeArg in typeArgList:
                 if convertedType == typeArg: isTypeArg = True
         if isTypeArg: defn = indent + "var "+ fieldName + fieldValueText + '\n'
-        else: defn = indent + "var "+ fieldName + ": " +  convertedType + fieldValueText + '\n'
+        else:
+            convertedType += makePtrOpt(typeSpec)
+            defn = indent + "var "+ fieldName + ": " +  convertedType + fieldValueText + '\n'
         decl = ''
     return [defn, decl]
 

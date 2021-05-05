@@ -740,19 +740,18 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             if fType!='string':
                 [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, genericArgs, xlator)
                 tmpTypeSpec = CheckObjectVars(fType, name, fieldIDArgList)
-                typeSpecOut = copy.copy(tmpTypeSpec)
+                typeSpecOut = copyTypeSpec(tmpTypeSpec['typeSpec'])
                 if typeSpecOut!=0:
-                    typeSpecOut['typeSpec'] = getGenericTypeSpec(genericArgs, typeSpecOut['typeSpec'], xlator)
+                    typeSpecOut = getGenericTypeSpec(genericArgs, typeSpecOut, xlator)
                     if isNewContainer == True:
-                        segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
-                        segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut['typeSpec'])
+                        segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut)
+                        segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut)
                         [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
                         if(innerTypeOwner and segTypeOwner != 'itr'):
-                            typeSpecOut['typeSpec']['owner'] = innerTypeOwner
+                            typeSpecOut['owner'] = innerTypeOwner
                         if(innerTypeKeyWord):
-                            typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
-                    name=typeSpecOut['fieldName']
-                    typeSpecOut = copy.copy(typeSpecOut['typeSpec'])
+                            typeSpecOut['fieldType'][0] = innerTypeKeyWord
+                    typeSpecOut = copyTypeSpec(typeSpecOut)
                 else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isNewContainer:",isNewContainer)
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
@@ -1519,7 +1518,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 useClassTag     = classOptionsTag["useClass"]
                 fieldType[0]    = useClassTag
         if(fieldType=='flag' or fieldType=='mode'): continue
-        fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         isAllocated = field['isAllocated']
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
@@ -1531,6 +1529,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
         else:
             convertedType = progSpec.flattenObjectName(intermediateType)
+        typeSpec = getGenericTypeSpec(genericArgs, typeSpec, xlator)
+        fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
