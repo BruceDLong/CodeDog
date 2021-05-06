@@ -176,13 +176,20 @@ def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
+        if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '', False]
         if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
-            if owner=='itr':
-                containerType = progSpec.fieldTypeKeyword(itemTypeSpec)
-                if containerType =='map' or containerType == 'multimap':
-                    return ['', '', False]
-            return ['', '', False]
+            if progSpec.isAContainer(itemTypeSpec):
+                if owner=='itr':
+                    containerType = progSpec.getDatastructID(itemTypeSpec)
+                    if containerType =='map' or containerType == 'multimap':
+                        return ['', '', False]
+                # OPTIONALS
+                return ['', '!', False]
+            else:
+                if owner!='itr':
+                    # OPTIONALS
+                    return ['', '!', True]
     return ['', '', False]
 
 def derefPtr(varRef, itemTypeSpec):
@@ -192,7 +199,10 @@ def derefPtr(varRef, itemTypeSpec):
     return [S, isDerefd]
 
 def ChoosePtrDecorationForSimpleCase(owner):
-    return ['','',  '','']
+    if(owner=='our' or owner=='my' or owner=='their'):
+        # OPTIONALS
+        return ['','',  '', '!']
+    else: return ['','',  '','']
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     # Returns left and right text decorations for RHS of function arguments, return values, etc.
@@ -201,9 +211,12 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner!='itr' and RightOwner=='itr': return ["", ""]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ['', '']
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ['', '']
+    if LeftOwner!='itr' and RightOwner=='itr':
+        return ["", ""]
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
+        return ['', '!']             # OPTIONALS
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
+        return ['', '']
     #if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
 
@@ -217,19 +230,24 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
     if LVAL==0 or LVAL==None or isinstance(LVAL, str): return ['','',  '','']
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
+    if not isinstance(assignTag, str):
+        assignTag = assignTag[0]
     if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):
-        if assignTag=='deep' :return ['','',  '','']
+        # OPTIONALS
+        if assignTag=='deep' :return ['','!',  '','!']
+        elif LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','']
         else: return ['','',  '', '']
     if LeftOwner == RightOwner: return ['','',  '','']
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
-        [leftMod, rightMod] = getTheDerefPtrMods(RVAL)
-        return ['','',  leftMod, rightMod]  # ['', '', "(*", ")"]
+        [leftMod, rightMod, isDerefd] = getTheDerefPtrMods(RVAL)
+        # OPTIONALS
+        return ['','',  leftMod, rightMod]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
-        if assignTag=='deep' :return ['','',  '', '']
+        # OPTIONALS
+        if assignTag!="" or assignTag=='deep':return ['','!',  '', '']
         else: return ['','',  "", '']
-
-    #if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
-
+    # OPTIONALS
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='literal':return ['','!',  '', '']
     return ['','',  '','']
 
 def getCodeAllocStr(varTypeStr, owner):
@@ -500,7 +518,8 @@ def codeSpecialReference(segSpec, objsRefed, genericArgs, xlator):
             S+='print('
             count = 0
             for P in paramList:
-                [S2, argType]=codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
+                [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
+                [S2, isDerefd]=derefPtr(S2, argTypeSpec)
                 if(count>0): S+=', '
                 S+=S2
                 count= count + 1
