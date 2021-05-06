@@ -940,21 +940,21 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         decl = ''
     return [defn, decl]
 
-def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody):
-    if callSuperConstructor != '':
-        callSuperConstructor = ':' + callSuperConstructor
-        if constructorInit != '':
-            callSuperConstructor = callSuperConstructor + ', '
-    elif constructorInit != '':
-        constructorInit = ':' + constructorInit
-    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
+def codeConstructor(className, ctorArgs, callSuper, ctorInit, funcBody):
+    if callSuper != '':
+        callSuper = ':' + callSuper
+        if ctorInit != '':
+            callSuper = callSuper + ', '
+    elif ctorInit != '':
+        ctorInit = ':' + ctorInit
+    S = "    " + className + "(" + ctorArgs + ")" + callSuper + ctorInit +"{\n" + funcBody + "    };\n"
     return (S)
 
-def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
+def codeConstructors(className, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper, xlator):
     S = ''
-    if constructorArgs != '':
-        S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
-  #  S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
+    if ctorArgs != '':
+        S += codeConstructor(className, ctorArgs, callSuper, ctorInit, funcBody)
+  #  S += codeConstructor(className, '', callSuper, '', funcBody)
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):

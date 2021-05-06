@@ -830,14 +830,13 @@ def codeConstructor(className, ctorArgs, callSuper, ctorInit, funcBody):
     S = '    init(' + ctorArgs + ') {\n' + funcBody + '    };\n'
     return (S)
 
-def codeConstructors(className, ctorArgs, ctorInit, copyCtorArgs, funcBody, callSuper, xlator):
+def codeConstructors(className, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper, xlator):
     #TODO: Swift should only have constructors if they are called somewhere.
+    prefix = ''
+    if callSuper != "": prefix = 'override '
     if ctorArgs != "":
-        S = "    init(" + ctorArgs+"){\n"+callSuper+ctorInit+funcBody+"    }\n"
-    if callSuper != "":
-        S += "    override init(){\n"+callSuper+funcBody+"    }\n"
-    else:
-        S += "    init(){\n"+callSuper+funcBody+"    }\n"
+        S = '    '+ctorOvrRide+'init(' + ctorArgs+'){\n'+callSuper+ctorInit+funcBody+'    }\n'
+    S += '    '+prefix+'init(){\n'+callSuper+funcBody+'    }\n'
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):

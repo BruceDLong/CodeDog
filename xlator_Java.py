@@ -738,16 +738,16 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
     return [S, '']
 
 ###################################################### CONSTRUCTORS
-def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
-    if callSuperConstructor:
+def codeConstructors(className, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper, xlator):
+    if callSuper:
         funcBody = '        super();\n' + funcBody
     withArgConstructor = ''
-    if constructorArgs != '':
-        withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
-    copyConstructor = "    public " + ClassName + "(final " + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
-    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+'\n    };\n'
+    if ctorArgs != '':
+        withArgConstructor = "    public " + className + "(" + ctorArgs+"){\n"+funcBody+ ctorInit+"    };\n"
+    copyConstructor = "    public " + className + "(final " + className + " fromVar" +"){\n        "+ className + " toVar = new "+ className + "();\n" +copyCtorArgs+"    };\n"
+    noArgConstructor = "    public "  + className + "(){\n"+funcBody+'\n    };\n'
     # TODO: remove hardCoding
-    if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"or ClassName =="GUI_ZStack"):
+    if (className =="ourSubMenu" or className =="GUI"or className =="CanvasView"or className =="APP"or className =="GUI_ZStack"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
 
