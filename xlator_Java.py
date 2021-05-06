@@ -127,6 +127,9 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if owner =="const":                     InnerLangType = fieldType
     return [langType, InnerLangType]
 
+def makePtrOpt(typeSpec):
+    return('')
+
 def isComparableType(typeSpec):
     fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
     if fTypeKW == 'keyType': return True
@@ -158,7 +161,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
         return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -932,4 +935,5 @@ def fetchXlators():
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
     xlators['getVirtualFuncText']           = getVirtualFuncText
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
+    xlators['makePtrOpt']                   = makePtrOpt
     return(xlators)

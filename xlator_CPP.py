@@ -135,6 +135,9 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
                 langType=applyOwner(ctnrOwner, langType, varMode)
     return [langType, InnerLangType]
 
+def makePtrOpt(typeSpec):
+    return('')
+
 def codeIteratorOperation(itrCommand, fieldType):
     result = ''
     if(fieldType[0]=='deque'):
@@ -156,7 +159,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
     return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -196,11 +199,11 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if(LeftOwner=="id_their" and RightOwner=="id_their"): return ["&", ""]
     if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner!='itr' and RightOwner=='itr': 
+    if LeftOwner!='itr' and RightOwner=='itr':
         return ["", "->second"]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): 
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
         return ["(*", "   )"]
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='me': 
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
         return ["&", '']
     if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
@@ -1176,4 +1179,5 @@ def fetchXlators():
     xlators['specialFunction']              = specialFunction
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
     xlators['xlateLangType']                = xlateLangType
+    xlators['makePtrOpt']                   = makePtrOpt
     return(xlators)

@@ -145,7 +145,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
     if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
         if LorRorP_Val == "PARAM" and S=="nil":
             [paramType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)
@@ -286,9 +286,11 @@ def codeIdentityCheck(S, S2, retType1, retType2, opIn):
         elif (opIn == '!=='): opOut=' !== '
         else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
         [S_derefd, isDerefd] = derefPtr(S, retType1)
-        if S2!='nil': S=S_derefd
-        elif S[-1]=='!': S=S[:-1]   # Todo: Better detect this
-        [S2, isDerefd]=derefPtr(S2, retType1)
+        if S2!='nil':
+            S=S_derefd
+            [S2, isDerefd]=derefPtr(S2, retType1)
+        elif S[-1]=='!':
+            S=S[:-1]   # Todo: Better detect this
         S+= opOut+S2
         return S
 
@@ -571,6 +573,7 @@ def codeSpecialReference(segSpec, objsRefed, genericArgs, xlator):
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
     # Check for string A[x] = B;  If so, render A.insert(B,x)
     S = ''
+    RHS += makePtrOpt(rhsType)
     [containerType, idxType, owner]=getContainerType(AltIDXFormat[1], "")
     if containerType == 'RBTreeMap' or containerType[:2]=="__" and 'Map' in containerType:
         S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
@@ -1028,4 +1031,5 @@ def fetchXlators():
     xlators['getVirtualFuncText']           = getVirtualFuncText
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
     xlators['xlateLangType']                = xlateLangType
+    xlators['makePtrOpt']                   = makePtrOpt
     return(xlators)

@@ -648,6 +648,7 @@ def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator)
         for P in paramList:
             oldTextTag='%'+str(count)
             [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
+            if S2!='self':S2 += xlator['makePtrOpt'](argTypeSpec)
             if(isinstance(newName, str)):
                 newName=newName.replace(oldTextTag, S2)
             else: exit(2)
@@ -859,6 +860,8 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, LorRorP_Val, genericArgs,
                     connector = xlator['ObjConnector']
                 elif progSpec.wrappedTypeIsPointer(globalClassStore, segTypeSpec, segName):
                     connector = xlator['PtrConnector']
+                    if previousSegName and previousSegName[-1] == ']' and connector=='!.':
+                        connector = xlator['ObjConnector']
 
         AltFormat=None
         if segTypeSpec!=None:
@@ -905,7 +908,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, LorRorP_Val, genericArgs,
 
 
         # Language specific dereferencing of ->[...], etc.
-        S = xlator['LanguageSpecificDecorations'](globalClassStore, S, segTypeSpec, owner, LorRorP_Val, isLastSeg, xlator)
+        S = xlator['LanguageSpecificDecorations'](globalClassStore, S, segTypeSpec, owner, LorRorP_Val, xlator)
 
         objsRefed[canonicalName]=0
         previousSegName = segName
