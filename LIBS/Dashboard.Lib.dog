@@ -28,7 +28,7 @@ struct dash: inherits=widget{
         if(dashParent==NULL){log("In Dash.requestRedraw() dashParent was NULL")}
         isDirty<-true; dashParent.requestRedraw()
     }
-    void: activatePropertyEditor()<- {}
+    void: activatePropertyEditor()
     void: addRelation(me string: relationType, their dash: from, their dash: to) <- {
         if(dashParent==NULL){log("In Dash.addRelation() dashParent was NULL")}
         dashParent.addRelation(relationType, from, to)

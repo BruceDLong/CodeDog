@@ -135,6 +135,9 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
                 langType=applyOwner(ctnrOwner, langType, varMode)
     return [langType, InnerLangType]
 
+def makePtrOpt(typeSpec):
+    return('')
+
 def codeIteratorOperation(itrCommand, fieldType):
     result = ''
     if(fieldType[0]=='deque'):
@@ -156,7 +159,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='strFmt('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
     return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -196,9 +199,12 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if(LeftOwner=="id_their" and RightOwner=="id_their"): return ["&", ""]
     if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner!='itr' and RightOwner=='itr': return ["", "->second"]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ["(*", "   )"]
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ["&", '']
+    if LeftOwner!='itr' and RightOwner=='itr':
+        return ["", "->second"]
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
+        return ["(*", "   )"]
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
+        return ["&", '']
     if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
 
@@ -934,21 +940,21 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
         decl = ''
     return [defn, decl]
 
-def codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody):
-    if callSuperConstructor != '':
-        callSuperConstructor = ':' + callSuperConstructor
-        if constructorInit != '':
-            callSuperConstructor = callSuperConstructor + ', '
-    elif constructorInit != '':
-        constructorInit = ':' + constructorInit
-    S = "    " + ClassName + "(" + constructorArgs + ")" + callSuperConstructor + constructorInit +"{\n" + funcBody + "    };\n"
+def codeConstructor(className, ctorArgs, callSuper, ctorInit, funcBody):
+    if callSuper != '':
+        callSuper = ':' + callSuper
+        if ctorInit != '':
+            callSuper = callSuper + ', '
+    elif ctorInit != '':
+        ctorInit = ':' + ctorInit
+    S = "    " + className + "(" + ctorArgs + ")" + callSuper + ctorInit +"{\n" + funcBody + "    };\n"
     return (S)
 
-def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
+def codeConstructors(className, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper, xlator):
     S = ''
-    if constructorArgs != '':
-        S += codeConstructor(ClassName, constructorArgs, callSuperConstructor, constructorInit, funcBody)
-  #  S += codeConstructor(ClassName, '', callSuperConstructor, '', funcBody)
+    if ctorArgs != '':
+        S += codeConstructor(className, ctorArgs, callSuper, ctorInit, funcBody)
+  #  S += codeConstructor(className, '', callSuper, '', funcBody)
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -1173,4 +1179,5 @@ def fetchXlators():
     xlators['specialFunction']              = specialFunction
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
     xlators['xlateLangType']                = xlateLangType
+    xlators['makePtrOpt']                   = makePtrOpt
     return(xlators)

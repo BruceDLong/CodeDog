@@ -115,7 +115,7 @@ def convertFieldIDType(fieldID, convertType):
         fieldID = reassembleFieldID(classAndFuncName, newArgList)
     return(fieldID)
 def isArgNumeric(arg):
-    if arg=='numeric' or arg=='int' or arg=='uint' or arg=='uint32' or arg=='BigInt' or arg=='int64' or arg=='uint':
+    if arg=='numeric' or arg=='int' or arg=='int32' or arg=='int64'  or arg=='uint' or arg=='uint32' or arg=='uint64' or arg=='BigInt':
         return True
     return False
 
@@ -648,6 +648,7 @@ def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator)
         for P in paramList:
             oldTextTag='%'+str(count)
             [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
+            if S2!='self':S2 += xlator['makePtrOpt'](argTypeSpec)
             if(isinstance(newName, str)):
                 newName=newName.replace(oldTextTag, S2)
             else: exit(2)
@@ -740,19 +741,18 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             if fType!='string':
                 [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, genericArgs, xlator)
                 tmpTypeSpec = CheckObjectVars(fType, name, fieldIDArgList)
-                typeSpecOut = copy.copy(tmpTypeSpec)
+                typeSpecOut = copyTypeSpec(tmpTypeSpec['typeSpec'])
                 if typeSpecOut!=0:
-                    typeSpecOut['typeSpec'] = getGenericTypeSpec(genericArgs, typeSpecOut['typeSpec'], xlator)
+                    typeSpecOut = getGenericTypeSpec(genericArgs, typeSpecOut, xlator)
                     if isNewContainer == True:
-                        segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut['typeSpec'])
-                        segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut['typeSpec'])
+                        segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut)
+                        segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut)
                         [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
                         if(innerTypeOwner and segTypeOwner != 'itr'):
-                            typeSpecOut['typeSpec']['owner'] = innerTypeOwner
+                            typeSpecOut['owner'] = innerTypeOwner
                         if(innerTypeKeyWord):
-                            typeSpecOut['typeSpec']['fieldType'][0] = innerTypeKeyWord
-                    name=typeSpecOut['fieldName']
-                    typeSpecOut = copy.copy(typeSpecOut['typeSpec'])
+                            typeSpecOut['fieldType'][0] = innerTypeKeyWord
+                    typeSpecOut = copyTypeSpec(typeSpecOut)
                 else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isNewContainer:",isNewContainer)
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
@@ -860,6 +860,8 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, LorRorP_Val, genericArgs,
                     connector = xlator['ObjConnector']
                 elif progSpec.wrappedTypeIsPointer(globalClassStore, segTypeSpec, segName):
                     connector = xlator['PtrConnector']
+                    if previousSegName and previousSegName[-1] == ']' and connector=='!.':
+                        connector = xlator['ObjConnector']
 
         AltFormat=None
         if segTypeSpec!=None:
@@ -906,7 +908,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, LorRorP_Val, genericArgs,
 
 
         # Language specific dereferencing of ->[...], etc.
-        S = xlator['LanguageSpecificDecorations'](globalClassStore, S, segTypeSpec, owner, LorRorP_Val, isLastSeg, xlator)
+        S = xlator['LanguageSpecificDecorations'](globalClassStore, S, segTypeSpec, owner, LorRorP_Val, xlator)
 
         objsRefed[canonicalName]=0
         previousSegName = segName
@@ -1412,19 +1414,36 @@ def codeActionSeq(actSeq, indent, objsRefed, returnType, genericArgs, xlator):
         localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
-def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, genericArgs, xlator):
-    baseType = progSpec.isWrappedType(classes, ClassName)
+def getCtorArgTypes(className, genericArgs, xlator):
+    ctorArgTypes = []
+    count=0
+    for field in progSpec.generateListOfFieldsToImplement(globalClassStore, className):
+        tSpec  = field['typeSpec']
+        fType  = progSpec.fieldTypeKeyword(tSpec)
+        fOwner = progSpec.getOwnerFromTypeSpec(tSpec)
+        if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner == 'we' or (tSpec['argList'] or tSpec['argList']!=None) or (progSpec.isAContainer(tSpec) and not progSpec.typeIsPointer(tSpec)):
+            continue
+        if(fOwner != 'me' and fOwner != 'my') or (isinstance(fType, str) and ((isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
+            [convertedType, innerType] = convertType(tSpec, 'var', 'constructor', genericArgs, xlator)
+            reqTagList = progSpec.getReqTagList(tSpec)
+            if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fType)and not progSpec.isAbstractStruct(globalClassStore[0], fType):
+                convertedType = generateGenericStructName(fType, reqTagList, genericArgs, xlator)
+            ctorArgTypes.append(convertedType)
+    return ctorArgTypes
+
+def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArgs, xlator):
+    baseType = progSpec.isWrappedType(classes, className)
     if(baseType!=None): return ''
-    if not ClassName in classes[0]: return ''
-    cdlog(4, "Generating Constructor for: {}".format(ClassName))
-    ObjectDef = classes[0][ClassName]
-    flatClassName = progSpec.flattenObjectName(ClassName)
+    if not className in classes[0]: return ''
+    cdlog(4, "Generating Constructor for: {}".format(className))
+    ObjectDef = classes[0][className]
+    flatClassName = progSpec.flattenObjectName(className)
     genericArgs =  progSpec.getGenericArgs(ObjectDef)
     ctorInit=""
     ctorArgs=""
     copyCtorArgs=""
     count=0
-    for field in progSpec.generateListOfFieldsToImplement(classes, ClassName):
+    for field in progSpec.generateListOfFieldsToImplement(classes, className):
         typeSpec =field['typeSpec']
         fieldType=progSpec.fieldTypeKeyword(typeSpec)
         if(fieldType=='flag' or fieldType=='mode'): continue
@@ -1440,7 +1459,7 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, genericArg
         if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
         else: isTemplateVar = False
 
-        cdlog(4, "Coding Constructor: {} {} {} {}".format(ClassName, fieldName, fieldType, convertedType))
+        cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, convertedType))
         defaultVal=''
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
@@ -1461,22 +1480,29 @@ def codeConstructor(classes, ClassName, tags, objsRefed, typeArgList, genericArg
             count += 1
         copyCtorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, isTemplateVar, xlator)
 
-    funcBody = ''
-    ctorCode=''
-    callSuper=''
-    parentClasses = progSpec.getParentClassList(classes, ClassName)
+    funcBody    = ''
+    ctorCode    = ''
+    callSuper   = ''
+    ctorOvrRide = ''
+    parentClass = ''
+    parentClasses = progSpec.getParentClassList(classes, className)
     if parentClasses:
-        parentClasses[0] = progSpec.filterClassesToString(parentClasses[0])
-        callSuper = xlator['codeSuperConstructorCall'](parentClasses[0])
+        parentClass = progSpec.filterClassesToString(parentClasses[0])
+        callSuper = xlator['codeSuperConstructorCall'](parentClass)
 
-    fieldID  = ClassName+'::INIT'
-    if(progSpec.doesClassDirectlyImlementThisField(classes[0], ClassName, fieldID)):
-        funcBody += xlator['codeConstructorCall'](ClassName)
+
+    fieldID  = className+'::INIT'
+    if(progSpec.doesClassDirectlyImlementThisField(classes[0], className, fieldID)):
+        funcBody += xlator['codeConstructorCall'](className)
     if(count>0):
         ctorArgs=ctorArgs[0:-1]
+    if ctorArgs:
+        ctorArgTypes       = getCtorArgTypes(className, genericArgs, xlator)
+        parentCtorArgTypes = getCtorArgTypes(parentClass, genericArgs, xlator)
+        if ctorArgTypes == parentCtorArgTypes:
+            ctorOvrRide = 'override '
     if count>0 or funcBody != '':
-        ctorCode += xlator['codeConstructors'](flatClassName, ctorArgs, ctorInit, copyCtorArgs, funcBody, callSuper, xlator)
-
+        ctorCode += xlator['codeConstructors'](flatClassName, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper, xlator)
     return ctorCode
 
 #### codeStructFields ##################################################
@@ -1519,7 +1545,6 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 useClassTag     = classOptionsTag["useClass"]
                 fieldType[0]    = useClassTag
         if(fieldType=='flag' or fieldType=='mode'): continue
-        fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         isAllocated = field['isAllocated']
         cdlog(4, "FieldName: {}".format(fieldName))
         fieldValue=field['value']
@@ -1531,6 +1556,8 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
         else:
             convertedType = progSpec.flattenObjectName(intermediateType)
+        typeSpec = getGenericTypeSpec(genericArgs, typeSpec, xlator)
+        fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         ## ASSIGNMENTS###############################################
         if fieldName=='opAssign':
@@ -1611,7 +1638,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 classRelationData = progSpec.classHeirarchyInfo[currentObjName]
                 if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
                     parentClassName = classRelationData['parentClass']
-                    if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldID):
+                    if progSpec.fieldNameInStructHierachy(classes[0], parentClassName, fieldName):
                         inheritMode = 'override'
 
             abstractFunction = (not('value' in field) or field['value']==None)
@@ -1619,12 +1646,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 inheritMode = 'pure-virtual'
                 classes[0][className]['attrList'].append('abstract')
             # TODO: this is hard coded to compensate for when virtual func class has base class and child class
-            if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):inheritMode = 'virtual'
+            if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):
+                inheritMode = 'virtual'
             # ####################################################################
             fTypeKW=progSpec.fieldTypeKeyword(typeSpec)
             if fTypeKW =='none': isCtor = True
-            else:
-                isCtor = False
+            else: isCtor = False
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isCtor, typeArgList, typeSpec, indent)
 
             #### FUNC BODY
@@ -1781,6 +1808,8 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
                 parentClass=className[0:seperatorIdx]
 
             objsRefed={}
+            callableStructFields=[]
+            progSpec.populateCallableStructFields(callableStructFields, globalClassStore, className)
             [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
             structCode+= constFieldCode
 

@@ -145,13 +145,11 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
     if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
         if LorRorP_Val == "PARAM" and S=="nil":
             [paramType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)
             S = 'Optional<'+paramType+'>.none'
-        elif S!='NULL' and S[-1]!=']' and S[-1]!=')' and S!='self' and isLastSeg and progSpec.typeIsPointer(typeSpec):
-            S+='!'  # optionals
     return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -178,13 +176,20 @@ def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
 
 def getTheDerefPtrMods(itemTypeSpec):
     if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
+        if progSpec.isNewContainerTempFunc(itemTypeSpec): return ['', '', False]
         if progSpec.typeIsPointer(itemTypeSpec):
             owner=progSpec.getTypeSpecOwner(itemTypeSpec)
-            if owner=='itr':
-                containerType = progSpec.fieldTypeKeyword(itemTypeSpec)
-                if containerType =='map' or containerType == 'multimap':
-                    return ['', '', False]
-            return ['', '', False]
+            if progSpec.isAContainer(itemTypeSpec):
+                if owner=='itr':
+                    containerType = progSpec.getDatastructID(itemTypeSpec)
+                    if containerType =='map' or containerType == 'multimap':
+                        return ['', '', False]
+                # OPTIONALS
+                return ['', '!', False]
+            else:
+                if owner!='itr':
+                    # OPTIONALS
+                    return ['', '!', True]
     return ['', '', False]
 
 def derefPtr(varRef, itemTypeSpec):
@@ -194,7 +199,10 @@ def derefPtr(varRef, itemTypeSpec):
     return [S, isDerefd]
 
 def ChoosePtrDecorationForSimpleCase(owner):
-    return ['','',  '','']
+    if(owner=='our' or owner=='my' or owner=='their'):
+        # OPTIONALS
+        return ['','',  '', '!']
+    else: return ['','',  '','']
 
 def chooseVirtualRValOwner(LVAL, RVAL):
     # Returns left and right text decorations for RHS of function arguments, return values, etc.
@@ -203,9 +211,12 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
     if LeftOwner == RightOwner: return ["", ""]
-    if LeftOwner!='itr' and RightOwner=='itr': return ["", ""]
-    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL): return ['', '']
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='me': return ['', '']
+    if LeftOwner!='itr' and RightOwner=='itr':
+        return ["", ""]
+    if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
+        return ['', '!']             # OPTIONALS
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
+        return ['', '']
     #if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','.get()']
     return ['','']
 
@@ -219,19 +230,24 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
     if LVAL==0 or LVAL==None or isinstance(LVAL, str): return ['','',  '','']
     LeftOwner =progSpec.getTypeSpecOwner(LVAL)
     RightOwner=progSpec.getTypeSpecOwner(RVAL)
+    if not isinstance(assignTag, str):
+        assignTag = assignTag[0]
     if progSpec.typeIsPointer(LVAL) and progSpec.typeIsPointer(RVAL):
-        if assignTag=='deep' :return ['','',  '','']
+        # OPTIONALS
+        if assignTag=='deep' :return ['','!',  '','!']
+        elif LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','']
         else: return ['','',  '', '']
     if LeftOwner == RightOwner: return ['','',  '','']
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
-        [leftMod, rightMod] = getTheDerefPtrMods(RVAL)
-        return ['','',  leftMod, rightMod]  # ['', '', "(*", ")"]
+        [leftMod, rightMod, isDerefd] = getTheDerefPtrMods(RVAL)
+        # OPTIONALS
+        return ['','',  leftMod, rightMod]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
-        if assignTag=='deep' :return ['','',  '', '']
+        # OPTIONALS
+        if assignTag!="" or assignTag=='deep':return ['','!',  '', '']
         else: return ['','',  "", '']
-
-    #if LeftOwner=='their' and (RightOwner=='our' or RightOwner=='my'): return ['','', '','.get()']
-
+    # OPTIONALS
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='literal':return ['','!',  '', '']
     return ['','',  '','']
 
 def getCodeAllocStr(varTypeStr, owner):
@@ -270,9 +286,11 @@ def codeIdentityCheck(S, S2, retType1, retType2, opIn):
         elif (opIn == '!=='): opOut=' !== '
         else: print("ERROR: '==' or '!=' or '===' or '!==' expected."); exit(2)
         [S_derefd, isDerefd] = derefPtr(S, retType1)
-        if S2!='nil': S=S_derefd
-        elif S[-1]=='!': S=S[:-1]   # Todo: Better detect this
-        [S2, isDerefd]=derefPtr(S2, retType1)
+        if S2!='nil':
+            S=S_derefd
+            [S2, isDerefd]=derefPtr(S2, retType1)
+        elif S[-1]=='!':
+            S=S[:-1]   # Todo: Better detect this
         S+= opOut+S2
         return S
 
@@ -502,7 +520,8 @@ def codeSpecialReference(segSpec, objsRefed, genericArgs, xlator):
             S+='print('
             count = 0
             for P in paramList:
-                [S2, argType]=codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
+                [S2, argTypeSpec]=codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, xlator)
+                [S2, isDerefd]=derefPtr(S2, argTypeSpec)
                 if(count>0): S+=', '
                 S+=S2
                 count= count + 1
@@ -554,6 +573,7 @@ def codeSpecialReference(segSpec, objsRefed, genericArgs, xlator):
 def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
     # Check for string A[x] = B;  If so, render A.insert(B,x)
     S = ''
+    RHS += makePtrOpt(rhsType)
     [containerType, idxType, owner]=getContainerType(AltIDXFormat[1], "")
     if containerType == 'RBTreeMap' or containerType[:2]=="__" and 'Map' in containerType:
         S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
@@ -771,7 +791,8 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList
         fieldValueText=" = " + convertedType + CPL
     else:
         fieldValueText = variableDefaultValueString(convertedType, isTypeArg, fieldOwner)
-        if convertedType != 'String':fieldValueText += makePtrOpt(typeSpec) # Default String value can't be optional
+        if fieldValueText and convertedType != 'String':
+            fieldValueText += makePtrOpt(typeSpec) # Default String value can't be optional
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
@@ -792,7 +813,9 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
             for typeArg in typeArgList:
                 if convertedType == typeArg: isTypeArg = True
         if isTypeArg: defn = indent + "var "+ fieldName + fieldValueText + '\n'
-        else: defn = indent + "var "+ fieldName + ": " +  convertedType + fieldValueText + '\n'
+        else:
+            convertedType += makePtrOpt(typeSpec)
+            defn = indent + "var "+ fieldName + ": " +  convertedType + fieldValueText + '\n'
         decl = ''
     return [defn, decl]
 
@@ -807,14 +830,13 @@ def codeConstructor(className, ctorArgs, callSuper, ctorInit, funcBody):
     S = '    init(' + ctorArgs + ') {\n' + funcBody + '    };\n'
     return (S)
 
-def codeConstructors(className, ctorArgs, ctorInit, copyCtorArgs, funcBody, callSuper, xlator):
+def codeConstructors(className, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper, xlator):
     #TODO: Swift should only have constructors if they are called somewhere.
+    prefix = ''
+    if callSuper != "": prefix = 'override '
     if ctorArgs != "":
-        S = "    init(" + ctorArgs+"){\n"+callSuper+ctorInit+funcBody+"    }\n"
-    if callSuper != "":
-        S += "    override init(){\n"+callSuper+funcBody+"    }\n"
-    else:
-        S += "    init(){\n"+callSuper+funcBody+"    }\n"
+        S = '    '+ctorOvrRide+'init(' + ctorArgs+'){\n'+callSuper+ctorInit+funcBody+'    }\n'
+    S += '    '+prefix+'init(){\n'+callSuper+funcBody+'    }\n'
     return S
 
 def codeConstructorInit(fieldName, count, defaultVal, xlator):
@@ -1008,4 +1030,5 @@ def fetchXlators():
     xlators['getVirtualFuncText']           = getVirtualFuncText
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
     xlators['xlateLangType']                = xlateLangType
+    xlators['makePtrOpt']                   = makePtrOpt
     return(xlators)

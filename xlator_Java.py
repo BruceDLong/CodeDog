@@ -127,6 +127,9 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if owner =="const":                     InnerLangType = fieldType
     return [langType, InnerLangType]
 
+def makePtrOpt(typeSpec):
+    return('')
+
 def isComparableType(typeSpec):
     fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
     if fTypeKW == 'keyType': return True
@@ -158,7 +161,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String.format('+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, isLastSeg, xlator):
+def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
         return S
 
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
@@ -735,16 +738,16 @@ def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, classNa
     return [S, '']
 
 ###################################################### CONSTRUCTORS
-def codeConstructors(ClassName, constructorArgs, constructorInit, copyConstructorArgs, funcBody, callSuperConstructor, xlator):
-    if callSuperConstructor:
+def codeConstructors(className, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper, xlator):
+    if callSuper:
         funcBody = '        super();\n' + funcBody
     withArgConstructor = ''
-    if constructorArgs != '':
-        withArgConstructor = "    public " + ClassName + "(" + constructorArgs+"){\n"+funcBody+ constructorInit+"    };\n"
-    copyConstructor = "    public " + ClassName + "(final " + ClassName + " fromVar" +"){\n        "+ ClassName + " toVar = new "+ ClassName + "();\n" +copyConstructorArgs+"    };\n"
-    noArgConstructor = "    public "  + ClassName + "(){\n"+funcBody+'\n    };\n'
+    if ctorArgs != '':
+        withArgConstructor = "    public " + className + "(" + ctorArgs+"){\n"+funcBody+ ctorInit+"    };\n"
+    copyConstructor = "    public " + className + "(final " + className + " fromVar" +"){\n        "+ className + " toVar = new "+ className + "();\n" +copyCtorArgs+"    };\n"
+    noArgConstructor = "    public "  + className + "(){\n"+funcBody+'\n    };\n'
     # TODO: remove hardCoding
-    if (ClassName =="ourSubMenu" or ClassName =="GUI"or ClassName =="CanvasView"or ClassName =="APP"or ClassName =="GUI_ZStack"):
+    if (className =="ourSubMenu" or className =="GUI"or className =="CanvasView"or className =="APP"or className =="GUI_ZStack"):
         return ""
     return withArgConstructor + copyConstructor + noArgConstructor
 
@@ -932,4 +935,5 @@ def fetchXlators():
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
     xlators['getVirtualFuncText']           = getVirtualFuncText
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
+    xlators['makePtrOpt']                   = makePtrOpt
     return(xlators)
