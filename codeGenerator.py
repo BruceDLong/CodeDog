@@ -1638,7 +1638,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 classRelationData = progSpec.classHeirarchyInfo[currentObjName]
                 if ('parentClass' in classRelationData and classRelationData['parentClass']!=None):
                     parentClassName = classRelationData['parentClass']
-                    if progSpec.fieldIDAlreadyDeclaredInStruct(classes[0], parentClassName, fieldID):
+                    if progSpec.fieldNameInStructHierachy(classes[0], parentClassName, fieldName):
                         inheritMode = 'override'
 
             abstractFunction = (not('value' in field) or field['value']==None)
@@ -1651,8 +1651,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             # ####################################################################
             fTypeKW=progSpec.fieldTypeKeyword(typeSpec)
             if fTypeKW =='none': isCtor = True
-            else:
-                isCtor = False
+            else: isCtor = False
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isCtor, typeArgList, typeSpec, indent)
 
             #### FUNC BODY
@@ -1809,6 +1808,8 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
                 parentClass=className[0:seperatorIdx]
 
             objsRefed={}
+            callableStructFields=[]
+            progSpec.populateCallableStructFields(callableStructFields, globalClassStore, className)
             [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
             structCode+= constFieldCode
 
