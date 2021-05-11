@@ -60,8 +60,16 @@ class CanvasView: NSView{
     }
     func setParent(_ wid: DashboardWidget!) -> Void{
         var wid = wid
-
         parent = wid;
+    }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool{
+        return true
+    }
+    override func mouseDown(with event: NSEvent){
+        parent.EventDispatcher.dispatchPointerClickEvent(event)
+    }
+    override func mouseUp(with event: NSEvent){
+        parent.EventDispatcher.dispatchPointerClickEvent(event)
     }
 };
 `
@@ -120,22 +128,20 @@ struct GUI_eventDispatcher{
     me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
         var returnVal: Bool = false;
 
-        switch([event type]){
-            case NSLeftMouseDown:
+        switch(event.type){
+            case .leftMouseDown:
                 topWidget.primaryDn(event);
                 returnVal = true;
+                //let alert = NSAlert(); alert.messageText = "MouseDown."; alert.runModal()
                 break;
-            case NSMouseMoved:
-                topWidget.mouseMoved(event);
-                returnVal = true;
-                break;
-            case NSLeftMouseUp:
+            case .leftMouseUp:
                 topWidget.primaryUp(event);
                 returnVal = true;
+                //let alert = NSAlert(); alert.messageText = "MousUp."; alert.runModal()
                 break;
             default:
                 return false;
-            }
+        }
 
         return returnVal;
     }%>
