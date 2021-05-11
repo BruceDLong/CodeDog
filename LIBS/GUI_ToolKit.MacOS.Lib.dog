@@ -46,7 +46,7 @@ class ViewController: NSViewController {
 class CanvasView: NSView{
     var cr: CGContext!
     var parent: DashboardWidget!
-    var scaleFactor: Float = 0
+    var scaleFactor: Double = 1
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
     }
@@ -71,6 +71,16 @@ class CanvasView: NSView{
     override func mouseUp(with event: NSEvent){
         parent.EventDispatcher.dispatchPointerClickEvent(event)
     }
+    override func mouseMoved(with event: NSEvent){
+        parent.EventDispatcher.dispatchPointerMotionEvent(event)
+    }
+    override var acceptsFirstResponder: Bool {return true}
+    override func keyDown(with event: NSEvent){
+        parent.EventDispatcher.dispatchKeyboardEvent(event)
+    }
+    override func keyUp(with event: NSEvent){
+        parent.EventDispatcher.dispatchKeyboardEvent(event)
+    }
 };
 `
 
@@ -85,7 +95,6 @@ struct GUI_callback:            wraps = GCallback{}
 struct GUI_Scalar:              wraps = Int{}
 struct GUI_Text:                wraps = GtkWidget{}
 //struct GDK_KEY_Down:          wraps = ???{}
-struct GUI_MouseEvent:          wraps = NSEvent{}
 struct GUI_MotionEvent:         wraps = NSEvent{}
 struct GUI_ButtonEvent:         wraps = NSEvent{}
 struct GUI_PointerEvent:        wraps = NSEvent{}
@@ -100,34 +109,33 @@ struct GLOBAL{
     me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%1.addSubview(%2)%>
 }
 /////////////////////////////////  HANDLE EVENTS
-
-struct GUI_MouseEvent{
-    me int: x <- <%!Int(%0!.locationInWindow.x)%>
-    me int: y <- <%!Int(%0!.locationInWindow.y)%>
-}
-
 struct GUI_MotionEvent{
     me int: x <- <%!Int(%0!.locationInWindow.x)%>
     me int: y <- <%!Int(%0!.locationInWindow.y)%>
 }
-
 struct GUI_ButtonEvent{
     me int: x <- <%!Int(%0!.locationInWindow.x)%>
     me int: y <- <%!Int(%0!.locationInWindow.y)%>
 }
-
 struct GUI_PointerEvent{
     me int: x <- <%!Int(%0!.locationInWindow.x)%>
     me int: y <- <%!Int(%0!.locationInWindow.y)%>
 }
-
+struct GUI_KeyboardEvent{
+}
 /////////////////////////////////  EVENT DISPATCHER
 struct GUI_eventDispatcher{
     their widget: topWidget
 
-    me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
+    me bool: dispatchPointerMotionEvent(their GUI_MotionEvent: event) <- <%{
+        //let alert = NSAlert(); alert.messageText = "MouseMoved."; alert.runModal()
+        //event.locationInWindow.x = event.locationInWindow.x / scaleFactor;
+        //event.locationInWindow.y = event.locationInWindow.y / scaleFactor;
+        topWidget.mouseMoved(event);
+        return false;
+    }%>
+    me bool: dispatchPointerClickEvent(their GUI_ButtonEvent: event) <- <%{
         var returnVal: Bool = false;
-
         switch(event.type){
             case .leftMouseDown:
                 topWidget.primaryDn(event);
@@ -137,15 +145,18 @@ struct GUI_eventDispatcher{
             case .leftMouseUp:
                 topWidget.primaryUp(event);
                 returnVal = true;
-                //let alert = NSAlert(); alert.messageText = "MousUp."; alert.runModal()
+                //let alert = NSAlert(); alert.messageText = "MouseUp."; alert.runModal()
                 break;
             default:
                 return false;
         }
-
         return returnVal;
     }%>
-
+    me bool: dispatchKeyboardEvent(their GUI_KeyboardEvent: event) <- <%{
+        //let alert = NSAlert(); alert.messageText = "Key."; alert.runModal()
+        topWidget.keyTyped(event);
+        return(true);
+    }%>
     me void: registerWidgetForEventDispatcher(me CanvasView: appWidget, their widget: masterWidget) <- {
         topWidget<-masterWidget
     }
@@ -159,14 +170,8 @@ struct GUI_canvas{
 /////////////////////////////////  HANDLE GUI
 struct GUI{
     me GUI_Frame: frame
-    //me LinearLayout: layoutArea
-    //me NestedScrollView: scroller
 
     me none: GUI() <- {}
-
-    me void: GUI_PopulateAndExec() <- <%{
-    }%>
-
     me uint32: GUI_Init() <- <%{
         thisApp.createAppArea(frame)
         let delegate = AppDelegate()
@@ -174,12 +179,10 @@ struct GUI{
         _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
         return(0);
     }%>
-
     me uint32: GUI_Run() <- <%{
         let status: UInt32 = 0;
         return(status);
     }%>
-
     me void: GUI_Deinit() <- {}
 }
 
@@ -244,10 +247,12 @@ struct APP{
 }
 /////////////////////////////////  G L O B A L
 struct GLOBAL: inherits=AppCompatActivity{
+    // //TIME ROUTINES:
+    //me long: ticksPerSec()    <- <%!%>
+    //me int64: getCurrentTimeStamp() <- <%!%>
     their NSWindow: window
     me int: widgetHeight() <- <%!%G(Int)(%1.bounds.size.height)%>
     me int: widgetWidth()  <- <%!%G(Int)(%1.bounds.size.width)%>
-    //me long: ticksPerSec()    <- <%!%>
     me int: displayHeightPx
     me int: displayWidthPx
 
