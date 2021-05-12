@@ -30,9 +30,10 @@ do makeGUI(GUI_Spec)
 struct testWidget: inherits=DashboardWidget{
 
     void: draw(their GUI_ctxt: cr) <- {
-        print("In DRAW()\n")
+        print("In DRAW TEST WIDGET!!!!!!!()\n")
         me cdColor: lineColor <- cdColor(255,0,0)
         cr.setColor(lineColor)
+        cr.setLineWidth(5)
         cr.moveTo(0, 0)
         cr.lineTo(1200, 1200)
         cr.moveTo(1200, 0)
@@ -45,14 +46,23 @@ struct testWidget: inherits=DashboardWidget{
         renderText(cr, "Hello World!", testFont, 150, 100)
         cr.strokeNow()
 
+        cr.setRGB(0,255,0)
+        cr.circle(200, 200, 50)
+        cr.rectangle(300,100, 10, 200)
+        cr.strokeNow()
+
+        cr.setRGBA(0,0,255,0.5)
+        cr.moveTo(300,300)
+        cr.lineTo(300,400)
+        cr.lineTo(400,400)
+        cr.lineTo(400,300)
+        cr.closePath()
+        cr.strokeNow()
+
         // Here you can add tests for other drawing functions:
-        //    setRGB(), setRGBA()
-        //    setLineWidth()
         //    setScale()
         //    moveRel(), lineRel()
         //    curveTo(), curveRel()
-        //    closePath()
-        //    rectangle()
         //    fillNow(), etc
         //    setFillPattern() and gradient control functions.
     }

@@ -90,11 +90,10 @@ struct GUI_item:                wraps = NSView{}
 struct GUI_Frame:               wraps = NSView{}
 struct GUI_canvas:              wraps = CanvasView{}
 struct GUI_container:           wraps = NSView{}
-//struct INK_Image:               wraps = Canvas{}      // How will the ink look?
+//struct INK_Image:               wraps = CGImage{}      // How will the ink look?
 struct GUI_callback:            wraps = GCallback{}
 struct GUI_Scalar:              wraps = Int{}
-struct GUI_Text:                wraps = GtkWidget{}
-//struct GDK_KEY_Down:          wraps = ???{}
+//struct GUI_Text:                wraps = GtkWidget{}
 struct GUI_MotionEvent:         wraps = NSEvent{}
 struct GUI_ButtonEvent:         wraps = NSEvent{}
 struct GUI_PointerEvent:        wraps = NSEvent{}
@@ -191,35 +190,34 @@ struct GUI{
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = 1280; f.size.height = 800; %1.frame = f%>
     //their GUI_item: newScrollingWindow() <- <%!%>
     //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%>
-    me void: setCallback() <- <%!%G %>
+    me void: setCallback() <- <%!%G%>
     me GUI_Frame: GUI_Frame(me string: label) <- <%!%GNSView()%>
 }
 
 struct GUI_ctxt{
     //me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!%>
     //me void: reset()                                  <- <%!%>
-    //me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%>
-    //me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%0!.setFillColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:%4);%0!.setStrokeColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:%4)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%0!.setFillColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:1);%0!.setStrokeColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:1)%>
     me void: setColor(me cdColor: color)                <- <%!%0!.setFillColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1);%0!.setStrokeColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1)%>
     me void: setLineWidth(me double: width)             <- <%!setLineWidth(CGFloat(%1))%>
-    //me void: finishPDF()                              <- <%!%>
-    //me void: setScale()                               <- <%!%>
+    //me void: finishPDF()                                <- <%!closePDF()%>
+    //me void: setScale()                                 <- <%!scaleBy(x: %1, y: %2)%>
     me void: moveTo(me double: x, me double: y)         <- <%!move(to:CGPoint(x:%1, y:%2))%>
     me void: lineTo(me double: x, me double: y)         <- <%!addLine(to:CGPoint(x:%1, y:%2))%>
     //me void: moveRel(me double: dx, me double: dy)    <- <%!%>
     //me void: lineRel(me double: dx, me double: dy)    <- <%!%>
-    //me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!%>
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!addCurve(to: CGPoint(x: %1, y: %2), control1: CGPoint(x: %3, y: %4), control2: CGPoint(x: %5, y: %6))%>
     //me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!%>
-    //me void: closePath()                              <- <%!%>
+    me void: closePath()                                <- <%!closePath()%>
     me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!addRect(CGRect(x:%1, y:%2, width:%3, height:%4))%>
     me void: paintNow()                                 <- <%!drawPath(using: .fillStroke)%>
     me void: strokeNow()                                <- <%!drawPath(using: .fillStroke)%>
     me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:screenWidth, height:screenHeight))%>
     //me void: strokeKeep()                             <- <%!%>
     me void: fillKeep()                                 <- <%!fillPath()%>
-    //me void: renderFrame()                            <- <%!%>
     //me void: setFillPattern()                         <- <%!%>
-    //me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!%>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!addEllipse(in:CGRect(x: %1-%3, y: %2-%3, width: 2*%3, height: 2*%3))%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- {}
 }
 
@@ -276,19 +274,27 @@ struct GLOBAL: inherits=AppCompatActivity{
         let size = deltaSize();
         return(size);
     }%>
-    //me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{}%>
+    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- {
+        cr.moveTo(x+r,y);                      //# Move to A
+        cr.lineTo(x+w-r,y);                    //# Straight line to B
+        cr.curveTo(x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
+        cr.lineTo(x+w,y+h-r);                  //# Move to D
+        cr.curveTo(x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cr.lineTo(x+r,y+h);                    //# Line to F
+        cr.curveTo(x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cr.lineTo(x,y+r);                      //# Line to H
+        cr.curveTo(x,y,x,y,x+r,y);             //# Curve to A;
+    }
     //me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{}%>
 
     // //GUI INTERFACE:
-
     //me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{}%>
-    //me void: getMetrics()       <- <%{}%>
-    //me void: setFontScale()     <- <%{}%>
-    //me void: showWidget(me GUI_item: widget) <-  <%!%>
-    //me void: hideWidget(their GUI_item: widget) <- <%!%>
+    me void: getMetrics()                           <- <%{displayDensity = 1;}%>
+    //me void: showWidget(me GUI_item: widget)      <- <%!%>
+    //me void: hideWidget(their GUI_item: widget)   <- <%!%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%>
-    //me GUI_item: newCanvas() <- <%!%>
-   // me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%>
+    me GUI_item: newCanvas()                        <- <%!%GNSView()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = %2; f.size.height = %3; %1.frame = f%>
 }
 
 /////////////////////////////////  INTER-THREAD COMMUNICATION
