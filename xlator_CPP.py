@@ -240,7 +240,7 @@ def determinePtrConfigForAssignments(LVAL, RVAL, assignTag, codeStr):
         if assignTag!="" or assignTag=='deep':return ['(*',')',  '', '']
         else: return ['','',  "&", '']
     if progSpec.typeIsPointer(LVAL) and RightOwner=='literal':return ['(*',')',  '', '']
-    if progSpec.typeIsPointer(LVAL) and RightOwner=='const':return ['*','', '','']
+    if progSpec.typeIsPointer(LVAL) and RightOwner=='const':return ['(*',')', '','']
     return ['','',  '','']
 
 def getCodeAllocStr(varTypeStr, owner):

@@ -105,6 +105,7 @@ struct testClass{
      'actions/flagAsgn':     ['struct testClass{flag: isStart \n me void: runTest()<-{print(isStart) \n isStart<-true \n print("-") \n  print(isStart)}}', 'PGBR:0-1'],
      'actions/modeAsgn':     ['struct testClass{me mode[small, medium, large]: myMode \n me void: runTest()<-{print(myModeStrings[myMode]+ "-") \n myMode<- large \n print(myModeStrings[myMode])}}', 'PGBR:small-large'],
      'actions/stringAsgn':   ['struct testClass{me void: runTest()<-{me string: actionStrAsgn \n actionStrAsgn<-"Hello" \n print(actionStrAsgn)}}', 'PGBR:Hello'],
+     #'actions/listAsgn':      ['struct testClass{\nme void: runTest()<-{\nme List<me string>: testList \ntestList[0] <- "HELLO" \nprint(testList[0])}}', 'PGBR:HELLO'],
      'actions/mapAsgn':      ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap \n testMap["key0"]<-"value0" \n print(testMap["key0"])}}', 'PGBR:value0'],
      #'actions/dictAsgn':
      #'actions/mapPush':     ['struct testClass{me void: runTest()<-{me List<me string, me string>:testMap<-{"key":"value"}}}', 'PGB:'],
@@ -127,6 +128,9 @@ struct testClass{
         me string: actionStrAsgn
         actionStrAsgn<-"Hello"
         print(" AsgnStr:"+actionStrAsgn)
+        //me List<me string>: testList
+        //testList[0] <- "HELLO"
+        //print(" AsgnLst:", testList[0])
         me Map<me string, me string>:testMap
         testMap["key0"]<-"value0"
         print(" IDX:"+testMap["key0"])
@@ -153,7 +157,7 @@ struct testClass{
     }
 }''', 'PGBR:true false 3',['actions/conditional','actions/switch']],
 #####################################################################################################
-# TODO: make tests for 'actions/repetitions':  'actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteMapRep','actions/deleteListRep'
+# TODO: make tests for 'actions/deleteMapRep'
      'actions/rangeRep':     ['struct testClass{me void: runTest()<-{withEach spec in RANGE(2..6){print(spec," ")}}}', 'PGBR:2 3 4 5 '],
      'actions/backRangeRep': ['struct testClass{me void: runTest()<-{withEach RB in Backward RANGE(2..6){print(RB," ")}}}', 'PGBR:5 4 3 2 '],
      'actions/listRep':      ['struct testClass{me void: runTest()<-{me List<me int>:testList<-[2,13,-22,188]\nwithEach T in testList {print(T," ")}}}', 'PGBR:2 13 -22 188 '],
@@ -293,9 +297,9 @@ struct testClass{
         their int: h <- pV
         print(h)
         //assignConstTheir
-        const int: A <- 5 
+        const int: A <- 5
         their int:: B
-        B <deep- A 
+        B <deep- A
         print(B)
     }
 }''', 'PGBR:45',['actions/assignpVtheir','actions/assignConstTheir']],
