@@ -886,13 +886,12 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, LorRorP_Val, genericArgs,
         else: canonicalName+='.'+segName
 
         # Should this be called as a global?
-        lenConnector = len(connector)
         callAsGlobal=segStr.find("%G")
         if(callAsGlobal >= 0):
             S=''
             prevLen=0
             segStr=segStr.replace("%G", '')
-            if S[:lenConnector]==connector: S=S[lenConnector:]
+            segStr=segStr[len(connector):]
             connector=''
 
         # Handle case where LeftName is connected by '->' but the next segment is '[...]'. So we need '(*left)[...]'
@@ -904,7 +903,7 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, LorRorP_Val, genericArgs,
         if(segStr.find("%0") >= 0):
     #        if connector=='->' and owner!='itr': S="*("+S+")"
             S=segStr.replace("%0", S)
-            if S[:lenConnector]==connector: S=S[lenConnector:]
+            S=S[len(connector):]
         else: S+=segStr
 
 
@@ -920,13 +919,13 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, LorRorP_Val, genericArgs,
     if segTypeSpec and LorR_Val=='RVAL' and 'fieldType' in segTypeSpec:
         fieldType=progSpec.fieldTypeKeyword(segTypeSpec)
         if fieldType=='flag':
-            if segStr[:lenConnector]==connector: segName=segStr[lenConnector:]
+            segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName, LHSParentType, xlator)
             bitfieldMask=xlator['applyTypecast']('uint64', prefix+segName)
             flagReadCode = '('+S[0:prevLen] + connector + 'flags & ' + bitfieldMask+')'
             S=xlator['applyTypecast']('uint64', flagReadCode)
         elif fieldType=='mode':
-            if segStr[:lenConnector]==connector: segName=segStr[lenConnector:]
+            segName=segStr[len(connector):]
             prefix = staticVarNamePrefix(segName+"Mask", LHSParentType, xlator)
             bitfieldMask  =xlator['applyTypecast']('uint64', prefix+segName+"Mask")
             bitfieldOffset=xlator['applyTypecast']('uint64', prefix+segName+"Offset")
@@ -2201,4 +2200,3 @@ def loadProgSpecFromDogFile(filename, ProgSpec, objNames, topLvlTags, macroDefs)
     ScanAndApplyPatterns(FileClasses, topLvlTags, tagStore)
     stringStructs.CreateStructsForStringModels(FileClasses, newClasses, tagStore)
     return [tagStore, buildSpecs, FileClasses,newClasses]
-
