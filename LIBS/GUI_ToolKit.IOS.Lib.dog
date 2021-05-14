@@ -5,7 +5,7 @@ requirements = [
 
 interface={
     provides=[GUI_ToolKit_implementation]
-//    libFiles=[`pkg-config --cflags --libs gtk-3.0`]
+    libFiles=[``]
     headers=[UIKit]
 }
 
@@ -13,313 +13,270 @@ LibDescription ={
     useStatus   = dynamic
     description ='Provides a GUI Toolkit or iPhone, iPad, etc.'
     features    =[GUI_ToolKit, Mouse, Keyboard, Audio]
-    platforms   =[Linux, OS-X_Devices, Windows]
-    bindings    =[C, CPP, Swift, ObjectiveC]
-    CPUs        =[i386, amd64, arm7]
+    platforms   =[IOS]
+    bindings    =[Swift]
 }
-embedLow = `
-@UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate{
-    var window: UIWindow?
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        window = UIWindow(frame: UIScreen.main.bounds)
-        let mainViewController = ViewController()
-        window?.rootViewController = mainViewController
-        window?.makeKeyAndVisible()
+initCode = ``
+
+embedVeryHigh = `
+// APP DELEGATE /////////////////////////////////////////////////////
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         return true
     }
-
-    func applicationWillResignActive(_ application: UIApplication) -> Void {
-        var application = application
+    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
     }
-    func applicationDidEnterBackground(_ application: UIApplication) -> Void {
-        var application = application
-    }
-    func applicationWillEnterForeground(_ application: UIApplication) -> Void {
-        var application = application
-    }
-    func applicationDidBecomeActive(_ application: UIApplication) -> Void {
-        var application = application
-    }
-    func applicationWillTerminate(_ application: UIApplication) -> Void {
-        var application = application
+    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {}
+}
+// SCENE DELEGATE ////////////////////////////////////////////////////
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    var window: UIWindow?
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        guard let _ = (scene as? UIWindowScene) else { return }
+        guard let windowScene = (scene as? UIWindowScene) else { return }
+        window = UIWindow(frame: windowScene.coordinateSpace.bounds)
+        window?.windowScene = windowScene
+        window?.rootViewController = ViewController()
+        window?.makeKeyAndVisible()
     }
 }
+// VIEW CONTROLLER //////////////////////////////////////////////////
 class ViewController: UIViewController {
-// var appView: UIView!
-var headerView: UIView!
-var titleLabel: UILabel!
-var appView: UIView!
-
     override func viewDidLoad() {
         super.viewDidLoad()
-        appView = UIView()
-        //thisApp.createAppArea(appView)
-        setupHeader()
-        setupTitleLabel()
-        jg_function()
+        view.backgroundColor = .systemRed
+        view.addSubview(drawing_area!)
     }
-
-    func setupHeader() {
-        //      Initialize view
-        headerView = UIView()
-
-        //      set background color as a method
-        headerView.backgroundColor = .gray
-
-        self.view.addSubview(headerView)
-
-        //      Set position of headerView view using constraints
-        headerView.translatesAutoresizingMaskIntoConstraints = false
-        headerView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor).isActive = true
-        headerView.topAnchor.constraint(equalTo: self.view.topAnchor).isActive = true
-        headerView.widthAnchor.constraint(equalTo: self.view.widthAnchor, multiplier: 1).isActive = true
-        headerView.heightAnchor.constraint(equalTo: self.view.heightAnchor, multiplier: 0.1).isActive = true
-    }
-    func setupTitleLabel() {
-        //      Initialize view
-        titleLabel = UILabel()
-
-        //      set methods for the look of the titlelabel
-        titleLabel.text = "FutureApp"
-        titleLabel.textAlignment = .center
-        titleLabel.font = UIFont(name: titleLabel.font.fontName, size: 20)
-        titleLabel.textColor = .blue
-        titleLabel.backgroundColor = .orange
-
-        //      add titleLabel to the headerViews view
-        headerView.addSubview(titleLabel)
-
-        //      Set position of titleLabel using constraints
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.centerXAnchor.constraint(equalTo: headerView.centerXAnchor).isActive = true
-        titleLabel.bottomAnchor.constraint(equalTo: headerView.bottomAnchor).isActive = true
-        titleLabel.widthAnchor.constraint(equalTo: headerView.widthAnchor, multiplier: 0.4).isActive = true
-        titleLabel.heightAnchor.constraint(equalTo: headerView.heightAnchor, multiplier: 0.5).isActive = true
-    }
-
-    func jg_function() {
-        let tw = topAppWidget(frame: CGRect(x: 0,
-        y: headerView.frame.height+70,
-        width:UIScreen.main.bounds.size.width,
-        height:UIScreen.main.bounds.size.height-70))
-
-        //        Use some dot notation to assign methods to topAppWidget as tw
-        tw.backgroundColor = .gray
-        //        tw.clearsContextBeforeDrawing = true
-
-        //      add class topAppWidget to the ViewController
-        self.view.addSubview(tw)
-
-        //      add more
-        self.view.backgroundColor = .purple
-        appView = topAppWidget()
-        thisApp.createAppArea(appView)
-        self.view.addSubview(appView)
-
-
+    override func loadView() {
+        self.view = UIView(frame: CGRect(x: 0, y: 0, width:  100, height:  100))
     }
 }
+// CANVAS VIEW /////////////////////////////////////////////////////
+class CanvasView: UIView{
+    var cr: CGContext!
+    var parent: DashboardWidget!
+    var scaleFactor: Double = 1
 
-class topAppWidget: UIView {
-    override func draw(_ rect: CGRect) {
-    let context = UIGraphicsGetCurrentContext()
-    context?.setStrokeColor(UIColor.white.cgColor)
-    context?.__moveTo(x:0, y:0)
-    context?.__addLineTo(x: self.frame.size.width, y:self.frame.size.height)
-    context?.__moveTo(x:UIScreen.main.bounds.size.width, y:0)
-    context?.__addLineTo(x:0, y:UIScreen.main.bounds.size.height-70)
-    context?.strokePath()
-    // EventDispatcher.topWidget?.draw()
-
-
+    override func draw(_ dirtyRect: CGRect) {
+        cr = UIGraphicsGetCurrentContext()
+        parent.EventDispatcher.topWidget.draw(cr)
     }
-
-    //override func primaryClick(_ event: GdkEventButton?) -> Bool {
-      //  var event = event
-
-        //return(true);
-    //}
-    //override func secondaryClick(_ event: GdkEventButton?) -> Bool {
-     //   var event = event
-
-       // return(true);
-    //}
-
+    func setParent(_ wid: DashboardWidget!) -> Void{
+        var wid = wid
+        parent = wid;
+    }
 }
-
 `
 
 /////////////////////////////////  STRUCT CONVERTERS
-struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
-//struct GUI_offset{their GtkAdjustment:GUI_offset}
-struct GUI_item{their UIView: GUI_item}
-struct GUI_Frame{their UIView: GUI_Frame}
-struct GUI_menuBar{their UIView: GUI_menuBar}
-struct GUI_menu{their UIView: GUI_menu}
-struct GUI_menuItem{their UIView: GUI_menuItem}
-struct GUI_canvas{their UIView: GUI_canvas}
-struct GUI_container{their UIView:GUI_container}
-struct GUI_ScrollingWindow{their UIView: GUI_ScrollingWindow}
-//struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
-struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_Scalar{me Int: GUI_Scalar}
-//struct GUI_Label{their textView: GUI_Label}
-struct listWidget{their HWND: listWidget}
+struct GUI_rect                 {me double: x1 me double: y1 me double: x2 me double: y2}
+struct GUI_item:                wraps = UIView{}
+struct GUI_Frame:               wraps = UIView{}
+struct GUI_canvas:              wraps = CanvasView{}
+struct GUI_container:           wraps = UIView{}
+//struct INK_Image:               wraps = CGImage{}      // How will the ink look?
+struct GUI_Scalar:              wraps = Int{}
+struct GUI_MotionEvent:         wraps = UIEvent{}
+struct GUI_ButtonEvent:         wraps = UIEvent{}
+struct GUI_PointerEvent:        wraps = UIEvent{}
+struct GUI_KeyboardEvent:       wraps = UIEvent{}
+struct GUI_UserEvent:           wraps = UIEvent{}
+struct GUI_TimeEvent:           wraps = UIEvent{}
+struct GUI_DataEvent:           wraps = UIEvent{}
+struct GUI_WindowEvent:         wraps = UIEvent{}
+struct GUI_ctxt:                wraps = CGContext{}
+/////////////////////////////////  GLOBAL WIDGET FUNCTIONS
+struct GLOBAL{
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%1.addSubview(%2)%>
+}
+/////////////////////////////////  HANDLE EVENTS
+struct GUI_MotionEvent{
+    me int: x <- <%!Int(%0!.locationInWindow.x)%>
+    me int: y <- <%!Int(%0!.locationInWindow.y)%>
+}
+struct GUI_ButtonEvent{
+    me int: x <- <%!Int(%0!.locationInWindow.x)%>
+    me int: y <- <%!Int(%0!.locationInWindow.y)%>
+}
+struct GUI_PointerEvent{
+    me int: x <- <%!Int(%0!.locationInWindow.x)%>
+    me int: y <- <%!Int(%0!.locationInWindow.y)%>
+}
+struct GUI_KeyboardEvent{
+}
+/////////////////////////////////  EVENT DISPATCHER
+struct GUI_eventDispatcher{
+    their widget: topWidget
 
+    me bool: dispatchPointerMotionEvent(their GUI_MotionEvent: event) <- <%{
+        //event.locationInWindow.x = event.locationInWindow.x / scaleFactor;
+        //event.locationInWindow.y = event.locationInWindow.y / scaleFactor;
+        topWidget.mouseMoved(event);
+        return false;
+    }%>
+    me bool: dispatchPointerClickEvent(their GUI_ButtonEvent: event) <- <%{
+        var returnVal: Bool = false;
+        switch(event.type){
+            case .leftMouseDown:
+                topWidget.primaryDn(event);
+                returnVal = true;
+                //let alert = Alert(); alert.messageText = "MouseDown."; alert.runModal()
+                break;
+            case .leftMouseUp:
+                topWidget.primaryUp(event);
+                returnVal = true;
+                break;
+            default:
+                return false;
+        }
+        return returnVal;
+    }%>
+    me bool: dispatchKeyboardEvent(their GUI_KeyboardEvent: event) <- <%{
+        topWidget.keyTyped(event);
+        return(true);
+    }%>
+    me void: registerWidgetForEventDispatcher(me CanvasView: appWidget, their widget: masterWidget) <- {
+        topWidget<-masterWidget
+    }
+}
+
+/////////////////////////////////  HANDLE GUI
+struct GUI_canvas{
+    me void: setParent(our DashboardWidget: wid) <- <%!setParent(%1)%>
+}
 
 /////////////////////////////////  HANDLE GUI
 struct GUI{
-    me uint32: GUI_Init()
-    me uint32: GUI_Run()
-    me void: GUI_Deinit()
+    me GUI_Frame: frame
+
+    me none: GUI() <- {}
+    me uint32: GUI_Init() <- <%{
+        thisApp.createAppArea(frame)
+        let delegate = AppDelegate()
+        let delegate = AppDelegate()
+        UIApplication.shared.delegate = delegate
+        _ = UIApplicationMain(CommandLine.argc, UnsafeMutableRawPointer(CommandLine.unsafeArgv).bindMemory(to: UnsafeMutablePointer<Int8>.self, capacity: Int(CommandLine.argc)), nil, NSStringFromClass(AppDelegate.self))
+        return(0);
+    }%>
+    me uint32: GUI_Run() <- <%{
+        let status: UInt32 = 0;
+        return(status);
+    }%>
+    me void: GUI_Deinit() <- {}
 }
-struct GUI_rect{me CGRect:GUI_rect}
-struct GUI_Frame{me UIView:GUI_Frame}
 
 struct GUI{
-    me void: showWidget(me GUI_item: widget)
-    me GUI_item: newCanvas()
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height)
-    me GUI_item: newScrollingWindow()
-    me void: addToContainer(me GUI_container: container, me GUI_item: widget)
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget)
-    //me void: addMenuBar(me GUI_menuBar: menubar)
-    //me void: create_MenuItem(me GUI_menu: ParentMenu, me string: label)
-    //me void: create_TopSubMenu(me GUI_menuBar: ParentMenu, me string: label)
-    //me void: create_SubMenu(me GUI_menu: ParentMenu, me string: label)
-    me void: setCallback()
-    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh)
+    their GUI_item: newCanvas() <- <%!%GCanvasView()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = 1280; f.size.height = 800; %1.frame = f%>
+    //their GUI_item: newScrollingWindow() <- <%!%>
+    //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%>
+    me void: setCallback() <- <%!%G%>
+    me GUI_Frame: GUI_Frame(me string: label) <- <%!%GUIView()%>
 }
 
-struct GUI_ctxt {
-    their CGContext:GUI_ctxt
-    me void: fetchAreaToBeDrawn(me GUI_rect: area)
-    me void: reset()
-    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha)
-    me void: setRGB (me double: red, me double: green, me double: blue)
-    me void: setLineWidth(me double: width)
-    me void: finishPDF()
-    me void: setScale()
-    me void: moveTo(me double: x, me double: y)
-    me void: lineTo(me double: x, me double: y)
-    me void: moveRel(me double: dx, me double: dy)
-    me void: lineRel(me double: dx, me double: dy)
-    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3)
-    me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3)
-    me void: closePath()
-    me void: rectangle()
-    me void: paintNow()
-    me void: strokeNow()
-    me void: fillNow()
-    me void: strokeKeep()
-    me void: fillKeep()
-    me void: setFillPattern()
+struct GUI_ctxt{
+    //me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!%>
+    //me void: reset()                                  <- <%!%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%0!.setFillColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:%4);%0!.setStrokeColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:%4)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%0!.setFillColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:1);%0!.setStrokeColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:1)%>
+    me void: setColor(me cdColor: color)                <- <%!%0!.setFillColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1);%0!.setStrokeColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1)%>
+    me void: setLineWidth(me double: width)             <- <%!setLineWidth(CGFloat(%1))%>
+    //me void: finishPDF()                                <- <%!closePDF()%>
+    //me void: setScale()                                 <- <%!scaleBy(x: %1, y: %2)%>
+    me void: moveTo(me double: x, me double: y)         <- <%!move(to:CGPoint(x:%1, y:%2))%>
+    me void: lineTo(me double: x, me double: y)         <- <%!addLine(to:CGPoint(x:%1, y:%2))%>
+    //me void: moveRel(me double: dx, me double: dy)    <- <%!%>
+    //me void: lineRel(me double: dx, me double: dy)    <- <%!%>
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!addCurve(to: CGPoint(x: %1, y: %2), control1: CGPoint(x: %3, y: %4), control2: CGPoint(x: %5, y: %6))%>
+    //me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!%>
+    me void: closePath()                                <- <%!closePath()%>
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!addRect(CGRect(x:%1, y:%2, width:%3, height:%4))%>
+    me void: paintNow()                                 <- <%!drawPath(using: .fillStroke)%>
+    me void: strokeNow()                                <- <%!drawPath(using: .fillStroke)%>
+    me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:screenWidth, height:screenHeight))%>
+    //me void: strokeKeep()                             <- <%!%>
+    me void: fillKeep()                                 <- <%!fillPath()%>
+    //me void: setFillPattern()                         <- <%!%>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!addEllipse(in:CGRect(x: %1-%3, y: %2-%3, width: 2*%3, height: 2*%3))%>
+    me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- {}
 }
 
-/*
-struct AppDelegate: implements='UIResponder, UIApplicationDelegate' attrs='@UIApplicationMain'
+struct GUI_ctxt{
+    me Paint: paint
+    me Path: GPath
+    me double: cur_x
+    me double: cur_y
+    me Canvas: GCanvas
 
-{
+    me none: GUI_ctxt () <- {
+        Allocate(paint)
+        Allocate(GPath)
+    }
+
+    me none: GUI_ctxt(me Canvas: canvas) <- {
+        Allocate(paint)
+        Allocate(GPath)
+        GCanvas <- canvas
+    }
+}
+
+struct APP{
+    //me none: APP() <- <%{}%>
+}
+/////////////////////////////////  G L O B A L
+struct GLOBAL: inherits=AppCompatActivity{
+    // //TIME ROUTINES:
+    //me long: ticksPerSec()    <- <%!%>
+    //me int64: getCurrentTimeStamp() <- <%!%>
     their UIWindow: window
-    //struct AppDelegate: implements='UIResponder, UIApplicationDelegate' {
-    //their UIWindow: window
+    me int: widgetHeight() <- <%!%G(Int)(%1.bounds.size.height)%>
+    me int: widgetWidth()  <- <%!%G(Int)(%1.bounds.size.width)%>
+    me int: displayHeightPx
+    me int: displayWidthPx
 
-    me bool: application(me UIApplication: application, their Any[list UIApplicationLaunchOptionsKey]:launchOptions) <- <%{
-
-window = UIWindow(frame: UIScreen.main.bounds)
-    window?.backgroundColor = UIColor.blue
-    let mainViewController = ViewController()
-    let mainView = UIView(frame: CGRect(x:0, y:0, width:320, height:568))
-    mainViewController.view = mainView
-    mainViewController.title = "Home View!"
-    //    mainViewController.setToolbarHidden(false, animated: true)
-
-    //    mainViewController.pushViewController(firstViewController, animated: true)
-    //    window!.rootViewController = mainViewController
-    //    window!.makeKeyAndVisible()
-    window?.rootViewController = mainViewController
-    window?.makeKeyAndVisible()
-    thisApp.createAppArea(mainView)
-
-    return true
-
+    // //DRAWING ROUTINES:
+    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me GUI_Scalar: x, me GUI_Scalar: y) <- <%{
+        cr.saveGState()
+        cr.textPosition = CGPoint(x: x, y: y)
+        let color = CGColor.black
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: Font.boldSystemFont(ofSize: CGFloat(font.size)), .foregroundColor: color]))
+        CTLineDraw(line, cr)
+        cr.restoreGState()
+        //////////////////////////
+        var size:deltaSize = getTextSize(cr, text, font);
+        return(size);
     }%>
-
-    void: applicationWillResignActive(UIApplication: application) <- {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
+    //me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{}%>
+    //me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{}%>
+    //me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{}%>
+    //me void: restore(me GUI_ctxt: cr) <- <%!%>
+    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+        let size = deltaSize();
+        return(size);
+    }%>
+    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- {
+        cr.moveTo(x+r,y);                      //# Move to A
+        cr.lineTo(x+w-r,y);                    //# Straight line to B
+        cr.curveTo(x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
+        cr.lineTo(x+w,y+h-r);                  //# Move to D
+        cr.curveTo(x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cr.lineTo(x+r,y+h);                    //# Line to F
+        cr.curveTo(x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cr.lineTo(x,y+r);                      //# Line to H
+        cr.curveTo(x,y,x,y,x+r,y);             //# Curve to A;
     }
+    //me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{}%>
 
-    void: applicationDidEnterBackground(UIApplication: application) <- {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
-    }
-
-    void: applicationWillEnterForeground(UIApplication: application) <- {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
-    }
-
-    void: applicationDidBecomeActive(UIApplication: application) <- {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
-    }
-
-    void: applicationWillTerminate(UIApplication: application) <- {
-        // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
-    }
-
-}
-*/
-/////////////////////////////////  HANDLE EVENTS
-/////////////////////////////////  EVENT DISPATCHER
-struct IOS_eventDispatcher{
-their widget: topWidget
-me bool: dispatchPointerMotionEvent(me UIView: event)
-// me bool: dispatchKeyboardEvent(their GdkEventKey: event)
-// me bool: dispatchWindowEvent(their GdkEventConfigure: event)
-// Also: timer, data and user events
-me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget)
+    // //GUI INTERFACE:
+    //me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{}%>
+    me void: getMetrics()                           <- <%{displayDensity = 1;}%>
+    //me void: showWidget(me GUI_item: widget)      <- <%!%>
+    //me void: hideWidget(their GUI_item: widget)   <- <%!%>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%>
+    me GUI_item: newCanvas()                        <- <%!%GUIView()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = %2; f.size.height = %3; %1.frame = f%>
 }
 
-/////////////////////////////////   Event callbacks
-struct GLOBAL{
-    me IOS_eventDispatcher: EventDispatcher
-}
-
-struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
-
-struct GUI_ButtonEvent{their GdkEventButton: GUI_ButtonEvent}
-struct GUI_ButtonEvent{
-me uint: type
-// GdkWindow *window;
-// gint8 send_event;
-// guint32 time;
-me double: x
-me double: y
-me uint: state
-me uint: button
-}
-///////////////////////////////// TIME
-struct tm{
-    me tm: tm
-    me int: tm_hour
-    me int: tm_min
-    me int: tm_sec
-}
-
-struct timeStringer{
-    me tm: timeRec
-    me none: timeStringer()
-
-    me string: time12Hour()
-}
-struct guiFillPattern{
-    //their cairo_pattern_t: guiFillPattern
-    me void: init()
-    me void: AddColorStopRGBA(me double: offset, their Color: color, me int: alpha)
-    me void: AddColorStop(me double: offset, their Color: color)
-}
-
-struct APP{}
-
+/////////////////////////////////  INTER-THREAD COMMUNICATION
