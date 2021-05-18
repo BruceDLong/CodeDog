@@ -46,6 +46,8 @@ struct GLOBAL{
     me logManager: logMgr
 
     void: logSeg(me string: logTxt) <- {logMgr.Mesg.logStr <+- logTxt}
+    void: logSegIn(me string: segID)<-{logMgr.Mesg.logStr <+- "-"+segID+":["}
+    void: logSegOut(me string: retID)<-{if(retID!=""){retID<-":"+retID} logMgr.Mesg.logStr <+- "]"+retID}
     void: logSegStartCol(me string: logTxt, me int: startPos) <- {
         me int: strLength <- logMgr.Mesg.logStr.size()
         if(strLength < startPos){

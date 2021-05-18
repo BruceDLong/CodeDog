@@ -271,19 +271,18 @@ def codeIdentityCheck(S, S2, retType1, retType2, opIn):
     S2 = adjustQuotesForChar(retType1, retType2, S2)
     leftOwner  = progSpec.getTypeSpecOwner(retType1)
     rightOwner = progSpec.getTypeSpecOwner(retType2)
-    if opIn == '===':
+    if opIn == '===' or opIn == '!==':
         if progSpec.typeSpecsAreCompatible(retType1, retType2):
-            return S+' == '+S2
+            return S+ opIn[:2] +S2
         elif progSpec.typeIsPointer(retType1) and progSpec.typeIsPointer(retType2):
             if leftOwner =='our' or leftOwner =='my': S+='.get()'
             if rightOwner=='our' or rightOwner=='my': S2+='.get()'
-            return "(void*)("+ S +") == (void*)("+S2+")"
+            return "(void*)("+ S +") "+opIn[:2]+" (void*)("+S2+")"
         else:
-            return S+' == '+S2
+            return S+ opIn[:2] +S2
     else:
         if (opIn == '=='): opOut=' == '
         elif (opIn == '!='): opOut=' != '
-        elif (opIn == '!=='): opOut=' != '
         if not(leftOwner=='itr' and rightOwner=='itr'):
             [S_derefd, isDerefd] = derefPtr(S, retType1)
             if S2!='NULL' and S2!='nullptr': S=S_derefd

@@ -12,7 +12,7 @@ interface={
 
 LibDescription  ={
     useStatus   = dynamic
-    description ='Library for Webmulti-thread programming'
+    description ='Library for multi-thread programming'
     features    =[Threads]
     platforms   =[Linux, OS-X_Devices, Windows]
 }

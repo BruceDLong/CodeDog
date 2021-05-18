@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[]
-    headers =[]
+    headers =[pthread.h]
 }
 
 LibDescription  = {
@@ -17,3 +17,69 @@ LibDescription  = {
     Lang        = [Swift]
 }
 
+embedVeryHigh = `
+
+func __threadedFunction(pointer: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer? {
+  var threadParameter = pointer.load(as: _ThreadParameter.self)
+  var pxT = threadParameter.pxT
+  var threadIdentifier = threadParameter.threadIdentifier
+  _pxThread.run()
+  return nil
+}
+
+class _pxThread {
+    func ID() -> String {return _id}
+    func isActive() -> bool{return true}
+    func start(){
+        var threadParameter = _ThreadParameter(threadIdentifier: _ThreadIdentifier(id: _id), _pxThread: self)
+        var pThreadParameter = UnsafeMutablePointer<_ThreadParameter>.allocate(capacity:1)
+        pThreadParameter.pointee = threadParameter
+        let result = pthread_create(&myThread, nil, __threadedFunction, pThreadParameter)
+        if result != 0 {print("Error creating thread--"); exit(1);}
+    }
+    func waitForExit(){pthread_join(T!,nil)}
+
+    var notDone:bool = false
+    let _id:string <- ""
+    var T: pthread_t? = nil
+
+}
+struct _ThreadIdentifier {
+  var id: String
+}
+class _ThreadParameter {
+  var threadIdentifier: _ThreadIdentifier
+  var pxThread: pxT
+
+  init(threadIdentifier: _ThreadIdentifier, pxThread: pxT) {
+    self.threadIdentifier = threadIdentifier
+    self.pxT = pxT
+  }
+}
+
+typealias Unique_Lock_Mutex = std::unique_lock<std::mutex>
+
+`
+struct Threads: wraps = _pxThread{}
+struct Mutex: wraps = mutex{
+    void: lock()        <- <%!lock()%>
+    void: unlock()      <- <%!unlock()%>
+    bool: tryLock()     <- <%!tryLock()%>
+}
+
+struct MutexMngr: wraps = Unique_Lock_Mutex{
+    void: lock()        <- <%!lock()%>
+    void: unlock()      <- <%!unlock()%>
+    bool: tryLock()     <- <%!try_lock()%>
+}
+
+struct SyncLock: wraps = condition_variable {
+    void: wait(me MutexMngr: lock)   <- <%!wait(%1)%>
+    void: notifyOne()                <- <%!notify_one()%>
+    void: notifyAll()                <- <%!notify_all()%>
+}
+
+struct Semaphore: wraps=semaphore {
+    void: post()        <- <%!signal()%>
+    void: wait()        <- <%!wait()%>
+}
