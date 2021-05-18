@@ -12,13 +12,12 @@ interface={
 }
 
 LibDescription  ={
-    useStatus   = dynamic
-    description ='Unicode for CPP'
-    features    =[Unicode]
-    platforms   =[Linux, OS-X_Devices, Windows]
-    bindings    =[C, CPP, perl, python]
-    CPUs        =[i386, amd64, arm7]
-    Lang    =[CPP]
+    useStatus   = 'dynamic'
+    description = 'Unicode for CPP'
+    features    = [Unicode]
+    platforms   = [Linux, OS-X_Devices, Windows]
+    bindings    = [C, CPP, perl, python]
+    Lang        = [CPP]
 }
 
 embedVeryHigh = `
@@ -45,7 +44,7 @@ static const char trailingBytesForUTF8[256] = {
 UErrorCode uErr=U_ZERO_ERROR;
 const icu::Normalizer2 *UNormalizer=Normalizer2::getNFKCCasefoldInstance(uErr);
 `
-
+/////////////////////////////////  STRUCT CONVERTERS
 struct UnicodeStr {me UnicodeString: UnicodeStr}
 struct sysLocale {me Locale: sysLocale}
 struct Udate {me UDate: Udate}
@@ -65,7 +64,6 @@ struct UnicodeMgr {
         UErrorCode success = U_ZERO_ERROR;
     UnicodeString dateUniStr, pattern;
         string uniLabel;
-
         pattern = chooseFormatPattern(interval);
         SimpleDateFormat* simpleDateFormat = new SimpleDateFormat(pattern, loc, success);
         simpleDateFormat->format(date, dateUniStr, success);
@@ -75,10 +73,9 @@ struct UnicodeMgr {
 
     me string: getHour(me UDate: date, me Locale: loc) <- <%{
         UErrorCode success = U_ZERO_ERROR;
-    UnicodeString pattern = "k";   // k: hour in day (1~24)
+        UnicodeString pattern = "k";   // k: hour in day (1~24)
         UnicodeString uniStrHr;
         string hour;
-
         SimpleDateFormat* simpleDateFormat = new SimpleDateFormat(pattern, loc, success);
         simpleDateFormat->format(date, uniStrHr, success);
         uniStrHr.toUTF8String(hour);

@@ -3,6 +3,7 @@
 
 import sys
 import re
+import copy
 from pyparsing import ParseResults
 
 MaxLogLevelToShow = 1
@@ -124,7 +125,9 @@ def processParentClass(name, parentClass):
     if not name in classHeirarchyInfo: classHeirarchyInfo[name]={'parentClass': parentClass, 'childClasses': set([])}
     else:
         prevParentClassName = classHeirarchyInfo[name]['parentClass']
-        if prevParentClassName!= None and parentClass != prevParentClassName:
+        if prevParentClassName == None:
+            classHeirarchyInfo[name]['parentClass'] = parentClass
+        elif parentClass != prevParentClassName:
             cdErr("The class "+name+" cannot descend from both "+parentClass+" and "+prevParentClassName)
 
 # returns an identifier for functions that accounts for class and argument types
@@ -508,8 +511,8 @@ def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type:
     if(modelSpec!=None): updateCvt(classes, fieldList, modelSpec["fields"])
     modelSpec=findSpecOf(classes[0], structName, 'struct')
     updateCpy(fieldList, modelSpec["fields"])
-
-    structSpec['vFields'] = fieldList
+    fieldListOut = copy.copy(fieldList)
+    structSpec['vFields'] = fieldListOut
 
 def generateListOfFieldsToImplement(classes, structName):
     fieldList=[]
@@ -572,6 +575,40 @@ def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
 
     if(structSpec!=None):
         if fieldDefIsInList(structSpec["fields"], fieldID):
+            return True
+    return False
+
+def fieldNameInStructHierachy(classes, structName, fName):
+    #print('Searching for ', fName, ' in', structName)
+    structSpec=findSpecOf(classes, structName, 'struct')
+    if structSpec==None:
+        return False;
+
+    if structSpec['vFields']!=None:
+        for field in structSpec['vFields']:
+            if 'fieldID' in field:
+                fieldID = field['fieldID']
+                if fName in field['fieldID']:
+                    return True
+
+    classInherits = searchATagStore(structSpec['tags'], 'inherits')
+    if classInherits!=None:
+        for classParent in classInherits:
+            if fieldNameInStructHierachy(classes, classParent, fName):
+                return True
+
+    classImplements = searchATagStore(structSpec['tags'], 'implements')
+    if classImplements!=None:
+        for classParent in classImplements:
+            if fieldNameInStructHierachy(classes, classParent, fName):
+                return True
+    modelSpec=findSpecOf(classes, structName, 'model')
+    if(modelSpec!=None):
+        if fieldDefIsInList(modelSpec["fields"], fName):
+            return True
+
+    if(structSpec!=None):
+        if fieldDefIsInList(structSpec["fields"], fName):
             return True
     return False
 

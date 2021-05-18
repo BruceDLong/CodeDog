@@ -120,6 +120,7 @@ struct GLOBAL{
     me int: uniqueObjectID(their any:obj)                      <- <%!%G(intptr_t)%1%>
     me double: sqrt(me double: input)                          <- <%!sqrt(%1)%>
     me timeValue: convertToTimeVal()                           <- <%!%G%1%>
+    me timeValue: double()                                     <- <%!%G%1%>
     me timeValue: convertToLongVal()                           <- <%!%G%1%>
     me timeValue: convertToL()                                 <- <%!%G%1%>
     me int: convertToIntVal(me int: val)                       <- <%!%G%1%>

@@ -55,21 +55,13 @@ def copyTree(src, dst):
             shutil.copy2(s, d)
 
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
-    buildStr = ''
-    codeDogFolder = os.path.dirname(os.path.realpath(__file__))
-    libStr = "-I " + codeDogFolder + " "
-    langStr = 'g++'
-    langStr += ' -fdiagnostics-color '  # Add color to the output
-    langStr += ' -fcompare-debug-second '  # supress compiler notes
-    minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
-    fileStr = fileName + fileExtension
-    outputFileStr = '-o ' + fileName
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     makeDir(buildName + "/assets")
     copyTree("Resources", buildName+"/assets")
 
+    libStr=""
     for libFile in libFiles:
         if libFile.startswith('pkg-config'):
             libStr += "`"
@@ -78,11 +70,12 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
         else:
             if libFile =='pthread': libStr += '-pthread ';
             else: libStr += "-l"+libFile+ " "
+
         #print "libStr: " + libStr
     currentDirectory = currentWD = os.getcwd()
     #TODO check if above is typo
     workingDirectory = currentDirectory + "/" + buildName
-    buildStr = langStr + debugMode + " " + minLangStr + fileStr  + " " + libStr + " " + outputFileStr
+    buildStr = getBuildSting(fileName,libStr,platform,buildName)
     runStr = "./" + fileName
     return [workingDirectory, buildStr, runStr]
 
@@ -90,10 +83,8 @@ def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     buildStr = ''
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
     libStr = "-I " + codeDogFolder + " "
-    langStr = 'cl /EHsc'
     #minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
-    fileStr = fileName + fileExtension
     #outputFileStr = '-o ' + fileName
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
@@ -107,19 +98,12 @@ def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     currentDirectory = currentWD = os.getcwd()
     #TODO check if above is typo
     workingDirectory = currentDirectory + os.sep + buildName
-    buildStr = langStr + " " + fileStr
+    buildStr = getBuildSting(fileName,"",platform,buildName)
     runStr = "python " + "..\CodeDog\\" + fileName
     return [workingDirectory, buildStr, runStr]
 
 def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
-    buildStr = ''
-    libStr = ''
-    langStr = 'javac '
-    minLangStr = ''
     fileExtension = '.java'
-    fileStr = fileName + fileExtension
-    outputFileStr = ''
-    debugMode = ''
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     makeDir(buildName + "/assets")
@@ -127,7 +111,7 @@ def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     currentDirectory = currentWD = os.getcwd()
     #TODO check if above is typo
     workingDirectory = currentDirectory + "/" + buildName
-    buildStr = langStr + debugMode + " " + minLangStr + fileStr + libStr + " " + outputFileStr
+    buildStr = getBuildSting(fileName,"",platform,buildName)
     runStr = "java GLOBAL"
     return [workingDirectory, buildStr, runStr]
 
@@ -139,7 +123,7 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     workingDirectory = currentDirectory + "/" + buildName
     makeDir(buildName)
     writeFile(workingDirectory, fileName, fileSpecs, fileExtension)
-    buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
+    buildStr = getBuildSting(fileName,"",platform,buildName)
     runStr = "./" + fileName
     return [workingDirectory, buildStr, runStr]
 
@@ -179,3 +163,50 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     if platform!='Android': printResults(workingDirectory, buildStr, runStr)
     print("--------------------------")
     return
+
+def getBuildSting (fileName, buildStr_libs, platform, buildName):
+    global globalTagStore
+    if platform == 'Linux':
+        debugMode='-g'
+        minLangVersion='14'
+        codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+        libStr = "-I " + codeDogFolder + " "
+        langStr = 'g++'
+        langStr += ' -fdiagnostics-color '  # Add color to the output
+        langStr += ' -fcompare-debug-second '  # supress compiler notes
+        minLangStr = '-std=gnu++' + minLangVersion + ' '
+        fileExtension = '.cpp'
+        fileStr = fileName + fileExtension
+        outputFileStr = '-o ' + fileName
+        libStr += buildStr_libs
+        buildStr = langStr + debugMode + " " + minLangStr + fileStr  + " " + libStr + " " + outputFileStr
+    elif platform == 'Java' or  platform == 'Swing':
+        buildStr = ''
+        libStr = ''
+        langStr = 'javac '
+        minLangStr = ''
+        fileExtension = '.java'
+        fileStr = fileName + fileExtension
+        outputFileStr = ''
+        debugMode = ''
+        buildStr = langStr + debugMode + " " + minLangStr + fileStr + libStr + " " + outputFileStr
+    elif platform == 'Android':
+        currentDir     = os.getcwd()
+        buildStr='     NOTE: Working Directory is  '+currentDir + '/' + buildName + "\n"
+        buildStr += '//     NOTE: Build Debug command:    ./gradlew assembleDebug --stacktrace \n'
+        buildStr += '//     NOTE: Build Release command:  ./gradlew assembleRelease --stacktrace \n'
+        buildStr += '//     NOTE: Install command:        ./gradlew installDebug'
+    elif platform == 'Swift':
+        fileExtension = '.swift'
+        buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
+    elif platform == 'Windows':
+        langStr = 'cl /EHsc'
+        fileExtension = '.cpp'
+        fileStr  = fileName + fileExtension
+        buildStr = langStr + " " + fileStr
+    elif platform == 'MacOS': 
+        buildStr = "// swift build -Xswiftc -suppress-warnings \n"
+        buildStr += "// swift run  -Xswiftc -suppress-warnings \n"
+    else:
+        buildStr=''
+    return buildStr

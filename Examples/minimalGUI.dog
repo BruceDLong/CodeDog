@@ -1,10 +1,10 @@
 // minimalGUI.dog
 
-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 //AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
-//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
 
 Title = "minimalGUI"
 FileName = "minimalGUI"
@@ -20,28 +20,7 @@ LicenseText = `Public Domain`
 
 runCode=``
 
-mainStyle = {
-    colors = {
-        //frGndColor = sysDefaultFrGndColor
-        //bkGndColor = [45, 100, 220]   // RGB
-        //highlight1Color = LightGreen
-        MySpecialColor = SlateBlue
-    }
-    fontNames = {
-        //titleFont = 'Ariel Bold'
-        //normalFont = 'Ariel'
-        //H1_font = sysDefaultH1_font
-
-        //LogoFont = 'CompanyFont'
-    }
-    fontSizes = {
-        //fontSizeVerySmall = sysDefaultFontSizeVerySmall
-        fontSizeSmall     = 8
-        fontSizeLarge     = 20
-        LogoFontSize      = 18
-    }
-    fontSizeMode = pp
-}
+mainStyle = {}
 
 do makeStyler(mainStyle)
 do makeGUI(GUI_Spec)
@@ -51,27 +30,39 @@ do makeGUI(GUI_Spec)
 struct testWidget: inherits=DashboardWidget{
 
     void: draw(their GUI_ctxt: cr) <- {
-        print("In DRAW()\n")
-        cr.setColor(Styler.DarkMagenta)
+        print("In DRAW TEST WIDGET!!!!!!!()\n")
+        me cdColor: lineColor <- cdColor(255,0,0)
+        cr.setColor(lineColor)
+        cr.setLineWidth(5)
         cr.moveTo(0, 0)
         cr.lineTo(1200, 1200)
         cr.moveTo(1200, 0)
         cr.lineTo(0, 1200)
         cr.strokeNow()
 
-        cr.setColor(Styler.DarkSlateBlue)
+        me cdColor: lineColor2 <- cdColor(0,250,255)
+        cr.setColor(lineColor2)
         our fontSpec:: testFont{"Ariel", 20, 0}
         renderText(cr, "Hello World!", testFont, 150, 100)
         cr.strokeNow()
 
+        cr.setRGB(0,255,0)
+        cr.circle(200, 200, 50)
+        cr.rectangle(300,100, 10, 200)
+        cr.strokeNow()
+
+        cr.setRGBA(0,0,255,0.5)
+        cr.moveTo(300,300)
+        cr.lineTo(300,400)
+        cr.lineTo(400,400)
+        cr.lineTo(400,300)
+        cr.closePath()
+        cr.strokeNow()
+
         // Here you can add tests for other drawing functions:
-        //    setRGB(), setRGBA()
-        //    setLineWidth()
         //    setScale()
         //    moveRel(), lineRel()
         //    curveTo(), curveRel()
-        //    closePath()
-        //    rectangle()
         //    fillNow(), etc
         //    setFillPattern() and gradient control functions.
     }

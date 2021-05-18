@@ -4,6 +4,7 @@ import os
 import subprocess
 import errno
 import shutil
+import buildDog
 
 def writeFile(workingDir, packageDir, fileName, outStr, fileExt, packageName):
     #print "Path:", packageDir
@@ -155,8 +156,7 @@ def AndroidBuilder(debugMode, minLangVersion, fileName, labelName, launchIconNam
     #[out, err] = runCMD( './gradlew tasks ', workingDir)
     #[out, err] = runCMD( './gradlew assembleDebug --stacktrace', workingDir)
     #[out, err] = runCMD( './gradlew installDebug ', workingDir)
-    print('     NOTE: Working Directory is  '+currentDir + '/' + buildName)
-    print('     NOTE: Build Debug command:    ./gradlew assembleDebug --stacktrace')
-    print('     NOTE: Build Release command:  ./gradlew assembleRelease --stacktrace')
-    print('     NOTE: Install command:        ./gradlew installDebug')
+
+    buildStr=buildDog.getBuildSting("","",platform,buildName)
+    print(buildStr)
     print('Finished Building for Android')

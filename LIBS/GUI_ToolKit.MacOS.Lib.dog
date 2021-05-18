@@ -23,8 +23,8 @@ embedVeryHigh = `
 // APP DELEGATE /////////////////////////////////////////////////////
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        window = NSWindow(contentRect: NSMakeRect(0, 0, NSScreen.main?.frame.width ?? 1000, NSScreen.main?.frame.height ?? 1000),
-            styleMask: [.miniaturizable, .closable, .resizable, .titled],
+        window = NSWindow(contentRect: NSMakeRect(0, 0, NSScreen.main?.frame.width ?? 500, NSScreen.main?.frame.height ?? 500),
+            styleMask: [.closable],
             backing: .buffered,
             defer: false)
         window.contentViewController = ViewController()
@@ -33,11 +33,55 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 }
 // VIEW CONTROLLER ///////////////////////////////////////////////
 class ViewController: NSViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.addSubview(drawing_area!)
+    }
     override func loadView() {
-        screenSurface = Canvas(frame: NSRect(x: 0, y: 0, width: NSScreen.main?.frame.width ?? 1000, height: NSScreen.main?.frame.height ?? 1000))
-        self.view = screenSurface
+        self.view = NSView(frame: NSRect(x: 0, y: 0, width: NSScreen.main?.frame.width ?? 100, height: NSScreen.main?.frame.height ?? 100))
+        thisApp.gui.frame = self.view
     }
 }
+
+class CanvasView: NSView{
+    var cr: CGContext!
+    var parent: DashboardWidget!
+    var scaleFactor: Double = 1
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+    }
+    required init?(coder decoder: NSCoder) {
+        super.init(coder: decoder)
+    }
+    override func draw(_ dirtyRect: NSRect) -> Void{
+        super.draw(dirtyRect)
+        cr = NSGraphicsContext.current?.cgContext
+        parent.EventDispatcher.topWidget.draw(cr)
+    }
+    func setParent(_ wid: DashboardWidget!) -> Void{
+        var wid = wid
+        parent = wid;
+    }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool{
+        return true
+    }
+    override func mouseDown(with event: NSEvent){
+        parent.EventDispatcher.dispatchPointerClickEvent(event)
+    }
+    override func mouseUp(with event: NSEvent){
+        parent.EventDispatcher.dispatchPointerClickEvent(event)
+    }
+    override func mouseMoved(with event: NSEvent){
+        parent.EventDispatcher.dispatchPointerMotionEvent(event)
+    }
+    override var acceptsFirstResponder: Bool {return true}
+    override func keyDown(with event: NSEvent){
+        parent.EventDispatcher.dispatchKeyboardEvent(event)
+    }
+    override func keyUp(with event: NSEvent){
+        parent.EventDispatcher.dispatchKeyboardEvent(event)
+    }
+};
 `
 
 /////////////////////////////////  STRUCT CONVERTERS
@@ -46,154 +90,134 @@ struct GUI_item:                wraps = NSView{}
 struct GUI_Frame:               wraps = NSView{}
 struct GUI_canvas:              wraps = CanvasView{}
 struct GUI_container:           wraps = NSView{}
-struct INK_Image:               wraps = Canvas{}      // How will the ink look?
+//struct INK_Image:               wraps = CGImage{}      // How will the ink look?
 struct GUI_callback:            wraps = GCallback{}
 struct GUI_Scalar:              wraps = Int{}
-struct GUI_Text:                wraps = GtkWidget{}
-//struct GDK_KEY_Down:          wraps = ???{}
-struct GUI_MouseEvent:          wraps = MotionEvent{}
-struct GUI_MotionEvent:         wraps = MotionEvent{}
-struct GUI_ButtonEvent:         wraps = MotionEvent{}
-struct GUI_PointerEvent:        wraps = MotionEvent{}
-struct GUI_KeyboardEvent:       wraps = MotionEvent{}
+//struct GUI_Text:                wraps = GtkWidget{}
+struct GUI_MotionEvent:         wraps = NSEvent{}
+struct GUI_ButtonEvent:         wraps = NSEvent{}
+struct GUI_PointerEvent:        wraps = NSEvent{}
+struct GUI_KeyboardEvent:       wraps = NSEvent{}
+struct GUI_UserEvent:           wraps = NSEvent{}
+struct GUI_TimeEvent:           wraps = NSEvent{}
+struct GUI_DataEvent:           wraps = NSEvent{}
+struct GUI_WindowEvent:         wraps = NSEvent{}
 struct GUI_ctxt:                wraps = CGContext{}
 /////////////////////////////////  GLOBAL WIDGET FUNCTIONS
 struct GLOBAL{
-    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%G%>
+    me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <- <%!%1.addSubview(%2)%>
 }
 /////////////////////////////////  HANDLE EVENTS
-
-struct GUI_MouseEvent{
-    me int: x <- <%!getX()%>
-    me int: y <- <%!getY()%>
-}
-
 struct GUI_MotionEvent{
-    me int: x <- <%!getX()%>
-    me int: y <- <%!getY()%>
+    me int: x <- <%!Int(%0!.locationInWindow.x)%>
+    me int: y <- <%!Int(%0!.locationInWindow.y)%>
 }
-
 struct GUI_ButtonEvent{
-    me int: x <- <%!getX()%>
-    me int: y <- <%!getY()%>
+    me int: x <- <%!Int(%0!.locationInWindow.x)%>
+    me int: y <- <%!Int(%0!.locationInWindow.y)%>
 }
-
 struct GUI_PointerEvent{
-    me int: x <- <%!getX()%>
-    me int: y <- <%!getY()%>
+    me int: x <- <%!Int(%0!.locationInWindow.x)%>
+    me int: y <- <%!Int(%0!.locationInWindow.y)%>
 }
-
+struct GUI_KeyboardEvent{
+}
 /////////////////////////////////  EVENT DISPATCHER
 struct GUI_eventDispatcher{
     their widget: topWidget
 
-    me bool: dispatchPointerClickEvent(their GUI_MouseEvent: event) <- <%{
-        var returnVal: Bool = false
-
-        switch (event.getAction()) {
-        case MotionEvent.ACTION_DOWN:
-            topWidget.primaryDn(event);
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_MOVE:
-            topWidget.mouseMoved(event);
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_UP:
-            topWidget.primaryUp(event);
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_CANCEL:
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_POINTER_DOWN:
-            returnVal = true;
-            break;
-        case MotionEvent.ACTION_POINTER_UP:
-            returnVal = true;
-            break;
-        default:
-            return false;
+    me bool: dispatchPointerMotionEvent(their GUI_MotionEvent: event) <- <%{
+        //let alert = NSAlert(); alert.messageText = "MouseMoved."; alert.runModal()
+        //event.locationInWindow.x = event.locationInWindow.x / scaleFactor;
+        //event.locationInWindow.y = event.locationInWindow.y / scaleFactor;
+        topWidget.mouseMoved(event);
+        return false;
+    }%>
+    me bool: dispatchPointerClickEvent(their GUI_ButtonEvent: event) <- <%{
+        var returnVal: Bool = false;
+        switch(event.type){
+            case .leftMouseDown:
+                topWidget.primaryDn(event);
+                returnVal = true;
+                //let alert = NSAlert(); alert.messageText = "MouseDown."; alert.runModal()
+                break;
+            case .leftMouseUp:
+                topWidget.primaryUp(event);
+                returnVal = true;
+                //let alert = NSAlert(); alert.messageText = "MouseUp."; alert.runModal()
+                break;
+            default:
+                return false;
         }
-
         return returnVal;
     }%>
-
+    me bool: dispatchKeyboardEvent(their GUI_KeyboardEvent: event) <- <%{
+        //let alert = NSAlert(); alert.messageText = "Key."; alert.runModal()
+        topWidget.keyTyped(event);
+        return(true);
+    }%>
     me void: registerWidgetForEventDispatcher(me CanvasView: appWidget, their widget: masterWidget) <- {
         topWidget<-masterWidget
     }
 }
 
 /////////////////////////////////  HANDLE GUI
-struct CanvasView: inherits=NSView{
-    me GUI_ctxt: cr
-    our DashboardWidget:  parent
-    me float: scaleFactor
-
-    me none: CanvasView() <- <%{}%>
-    me void: draw(me NSRect: dirtyRect) <- <%{
-        super.draw(dirtyRect)
-        let cr: CGContext! = NSGraphicsContext.current?.cgContext
-        parent.EventDispatcher.topWidget.draw(cr)
-    }%>
-    me void: setParent(our DashboardWidget: wid) <- {parent <- wid}
+struct GUI_canvas{
+    me void: setParent(our DashboardWidget: wid) <- <%!setParent(%1)%>
 }
 
 /////////////////////////////////  HANDLE GUI
 struct GUI{
-    me LinearLayout: frame
-    me LinearLayout: layoutArea
-    me NestedScrollView: scroller
+    me GUI_Frame: frame
 
     me none: GUI() <- {}
-
-    me void: GUI_PopulateAndExec() <- <%{
-    }%>
-
     me uint32: GUI_Init() <- <%{
+        thisApp.createAppArea(frame)
+        let delegate = AppDelegate()
+        NSApplication.shared.delegate = delegate
+        _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
         return(0);
     }%>
-
     me uint32: GUI_Run() <- <%{
-        return(0);
+        let status: UInt32 = 0;
+        return(status);
     }%>
-
     me void: GUI_Deinit() <- {}
 }
 
 struct GUI{
-    //their GUI_item: newCanvas() <- <%!%>
-    //me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%>
+    their GUI_item: newCanvas() <- <%!%GCanvasView()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = 1280; f.size.height = 800; %1.frame = f%>
     //their GUI_item: newScrollingWindow() <- <%!%>
     //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%>
-    //me GUI_Frame: GUI_Frame(me string: label) <- <%!%>
+    me void: setCallback() <- <%!%G%>
+    me GUI_Frame: GUI_Frame(me string: label) <- <%!%GNSView()%>
 }
 
 struct GUI_ctxt{
     //me void: fetchAreaToBeDrawn(me GUI_rect: area) <- <%!%>
     //me void: reset()                                  <- <%!%>
-    //me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%>
-    //me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%>
-    me void: setColor(me cdColor: color)                <- <%!%0.setFillColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1);%0.setStrokeColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1)%>
+    me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!%0!.setFillColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:%4);%0!.setStrokeColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:%4)%>
+    me void: setRGB (me double: red, me double: green, me double: blue) <- <%!%0!.setFillColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:1);%0!.setStrokeColor(red:CGFloat(%1), green:CGFloat(%2), blue:CGFloat(%3), alpha:1)%>
+    me void: setColor(me cdColor: color)                <- <%!%0!.setFillColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1);%0!.setStrokeColor(red:CGFloat(%1.red), green:CGFloat(%1.green), blue:CGFloat(%1.blue), alpha:1)%>
     me void: setLineWidth(me double: width)             <- <%!setLineWidth(CGFloat(%1))%>
-    //me void: finishPDF()                              <- <%!%>
-    //me void: setScale()                               <- <%!%>
+    //me void: finishPDF()                                <- <%!closePDF()%>
+    //me void: setScale()                                 <- <%!scaleBy(x: %1, y: %2)%>
     me void: moveTo(me double: x, me double: y)         <- <%!move(to:CGPoint(x:%1, y:%2))%>
     me void: lineTo(me double: x, me double: y)         <- <%!addLine(to:CGPoint(x:%1, y:%2))%>
     //me void: moveRel(me double: dx, me double: dy)    <- <%!%>
     //me void: lineRel(me double: dx, me double: dy)    <- <%!%>
-    //me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!%>
+    me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!addCurve(to: CGPoint(x: %1, y: %2), control1: CGPoint(x: %3, y: %4), control2: CGPoint(x: %5, y: %6))%>
     //me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!%>
-    //me void: closePath()                              <- <%!%>
+    me void: closePath()                                <- <%!closePath()%>
     me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!addRect(CGRect(x:%1, y:%2, width:%3, height:%4))%>
-    //me void: paintNow()                               <- <%!%>
+    me void: paintNow()                                 <- <%!drawPath(using: .fillStroke)%>
     me void: strokeNow()                                <- <%!drawPath(using: .fillStroke)%>
     me void: fillNow()                                  <- <%!fill(CGRect(x:0, y:0, width:screenWidth, height:screenHeight))%>
     //me void: strokeKeep()                             <- <%!%>
-    //me void: fillKeep()                               <- <%!%>
-    //me void: renderFrame()                            <- <%!%>
+    me void: fillKeep()                                 <- <%!fillPath()%>
     //me void: setFillPattern()                         <- <%!%>
-    //me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!%>
+    me void: circle(me int: centerX, me int: centerY, me int: radius) <- <%!addEllipse(in:CGRect(x: %1-%3, y: %2-%3, width: 2*%3, height: 2*%3))%>
     me GUI_ctxt: newPDF_ctxt(me sting: filename, me double: inchesWide, me double: inchesHigh) <- {}
 }
 
@@ -216,45 +240,61 @@ struct GUI_ctxt{
     }
 }
 
-struct APP: inherits=LinearLayout{
+struct APP{
     //me none: APP() <- <%{}%>
 }
 /////////////////////////////////  G L O B A L
 struct GLOBAL: inherits=AppCompatActivity{
-    their LinearLayout: window
-    //me int: widgetHeight()    <- <%!%>
-    //me int: widgetWidth()     <- <%!%>
+    // //TIME ROUTINES:
     //me long: ticksPerSec()    <- <%!%>
-    me Toolbar: toolbar
+    //me int64: getCurrentTimeStamp() <- <%!%>
+    their NSWindow: window
+    me int: widgetHeight() <- <%!%G(Int)(%1.bounds.size.height)%>
+    me int: widgetWidth()  <- <%!%G(Int)(%1.bounds.size.width)%>
     me int: displayHeightPx
     me int: displayWidthPx
 
     // //DRAWING ROUTINES:
-    //me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{}%>
+    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me GUI_Scalar: x, me GUI_Scalar: y) <- <%{
+        cr.saveGState()
+        cr.textPosition = CGPoint(x: x, y: y)
+        let color = CGColor.black
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: NSFont.boldSystemFont(ofSize: CGFloat(font.size)), .foregroundColor: color]))
+        CTLineDraw(line, cr)
+        cr.restoreGState()
+        //////////////////////////
+        var size:deltaSize = getTextSize(cr, text, font);
+        return(size);
+    }%>
     //me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{}%>
     //me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{}%>
     //me void: rotate(me GUI_ctxt: cr, me double: x, me double: y, me int: degrees) <- <%{}%>
     //me void: restore(me GUI_ctxt: cr) <- <%!%>
-    //me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{}%>
-    //me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{}%>
+    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+        let size = deltaSize();
+        return(size);
+    }%>
+    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- {
+        cr.moveTo(x+r,y);                      //# Move to A
+        cr.lineTo(x+w-r,y);                    //# Straight line to B
+        cr.curveTo(x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
+        cr.lineTo(x+w,y+h-r);                  //# Move to D
+        cr.curveTo(x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cr.lineTo(x+r,y+h);                    //# Line to F
+        cr.curveTo(x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cr.lineTo(x,y+r);                      //# Line to H
+        cr.curveTo(x,y,x,y,x+r,y);             //# Curve to A;
+    }
     //me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{}%>
 
     // //GUI INTERFACE:
-    me void: onCreate() <- <%{
-        thisApp = APP();
-        initialize("");
-        getMetrics();
-        runDogCode();
-    }%>
-
     //me void: copyAssetToWritableFolder(me string: fromPath, me string: toPath)<- <%{}%>
-    //me void: getMetrics()       <- <%{}%>
-    //me void: setFontScale()     <- <%{}%>
-    //me void: showWidget(me GUI_item: widget) <-  <%!%>
-    //me void: hideWidget(their GUI_item: widget) <- <%!%>
-    //me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%>
-    //me GUI_item: newCanvas() <- <%!%>
-   // me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%>
+    me void: getMetrics()                           <- <%{displayDensity = 1;}%>
+    //me void: showWidget(me GUI_item: widget)      <- <%!%>
+    //me void: hideWidget(their GUI_item: widget)   <- <%!%>
+    me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%>
+    me GUI_item: newCanvas()                        <- <%!%GNSView()%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = %2; f.size.height = %3; %1.frame = f%>
 }
 
 /////////////////////////////////  INTER-THREAD COMMUNICATION
