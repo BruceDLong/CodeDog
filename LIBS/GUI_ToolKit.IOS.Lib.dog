@@ -46,7 +46,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemRed
         view.addSubview(drawing_area!)
     }
     override func loadView() {
@@ -93,16 +92,16 @@ struct GLOBAL{
 }
 /////////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{
-    me int: x <- <%!Int(%0!.locationInWindow.x)%>
-    me int: y <- <%!Int(%0!.locationInWindow.y)%>
+    me int: x <- <%!Int((%0!.touches(for: drawing_area)?.first?.location(in: drawing_area).x)!)%>
+    me int: y <- <%!Int((%0!.touches(for: drawing_area)?.first?.location(in: drawing_area).y)!)%>
 }
 struct GUI_ButtonEvent{
-    me int: x <- <%!Int(%0!.locationInWindow.x)%>
-    me int: y <- <%!Int(%0!.locationInWindow.y)%>
+    me int: x <- <%!Int((%0!.touches(for: drawing_area)?.first?.location(in: drawing_area).x)!)%>
+    me int: y <- <%!Int((%0!.touches(for: drawing_area)?.first?.location(in: drawing_area).y)!)%>
 }
 struct GUI_PointerEvent{
-    me int: x <- <%!Int(%0!.locationInWindow.x)%>
-    me int: y <- <%!Int(%0!.locationInWindow.y)%>
+    me int: x <- <%!Int((%0!.touches(for: drawing_area)?.first?.location(in: drawing_area).x)!)%>
+    me int: y <- <%!Int((%0!.touches(for: drawing_area)?.first?.location(in: drawing_area).y)!)%>
 }
 struct GUI_KeyboardEvent{
 }
@@ -111,22 +110,18 @@ struct GUI_eventDispatcher{
     their widget: topWidget
 
     me bool: dispatchPointerMotionEvent(their GUI_MotionEvent: event) <- <%{
-        //event.locationInWindow.x = event.locationInWindow.x / scaleFactor;
-        //event.locationInWindow.y = event.locationInWindow.y / scaleFactor;
+        //event.locationInView(view).x = event.locationInView(view).x / scaleFactor;
+        //event.locationInView(view).y = event.locationInView(view).y / scaleFactor;
         topWidget.mouseMoved(event);
         return false;
     }%>
     me bool: dispatchPointerClickEvent(their GUI_ButtonEvent: event) <- <%{
         var returnVal: Bool = false;
         switch(event.type){
-            case .leftMouseDown:
+            case .presses:
                 topWidget.primaryDn(event);
                 returnVal = true;
-                //let alert = Alert(); alert.messageText = "MouseDown."; alert.runModal()
-                break;
-            case .leftMouseUp:
-                topWidget.primaryUp(event);
-                returnVal = true;
+
                 break;
             default:
                 return false;
@@ -155,7 +150,6 @@ struct GUI{
     me uint32: GUI_Init() <- <%{
         thisApp.createAppArea(frame)
         let delegate = AppDelegate()
-        let delegate = AppDelegate()
         UIApplication.shared.delegate = delegate
         _ = UIApplicationMain(CommandLine.argc, UnsafeMutableRawPointer(CommandLine.unsafeArgv).bindMemory(to: UnsafeMutablePointer<Int8>.self, capacity: Int(CommandLine.argc)), nil, NSStringFromClass(AppDelegate.self))
         return(0);
@@ -169,7 +163,7 @@ struct GUI{
 
 struct GUI{
     their GUI_item: newCanvas() <- <%!%GCanvasView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = 1280; f.size.height = 800; %1.frame = f%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: CGRect = %1.frame; f.size.width = 1280; f.size.height = 800; %1.frame = f%>
     //their GUI_item: newScrollingWindow() <- <%!%>
     //me void: addMenuBar(me GUI_menuBar: menubar) <- <%!%>
     me void: setCallback() <- <%!%G%>
@@ -240,11 +234,15 @@ struct GLOBAL: inherits=AppCompatActivity{
     me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me GUI_Scalar: x, me GUI_Scalar: y) <- <%{
         cr.saveGState()
         cr.textPosition = CGPoint(x: x, y: y)
-        let color = CGColor.black
-        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: Font.boldSystemFont(ofSize: CGFloat(font.size)), .foregroundColor: color]))
+        let color = UIColor.red
+        let textAttrs = [
+            NSAttributedString.Key.font: UIFont(name: font.name, size: (CGFloat)(font.size)),
+            NSAttributedString.Key.foregroundColor: color
+        ]
+        var attrString = NSAttributedString(string: text, attributes: textAttrs)
+        let line = CTLineCreateWithAttributedString(attrString)
         CTLineDraw(line, cr)
         cr.restoreGState()
-        //////////////////////////
         var size:deltaSize = getTextSize(cr, text, font);
         return(size);
     }%>
@@ -276,7 +274,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     //me void: hideWidget(their GUI_item: widget)   <- <%!%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%>
     me GUI_item: newCanvas()                        <- <%!%GUIView()%>
-    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: NSRect = %1.frame; f.size.width = %2; f.size.height = %3; %1.frame = f%>
+    me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Gvar f: CGRect = %1.frame; f.size.width = %2; f.size.height = %3; %1.frame = f%>
 }
 
 /////////////////////////////////  INTER-THREAD COMMUNICATION
