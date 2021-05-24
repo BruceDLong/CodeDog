@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[]
-    headers =[pthread.h]
+    headers =[]
 }
 
 LibDescription  = {
@@ -19,39 +19,40 @@ LibDescription  = {
 
 embedVeryHigh = `
 
-func __threadedFunction(pointer: UnsafeMutableRawPointer) -> UnsafeMutableRawPointer? {
-  var threadParameter = pointer.load(as: _ThreadParameter.self)
-  var pxT = threadParameter.pxT
-  var threadIdentifier = threadParameter.threadIdentifier
-  _pxThread.run()
-  return nil
+func __threadedFunction(pointer: UnsafeMutableRawPointer!) -> UnsafeMutableRawPointer? {
+    var threadParameter = pointer.load(as: _ThreadParameter.self)
+    var pxT = threadParameter.pxT
+    var threadIdentifier = threadParameter.threadIdentifier
+    pxT.run()
+    return nil
 }
 
 class _pxThread {
+    var notDone:Bool = false
+    let _id:String = ""
+    var myThread: pthread_t! = nil
+
     func ID() -> String {return _id}
-    func isActive() -> bool{return true}
+    func isActive() -> Bool{return true}
     func start(){
-        var threadParameter = _ThreadParameter(threadIdentifier: _ThreadIdentifier(id: _id), _pxThread: self)
+        var threadParameter  = _ThreadParameter(threadIdentifier: _ThreadIdentifier(id: _id), pxT: self)
         var pThreadParameter = UnsafeMutablePointer<_ThreadParameter>.allocate(capacity:1)
         pThreadParameter.pointee = threadParameter
+        // TODO: Fix &myThread param so it doesn't throw Fatal error: Unexpectedly found nil while implicitly unwrapping an Optional value
         let result = pthread_create(&myThread, nil, __threadedFunction, pThreadParameter)
         if result != 0 {print("Error creating thread--"); exit(1);}
     }
-    func waitForExit(){pthread_join(T!,nil)}
-
-    var notDone:bool = false
-    let _id:string <- ""
-    var T: pthread_t? = nil
-
+    func waitForExit(){pthread_join(myThread!,nil)}
+    func run(){}
 }
 struct _ThreadIdentifier {
   var id: String
 }
 class _ThreadParameter {
   var threadIdentifier: _ThreadIdentifier
-  var pxThread: pxT
+  var pxT: _pxThread
 
-  init(threadIdentifier: _ThreadIdentifier, pxThread: pxT) {
+  init(threadIdentifier: _ThreadIdentifier, pxT: _pxThread) {
     self.threadIdentifier = threadIdentifier
     self.pxT = pxT
   }

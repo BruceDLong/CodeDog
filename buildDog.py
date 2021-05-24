@@ -10,6 +10,7 @@ import buildMac
 import errno
 import shutil
 from progSpec import cdlog, cdErr
+from pathlib import Path
 
 #TODO: error handling
 
@@ -23,7 +24,9 @@ def runCMD(myCMD, myDir):
         print("\n", err)
         if (err.find("ERROR")) >= 0:
             exit(1)
-    return [out, err]
+    decodedOut = bytes.decode(out)
+    if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
+    return decodedOut
 
 def makeDir(dirToGen):
     #print "dirToGen:", dirToGen
@@ -127,6 +130,30 @@ def SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     runStr = "./" + fileName
     return [workingDirectory, buildStr, runStr]
 
+def iOSBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, platform, fileSpecs):
+    # reference https://swift.org/getting-started/#using-the-package-manager
+    # building without Xcode: https://theswiftdev.com/how-to-build-macos-apps-using-only-the-swift-package-manager/
+    fileExtension    = '.swift'
+    fileName         =  'main'
+    currentDirectory = currentWD = os.getcwd()
+    buildDirectory   = buildName
+    projectDirectory = buildDirectory + '/' + projectName
+    projectSubDir    = projectDirectory + '/' + projectName
+    SDK_Path         = runCMD('xcrun --sdk iphonesimulator --show-sdk-path', currentDirectory)
+    TARGET           = 'x86_64-apple-ios12.0-simulator'
+    ############################################################
+    makeDir(buildDirectory)
+    makeDir(projectDirectory)
+    makeDir(projectSubDir)
+    makeDir(projectSubDir+'/Assets.xcassets')
+    makeDir(projectSubDir+'.xcodeproj')
+    ############################################################
+    buildCmd        = 'swiftc '+projectName+'/main.swift -sdk '+SDK_Path+' -target '+TARGET+' -emit-executable -o '+projectSubDir+' -suppress-warnings'
+    runCmd          = "swift run  -Xswiftc -suppress-warnings"
+    ############################################################
+    writeFile(projectDirectory+'/'+projectName, fileName, fileSpecs, fileExtension)
+    return [projectDirectory, buildCmd, runCmd]
+
 def printResults(workingDirectory, buildStr, runStr):
     cdlog(1, "Compiling From: {}".format(workingDirectory))
     print("     NOTE: Build Command is: ", buildStr, "\n")
@@ -157,6 +184,8 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
         [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'MacOS':
         [workingDirectory, buildStr, runStr] = buildMac.macBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+    elif platform == 'IOS':
+        [workingDirectory, buildStr, runStr] = iOSBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     else:
         print("buildDog.py error: build string not generated for "+ buildName)
         exit(2)
@@ -204,7 +233,7 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         fileExtension = '.cpp'
         fileStr  = fileName + fileExtension
         buildStr = langStr + " " + fileStr
-    elif platform == 'MacOS': 
+    elif platform == 'MacOS':
         buildStr = "// swift build -Xswiftc -suppress-warnings \n"
         buildStr += "// swift run  -Xswiftc -suppress-warnings \n"
     else:

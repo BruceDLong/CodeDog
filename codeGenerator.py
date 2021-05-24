@@ -741,9 +741,9 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             if fType!='string':
                 [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, genericArgs, xlator)
                 tmpTypeSpec = CheckObjectVars(fType, name, fieldIDArgList)
-                typeSpecOut = copyTypeSpec(tmpTypeSpec['typeSpec'])
+                typeSpecOut = tmpTypeSpec
                 if typeSpecOut!=0:
-                    typeSpecOut = getGenericTypeSpec(genericArgs, typeSpecOut, xlator)
+                    typeSpecOut = copyTypeSpec(getGenericTypeSpec(genericArgs, typeSpecOut['typeSpec'], xlator))
                     if isNewContainer == True:
                         segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut)
                         segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut)

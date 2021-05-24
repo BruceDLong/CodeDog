@@ -610,7 +610,13 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
         parentClass = ': '+parentClass+' '
         parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(structName)
     if classInherits!=None:
-        parentClass=': ' + classInherits[0][0]
+        parentClass=': '
+        count =0
+        for item in classInherits[0]:
+            if count>0:
+                parentClass+= ', '
+            parentClass+= progSpec.getUnwrappedClassFieldTypeKeyWord(classes, item)
+            count += 1
     typeArgList = progSpec.getTypeArgList(structName)
     if(typeArgList != None):
         templateHeader = codeTemplateHeader(structName, typeArgList)+" "

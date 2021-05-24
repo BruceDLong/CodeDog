@@ -44,16 +44,16 @@ def macBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, plat
     currentDirectory = currentWD = os.getcwd()
     buildDirectory   = currentDirectory + "/" + buildName
     projectDirectory = buildDirectory + "/" + projectName
+    packageName      = 'Package.swift'
     makeDir(buildName)
     makeDir(buildName+"/"+projectName)
     ############################################################
-    rmPackageCmd    = "rm Package.swift"
+    rmPackageCmd    = "rm "+packageName
     packageInitCmd  = "swift package init --type executable"
     buildCmd        = "swift build -Xswiftc -suppress-warnings"
     runCmd          = "swift run  -Xswiftc -suppress-warnings"
     ############################################################
-    runCMD(rmPackageCmd, projectDirectory)
+    if os.path.isfile(projectDirectory+'/'+packageName): runCMD(rmPackageCmd, projectDirectory)
     runCMD(packageInitCmd, projectDirectory)
     writeFile(projectDirectory+"/Sources/"+projectName, fileName, fileSpecs, fileExtension)
-    #runCMD(buildCmd, projectDirectory)
     return [projectDirectory, buildCmd, runCmd]
