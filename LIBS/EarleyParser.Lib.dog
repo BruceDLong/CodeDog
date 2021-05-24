@@ -678,9 +678,10 @@ struct EParser{
             bufr <+- ch
             count <+- 1
             if(count==expectedBytes){break()}
+            txtItr.goNext()
         }
-        if(count<expectedBytes){return(-1)}
-        me int64: p
+        if(count!=expectedBytes){return(-1)}
+        me int64: p<-0
         packUTF8Char(bufr, p, out)
         return(expectedBytes)
     }
@@ -904,22 +905,15 @@ struct EParser{
         if(unicodeMgr.isUnicodeWordStart(ch)){
             me int64: charsUsed <- scrapeUnicodeWordContinue(pos+bytesUsed)
             if(charsUsed==-1){charsUsed<-0}
-    //~ me string:TXT
-    //~ withEach idx in RANGE(pos..pos+charsUsed+bytesUsed){
-        //~ me char: tChr <- getCharAt(idx))
-        //~ TXT <+- tChr
-    //~ }
-            //~ log("scrapeUniID A:"+TXT+": "+toString(charsUsed+bytesUsed)+" bytesUsed:"+toString(bytesUsed))
-            if(charsUsed<0){return(1)}
-            else{return(charsUsed+bytesUsed)}
-        }  /*else {log("Character REJEcetd:")
             me string:TXT
             withEach idx in RANGE(pos..pos+charsUsed+bytesUsed){
                 me char: tChr <- getCharAt(idx)
-                //log("    Byte:"+toString(tChr))
                 TXT <+- tChr
             }
-        }*/
+            //~ log("scrapeUniID A:"+TXT+": "+toString(charsUsed+bytesUsed)+" bytesUsed:"+toString(bytesUsed))
+            if(charsUsed<0){return(1)}
+            else{return(charsUsed+bytesUsed)}
+        }
         return(-1)
     }
     me int64: scrapeIntSeq(me int64: pos) <- {

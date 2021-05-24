@@ -12,7 +12,11 @@ LibDescription  ={
 }
 
 deinitCode = "endwin()"
-
+// Text to test:
+// Hello
+// مرحبا!
+// もしもし！
+// வணக்கம்
 struct GLOBAL{
     void: putCharX(their charX: chX, me uint: EntryAttrs) <- {
         if(chX.colorCode>0) {attrOn(getColorPair(chX.colorCode))}
@@ -24,7 +28,7 @@ struct GLOBAL{
 }
 
 struct charX {
-    me uint: chr
+    me int32: chr
     me uint: colorCode
     me int: chWidth
 }
@@ -351,8 +355,8 @@ struct readMultiLine {
         me uint: nextColor <- 4096 // 0x1000
         me uint: colorCode <- 0         //Color 0=default for this entry.
         if(text.s[0]!=0){
-            withEach count in WHILE(packUTF8Char(text.s.c_str(),p,chr)){
-                if(count>2000){print("Infinite loop!\n"); exit(2);}
+            while(packUTF8Char(text.s.c_str(),p,chr)){
+                //if(count>2000){print("Infinite loop!\n"); exit(2);}
                 if(chr==charConsts[1]){      // '\n'
                     lx.dirty<-true
                     entry.lines.pushLast(lx)
@@ -572,9 +576,22 @@ struct readMultiLine {
                     }
                 }
             }else{
-                chX.chWidth <- 1 // wcwidth(chX.chr)
-                chX.chr <- cmd
-                chkEd(mgr.insertChar(chX))
+                me int: remaining <- remainingOctets(cmd)
+                if(remaining==0){
+                    chX.chr <- cmd
+                    chX.chWidth <- 1 // wcwidth(chX.chr)
+                    chkEd(mgr.insertChar(chX))
+                } else { // finish unicode character
+                    me string: str; str <- cmd;
+                    withEach cnt in RANGE(0..remaining){
+                        cmd <- getChar()
+                        str <+- cmd
+                    }
+                    me int64:pos
+                    packUTF8Char(str,pos,chX.chr)
+                    chX.chWidth <- wcwidth(chX.chr)
+                    chkEd(mgr.insertChar(chX))
+                }
             }
             refreshDisplay(chg)
         }
