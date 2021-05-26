@@ -15,7 +15,11 @@ struct dash: inherits=widget{
     me bool: posIsSet
     me bool: isDirty
 
-    void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {print("SETPOS BASE!!\n")}
+    void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {
+        posX <- x
+        posY <- y
+        extC <- extCursor
+    }
     void: addDependent(me string: key, their dash: dashPtr) <- {
         if(dashPtr.dashParent==NULL){dashPtr.dashParent<-self}
         dashParent.addDependent(key, dashPtr)
@@ -28,7 +32,7 @@ struct dash: inherits=widget{
         if(dashParent==NULL){log("In Dash.requestRedraw() dashParent was NULL")}
         isDirty<-true; dashParent.requestRedraw()
     }
-    void: activatePropertyEditor()
+    void: activatePropertyEditor() <- {}
     void: addRelation(me string: relationType, their dash: from, their dash: to) <- {
         if(dashParent==NULL){log("In Dash.addRelation() dashParent was NULL")}
         dashParent.addRelation(relationType, from, to)
@@ -78,9 +82,9 @@ struct Dashboard: inherits=dash{
     }
 
     void: requestRedraw() <- {
-    if(dashParent==NULL){log("In Dashboard.requestRedraw() dashParent was NULL")}
-    isDirty<-true;
-    dashParent.requestRedraw()
+        if(dashParent==NULL){log("In Dashboard.requestRedraw() dashParent was NULL")}
+        isDirty<-true;
+        dashParent.requestRedraw()
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
@@ -230,8 +234,8 @@ struct Dashboard: inherits=dash{
         me cdColor: bkCol <- styler.bkGndColor
         me cdColor: fgCol <- styler.frGndColor
         //displayImage(cr, "blue-sky.png", 0, 0, 1.0)
-        cr.setColor(bkCol)
-        cr.paintNow()
+    //    cr.setColor(bkCol)
+    //    cr.paintNow()
 
         cr.setLineWidth(2)
         withEach childDash in dashChildren{

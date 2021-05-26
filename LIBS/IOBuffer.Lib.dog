@@ -19,7 +19,7 @@ struct strBuf{
     me string: streamName
 
     void: putStr(me string: data) <- {
-        log("PUTTING:"+data)
+        //log("PUTTING:"+data)
         me MutexMngr: bufMtxMgr{bufMutex}
         if(bufferClosed){
             log("WARNING: Buffer already closed in putStr:"+data)

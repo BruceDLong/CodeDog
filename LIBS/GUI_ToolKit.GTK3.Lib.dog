@@ -224,7 +224,7 @@ struct GUI_ctxt{
     me void: curveTo(me double: x1, me double: y1, me double: x2, me double: y2, me double: x3, me double: y3) <- <%!cairo_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
     me void: curveRel(me double: dx1, me double: dy1, me double: dx2, me double: dy2, me double: dx3, me double: dy3) <- <%!cairo_rel_curve_to(%0, %1, %2, %3, %4, %5, %6)%>
     me void: closePath() <- <%!cairo_close_path(%0)%>
-    me void: rectangle() <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
+    me void: rectangle(me double: x, me double: y, me double: w, me double: h) <- <%!cairo_rectangle(%0, %1, %2, %3, %4)%>
     me void: paintNow() <- <%!cairo_paint(%0)%>
     me void: strokeNow() <- <%!cairo_stroke(%0)%>
     me void: fillNow() <- <%!cairo_fill(%0)%>
@@ -337,6 +337,23 @@ struct GLOBAL{
         cairo_save(cr);
         cairo_scale(cr,1/scale,1/scale);
         cairo_set_source_surface(cr,pic,x*scale,y*scale);
+        cairo_paint(cr);
+        cairo_restore(cr);
+    }%>
+
+    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
+        filename = "./assets/" + filename;
+        cairo_surface_t* pic=0;
+        map<string, cairo_surface_t*>::iterator picPtr=InkImgCache.find(filename);
+        if (picPtr==InkImgCache.end()) {InkImgCache[filename]=pic=cairo_image_surface_create_from_png(filename.data());}
+        else pic=picPtr->second;
+        double picWidth = cairo_image_surface_get_width(pic);
+        double picHeight = cairo_image_surface_get_height(pic);
+        double xScale = 1500 / picWidth;
+        double yScale = 1500 / picHeight;
+        cairo_save(cr);
+        cairo_scale(cr, xScale, yScale);
+        cairo_set_source_surface(cr,pic,0,0);
         cairo_paint(cr);
         cairo_restore(cr);
     }%>
