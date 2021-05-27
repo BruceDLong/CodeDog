@@ -1165,9 +1165,6 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
     else: # interate over a container
         [ctnrName, containerTSpec] = codeExpr(action['repList'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         if containerTSpec==None or not progSpec.isAContainer(containerTSpec): cdErr("'"+ctnrName+"' is not a container so cannot be iterated over.",containerTSpec)
-        containerFieldTypeKey = progSpec.getFieldTypeKeyWordOld(containerTSpec)
-        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, containerFieldTypeKey)
-        if(wrappedTypeSpec != None):containerTSpec=wrappedTypeSpec
         if(traversalMode=='Forward' or traversalMode==None):
             isBackward=False
         elif(traversalMode=='Backward'):

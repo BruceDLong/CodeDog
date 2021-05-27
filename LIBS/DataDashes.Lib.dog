@@ -1,6 +1,6 @@
 // CodeDog graph dash for DashBoard
 
-featuresNeeded = [Dashboard]
+featuresNeeded = [Dashboard, Unicode]
 
 // //// GRAPH SCALES
 struct graphScale: inherits=dash{
