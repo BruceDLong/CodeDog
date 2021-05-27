@@ -18,7 +18,6 @@ LibDescription  = {
 }
 
 embedVeryHigh = `
-
 func __threadedFunction(pointer: UnsafeMutableRawPointer!) -> UnsafeMutableRawPointer? {
     var threadParameter = pointer.load(as: _ThreadParameter.self)
     var pxT = threadParameter.pxT
@@ -26,10 +25,21 @@ func __threadedFunction(pointer: UnsafeMutableRawPointer!) -> UnsafeMutableRawPo
     pxT.run()
     return nil
 }
+class __MutexMngr{
+    // TODO: this should be pthread_mutex_t? but throws error in swift 5.4.1 on Linux
+    var mtx: pthread_mutex_t!
 
+    init(m: pthread_mutex_t!){
+        mtx = m
+        pthread_mutex_lock(&mtx)
+    }
+    deinit{pthread_mutex_unlock(&mtx)}
+}
+class __SyncLock{}
 class _pxThread {
     var notDone:Bool = false
     let _id:String = ""
+    // TODO: this should be pthread_t? but throws error in swift 5.4.1 on Linux
     var myThread: pthread_t! = nil
 
     func ID() -> String {return _id}
@@ -58,23 +68,23 @@ class _ThreadParameter {
   }
 }
 
-typealias Unique_Lock_Mutex = std::unique_lock<std::mutex>
+//typealias Unique_Lock_Mutex = unique_lock<mutex>
 
 `
 struct Threads: wraps = _pxThread{}
-struct Mutex: wraps = mutex{
-    void: lock()        <- <%!lock()%>
-    void: unlock()      <- <%!unlock()%>
-    bool: tryLock()     <- <%!tryLock()%>
+struct Mutex: wraps = pthread_mutex_t{
+    void: lock()        <- <%!pthread_mutex_lock(%0)%>
+    void: unlock()      <- <%!pthread_mutex_unlock(%0)%>
+    bool: tryLock()     <- <%!pthread_mutex_tryLock(%0)%>
 }
 
-struct MutexMngr: wraps = Unique_Lock_Mutex{
-    void: lock()        <- <%!lock()%>
-    void: unlock()      <- <%!unlock()%>
-    bool: tryLock()     <- <%!try_lock()%>
+struct MutexMngr: wraps = __MutexMngr{
+    void: lock()        <- <%!pthread_mutex_lock(&mtx)%>
+    void: unlock()      <- <%!pthread_mutex_unlock(&mtx)%>
+    bool: tryLock()     <- <%!pthread_mutex_tryLock(&mtx)%>
 }
 
-struct SyncLock: wraps = condition_variable {
+struct SyncLock: wraps = __SyncLock{
     void: wait(me MutexMngr: lock)   <- <%!wait(%1)%>
     void: notifyOne()                <- <%!notify_one()%>
     void: notifyAll()                <- <%!notify_all()%>
