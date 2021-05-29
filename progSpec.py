@@ -785,6 +785,28 @@ def getDatastructID(typeSpec):
     else:   #is a parseResult
         return(typeSpec['arraySpec']['datastructID'][0])
 
+def getNewContainerFirstElementTypeTempFunc2(typeSpec):
+    # use only while transitioning to dynamic lists<> then delete
+    # TODO: delete this function when dynamic types working
+    if typeSpec == None: return(None)
+    if not 'fieldType' in typeSpec: return(None)
+    fieldType = typeSpec['fieldType']
+    if isinstance(fieldType, str): return(None)
+    fieldTypeKW = fieldType[0]
+    if fieldTypeKW=='DblLinkedList': return(['infon'])
+    reqTagList = getReqTagList(typeSpec)
+    if reqTagList:
+        if fieldTypeKW=='CPP_Deque' or fieldTypeKW=='Java_ArrayList' or fieldTypeKW=='Swift_Array':
+            return(reqTagList[0]['tArgType'])
+        if fieldTypeKW=='CPP_Map' or fieldTypeKW=='Java_Map' or fieldTypeKW=='Swift_Map':
+            return(reqTagList[0]['tArgType'])
+        if fieldTypeKW=='List':
+            return(reqTagList[0]['tArgType'])
+        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="Map":
+            print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
+    elif reqTagList == None: return(None)
+    return(None)
+
 def getNewContainerFirstElementTypeTempFunc(typeSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
@@ -801,6 +823,28 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
         if fieldTypeKW=='CPP_Map' or fieldTypeKW=='Java_Map' or fieldTypeKW=='Swift_Map':
             return(reqTagList[0]['tArgType'])
         if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="List" and fieldTypeKW!="Map":
+            print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
+    elif reqTagList == None: return(None)
+    return(None)
+
+def getNewContainerFirstElementOwnerTempFunc(typeSpec):
+    # use only while transitioning to dynamic lists<> then delete
+    # TODO: delete this function when dynamic types working
+    if typeSpec == None: return(None)
+    if not 'fieldType' in typeSpec: return(None)
+    fieldType = typeSpec['fieldType']
+    if isinstance(fieldType, str): return(None)
+    fieldTypeKW = fieldType[0]
+    if fieldTypeKW=='DblLinkedList': return('our')
+    reqTagList = getReqTagList(typeSpec)
+    if reqTagList:
+        if fieldTypeKW=='CPP_Deque' or fieldTypeKW=='Java_ArrayList' or fieldTypeKW=='Swift_Array':
+            return(reqTagList[0]['tArgOwner'])
+        if fieldTypeKW=='CPP_Map' or fieldTypeKW=='Java_Map' or fieldTypeKW=='Swift_Map':
+            return(reqTagList[0]['tArgOwner'])
+        if fieldTypeKW=='List':
+            return(reqTagList[0]['tArgOwner'])
+        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="Map":
             print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
     elif reqTagList == None: return(None)
     return(None)
@@ -1054,6 +1098,12 @@ def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
 def isStruct(fieldType):
     if isinstance(fieldType, str): return False
     return True
+
+def isBaseType(fType):
+    KW = fieldTypeKeyword(fType)
+    if KW=='string' or KW[0:4]=='uint' or KW[0:3]=='int' or KW[0:6]=='double' or KW[0:4]=='char' or KW[0:4]=='bool' or KW[0:4]=='flag':
+        return True
+    return False
 
 def isAltStruct(classes, fieldType):
     if not isStruct(fieldType) or not(fieldType[0] in classes[0]): return [False, [] ]
