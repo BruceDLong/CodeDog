@@ -481,10 +481,18 @@ def applyStructImplemetation(typeSpec,currentObjName,fieldName):
     return typeSpec
 
 #### GENERIC TYPE HANDLING #############################################
+def copyFieldType(fType):
+    if isinstance(fType,str):copyFieldType = copy.copy(fType)
+    else:
+        copyFieldType=[]
+        for prop in fType:copyFieldType.append(copy.copy(prop))
+    return copyFieldType
+
 def copyTypeSpec(typeSpec):
     copyTypeSpec = {}
     for prop in typeSpec:
-        copyTypeSpec[prop]=copy.copy(typeSpec[prop])
+        if prop=='fieldType': copyTypeSpec[prop]=copyFieldType(typeSpec[prop])
+        else: copyTypeSpec[prop]=copy.copy(typeSpec[prop])
     return copyTypeSpec
 
 def copyFields(fields):

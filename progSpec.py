@@ -868,6 +868,9 @@ def getContainerValueOwnerAndType(typeSpec):
                 valType = reqTagList[idxAt]
                 return[valType['tArgOwner'], valType['tArgType']]
             else: return[atOwner, atTypeKW]
+    if reqTagList:
+        owner     = reqTagList[0]['tArgOwner']
+        fieldType = reqTagList[0]['tArgType']
     return[owner, fieldType]
 
 def getFieldType(typeSpec):
