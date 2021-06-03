@@ -28,11 +28,11 @@ struct GUI_Frame:               wraps = GtkWidget ownerMe = their{}
 struct GUI_container:           wraps = GtkContainer ownerMe = their{}
 struct INK_Image:               wraps = cairo_surface_t ownerMe = their{}      // How will the ink look?
 struct GUI_callback:            wraps = GCallback ownerMe = their{}
-struct GUI_Scalar:              wraps = int{}
+struct GUI_Scalar:              wraps = double{}
 struct GUI_Text:                wraps = GtkWidget ownerMe = their{}
 struct GDK_KEY_Down:            wraps = GtkWidget ownerMe = their{}
 struct GUI_MouseEvent:          wraps = GdkEventMotion ownerMe = their{}
-struct GUI_MotionEvent:         wraps = GdkEventMotion{}
+struct GUI_MotionEvent:         wraps = GdkEventMotion ownerMe = their{}
 struct GUI_ButtonEvent:         wraps = GdkEventButton ownerMe = their{}
 struct GUI_PointerEvent:        wraps = GdkEventButton ownerMe = their{}
 struct GUI_KeyboardEvent:       wraps = GdkEventKey ownerMe = their{}
@@ -44,6 +44,8 @@ struct GLOBAL{
         gtk_container_add(parentContainer, childWidget);
         gtk_widget_show(childWidget);
     }%>
+
+    me string: toString(me GUI_Scalar: arg) <- {return(to_string(arg))}
 }
 /////////////////////////////////  HANDLE EVENTS
 struct GUI_MotionEvent{
@@ -212,8 +214,10 @@ struct GUI_ctxt{
     me void: reset() <- <%!%G %>
     me void: setRGBA(me double: red, me double: green, me double: blue, me double: alpha) <- <%!cairo_set_source_rgba(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256, (double)%4 /256)%>
     me void: setRGB (me double: red, me double: green, me double: blue) <- <%!cairo_set_source_rgb(%0, (double)%1 /256, (double)%2 /256, (double)%3 /256)%>
-    me void: setColor(me cdColor: color) <- <%!cairo_set_source_rgb(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256)%>
+    me void: setColor(me cdColor: color) <- <%!cairo_set_source_rgba(%0, (double)%1.red /256, (double)%1.green /256, (double)%1.blue /256, (double)%1.alpha /256)%>
     me void: setLineWidth(me double: width) <- <%!cairo_set_line_width(%0, %1)%>
+    me void: setRoundLineCap() <- <%!cairo_set_line_cap(%0, CAIRO_LINE_CAP_ROUND)%>
+    me void: setEdgedLineCap() <- <%!cairo_set_line_cap(%0, CAIRO_LINE_CAP_BUTT)%>
     me void: finishPDF() <- <%!cairo_surface_finish(cairo_get_group_target(%0))%>
     me void: setScale() <- <%!cairo_scale(%0, %1, %2)%>
     me void: setOffset() <- <%!cairo_translate(%0, %1, %2)%>
@@ -261,21 +265,21 @@ struct GLOBAL{
         return(size);
     }%>
 
-    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
-        deltaSize size = getTextSize(cr, text, font);
-        renderText(cr, text, font, x-size.width/2, y);
+    me deltaSize: renderTextCentered(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y) <- <%{
+        deltaSize size = getTextSize(text, font);
+        renderText(cr, text, *font, x-size.width/2, y);
         return(size);
     }%>
 
-    me deltaSize: renderTextRotate(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
+    me deltaSize: renderTextRotate(their GUI_ctxt: cr, me string: text, their fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
         double radians    = degrees*(M_PI/180.);
-        deltaSize size    = getTextSize(cr, text, font);
+        deltaSize size    = getTextSize(text, font);
         double hypotenuse = size.width;
         deltaSize tmpSize;
         rotate(cr, x, y, -45);
         if(justify == "right"){x=x-hypotenuse;}
         else if(justify == "center"){x=x-hypotenuse/2;}
-        renderText (cr, text, font, x, y);
+        renderText (cr, text, *font, x, y);
         cairo_restore(cr);
         //TODO: calculate height and width more accurately
         tmpSize.height       = cos(abs(radians))*hypotenuse;
@@ -299,10 +303,15 @@ struct GLOBAL{
 
     me void: restore() <- <%!cairo_restore(cr)%>
 
-    me deltaSize: getTextSize(their GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
-        PangoLayout *layout=pango_cairo_create_layout(cr);
+    their cairo_t: fontCheckerCR
+
+    me deltaSize: getTextSize(me string: text, their fontSpec: font) <- <%{
+        if(fontCheckerCR==NULL){
+            fontCheckerCR = cairo_create(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 5, 5));
+        }
+        PangoLayout *layout=pango_cairo_create_layout(fontCheckerCR);
         pango_layout_set_text(layout, text.data(), -1);
-        string fontDesc=font.name+' '+ std::to_string(font.size);
+        string fontDesc=font->name+' '+ std::to_string(font->size);
         PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
         pango_layout_set_font_description(layout, desc);
         pango_font_description_free(desc);
@@ -322,6 +331,30 @@ struct GLOBAL{
         cairo_curve_to(cr,x,y+h,x,y+h,x,y+h-r);       //# Curve to G
         cairo_line_to(cr,x,y+r);                      //# Line to H
         cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
+    } %>
+
+    me void: roundedTopRect(their GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
+        cairo_move_to(cr,x+r,y);                      //# Move to A
+        cairo_line_to(cr,x+w-r,y);                    //# Straight line to B
+        cairo_curve_to(cr,x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
+        cairo_line_to(cr,x+w,y+h);                  //# Move to D
+        //cairo_curve_to(cr,x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cairo_line_to(cr,x,y+h);                    //# Line to F
+        //cairo_curve_to(cr,x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cairo_line_to(cr,x,y+r);                      //# Line to H
+        cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
+    } %>
+
+    me void: roundedBotmRect(their GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
+        cairo_move_to(cr,x,y);                      //# Move to A
+        cairo_line_to(cr,x+w,y);                    //# Straight line to B
+        //cairo_curve_to(cr,x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
+        cairo_line_to(cr,x+w,y+h-r);                  //# Move to D
+        cairo_curve_to(cr,x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cairo_line_to(cr,x+r,y+h);                    //# Line to F
+        cairo_curve_to(cr,x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cairo_line_to(cr,x,y);                      //# Line to H
+        //cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
     } %>
 
     me void: displayImage(their GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
@@ -349,8 +382,8 @@ struct GLOBAL{
         else pic=picPtr->second;
         double picWidth = cairo_image_surface_get_width(pic);
         double picHeight = cairo_image_surface_get_height(pic);
-        double xScale = 1500 / picWidth;
-        double yScale = 1500 / picHeight;
+        double xScale = windowW / picWidth;
+        double yScale = windowH / picHeight;
         cairo_save(cr);
         cairo_scale(cr, xScale, yScale);
         cairo_set_source_surface(cr,pic,0,0);

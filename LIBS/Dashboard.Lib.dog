@@ -37,15 +37,22 @@ struct dash: inherits=widget{
         if(dashParent==NULL){log("In Dash.addRelation() dashParent was NULL")}
         dashParent.addRelation(relationType, from, to)
     }
+
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+        if(!checkForMouseOver(event)){return(false)}
+        return(true)
+    }
+
+    their DashboardWidget: getDashBrdMngr()<-{return(dashParent.getDashBrdMngr())}
 }
 
 struct Dashboard: inherits=dash{
     me List<our dash>: dashChildren
     me Map<me string, their dash>: dependentItems
     me List<our decor>: decorations
+    me string: bgImageFilename
     mode[accomodateParent, accomodateContent]: sizingMode
-    mode[singleDash, verticalStack, userArranges]: layoutMode
-    their GUI_canvas: canvas
+    mode[userArranges, singleDash, verticalStack]: layoutMode
     their GUI_ctxt: myGUI_ctxt
 
     their dash: dependentIsRegistered(me string: key) <- {
@@ -87,9 +94,7 @@ struct Dashboard: inherits=dash{
         dashParent.requestRedraw()
     }
 
-    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        width <- widgetWidth(canvas);
-        height <- widgetHeight(canvas)
+    me bool: basePrimaryClick(their GUI_ButtonEvent: event) <- {
         if(! isTouchingMe(event.x, event.y)){return(false)}
         withEach child in dashChildren{
             child.primaryClick(event)
@@ -99,14 +104,12 @@ struct Dashboard: inherits=dash{
                 Dash.primaryClick(event)
             }
         }
-        setPos(15, 15, 35)
         requestRedraw()
         return(true)
     }
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {return(basePrimaryClick(event))}
 
-    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
-        width <- widgetWidth(canvas);
-        height <- widgetHeight(canvas)
+    me bool: baseSecondaryClick(their GUI_ButtonEvent: event) <- {
         if(! isTouchingMe(event.x, event.y)){return(false)}
         withEach child in dashChildren{
             child.secondaryClick(event)
@@ -120,10 +123,9 @@ struct Dashboard: inherits=dash{
         requestRedraw()
         return(true)
     }
+    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {return(baseSecondaryClick(event))}
 
-    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        width <- widgetWidth(canvas);
-        height <- widgetHeight(canvas)
+    me bool: basePrimaryDn(their GUI_ButtonEvent: event) <- {
         if(! isTouchingMe(event.x, event.y)){return(false)}
         withEach child in dashChildren{
             child.primaryDn(event)
@@ -135,10 +137,9 @@ struct Dashboard: inherits=dash{
         }
         return(true)
     }
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {return(basePrimaryDn(event))}
 
-    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        width <- widgetWidth(canvas);
-        height <- widgetHeight(canvas)
+    me bool: basePrimaryUp(their GUI_ButtonEvent: event) <- {
         if(! isTouchingMe(event.x, event.y)){return(false)}
         withEach child in dashChildren{
             child.primaryUp(event)
@@ -150,11 +151,10 @@ struct Dashboard: inherits=dash{
         }
         return(true)
     }
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {return(basePrimaryUp(event))}
 
-    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
-        width <- widgetWidth(canvas);
-        height <- widgetHeight(canvas)
-        if(! isTouchingMe(event.x, event.y)){return(false)}
+    me bool: mouseMovedBase(their GUI_MotionEvent: event) <- {
+        if(!checkForMouseOver(event)){return(false)}
         withEach child in dashChildren{
             child.mouseMoved(event)
         }
@@ -165,6 +165,7 @@ struct Dashboard: inherits=dash{
         }
         return(true)
     }
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {return(mouseMovedBase(event))}
 
     me void: drawToPDF(me string: filename, me double: inchesWide, me double: inchesHigh, me double: scale) <- {
         //their GUI_ctxt: PDF <- myGUI_ctxt.newPDF_ctxt(filename, inchesWide, inchesHigh)
@@ -213,8 +214,8 @@ struct Dashboard: inherits=dash{
         me GUI_Scalar: horizontalOffset <- 0
         if(sizingMode==accomodateContent){}
         if(layoutMode==singleDash){
-            dashChildren[0].width <- widgetWidth(canvas)
-            dashChildren[0].height <- widgetHeight(canvas)
+            dashChildren[0].width <- width
+            dashChildren[0].height <- height
         }else if(layoutMode==verticalStack){
             verticalOffset <- 15
             withEach childDash in dashChildren{
@@ -224,18 +225,19 @@ struct Dashboard: inherits=dash{
             }
         }else if(layoutMode==userArranges){
         }
-        thisApp.gui.setWidgetSize(canvas,max(horizontalOffset, widgetWidth(window)),max(verticalOffset, widgetHeight(window)))
     }
 
-    void: draw(their GUI_ctxt: cr) <- {
-        myGUI_ctxt <- cr
+    void: baseDraw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
         layoutChildDashes()
         me cdColor: bkCol <- styler.bkGndColor
         me cdColor: fgCol <- styler.frGndColor
-        //displayImage(cr, "blue-sky.png", 0, 0, 1.0)
-    //    cr.setColor(bkCol)
-    //    cr.paintNow()
+        if(bgImageFilename!=""){
+            displayBackgroundImage(cr, bgImageFilename)
+        } else {
+            //    cr.setColor(bkCol)
+            //    cr.paintNow()
+        }
 
         cr.setLineWidth(2)
         withEach childDash in dashChildren{
@@ -251,6 +253,7 @@ struct Dashboard: inherits=dash{
             decoration.draw(cr)
         }
     }
+    void: draw(their GUI_ctxt: cr) <- {baseDraw(cr)}
 }
 
 struct dataField: inherits=dash{
@@ -275,8 +278,8 @@ struct dataField: inherits=dash{
 
     void: draw(their GUI_ctxt: cr) <- {
         if (isHidden){return()}
-        renderText(cr, label, styler.fontSmall, posX, posY+15)
-        renderText(cr, value, styler.fontSmall, posX+midPos, posY+15)
+        renderText(cr, label, styler.smallFont, posX, posY+15)
+        renderText(cr, value, styler.smallFont, posX+midPos, posY+15)
     }
 }
 
@@ -424,21 +427,26 @@ struct listOfItems: inherits=dash{
     }
 }
 
-struct DashboardWidget: inherits=dash{
-    our Dashboard:: dashboardDBW
+struct DashboardWidget: inherits=Dashboard{
     their GUI_canvas: canvas
     their GUI_canvas: managedWidget
+    me bool: showModalPopUp <- false
     me GUI_eventDispatcher: EventDispatcher
+    our Dashboard: popUp
+
+    their Dashboard: base  // This is bad. Fix calling super class then we won't need this.
+
     void: requestRedraw() <- {
         markDirtyArea(canvas, 0,0, widgetWidth(canvas), widgetHeight(canvas))
     }
+    their DashboardWidget: getDashBrdMngr()<-{return(self)}
     their GUI_canvas: init(me string: label) <- {
+        base <- self
         title   <- 'DashboardWidget.'+label
+        showModalPopUp <- false
         canvas  <- thisApp.gui.newCanvas()
         canvas.setParent(self)
-        dashboardDBW.dashParent <- self
-        dashboardDBW.canvas <- canvas
-        thisApp.gui.setWidgetSize(canvas, 310, 220)
+        width <- widgetWidth(canvas); height <- widgetHeight(canvas)
         //    their scrollerWidget:: scrollView  <- ()
         //    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
         //    managedWidget <- scrollerFrame
@@ -448,22 +456,103 @@ struct DashboardWidget: inherits=dash{
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         return(managedWidget)
     }
-    void: draw(their GUI_ctxt: cr) <- {
-        dashboardDBW.draw(cr)
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+        if(showModalPopUp){return(popUp.mouseMoved(event))}
+        return(mouseMovedBase(event))
     }
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        dashboardDBW.primaryClick(event)
-        return(true)
+        if(showModalPopUp){return(popUp.primaryClick(event))}
+        return(basePrimaryClick(event))
+    }
+    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
+        if(showModalPopUp){return(popUp.secondaryClick(event))}
+        return(baseSecondaryClick(event))
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        dashboardDBW.primaryUp(event)
-        return(true)
+        if(showModalPopUp){return(popUp.primaryUp(event))}
+        return(basePrimaryUp(event))
     }
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        dashboardDBW.primaryDn(event)
-        return(true)
+        if(showModalPopUp){return(popUp.primaryDn(event))}
+        return(basePrimaryDn(event))
     }
-    void: INIT() <- {Allocate(dashboardDBW)}
+    void: activateModalPopup(our Dashboard: popupToShow)<-{
+        popUp <- popupToShow
+        showModalPopUp <- true
+        requestRedraw()
+    }
+    void: closePopup()<-{
+        showModalPopUp <- false
+        popUp <- NULL
+        requestRedraw()
+    }
+}
+/////////////////////////////////////////////////////
+// Structs for DrawHolding
+
+struct RectArea{me GUI_Scalar: X  me GUI_Scalar: Y  me GUI_Scalar: W  me GUI_Scalar: H}
+
+struct DrawCmd:inherits=<mode[cmdMoveTo, cmdLineTo, cmdDrawRect, cmdRoundRect, cmdRoundTopRect, cmdRoundBotRect,
+                                 cmdRenderText, cmdRenderTextCentered, cmdDrawImage, cmdDrawBkgndImage,
+                                 cmdDrawCircle, cmdSetColor, cmdSetLineWidth, cmdRoundLineCap, cmdEdgedLineCap,
+                                 cmdFill, cmdStroke, cmdSubDrawing
+                             ]> {}
+
+struct Drawel{
+    DrawCmd: cmd
+    me GUI_Scalar: x
+    me GUI_Scalar: y
+    me GUI_Scalar: w
+    me GUI_Scalar: h
+    me GUI_Scalar: arg1
+    me GUI_Scalar: arg2
+    me string: text
+    their fontSpec: font
+    our dashDrawing: drawing
+
+    void: render(their GUI_ctxt: cr)<-{
+        //log("CMD:"+DrawCmdStrings[cmd]+" x:"+toString(x)+" y:"+toString(y)+" w:"+toString(w)+" h:"+toString(h)+" :"+text)
+        switch(cmd){
+        case cmdMoveTo:         {cr.moveTo(x,y)}
+        case cmdLineTo:         {cr.lineTo(x,y)}
+        case cmdDrawRect:       {cr.rectangle(x,y,w,h)}
+        case cmdRoundRect:      {roundedRectangle(cr, x,y,w,h, arg1)}
+        case cmdRoundTopRect:   {roundedTopRect(cr, x,y,w,h, arg1)}
+        case cmdRoundBotRect:   {roundedBotmRect(cr, x,y,w,h, arg1)}
+        case cmdRenderText:     {renderText(cr, text, font, x, y)}
+        case cmdRenderTextCentered: {renderTextCentered(cr, text, font, x, y)}
+        case cmdDrawImage:      {displayImage(cr, text, x, y, arg1)}
+        case cmdDrawBkgndImage: {displayBackgroundImage(cr, text)}
+        case cmdFill:           {cr.fillNow()}
+        case cmdStroke:         {cr.strokeNow()}
+        case cmdDrawCircle:     {cr.circle(x,y,arg1)}
+        case cmdSetColor:       {cr.setRGBA(x,y,w,h)}
+        case cmdSetLineWidth:   {cr.setLineWidth(x)}
+        case cmdRoundLineCap:   {cr.setRoundLineCap()}
+        case cmdEdgedLineCap:   {cr.setEdgedLineCap()}
+        case cmdSubDrawing:     {drawing.render(cr)}
+        }
+    }
+}
+
+struct dashDrawing{
+    me List<our Drawel>: cmds
+
+    our Drawel: add1(me DrawCmd: dCmd) <-{our Drawel:: drl; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
+    our Drawel: add2(me DrawCmd: dCmd, me GUI_Scalar: X) <-{our Drawel:: drl; drl.x<-X; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
+    our Drawel: addXY(me DrawCmd: dCmd, me GUI_Scalar: X, me GUI_Scalar: Y) <-{our Drawel:: drl; drl.cmd<-dCmd; drl.x<-X drl.y<-Y; cmds.pushLast(drl); return(drl)}
+    our Drawel: addT(me DrawCmd: dCmd, me string: T) <-{our Drawel:: drl; drl.cmd<-dCmd; drl.text<-T; cmds.pushLast(drl); return(drl)}
+    our Drawel: addC(me DrawCmd: dCmd, me cdColor: C) <-{our Drawel:: drl{C.red,C.green,C.blue,C.alpha}; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
+    our Drawel: addRA(me DrawCmd: dCmd, their RectArea:RA) <-{our Drawel:: drl{RA.X, RA.Y, RA.W, RA.H}; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
+    our Drawel: addRAA(me DrawCmd: dCmd, their RectArea:RA, me GUI_Scalar: ARG) <-{our Drawel:: drl{RA.X,RA.Y,RA.W,RA.H,ARG}; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
+    our Drawel: addTF(me DrawCmd: dCmd, me GUI_Scalar: X, me GUI_Scalar: Y, me string: T, their fontSpec: F) <-{our Drawel:: drl; drl.cmd<-dCmd; drl.x<-X drl.y<-Y; drl.text<-T; drl.font<-F; cmds.pushLast(drl); return(drl)}
+    our Drawel: addSubDrawing(our dashDrawing: D)<-{our Drawel:: drl; drl.cmd<-cmdSubDrawing; drl.drawing<-D; cmds.pushLast(drl); return(drl)}
+
+    me void: render(their GUI_ctxt: cr) <- {
+        withEach cmd in cmds{
+            cmd.render(cr)
+        }
+    }
 }
 
 struct GLOBAL{
