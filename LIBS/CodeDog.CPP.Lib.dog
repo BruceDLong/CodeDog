@@ -117,6 +117,8 @@ struct GLOBAL{
     //me string: toString(me bool: val)                          <- <%!%G((%1)?"true":"false")%>
     me string: toString(me long: val)                          <- <%!std::to_string(%1)%>
     me int: stoi(me string: val)                               <- <%!std::stoi(%1)%>
+    me int: toInt(me string: val)                              <- <%!std::stoi(%1)%>
+    me double: toDouble(me string: val)                        <- <%!std::stoi(%1)%>
     me int: uniqueObjectID(their any:obj)                      <- <%!%G(intptr_t)%1%>
     me double: sqrt(me double: input)                          <- <%!sqrt(%1)%>
     me timeValue: convertToTimeVal()                           <- <%!%G%1%>

@@ -1078,7 +1078,7 @@ def typeIsNumRange(fieldType):
     return False
 
 def typeIsInteger(fieldType):
-    #print("typeIsInteger:"+str(fieldType))
+    # NOTE: If you need this to work for wrapped types as well use the version in CodeGenerator.py
     if fieldType == None: return False
     if typeIsNumRange(fieldType): return True
     if not isinstance(fieldType, str):

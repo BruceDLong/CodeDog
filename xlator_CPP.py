@@ -248,6 +248,7 @@ def getCodeAllocStr(varTypeStr, owner):
     elif(owner=='my'): S="make_unique<"+varTypeStr+">"
     elif(owner=='their'): S="new "+varTypeStr
     elif(owner=='me'): cdErr("Cannot allocate a 'me' variable. (" + varTypeStr + ')')
+    elif(owner=='we'): cdErr("Cannot allocate a 'we' variable. (" + varTypeStr + ')')
     elif(owner=='const'): cdErr("Cannot allocate a 'const' variable.")
     else: cdErr("Cannot allocate variable because owner is " + owner+".")
     return S
@@ -881,9 +882,12 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
                 if True or not isinstance(rhsType, str) and convertedType==rhsType[0]:
                     [leftMod, rightMod] = determinePtrConfigForNewVars(lhsTypeSpec, rhsTypeSpec, useCtor)
                     if(not useCtor): assignValue += " = "    # Use a copy constructor
-                    if(isAllocated): assignValue += getCodeAllocStr(innerType, owner)
+                    if(isAllocated):
+                        assignValue += getCodeAllocStr(innerType, owner)
                     assignValue += "(" + leftMod + CPL[1:-1] + rightMod + ")"
-            if(assignValue==''): assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
+            if(assignValue==''):
+                if(owner == 'their' or owner == 'our' or owner == 'my'): assignValue = ' = '+getCodeAllocStr(innerType, owner)+CPL
+                else: assignValue = CPL # add "(x, y, z...) to make this into a constructor call.
         elif(progSpec.typeIsPointer(lhsTypeSpec)):
             if(isAllocated):
                 assignValue = " = " + getCodeAllocSetStr(innerType, owner, "")

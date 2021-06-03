@@ -808,7 +808,7 @@ struct EParser{
             charsUsed <+- bytesUsed
         }
         if(charsUsed==0){return(-1)}
-        return(1)
+        return(charsUsed)
     }
     me int64: scrapePrintableSeq(me int64: pos) <- {
         me int64: charsUsed <- 0
