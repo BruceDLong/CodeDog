@@ -200,7 +200,9 @@ def chooseVirtualRValOwner(LVAL, RVAL):
     if(LeftOwner=="id_their" and RightOwner=="id_their"): return ["&", ""]
     if LeftOwner == RightOwner: return ["", ""]
     if LeftOwner!='itr' and RightOwner=='itr':
-        return ["", "->second"]
+        # TODO: test this change.  This looks like code that handled codeDog 1.0 container iterators, which is now handled in codeIteratorOperation()
+        #return ["", "->second"]
+        return ["", ""]
     if LeftOwner=='me' and progSpec.typeIsPointer(RVAL):
         return ["(*", "   )"]
     if progSpec.typeIsPointer(LVAL) and RightOwner=='me':
@@ -439,7 +441,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
     if progSpec.ownerIsPointer(ctnrOwner): connector="->"
     else: connector = "."
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
-    if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map':
+    if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map' or datastructID=='CPP_Multimap':
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
@@ -1180,4 +1182,5 @@ def fetchXlators():
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
     xlators['xlateLangType']                = xlateLangType
     xlators['makePtrOpt']                   = makePtrOpt
+    xlators['adjustBaseTypes']              = adjustBaseTypes
     return(xlators)

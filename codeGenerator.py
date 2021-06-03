@@ -445,8 +445,8 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
             return(None, None, None)
         implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
         if(implementationOptions == None):
-            if fieldType[0]=="List":
-                print("******WARNING: no implementationOptions found for LIST ",className,"::",fieldName)
+            if fieldType[0]=="List" or fieldType[0]=="MultiMap":
+                print("******WARNING: no implementationOptions found for container  ", fieldType[0] ,className,"::",fieldName)
                 # Check to confirm List is in features needed
         else:
             reqTags = progSpec.getReqTags(fieldType)
@@ -703,7 +703,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         codeCvrtText = xlator['codeIteratorOperation'](name, fieldTypeOut)
         if codeCvrtText!='':
             typeSpecOut['codeConverter'] = codeCvrtText
-            if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
+            if typeSpecOut['owner']=='itr' and not isNewContainer: typeSpecOut['owner']='me'
 
     elif IsAContainer and (not isNewContainer or name[0]=='['):
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')
@@ -777,6 +777,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             if(reqTagList != None):
                 T0Type  = progSpec.getTypeFromTemplateArg(reqTagList[0])
                 T0Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, T0Type)
+                T0Type  = xlator['adjustBaseTypes'](T0Type)
                 T0Owner = progSpec.getOwnerFromTemplateArg(reqTagList[0])
                 T0Type  = xlator['applyOwner'](T0Owner, T0Type, "")
                 convertedName = convertedName.replace("%T0Type",T0Type)
@@ -785,6 +786,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             if(reqTagList != None):
                 T1Type  = progSpec.getTypeFromTemplateArg(reqTagList[1])
                 T1Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, T1Type)
+                T1Type  = xlator['adjustBaseTypes'](T1Type)
                 T1Owner = progSpec.getOwnerFromTemplateArg(reqTagList[1])
                 T1Type  = xlator['applyOwner'](T1Owner, T1Type, "")
                 convertedName = convertedName.replace("%T1Type",T1Type)

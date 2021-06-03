@@ -802,7 +802,7 @@ def getNewContainerFirstElementTypeTempFunc2(typeSpec):
             return(reqTagList[0]['tArgType'])
         if fieldTypeKW=='List':
             return(reqTagList[0]['tArgType'])
-        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="Map":
+        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="Map" and fieldTypeKW!="Multimap" and fieldTypeKW!="CPP_Multimap":
             print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
     elif reqTagList == None: return(None)
     return(None)
@@ -822,7 +822,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
             return(reqTagList[0]['tArgType'])
         if fieldTypeKW=='CPP_Map' or fieldTypeKW=='Java_Map' or fieldTypeKW=='Swift_Map':
             return(reqTagList[0]['tArgType'])
-        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="List" and fieldTypeKW!="Map":
+        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="List" and fieldTypeKW!="Map" and fieldTypeKW!="Multimap" and fieldTypeKW!="CPP_Multimap":
             print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
     elif reqTagList == None: return(None)
     return(None)
@@ -844,7 +844,7 @@ def getNewContainerFirstElementOwnerTempFunc(typeSpec):
             return(reqTagList[0]['tArgOwner'])
         if fieldTypeKW=='List':
             return(reqTagList[0]['tArgOwner'])
-        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="Map":
+        if not "RBNode" in fieldTypeKW and not "RBTreeMap" in fieldTypeKW and not "RBTreeItr"in fieldTypeKW and fieldTypeKW!="Map" and fieldTypeKW!="Multimap" and fieldTypeKW!="CPP_Multimap":
             print("Template class '"+fieldTypeKW+"' not found for" + str(reqTagList))
     elif reqTagList == None: return(None)
     return(None)
