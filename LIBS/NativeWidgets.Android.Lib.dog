@@ -736,7 +736,6 @@ struct GLOBAL{
     their GUI_button: makeButtonWidget(me string: label)                        <- <%!makeAndroidButton(%1)%>
     their GtkWidget: makeTabbedWidget(me string: label)                         <- <%!makeAndroidVerticalLayout(%1)%>
     me void: setTabLabelText()                                                  <- <%!%G // TODO code converter for GLOBAL.makeTabbedWidget%>
-    me GUI_Scalar: convertToGUIScalar()                                         <- <%!%G (float)(%1)%>
     their GUI_Bool: makeCheckBox()                                              <- <%!%G new CheckBox(GLOBAL.static_Global)%>
     their GUI_VerticalScroller: makeVerticalScroller() <- <%!makeAndroidVerticalScroller()%>
     their GUI_TextViewer: makeTextViewer(me string: text)                       <- <%!makeAndroidTextViewer(%1)%>

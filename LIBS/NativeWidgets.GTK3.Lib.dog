@@ -580,7 +580,6 @@ struct GLOBAL{
     me int: getListRowIndex() <- <%!%Ggtk_list_box_row_get_index((GtkListBoxRow *)%1)%>
     their GtkWidget: getListRowSelected(their listWidget: listWidgetView) <- <%!%G(GtkWidget*)gtk_list_box_get_selected_row((GtkListBox *)%1)%>
     me void: setTabLabelText() <- <%!%Ggtk_notebook_set_tab_label_text(GTK_NOTEBOOK(%1), %2, %3)%>
-    me GUI_Scalar: convertToGUIScalar()                                    <- <%!%G%1%>
     their GUI_Bool: makeCheckBox()                                         <- <%!%Ggtk_check_button_new()%>
     their GUI_VerticalScroller: makeVerticalScroller()                     <- <%!%GmakeGTKVerticalScroller()%>
     their GUI_TextViewer: makeTextViewer(me string: text)                  <- <%!%GmakeGTKTextViewer(%1)%>

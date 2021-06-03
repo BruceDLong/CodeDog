@@ -423,6 +423,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!%G%1.invalidate()%>
     me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
    // me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%1.setLayoutParams(%2, %3)%>
+    me GUI_Scalar: convertToGUIScalar()                                         <- <%!%G (float)(%1)%>
 }
 
 /////////////////////////////////  INTER-THREAD COMMUNICATION
