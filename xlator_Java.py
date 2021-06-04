@@ -422,12 +422,13 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
                         tmp+="L"
                         retTypeSpec = 'Long'
             tmp+="))"
+            retTypeKW = progSpec.fieldTypeKeyword(retTypeSpec)
             if isinstance(exprTypeSpec,str):typeKeyword = exprTypeSpec
             elif progSpec.isAContainer(returnType):
                 reqType = progSpec.getContainerFirstElementType(returnType)
                 typeKeyword = progSpec.fieldTypeKeyword(reqType)
                 typeKeyword = adjustBaseTypes(typeKeyword, True)
-            else: print("TODO: handle new array codeFactor for unknown type:"); exit(2)
+            else: typeKeyword = retTypeKW
             S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
         else:
             expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)

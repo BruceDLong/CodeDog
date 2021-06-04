@@ -199,7 +199,7 @@ def fetchOrWriteTerminalParseRule(modelName, field, logLvl):
         elif fieldType[0:4]=='char':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif fieldType[0:4]=='bool':   nameOut=appendRule(nameIn,       "term", "parseSEQ",  None)
         elif progSpec.isStruct(fieldType):
-            objName=fieldType[0]
+            objName=progSpec.fieldTypeKeyword(fieldType)
             if (objName=='ws' or objName=='wsc' or objName=='quotedStr' or objName=='quotedStr1' or objName=='quotedStr2'
                   or objName=='CID' or objName=='UniID' or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq'
                   or progSpec.typeIsInteger(objName)):
@@ -399,13 +399,18 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         toFieldOwner="me"
     else:
         toTypeSpec   = toField['typeSpec']
-        toFieldType  = progSpec.getFieldType(toTypeSpec)
-        toFieldOwner = progSpec.getContainerFirstElementOwner(toTypeSpec)
+        if progSpec.isNewContainerTempFunc(toTypeSpec):
+            toFieldType  = progSpec.getNewContainerFirstElementTypeTempFunc2(toTypeSpec)
+            toFieldOwner = progSpec.getNewContainerFirstElementOwnerTempFunc(toTypeSpec)
+        else:
+            toFieldType  = progSpec.getFieldType(toTypeSpec)
+            toFieldOwner = progSpec.getContainerFirstElementOwner(toTypeSpec)
 
         if debugTmp:
             print('        toFieldType:', toFieldType)
-
-    LHS_IsPointer=progSpec.typeIsPointer(toTypeSpec)
+    fTypeKW       = progSpec.fieldTypeKeyword(fieldType)
+    toFTypeKW     = progSpec.fieldTypeKeyword(toFieldType)
+    LHS_IsPointer = progSpec.typeIsPointer(toTypeSpec)
 
    # print "        CONVERTING:", fieldName, str(toFieldType)[:100]+'... ', str(typeSpec)[:100]+'... '
    # print "            TOFieldTYPE1:", str(toField)[:100]
@@ -414,9 +419,9 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     cdlog(logLvl, "FIELD {}: '{}'".format(fieldName, str(fieldValue)))
 
     fields=[]
-    fromIsStruct=progSpec.isStruct(fieldType)
-    toIsStruct=progSpec.isStruct(toFieldType)
-    ToIsEmbedded = toIsStruct and (toFieldType[0]=='[' or toFieldType[0]=='{')
+    fromIsStruct = progSpec.isStruct(fieldType)
+    toIsBaseType = progSpec.isBaseType(toFieldType)
+    ToIsEmbedded = (not toIsBaseType) and (toFieldType[0]=='[' or toFieldType[0]=='{')
     [fromIsALT, fields] = progSpec.isAltStruct(classes, fieldType)
     fromIsOPT =False
     fromIsList=False
@@ -435,7 +440,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         print('        fromIsList:', fromIsList)
         print('        toIsList:', toIsList)
         print('        fromIsStruct:', fromIsStruct)
-        print('        toIsStruct:', toIsStruct)
+        print('        toIsBaseType:', toIsBaseType)
         print('        fieldType:', fieldType)
         print('        ToIsEmbedded:', ToIsEmbedded)
         print('        ToStructName:', ToStructName)
@@ -479,33 +484,33 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         finalCodeStr += indent + 'tmpStr'+' <- makeStr('+VarTag+"<LVL_SUFFIX>"+'.child)\n'
 
     else:
-        if toIsStruct:
+        if not toIsBaseType:
             if debugTmp: print('        toFieldType:', toFieldType)
             if not ToIsEmbedded:
-                objName=toFieldType[0]
+                objName=progSpec.fieldTypeKeyword(toFieldType)
                 if  progSpec.typeIsInteger(objName):
-                    strFieldType = fieldType[0]
+                    strFieldType = progSpec.fieldTypeKeyword(fieldType)
                     if(strFieldType == "HexNum"):
                         CODE_RVAL='makeHexInt('+VarTag+'.child.next'+')'
                     elif(strFieldType == "BinNum"):
                         CODE_RVAL='makeBinInt('+VarTag+'.child.next'+')'
                     else:
                         CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
-                    toIsStruct=False; # false because it is really a base type.
+                    toIsBaseType=True; # it is really a base type.
                 elif (objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID'
                       or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq'):
                     CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
-                    toIsStruct=False; # false because it is really a base type.
+                    toIsBaseType=True; # it is really a base type.
                 elif (objName=='ws' or objName=='wsc'):
                     CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
                     optionalWhiteSpace = True
-                    toIsStruct=False; # false because it is really a base type.
+                    toIsBaseType=True; # it is really a base type.
                 else:
                     #print "toObjName:", objName, memVersionName, fieldName
                     [toMemObj, toMemVersionName]=fetchMemVersion(classes, objName)
                     if toMemVersionName==None:
                         # make alternate finalCodeStr. Also, write the extractor that extracts toStruct fields to memVersion of this
-                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fieldType[0], memVersionName)+'(getChildStateRec('+VarTag+"<LVL_SUFFIX>"+'), memStruct)\n')
+                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fTypeKW, memVersionName)+'(getChildStateRec('+VarTag+"<LVL_SUFFIX>"+'), memStruct)\n')
                         objSpec = progSpec.findSpecOf(classes[0], objName, 'string')
                         ToFields=objSpec['fields']
                         FromStructName=objName
@@ -535,16 +540,16 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and getNextStateRec('+childRecName+') !=NULL){\n'
         if fromIsALT:
           #  print "ALT-#1"
-            gatherFieldCode+=Write_ALT_Extracter(classes, fieldType[0], fields, childRecName, '', 'tmpVar', indent+'    ', level)
+            gatherFieldCode+=Write_ALT_Extracter(classes, fTypeKW, fields, childRecName, '', 'tmpVar', indent+'    ', level)
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
 
-        elif fromIsStruct and toIsStruct:
-            gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFieldType[0])+': tmpVar'
+        elif fromIsStruct and not toIsBaseType:
+            gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFTypeKW)+': tmpVar'
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
-            #print "##### FUNCT:", getFunctionName(fieldType[0], fieldType[0])
-            gatherFieldCode+='\n'+indent+getFunctionName(fieldType[0], toFieldType[0])+'(getChildStateRec('+childRecName+') , tmpVar)\n'
+            #print "##### FUNCT:", getFunctionName(fTypeKW, toFTypeKW)
+            gatherFieldCode+='\n'+indent+getFunctionName(fTypeKW, toFTypeKW)+'(getChildStateRec('+childRecName+') , tmpVar)\n'
 
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, ".next")
@@ -601,7 +606,8 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 assignerCode+=Write_ALT_Extracter(classes, ToStructName, field['innerDefs'], VarTagBase, levelSuffix, VarName, indent+'    ', level+1, logLvl+1)
             else:
               #  print "ALT-#3"
-                assignerCode+=Write_ALT_Extracter(classes, fieldType[0], fields, VarTagBase, levelSuffix, VarName+'X', indent+'    ', level, logLvl+1)
+                fTypeKW = progSpec.fieldTypeKeyword(fieldType)
+                assignerCode+=Write_ALT_Extracter(classes, fTypeKW, fields, VarTagBase, levelSuffix, VarName+'X', indent+'    ', level, logLvl+1)
                 assignerCode+=indent+CODE_LVAR+' <- '+(VarName+'X')+"\n"
         elif fromIsEmbeddedSeq:
             globalFieldCount +=1
@@ -612,7 +618,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             for innerField in field['innerDefs']:
                 assignerCode+=Write_fieldExtracter(classes, ToStructName, innerField, memObjFields, childRecNameBase, '', advance, coFactualCode, '    ', level, logLvl+1)
                 advance = True
-        elif fromIsStruct and toIsStruct:
+        elif fromIsStruct and not toIsBaseType:
             assignerCode+=finalCodeStr.replace("<LVL_SUFFIX>", levelSuffix);
             if debugTmp: print('        assignerCode:', assignerCode)
         elif optionalWhiteSpace:
