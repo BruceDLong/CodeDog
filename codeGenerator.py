@@ -729,7 +729,6 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             elif name=='val':
                 [valOwner, valFieldType] = progSpec.getContainerValueOwnerAndType(typeSpecIn)
                 typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
-                print("VAL:",typeSpecIn)
             else:
                 typeSpecOut = copy.copy(typeSpecIn)
                 if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
