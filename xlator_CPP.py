@@ -140,8 +140,8 @@ def makePtrOpt(typeSpec):
 
 def codeIteratorOperation(itrCommand, fieldType):
     result = ''
-    if(fieldType[0]=='deque'):
-        if itrCommand=='val':   result='* %0'
+    if(fieldType[0]=='deque'): # TODO: this should be like "If this iterator doesn't return BOTH key and value  ...". 'deque' is just one case.
+        if itrCommand=='val':   result='*(%0)'
     else:
         if itrCommand=='goNext':  result='%0++'
         elif itrCommand=='goPrev':result='--%0'

@@ -805,6 +805,27 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
     elif reqTagList == None: return(None)
     return(None)
 
+def getContainerKeyOwnerAndType(typeSpec):
+    owner     = getContainerFirstElementOwner(typeSpec)
+    fieldType = fieldTypeKeyword(typeSpec)
+    if not isNewContainerTempFunc(typeSpec): return[owner, fieldType]
+    reqTagList = getReqTagList(typeSpec)
+    if "fromImplemented" in typeSpec:
+        fromImplemented = typeSpec['fromImplemented']
+        if 'typeArgList' in fromImplemented:
+            typeArgList = fromImplemented['typeArgList']
+        if 'atKeyTypeSpec' in fromImplemented:
+            fieldDefAt = fromImplemented['atKeyTypeSpec']
+        if typeArgList and fieldDefAt:
+            atOwner  = fieldDefAt['owner']
+            atTypeKW = fieldTypeKeyword(fieldDefAt)
+            if atTypeKW in typeArgList:
+                idxAt = typeArgList.index(atTypeKW)
+                valType = reqTagList[idxAt]
+                return[valType['tArgOwner'], valType['tArgType']]
+            else: return[atOwner, atTypeKW]
+    return[owner, fieldType]
+
 def getContainerValueOwnerAndType(typeSpec):
     owner     = getContainerFirstElementOwner(typeSpec)
     fieldType = fieldTypeKeyword(typeSpec)

@@ -456,6 +456,13 @@ def getGenericClassInfo(className):
         typeSpecAt = fieldDefAt['typeSpec']
         atTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(typeSpecAt), "fieldType":progSpec.fieldTypeKeyword(typeSpecAt)}
         classInfo["atTypeSpec"] = atTypeSpec
+
+        # Now try to get the 'key' typeSpec
+        if 'argList' in typeSpecAt and typeSpecAt['argList']!=None:
+            firstParametersSpec = typeSpecAt['argList'][0]
+            firstParametersTypeSpec = firstParametersSpec['typeSpec']
+            keyTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(firstParametersTypeSpec), "fieldType":progSpec.fieldTypeKeyword(firstParametersTypeSpec)}
+            classInfo["atKeyTypeSpec"] = keyTypeSpec
     fieldDefFind = CheckObjectVars(className, "find", "")
     if fieldDefFind:
         itrTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
@@ -713,13 +720,20 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             typeSpecOut = copy.copy(tmpTypeSpec)
 
     if owner=='itr':
-        typeSpecOut = copy.copy(typeSpecIn)
-        typeSpecOut['arraySpec'] = None
-        fieldTypeOut=progSpec.fieldTypeKeyword(typeSpecOut)
+        fieldTypeOut=progSpec.fieldTypeKeyword(typeSpecIn)
         codeCvrtText = xlator['codeIteratorOperation'](name, fieldTypeOut)
         if codeCvrtText!='':
+            if name=='key':
+                [valOwner, valFieldType] = progSpec.getContainerKeyOwnerAndType(typeSpecIn)
+                typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
+            elif name=='val':
+                [valOwner, valFieldType] = progSpec.getContainerValueOwnerAndType(typeSpecIn)
+                typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
+                print("VAL:",typeSpecIn)
+            else:
+                typeSpecOut = copy.copy(typeSpecIn)
+                if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
             typeSpecOut['codeConverter'] = codeCvrtText
-            if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
 
     elif IsAContainer and (not isNewContainer or name[0]=='['):
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')
