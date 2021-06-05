@@ -231,11 +231,11 @@ struct circleButton: inherits=dash{
 
     // Click functionality is inside graph clicks
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
+        if (isTouching(event.x, event.y)) {return(true)}
         else {return(false)}
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
+        if (isTouching(event.x, event.y)) {return(true)}
         else {return(false)}
     }
 }
@@ -327,11 +327,11 @@ struct streamToggle: inherits=dash{
 
     // Click functionality is inside graph clicks
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
+        if (isTouching(event.x, event.y)) {return(true)}
         else {return(false)}
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
+        if (isTouching(event.x, event.y)) {return(true)}
         else {return(false)}
     }
 }

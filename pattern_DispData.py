@@ -301,7 +301,7 @@ struct display_'''+className+": inherits=dash"+'''{
         if(isHidden){return(false)}
         me GUI_Scalar: eventX <- event.x
         me GUI_Scalar: eventY <- event.y
-        if( header.isTouchingMe(eventX, eventY)){
+        if( header.isTouching(eventX, eventY)){
             if(displayMode==headerOnly){displayMode <- noZeros}
             else if(displayMode==noZeros){displayMode <- fullDisplay}
             else if(displayMode==fullDisplay){displayMode <- headerOnly}

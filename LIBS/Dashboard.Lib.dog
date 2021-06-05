@@ -95,7 +95,7 @@ struct Dashboard: inherits=dash{
     }
 
     me bool: basePrimaryClick(their GUI_ButtonEvent: event) <- {
-        if(! isTouchingMe(event.x, event.y)){return(false)}
+        if(! isTouching(event.x, event.y)){return(false)}
         withEach child in dashChildren{
             child.primaryClick(event)
         }
@@ -110,7 +110,7 @@ struct Dashboard: inherits=dash{
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {return(basePrimaryClick(event))}
 
     me bool: baseSecondaryClick(their GUI_ButtonEvent: event) <- {
-        if(! isTouchingMe(event.x, event.y)){return(false)}
+        if(! isTouching(event.x, event.y)){return(false)}
         withEach child in dashChildren{
             child.secondaryClick(event)
         }
@@ -126,7 +126,7 @@ struct Dashboard: inherits=dash{
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {return(baseSecondaryClick(event))}
 
     me bool: basePrimaryDn(their GUI_ButtonEvent: event) <- {
-        if(! isTouchingMe(event.x, event.y)){return(false)}
+        if(! isTouching(event.x, event.y)){return(false)}
         withEach child in dashChildren{
             child.primaryDn(event)
         }
@@ -140,7 +140,7 @@ struct Dashboard: inherits=dash{
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {return(basePrimaryDn(event))}
 
     me bool: basePrimaryUp(their GUI_ButtonEvent: event) <- {
-        if(! isTouchingMe(event.x, event.y)){return(false)}
+        if(! isTouching(event.x, event.y)){return(false)}
         withEach child in dashChildren{
             child.primaryUp(event)
         }
@@ -312,7 +312,7 @@ struct ptrToItem: inherits=dash{
     }
 
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        if(!isTouchingMe(event.x, event.y)){return(false)}
+        if(!isTouching(event.x, event.y)){return(false)}
         if(refHidden){refHidden<-false}
         else {refHidden<-true}
         return(true)
@@ -394,7 +394,7 @@ struct listOfItems: inherits=dash{
    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         me GUI_Scalar: eventX <- event.x
         me GUI_Scalar: eventY <- event.y
-        if( header.isTouchingMe(eventX, eventY)){
+        if( header.isTouching(eventX, eventY)){
             if(displayMode==headerOnly){displayMode <- fullDisplay; orientation <- vertical}
             else if(displayMode==fullDisplay and orientation==vertical){
                 orientation<-horizontal
@@ -488,10 +488,171 @@ struct DashboardWidget: inherits=Dashboard{
     }
 }
 /////////////////////////////////////////////////////
-// Structs for DrawHolding
+// Structs for Proactive GUI
+// This code is experimental and incomplete
 
-struct RectArea{me GUI_Scalar: X  me GUI_Scalar: Y  me GUI_Scalar: W  me GUI_Scalar: H}
+struct EventTrigger:inherits=<mode[tPrimaryClick, tSecondaryClick, tPrimaryUp, tPrimaryDn, tSecondaryUp, tSecondaryDn,
+                                   tMouseMove, tMouseEnter, tMouseExit, tMouseHover, tKeyPress, tKeyUp, tKeyDn, tTimer
+                                   // Add user or higher level trigger support
+                                  ]> {}
 
+struct EventType:inherits=<mode[eNullEvent, eNormalize, eAddInfon, eDeleteInfon, eEditString, eEditInt, eEditByType,
+                                eMoveInfonInList, eMoveInfonToList,
+                                eGUI_SetXY, eGUI_SetColor, eGUI_SetDragMode, eGUI_SetTimer, eGUI_PopupModal, eGUI_CloseModal, eGUI_SetViewMode, eReqRedraw
+                                // Add events for system events such as play_sound or fetch_file
+                               ]> {}
+
+struct GuiCoords{
+    me GUI_Scalar: X  me GUI_Scalar: Y  me GUI_Scalar: W  me GUI_Scalar: H
+
+    bool: isTouching(me GUI_Scalar: x, me GUI_Scalar: y) <- {
+        return ((x >= X) and (x < X + W) and (y >= Y) and (y < Y + H))
+    }
+}
+
+struct GuiDataRec{
+    me GuiCoords:coordinates
+    me cdColor: color
+    //me DragState
+
+}
+
+struct ProactEvent{
+    me bool: done      // If done, don't repeat the action
+    me EventTrigger: Trigger
+    me GUI_Scalar: X
+    me GUI_Scalar: Y
+    me GUI_Scalar: W
+    me GUI_Scalar: H
+    me EventType: eventType
+    me string: text
+    our POV: inf
+    our POV: toInfon
+    me GUI_Scalar: arg1
+    me GUI_Scalar: arg2
+    me GUI_Scalar: arg3
+    me GUI_Scalar: arg4
+    their cdColor: NewColor
+
+    void: setTrigger(me EventTrigger: trigger, their GuiCoords:RA) <- {
+        Trigger<-trigger; X<-RA.X; Y<-RA.Y; W<-RA.W; H<-RA.H;
+    }
+    void: setInfonEvent(me EventType: evntType, our POV:infon1, our POV:infon2) <- {eventType<-evntType; inf<-infon1; toInfon<-infon2;}
+    void: setNormalizeEvent(me EventType: evntType, me string: query) <- {eventType<-evntType; text<-query;}
+    void: setGUI_Event(me EventType: evntType, our infon: target, me GUI_Scalar: a1, me GUI_Scalar: a2, me GUI_Scalar: a3, me GUI_Scalar: a4) <- {
+        eventType<-evntType; arg1<-a1; arg2<-a2; arg3<-a3; arg4<-a4; done <- false;
+    }
+    void: setGUI_Event1(me EventType: evntType)<-{eventType<-evntType; done <- false}
+    void: setGUI_Color(me string: colorSlotID, their cdColor: newColor) <- {
+        eventType<-eGUI_SetColor; text<-colorSlotID; NewColor<-newColor; done <- false;
+    }
+
+    bool: isTouching(me GUI_Scalar: x, me GUI_Scalar: y) <- {
+        return ((x >= X) and (x < X + W) and (y >= Y) and (y < Y + H))
+    }
+}
+
+struct Presenter{
+    their GuiModelManager: modelMgr
+
+    me List<our ProactEvent>: eventRegistry             // For events with a single target
+    me List<our ProactEvent>: broadcastEventRegistry    // More than one target wants to know
+
+    void: registerEvent(our ProactEvent: event) <- {eventRegistry.prepend(event)}
+    void: registerBroadcastEvent(our ProactEvent: event) <- {broadcastEventRegistry.prepend(event)}
+    void: reset() <- {eventRegistry.clear(); broadcastEventRegistry.clear()}
+
+    void: drawCircleButton(our dashDrawing: dr, me GUI_Scalar: posX, me GUI_Scalar: posY, me GUI_Scalar: radius, me GUI_Scalar: lineWidth, me string: symbol, me string: datasID) <- {
+        me GuiCoords:myCoords{posX, posY, radius*2, radius*2}
+        me bool: mouseIsOver <- myCoords.isTouching(crntMouseX, crntMouseY)
+        me cdColor: buttonColor
+        if(mouseIsOver){buttonColor<-buttonBright} else {buttonColor<-buttonNormal}
+        dr.addC(cmdSetColor, buttonColor)
+        dr.add1(cmdRoundLineCap)
+        dr.add2(cmdSetLineWidth, lineWidth)
+       // cr.circle(posX + radius, posY + radius, radius)
+        me GUI_Scalar: stickLen <- radius/3
+        if (symbol=="+") {
+            dr.addXY(cmdMoveTo, posX + radius, posY + radius/4)
+            dr.addXY(cmdLineTo, posX + radius, posY + 7*radius/4)
+            dr.addXY(cmdMoveTo, posX + radius/4, posY + radius)
+            dr.addXY(cmdLineTo, posX + 7*radius/4, posY + radius)
+        }
+        else if (symbol=="-") {
+            dr.addXY(cmdMoveTo, posX + radius/4, posY + radius)
+            dr.addXY(cmdLineTo, posX + 7*radius/4, posY + radius)
+        }
+        else if (symbol=="<") {
+            dr.addXY(cmdMoveTo, posX + radius, posY + radius - stickLen * sqrt(2.0))
+            dr.addXY(cmdLineTo, posX + radius - stickLen * sqrt(2), posY + radius)
+            dr.addXY(cmdMoveTo, posX + radius, posY + radius + stickLen * sqrt(2.0))
+        }
+        else if (symbol==">") {
+            dr.addXY(cmdMoveTo, posX + radius, posY + radius - stickLen * sqrt(2.0))
+            dr.addXY(cmdLineTo, posX + radius + stickLen * sqrt(2), posY + radius)
+            dr.addXY(cmdLineTo, posX + radius, posY + radius + stickLen * sqrt(2.0))
+        }
+        else if (symbol=="v") {
+            dr.addXY(cmdMoveTo, posX  - stickLen * sqrt(2.0), posY )
+            dr.addXY(cmdLineTo, posX, posY + radius)
+            dr.addXY(cmdLineTo, posX  + stickLen * sqrt(2.0), posY)
+        }
+        else if (symbol=="menu") {
+            dr.addXY(cmdMoveTo, posX + radius/4, posY + radius)
+            dr.addXY(cmdLineTo, posX + 7*radius/4, posY + radius)
+
+            dr.addXY(cmdMoveTo, posX + radius/4, posY + radius/4)
+            dr.addXY(cmdLineTo, posX + 7*radius/4, posY + radius/4)
+
+            dr.addXY(cmdMoveTo, posX + radius/4, posY + 7*radius/4)
+            dr.addXY(cmdLineTo, posX + 7*radius/4, posY + 7*radius/4)
+        }
+        dr.add1(cmdStroke)
+        dr.add1(cmdEdgedLineCap)
+        ///////// Now register mouse over events
+        our ProactEvent:: guiEvent;
+        if(!mouseIsOver){ // Register to be notified when mouse enters
+            guiEvent.setTrigger(tMouseEnter, myCoords)
+            guiEvent.setGUI_Event1(eReqRedraw)
+            registerEvent(guiEvent)
+        }else{  // Register to be notified when mouse has exited
+            guiEvent.setTrigger(tMouseExit, myCoords)
+            guiEvent.setGUI_Event1(eReqRedraw)
+            registerBroadcastEvent(guiEvent)
+        }
+    }
+}
+
+struct GuiModelManager{
+    me Map<me string, our GuiDataRec>: guiData
+    our GuiDataRec: fetchGuiData(me string: itemID) <-{
+        itr Map<me string, our GuiDataRec>: it <- guiData.find(itemID)
+        if(it == guiData.end()){return(NULL)}
+        return(it.val)
+    }
+
+    me cdColor: getColor(me string: dataID, their cdColor: Default) <- {
+        our GuiDataRec: result <- fetchGuiData(dataID)
+        if(result==NULL){return(Default)}
+        return(result.color)
+    }
+    me GuiCoords: getCoordinates(me string: dataID, their GuiCoords: Default) <- {
+        our GuiDataRec: result <- fetchGuiData(dataID)
+        if(result==NULL){return(Default)}
+        return(result.coordinates)
+    }
+
+
+}
+
+struct ProactiveGUI{
+    me Presenter: presenter
+    me GuiModelManager: guiModelManager
+
+    none:ProactiveGUI() <- {
+        presenter.modelMgr <- guiModelManager
+    }
+}
 struct DrawCmd:inherits=<mode[cmdMoveTo, cmdLineTo, cmdDrawRect, cmdRoundRect, cmdRoundTopRect, cmdRoundBotRect,
                                  cmdRenderText, cmdRenderTextCentered, cmdDrawImage, cmdDrawBkgndImage,
                                  cmdDrawCircle, cmdSetColor, cmdSetLineWidth, cmdRoundLineCap, cmdEdgedLineCap,
@@ -543,8 +704,8 @@ struct dashDrawing{
     our Drawel: addXY(me DrawCmd: dCmd, me GUI_Scalar: X, me GUI_Scalar: Y) <-{our Drawel:: drl; drl.cmd<-dCmd; drl.x<-X drl.y<-Y; cmds.pushLast(drl); return(drl)}
     our Drawel: addT(me DrawCmd: dCmd, me string: T) <-{our Drawel:: drl; drl.cmd<-dCmd; drl.text<-T; cmds.pushLast(drl); return(drl)}
     our Drawel: addC(me DrawCmd: dCmd, me cdColor: C) <-{our Drawel:: drl{C.red,C.green,C.blue,C.alpha}; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
-    our Drawel: addRA(me DrawCmd: dCmd, their RectArea:RA) <-{our Drawel:: drl{RA.X, RA.Y, RA.W, RA.H}; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
-    our Drawel: addRAA(me DrawCmd: dCmd, their RectArea:RA, me GUI_Scalar: ARG) <-{our Drawel:: drl{RA.X,RA.Y,RA.W,RA.H,ARG}; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
+    our Drawel: addRA(me DrawCmd: dCmd, their GuiCoords:RA) <-{our Drawel:: drl{RA.X, RA.Y, RA.W, RA.H}; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
+    our Drawel: addRAA(me DrawCmd: dCmd, their GuiCoords:RA, me GUI_Scalar: ARG) <-{our Drawel:: drl{RA.X,RA.Y,RA.W,RA.H,ARG}; drl.cmd<-dCmd; cmds.pushLast(drl); return(drl)}
     our Drawel: addTF(me DrawCmd: dCmd, me GUI_Scalar: X, me GUI_Scalar: Y, me string: T, their fontSpec: F) <-{our Drawel:: drl; drl.cmd<-dCmd; drl.x<-X drl.y<-Y; drl.text<-T; drl.font<-F; cmds.pushLast(drl); return(drl)}
     our Drawel: addSubDrawing(our dashDrawing: D)<-{our Drawel:: drl; drl.cmd<-cmdSubDrawing; drl.drawing<-D; cmds.pushLast(drl); return(drl)}
 
@@ -555,7 +716,57 @@ struct dashDrawing{
     }
 }
 
+struct ProactiveGUIWidget: inherits=DashboardWidget{
+
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
+        me bool: retVal <- false
+        crntMouseX <- event.x
+        crntMouseY <- event.y
+        //log("Registry: A:"+toString(proactiveGUI.presenter.eventRegistry.size())+" B:"+toString(proactiveGUI.presenter.broadcastEventRegistry.size()) +"   X:"+toString(crntMouseX) +"   Y:"+toString(crntMouseY))
+        withEach eventNode in proactiveGUI.presenter.eventRegistry{
+            me EventTrigger: trgr <- eventNode.Trigger
+            if(trgr==tMouseMove or trgr==tMouseEnter){
+                if(eventNode.isTouching(event.x, event.y)){
+                    if(!eventNode.done){
+                        proactiveGUI.guiModelManager.processCommand(eventNode)
+                        eventNode.done <- true
+                    }
+                    retVal <- true
+                    break()
+                }
+            }
+        }
+        //log("Registry2_size:"+toString(proactiveGUI.presenter.broadcastEventRegistry.size()))
+        withEach eventNode2 in proactiveGUI.presenter.broadcastEventRegistry{
+            me EventTrigger: trgr <- eventNode2.Trigger
+            if(trgr==tMouseExit){
+                if(!eventNode2.isTouching(event.x, event.y)){
+                    if(true or !eventNode2.done){
+                        proactiveGUI.guiModelManager.processCommand(eventNode2)
+                        //eventNode2.done <- true
+                    }
+                }
+            }
+        }
+        return(retVal)
+    }
+
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        withEach eventNode in proactiveGUI.presenter.eventRegistry{
+            if(eventNode.isTouching(event.x, event.y)){
+                log("PrimaryClickTargetFound:" + EventTypeStrings[eventNode.eventType])
+                proactiveGUI.guiModelManager.processCommand(eventNode)
+                return(true)
+            }
+        }
+        return(false)
+    }
+}
+
 struct GLOBAL{
+    me GUI_Scalar: crntMouseX
+    me GUI_Scalar: crntMouseY
+
     me GUI_Scalar: intersectPoint(me GUI_Scalar:outsidePt, me GUI_Scalar:smallPt, me GUI_Scalar: largePt) <- {
         me GUI_Scalar: ret
         if(outsidePt<smallPt){ret<-smallPt}
