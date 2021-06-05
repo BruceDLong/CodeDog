@@ -55,6 +55,13 @@ struct GLOBAL{
     me string: replaceCharAt(me string: s, me int: pos, me char: c)<- <%{
        return s.substring(0,pos) + c + s.substring(pos+1);
     }%>
+    me bool: isxdigit(me string: input) <- <%{
+        try {
+            Long.parseLong(input, 16);
+            return true;
+        }
+        catch (NumberFormatException ex){return false;}
+    }%>
 
     me int: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
     me int: abs(me int: val) <- <%!%GMath.abs(%1)%>

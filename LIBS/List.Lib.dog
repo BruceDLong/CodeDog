@@ -87,6 +87,117 @@ model Multimap<keyType, valueType>{
     me uint:  size()
 }
 
+////////////////////////////////////////////////////////
+/*
+struct CDListItr<nodeType>{
+    nodeType: item
+    our CDListItr<nodeType>: next
+    our CDListItr<nodeType>: prev
+}
+struct CDList<nodeType>: implements=List native=codeDog specs={}{
+    our CDListItr<nodeType>: head
+    our CDListItr<nodeType>: tail
+    me int64: __size
+
+    void: append(nodeType: value) <- {
+        our CDListItr<nodeType>:: newNode{value, NULL, tail}
+        if(tail!=NULL){tail.next <- newNode}
+        if(head==NULL){head <- newNode}
+        tail <- newNode
+        __size <+- 1
+        return(newNode)
+    }
+    nodeType: at(me int64: pos) <- {
+        if(head == NULL){logFatalError("List access out of range in List::at().")}
+        our CDListItr<nodeType>: retVal <- head
+        withEach x in RANGE(0..pos){
+            retVal <- retVal.next
+            if (retVal == NULL){logFatalError("List access out of range in List::at().")}
+        }
+        return(retVal.item)
+    }
+    void: clear() <- {
+        head<-NULL
+        tail<-NULL
+        __size <- 0
+    }
+    void: clipToSize(me int64: size) <- {
+        tail <- nthItr(size-1)
+        __size <- size
+    }
+    our CDListItr<nodeType>: deleteNth(me int: pos) <- {return(erase(nthItr(pos)))}
+    our CDListItr<nodeType>: end()    <- {return(tail)}
+    our CDListItr<nodeType>: erase(our CDListItr<nodeType>: toDel) <- {
+        our CDListItr<nodeType>: retVal <- toDel.prev
+        if(toDel===head){head<-head.next}
+        if(toDel===tail){tail<-tail.prev}
+        if(toDel.prev){toDel.prev.next <- toDel.next}
+        if(toDel.next){toDel.next.prev <- toDel.prev}
+        return(retVal)
+    }
+    nodeType: first()                 <- {return(head.item)}
+    our CDListItr<nodeType>: front()  <- {return(head)}
+    //nodeType: __getAt(me int: pos)  <- {}
+    our CDListItr<nodeType>: insert(our CDListItr<nodeType>: pos, nodeType: value) <- {
+        if(pos==NULL){
+            prepend(value)
+            return(head)
+        }
+        our CDListItr<nodeType>: nextNode <- pos.next
+        our CDListItr<nodeType>:: newNode {value, nextNode, pos}
+        if(nextNode!=NULL){nextNode.prev <- newNode}
+        pos.next <- newNode
+        if(tail === pos){tail <- newNode}
+        return(newNode)
+    }
+    our CDListItr<nodeType>: insertIdx(me int: pos, nodeType: value) <- {
+        if(pos==0){prepend(value);return(head)}
+        our CDListItr<nodeType>: item <- nthItr(pos-1)
+        insert(item, value)
+    }
+    me bool: isEmpty()                <- {return(head==NULL)}
+    nodeType: last()                  <- {return(tail.item)}
+    our CDListItr<nodeType>: nthItr(me int64: pos) <- {
+        if(head == NULL){return(NULL)}
+        our CDListItr<nodeType>: retVal <- head
+        withEach x in RANGE(0..pos){
+            retVal <- retVal.next
+            if (retVal == NULL){return(NULL)}
+        }
+        return(retVal)
+    }
+    nodeType: popFirst() <- {
+        me nodeType: retVal
+        retVal <- head.item
+        if(head!=NULL){
+            __size <-- 1
+            head <- head.next
+            if(head==NULL){tail <- NULL}
+        }
+        return(retVal)
+    }
+    nodeType: popLast() <- {
+        me nodeType: retVal
+        retVal <- tail.item
+        if(tail!=NULL){
+            tail <- tail.prev
+            if(tail==NULL){head <- NULL}
+            else{tail.next <- NULL}
+        }
+        return(retVal)
+    }
+    me void: prepend(nodeType: value) <- {
+        our CDListItr<nodeType>:: newNode {value, head, NULL}
+        if(head!=NULL){head.prev <- newNode}
+        if(tail==NULL) {tail <- newNode}
+        head <- newNode
+        return(newNode)
+    }
+    //our CDListItr<nodeType>: __putAt(our CDListItr<nodeType>: pos, nodeType: value) <- {}
+    me uint: size()                   <- {return(__size)}
+    //our CDListItr<nodeType>: back() <- {}
+}
+*/
 struct RBNode<keyType, valueType>: implements = MapNode{
     keyType: key
     valueType: value
