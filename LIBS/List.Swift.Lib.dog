@@ -15,7 +15,7 @@ LibDescription ={
     description = 'List in routines for Swift'
 }
 
-struct Swift_Array<nodeType>: implements = List wraps = Array specs = {insert = linear append = constant prepend = constant}{
+struct Swift_Array<nodeType>: implements=List wraps=Array specs={insert=linear append=constant prepend=constant}{
     void: append(nodeType: value)               <- <%!append(%1)%>
     nodeType: at(me int: position)              <- <%!%0[%1]%>
     void: clear()                               <- <%!removeAll()%>
@@ -43,7 +43,7 @@ struct Swift_Array<nodeType>: implements = List wraps = Array specs = {insert = 
     //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
 }
 /*
-struct Swift_Map<keyType, valueType>: implements = Map wraps = `NSMutableOrderedSet` specs = {insert = logarithmic}{
+struct Swift_Map<keyType, valueType>: implements=Map wraps=`NSMutableOrderedSet` specs={insert=logarithmic}{
     valueType: at(keyType)                      <- <%!%>
     void: clear()                               <- <%!removeAllObjects()%>
     me bool: containsKey(keyType: key)          <- <%!%>

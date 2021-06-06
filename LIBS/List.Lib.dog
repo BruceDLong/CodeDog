@@ -93,8 +93,14 @@ struct CDListItr<nodeType>{
     nodeType: item
     our CDListItr<nodeType>: next
     our CDListItr<nodeType>: prev
+    ///////// CONSTRUCTORS ///////////////////////////
+    none: CDListItr(nodeType: value, our CDListItr<nodeType>: _next, our CDListItr<nodeType>: _prev) <- {
+        item <- value
+        next <- _next
+        prev <- _prev
+    }
 }
-struct CDList<nodeType>: implements=List native=codeDog specs={}{
+struct CDList<nodeType>: implements=List native=codeDog specs={append=constant rangeIteration=constant}{
     our CDListItr<nodeType>: head
     our CDListItr<nodeType>: tail
     me int64: __size
@@ -105,7 +111,6 @@ struct CDList<nodeType>: implements=List native=codeDog specs={}{
         if(head==NULL){head <- newNode}
         tail <- newNode
         __size <+- 1
-        return(newNode)
     }
     nodeType: at(me int64: pos) <- {
         if(head == NULL){logFatalError("List access out of range in List::at().")}
@@ -154,6 +159,7 @@ struct CDList<nodeType>: implements=List native=codeDog specs={}{
         if(pos==0){prepend(value);return(head)}
         our CDListItr<nodeType>: item <- nthItr(pos-1)
         insert(item, value)
+        return(item)
     }
     me bool: isEmpty()                <- {return(head==NULL)}
     nodeType: last()                  <- {return(tail.item)}
@@ -180,6 +186,7 @@ struct CDList<nodeType>: implements=List native=codeDog specs={}{
         me nodeType: retVal
         retVal <- tail.item
         if(tail!=NULL){
+            __size <-- 1
             tail <- tail.prev
             if(tail==NULL){head <- NULL}
             else{tail.next <- NULL}
@@ -191,14 +198,18 @@ struct CDList<nodeType>: implements=List native=codeDog specs={}{
         if(head!=NULL){head.prev <- newNode}
         if(tail==NULL) {tail <- newNode}
         head <- newNode
-        return(newNode)
+        __size <+- 1
     }
     //our CDListItr<nodeType>: __putAt(our CDListItr<nodeType>: pos, nodeType: value) <- {}
-    me uint: size()                   <- {return(__size)}
+    me int64: size()                   <- {return(__size)}
     //our CDListItr<nodeType>: back() <- {}
+    ///////// CONSTRUCTORS ///////////////////////////
+    none: CDList(List<nodeType>: initList) <- {
+
+    }
 }
 */
-struct RBNode<keyType, valueType>: implements = MapNode{
+struct RBNode<keyType, valueType>: implements=MapNode{
     keyType: key
     valueType: value
     me bool: isBlack
@@ -213,7 +224,7 @@ struct RBNode<keyType, valueType>: implements = MapNode{
     }
 }
 
-struct RBTreeItr<keyType, valueType>: implements = MapItr{
+struct RBTreeItr<keyType, valueType>: implements=MapItr{
     their RBNode<keyType, valueType>: node
     their RBTreeMap<keyType, valueType>: container
     their RBNode<keyType, valueType>: goNext() <- {
@@ -261,7 +272,7 @@ struct RBTreeItr<keyType, valueType>: implements = MapItr{
     valueType: val()                         <- <%!%0%>
 }
 
-struct RBTreeMap<keyType, valueType>: implements = Map native = codeDog specs = {insert = logarithmic find = logarithmic at = logarithmic}{// find = logarithmic at = logarithmic}{  // constant
+struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{// find=logarithmic at=logarithmic}{  // constant
     their RBNode<keyType, valueType>: Root
     their RBNode<keyType, valueType>: Leaf
     their RBNode<keyType, valueType>: edge

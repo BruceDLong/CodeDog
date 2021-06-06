@@ -197,7 +197,7 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
     global globalTagStore
     if platform == 'Linux':
         debugMode='-g'
-        minLangVersion='14'
+        minLangVersion='17'
         codeDogFolder = os.path.dirname(os.path.realpath(__file__))
         libStr = "-I " + codeDogFolder + " "
         langStr = 'g++'

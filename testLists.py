@@ -52,7 +52,6 @@ struct testClass{
         me List<me string>: meStringList
         me List<me timeValue>: meTimeValList
     }
-    void: testPassList(me List<me string>: listToPass)<-{}
 }''', 'PGBR: isEmpty:true7486513valAt:8firstItm:7lastItm:3firstPop:7lastPop:3Size:5   item:4   item:8   item:6   item:5   item:1Size after clear:0',
         ['','']],
 ###################################################################################################
