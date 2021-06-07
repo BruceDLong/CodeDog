@@ -491,8 +491,16 @@ struct DashboardWidget: inherits=Dashboard{
 // Structs for Proactive GUI
 // This code is experimental and incomplete
 
+struct GLOBAL{
+    me GUI_Scalar: distanceBetween2Points(me GUI_Scalar: x1, me GUI_Scalar: y1, me GUI_Scalar: x2, me GUI_Scalar: y2) <- {
+        me GUI_Scalar: deltaX <- abs(x2-x1)
+        me GUI_Scalar: deltaY <- abs(y2-y1)
+        return(sqrt(deltaX*deltaX + deltaY*deltaY))
+    }
+}
+
 struct EventTrigger:inherits=<mode[tPrimaryClick, tSecondaryClick, tPrimaryUp, tPrimaryDn, tSecondaryUp, tSecondaryDn,
-                                   tMouseMove, tMouseEnter, tMouseExit, tMouseHover, tKeyPress, tKeyUp, tKeyDn, tTimer
+                                   tMouseMove, tMouseEnter, tMouseExit, tMouseHover, tDragStart, tKeyPress, tKeyUp, tKeyDn, tTimer
                                    // Add user or higher level trigger support
                                   ]> {}
 
@@ -562,9 +570,27 @@ struct Presenter{
     void: registerBroadcastEvent(our ProactEvent: event) <- {broadcastEventRegistry.prepend(event)}
     void: reset() <- {eventRegistry.clear(); broadcastEventRegistry.clear()}
 
+    // Returns true if mouse is currently over this.
+    // Sets up the events to manage it.
+    me bool: addMouseOverEvents(me GuiCoords:myCoords) <- {
+        me bool: mouseIsOver <- myCoords.isTouching(crntMouseX, crntMouseY)
+        our ProactEvent:: guiEvent;
+        if(!mouseIsOver){ // Register to be notified when mouse enters
+            guiEvent.setTrigger(tMouseMove, myCoords)
+            guiEvent.setGUI_Event1(eReqRedraw)
+            registerEvent(guiEvent)
+        }else{  // Register to be notified when mouse has exited
+            guiEvent.setTrigger(tMouseExit, myCoords)
+            guiEvent.setGUI_Event1(eReqRedraw)
+            registerBroadcastEvent(guiEvent)
+        }
+        return(mouseIsOver)
+    }
+
+
     void: drawCircleButton(our dashDrawing: dr, me GUI_Scalar: posX, me GUI_Scalar: posY, me GUI_Scalar: radius, me GUI_Scalar: lineWidth, me string: symbol, me string: datasID) <- {
         me GuiCoords:myCoords{posX, posY, radius*2, radius*2}
-        me bool: mouseIsOver <- myCoords.isTouching(crntMouseX, crntMouseY)
+        me bool: mouseIsOver <- addMouseOverEvents(myCoords)
         me cdColor: buttonColor
         if(mouseIsOver){buttonColor<-buttonBright} else {buttonColor<-buttonNormal}
         dr.addC(cmdSetColor, buttonColor)
@@ -609,17 +635,6 @@ struct Presenter{
         }
         dr.add1(cmdStroke)
         dr.add1(cmdEdgedLineCap)
-        ///////// Now register mouse over events
-        our ProactEvent:: guiEvent;
-        if(!mouseIsOver){ // Register to be notified when mouse enters
-            guiEvent.setTrigger(tMouseEnter, myCoords)
-            guiEvent.setGUI_Event1(eReqRedraw)
-            registerEvent(guiEvent)
-        }else{  // Register to be notified when mouse has exited
-            guiEvent.setTrigger(tMouseExit, myCoords)
-            guiEvent.setGUI_Event1(eReqRedraw)
-            registerBroadcastEvent(guiEvent)
-        }
     }
 }
 
@@ -642,7 +657,7 @@ struct GuiModelManager{
         return(result.coordinates)
     }
 
-
+    void: sendSaveSignal() <- {log("TODO: Request and save the model")}
 }
 
 struct ProactiveGUI{
@@ -717,33 +732,87 @@ struct dashDrawing{
 }
 
 struct ProactiveGUIWidget: inherits=DashboardWidget{
+    me GUI_Scalar: pointerDragThreshold <- 10
+
+    me bool: primaryBtnIsDown
+    me GUI_Scalar: primaryButtonDownX
+    me GUI_Scalar: primaryButtonDownY
+    me bool: currentlyDraggingPointer
+    me GUI_Scalar: preDragX
+    me GUI_Scalar: preDragY
+
+    void: updateReferencedVars(me GUI_Scalar: argA, me GUI_Scalar: argB) <- { /// TODO
+        proactiveGUI.presenter.modelMgr.tmpX <- preDragX+(argA-primaryButtonDownX) // ref1 <- argA
+        proactiveGUI.presenter.modelMgr.tmpY <- preDragY+(argB-primaryButtonDownY) // ref2 <- argB
+        requestRedraw()
+        //log("DRAG X:"+toString(argA-primaryButtonDownX) + "  Y:"+toString(argB-primaryButtonDownY))
+    }
+    void: fetchVariableReference() <- { /// TODO
+        preDragX <- proactiveGUI.presenter.modelMgr.tmpX
+        preDragY <- proactiveGUI.presenter.modelMgr.tmpY
+    }
+
+    void: clearVariableReference() <- {} /// TODO
+
+    void: cancelDragOperation() <- {
+        currentlyDraggingPointer <- false
+        updateReferencedVars(primaryButtonDownX, primaryButtonDownY)
+        clearVariableReference()
+    }
+
+
+    our ProactEvent: findEventUnderCursor(me EventTrigger: trgrFound, me GUI_Scalar: eventX, me GUI_Scalar: eventY) <- {
+        withEach eventNode in proactiveGUI.presenter.eventRegistry{
+            if(eventNode.Trigger==trgrFound){
+                if(eventNode.isTouching(eventX, eventY)){
+                    return(eventNode)
+                }
+            }
+        }
+        return(NULL)
+    }
+
+    me void: lookForDragStartEvent(me GUI_Scalar: eventX, me GUI_Scalar: eventY) <- {
+        our ProactEvent: eventNode <- findEventUnderCursor(tDragStart, eventX, eventY)
+        if(eventNode){
+            currentlyDraggingPointer <- true
+            fetchVariableReference()
+            updateReferencedVars(eventX, eventY)
+        }
+    }
 
     me bool: mouseMoved(their GUI_MotionEvent: event) <- {
         me bool: retVal <- false
         crntMouseX <- event.x
         crntMouseY <- event.y
-        //log("Registry: A:"+toString(proactiveGUI.presenter.eventRegistry.size())+" B:"+toString(proactiveGUI.presenter.broadcastEventRegistry.size()) +"   X:"+toString(crntMouseX) +"   Y:"+toString(crntMouseY))
-        withEach eventNode in proactiveGUI.presenter.eventRegistry{
-            me EventTrigger: trgr <- eventNode.Trigger
-            if(trgr==tMouseMove or trgr==tMouseEnter){
-                if(eventNode.isTouching(event.x, event.y)){
-                    if(!eventNode.done){
-                        proactiveGUI.guiModelManager.processCommand(eventNode)
-                        eventNode.done <- true
-                    }
-                    retVal <- true
-                    break()
+        if(primaryBtnIsDown){
+            if(currentlyDraggingPointer){
+                updateReferencedVars(crntMouseX, crntMouseY)
+            } else {
+                me GUI_Scalar: distanceMoved <- distanceBetween2Points(primaryButtonDownX, primaryButtonDownY, crntMouseX, crntMouseY)
+                if(distanceMoved>pointerDragThreshold){
+                    lookForDragStartEvent(crntMouseX, crntMouseY)
                 }
             }
-        }
-        //log("Registry2_size:"+toString(proactiveGUI.presenter.broadcastEventRegistry.size()))
-        withEach eventNode2 in proactiveGUI.presenter.broadcastEventRegistry{
-            me EventTrigger: trgr <- eventNode2.Trigger
-            if(trgr==tMouseExit){
-                if(!eventNode2.isTouching(event.x, event.y)){
-                    if(true or !eventNode2.done){
-                        proactiveGUI.guiModelManager.processCommand(eventNode2)
-                        //eventNode2.done <- true
+            retVal <- true
+        } else {
+            //log("Registry: A:"+toString(proactiveGUI.presenter.eventRegistry.size())+" B:"+toString(proactiveGUI.presenter.broadcastEventRegistry.size()) +"   X:"+toString(crntMouseX) +"   Y:"+toString(crntMouseY))
+            our ProactEvent: eventNode <- findEventUnderCursor(tMouseMove, event.x, event.y)
+            if(eventNode){
+                if(!eventNode.done){
+                    proactiveGUI.guiModelManager.processCommand(eventNode)
+                    eventNode.done <- true
+                }
+                retVal <- true
+            }
+            //log("Registry2_size:"+toString(proactiveGUI.presenter.broadcastEventRegistry.size()))
+            withEach eventNode2 in proactiveGUI.presenter.broadcastEventRegistry{
+                me EventTrigger: trgr <- eventNode2.Trigger
+                if(trgr==tMouseExit){
+                    if(!eventNode2.isTouching(event.x, event.y)){
+                        if(true or !eventNode2.done){
+                            proactiveGUI.guiModelManager.processCommand(eventNode2)
+                        }
                     }
                 }
             }
@@ -751,16 +820,61 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
         return(retVal)
     }
 
-    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        withEach eventNode in proactiveGUI.presenter.eventRegistry{
-            if(eventNode.isTouching(event.x, event.y)){
-                log("PrimaryClickTargetFound:" + EventTypeStrings[eventNode.eventType])
+    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
+        primaryBtnIsDown <- false
+        if(currentlyDraggingPointer){
+            if(event.x != crntMouseX  or  event.y != crntMouseY){
+                crntMouseX <- event.x
+                crntMouseY <- event.y
+                updateReferencedVars(crntMouseX, crntMouseY)
+            }
+            currentlyDraggingPointer <- false
+            proactiveGUI.guiModelManager.sendSaveSignal()
+            clearVariableReference()
+            return(true)
+        } else{
+            our ProactEvent: eventNode <- findEventUnderCursor(tPrimaryUp, event.x, event.y)
+            if(eventNode){
                 proactiveGUI.guiModelManager.processCommand(eventNode)
                 return(true)
             }
         }
         return(false)
     }
+    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
+        primaryBtnIsDown <- true
+        primaryButtonDownX <- event.x
+        primaryButtonDownY <- event.y
+    }
+    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        our ProactEvent: eventNode <- findEventUnderCursor(tPrimaryClick, event.x, event.y)
+        if(eventNode){
+            proactiveGUI.guiModelManager.processCommand(eventNode)
+            return(true)
+        }
+        return(false)
+    }
+
+    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
+        if(currentlyDraggingPointer){
+            cancelDragOperation()
+            return(true)
+        } else {
+            our ProactEvent: eventNode <- findEventUnderCursor(tSecondaryClick, event.x, event.y)
+            if(eventNode){
+                proactiveGUI.guiModelManager.processCommand(eventNode)
+                return(true)
+            }
+        }
+        return(false)
+    }
+
+    their GUI_canvas: initProactiveGUI() <- {
+        primaryBtnIsDown <- false
+        currentlyDraggingPointer <- false
+        return(init("ProactiveGUI"))
+    }
+
 }
 
 struct GLOBAL{
