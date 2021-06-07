@@ -1,0 +1,25 @@
+{
+    "name": "dog",
+    "displayName": "codeDog",
+    "description": "codeDog Programming Language",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.56.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "dog",
+            "aliases": ["CodeDog Programming Language", "dog"],
+            "extensions": [".dog"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "dog",
+            "scopeName": "source.dog",
+            "path": "./syntaxes/dog.tmLanguage.json"
+        }]
+    }
+}
