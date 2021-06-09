@@ -1507,15 +1507,18 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
             if(fieldOwner != 'my'):
                 defaultVal = "NULL"
         elif (isinstance(fieldType, str)):
-            if(typeIsInteger(fieldType)):
-                defaultVal = "0"
-            elif(typeIsRational(fieldType)):
-                defaultVal = "0.0"
-            elif(fieldType=="string"):
-                defaultVal = '""'
-            else: # handle structs if needed
-                if 'value' in field and field['value']!=None:
-                    [defaultVal, defaultValueTypeSpec] = codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs, xlator)
+            if 'value' in field and field['value']!=None:
+                [defaultVal, defaultValueTypeSpec] = codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs, xlator)
+            else:
+                if(typeIsInteger(fieldType)):
+                    defaultVal = "0"
+                elif(typeIsRational(fieldType)):
+                    defaultVal = "0.0"
+                elif(fieldType=="string"):
+                    defaultVal = '""'
+                else: # handle structs if needed
+                    if 'value' in field and field['value']!=None:
+                        [defaultVal, defaultValueTypeSpec] = codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs, xlator)
         if defaultVal != '':
         #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
             ctorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
