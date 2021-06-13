@@ -455,6 +455,50 @@ struct testClass{
         }
     }
 }''', 'PGBR:true1233264pass',['actions/intToString','actions/32intToString','actions/64intToString','actions/stringToInt','actions/boolToInt']],
+
+
+#####################################################################################################
+
+    # TEST CONSTANT VARIABLES
+
+    # const
+    'class/structAsgn':        ['struct testClass{ me void: runTest()<-{me A: a{"A"} }}struct A{me string: testStr}', 'PGBR:'],
+    # const string
+    'class/constStrAsgn':      ['struct testClass{ const string: constStr <- "Hello"  me void: runTest()<-{ print(constStr)}}', 'PGBR:Hello'],
+    # const char
+    'class/constCharAsgn':     ['struct testClass{ const char: myChar <- "M"    me void: runTest()<-{ print("M")}}', 'PBGR:M'],
+    # const double
+    'class/constDblAsgn':      ['struct testClass{ const double: pi <- 3.14           me void: runTest()<-{ print(pi)}}', 'PGBR:3.14'],
+    # const ints
+    'class/constIntAsgn':      ['struct testClass{ const int: constInt <- 123         me void: runTest()<-{ print(constInt)}}',    'PGBR:123'],
+    'class/constInt32Asgn':    ['struct testClass{ const int32: constInt32 <- 123       me void: runTest()<-{ print(constInt32)}}',    'PGBR:123'],
+    'class/constInt64Asgn':    ['struct testClass{ const int64: constInt64 <- 123       me void: runTest()<-{ print(constInt64)}}',    'PGBR:123'],
+    # const uints
+    'class/constUint32Asgn':   ['struct testClass { const uint32: constUint32 <- 123    me void: runTest()<-{ print(constUint32)}}', 'PBGR:123'],
+    'class/constUint64Asgn':   ['struct testClass { const uint64: constUint64 <- 123    me void: runTest()<-{ print(constUint64)}}', 'PBGR:123'],
+    # const bool
+    'class/boolAsgn':          ['struct testClass { const bool: myBool <- true  me void runTest()<-{ if(myBool){print("p")} }}', 'PGBR:p'],
+
+    # 'class/Asgn':             ['struct testClass{me void: runTest()<-{}}', 'PGBR:'],
+    # 'class/boolAsgn':         ['struct testClass{me void: runTest()<-{}}', 'PGBR:'],
+
+    'class/varAssigns': ['''
+struct testClass{
+    const string: constStr <- "Hello"
+    const double: pi <- 3.14
+    me A: a {'A'}
+    me void: runTest()<-{
+        print(constStr)
+        print(pi)
+    }
+}
+struct A{
+    me string: testStr
+}
+''', 'PGBR:Hello3.14', ['class/constStrAsgn', 'class/constDblAsgn', 'class/structAsgn']],
+#####################################################################################################
+
+
 #####################################################################################################
 ## TODO: add more loop tests?
 ########################################
