@@ -14,7 +14,7 @@ LibDescription ={
     description = 'List in routines for Java'
 }
 
-struct Java_ArrayList<nodeType>: implements = List wraps = ArrayList native = lang specs = {append = constant}{
+struct Java_ArrayList<nodeType>: implements=List wraps=ArrayList native=lang specs={append=constant}{
     // TODO: find Time Complexity
     // TODO: verify code converters are correct
     void: append(nodeType: value)               <- <%!add(%1)%>
@@ -34,17 +34,15 @@ struct Java_ArrayList<nodeType>: implements = List wraps = ArrayList native = la
     itr nodeType: nthItr()                      <- <%!%0.listIterator(%1)%>
     nodeType: popFirst()                        <- <%!remove(0)%>
     nodeType: popLast()                         <- <%!%0.remove(%0.size() - 1)%>
-    me void: prepend(nodeType: value)           <- <%!push_front(%1)%>
+    me void: prepend(nodeType: value)           <- <%!add(0, %1)%>
     itr nodeType: __putAt(itr nodeType: position, nodeType: value) <- <%!insert(%1, %2)%>
     me uint: size()                             <- <%!size()%>
     /////////////////////////////////////////
-    me void: pushFirst(nodeType: value)         <- <%!%0.add(0, %1)%>
-    me void: pushLast(nodeType: value)           <- <%!add(%1)%>
     // TODO: need Reverse Iterators working first
     //itr nodeType: back() <- <%!rbegin()%>             // returns reverse iterator to the reverse beginning of the sequence container
 }
 
-struct Java_Map<keyType, valueType>: implements = Map wraps = TreeMap native = lang specs = {insert = logarithmic find = logarithmic at = logarithmic}{
+struct Java_Map<keyType, valueType>: implements=Map wraps=TreeMap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic}{
     keyType: at(keyType: key)                   <- <%!%0.get(%1)%>
     void: clear()                               <- <%!clear()%>
     me bool: containsKey(keyType: key)          <- <%!containsKey(%1)%>
