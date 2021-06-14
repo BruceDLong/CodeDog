@@ -481,10 +481,13 @@ struct testClass{
 
     'class/varAssigns': ['''
 
+struct A{
+    me string: testStr
+}
 struct testClass{
 
     // const struct assign FAILED
-    // me A: a {'A'}
+    me A: a {'A'}
     // const string 
     const string: constStr <- "Hello"
     // const char 
