@@ -204,9 +204,6 @@ struct CDList<nodeType>: implements=List native=codeDog specs={append=constant r
     me int64: size()                   <- {return(__size)}
     //our CDListItr<nodeType>: back() <- {}
     ///////// CONSTRUCTORS ///////////////////////////
-    none: CDList(List<nodeType>: initList) <- {
-
-    }
 }
 */
 struct RBNode<keyType, valueType>: implements=MapNode{

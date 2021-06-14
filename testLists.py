@@ -22,13 +22,13 @@ struct testClass{
     me void: runTest()<-{
         me List<me int>:wrappedList
         print(" isEmpty:"+toString(wrappedList.isEmpty()))
-        wrappedList.pushLast(1)
-        wrappedList.pushLast(3)
-        wrappedList.pushFirst(5)
-        wrappedList.pushFirst(6)
-        wrappedList.pushFirst(8)
-        wrappedList.pushFirst(4)
-        wrappedList.pushFirst(7)
+        wrappedList.append(1)
+        wrappedList.append(3)
+        wrappedList.prepend(5)
+        wrappedList.prepend(6)
+        wrappedList.prepend(8)
+        wrappedList.prepend(4)
+        wrappedList.prepend(7)
         withEach item in wrappedList{
             print(toString(item))
         }
