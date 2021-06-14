@@ -19,14 +19,14 @@ LibDescription  ={
 embedVeryHigh = `
 typedef  std::unique_lock<std::mutex> Unique_Lock_Mutex;
 
-class semaphore{
+class __semaphore{
 public:
-    semaphore(unsigned int count=1) : m_count(count) {}
-    semaphore(const semaphore&&) = delete;
-    semaphore(semaphore&&) = delete;
-    semaphore& operator = (const semaphore&) = delete;
-    semaphore& operator = (semaphore&&) = delete;
-    ~semaphore() = default;
+    __semaphore(unsigned int count=1) : m_count(count) {}
+    __semaphore(const __semaphore&&) = delete;
+    __semaphore(__semaphore&&) = delete;
+    __semaphore& operator = (const __semaphore&) = delete;
+    __semaphore& operator = (__semaphore&&) = delete;
+    ~__semaphore() = default;
 
     void post(){
         std::unique_lock<std::mutex> lock(m_mutex);
@@ -73,7 +73,7 @@ struct SyncLock: wraps = condition_variable {
     void: notifyAll()                <- <%!notify_all()%>
 }
 
-struct Semaphore: wraps=semaphore {
+struct Semaphore: wraps=__semaphore {
     void: post()        <- <%!post()%>
     void: wait()        <- <%!wait()%>
 }

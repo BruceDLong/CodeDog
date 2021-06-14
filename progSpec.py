@@ -849,6 +849,27 @@ def getNewContainerFirstElementOwnerTempFunc(typeSpec):
     elif reqTagList == None: return(None)
     return(None)
 
+def getContainerKeyOwnerAndType(typeSpec):
+    owner     = getContainerFirstElementOwner(typeSpec)
+    fieldType = fieldTypeKeyword(typeSpec)
+    if not isNewContainerTempFunc(typeSpec): return[owner, fieldType]
+    reqTagList = getReqTagList(typeSpec)
+    if "fromImplemented" in typeSpec:
+        fromImplemented = typeSpec['fromImplemented']
+        if 'typeArgList' in fromImplemented:
+            typeArgList = fromImplemented['typeArgList']
+        if 'atKeyTypeSpec' in fromImplemented:
+            fieldDefAt = fromImplemented['atKeyTypeSpec']
+        if typeArgList and fieldDefAt:
+            atOwner  = fieldDefAt['owner']
+            atTypeKW = fieldTypeKeyword(fieldDefAt)
+            if atTypeKW in typeArgList:
+                idxAt = typeArgList.index(atTypeKW)
+                valType = reqTagList[idxAt]
+                return[valType['tArgOwner'], valType['tArgType']]
+            else: return[atOwner, atTypeKW]
+    return[owner, fieldType]
+
 def getContainerValueOwnerAndType(typeSpec):
     owner     = getContainerFirstElementOwner(typeSpec)
     fieldType = fieldTypeKeyword(typeSpec)
@@ -1131,7 +1152,7 @@ def typeIsNumRange(fieldType):
     return False
 
 def typeIsInteger(fieldType):
-    #print("typeIsInteger:"+str(fieldType))
+    # NOTE: If you need this to work for wrapped types as well use the version in CodeGenerator.py
     if fieldType == None: return False
     if typeIsNumRange(fieldType): return True
     if not isinstance(fieldType, str):

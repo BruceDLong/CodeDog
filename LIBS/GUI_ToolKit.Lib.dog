@@ -12,11 +12,14 @@ struct cdColor{
     me uint: red
     me uint: green
     me uint: blue
+    me uint: alpha <- 255
+    none: cdColor(their cdColor: rgbPart, me uint: Alpha)<-{
+        red   <- rgbPart.red
+        green <- rgbPart.green
+        blue  <- rgbPart.blue
+        alpha <- Alpha
+    }
 }
-
-struct ColorScheme{}
-struct FontSpec{}
-struct FontScheme{}
 
 struct deltaSize{me int: width    me int: height}
 struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
@@ -32,11 +35,15 @@ struct GUI_Text{}
 struct fontSpec{
     me string: name
     me int: size
-    me mode[pp, dp, sp]: pixelMode
+    me flag: scaled
+    me int: pp  // The non-scaled value
+    me int: height
 
     none: fontSpec(me string: initName, me string: initSize) <- {
         name      <- initName
         size      <- stoi(initSize)
+        pp        <- size
+        height    <- getTextSize("gyjqGYM", self).height
     }
 }
 
@@ -49,6 +56,11 @@ struct GLOBAL{
     me Map<me string, me INK_Image>: InkImgCache
     me float: displayDensity
     me double: scaleFactor <- 1.0
+    me int: windowW
+    me int: windowH
+
+    // Call setwindowMetrics() early in the top level draw() to populate window metrics
+    void: setwindowMetrics()<-{windowW <- widgetWidth(drawing_area); windowH <- widgetHeight(drawing_area)}
 }
 
 ///////// Widgets and events
@@ -91,12 +103,12 @@ struct arrow: inherits=decor{
         cr.strokeNow()
     }
 
-    none: arrow(me GUI_Scalar: StartX, me GUI_Scalar: StartY, me GUI_Scalar: EndX, me GUI_Scalar: EndY) <- {
+    /*none: arrow(me GUI_Scalar: StartX, me GUI_Scalar: StartY, me GUI_Scalar: EndX, me GUI_Scalar: EndY) <- {
         startX <- StartX
         startY <- StartY
         endX   <- EndX
         endY   <- EndY
-    }
+    }*/
 }
 
 struct widget{
@@ -105,7 +117,8 @@ struct widget{
     me GUI_Scalar: width   // width of widget
     me GUI_Scalar: height  // height of widget
     me int: scale
-    bool: isHidden
+    me bool: isHidden
+    me bool: mouseIsOver
 
     void: draw(their GUI_ctxt: cr) <- {}
     me bool: handleAllClicks(their GUI_ButtonEvent: event) <- {return(false)}
@@ -117,10 +130,10 @@ struct widget{
     me bool: secondaryDblClick(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: secondaryDn(their GUI_ButtonEvent: event) <- {return(false)}
     me bool: secondaryUp(their GUI_ButtonEvent: event) <- {return(false)}
-    me bool: mouseMoved(their GUI_MotionEvent: event) <- {return(false)}
+    me bool: mouseMoved(their GUI_MotionEvent: event) <- {return(checkForMouseOver(event))}
     me bool: mouseDragged(their GUI_MotionEvent: event) <- {return(false)}
-    me bool: mouseEnter(their GUI_MotionEvent: event) <- {return(false)}
-    me bool: mouseExit(their GUI_MotionEvent: event) <- {return(false)}
+    me void: mouseEnter(their GUI_MotionEvent: event) <- {}
+    me void: mouseExit(their GUI_MotionEvent: event) <- {}
     me bool: mouseWheel(their GUI_MotionEvent: event) <- {return(false)}
     me bool: fingerSqueeze(their GUI_PointerEvent: event) <- {return(false)}
 
@@ -136,8 +149,21 @@ struct widget{
     me bool: focused(their GUI_PointerEvent: event) <- {return(false)}
     me bool: unfocused(their GUI_PointerEvent: event) <- {return(false)}
 
-    bool: isTouchingMe(me GUI_Scalar: x, me GUI_Scalar: y) <- {
+    bool: isTouching(me GUI_Scalar: x, me GUI_Scalar: y) <- {
         return ((x >= posX) and (x < posX + width) and (y >= posY) and (y < posY + height))
+    }
+
+    me bool: checkForMouseOver(their GUI_MotionEvent: event) <- {
+        me bool: isNowOver <- isTouching(event.x, event.y)
+        if(!mouseIsOver and isNowOver){
+            mouseIsOver <- true
+            mouseEnter(event)
+        } else if(mouseIsOver and !isNowOver){
+            mouseIsOver <- false
+            mouseExit(event)
+            return(true) // return true anyhow so that child nodes will be notified.
+        }
+        return(isNowOver)
     }
 
     void: initialize(me int: PosX, me int: PosY, me GUI_Scalar: Width, me GUI_Scalar: Height, me int: Scale, me int: Alpha ) <- {

@@ -16,19 +16,19 @@ styler.highlight3Color
 styler.setCustomColor(me string: ID, me cdColor: C)
 styler.color(me string: ID, me cdColor: default)
 
-styler.titleFont
-styler.normalFont
-styler.H1_font
-styler.H2_font
-styler.H3_font
-styler.H4_font
-styler.H5_font
-styler.H6_font
-styler.timesFont
-styler.sansSerifFont
-styler.comicFont
-styler.scriptFont
-styler.monoFont
+styler.titleFontname
+styler.normalFontname
+styler.H1_fontname
+styler.H2_fontname
+styler.H3_fontname
+styler.H4_fontname
+styler.H5_fontname
+styler.H6_fontname
+styler.timesFontname
+styler.sansSerifFontname
+styler.comicFontname
+styler.scriptFontname
+styler.monoFontname
 
 styler.setCustomFont(me string: ID, me string: fontName)
 styler.font(me string: ID)
@@ -56,9 +56,9 @@ mainStyle = {
     }
 
     fontNames = {
-        titleFont = 'Ariel Bold'
-        normalFont = 'Ariel'
-        H1_font = sysDefaultH1_font
+        titleFontname = 'Ariel Bold'
+        normalFontname = 'Ariel'
+        H1_font = sysDefaultH1_fontname
 
         LogoFont = 'CompanyFont'
     }
@@ -124,19 +124,28 @@ def processStyler(stylerTagValue):
         elif tag =="fontNames":
             varOwner = 'me'
             varType  = 'string'
-            setFunc  = 'setCustomFont'
-            defaultVars = ['titleFont', 'normalFont', 'H1_font', 'H2_font', 'H3_font', 'H4_font', 'H5_font', 'H6_font', 'timesFont', 'sansSerifFont', 'comicFont', 'scriptFont', 'monoFont']
+            setFunc  = 'setCustomFontname'
+            defaultVars = ['titleFontname', 'normalFontname', 'H1_fontname', 'H2_fontname', 'H3_fontname', 'H4_fontname', 'H5_fontname', 'H6_fontname', 'timesFontname', 'sansSerifFontname', 'comicFontname', 'scriptFontname', 'monoFontname']
         elif tag =="fontSizes":
             varOwner = 'me'
             varType  = 'string'
             setFunc  = 'setCustomFontSize'
-            defaultVars = ['fontSizeVerySmall', 'fontSizeSmall', 'fontSizeNormalSize', 'fontSizeLarge', 'fontSizeVeryLarge']
-        elif tag == "fontSizeMode":
-            varOwner = ''
-            varType  = 'pixelMode'
-            setFunc  = ''
+            defaultVars = ['verySmallFontSize', 'smallFontSize', 'normalFontSize', 'largeFontSize', 'veryLargeFontSize']
+        elif tag =="strs":
+            varOwner = 'me'
+            varType  = 'string'
+            setFunc  = 'setCustomString'
             defaultVars = []
-            RHS      = ' <- '+ stylerTagValue[tag]
+        elif tag =="nums":
+            varOwner = 'me'
+            varType  = 'int'
+            setFunc  = 'setCustomInteger'
+            defaultVars = []
+        elif tag =="doubles":
+            varOwner = 'me'
+            varType  = 'double'
+            setFunc  = 'setCustomDouble'
+            defaultVars = []
         else:
             print('    tag not found')
 
@@ -173,15 +182,11 @@ struct Styler{
     me cdColor:  data5Color <- OrangeRed
     me cdColor:  data6Color <- Gold
 
-
-    our fontSpec:: fontDefault{"Ariel", 10, 0}
-    our fontSpec:: fontTitle{"Ariel", 16, 0}
-    our fontSpec:: fontSmall{"Ariel", 8, 0}
-    our fontSpec: fontVerySmall
-    our fontSpec: fontLabelWidgetAndroid
-    our fontSpec: fontEntryWidgetAndroid
-    our fontSpec: fontTitleAndroid
-    our fontSpec: fontTextAndroid
+//TODO: Why don't these constructor inits work?
+    our fontSpec:: defaultFont{"Ariel", 10, 0}
+    our fontSpec:: titleFont{"Ariel", 16, 0}
+    our fontSpec:: smallFont{"Ariel", 8, 0}
+    our fontSpec:: verySmallFont{"Ariel", 5, 0}
 
     void: setCustomColor(me string: ID, me cdColor: color) <- {
         our cdColor:: tmpColor <- color
@@ -196,19 +201,19 @@ struct Styler{
 
     // FONT NAMES
     me Map<me string, me string>: userFontNames
-    me string: titleFont
-    me string: normalFont
-    me string: H1_font
-    me string: H2_font
-    me string: H3_font
-    me string: H4_font
-    me string: H5_font
-    me string: H6_font
-    me string: timesFont
-    me string: sansSerifFont
-    me string: comicFont
-    me string: scriptFont
-    me string: monoFont
+    me string: titleFontname
+    me string: normalFontname
+    me string: H1_fontname
+    me string: H2_fontname
+    me string: H3_fontname
+    me string: H4_fontname
+    me string: H5_fontname
+    me string: H6_fontname
+    me string: timesFontname
+    me string: sansSerifFontname
+    me string: comicFontname
+    me string: scriptFontname
+    me string: monoFontname
 
     void: setCustomFont(me string: ID, me string: fontName) <- {
         userFontNames.insert(ID, fontName)
@@ -217,18 +222,17 @@ struct Styler{
 
     // FONT SIZES
     me Map<me string, me int>: userFontSizes
-    me int: fontSizeVerySmall
-    me int: fontSizeSmall
-    me int: fontSizeNormalSize
-    me int: fontSizeLarge
-    me int: fontSizeVeryLarge
+    me int: verySmallFontSize
+    me int: smallFontSize
+    me int: normalSizeFontSize
+    me int: largeFontSize
+    me int: veryLargeFontSize
 
     void: setCustomFontSize(me string: ID, me int: fontSize) <- {
         userFontSizes.insert(ID, fontSize)
     }
     me int: fontSize(me string: ID) <- {
-        //return(userFontSizes.at(ID))
-        return(0)
+        return(userFontSizes.at(ID))
     }
 
     // FONT SIZE MODES
@@ -237,16 +241,28 @@ struct Styler{
     me int: widgetLabelBoxWidth <- 100
     me int: widgetValueBoxWidth <- 100
 
+    // OTHER KEY/VALUES
+    me Map<me string, me string>: userStrings
+    void: setCustomString(me string: key, me string: value) <- {
+        userStrings.insert(key, value)
+    }
+
+    me Map<me string, me int>: userIntegers
+    void: setCustomInteger(me string: key, me string: value) <- {
+        userIntegers.insert(key, toInt(value))
+    }
+
+    me Map<me string, me int>: userDoubles
+    void: setCustomDouble(me string: key, me string: value) <- {
+        userIntegers.insert(key, toDouble(value))
+    }
+
     void: INIT()<-{
         <INITCODE>
-        Allocate(fontDefault, "ariel", "14")
-        Allocate(fontTitle, "ariel", "20")
-        Allocate(fontSmall, "ariel", "10")
-        Allocate(fontVerySmall, "ariel", "5")
-        Allocate(fontLabelWidgetAndroid, "ariel", "25")
-        Allocate(fontEntryWidgetAndroid, "ariel", "25")
-        Allocate(fontTitleAndroid, "ariel", "25")
-        Allocate(fontTextAndroid, "ariel", "20")
+        Allocate(defaultFont, "ariel", "14")
+        Allocate(titleFont, "ariel", "20")
+        Allocate(smallFont, "ariel", "10")
+        Allocate(verySmallFont, "ariel", "5")
     }
 
 

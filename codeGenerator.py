@@ -56,6 +56,29 @@ inheritedEnums      = {}
 constFieldAccs      = {}
 genericStructsGenerated = [ {}, [] ]
 
+def typeIsInteger(fieldType):
+    # NOTE: If you need this to work for wrapped types as well use the version in CodeGenerator.py
+    if fieldType == None: return False
+    if progSpec.typeIsNumRange(fieldType): return True
+    if not isinstance(fieldType, str):
+        fieldType= fieldType[0]
+    fieldType=progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, fieldType)
+    if fieldType=="int" or fieldType=="BigInt" or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32" or fieldType=="FlexNum":
+        return True
+    return False
+
+
+def typeIsRational(fieldType):
+    # NOTE: If you need this to work for wrapped types as well use the version in CodeGenerator.py
+    if fieldType == None: return False
+    #if progSpec.typeIsNumRange(fieldType): return True
+    if not isinstance(fieldType, str):
+        fieldType= fieldType[0]
+    fieldType=progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, fieldType)
+    if fieldType=="double" or fieldType=="float" or fieldType=="BigFloat" or fieldType=="FlexNum":
+        return True
+    return False
+
 def CheckBuiltinItems(currentObjName, segSpec, objsRefed, genericArgs, xlator):
     # Handle print, return, break, etc.
     itemName=segSpec[0]
@@ -227,6 +250,7 @@ def staticVarNamePrefix(staticVarName, parentClass, xlator):
         crntBaseName = progSpec.baseStructName(currentObjName)
         if parentClass!="": refedClass=parentClass
         else: refedClass=progSpec.baseStructName(StaticMemberVars[staticVarName])
+        if refedClass=="GLOBAL": return ''
         if(crntBaseName != refedClass or xlator['LanguageName']=='Swift'):   #TODO Make this part of xlators
             return refedClass + xlator['ObjConnector']
     return ''
@@ -432,6 +456,12 @@ def getGenericClassInfo(className):
         typeSpecAt = fieldDefAt['typeSpec']
         atTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(typeSpecAt), "fieldType":progSpec.fieldTypeKeyword(typeSpecAt)}
         classInfo["atTypeSpec"] = atTypeSpec
+        # Now try to get the 'key' typeSpec
+        if 'argList' in typeSpecAt and typeSpecAt['argList']!=None:
+            firstParametersSpec = typeSpecAt['argList'][0]
+            firstParametersTypeSpec = firstParametersSpec['typeSpec']
+            keyTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(firstParametersTypeSpec), "fieldType":progSpec.fieldTypeKeyword(firstParametersTypeSpec)}
+            classInfo["atKeyTypeSpec"] = keyTypeSpec
     fieldDefFind = CheckObjectVars(className, "find", "")
     if fieldDefFind:
         itrTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
@@ -487,7 +517,6 @@ def copyFieldType(fType):
         copyFieldType=[]
         for prop in fType:copyFieldType.append(copy.copy(prop))
     return copyFieldType
-
 def copyTypeSpec(typeSpec):
     copyTypeSpec = {}
     for prop in typeSpec:
@@ -697,13 +726,19 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             typeSpecOut = copy.copy(tmpTypeSpec)
 
     if owner=='itr':
-        typeSpecOut = copy.copy(typeSpecIn)
-        typeSpecOut['arraySpec'] = None
-        fieldTypeOut=progSpec.fieldTypeKeyword(typeSpecOut)
+        fieldTypeOut=progSpec.fieldTypeKeyword(typeSpecIn)
         codeCvrtText = xlator['codeIteratorOperation'](name, fieldTypeOut)
         if codeCvrtText!='':
+            if name=='key':
+                [valOwner, valFieldType] = progSpec.getContainerKeyOwnerAndType(typeSpecIn)
+                typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
+            elif name=='val':
+                [valOwner, valFieldType] = progSpec.getContainerValueOwnerAndType(typeSpecIn)
+                typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
+            else:
+                typeSpecOut = copy.copy(typeSpecIn)
+                if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
             typeSpecOut['codeConverter'] = codeCvrtText
-            if typeSpecOut['owner']=='itr' and not isNewContainer: typeSpecOut['owner']='me'
 
     elif IsAContainer and (not isNewContainer or name[0]=='['):
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')
@@ -1472,13 +1507,18 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
             if(fieldOwner != 'my'):
                 defaultVal = "NULL"
         elif (isinstance(fieldType, str)):
-            if(fieldType=="int" or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32"):
-                defaultVal = "0"
-            elif(fieldType=="string"):
-                defaultVal = '""'
-            else: # handle structs if needed
-                if 'value' in field and field['value']!=None:
-                    [defaultVal, defaultValueTypeSpec] = codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs, xlator)
+            if 'value' in field and field['value']!=None:
+                [defaultVal, defaultValueTypeSpec] = codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs, xlator)
+            else:
+                if(typeIsInteger(fieldType)):
+                    defaultVal = "0"
+                elif(typeIsRational(fieldType)):
+                    defaultVal = "0.0"
+                elif(fieldType=="string"):
+                    defaultVal = '""'
+                else: # handle structs if needed
+                    if 'value' in field and field['value']!=None:
+                        [defaultVal, defaultValueTypeSpec] = codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs, xlator)
         if defaultVal != '':
         #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
             ctorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
@@ -1652,8 +1692,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                 inheritMode = 'pure-virtual'
                 classes[0][className]['attrList'].append('abstract')
             # TODO: this is hard coded to compensate for when virtual func class has base class and child class
-            if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):
-                inheritMode = 'virtual'
+
+    #        if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):
+    #            inheritMode = 'virtual'
+            # ####################################################################
             fTypeKW=progSpec.fieldTypeKeyword(typeSpec)
             if fTypeKW =='none': isCtor = True
             else: isCtor = False
@@ -1767,6 +1809,7 @@ def fetchListOfStructsToImplement(classes, tags):
 def codeOneStruct(classes, tags, constFieldCode, className, xlator):
     global currentObjName
     global structsNeedingModification
+    global StaticMemberVars
     classRecord=None
     constsEnums=""  # this isn't used. Remove it?
     dependancies=[]
@@ -1785,6 +1828,7 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
             structCodeOut = "\n" + xlator['getEnumStr'](className, enumVals).lstrip()
             funcCode = xlator['getEnumStringifyFunc'](className, enumVals)
             inheritedEnums[className] = enumVals
+            StaticMemberVars[className+'Strings']  = "GLOBAL"
         else:
             cdlog(1, "   Class: " + className)
             classDef = progSpec.findSpecOf(classes[0], className, 'struct')

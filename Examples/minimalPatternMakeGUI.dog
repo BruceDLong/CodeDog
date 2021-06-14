@@ -31,7 +31,6 @@ mainStyle = {
     fontSizes = {
         fontSizeSmall     = 8
     }
-    fontSizeMode = pp
 }
 
 do makeStyler(mainStyle)

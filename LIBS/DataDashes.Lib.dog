@@ -42,16 +42,16 @@ struct verticalScale: inherits=graphScale{
         // AXIS VALUE LABELS
         withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
             label <- dblToString(val*step+lowVal, 2)
-            size <- getTextSize(cr, label, styler.fontSmall)
+            size <- getTextSize(cr, label, styler.smallFont)
             YPoint <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
             if(textSlant){
                 if (tickOffset > 0){XPoint <- xOrig+tickOffset+tickPadding+size.height/2}
                 else               {XPoint <- xOrig+tickOffset-tickPadding; justify <- "right"}
-                    size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
+                    size <- renderTextRotate(cr, label, styler.smallFont, XPoint, YPoint, -45, justify)
             }else{
                 if (tickOffset > 0){XPoint <- xOrig+tickOffset+tickPadding}
                 else               {XPoint <- xOrig+tickOffset-tickPadding-size.width}
-                renderText(cr, label, styler.fontSmall, XPoint, YPoint)
+                renderText(cr, label, styler.smallFont, XPoint, YPoint)
             }
             if(size.width > labelWidth){labelWidth <- size.width}
         }
@@ -75,7 +75,7 @@ struct verticalScale: inherits=graphScale{
         if (tickOffset > 0){XPoint <- xOrig+labelWidth+tickOffset+tickPadding+titlePadding; degree <- 90}
         else               {XPoint <- xOrig-labelWidth+tickOffset-tickPadding-titlePadding; degree <- -90}
         rotate(cr, XPoint, YPoint+span/2, degree)
-        renderTextCentered(cr, title, styler.fontDefault, XPoint, YPoint+span/2)
+        renderTextCentered(cr, title, styler.defaultFont, XPoint, YPoint+span/2)
         restore(cr)
         cr.strokeNow()
         width <- 40
@@ -121,7 +121,7 @@ struct horizontalScale: inherits=graphScale{
         withEach val in RANGE(0.. (hiVal-lowVal)/step){
             if(isDate){label <- unicodeMgr.dateToIntlString(val*step+firstTick, hiVal-lowVal, loc)}
             else      {label <- dblToString(val*step+firstTick, 2)}
-            size <- getTextSize(cr, title, styler.fontSmall)
+            size <- getTextSize(cr, title, styler.smallFont)
             if (tickOffset > 0){tickHeight  <- tickOffset+tickPadding; YPoint <- yOrig+tickHeight}
             else               {tickHeight  <- tickOffset-tickPadding; YPoint <- yOrig+tickHeight+size.height}
             if(textSlant){
@@ -131,10 +131,10 @@ struct horizontalScale: inherits=graphScale{
                     YPoint <- YPoint - 10
                 }
                 else{XPoint <- xOrig+val*step*span/(hiVal-lowVal)}
-                size <- renderTextRotate(cr, label, styler.fontSmall, XPoint, YPoint, -45, justify)
+                size <- renderTextRotate(cr, label, styler.smallFont, XPoint, YPoint, -45, justify)
             }else{
                 XPoint <- xOrig+(val*step + firstTick - lowVal)*span/(hiVal-lowVal)-5
-                size <- renderTextCentered(cr, label, styler.fontSmall, XPoint, YPoint+8)
+                size <- renderTextCentered(cr, label, styler.smallFont, XPoint, YPoint+8)
 
             }
             cr.setLineWidth(1)
@@ -147,10 +147,10 @@ struct horizontalScale: inherits=graphScale{
 
 
         // SCALE TITLE
-        size <- getTextSize(cr, title, styler.fontDefault)
+        size <- getTextSize(cr, title, styler.defaultFont)
         if(tickOffset > 0){YPoint <- yOrig+tickHeight+labelHeight+titlePadding+titlePadding}
         else              {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
-        renderText(cr, title, styler.fontDefault, span/2, YPoint)
+        renderText(cr, title, styler.defaultFont, span/2, YPoint)
         cr.strokeNow()
         height <- tickHeight+labelHeight+titlePadding+titlePadding
     }
@@ -231,11 +231,11 @@ struct circleButton: inherits=dash{
 
     // Click functionality is inside graph clicks
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
+        if (isTouching(event.x, event.y)) {return(true)}
         else {return(false)}
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
+        if (isTouching(event.x, event.y)) {return(true)}
         else {return(false)}
     }
 }
@@ -252,7 +252,7 @@ struct zoomWidget: inherits=dash{
         zoomOutBtn.initCircleBtn(posX, posY, radius, "-")
         zoomOutBtn.drawCircleBtn(cr)
         labelX <- posX + 3*radius
-        renderTextCentered(cr, label, styler.fontSmall, labelX + maxLabelLength/2, posY + 3*radius/2)
+        renderTextCentered(cr, label, styler.smallFont, labelX + maxLabelLength/2, posY + 3*radius/2)
         cr.strokeNow()
         zoomInBtn.initCircleBtn(labelX + maxLabelLength + radius, posY, radius, "+")
         zoomInBtn.drawCircleBtn(cr)
@@ -281,17 +281,17 @@ struct streamToggle: inherits=dash{
 
     void: draw(their GUI_ctxt: cr) <- {
         if (state != 0) {
-            renderTextCentered(cr, dblToString(dataValue, 0), styler.fontTitle, posX + 3*radius + maxLabelLength/2, posY + 45)
-            renderTextCentered(cr, dispMode, styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
+            renderTextCentered(cr, dblToString(dataValue, 0), styler.titleFont, posX + 3*radius + maxLabelLength/2, posY + 45)
+            renderTextCentered(cr, dispMode, styler.smallFont, posX + 3*radius + maxLabelLength/2, posY + 45 + 15)
             if(dispMode == "Now"){
                 me string: CIText <- " +- " + dblToString(30, 0)
-                renderTextCentered(cr, CIText, styler.fontSmall, posX + 3*radius + maxLabelLength/2+ 30, posY + 40)
+                renderTextCentered(cr, CIText, styler.smallFont, posX + 3*radius + maxLabelLength/2+ 30, posY + 40)
             }
         }
         label <- dataStreamsTitleTbl[state]
         left.drawCircleBtn(cr)
-        labelSize <- getTextSize(cr, label, styler.fontSmall)
-        renderTextCentered(cr, label, styler.fontSmall, posX + 3*radius + maxLabelLength/2, posY + labelSize.height)
+        labelSize <- getTextSize(cr, label, styler.smallFont)
+        renderTextCentered(cr, label, styler.smallFont, posX + 3*radius + maxLabelLength/2, posY + labelSize.height)
         right.drawCircleBtn(cr)
         cr.strokeNow()
     }
@@ -327,11 +327,11 @@ struct streamToggle: inherits=dash{
 
     // Click functionality is inside graph clicks
     me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
+        if (isTouching(event.x, event.y)) {return(true)}
         else {return(false)}
     }
     me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        if (isTouchingMe(event.x, event.y)) {return(true)}
+        if (isTouching(event.x, event.y)) {return(true)}
         else {return(false)}
     }
 }
@@ -343,7 +343,7 @@ struct graphTitleWidget: inherits=dash{
     void: draw(their GUI_ctxt: cr, me GUI_Scalar: PosX, me GUI_Scalar: PosY) <- {
         posX     <- PosX
         posY     <- PosY
-        renderTextCentered(cr, titleTxt, styler.fontTitle, posX, posY)
+        renderTextCentered(cr, titleTxt, styler.titleFont, posX, posY)
         cr.fillNow()
     }
 
