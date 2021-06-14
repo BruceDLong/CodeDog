@@ -506,7 +506,8 @@ struct EventTrigger:inherits=<mode[tPrimaryClick, tSecondaryClick, tPrimaryUp, t
 
 struct EventType:inherits=<mode[eNullEvent, eNormalize, eAddInfon, eDeleteInfon, eEditString, eEditInt, eEditByType,
                                 eMoveInfonInList, eMoveInfonToList,
-                                eGUI_SetXY, eGUI_SetColor, eGUI_SetDragMode, eGUI_SetTimer, eGUI_PopupModal, eGUI_CloseModal, eGUI_SetViewMode, eReqRedraw
+                                eGUI_SetXY, eGUI_SetColor, eGUI_SetDragMode, eGUI_SetTimer, eGUI_setStr1, eGUI_setInt1,
+                                eGUI_SetViewMode, eReqRedraw, eBlockEvents
                                 // Add events for system events such as play_sound or fetch_file
                                ]> {}
 
@@ -519,6 +520,9 @@ struct GuiCoords{
 }
 
 struct GuiDataRec{
+    me string: str1
+    me int64:  int1
+    me int64:  int2
     me GuiCoords:coordinates
     me cdColor: color
     //me DragState
@@ -533,24 +537,30 @@ struct ProactEvent{
     me GUI_Scalar: W
     me GUI_Scalar: H
     me EventType: eventType
+    me string: dataIdTag
     me string: text
-    our POV: inf
-    our POV: toInfon
+    me int64: int1
+    our POV: infonX
+    our POV: infonY
     me GUI_Scalar: arg1
     me GUI_Scalar: arg2
     me GUI_Scalar: arg3
     me GUI_Scalar: arg4
+    our dashDrawing: popupDR
     their cdColor: NewColor
 
     void: setTrigger(me EventTrigger: trigger, their GuiCoords:RA) <- {
         Trigger<-trigger; X<-RA.X; Y<-RA.Y; W<-RA.W; H<-RA.H;
     }
-    void: setInfonEvent(me EventType: evntType, our POV:infon1, our POV:infon2) <- {eventType<-evntType; inf<-infon1; toInfon<-infon2;}
+    void: setInfonEvent(me EventType: evntType, our POV:infon1, our POV:infon2) <- {eventType<-evntType; infonX<-infon1; infonY<-infon2;}
     void: setNormalizeEvent(me EventType: evntType, me string: query) <- {eventType<-evntType; text<-query;}
     void: setGUI_Event(me EventType: evntType, our infon: target, me GUI_Scalar: a1, me GUI_Scalar: a2, me GUI_Scalar: a3, me GUI_Scalar: a4) <- {
         eventType<-evntType; arg1<-a1; arg2<-a2; arg3<-a3; arg4<-a4; done <- false;
     }
     void: setGUI_Event1(me EventType: evntType)<-{eventType<-evntType; done <- false}
+    void: setGUI_Store_Str1(me string: dataID, me string: strVal)<-{eventType<-eGUI_setStr1; dataIdTag<-dataID; text<-strVal; done <- false}
+    void: setGUI_Store_Int1(me string: dataID, me int64: intVal)<-{eventType<-eGUI_setInt1; dataIdTag<-dataID; int1<-intVal; done <- false}
+    //void: setGUI_popupEvent(our dashDrawing: dr)<-{eventType<-eGUI_PopupModal; popupDR<-dr; done <- false}
     void: setGUI_Color(me string: colorSlotID, their cdColor: newColor) <- {
         eventType<-eGUI_SetColor; text<-colorSlotID; NewColor<-newColor; done <- false;
     }
@@ -636,6 +646,47 @@ struct Presenter{
         dr.add1(cmdStroke)
         dr.add1(cmdEdgedLineCap)
     }
+me int: GV_LeftRight_Pad <- 5
+me int: GV_innerVert_Pad <- 5
+me int: GV_innerHorz_Pad <- 5
+me int: GV_topBottom_Pad <- 5
+
+    void: draw_X_stack_XYwh(our dashDrawing: dr, our POV: data, me GUI_Scalar: posX, me GUI_Scalar: posY, their GUI_Scalar: width, their GUI_Scalar: height, me string: viewModeHint) <- {
+        // Draw the list body
+        me GUI_Scalar: xCur <- posX
+        me GUI_Scalar: maxH <- 0
+        me int: count<- 0
+        withEach element in data.pItem.value.items{
+            if(count>0){xCur <+- GV_innerHorz_Pad}
+            dr.addC(cmdSetColor, surfaceBkgnd)
+            our dashDrawing:: dr2
+            me GUI_Scalar: W2
+            me GUI_Scalar: H2
+            drawUnsizedElement(dr2, element, xCur, posY, W2, H2, viewModeHint)
+            maxH <- max(maxH, H2)
+            dr.add1(cmdFill)
+            dr.addSubDrawing(dr2)
+            xCur <+- vertListWidth
+            count <+- 1
+        }
+        height <deep- maxH
+        width  <deep- xCur-posX
+    }
+    void: draw_Y_stack_XYWh(our dashDrawing: dr, our POV: data, me GUI_Scalar: posX, me GUI_Scalar: posY, me GUI_Scalar: width, their GUI_Scalar: height, me string: viewModeHint) <- {
+        // Draw the list body
+        me GUI_Scalar: yCur <- posY+GV_topBottom_Pad
+        me int: count<- 0
+        withEach element in data.pItem.value.items{
+            if(count>0){yCur <+- GV_innerVert_Pad}
+            dr.addC(cmdSetColor, surfaceBkgnd)
+            me GUI_Scalar: itemHeight
+            drawUnsizedElement(dr, element, posX+GV_LeftRight_Pad, yCur, width-(GV_LeftRight_Pad*2), itemHeight, viewModeHint)
+            yCur <+- itemHeight
+            count <+- 1
+        }
+        yCur <+- GV_topBottom_Pad
+        height <deep- yCur-posY   // return the height
+    }
 }
 
 struct GuiModelManager{
@@ -655,6 +706,21 @@ struct GuiModelManager{
         our GuiDataRec: result <- fetchGuiData(dataID)
         if(result==NULL){return(Default)}
         return(result.coordinates)
+    }
+    me bool: getBool(me string: dataID, me bool: Default) <- {
+        our GuiDataRec: result <- fetchGuiData(dataID)
+        if(result==NULL){return(Default)}
+        return(result.int1 != 0)
+    }
+    me bool: getInt64(me string: dataID, me int64: Default) <- {
+        our GuiDataRec: result <- fetchGuiData(dataID)
+        if(result==NULL){return(Default)}
+        return(result.int1)
+    }
+    me string: getString(me string: dataID, me string: Default) <- {
+        our GuiDataRec: result <- fetchGuiData(dataID)
+        if(result==NULL){return(Default)}
+        return(result.str1)
     }
 
     void: sendSaveSignal() <- {log("TODO: Request and save the model")}
@@ -738,21 +804,28 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
     me GUI_Scalar: primaryButtonDownX
     me GUI_Scalar: primaryButtonDownY
     me bool: currentlyDraggingPointer
+    our infon: dragInfonTargetX
+    our infon: dragInfonTargetY
     me GUI_Scalar: preDragX
     me GUI_Scalar: preDragY
 
-    void: updateReferencedVars(me GUI_Scalar: argA, me GUI_Scalar: argB) <- { /// TODO
-        proactiveGUI.presenter.modelMgr.tmpX <- preDragX+(argA-primaryButtonDownX) // ref1 <- argA
-        proactiveGUI.presenter.modelMgr.tmpY <- preDragY+(argB-primaryButtonDownY) // ref2 <- argB
+    void: updateReferencedVars(me GUI_Scalar: argA, me GUI_Scalar: argB) <- {
+        dragInfonTargetX.value.num <- preDragX+(argA-primaryButtonDownX) // ref1 <- argA
+        dragInfonTargetY.value.num <- preDragY+(argB-primaryButtonDownY) // ref2 <- argB
         requestRedraw()
         //log("DRAG X:"+toString(argA-primaryButtonDownX) + "  Y:"+toString(argB-primaryButtonDownY))
     }
-    void: fetchVariableReference() <- { /// TODO
-        preDragX <- proactiveGUI.presenter.modelMgr.tmpX
-        preDragY <- proactiveGUI.presenter.modelMgr.tmpY
+    void: fetchVariableReference(our infon: numInfonX, our infon: numInfonY) <- {
+        dragInfonTargetX <- numInfonX
+        dragInfonTargetY <- numInfonY
+        preDragX <- numInfonX.fetchDouble()
+        preDragY <- numInfonY.fetchDouble()
     }
 
-    void: clearVariableReference() <- {} /// TODO
+    void: clearVariableReference() <- {
+        dragInfonTargetX <- NULL
+        dragInfonTargetY <- NULL
+    }
 
     void: cancelDragOperation() <- {
         currentlyDraggingPointer <- false
@@ -776,8 +849,18 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
         our ProactEvent: eventNode <- findEventUnderCursor(tDragStart, eventX, eventY)
         if(eventNode){
             currentlyDraggingPointer <- true
-            fetchVariableReference()
+            fetchVariableReference(eventNode.infonX.pItem, eventNode.infonY.pItem)
             updateReferencedVars(eventX, eventY)
+        }
+    }
+
+    void: checkBroadcastEvents(me EventTrigger: trgr, me GUI_Scalar: X, me GUI_Scalar: Y) <- {
+        withEach eventNode in proactiveGUI.presenter.broadcastEventRegistry{
+            if(eventNode.Trigger==trgr){
+                if(!eventNode.isTouching(X, Y)){
+                    proactiveGUI.guiModelManager.processCommand(eventNode)
+                }
+            }
         }
     }
 
@@ -806,16 +889,7 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
                 retVal <- true
             }
             //log("Registry2_size:"+toString(proactiveGUI.presenter.broadcastEventRegistry.size()))
-            withEach eventNode2 in proactiveGUI.presenter.broadcastEventRegistry{
-                me EventTrigger: trgr <- eventNode2.Trigger
-                if(trgr==tMouseExit){
-                    if(!eventNode2.isTouching(event.x, event.y)){
-                        if(true or !eventNode2.done){
-                            proactiveGUI.guiModelManager.processCommand(eventNode2)
-                        }
-                    }
-                }
-            }
+            checkBroadcastEvents(tMouseExit, event.x, event.y)
         }
         return(retVal)
     }
@@ -847,12 +921,14 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
         primaryButtonDownY <- event.y
     }
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
+        me bool: retval <- false
         our ProactEvent: eventNode <- findEventUnderCursor(tPrimaryClick, event.x, event.y)
         if(eventNode){
             proactiveGUI.guiModelManager.processCommand(eventNode)
-            return(true)
+            retval <- true
         }
-        return(false)
+        checkBroadcastEvents(tPrimaryClick, event.x, event.y)
+        return(retval)
     }
 
     me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
