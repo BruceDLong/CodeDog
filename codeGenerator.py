@@ -1543,7 +1543,7 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
         funcBody += xlator['codeConstructorCall'](className)
     if(count>0):
         ctorArgs=ctorArgs[0:-1]
-    if ctorArgs:
+    if ctorArgs and parentClass:
         ctorArgTypes       = getCtorArgTypes(className, genericArgs, xlator)
         parentCtorArgTypes = getCtorArgTypes(parentClass, genericArgs, xlator)
         if ctorArgTypes == parentCtorArgTypes:
