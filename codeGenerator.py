@@ -660,9 +660,9 @@ def convertType(typeSpec, varMode, actionOrField, genericArgs, xlator):
             fieldType = "int"
         else:
             fieldType=fieldType[0]
-    unwrappedFieldTypeKeyWord = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, fieldType)
+    unwrappedFTypeKW = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, fieldType)
     ownerOut = xlator['getUnwrappedClassOwner'](globalClassStore, typeSpec, fieldType, varMode, ownerIn)
-    retVal   = xlator['xlateLangType'](globalClassStore, typeSpec, ownerOut, unwrappedFieldTypeKeyWord, varMode, actionOrField, xlator)
+    retVal   = xlator['xlateLangType'](globalClassStore, typeSpec, ownerOut, unwrappedFTypeKW, varMode, actionOrField, xlator)
     return retVal
 
 def codeAllocater(typeSpec, genericArgs, xlator):
@@ -1543,7 +1543,7 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
         funcBody += xlator['codeConstructorCall'](className)
     if(count>0):
         ctorArgs=ctorArgs[0:-1]
-    if ctorArgs:
+    if ctorArgs and parentClass:
         ctorArgTypes       = getCtorArgTypes(className, genericArgs, xlator)
         parentCtorArgTypes = getCtorArgTypes(parentClass, genericArgs, xlator)
         if ctorArgTypes == parentCtorArgTypes:
@@ -1687,12 +1687,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     parentClassName = classRelationData['parentClass']
                     if progSpec.fieldNameInStructHierachy(classes[0], parentClassName, fieldName):
                         inheritMode = 'override'
-
             abstractFunction = (not('value' in field) or field['value']==None)
             if abstractFunction and not 'abstract' in classes[0][className]['attrList']:
                 inheritMode = 'pure-virtual'
                 classes[0][className]['attrList'].append('abstract')
             # TODO: this is hard coded to compensate for when virtual func class has base class and child class
+
     #        if className == 'dash' and (fieldName == 'addDependent' or fieldName == 'requestRedraw' or fieldName == 'setPos' or fieldName == 'addRelation' or fieldName == 'dependentIsRegistered'):
     #            inheritMode = 'virtual'
             # ####################################################################
@@ -1701,7 +1701,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             else: isCtor = False
             [structCode, funcDefCode, globalFuncs]=xlator['codeFuncHeaderStr'](className, fieldName, typeDefName, argListText, localArgsAllocated, inheritMode, overRideOper, isCtor, typeArgList, typeSpec, indent)
 
-            #### FUNC BODY
+            #### FUNC BODY #############################################
             if abstractFunction: # i.e., if no function body is given.
                 cdlog(5, "Function "+fieldID+" has no implementation defined.")
                 funcText = xlator['getVirtualFuncText'](field)

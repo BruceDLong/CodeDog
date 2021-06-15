@@ -455,6 +455,71 @@ struct testClass{
         }
     }
 }''', 'PGBR:true1233264pass',['actions/intToString','actions/32intToString','actions/64intToString','actions/stringToInt','actions/boolToInt']],
+
+
+#####################################################################################################
+
+    # TEST CONSTANT VARIABLES
+
+    # const struct
+    'class/structAsgn':        ['struct testClass{ me void: runTest()<-{me A: a{"A"} }}struct A{me string: testStr}', 'PGBR:'],
+    # const string
+    'class/constStrAsgn':      ['struct testClass{ const string: constStr <- "Hello"  me void: runTest()<-{ print(constStr)}}', 'PGBR:Hello'],
+    # const char
+    'class/constCharAsgn':     ['struct testClass{ const char: constChar <- "M"       me void: runTest()<-{ print(constChar)}}', 'PGBR:M'],
+    # const double
+    'class/constDblAsgn':      ['struct testClass{ const double: pi <- 3.14           me void: runTest()<-{ print(pi)}}', 'PGBR:3.14'],
+    # const ints
+    'class/constIntAsgn':      ['struct testClass{ const int: constInt <- 123         me void: runTest()<-{ print(constInt)}}',    'PGBR:123'],
+    'class/constInt32Asgn':    ['struct testClass{ const int32: constInt32 <- 123     me void: runTest()<-{ print(constInt32)}}',    'PGBR:123'],
+    'class/constInt64Asgn':    ['struct testClass{ const int64: constInt64 <- 123     me void: runTest()<-{ print(constInt64)}}',    'PGBR:123'],
+    # const uints
+    'class/constUint32Asgn':   ['struct testClass { const uint32: constUint32 <- 123  me void: runTest()<-{ print(constUint32)}}', 'PGBR:123'],
+    'class/constUint64Asgn':   ['struct testClass { const uint64: constUint64 <- 123  me void: runTest()<-{ print(constUint64)}}', 'PGBR:123'],
+    # const bool
+    'class/boolAsgn':          ['struct testClass { const bool: constBool <- true  me void runTest()<-{ if(constBool){print("p")} }}', 'PGBR:p'],
+
+    'class/varAssigns': ['''
+
+struct A{
+    me string: testStr
+}
+struct testClass{
+
+    // const struct assign FAILED
+    me A: a {'A'}
+    // const string 
+    const string: constStr <- "Hello"
+    // const char 
+    const char: constChar <-"M"
+    // const double 
+    const double: pi <- 3.14
+    // const ints
+    const int: constInt <- 123
+    const int32: constInt32 <-123
+    const int64: constInt64 <-123
+    // const uints
+    const uint32: constUint32 <-123
+    const uint64: constUint64 <-123
+    // bool
+    const bool: constBool <- true
+
+    me void: runTest()<-{
+        print(constStr)
+        print(constChar)
+        print(pi)
+        print(constInt)
+        print(constInt32)
+        print(constInt64)
+        print(constUint32)
+        print(constUint64)
+        print("p")
+    }
+}
+''', 'PGBR:HelloM3.14123123123123123p', ['class/constStrAsgn', 'class/constDblAsgn', 'class/structAsgn','class/constIntAsgn','class/constInt32Asgn','class/constInt64Asgn','class/constUint32Asgn','class/constUint64Asgn','class/boolAsgn','class/constStrAsgn']],
+
+
+
 #####################################################################################################
 ## TODO: add more loop tests?
 ########################################

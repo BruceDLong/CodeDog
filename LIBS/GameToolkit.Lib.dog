@@ -244,8 +244,14 @@ struct cdColor{
     me uint: red
     me uint: green
     me uint: blue
+    me uint: alpha <- 255
+    none: cdColor(their cdColor: rgbPart, me uint: Alpha)<-{
+        red   <- rgbPart.red
+        green <- rgbPart.green
+        blue  <- rgbPart.blue
+        alpha <- Alpha
+    }
 }
-
 struct ColorScheme{}
 // struct FontSpec{}
 // struct FontScheme{}
