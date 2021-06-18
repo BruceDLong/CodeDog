@@ -1262,7 +1262,14 @@ def logLvl():
     return highestLvl+1
 
 def dePythonStr(pyItem):
-    S=str(pyItem).replace('[','')
+    S=""
+    count=0
+    for segSpec in pyItem:
+        if count>0: S+="."
+        S+=str(segSpec)
+        count += 1
+    print(str(pyItem))
+    S=S.replace('[','')
     S=S.replace(']','')
     S=S.replace("'",'')
     S=S.replace(' ','')
