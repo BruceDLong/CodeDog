@@ -87,12 +87,51 @@ struct ParamRec{
     our POV: dataPov
     our POV: titlePov
     me string: title
-    me string: viewModeHint
+    me GUI_Scalar: posX
+    me GUI_Scalar: posY
+    me GUI_Scalar: posW
+    me GUI_Scalar: posH
+
+    me string: viewStyle         // How will this be drawn
+    me string: viewStyleArg      // arguemnts to modify it
+    //their fontSpec: font
 
     // Drag args
-    our POV: screenPos     <- NULL
-    our POV: xPov          <- NULL
-    our POV: yPov          <- NULL
+    our POV: screenPos   <- NULL
+    our POV: xPov        <- NULL
+    our POV: yPov        <- NULL
+    our POV: width       <- NULL
+    our POV: height      <- NULL
+
+    void: init(our POV: source, me GUI_Scalar: X, me GUI_Scalar: Y, me GUI_Scalar: W, me GUI_Scalar: H) <- {
+        sourcePov     <- source
+        posX<-X; posY<-Y; posW<-W; posH<-H;
+        propertiesPov <- fetchField(source, "properties")
+        titlePov      <- fetchField(propertiesPov, "title")
+        title         <- fetchStringField(titlePov)
+        dataPov       <- fetchField(source, "data")
+        screenPos     <- NULL
+        xPov          <- NULL
+        yPov          <- NULL
+        screenPos <- fetchField(propertiesPov, "screenpos")
+        if(screenPos!=NULL){
+            xPov <- fetchField(screenPos, "xpos")
+            yPov <- fetchField(screenPos, "ypos")
+            posX<-xPov.pItem.fetchDouble()
+            posY<-yPov.pItem.fetchDouble()
+        }
+    }
+}
+
+struct reactiveControl{
+    me bool: isActive
+    me bool: expandsX()<-{}
+    me bool: expandsY()<-{}
+    me deltaSize: premeasure() <- {}
+    void: fetchState() <- {}
+    void: draw(our dashDrawing: dr) <- {}
+    void: registerStaticEvent() <- {}
+    void: registerActiveEvent() <- {}
 }
 
 struct Presenter{
@@ -121,6 +160,38 @@ struct Presenter{
         }
         return(mouseIsOver)
     }
+
+    me string: chooseViewStyle(their ParamRec: PR) <- {
+        me string: retval
+        if(PR.propertiesPov!=NULL){
+            our POV: viewStyle <- fetchField(PR.propertiesPov, "viewStyle")
+            if(viewStyle){
+                me string: viewStyleTag <- fetchStringField(viewStyle)
+                return(viewStyleTag)
+            }
+            viewStyle <- fetchField(PR.propertiesPov, "viewStyleDefault")
+            if(viewStyle){
+                me string: viewStyleTag <- fetchStringField(viewStyle)
+                return(viewStyleTag)
+            }
+        }
+        me string: itemsType
+        if(PR.sourcePov.pItem.type!=NULL){
+            itemsType <- PR.sourcePov.pItem.type.asGiven
+        }
+        if(itemsType!=""){retval<-itemsType}
+        else if(PR.dataPov){
+            switch(PR.dataPov.pItem.value.fType){
+                case LST:{retval<-"genericList"}
+                case STR:{retval<-"genericString"}
+                case NUM:{retval<-"genericNumber"}
+            }
+        }
+    if(retval=="note" or retval=="role"){retval<-"genericString"}
+    else if(retval=="subtasks" or retval=="members"){retval<-"genericList"}
+        return(retval)
+    }
+
 
     void: drawCircleButton(our dashDrawing: dr, me GUI_Scalar: posX, me GUI_Scalar: posY, me GUI_Scalar: radius, me GUI_Scalar: lineWidth, me string: symbol, me string: datasID) <- {
         me GuiCoords:myCoords{posX, posY, radius*2, radius*2}
@@ -175,66 +246,77 @@ me int: GV_innerVert_Pad <- 5
 me int: GV_innerHorz_Pad <- 5
 me int: GV_topBottom_Pad <- 5
 
-    void: draw_X_stack_XYwh(our dashDrawing: dr, our POV: data, me GUI_Scalar: posX, me GUI_Scalar: posY, their GUI_Scalar: width, their GUI_Scalar: height, their ParamRec: PR) <- {
+    void: draw_X_stack_XYwh(our dashDrawing: dr, their ParamRec: PR) <- {
         // Draw the list body
-        me GUI_Scalar: xCur <- posX
+        me GUI_Scalar: xCur <- PR.posX
         me GUI_Scalar: maxH <- 0
         me int: count<- 0
-        our POV: pov <- data.pItem.value.items.front()
+        our POV: pov <- PR.sourcePov.pItem.value.items.front()
         while(pov){
             if(count>0){xCur <+- GV_innerHorz_Pad}
             dr.addC(cmdSetColor, surfaceBkgnd)
             our dashDrawing:: dr2
-            me GUI_Scalar: W2
-            me GUI_Scalar: H2
-            drawItem(dr2, pov, xCur, posY, W2, H2, PR.viewModeHint)
-            maxH <- max(maxH, H2)
+            me ParamRec: iPR; iPR.init(pov, xCur, PR.posY, 0, 0)
+            iPR.viewStyleArg <- PR.viewStyleArg
+            drawItem(dr2, iPR)
+            maxH <- max(maxH, iPR.posH)
             dr.add1(cmdFill)
             dr.addSubDrawing(dr2)
             xCur <+- vertListWidth
             count <+- 1
             pov <- pov.next
         }
-        height <deep- maxH
-        width  <deep- xCur-posX
+        PR.posH <- maxH
+        PR.posW <- xCur-PR.posX
     }
-    void: draw_Y_stack_XYWh(our dashDrawing: dr, our POV: data, me GUI_Scalar: posX, me GUI_Scalar: posY, me GUI_Scalar: width, their GUI_Scalar: height, their ParamRec: PR) <- {
+    void: draw_Y_stack_XYWh(our dashDrawing: dr, their ParamRec: PR) <- {
         // Draw the list body
-        me GUI_Scalar: yCur <- posY+GV_topBottom_Pad
+        me GUI_Scalar: yCur <- PR.posY+GV_topBottom_Pad
+        me List<our ParamRec>: itemParams
+        // Calculate positioning
         me int: count<- 0
-        our POV: pov <- data.pItem.value.items.front()
+        our POV: pov <- PR.sourcePov.pItem.value.items.front()
         while(pov){
             if(count>0){yCur <+- GV_innerVert_Pad}
-            dr.addC(cmdSetColor, surfaceBkgnd)
-            me GUI_Scalar: itemHeight
-            drawItem(dr, pov, posX+GV_LeftRight_Pad, yCur, width-(GV_LeftRight_Pad*2), itemHeight, PR.viewModeHint)
-            yCur <+- itemHeight
+            our ParamRec:: innerPR; innerPR.init(pov, PR.posX+GV_LeftRight_Pad, yCur, PR.posW-(GV_LeftRight_Pad*2), 0)
+            innerPR.viewStyle <- chooseViewStyle(innerPR)
+            setNaturalDimensions(innerPR)
+            print("inner.posH:",innerPR.posH, "  vs:", innerPR.viewStyle,"\n")
+            itemParams.append(innerPR)
+
+            yCur <+- innerPR.posH
             count <+- 1
             pov <- pov.next
         }
+
+        withEach iPR in itemParams{
+            dr.addC(cmdSetColor, surfaceBkgnd)
+            iPR.viewStyleArg <- PR.viewStyleArg
+            drawItem(dr, iPR)
+        }
         yCur <+- GV_topBottom_Pad
-        height <deep- yCur-posY   // return the height
+        PR.posH <- yCur-PR.posY   // return the height
     }
 
-    void: drawStringWidget(our dashDrawing: dr, our POV: data, me GUI_Scalar: posX, me GUI_Scalar: posY, me GUI_Scalar: width, their GUI_Scalar: height, their ParamRec: PR) <- {
+    void: drawStringWidget(our dashDrawing: dr, their ParamRec: PR) <- {
         dr.addC(cmdSetColor, styler.White) //cardTextColr)
         me string: text
         if(PR.sourcePov.pItem.type!=NULL){
             text <- PR.sourcePov.pItem.type.asGiven+": "
         }
         text <+- PR.sourcePov.pItem.value.str
-        dr.addTF(cmdRenderText, posX, posY, text, styler.smallFont)
+        dr.addTF(cmdRenderText, PR.posX, PR.posY, text, styler.smallFont)
         dr.add1(cmdFill)
-        height <deep- styler.smallFont.height
+        PR.posH <- styler.smallFont.height
     }
 
-    void: drawNumberWidget(our dashDrawing: dr, our POV: data, me GUI_Scalar: posX, me GUI_Scalar: posY, me GUI_Scalar: width, their GUI_Scalar: height, their ParamRec: PR) <- {
-        me string: text <- data.pItem.type.asGiven
+    void: drawNumberWidget(our dashDrawing: dr, their ParamRec: PR) <- {
+        me string: text <- PR.sourcePov.pItem.type.asGiven
         if(text!=""){text <+- ": "}
-        text <+- toString(data.pItem.value.num)
+        text <+- toString(PR.sourcePov.pItem.value.num)
         dr.addC(cmdSetColor, cardTextColr)
-        dr.addTF(cmdRenderText, posX, posY, PR.title, styler.smallFont)
-        height <deep- styler.smallFont.height
+        dr.addTF(cmdRenderText, PR.posX, PR.posY, PR.title, styler.smallFont)
+        PR.posH <- styler.smallFont.height
     }
 }
 
