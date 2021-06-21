@@ -456,6 +456,8 @@ struct testClass{
     }
 }''', 'PGBR:true1233264pass',['actions/intToString','actions/32intToString','actions/64intToString','actions/stringToInt','actions/boolToInt']],
 
+#####################################################################################################
+
     # TEST FOR EACH LOOP WITH STRINGS
     
     'action/withEachStrchars':   ['struct testClass{  me void: runTest()<-{ me string: testStr <- "Hello" withEach ch in testStr{ print(ch)}}}', 'PGBR:H\ne\nl\nl\no'],
