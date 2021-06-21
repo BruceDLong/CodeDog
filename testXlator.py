@@ -457,22 +457,16 @@ struct testClass{
 }''', 'PGBR:true1233264pass',['actions/intToString','actions/32intToString','actions/64intToString','actions/stringToInt','actions/boolToInt']],
 
 #####################################################################################################
-
-    # TEST FOR EACH LOOP WITH STRINGS
-    
     'action/withEachStrchars':   ['struct testClass{  me void: runTest()<-{ me string: testStr <- "Hello" withEach ch in testStr{ print(ch)}}}', 'PGBR:H\ne\nl\nl\no'],
     'action/withEachStrInts':    ['struct testClass{  me void: runTest()<-{ me string: testStr <- "12345" withEach ch in testStr{ print(ch)}}}', 'PGBR:1\n2\n3\n4\n5'],
     'action/withEachStrSpaces':  ['struct testClass{  me void: runTest()<-{ me string: testStr <- "     " withEach ch in testStr{ print(ch)}}}', 'PGBR: \n \n \n \n '],
     'action/withEachStrNone':    ['struct testClass{  me void: runTest()<-{ me string: testStr <- ""      withEach ch in testStr{ print(ch)}}}', 'PGBR:'],
-
-    # parent test
     'action/withEachStr': ['''
 
 struct testClass{
 
     me void: runTest()<-{
 
-        
         me string: testStr <- "Hello"
         withEach ch in testStr{
         print(ch)
