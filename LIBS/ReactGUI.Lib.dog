@@ -91,10 +91,12 @@ struct ParamRec{
     me GUI_Scalar: posY
     me GUI_Scalar: posW
     me GUI_Scalar: posH
+    me string: text
 
-    me string: viewStyle         // How will this be drawn
-    me string: viewStyleArg      // arguemnts to modify it
-    //their fontSpec: font
+    me string: viewStyleTag         // How will this be drawn
+    me string: viewStyleTagArg      // arguemnts to modify it
+    our ReactiveControl: viewStyleCtrl
+    their fontSpec: font
 
     // Drag args
     our POV: screenPos   <- NULL
@@ -123,15 +125,39 @@ struct ParamRec{
     }
 }
 
-struct reactiveControl{
+struct ReactiveControl{
     me bool: isActive
     me bool: expandsX()<-{}
     me bool: expandsY()<-{}
-    me deltaSize: premeasure() <- {}
+    void: setMetrics(their ParamRec: PR) <- {}
+    void: draw(our dashDrawing: dr, their ParamRec: PR, their Presenter: presenter) <- {}
     void: fetchState() <- {}
-    void: draw(our dashDrawing: dr) <- {}
     void: registerStaticEvent() <- {}
     void: registerActiveEvent() <- {}
+}
+
+struct WidgetMngr{
+    our ReactiveControl: getviewStyleTagCtrl(me string: key) <- {
+        if(viewStyleTags.containsKey(key)){
+            return(viewStyleTags[key])
+        }
+        return(NULL)
+    }
+    void: setviewStyleTagCtrl(me string: key, our ReactiveControl: ctrl) <- {
+        key <- unicodeMgr.normalizeStr(key)
+        viewStyleTags[key] <- ctrl
+        print("SET:"+key+"\n")
+    }
+    me Map<string, our ReactiveControl>: viewStyleTags
+
+    our StringView:  staticStringView
+    our NumberView:  staticNumberView
+    void: init() <- {
+        Allocate(staticStringView)
+        Allocate(staticNumberView)
+        setviewStyleTagCtrl("genericString", staticStringView)
+        setviewStyleTagCtrl("genericNumber", staticNumberView)
+    }
 }
 
 struct Presenter{
@@ -161,18 +187,18 @@ struct Presenter{
         return(mouseIsOver)
     }
 
-    me string: chooseViewStyle(their ParamRec: PR) <- {
+    me string: chooseviewStyleTag(their ParamRec: PR) <- {
         me string: retval
         if(PR.propertiesPov!=NULL){
-            our POV: viewStyle <- fetchField(PR.propertiesPov, "viewStyle")
-            if(viewStyle){
-                me string: viewStyleTag <- fetchStringField(viewStyle)
-                return(viewStyleTag)
+            our POV: viewStyleTag <- fetchField(PR.propertiesPov, "viewStyleTag")
+            if(viewStyleTag){
+                me string: viewStyleTagTag <- fetchStringField(viewStyleTag)
+                return(viewStyleTagTag)
             }
-            viewStyle <- fetchField(PR.propertiesPov, "viewStyleDefault")
-            if(viewStyle){
-                me string: viewStyleTag <- fetchStringField(viewStyle)
-                return(viewStyleTag)
+            viewStyleTag <- fetchField(PR.propertiesPov, "viewStyleTagDefault")
+            if(viewStyleTag){
+                me string: viewStyleTagTag <- fetchStringField(viewStyleTag)
+                return(viewStyleTagTag)
             }
         }
         me string: itemsType
@@ -189,6 +215,12 @@ struct Presenter{
         }
     if(retval=="note" or retval=="role"){retval<-"genericString"}
     else if(retval=="subtasks" or retval=="members"){retval<-"genericList"}
+
+    if(PR.viewStyleTagArg=="_edit"){retval<+-"_edit"}
+        retval <- unicodeMgr.normalizeStr(retval)
+        PR.viewStyleTag <- retval
+        PR.viewStyleCtrl<- widgetMngr.getviewStyleTagCtrl(retval)
+   // if(PR.viewStyleCtrl==NULL){print("1. NULL for :"+retval+"\n")} else {print("1. SUcCESS for:'"+retval+"'\n")}
         return(retval)
     }
 
@@ -257,7 +289,8 @@ me int: GV_topBottom_Pad <- 5
             dr.addC(cmdSetColor, surfaceBkgnd)
             our dashDrawing:: dr2
             me ParamRec: iPR; iPR.init(pov, xCur, PR.posY, 0, 0)
-            iPR.viewStyleArg <- PR.viewStyleArg
+            chooseviewStyleTag(iPR)
+            iPR.viewStyleTagArg <- PR.viewStyleTagArg
             drawItem(dr2, iPR)
             maxH <- max(maxH, iPR.posH)
             dr.add1(cmdFill)
@@ -279,9 +312,14 @@ me int: GV_topBottom_Pad <- 5
         while(pov){
             if(count>0){yCur <+- GV_innerVert_Pad}
             our ParamRec:: innerPR; innerPR.init(pov, PR.posX+GV_LeftRight_Pad, yCur, PR.posW-(GV_LeftRight_Pad*2), 0)
-            innerPR.viewStyle <- chooseViewStyle(innerPR)
+            if(PR.viewStyleTagArg=="_edit"){innerPR.viewStyleTagArg <- PR.viewStyleTagArg}
+            innerPR.font <- styler.defaultFont
+            chooseviewStyleTag(innerPR)
             setNaturalDimensions(innerPR)
-            print("inner.posH:",innerPR.posH, "  vs:", innerPR.viewStyle,"\n")
+            if(innerPR.viewStyleCtrl!=NULL and innerPR.viewStyleCtrl.expandsX()){
+                innerPR.posW <- PR.posW-10*2
+            }
+            //print("inner.posH:",innerPR.posH, "  vs:", innerPR.viewStyleTag,"\n")
             itemParams.append(innerPR)
 
             yCur <+- innerPR.posH
@@ -291,37 +329,24 @@ me int: GV_topBottom_Pad <- 5
 
         withEach iPR in itemParams{
             dr.addC(cmdSetColor, surfaceBkgnd)
-            iPR.viewStyleArg <- PR.viewStyleArg
+            iPR.viewStyleTagArg <- PR.viewStyleTagArg
             drawItem(dr, iPR)
         }
         yCur <+- GV_topBottom_Pad
         PR.posH <- yCur-PR.posY   // return the height
     }
-
-    void: drawStringWidget(our dashDrawing: dr, their ParamRec: PR) <- {
-        dr.addC(cmdSetColor, styler.White) //cardTextColr)
-        me string: text
-        if(PR.sourcePov.pItem.type!=NULL){
-            text <- PR.sourcePov.pItem.type.asGiven+": "
-        }
-        text <+- PR.sourcePov.pItem.value.str
-        dr.addTF(cmdRenderText, PR.posX, PR.posY, text, styler.smallFont)
-        dr.add1(cmdFill)
-        PR.posH <- styler.smallFont.height
-    }
-
-    void: drawNumberWidget(our dashDrawing: dr, their ParamRec: PR) <- {
-        me string: text <- PR.sourcePov.pItem.type.asGiven
-        if(text!=""){text <+- ": "}
-        text <+- toString(PR.sourcePov.pItem.value.num)
-        dr.addC(cmdSetColor, cardTextColr)
-        dr.addTF(cmdRenderText, PR.posX, PR.posY, PR.title, styler.smallFont)
-        PR.posH <- styler.smallFont.height
-    }
 }
 
 struct GuiModelManager{
     me Map<me string, our GuiDataRec>: guiData
+
+    // TODO: Use these next 5 fields to better organize sessions
+    our POV: session
+    void: NewUserSession() <- {}
+    void: openUserSession() <- {}
+    void: saveUserSession() <- {}
+    void: sendSaveSignal() <- {log("TODO: Request and save the model")}
+
     our GuiDataRec: fetchGuiData(me string: itemID) <-{
         itr Map<me string, our GuiDataRec>: it <- guiData.find(itemID)
         if(it == guiData.end()){return(NULL)}
@@ -354,7 +379,6 @@ struct GuiModelManager{
         return(result.str1)
     }
 
-    void: sendSaveSignal() <- {log("TODO: Request and save the model")}
 }
 
 struct ProactiveGUI{
@@ -587,4 +611,5 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
 struct GLOBAL{
     me GUI_Scalar: crntMouseX
     me GUI_Scalar: crntMouseY
+    me WidgetMngr: widgetMngr
 }
