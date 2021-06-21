@@ -27,7 +27,7 @@ def apply(classes, tags):
         void: defineOption(me string: groupID, me string: optionID, me string: shortName, me string: longName, me string: helpText) <- {
             our optionRecord: rec
             Allocate(rec, groupID, optionID, shortName, longName, helpText)
-            options.pushLast(rec)
+            options.append(rec)
         }
 
         me string: getOption(me string: groupID, me string: optionID) <- {

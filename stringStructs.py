@@ -541,21 +541,21 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         if fromIsALT:
           #  print "ALT-#1"
             gatherFieldCode+=Write_ALT_Extracter(classes, fTypeKW, fields, childRecName, '', 'tmpVar', indent+'    ', level)
-            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
+            gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
 
         elif fromIsStruct and not toIsBaseType:
             gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFTypeKW)+': tmpVar'
             if toFieldOwner!='me':
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
-            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
+            gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
             #print "##### FUNCT:", getFunctionName(fTypeKW, toFTypeKW)
             gatherFieldCode+='\n'+indent+getFunctionName(fTypeKW, toFTypeKW)+'(getChildStateRec('+childRecName+') , tmpVar)\n'
 
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, ".next")
-            gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
+            gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
 
-        #gatherFieldCode+='\n'+indent+CODE_LVAR+'.pushLast('+CODE_RVAL+')'
+        #gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
 
         gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
         # UNCOMMENT FOR DEGUG: S+= '    docPos('+str(level)+', '+VarTag+', "Get Next in LIST for: '+humanIDType+'")\n'

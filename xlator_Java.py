@@ -75,8 +75,9 @@ def applyOwner(typeSpec, owner, langType, actionOrField, varMode):
     elif owner=='itr':
         itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(langType, typeSpec))
         langType = itrType
-        print("TODO: design iterators in Java!!!!!!!!!!!!!!!!!!!!!!!!!!",langType)
-        exit(2)
+        if itrType=='nodeType':
+            print("TODO: design iterators in Java!!!!!!!!!!!!!!!!!!!!!!!!!!",itrType)
+            exit(2)
     elif owner=='we':
         langType = 'static '+langType
     else:
@@ -171,7 +172,7 @@ def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
         if progSpec.typeIsPointer(rhsTypeSpec):
             return '(' + RHScodeStr + ' == null)'
         if (RHS_KeyType=='int' or RHS_KeyType=='flag'):
-            if RHScodeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
+            if RHScodeStr[0]=='!': return '(' + RHScodeStr[1:] + ' == 0)'
             else: return '(' + RHScodeStr + ' != 0)'
         if RHScodeStr == "0": return "false"
         if RHScodeStr == "1": return "true"
@@ -269,7 +270,7 @@ def getContaineCategory(containerSpec):
         return 'DblLinkedList'
     elif fTypeKW=='TreeMap' or fTypeKW=='Java_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
         return 'MAP'
-    elif fTypeKW=='list' or fTypeKW=='Java_ArrayList' or "__List_" in fTypeKW:
+    elif fTypeKW=='list' or fTypeKW=='Java_ArrayList' or "__List_" in fTypeKW or "__CDList" in fTypeKW:
         return 'LIST'
     return None
 
