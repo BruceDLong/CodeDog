@@ -569,7 +569,7 @@ struct EParser{
                     count <+- 1
                 }
             }
-            withEach rankItem in rankSlots: {
+            withEach rankItem in rankSlots{
                 me string: sameRank <- "{rank=same; " + rankItem + "}"
                 grapher.addItem(sameRank)
             }

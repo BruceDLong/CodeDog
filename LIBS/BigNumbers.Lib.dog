@@ -1,6 +1,6 @@
 //####### Native CodeDog library
 LinuxTestBuild: Platform='Linux' Lang='CPP'  testMode='makeTests';
-featuresNeeded = [BigNumbers.CPP]
+
 requirements = [
     [require, BigNumbers_implementation]
 ]
