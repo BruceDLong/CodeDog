@@ -326,6 +326,8 @@ def getContaineCategory(containerSpec):
         return 'LIST'
     elif fTypeKW=='deque' or fTypeKW=='CPP_Deque':
         return 'DEQUE'
+    elif 'Multimap' in fTypeKW:
+        return 'MULTIMAP'
     return None
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, genericArgs, xlator):
@@ -435,29 +437,29 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText       = ""
     loopCounterName  = ""
-    owner            = progSpec.getContainerFirstElementOwner(ctnrTSpec)
+    ctnrOwner        = progSpec.getContainerFirstElementOwner(ctnrTSpec)
     containedType    = progSpec.getFieldTypeKeyWordOld(ctnrTSpec)
-    ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
+    ctrlVarsTypeSpec = {'owner':ctnrOwner, 'fieldType':containedType}
     itrName          = repName + "Itr"
     if progSpec.ownerIsPointer(ctnrOwner): connector="->"
     else: connector = "."
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
-    if datastructID=='multimap' or datastructID=='map' or datastructID=='CPP_Map' or datastructID=='CPP_Multimap':
+    containerCat     = getContaineCategory(ctnrTSpec)
+    if containerCat=="MAP" or containerCat=="MULTIMAP":
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
-        KeyVarOwner=progSpec.getOwnerFromTypeSpec(ctnrTSpec)
         keyVarSpec = {'owner':'itr', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         loopCounterName  = repName+'_key'
-        localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
+        localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+connector+'lower_bound('+StartKey+')' + "; " + itrName + " !=" + ctnrName+connector+'upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
                     + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
     else:
-        print("unknown dataStrct type:",datastructID,ctnrTSpec)
+        print("DSID iterateRangeContainerStr:",datastructID,containerCat)
         exit(2)
     return [actionText, loopCounterName]
 

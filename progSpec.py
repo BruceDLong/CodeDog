@@ -785,6 +785,18 @@ def getDatastructID(typeSpec):
     else:   #is a parseResult
         return(typeSpec['arraySpec']['datastructID'][0])
 
+def isContainerTemplateTempFunc(typeSpec):
+    fTypeKW = fieldTypeKeyword(typeSpec)
+    if fTypeKW=='CPP_Deque' or fTypeKW=='Java_ArrayList' or fTypeKW=='Swift_Array':
+        return True
+    if fTypeKW=='CPP_Map' or fTypeKW=='Java_Map' or fTypeKW=='Swift_Map':
+        return True
+    if fTypeKW=='Java_MultiMap':
+        return True
+    if not "RBNode" in fTypeKW and not "RBTree" in fTypeKW and not "CDList" in fTypeKW and fTypeKW!="Map" and not "Multimap" in fTypeKW:
+        print("Template class '"+fTypeKW+"' not found")
+    return False
+
 def getNewContainerFirstElementTypeTempFunc2(typeSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
@@ -796,14 +808,7 @@ def getNewContainerFirstElementTypeTempFunc2(typeSpec):
     if fTypeKW=='DblLinkedList': return(['infon'])
     reqTagList = getReqTagList(typeSpec)
     if reqTagList:
-        if fTypeKW=='CPP_Deque' or fTypeKW=='Java_ArrayList' or fTypeKW=='Swift_Array':
-            return(reqTagList[0]['tArgType'])
-        if fTypeKW=='CPP_Map' or fTypeKW=='Java_Map' or fTypeKW=='Swift_Map':
-            return(reqTagList[0]['tArgType'])
-        if fTypeKW=='List':
-            return(reqTagList[0]['tArgType'])
-        if not "RBNode" in fTypeKW and not "RBTree" in fTypeKW and not "CDList"in fTypeKW and fTypeKW!="Map" and fTypeKW!="Multimap" and fTypeKW!="CPP_Multimap":
-            print("Template class '"+fTypeKW+"' not found for" + str(reqTagList))
+        if isContainerTemplateTempFunc(typeSpec) or fTypeKW=='List': return(reqTagList[0]['tArgType'])
     elif reqTagList == None: return(None)
     return(None)
 
@@ -818,12 +823,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
     if fTypeKW=='DblLinkedList': return(['infon'])
     reqTagList = getReqTagList(typeSpec)
     if reqTagList:
-        if fTypeKW=='CPP_Deque' or fTypeKW=='Java_ArrayList' or fTypeKW=='Swift_Array':
-            return(reqTagList[0]['tArgType'])
-        if fTypeKW=='CPP_Map' or fTypeKW=='Java_Map' or fTypeKW=='Swift_Map':
-            return(reqTagList[0]['tArgType'])
-        if not "RBNode" in fTypeKW and not "RBTree" in fTypeKW and not "CDList"in fTypeKW and fTypeKW!="List" and fTypeKW!="Map" and fTypeKW!="Multimap" and fTypeKW!="CPP_Multimap":
-            print("Template class '"+fTypeKW+"' not found for" + str(reqTagList))
+        if isContainerTemplateTempFunc(typeSpec): return(reqTagList[0]['tArgType'])
     elif reqTagList == None: return(None)
     return(None)
 
@@ -838,14 +838,7 @@ def getNewContainerFirstElementOwnerTempFunc(typeSpec):
     if fTypeKW=='DblLinkedList': return('our')
     reqTagList = getReqTagList(typeSpec)
     if reqTagList:
-        if fTypeKW=='CPP_Deque' or fTypeKW=='Java_ArrayList' or fTypeKW=='Swift_Array':
-            return(reqTagList[0]['tArgOwner'])
-        if fTypeKW=='CPP_Map' or fTypeKW=='Java_Map' or fTypeKW=='Swift_Map':
-            return(reqTagList[0]['tArgOwner'])
-        if fTypeKW=='List':
-            return(reqTagList[0]['tArgOwner'])
-        if not "RBNode" in fTypeKW and not "RBTree" in fTypeKW and not "CDList"in fTypeKW and fTypeKW!="Map" and fTypeKW!="Multimap" and fTypeKW!="CPP_Multimap":
-            print("Template class '"+fTypeKW+"' not found for" + str(reqTagList))
+        if isContainerTemplateTempFunc(typeSpec) or fTypeKW=='List': return(reqTagList[0]['tArgOwner'])
     elif reqTagList == None: return(None)
     return(None)
 

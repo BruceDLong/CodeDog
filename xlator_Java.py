@@ -189,7 +189,7 @@ def derefPtr(varRef, itemTypeSpec):
     return [S, isDerefd]
 
 def ChoosePtrDecorationForSimpleCase(owner):
-    print("TODO: finish ChoosePtrDecorationForSimpleCase")
+    #print("TODO: finish ChoosePtrDecorationForSimpleCase")
     return ['','',  '','']
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -272,6 +272,8 @@ def getContaineCategory(containerSpec):
         return 'MAP'
     elif fTypeKW=='list' or fTypeKW=='Java_ArrayList' or "__List_" in fTypeKW or "__CDList" in fTypeKW:
         return 'LIST'
+    elif 'Multimap' in fTypeKW:
+        return 'MULTIMAP'
     return None
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, genericArgs, xlator):
@@ -303,31 +305,32 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ctnrOwner,repName,repContainer,datastructID,idxTypeKW,indent,xlator):
-    willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
+def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ctnrOwner,repName,ctnrName,datastructID,idxTypeKW,indent,xlator):
+    willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText       = ""
     loopCounterName  = ""
+    ctnrOwner        = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
     containedType    = progSpec.getFieldTypeNew(ctnrTSpec)
-    ctnrOwner   = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
     ctrlVarsTypeSpec = {'owner':ctnrOwner, 'fieldType':containedType}
-    containerCat = getContaineCategory(ctnrTSpec)
-    if containerCat == "MAP":
+    reqTagList       = progSpec.getReqTagList(ctnrTSpec)
+    containerCat     = getContaineCategory(ctnrTSpec)
+    if containerCat=="MAP" or containerCat=="MULTIMAP":
+        if(reqTagList != None):
+            ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+        keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
         loopCounterName  = repName+'_key'
         valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(ctnrTSpec), True)
-        keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         idxTypeKW = adjustBaseTypes(idxTypeKW, True)
-        repContainerTypeSpec = (repContainer)
         actionText += (indent + 'for(Map.Entry<'+idxTypeKW+','+valueFieldType+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
                        indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
                        indent + '    ' +idxTypeKW +' '+ loopCounterName + ' = ' + repName+'Entry.getKey();\n\n'  )
-    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
-        pass;
-    elif datastructID=='deque' and willBeModifiedDuringTraversal:
-        pass;
+    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
+    elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
     else:
-        print("DSID iterateRangeContainerStr:",datastructID,ctnrTSpec)
+        print("DSID iterateRangeContainerStr:",datastructID,containerCat)
         exit(2)
     return [actionText, loopCounterName]
 
@@ -343,7 +346,6 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ctnrOwner)
     itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)
-    itrFieldType     = progSpec.fieldTypeKeyword(itrTypeSpec)
     itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
     itrName          = repName + "Itr"
