@@ -480,12 +480,10 @@ struct testClass{
     'class/boolAsgn':          ['struct testClass { const bool: constBool <- true  me void runTest()<-{ if(constBool){print("p")} }}', 'PGBR:p'],
 
     'class/varAssigns': ['''
-
 struct A{
     me string: testStr
 }
 struct testClass{
-
     // const struct assign FAILED
     me A: a {'A'}
     // const string 
@@ -503,7 +501,6 @@ struct testClass{
     const uint64: constUint64 <-123
     // bool
     const bool: constBool <- true
-
     me void: runTest()<-{
         print(constStr)
         print(constChar)
@@ -517,6 +514,44 @@ struct testClass{
     }
 }
 ''', 'PGBR:HelloM3.14123123123123123p', ['class/constStrAsgn', 'class/constDblAsgn', 'class/structAsgn','class/constIntAsgn','class/constInt32Asgn','class/constInt64Asgn','class/constUint32Asgn','class/constUint64Asgn','class/boolAsgn','class/constStrAsgn']],
+
+
+#####################################################################################################
+    
+    # TEST WITHEACH STRING
+
+    'action/withEachStrchars':   ['struct testClass{  me void: runTest()<-{ me string: testStr <- "Hello" withEach ch in testStr{ print(ch)}}}', 'PGBR:H\ne\nl\nl\no'],
+    'action/withEachStrInts':    ['struct testClass{  me void: runTest()<-{ me string: testStr <- "12345" withEach ch in testStr{ print(ch)}}}', 'PGBR:1\n2\n3\n4\n5'],
+    'action/withEachStrSpaces':  ['struct testClass{  me void: runTest()<-{ me string: testStr <- "     " withEach ch in testStr{ print(ch)}}}', 'PGBR: \n \n \n \n '],
+    'action/withEachStrNone':    ['struct testClass{  me void: runTest()<-{ me string: testStr <- ""      withEach ch in testStr{ print(ch)}}}', 'PGBR:'],
+    'action/withEachStr': ['''
+
+struct testClass{
+
+    me void: runTest()<-{
+
+        me string: testStr <- "Hello"
+        withEach ch in testStr{
+        print(ch)
+        }
+
+        me string: testStr <- "12345"
+        withEach ch in testStr{
+        print(ch)
+        }
+
+        me string: testStr <- "     "
+        withEach ch in testStr{
+        print(ch)
+        }
+
+        me string: testStr <- ""
+        withEach ch in testStr{
+        print(ch)
+        }
+    }
+}
+''', 'PGBR:H\ne\nl\nl\no1\n2\n3\n4\n5 \n \n \n \n ', ['action/withEachStr','action/withEachStrInts','action/withEachStrSpaces','action/withEachStrNone']],
 
 
 

@@ -1209,7 +1209,7 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
         actionText += actionTextOut
     else: # interate over a container
         [ctnrName, containerTSpec] = codeExpr(action['repList'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-        if containerTSpec==None or not progSpec.isAContainer(containerTSpec): cdErr("'"+ctnrName+"' is not a container so cannot be iterated over.",containerTSpec)
+        if containerTSpec==None or not progSpec.isAContainer(containerTSpec): cdErr("'"+ctnrName+"' is not a container so cannot be iterated over."+str(containerTSpec))
         if(traversalMode=='Forward' or traversalMode==None):
             isBackward=False
         elif(traversalMode=='Backward'):
