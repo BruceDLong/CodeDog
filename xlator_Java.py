@@ -315,18 +315,21 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
     containerCat     = getContaineCategory(ctnrTSpec)
     if containerCat=="MAP" or containerCat=="MULTIMAP":
+        valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+            idxTypeKW      = progSpec.getTypeFromTemplateArg(reqTagList[0])
+            valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
         loopCounterName  = repName+'_key'
-        valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(ctnrTSpec), True)
+        idxTypeKW = adjustBaseTypes(idxTypeKW, True)
+        valueFieldType = adjustBaseTypes(valueFieldType, True)
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        idxTypeKW = adjustBaseTypes(idxTypeKW, True)
-        actionText += (indent + 'for(Map.Entry<'+idxTypeKW+','+valueFieldType+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
+        actionText += (indent + 'for(Map.Entry<'+idxTypeKW+','+valueFieldType+'> '+repName+'Entry : '+ctnrName+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
                        indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
-                       indent + '    ' +idxTypeKW +' '+ loopCounterName + ' = ' + repName+'Entry.getKey();\n\n'  )
+                       indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.getKey();\n'  )
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
     else:

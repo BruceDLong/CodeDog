@@ -793,7 +793,7 @@ def isContainerTemplateTempFunc(typeSpec):
         return True
     if fTypeKW=='Java_MultiMap':
         return True
-    if not "RBNode" in fTypeKW and not "RBTree" in fTypeKW and not "CDList" in fTypeKW and fTypeKW!="Map" and not "Multimap" in fTypeKW:
+    if not "RBNode" in fTypeKW and not "RBTree" in fTypeKW and not "List" in fTypeKW and fTypeKW!="Map" and not "Multimap" in fTypeKW:
         print("Template class '"+fTypeKW+"' not found")
     return False
 
