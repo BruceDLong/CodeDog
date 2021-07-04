@@ -116,7 +116,7 @@ repeatedAction = Group(
             Keyword("withEach")("repeatedActionID") - CID("repName") + "in"
             + Optional(traversalModes("traversalMode"))
             + (whileSpec('whileSpec') | rangeSpec('rangeSpec') | keyRange('keyRange') | fileSpec('fileSpec') | rValue("repList"))
-            + Optional(":")("optionalColon")
+            + Optional(":")("optionalColon") # TODO: remove. this is deprecated.
             + Optional(Keyword("where") + "(" + expr("whereExpr") + ")")
             + Optional(Keyword("until") + "(" + expr("untilExpr") + ")")
             + actionSeq

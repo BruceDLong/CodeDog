@@ -1607,6 +1607,17 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         typeDefName = convertedType # progSpec.createTypedefName(fieldType)
         ## ASSIGNMENTS###############################################
+
+        if 'value' in field and field['value']!=None and len(field['value'])>1:
+            verbatimText=field['value'][1]
+            if (verbatimText!=''):                                      # This function body is 'verbatim'.
+                if(verbatimText[0]=='!'): # This is a code conversion pattern. Don't write a function decl or body.
+                    structCode=""
+                    funcText=""
+                    funcDefCode=""
+                    globalFuncs=""
+                    continue
+
         if fieldName=='opAssign':
             fieldName='operator='
 
@@ -1630,6 +1641,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         else:
             fieldValueText = " = "+ str(fieldValue)
             #print ("    RHS func or array")
+
 
         ############ CODE MEMBER VARIABLE ##########################################################
         if(fieldOwner=='const'):
