@@ -321,6 +321,21 @@ struct GLOBAL{
         return(size);
     } %>
 
+    me deltaSize: getTextSizeX1024(me string: text, their fontSpec: font) <- <%{
+        if(fontCheckerCR==NULL){
+            fontCheckerCR = cairo_create(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 5, 5));
+        }
+        PangoLayout *layout=pango_cairo_create_layout(fontCheckerCR);
+        pango_layout_set_text(layout, text.data(), -1);
+        string fontDesc=font->name+' '+ std::to_string(font->size);
+        PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
+        pango_layout_set_font_description(layout, desc);
+        pango_font_description_free(desc);
+        deltaSize size;
+        pango_layout_get_size(layout, &size.width, &size.height);
+        g_object_unref(layout);
+        return(size);
+    } %>
     me void: roundedRectangle(their GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
         cairo_move_to(cr,x+r,y);                      //# Move to A
         cairo_line_to(cr,x+w-r,y);                    //# Straight line to B
@@ -443,6 +458,121 @@ struct GLOBAL{
     their MessagePasser: GUIsMesgPasser() <- <%!GUI_threads_messagePasser%>
     void: invokeFunctionInThread(their MessagePasser: mesgPasser, their void: objToCall, their void: classToCall, their void: funcToCall, their void: arguments)
         <- <%!g_main_context_invoke(%1, GSourceFunc(%3_%4_CB), %5)%>
+}
+
+struct GLOBAL{ // Constants
+    const int: KEY_HOME         <- <%!GDK_KEY_Home%>
+    const int: KEY_END          <- <%!GDK_KEY_End%>
+    const int: KEY_ESCAPE       <- <%!GDK_KEY_Escape%>
+    const int: KEY_TAB          <- <%!GDK_KEY_Tab%>
+    const int: KEY_INSERT       <- <%!GDK_KEY_Insert%>
+    const int: KEY_DELETE       <- <%!GDK_KEY_Delete%>
+    const int: KEY_PAGEUP       <- <%!GDK_KEY_Page_Up%>
+    const int: KEY_PAGEDOWN     <- <%!GDK_KEY_Page_Down%>
+    const int: KEY_PAUSE        <- <%!GDK_KEY_Pause%>
+    const int: KEY_RETURN       <- <%!GDK_KEY_Return%>
+    const int: KEY_UP           <- <%!GDK_KEY_Up%>
+    const int: KEY_DOWN         <- <%!GDK_KEY_Down%>
+    const int: KEY_LEFT         <- <%!GDK_KEY_Left%>
+    const int: KEY_RIGHT        <- <%!GDK_KEY_Right%>
+    const int: KEY_BACKSPACE    <- <%!GDK_KEY_BackSpace%>
+    const int: KEY_F1           <- <%!GDK_KEY_F1%>
+    const int: KEY_F2           <- <%!GDK_KEY_F2%>
+    const int: KEY_F3           <- <%!GDK_KEY_F3%>
+    const int: KEY_F4           <- <%!GDK_KEY_F4%>
+    const int: KEY_F5           <- <%!GDK_KEY_F5%>
+    const int: KEY_F6           <- <%!GDK_KEY_F6%>
+    const int: KEY_F7           <- <%!GDK_KEY_F7%>
+    const int: KEY_F8           <- <%!GDK_KEY_F8%>
+    const int: KEY_F9           <- <%!GDK_KEY_F9%>
+    const int: KEY_F10          <- <%!GDK_KEY_F10%>
+    const int: KEY_F11          <- <%!GDK_KEY_F11%>
+    const int: KEY_F12          <- <%!GDK_KEY_F12%>
+    const int: KP_0             <- <%!GDK_KEY_KP_0%>
+    const int: KP_1             <- <%!GDK_KEY_KP_1%>
+    const int: KP_2             <- <%!GDK_KEY_KP_2%>
+    const int: KP_3             <- <%!GDK_KEY_KP_3%>
+    const int: KP_4             <- <%!GDK_KEY_KP_4%>
+    const int: KP_5             <- <%!GDK_KEY_KP_5%>
+    const int: KP_6             <- <%!GDK_KEY_KP_6%>
+    const int: KP_7             <- <%!GDK_KEY_KP_7%>
+    const int: KP_8             <- <%!GDK_KEY_KP_8%>
+    const int: KP_9             <- <%!GDK_KEY_KP_9%>
+    const int: KP_ENTER         <- <%!GDK_KEY_KP_Enter%>
+    const int: KP_PLUS          <- <%!GDK_KEY_KP_Plus%>
+    const int: KP_MINUS         <- <%!GDK_KEY_KP_Minus%>
+    const int: KP_MULTIPLY      <- <%!GDK_KEY_KP_Multiply%>
+    const int: KP_DIVIDE        <- <%!GDK_KEY_KP_Divide%>
+    const int: KP_PERIOD        <- <%!GDK_KEY_KP_Decimal%>
+    const int: KP_DELETE        <- <%!GDK_KEY_KP_Delete%>
+    const int: KP_UP            <- <%!GDK_KEY_KP_Up%>
+    const int: KP_DOWN          <- <%!GDK_KEY_KP_Down%>
+    const int: KP_LEFT          <- <%!GDK_KEY_KP_Left%>
+    const int: KP_RIGHT         <- <%!GDK_KEY_KP_Right%>
+    const int: KP_HOME          <- <%!GDK_KEY_KP_Home%>
+    const int: KP_END           <- <%!GDK_KEY_KP_End%>
+    const int: KP_PAGEUP        <- <%!GDK_KEY_KP_Page_Up%>
+    const int: KP_PAGEDOWN      <- <%!GDK_KEY_KP_Page_Down%>
+
+    // Use these to match lowercase OR CTRL via keyTyped.state
+    const int: KEY_a            <- <%!GDK_KEY_a%>
+    const int: KEY_b            <- <%!GDK_KEY_b%>
+    const int: KEY_c            <- <%!GDK_KEY_c%>
+    const int: KEY_d            <- <%!GDK_KEY_d%>
+    const int: KEY_e            <- <%!GDK_KEY_e%>
+    const int: KEY_f            <- <%!GDK_KEY_f%>
+    const int: KEY_g            <- <%!GDK_KEY_g%>
+    const int: KEY_h            <- <%!GDK_KEY_h%>
+    const int: KEY_i            <- <%!GDK_KEY_i%>
+    const int: KEY_j            <- <%!GDK_KEY_j%>
+    const int: KEY_k            <- <%!GDK_KEY_k%>
+    const int: KEY_l            <- <%!GDK_KEY_l%>
+    const int: KEY_m            <- <%!GDK_KEY_m%>
+    const int: KEY_n            <- <%!GDK_KEY_n%>
+    const int: KEY_o            <- <%!GDK_KEY_o%>
+    const int: KEY_p            <- <%!GDK_KEY_p%>
+    const int: KEY_q            <- <%!GDK_KEY_q%>
+    const int: KEY_r            <- <%!GDK_KEY_r%>
+    const int: KEY_s            <- <%!GDK_KEY_s%>
+    const int: KEY_t            <- <%!GDK_KEY_t%>
+    const int: KEY_u            <- <%!GDK_KEY_u%>
+    const int: KEY_v            <- <%!GDK_KEY_v%>
+    const int: KEY_w            <- <%!GDK_KEY_w%>
+    const int: KEY_x            <- <%!GDK_KEY_x%>
+    const int: KEY_y            <- <%!GDK_KEY_y%>
+    const int: KEY_z            <- <%!GDK_KEY_z%>
+
+    const int: KEY_A            <- <%!GDK_KEY_A%>
+    const int: KEY_B            <- <%!GDK_KEY_B%>
+    const int: KEY_C            <- <%!GDK_KEY_C%>
+    const int: KEY_D            <- <%!GDK_KEY_D%>
+    const int: KEY_E            <- <%!GDK_KEY_E%>
+    const int: KEY_F            <- <%!GDK_KEY_F%>
+    const int: KEY_G            <- <%!GDK_KEY_G%>
+    const int: KEY_H            <- <%!GDK_KEY_H%>
+    const int: KEY_I            <- <%!GDK_KEY_I%>
+    const int: KEY_J            <- <%!GDK_KEY_J%>
+    const int: KEY_K            <- <%!GDK_KEY_K%>
+    const int: KEY_L            <- <%!GDK_KEY_L%>
+    const int: KEY_M            <- <%!GDK_KEY_M%>
+    const int: KEY_N            <- <%!GDK_KEY_N%>
+    const int: KEY_O            <- <%!GDK_KEY_O%>
+    const int: KEY_P            <- <%!GDK_KEY_P%>
+    const int: KEY_Q            <- <%!GDK_KEY_Q%>
+    const int: KEY_R            <- <%!GDK_KEY_R%>
+    const int: KEY_S            <- <%!GDK_KEY_S%>
+    const int: KEY_T            <- <%!GDK_KEY_T%>
+    const int: KEY_U            <- <%!GDK_KEY_U%>
+    const int: KEY_V            <- <%!GDK_KEY_V%>
+    const int: KEY_W            <- <%!GDK_KEY_W%>
+    const int: KEY_X            <- <%!GDK_KEY_X%>
+    const int: KEY_Y            <- <%!GDK_KEY_Y%>
+    const int: KEY_Z            <- <%!GDK_KEY_Z%>
+
+
+    /// MASKS for event.state
+    const int: SHIFT_MASK       <- <%!GDK_SHIFT_MASK%>
+    const int: CONTROL_MASK     <- <%!GDK_CONTROL_MASK%>
 }
 
 ///////// Application areas

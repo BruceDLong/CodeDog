@@ -22,13 +22,13 @@ struct testClass{
     me void: runTest()<-{
         me List<me int>:wrappedList
         print(" isEmpty:"+toString(wrappedList.isEmpty()))
-        wrappedList.pushLast(1)
-        wrappedList.pushLast(3)
-        wrappedList.pushFirst(5)
-        wrappedList.pushFirst(6)
-        wrappedList.pushFirst(8)
-        wrappedList.pushFirst(4)
-        wrappedList.pushFirst(7)
+        wrappedList.append(1)
+        wrappedList.append(3)
+        wrappedList.prepend(5)
+        wrappedList.prepend(6)
+        wrappedList.prepend(8)
+        wrappedList.prepend(4)
+        wrappedList.prepend(7)
         withEach item in wrappedList{
             print(toString(item))
         }
@@ -52,7 +52,6 @@ struct testClass{
         me List<me string>: meStringList
         me List<me timeValue>: meTimeValList
     }
-    void: testPassList(me List<me string>: listToPass)<-{}
 }''', 'PGBR: isEmpty:true7486513valAt:8firstItm:7lastItm:3firstPop:7lastPop:3Size:5   item:4   item:8   item:6   item:5   item:1Size after clear:0',
         ['','']],
 ###################################################################################################
@@ -78,7 +77,6 @@ struct testClass{
         withEach item in mapIntString{print(item)}
         mapIntString.clear()
         print(" ",mapIntString.size())
-
     }
 }''', 'PGBR: isEmpty:true bb aa 3 ccaabbcc 0',
         ['', '']],
@@ -181,7 +179,6 @@ struct txtOut{
     }
 }
 struct testClass{
-
     me Map<me int, their txtOut>: txtsOut
     me void: runTest()<-{
         their txtOut: Tzero{false, 0}
@@ -197,6 +194,27 @@ struct testClass{
         }
     }
 }''', 'PGBR: at:0 at:1 at:2',
+    ['','']],
+###################################################################################################
+     'multimaps/multimaps':  ['', 'PGB:'],
+     'multimaps/multimaps':  ['''
+struct testClass{
+    me void: runTest()<-{
+        me Multimap<me int, me string>: mapIntString
+        print(" isEmpty:"+toString(mapIntString.isEmpty()))
+        mapIntString.insert(0,"aa")
+        mapIntString.insert(1,"bb")
+        mapIntString.insert(1,"qq")
+        mapIntString.insert(2,"cc")
+        print(" ",mapIntString.first())
+        print(" ",mapIntString.size())
+        print(" ",mapIntString.last())
+        withEach item in mapIntString from 1 to 1{print(" [1..1]"+item)}
+        mapIntString.popFirst()
+        mapIntString.clear()
+        print(" ",mapIntString.size())
+    }
+}''', 'PGBR: isEmpty:true aa 4 cc [1..1]bb [1..1]qq 0',
     ['','']],
 ###################################################################################################
      'itrs/iterators':    ['', 'PGB:'],

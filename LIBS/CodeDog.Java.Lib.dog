@@ -8,10 +8,7 @@ requirements = [
 interface={
     provides = [CodeDog_implementation]
     libFiles = []
-    headers  = [java.lang.String, java.io.*, java.util.logging.Level, java.util.logging.Logger, java.util.Random,
-                java.util.Date, java.util.Map, java.util.TreeMap, java.util.ArrayList, java.util.Arrays,
-                java.util.concurrent.*,java.lang.Math.*, java.util.Iterator, java.lang.Object, java.io.RandomAccessFile
-               ]
+    headers  = [java.lang.String, java.io.*, java.util.*,java.lang.Math.*, java.lang.Object, java.io.RandomAccessFile]
 }
 
 
@@ -54,6 +51,13 @@ struct GLOBAL{
     }%>
     me string: replaceCharAt(me string: s, me int: pos, me char: c)<- <%{
        return s.substring(0,pos) + c + s.substring(pos+1);
+    }%>
+    me bool: isxdigit(me string: input) <- <%{
+        try {
+            Long.parseLong(input, 16);
+            return true;
+        }
+        catch (NumberFormatException ex){return false;}
     }%>
 
     me int: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>

@@ -75,8 +75,9 @@ def applyOwner(typeSpec, owner, langType, actionOrField, varMode):
     elif owner=='itr':
         itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(langType, typeSpec))
         langType = itrType
-        print("TODO: design iterators in Java!!!!!!!!!!!!!!!!!!!!!!!!!!",langType)
-        exit(2)
+        if itrType=='nodeType':
+            print("TODO: design iterators in Java!!!!!!!!!!!!!!!!!!!!!!!!!!",itrType)
+            exit(2)
     elif owner=='we':
         langType = 'static '+langType
     else:
@@ -171,7 +172,7 @@ def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
         if progSpec.typeIsPointer(rhsTypeSpec):
             return '(' + RHScodeStr + ' == null)'
         if (RHS_KeyType=='int' or RHS_KeyType=='flag'):
-            if RHScodeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
+            if RHScodeStr[0]=='!': return '(' + RHScodeStr[1:] + ' == 0)'
             else: return '(' + RHScodeStr + ' != 0)'
         if RHScodeStr == "0": return "false"
         if RHScodeStr == "1": return "true"
@@ -188,7 +189,7 @@ def derefPtr(varRef, itemTypeSpec):
     return [S, isDerefd]
 
 def ChoosePtrDecorationForSimpleCase(owner):
-    print("TODO: finish ChoosePtrDecorationForSimpleCase")
+    #print("TODO: finish ChoosePtrDecorationForSimpleCase")
     return ['','',  '','']
 
 def chooseVirtualRValOwner(LVAL, RVAL):
@@ -269,8 +270,10 @@ def getContaineCategory(containerSpec):
         return 'DblLinkedList'
     elif fTypeKW=='TreeMap' or fTypeKW=='Java_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
         return 'MAP'
-    elif fTypeKW=='list' or fTypeKW=='Java_ArrayList' or "__List_" in fTypeKW:
+    elif fTypeKW=='list' or fTypeKW=='Java_ArrayList' or "__List_" in fTypeKW or "__CDList" in fTypeKW:
         return 'LIST'
+    elif 'Multimap' in fTypeKW:
+        return 'MULTIMAP'
     return None
 
 def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, genericArgs, xlator):
@@ -302,31 +305,35 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ctnrOwner,repName,repContainer,datastructID,idxTypeKW,indent,xlator):
-    willBeModifiedDuringTraversal=True   # TODO: Set this programatically leter.
+def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ctnrOwner,repName,ctnrName,datastructID,idxTypeKW,indent,xlator):
+    willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     actionText       = ""
     loopCounterName  = ""
+    ctnrOwner        = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
     containedType    = progSpec.getFieldTypeNew(ctnrTSpec)
-    ctnrOwner   = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
     ctrlVarsTypeSpec = {'owner':ctnrOwner, 'fieldType':containedType}
-    containerCat = getContaineCategory(ctnrTSpec)
-    if containerCat == "MAP":
-        loopCounterName  = repName+'_key'
-        valueFieldType = adjustBaseTypes(progSpec.fieldTypeKeyword(ctnrTSpec), True)
+    reqTagList       = progSpec.getReqTagList(ctnrTSpec)
+    containerCat     = getContaineCategory(ctnrTSpec)
+    if containerCat=="MAP" or containerCat=="MULTIMAP":
+        valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
+        if(reqTagList != None):
+            ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+            idxTypeKW      = progSpec.getTypeFromTemplateArg(reqTagList[0])
+            valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
+        loopCounterName  = repName+'_key'
+        idxTypeKW = adjustBaseTypes(idxTypeKW, True)
+        valueFieldType = adjustBaseTypes(valueFieldType, True)
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        idxTypeKW = adjustBaseTypes(idxTypeKW, True)
-        repContainerTypeSpec = (repContainer)
-        actionText += (indent + 'for(Map.Entry<'+idxTypeKW+','+valueFieldType+'> '+repName+'Entry : '+repContainer+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
+        actionText += (indent + 'for(Map.Entry<'+idxTypeKW+','+valueFieldType+'> '+repName+'Entry : '+ctnrName+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
                        indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
-                       indent + '    ' +idxTypeKW +' '+ loopCounterName + ' = ' + repName+'Entry.getKey();\n\n'  )
-    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
-        pass;
-    elif datastructID=='deque' and willBeModifiedDuringTraversal:
-        pass;
+                       indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.getKey();\n'  )
+    elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
+    elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
     else:
-        print("DSID iterateRangeContainerStr:",datastructID,ctnrTSpec)
+        print("DSID iterateRangeContainerStr:",datastructID,containerCat)
         exit(2)
     return [actionText, loopCounterName]
 
@@ -342,7 +349,6 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ctnrOwner)
     itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)
-    itrFieldType     = progSpec.fieldTypeKeyword(itrTypeSpec)
     itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
     itrName          = repName + "Itr"
