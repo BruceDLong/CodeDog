@@ -64,6 +64,9 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     makeDir(buildName + "/assets")
     copyTree("Resources", buildName+"/assets")
 
+    #writing scons file
+    writeFile(buildName, 'SConstruct', [[['SConstruct'],f"Program('{fileName+fileExtension}')"]], "")
+
     libStr=""
     for libFile in libFiles:
         if libFile.startswith('pkg-config'):
@@ -196,19 +199,8 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
 def getBuildSting (fileName, buildStr_libs, platform, buildName):
     global globalTagStore
     if platform == 'Linux':
-        debugMode='-g'
-        minLangVersion='17'
-        codeDogFolder = os.path.dirname(os.path.realpath(__file__))
-        libStr = "-I " + codeDogFolder + " "
-        langStr = 'g++'
-        langStr += ' -fdiagnostics-color '  # Add color to the output
-        langStr += ' -fcompare-debug-second '  # supress compiler notes
-        minLangStr = '-std=gnu++' + minLangVersion + ' '
-        fileExtension = '.cpp'
-        fileStr = fileName + fileExtension
-        outputFileStr = '-o ' + fileName
-        libStr += buildStr_libs
-        buildStr = langStr + debugMode + " " + minLangStr + fileStr  + " " + libStr + " " + outputFileStr
+        currentFileDir = os.path.dirname(__file__)
+        buildStr = f"python3 {currentFileDir}/Scons/scons.py"
     elif platform == 'Java' or  platform == 'Swing':
         buildStr = ''
         libStr = ''
