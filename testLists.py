@@ -77,7 +77,6 @@ struct testClass{
         withEach item in mapIntString{print(item)}
         mapIntString.clear()
         print(" ",mapIntString.size())
-
     }
 }''', 'PGBR: isEmpty:true bb aa 3 ccaabbcc 0',
         ['', '']],
@@ -180,7 +179,6 @@ struct txtOut{
     }
 }
 struct testClass{
-
     me Map<me int, their txtOut>: txtsOut
     me void: runTest()<-{
         their txtOut: Tzero{false, 0}
@@ -196,6 +194,27 @@ struct testClass{
         }
     }
 }''', 'PGBR: at:0 at:1 at:2',
+    ['','']],
+###################################################################################################
+     'multimaps/multimaps':  ['', 'PGB:'],
+     'multimaps/multimaps':  ['''
+struct testClass{
+    me void: runTest()<-{
+        me Multimap<me int, me string>: mapIntString
+        print(" isEmpty:"+toString(mapIntString.isEmpty()))
+        mapIntString.insert(0,"aa")
+        mapIntString.insert(1,"bb")
+        mapIntString.insert(1,"qq")
+        mapIntString.insert(2,"cc")
+        print(" ",mapIntString.first())
+        print(" ",mapIntString.size())
+        print(" ",mapIntString.last())
+        withEach item in mapIntString from 1 to 1{print(" [1..1]"+item)}
+        mapIntString.popFirst()
+        mapIntString.clear()
+        print(" ",mapIntString.size())
+    }
+}''', 'PGBR: isEmpty:true aa 4 cc [1..1]bb [1..1]qq 0',
     ['','']],
 ###################################################################################################
      'itrs/iterators':    ['', 'PGB:'],
