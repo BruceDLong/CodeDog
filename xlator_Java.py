@@ -843,6 +843,7 @@ def generateMainFunctionality(classes, tags):
     # TODO: System initCode should happen first in initialize, last in deinitialize.
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
+    if runCode==None: runCode=""
     Platform = progSpec.fetchTagValue(tags, 'Platform')
     if Platform != 'Android':
         mainFuncCode="""

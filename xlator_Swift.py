@@ -948,6 +948,7 @@ def generateMainFunctionality(classes, tags):
     # TODO: Deinitialize items should happen in reverse order.
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
+    if runCode==None: runCode=""
     mainFuncCode="""
     me void: main() <- {
         initialize("")        // TODO: get command line args and pass to initialize(joinCmdStrings(argc, argv))

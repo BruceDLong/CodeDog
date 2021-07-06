@@ -1093,6 +1093,7 @@ def generateMainFunctionality(classes, tags):
     # TODO: System initCode should happen first in initialize, last in deinitialize.
 
     runCode = progSpec.fetchTagValue(tags, 'runCode')
+    if runCode==None: runCode=""
     mainFuncCode="""
     me int32: main(me int32: argc, their char: argv ) <- {
         initialize(joinCmdStrings(argc, argv))
