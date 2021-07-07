@@ -57,32 +57,55 @@ def copyTree(src, dst):
         else:
             shutil.copy2(s, d)
 
-def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib):
     fileExtension = '.cpp'
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     makeDir(buildName + "/assets")
     copyTree("Resources", buildName+"/assets")
 
-    #writing scons file
-    writeFile(buildName, 'SConstruct', [[['SConstruct'],f"Program('{fileName+fileExtension}')"]], "")
+    #building scons file
+    SconsFile = "import os\n"
+    SconsFile += "\nenv = Environment(ENV=os.environ)\n"
+    if progOrLib=='program': SconsFileType = "Program"
+    elif progOrLib=='library': SconsFileType = "Library"
+    elif progOrLib=='staticlibrary': SconsFileType = "StaticLibrary"
+    elif progOrLib=='sharedlibrary': SconsFileType = "SharedLibrary"
+    else: SconsFileType = "Library"
 
+    SconsFileOut = 'env.'+SconsFileType+'(\n'
+    SconsFileOut += '    target='+'"'+fileName+'",\n'
+    SconsFileOut += '    source='+'"'+fileSpecs[0][0]+fileExtension+'",\n'
+
+    codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+  #  SconsFileOut += '    env["LIBPATH"]=["'+codeDogFolder+'"],\n'
+    sconsConfigs = ""
+
+    sconsLibs     = 'env["LIBS"] = ['
+    sconsLibPaths = 'env["LIBPATH"]=["'+codeDogFolder+'"],\n'
     libStr=""
+    firstTime = True
     for libFile in libFiles:
         if libFile.startswith('pkg-config'):
-            libStr += "`"
-            libStr += libFile
-            libStr += "` "
+            libStr += "`"+libFile+"` "
+            sconsConfigs += 'env.ParseConfig("'+libFile+'")\n'
         else:
             if libFile =='pthread': libStr += '-pthread ';
-            else: libStr += "-l"+libFile+ " "
-
+            else:
+                libStr += "-l"+libFile
+                if not firstTime: sconsLibs += ', '
+                firstTime=False
+                sconsLibs += '"'+libFile+'"'
+    sconsLibs += ']\n'
         #print "libStr: " + libStr
     currentDirectory = currentWD = os.getcwd()
     #TODO check if above is typo
     workingDirectory = currentDirectory + "/" + buildName
     buildStr = getBuildSting(fileName,libStr,platform,buildName)
     runStr = "./" + fileName
+    SconsFileOut += '    )\n'
+    SconsFile += sconsLibPaths + sconsLibs + sconsConfigs + SconsFileOut + '\n'
+    writeFile(buildName, 'SConstruct', [[['SConstruct'],SconsFile]], "")
     return [workingDirectory, buildStr, runStr]
 
 def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
@@ -164,19 +187,20 @@ def printResults(workingDirectory, buildStr, runStr):
     #print ("workingDirectory: ", workingDirectory)
     pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
-    if out: print("Result: ",out)
+    if out: print("Result: \n",out.decode('utf-8'))
     if err:
-        decodedErr = err.decode()
+        decodedErr = err.decode('UTF-8')
         if "error:" in decodedErr:
-            print("Error Messages:\n--------------------------\n", err.decode('UTF-8'), end=' ')
-            print("--------------------------", end=' ')
+            print("Error Messages:\n--------------------------\n", err.decode('UTF-8'))
+            print("--------------------------")
             exit(2)
     else: cdlog(1, "SUCCESS!")
 
-def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs):
+def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
+    progOrLib = progOrLib.lower()
     if platform == 'Linux':
-        [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib)
     elif platform == 'Java' or  platform == 'Swing':
         [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Android':
@@ -199,6 +223,22 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
 def getBuildSting (fileName, buildStr_libs, platform, buildName):
     global globalTagStore
     if platform == 'Linux':
+        """
+        debugMode='-g'
+        minLangVersion='17'
+        codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+        libStr = "-I " + codeDogFolder + " "
+        langStr = 'g++'
+        langStr += ' -fdiagnostics-color '  # Add color to the output
+        langStr += ' -fcompare-debug-second '  # supress compiler notes
+        minLangStr = '-std=gnu++' + minLangVersion + ' '
+        fileExtension = '.cpp'
+        fileStr = fileName + fileExtension
+        outputFileStr = '-o ' + fileName
+        libStr += buildStr_libs
+        buildStr = langStr + debugMode + " " + minLangStr + fileStr  + " " + libStr + " " + outputFileStr
+        """
+
         currentFileDir = os.path.dirname(__file__)
         buildStr = f"python3 {currentFileDir}/Scons/scons.py"
     elif platform == 'Java' or  platform == 'Swing':

@@ -72,7 +72,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         count+=1
         buildName=buildSpec[0]
         buildTags=buildSpec[1]
-        buildTags['buildName']= buildName 
+        buildTags['buildName']= buildName
         testMode=progSpec.fetchTagValue([tags, buildTags], 'testMode')
         progSpec.MarkItems=True
         if testMode=='makeTests' or testMode=='runTests':
@@ -92,6 +92,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         fileName   = progSpec.fetchTagValue(tagsList, 'FileName')
         labelName  = progSpec.fetchTagValue(tagsList, 'Title')
         launchIconName = progSpec.fetchTagValue(tagsList, 'LaunchIcon')
+        programOrLibrary = progSpec.fetchTagValue(tagsList, 'ProgramOrLibrary')
         langGenTag = buildTags['Lang']
         libFiles=[]
         tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
@@ -102,7 +103,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
         #cdlog(1, "\nWRITING {} FILE(S) AND COMPILING...".format(len(fileSpecs)))
-        buildDog.build("-g", '14',  fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs)
+        buildDog.build("-g", '14',  fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, programOrLibrary)
         print("Marker: Build Successful")
         progSpec.rollBack(classes, tags)
     # GenerateDocuments()
