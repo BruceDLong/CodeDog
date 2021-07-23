@@ -29,21 +29,21 @@ struct RBMultimapItr<keyType, valueType>: implements=MapItr{
         if(prevNode != NULL){return(prevNode)}
         return(crntNode)
     }
-    their RBTreeItr<keyType, valueType>: __opAssign(their RBTreeItr<keyType, valueType>: RHS) <- {
+    their RBMultimapItr<keyType, valueType>: __opAssign(their RBMultimapItr<keyType, valueType>: RHS) <- {
         node <- RHS.node
         return(self)
     }
-    their RBTreeItr<keyType, valueType>: __inc() <- { // Prefix ++ overload
+    their RBMultimapItr<keyType, valueType>: __inc() <- { // Prefix ++ overload
         if(node){
             node <- goNext()
         }
         return(self)
     }
-    me bool: __notEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
+    me bool: __notEqual(me RBMultimapItr<keyType, valueType>: RHS) <- {
         return(node !== RHS.node)
     }
     valueType: __derefPtr() <- {return(node.value)}
-    me bool: __isEqual(me RBTreeItr<keyType, valueType>: RHS) <- {
+    me bool: __isEqual(me RBMultimapItr<keyType, valueType>: RHS) <- {
         return(node === RHS.node)
     }
     valueType: val()                         <- <%!%0%>
