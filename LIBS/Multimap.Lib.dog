@@ -1,229 +1,9 @@
-// CodeDog List model
+// CodeDog Multimap
+requirements = [[require, Multimap_implementation]]
 
-requirements = [
-    [require, List_implementation]
-]
-
-model List<nodeType>{   //model is abstract class
-    void: append()
-    nodeType: at()
-    me void: clear()
-    me void: clipToSize()
-    itr nodeType: deleteNth()
-    itr nodeType: end()
-    itr nodeType: erase()
-    nodeType: first()
-    itr nodeType: front()
-    nodeType: __getAt()
-    itr nodeType: insert()
-    itr nodeType: insertIdx()
-    me bool: isEmpty()
-    nodeType: last()
-    itr nodeType: nthItr()
-    nodeType: popFirst()
-    nodeType: popLast()
-    me void: prepend()
-    itr nodeType: __putAt()
-    me uint: size()
-    me void: pushFirst()
-    me void: pushLast()
-    me void: begin()
-    me void: rEnd()
-    nodeType: back()
-}
-
-model MapNode<keyType, valueType>{
-    keyType: key
-    valueType: value
-    their RBNode<keyType, valueType>: goNext()
-    their RBNode<keyType, valueType>: goPrev()
-}
-model MapItr<keyType, valueType>{
-    our MapNode<keyType, valueType>: node
-    our MapNode<keyType, valueType>: goNext()
-    //our MapNode<keyType, valueType>: goPrev()
-    valueType: val()
-}
-model Map<keyType, valueType>{
-    valueType: at(keyType)
-    void: clear()
-    me bool: containsKey(keyType: key)
-    our MapItr: end()
-    void: erase(keyType: key)
-    our MapItr: find(keyType: key)
-    valueType: first()
-    our MapItr: front()
-    our MapItr: insert(keyType: key, valueType: value)
-    me bool:  isEmpty()
-    valueType: last()
-    //itr valueType: lower_bound(keyType: key)
-    me uint:  size()
-}
-model MultimapNode<keyType, valueType>{
-    keyType: key
-    valueType: value
-    their RBNode<keyType, valueType>: goNext()
-    their RBNode<keyType, valueType>: goPrev()
-}
-model MultimapItr<keyType, valueType>{
-    our MultimapNode<keyType, valueType>: node
-    our MultimapNode<keyType, valueType>: goNext()
-    //our MultimapNode<keyType, valueType>: goPrev()
-    valueType: val()
-}
-model Multimap<keyType, valueType>{
-    valueType: at(keyType)
-    void: clear()
-    me bool: containsKey(keyType: key)
-    our MultimapItr: end()
-    void: erase(keyType: key)
-    our MultimapItr: find(keyType: key)
-    valueType: first()
-    our MultimapItr: front()
-    our MultimapItr: insert(keyType: key, valueType: value)
-    me bool:  isEmpty()
-    valueType: last()
-    //itr valueType: lower_bound(keyType: key)
-    me uint:  size()
-}
-
-////////////////////////////////////////////////////////
-/*
-struct CDListItr<nodeType>{
-    nodeType: item
-    our CDListItr<nodeType>: next
-    our CDListItr<nodeType>: prev
-    ///////// CONSTRUCTORS ///////////////////////////
-    none: CDListItr(nodeType: value, our CDListItr<nodeType>: _next, our CDListItr<nodeType>: _prev) <- {
-        item <- value
-        next <- _next
-        prev <- _prev
-    }
-}
-struct CDList<nodeType>: implements=List native=codeDog specs={append=constant rangeIteration=constant}{
-    our CDListItr<nodeType>: head
-    our CDListItr<nodeType>: tail
-    me int64: __size
-
-    void: append(nodeType: value) <- {
-        our CDListItr<nodeType>:: newNode{value, NULL, tail}
-        if(tail!=NULL){tail.next <- newNode}
-        if(head==NULL){head <- newNode}
-        tail <- newNode
-        __size <+- 1
-    }
-    nodeType: at(me int64: pos) <- {
-        if(head == NULL){logFatalError("List access out of range in List::at().")}
-        our CDListItr<nodeType>: retVal <- head
-        withEach x in RANGE(0..pos){
-            retVal <- retVal.next
-            if (retVal == NULL){logFatalError("List access out of range in List::at().")}
-        }
-        return(retVal.item)
-    }
-    void: clear() <- {
-        head<-NULL
-        tail<-NULL
-        __size <- 0
-    }
-    void: clipToSize(me int64: size) <- {
-        tail <- nthItr(size-1)
-        __size <- size
-    }
-    our CDListItr<nodeType>: deleteNth(me int: pos) <- {return(erase(nthItr(pos)))}
-    our CDListItr<nodeType>: end()    <- {return(tail)}
-    our CDListItr<nodeType>: erase(our CDListItr<nodeType>: toDel) <- {
-        our CDListItr<nodeType>: retVal <- toDel.prev
-        if(toDel===head){head<-head.next}
-        if(toDel===tail){tail<-tail.prev}
-        if(toDel.prev){toDel.prev.next <- toDel.next}
-        if(toDel.next){toDel.next.prev <- toDel.prev}
-        return(retVal)
-    }
-    nodeType: first()                 <- {return(head.item)}
-    our CDListItr<nodeType>: front()  <- {return(head)}
-    //nodeType: __getAt(me int: pos)  <- {}
-    our CDListItr<nodeType>: insert(our CDListItr<nodeType>: pos, nodeType: value) <- {
-        if(pos==NULL){
-            prepend(value)
-            return(head)
-        }
-        our CDListItr<nodeType>: nextNode <- pos.next
-        our CDListItr<nodeType>:: newNode {value, nextNode, pos}
-        if(nextNode!=NULL){nextNode.prev <- newNode}
-        pos.next <- newNode
-        if(tail === pos){tail <- newNode}
-        return(newNode)
-    }
-    our CDListItr<nodeType>: insertIdx(me int: pos, nodeType: value) <- {
-        if(pos==0){prepend(value);return(head)}
-        our CDListItr<nodeType>: item <- nthItr(pos-1)
-        insert(item, value)
-        return(item)
-    }
-    me bool: isEmpty()                <- {return(head==NULL)}
-    nodeType: last()                  <- {return(tail.item)}
-    our CDListItr<nodeType>: nthItr(me int64: pos) <- {
-        if(head == NULL){return(NULL)}
-        our CDListItr<nodeType>: retVal <- head
-        withEach x in RANGE(0..pos){
-            retVal <- retVal.next
-            if (retVal == NULL){return(NULL)}
-        }
-        return(retVal)
-    }
-    nodeType: popFirst() <- {
-        me nodeType: retVal
-        retVal <- head.item
-        if(head!=NULL){
-            __size <-- 1
-            head <- head.next
-            if(head==NULL){tail <- NULL}
-        }
-        return(retVal)
-    }
-    nodeType: popLast() <- {
-        me nodeType: retVal
-        retVal <- tail.item
-        if(tail!=NULL){
-            __size <-- 1
-            tail <- tail.prev
-            if(tail==NULL){head <- NULL}
-            else{tail.next <- NULL}
-        }
-        return(retVal)
-    }
-    me void: prepend(nodeType: value) <- {
-        our CDListItr<nodeType>:: newNode {value, head, NULL}
-        if(head!=NULL){head.prev <- newNode}
-        if(tail==NULL) {tail <- newNode}
-        head <- newNode
-        __size <+- 1
-    }
-    //our CDListItr<nodeType>: __putAt(our CDListItr<nodeType>: pos, nodeType: value) <- {}
-    me int64: size()                   <- {return(__size)}
-    //our CDListItr<nodeType>: back() <- {}
-    ///////// CONSTRUCTORS ///////////////////////////
-}
-*/
-struct RBNode<keyType, valueType>: implements=MapNode{
-    keyType: key
-    valueType: value
-    me bool: isBlack
-    me bool: isLeaf
-    their RBNode<keyType, valueType>: left
-    their RBNode<keyType, valueType>: right
-    their RBNode<keyType, valueType>: parent
-    // CONSTRUCTORS
-    none: RBNode(keyType: _key, valueType: _val) <-{
-        key   <- _key
-        value <- _val
-    }
-}
-
-struct RBTreeItr<keyType, valueType>: implements=MapItr{
+struct RBMultimapItr<keyType, valueType>: implements=MapItr{
     their RBNode<keyType, valueType>: node
-    their RBTreeMap<keyType, valueType>: container
+    their RBMultimap<keyType, valueType>: container
     their RBNode<keyType, valueType>: goNext() <- {
         if(node.right != NULL and !node.right.isLeaf){
             node <- findSmallest(node.right)
@@ -269,7 +49,7 @@ struct RBTreeItr<keyType, valueType>: implements=MapItr{
     valueType: val()                         <- <%!%0%>
 }
 
-struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{// find=logarithmic at=logarithmic}{  // constant
+struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{ // constant
     their RBNode<keyType, valueType>: Root
     their RBNode<keyType, valueType>: Leaf
     their RBNode<keyType, valueType>: edge
@@ -289,8 +69,8 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         if(getNode(Root, key)){return(true)}
         else{return(false)}
     }
-    me RBTreeItr<keyType, valueType>: end() <- {
-        me RBTreeItr<keyType, valueType>: retItr; retItr.node <- edge
+    me RBMultimapItr<keyType, valueType>: end() <- {
+        me RBMultimapItr<keyType, valueType>: retItr; retItr.node <- edge
         return(retItr)
     }
     me void: erase(keyType: key) <- {
@@ -298,18 +78,21 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         node <- getNode(Root, key)
         removeHelper(node, key)
     }
-    me RBTreeItr<keyType, valueType>: find(keyType: key) <- {
+    me void: erase(their RBMultimapItr<keyType, valueType>: iter) <- {
+        removeHelper(iter.node, iter.node.key)
+    }
+    me RBMultimapItr<keyType, valueType>: find(keyType: key) <- {
         their RBNode<keyType, valueType>: retNode <- getNode(Root, key)
         if(retNode==NULL){retNode <- edge}
-        me RBTreeItr<keyType, valueType>: retItr; retItr.node <- retNode
+        me RBMultimapItr<keyType, valueType>: retItr; retItr.node <- retNode
         return(retItr)
     }
     valueType: first() <- {
         their RBNode<keyType, valueType>: smallestNode <- findSmallest(Root)
         return(smallestNode.value)
     }
-    me RBTreeItr<keyType, valueType>: front() <- {
-        me RBTreeItr<keyType, valueType>: retItr; retItr.node <- findSmallest(Root)
+    me RBMultimapItr<keyType, valueType>: front() <- {
+        me RBMultimapItr<keyType, valueType>: retItr; retItr.node <- findSmallest(Root)
         retItr.container <- self
         return(retItr)
     }
@@ -350,15 +133,14 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         return(prevNode.value)
     }
     //itr valueType: lower_bound(keyType: key) <- {}
+    valueType: popFirst() <- {
+        me RBMultimapItr<keyType, valueType>: frontItr <- front()
+        their RBNode<keyType, valueType>: frontNode <- frontItr.node
+        erase(frontItr)
+        return(frontNode.value)
+    }
+    //their RBNode<keyType, valueType>: popLast() <- {}
     me uint:  size() <- {return(mapSize)}
-    //valueType: __index(keyType: searchKey) <- {
-        //me RBTreeItr<keyType, valueType>: retItr <- find(searchKey)
-        //if(retItr.node == edge){
-            //me valueType: newVal
-            //retItr.node <- insert(searchKey, newVal)
-        //}
-        //return(retItr.node.value)
-    //}
     ////////////////////////////////////////////////////////////////////
     me bool: isLeftChild(their RBNode<keyType, valueType>: node) <- {
         if(node.parent != NULL and node === node.parent.left){return(true)}
