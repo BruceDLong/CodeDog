@@ -66,7 +66,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 
     #building scons file
     SconsFile = "import os\n"
-    SconsFile += "\nenv = Environment(ENV=os.environ)\n"
+    SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -fpermissive')\n"
     if progOrLib=='program': SconsFileType = "Program"
     elif progOrLib=='library': SconsFileType = "Library"
     elif progOrLib=='staticlibrary': SconsFileType = "StaticLibrary"

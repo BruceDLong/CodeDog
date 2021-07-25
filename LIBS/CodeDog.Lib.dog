@@ -50,6 +50,26 @@ struct GLOBAL{
         return(S2)
     }
 
+    me bool: isUpper(me char: ch) <- {return(ch>="A" and ch<="Z")}
+    me bool: isLower(me char: ch) <- {return(ch>="a" and ch<="z")}
+    me char: toUpper(me char: ch) <- {if(ch>="a" and ch<="z"){ch <-- 32} return(ch)}
+    me char: toLower(me char: ch) <- {if(ch>="A" and ch<="Z"){ch <+- 32} return(ch)}
+
+    me string: deCamelCase(me string: identifier) <- {
+        me string: retval
+        me int: chPos <- 0
+        me int: strSize <- identifier.size()
+        while(chPos<strSize){
+            me char: ch <- identifier[chPos]
+            if(chPos==0)          {retval <+- toUpper(ch)}
+            else if(isUpper(ch))  {retval <+- " "+toLower(ch)}
+            else if(ch=="_")      {retval <+- " "}
+            else                  {retval <+- ch}
+            chPos <+- 1
+        }
+        return(retval)
+    }
+
     me string: dispFieldAsText(me string: label, me int:labelLen) <- {
         me string: S <- ""
         me int: labelSize<-label.size()
