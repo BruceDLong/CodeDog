@@ -1717,6 +1717,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if abstractFunction: # i.e., if no function body is given.
                 cdlog(5, "Function "+fieldID+" has no implementation defined.")
                 funcText = xlator['getVirtualFuncText'](field)
+                #cdErr("Function "+fieldID+" has no implementation defined.")
             else:
                 extraCodeForTopOfFuntion = xlator['extraCodeForTopOfFuntion'](argList)
                 if typeDefName=='' and 'flagsVarNeeded' in ObjectDef and ObjectDef['flagsVarNeeded']==True:
@@ -1969,6 +1970,8 @@ libInterfacesText =''
 def makeFileHeader(tags, filename, xlator):
     global buildStr_libs
     global libInterfacesText
+    global libEmbedAboveIncludes
+    if libEmbedAboveIncludes!='': libEmbedAboveIncludes+='\n\n'
     filename = makeTagText(tags, 'FileName')
     platform = makeTagText(tags, 'Platform')
     buildName = progSpec.fetchTagValue(tags,"buildName")
@@ -1984,30 +1987,33 @@ def makeFileHeader(tags, filename, xlator):
     header += "\n/*  " + makeTagText(tags, 'LicenseText') +'\n*/\n'
     header += "\n// Build Options Used: " +'Not Implemented'+'\n'
     header += "\n// Build Command: " +buildStr+'\n\n'
+    header += libEmbedAboveIncludes
     header += libInterfacesText
     header += xlator['addSpecialCode'](filename)
     return header
 
 [libInitCodeAcc,  libDeinitCodeAcc] = ['', '']
-[libEmbedVeryHigh, libEmbedCodeHigh, libEmbedCodeLow] = ['', '', '']
+[libEmbedAboveIncludes, libEmbedVeryHigh, libEmbedCodeHigh, libEmbedCodeLow] = ['', '', '', '']
 
 def integrateLibrary(tags, tagsFromLibFiles, libID, xlator):
     global libInitCodeAcc
     global libDeinitCodeAcc
     global buildStr_libs
+    global libEmbedAboveIncludes
+    global libEmbedVeryHigh
     global libEmbedCodeHigh
     global libEmbedCodeLow
-    global libEmbedVeryHigh
     headerStr = ''
     headerTopStr = ''
     #cdlog(2, 'Integrating {}'.format(libID))
     # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
 
-    if 'initCode'     in tagsFromLibFiles[libID]: libInitCodeAcc  += tagsFromLibFiles[libID]['initCode']
-    if 'deinitCode'   in tagsFromLibFiles[libID]: libDeinitCodeAcc = tagsFromLibFiles[libID]['deinitCode'] + libDeinitCodeAcc + "\n"
-    if 'embedVeryHigh'in tagsFromLibFiles[libID]: libEmbedVeryHigh+= tagsFromLibFiles[libID]['embedVeryHigh']
-    if 'embedHigh'    in tagsFromLibFiles[libID]: libEmbedCodeHigh+= tagsFromLibFiles[libID]['embedHigh']
-    if 'embedLow'     in tagsFromLibFiles[libID]: libEmbedCodeLow += tagsFromLibFiles[libID]['embedLow']
+    if 'embedAboveIncludes'in tagsFromLibFiles[libID]: libEmbedAboveIncludes+= tagsFromLibFiles[libID]['embedAboveIncludes']
+    if 'embedVeryHigh'     in tagsFromLibFiles[libID]: libEmbedVeryHigh     += tagsFromLibFiles[libID]['embedVeryHigh']
+    if 'embedHigh'         in tagsFromLibFiles[libID]: libEmbedCodeHigh     += tagsFromLibFiles[libID]['embedHigh']
+    if 'embedLow'          in tagsFromLibFiles[libID]: libEmbedCodeLow      += tagsFromLibFiles[libID]['embedLow']
+    if 'initCode'          in tagsFromLibFiles[libID]: libInitCodeAcc       += tagsFromLibFiles[libID]['initCode']
+    if 'deinitCode'        in tagsFromLibFiles[libID]: libDeinitCodeAcc      = tagsFromLibFiles[libID]['deinitCode'] + libDeinitCodeAcc + "\n"
 
     if 'interface' in tagsFromLibFiles[libID]:
         if 'libFiles' in tagsFromLibFiles[libID]['interface']:
@@ -2094,6 +2100,7 @@ def generateBuildSpecificMainFunctionality(classes, tags, xlator):
 
 def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, fileSpecs, headerInfo, MainTopBottom, xlator):
     global ForwardDeclsForGlobalFuncs
+    global libEmbedAboveIncludes
     global libEmbedVeryHigh
     global libEmbedCodeHigh
     global libEmbedCodeLow
