@@ -230,6 +230,22 @@ struct testClass{
 }''', 'PGBR:Found',
     ['','']],
 ###################################################################################################
+     'maps/insert':     ['', 'PGB:'],
+     'maps/insert':     ['''
+struct testClass{
+    me void: runTest()<-{
+        me Map<me int, me string>: mapIntString
+        mapIntString.insert(5,"ff")
+        mapIntString.insert(3,"dd")
+        mapIntString.insert(4,"ee")
+        mapIntString.insert(1,"bb")
+        mapIntString.insert(2,"cc")
+        mapIntString.insert(0,"aa")
+        withEach item in mapIntString{print(item)}
+    }
+}''', 'PGBR:aabbccddeeff',
+        ['', '']],
+###################################################################################################
 }
 
 tags = """BuildCmd = ""
@@ -240,7 +256,7 @@ CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long"
 Description = "DataDog gives you the numbers of your life."
 ProgramOrLibrary = "program"
-featuresNeeded = [List]
+featuresNeeded = [List, Multimap]
 LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
 runCode=<runCodeGoesHere>"""
 

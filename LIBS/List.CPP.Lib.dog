@@ -72,24 +72,4 @@ struct CPP_Map<keyType, valueType>: implements=Map wraps=map native=lang specs={
     // TODO: need Reverse Iterators working first
     //itr CPP_MapNode: back() <- <%!rend()%>             // returns reverse iterator to the reverse ene of the sequence container
 }
-struct CPP_Multimap<keyType, valueType>: implements=Multimap wraps=multimap native=lang specs={insert=logarithmic find=logarithmic at=logarithmic}{
-    valueType: at(keyType)                      <- <%!at(%1)%>
-    void: clear()                               <- <%!clear()%>
-    me bool: containsKey(keyType: key)          <- <%!count(%1)>0%>
-    itr CPP_MapNode: end()                      <- <%!end()%>           // returns itr to past-the-end element
-    void: erase(keyType: key)                   <- <%!erase(%1)%>
-    itr CPP_MapNode: eraseInterval(itr CPP_MapNode: start, itr CPP_MapNode: end) <- <%!erase(%1, %2)%>
-    itr CPP_MapNode: find(keyType: key)         <- <%!find(%1)%>
-    valueType: first()                          <- <%!begin()->second%>
-    itr CPP_MapNode: front()                    <- <%!%0.begin()%>
-    itr CPP_MapNode: insert(keyType: key, valueType: value) <- <%!insert(pair<%T0Type, %T1Type>(%1, %2))%>
-    me bool:  isEmpty()                         <- <%!empty()%>
-    valueType: last()                           <- <%!rbegin()->second%>
-    itr valueType: lower_bound(keyType: key)    <- <%!lower_bound(%1)%>
-    CPP_MapNode: popFirst()                     <- <%!%0.erase(%0.begin())%>
-    //CPP_MapNode: popLast()                    <- <%!%0.back(); %0.pop_back()%>
-    me uint:  size()                            <- <%!size()%>
-    /////////////////////////////////////////
-    // TODO: need Reverse Iterators working first
-    //itr CPP_MapNode: back() <- <%!rend()%>             // returns reverse iterator to the reverse ene of the sequence container
-}
+

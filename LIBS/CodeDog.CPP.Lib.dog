@@ -48,6 +48,13 @@ struct sessionFile{
     me void: closeReading() <- {session.close()}
 }
 struct GLOBAL{
+    me bool: isxdigit(me string: input) <- <%!isxdigit(%1)%>
+    me bool: isdigit(me char: ch) <- <%!isdigit(%1)%>
+    me bool: isalpha(me char: ch) <- <%!isalpha(%1)%>
+    me bool: isspace(me char: ch) <- <%!isspace(%1)%>
+    me bool: isalnum(me char: ch) <- <%!isalnum(%1)%>
+    me bool: isprint(me char: ch) <- <%!isprint(%1)%>
+    me bool: isutf(me char: ch)   <- <%!isutf(%1)%>
     me string: _strm_getLine(their istream: strm) <- <%{
         string S;
         getline(*strm, S);

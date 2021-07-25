@@ -1,0 +1,16 @@
+// Multimap.Swift.Lib.dog
+requirements = [
+    [tagOneOf, Lang, [Swift]]
+]
+
+interface={
+    provides = [Multimap_implementation]
+    libFiles = []
+    headers  = []
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Multimap in routines for Swift'
+}
+
