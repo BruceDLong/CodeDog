@@ -90,7 +90,8 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
             libStr += "`"+libFile+"` "
             sconsConfigs += 'env.ParseConfig("'+libFile+'")\n'
         else:
-            if libFile =='pthread': libStr += '-pthread ';
+            if libFile =='pthread':
+                sconsConfigs += 'env.MergeFlags("-pthread")\n'
             else:
                 libStr += "-l"+libFile
                 if not firstTime: sconsLibs += ', '
