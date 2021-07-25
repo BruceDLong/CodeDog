@@ -45,12 +45,12 @@ struct UnicodeMgr {
 
     //me bool: isUnicodeAlpha(me int32: ch) <- <%{}%>
     //me bool: isUnicodeAlphaNum(me int32: ch) <- <%{}%>
-    //me bool: isUnicodeWordStart(me int32: ch) <-{}
-    //me bool: isUnicodeWordContinue(me int32: ch) <-<%{}%>
+    me bool: isUnicodeWordStart(me int32: ch) <-{}
+    me bool: isUnicodeWordContinue(me int32: ch) <-<%{}%>
     //me UnicodeStr: fromUTF8Str(me string: input) <- <%{}%>
     //me string: toUTF8Str(me UnicodeString: input) <- <%{}%>
     //void: UnicodeStrToUTF8_String(me UnicodeString: s, their string: out) <- <%{}%>
-    //me string: normalizeStr(me string: input) <- <%{}%>
+    me string: normalizeStr(me string: input) <- <%{}%>
 
     me timeValue: epocTimeFromDateTime(me int: year, me int: month, me int: date, me int: hour, me int: minute, me int: second) <- <%{
         Calendar cal = new GregorianCalendar(year, month, date, hour, minute, second);
@@ -85,7 +85,7 @@ struct UnicodeMgr {
         return uniLabel;
     }%>
 
-    //me string: getLocaleBaseName(their Locale: loc) <- <%{}%>
-    //me Locale: getSystemLocale() <- <%{}%>
+    me string: getLocaleBaseName(their Locale: loc) <- <%{}%>
+    me Locale: getSystemLocale() <- <%{}%>
 }
 

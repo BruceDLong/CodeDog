@@ -17,12 +17,34 @@ LibDescription  = {
     Lang        = [Java]
 }
 
-struct Threads{their Thread: Threads}
-struct Threads{
+struct Threads: wraps=Thread ownerMe=their{
     me bool: notDone <- true
     me uint: ID()           <- {return(5);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
     void: run()             <- {}
     bool: isActive()        <- <%!isAlive();%>
     void: start()           <- <%!start();%>
     void: waitForExit()     <- <%!join(0);%>
+}
+
+struct Mutex: wraps=TODO{
+    //void: lock()        <- <%!%>
+    //void: unlock()      <- <%!%>
+    //bool: tryLock()     <- <%!%>
+}
+
+struct MutexMngr: wraps=TODO{
+    //void: lock()        <- <%!%>
+    //void: unlock()      <- <%!%>
+    //bool: tryLock()     <- <%!%>
+}
+
+struct SyncLock: wraps = TODO {
+    void: wait(me MutexMngr: lock)   <- <%{}%>          // TODO: for Proteus codeGen
+    void: notifyOne()                <- <%{}%>          // TODO: for Proteus codeGen
+    //void: notifyAll()                <- <%!%>
+}
+
+struct Semaphore: wraps=TODO {
+    //void: post()        <- <%!%>
+    //void: wait()        <- <%!%>
 }

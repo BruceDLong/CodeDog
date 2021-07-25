@@ -40,7 +40,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
 
     struct GLOBAL {
 
-        me string[list]: testToRun
+        me List<string>: testToRun
 
         void: WriteTestingReport() <- {
             print(T_MESG_BUFF)
@@ -106,17 +106,17 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             me string: testListSpec <- CommandLineManager.getOption("TestDog", "ListOfTests")
             me string: verboseMode  <- CommandLineManager.getOption("TestDog", "verbose")
             //print("TEST LIST SPECIFICATION:'", testListSpec, "'\n")
-            me string[list]: testList <- [<TEST-LIST-HERE>]
+            me List<string>: testList <- [<TEST-LIST-HERE>]
             if(testListSpec==""){testToRun <- testList}
             else {
                 // TODO: make test selection work with multiple tests.
                 me int: strSize <- testListSpec.size()
                 if(testListSpec[strSize-1] == "/"){
                     withEach testname in testList{
-                        if(testname.subStr(0,strSize) == testListSpec){testToRun.pushLast(testname)}
+                        if(testname.subStr(0,strSize) == testListSpec){testToRun.append(testname)}
                     }
                 }
-                else{testToRun.pushLast(testListSpec)}
+                else{testToRun.append(testListSpec)}
             }
             // Sort list as needed
             EXEC_TESTS(verboseMode)
