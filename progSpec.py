@@ -361,6 +361,15 @@ def markStructAuto(objSpecs, className):
     objSpecs[className]["autoGen"]='yes'
 
 ###############
+def extractMapFromTagMap(tagmap):
+    tagRetMap={}
+    tagmap = tagmap.asList()
+    if ((not isinstance(tagmap, str)) and len(tagmap)>=2):
+        tagmap = tagmap[1]
+        for each in tagmap:
+            #print("EACH:", each)
+            tagRetMap[each[0]] = each[1][0]
+    return tagRetMap
 
 def extractListFromTagList(tagVal):
     tagValues=[]
