@@ -35,7 +35,7 @@ struct SlipQuicConnection_Server: inherits=QuicConnection{
 
     void: onNewStream_CB(their lsquic_stream: stream) <- <%{
         struct server_stream_ctx *tssc;
-        tssc = malloc(sizeof(*tssc));
+        tssc = (server_stream_ctx*)malloc(sizeof(*tssc));
         if (!tssc) {
             LOGX("cannot allocate server stream context");
             lsquic_conn_abort(lsquic_stream_conn(stream));
@@ -46,7 +46,6 @@ struct SlipQuicConnection_Server: inherits=QuicConnection{
         tssc->tssc_off = 0;
         lsquic_stream_wantread(stream, 1);
         LOGX("created new echo stream -- want to read");
-        return (void *) tssc;
     }%>
 
     their QuicStream: __allocNewStream() <- {their SlipQuicStream_Server:: retval; return(retval);}
@@ -56,10 +55,10 @@ struct SlipQuicConnection_Server: inherits=QuicConnection{
 struct SlipQuicStream_Server: inherits=QuicStream{
     void: onRead_CB (their QuicStream: h) <- <%{
         //struct server_stream_ctx *const tssc = (void *) h;
-    }
-    void: onWrite_CB(their QuicStream: h) <- {
+    }%>
+    void: onWrite_CB(their QuicStream: h) <- <%{
      // Same functionality as server_on_write_v0(), but use the "reader" callbacks.  This is most useful when data comes from a different source such as file descriptor.
-        struct server_stream_ctx *const tssc = (void *) h;
+        struct server_stream_ctx* const tssc = (server_stream_ctx*) h;
         struct lsquic_reader reader = { tssc_read, tssc_size, tssc, };
         const size_t left = tssc->tssc_sz;
         ssize_t nw;
@@ -74,7 +73,7 @@ struct SlipQuicStream_Server: inherits=QuicStream{
         }
     }%>
     void: onClose_CB(their QuicStream: h) <- <%{
-        struct server_stream_ctx *const tssc = (void *) h;
+        struct server_stream_ctx *const tssc = (server_stream_ctx*) h;
         free(tssc);
         LOGX("stream closed");
     }%>
