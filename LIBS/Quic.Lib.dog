@@ -1,0 +1,51 @@
+// Quic
+
+requirements = [
+    [require, Quic_implementation]
+]
+
+LibDescription ={
+    useStatus   = static
+    description ='Interface to the quic protocol'
+}
+
+initCode = `
+    initQuicSystem()
+`
+
+deinitCode = `
+    deinitQuicSystem()
+`
+featuresNeeded = [Logger]
+
+struct QuicConnectionID{}
+
+struct QuicEngine{
+    void: init(me string: filenameTag, me bool: ServerMode, me bool: DoHTTP)
+    void: run()
+
+    void: onNewConnection_CB(their lsquic_conn: conn) <- {log("BASE::onNewConnection_CB\n")}
+    their QuicConnection: __allocNewConn() // Just allocate and return your descendent of QuicConnection
+}
+
+struct QuicConnection{
+    their QuicEngine:  myEngine
+
+    void: onNewStream_CB(their lsquic_stream: stream)// <- {log("BASE::onNewStream_CB\n")}
+    void: onConnectionClosed_CB()
+    their QuicConnectionID: getConnectionID()
+    their QuicStream: __allocNewStream()  // Just allocate and return your descendent of QuicStream
+}
+
+struct QuicStream{
+    their QuicConnection: myConnection
+
+    void: onRead_CB (their QuicStream: h) <- {}
+    void: onWrite_CB(their QuicStream: h) <- {}
+    void: onClose_CB(their QuicStream: h) <- {}
+
+    void: setPriority(me 1..256: priority)  // Lower value  = higher priority
+    void: flush()
+    void: shutdown(me int: how) // 0, 1, 2
+    void: close()
+}

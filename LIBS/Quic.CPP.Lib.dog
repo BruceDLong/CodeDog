@@ -5,12 +5,12 @@ requirements = [
 
 interface={
     provides=[Quic_implementation]
- /*   packages = [
+    packages = [
         { packageName = 'lsQuic'
           fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git:commit=7fc1254' // could start with git, zip, file, system, etc. (system = apt install lib...)
           updateWhen  = 'never'    // Updating isn't implemented
           buildCmds   = [
-              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']] // How to build and files to install for Linux
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
               [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
           ]
         },
@@ -19,7 +19,7 @@ interface={
           fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git:commit=7fc1254'
           updateWhen  = 'never'     // Updating isn't implemented
           buildCmds   = [
-              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']]
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']],
               [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
           ]
         },
@@ -29,7 +29,7 @@ interface={
         },
 
         { packageName = 'system'}
-    ]*/
+    ]
     libFiles=[lsquic, ssl, crypto, z, m]
     headers=[netinet/in.h, netinet/ip.h, arpa/inet.h, sys/types.h, sys/socket.h, netdb.h, openssl/pem.h, openssl/x509.h, openssl/ssl.h, ev.c, lsquic.h]
 }
@@ -637,7 +637,6 @@ static lsquic_stream_ctx_t* QUIC_on_new_stream(void *stream_if_ctx, lsquic_strea
     connection->onNewStream_CB(stream);
     return (lsquic_stream_ctx_t*)streamCtx;
 }
-
 static void QUIC_on_read( lsquic_stream *stream, lsquic_stream_ctx_t *h){
     QuicStream *const quicStream = (QuicStream*)h;
     quicStream->onRead_CB(0);

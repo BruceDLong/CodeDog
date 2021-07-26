@@ -167,7 +167,7 @@ fieldDef.setParseAction(logFieldDef)
 
 #########################################   P A R S E R   S T A R T   S Y M B O L
 progSpecParser = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + objectList)("progSpecParser")
-libTagParser = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags))("libTagParser")
+libTagParser = Group(Optional(buildSpecList.setParseAction(logBSL)) + tagDefList.setParseAction(logTags) + (modelTypes|Keyword("do")|Keyword("#define")|StringEnd()))("libTagParser")
 
 # # # # # # # # # # # # #   E x t r a c t   P a r s e   R e s u l t s   # # # # # # # # # # # # #
 def parseInput(inputStr):
