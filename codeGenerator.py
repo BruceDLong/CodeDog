@@ -332,9 +332,10 @@ def fetchItemsTypeSpec(segSpec, objsRefed, genericArgs, xlator):
 
                     elif(itemName in StaticMemberVars):
                         parentClassName = staticVarNamePrefix(itemName, '', xlator)
+                        retTypeSpec     = {'owner': 'me', 'fieldType': ['List', [{'tArgOwner': 'me', 'tArgType': 'string'}]], 'note':'not generated from parse', 'reqTagList': [{'tArgOwner': 'me', 'tArgType': 'string'}]}
                         if(parentClassName != ''):
-                            return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
-                        else: return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "CONST"]
+                            return [retTypeSpec, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
+                        else: return [retTypeSpec, "CONST"]
                     if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None}, "CONST"]
                     cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                     return [None, "LIB"]      # TODO: Return correct type
@@ -1380,6 +1381,7 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
     elif (typeOfAction =='conditional'):
         cdlog(5, "If-statement...")
         [S2, conditionTypeSpec] =  codeExpr(action['ifCondition'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
+        if conditionTypeSpec==None: cdErr("Found typeSpec None in codeAction():   "+S2)
         [S2, conditionTypeSpec] =  xlator['adjustConditional'](S2, conditionTypeSpec)
         cdlog(5, "If-statement: Condition is ".format(S2))
         ifCondition = S2

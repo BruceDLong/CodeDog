@@ -761,7 +761,7 @@ def isNewContainerTempFunc(typeSpec):
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(False)
     fieldTypeKW = fieldType[0]
-    if fieldTypeKW=='DblLinkedList': return(True)
+    if fieldTypeKW=='PovList': return(True)
     reqTagList = getReqTagList(typeSpec)
     if reqTagList: return(True)
     elif reqTagList == None: return(False)
@@ -787,7 +787,7 @@ def getTemplateArg(typeSpec, argIdx):
 
 def getDatastructID(typeSpec):
     if isNewContainerTempFunc(typeSpec):
-        # if fieldType is parseResult w/ fieldType whose value is 'DblLinkedList'
+        # if fieldType is parseResult w/ fieldType whose value is 'PovList'
         return 'list'
     if(isinstance(typeSpec['arraySpec']['datastructID'], str)):
         return(typeSpec['arraySpec']['datastructID'])
@@ -814,7 +814,7 @@ def getNewContainerFirstElementTypeTempFunc2(typeSpec):
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(None)
     fTypeKW = fieldType[0]
-    if fTypeKW=='DblLinkedList': return(['infon'])
+    if fTypeKW=='PovList': return(['infon'])
     reqTagList = getReqTagList(typeSpec)
     if reqTagList:
         if isContainerTemplateTempFunc(typeSpec) or fTypeKW=='List': return(reqTagList[0]['tArgType'])
@@ -829,7 +829,7 @@ def getNewContainerFirstElementTypeTempFunc(typeSpec):
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(None)
     fTypeKW = fieldType[0]
-    if fTypeKW=='DblLinkedList': return(['infon'])
+    if fTypeKW=='PovList': return(['infon'])
     reqTagList = getReqTagList(typeSpec)
     if reqTagList:
         if isContainerTemplateTempFunc(typeSpec): return(reqTagList[0]['tArgType'])
@@ -844,7 +844,7 @@ def getNewContainerFirstElementOwnerTempFunc(typeSpec):
     fieldType = typeSpec['fieldType']
     if isinstance(fieldType, str): return(None)
     fTypeKW = fieldType[0]
-    if fTypeKW=='DblLinkedList': return('our')
+    if fTypeKW=='PovList': return('our')
     reqTagList = getReqTagList(typeSpec)
     if reqTagList:
         if isContainerTemplateTempFunc(typeSpec) or fTypeKW=='List': return(reqTagList[0]['tArgOwner'])
@@ -928,7 +928,7 @@ def getContainerFirstElementOwner(typeSpec):
         cdErr(currentCheckObjectVars)
     if isAContainer(typeSpec):
         if isNewContainerTempFunc(typeSpec):
-            if(typeSpec['fieldType'][0] == 'DblLinkedList'): return('our')
+            if(typeSpec['fieldType'][0] == 'PovList'): return('our')
             else: return (getOwnerFromTemplateArg(typeSpec['reqTagList'][0]))
         else: return(typeSpec['owner'])
     else:

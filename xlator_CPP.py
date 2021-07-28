@@ -318,8 +318,8 @@ def codeComparisonStr(S, S2, retType1, retType2, op):
 ###################################################### CONTAINERS
 def getContaineCategory(containerSpec):
     fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
-    if fTypeKW=='DblLinkedList':
-        return 'DblLinkedList'
+    if fTypeKW=='PovList':
+        return 'PovList'
     elif fTypeKW=='multimap' or fTypeKW=='map' or fTypeKW=='CPP_Map' or fTypeKW=='RBTreeMap':
         return 'MAP'
     elif fTypeKW=='list':
@@ -481,13 +481,14 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     itrName          = repName + "Itr"
     containerCat     = getContaineCategory(ctnrTSpec)
     itrIncStr        = ""
-    if containerCat=='DblLinkedList':
+    if containerCat=='PovList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'begin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; "+ itrName + " = " + itrName+"->next ){\n"
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->pItem;\n")
+        cdErr("iterateContainerStr() found PovList: "+repName+"   "+ctnrName)
         return [actionText, loopCounterName, itrIncStr]
     if containerCat=='MAP':
         if(reqTagList != None):
@@ -520,6 +521,8 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         else:
             actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  ctnrName+RDeclP+'size();' +" ++"+lvName+" ){\n")
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
+    elif containerCat=="MULTIMAP":
+       cdErr("TODO: finish multimap:"+actionText)
     else: cdErr("iterateContainerStr() datastructID = " + datastructID)
     return [actionText, loopCounterName, itrIncStr]
 ###################################################### EXPRESSION CODING

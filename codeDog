@@ -96,6 +96,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         langGenTag = buildTags['Lang']
         libFiles=[]
         tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
+        packageData = []
         for lib in libsToUse:
             if 'interface' in tagsFromLibFiles[lib] and 'libFiles' in tagsFromLibFiles[lib]['interface']:
                 tmpLibFiles = tagsFromLibFiles[lib]['interface']['libFiles']

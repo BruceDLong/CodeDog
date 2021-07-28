@@ -266,8 +266,8 @@ def codeComparisonStr(S, S2, retType1, retType2, op):
 ###################################################### CONTAINERS
 def getContaineCategory(containerSpec):
     fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
-    if fTypeKW=='DblLinkedList':
-        return 'DblLinkedList'
+    if fTypeKW=='PovList':
+        return 'PovList'
     elif fTypeKW=='TreeMap' or fTypeKW=='Java_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
         return 'MAP'
     elif fTypeKW=='list' or fTypeKW=='Java_ArrayList' or "__List_" in fTypeKW or "__CDList" in fTypeKW:
@@ -354,7 +354,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     itrName          = repName + "Itr"
     containerCat     = getContaineCategory(ctnrTSpec)
     itrIncStr        = ""
-    if containerCat=='DblLinkedList': cdErr("TODO: handle dblLinkedList")
+    if containerCat=='PovList': cdErr("PovList: "+repName+"   "+ctnrName) # this should be called PovList
     if containerCat=='MAP':
         reqTagString    = getReqTagString(classes, ctnrTSpec)
         if(reqTagList != None):
@@ -920,6 +920,7 @@ def fetchXlators():
     xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
+    xlators['getEnumStringifyFunc']         = getEnumStringifyFunc
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
     xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
