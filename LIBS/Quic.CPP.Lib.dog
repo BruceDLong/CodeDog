@@ -7,7 +7,7 @@ interface={
     provides=[Quic_implementation]
     packages = [
         { packageName = 'lsQuic'
-          fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git:commit=7fc1254' // could start with git, zip, file, system, etc. (system = apt install lib...)
+          fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git' // could start with git, zip, file, system, etc. (system = apt install lib...)
           updateWhen  = 'never'    // Updating isn't implemented
           buildCmds   = [
               [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
@@ -15,6 +15,33 @@ interface={
           ]
         },
 
+        { packageName = 'HTMLfile'
+          fetchMethod = 'file:https://file-examples-com.github.io/uploads/2017/02/index.html'
+          updateWhen  = 'never'    // Updating isn't implemented
+          buildCmds   = [
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']],
+              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
+          ]
+        },
+
+        { packageName = 'zipcode'
+          fetchMethod = 'zip:https://file-examples-com.github.io/uploads/2017/02/zip_5MB.zip'
+          updateWhen  = 'never'    // Updating isn't implemented
+          buildCmds   = [
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
+              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
+          ]
+        },
+
+        { packageName = 'code'
+          fetchMethod = 'zip:http://www.sbeams.org/sample_data/Proteomics/yeast_orfs.new.20040422.gz'
+          updateWhen  = 'never'    // Updating isn't implemented
+          buildCmds   = [
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
+              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
+          ]
+        }
+/*
         { packageName = 'crypto'
           fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git:commit=7fc1254'
           updateWhen  = 'never'     // Updating isn't implemented
@@ -28,7 +55,7 @@ interface={
           fetchmethod = 'system: install z, z-dev'
         },
 
-        { packageName = 'system'}
+        { packageName = 'system'}*/
     ]
     libFiles=[lsquic, ssl, crypto, z, m]
     headers=[netinet/in.h, netinet/ip.h, arpa/inet.h, sys/types.h, sys/socket.h, netdb.h, openssl/pem.h, openssl/x509.h, openssl/ssl.h, ev.c, lsquic.h]
