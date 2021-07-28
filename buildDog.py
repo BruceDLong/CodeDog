@@ -11,6 +11,7 @@ import errno
 import shutil
 from progSpec import cdlog, cdErr
 from pathlib import Path
+from urllib.request import urlopen
 
 #TODO: error handling
 
@@ -57,12 +58,72 @@ def copyTree(src, dst):
         else:
             shutil.copy2(s, d)
 
-def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib):
+def gitClone(*args):
+    return subprocess.check_call(['git'] + list(args))
+
+# def extractZip(file):
+#     pass
+    
+def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     fileExtension = '.cpp'
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     makeDir(buildName + "/assets")
     copyTree("Resources", buildName+"/assets")
+
+    # implement pip as a subprocess:
+    packageDirectory = os.getcwd() + '/' + buildName
+    for packageNo in range(len(packageData)):
+        packageName = packageData[packageNo][1][0][1][0].replace("'", '')
+        fetchMethod = packageData[packageNo][1][1][1][0].replace("'", '')
+        # fetchMethod = packageData[packageNo][1][1][1][0].split(':',1)[0].replace("'", '')
+        fetchMethodUrl = packageData[packageNo][1][1][1][0].split(':',1)[1].replace("'", '')
+        if fetchMethod.startswith("git:"):
+            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName
+            checkRepo = os.path.isdir(PackagePath)
+            if not checkRepo:
+                cdlog(1, "Cloning git repository: " + packageName)
+                gitClone("clone", fetchMethodUrl, PackagePath, "--quiet")
+
+        elif fetchMethod.startswith("file:"):
+            fileExtensionUrl = fetchMethodUrl.rsplit('.', 1)[-1]
+            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName + '.' + fileExtensionUrl
+            checkRepo = os.path.isfile(PackagePath)
+            if not checkRepo:
+                stream = urlopen(fetchMethodUrl)
+                cdlog(1, "Downloading file: " + packageName)
+                with open(PackagePath, 'wb') as file:
+                    file.write(stream.read())
+                stream.close()
+
+        elif fetchMethod.startswith("zip:"):
+            fileExtensionUrl = fetchMethodUrl.rsplit('.', 1)[-1]
+            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName + '.' + fileExtensionUrl
+            checkDirectory = os.path.isdir(os.getcwd() + '/' + buildName + '/' + packageName)
+            checkfile = os.path.isfile(PackagePath)
+            if not checkDirectory and not checkfile:
+                stream = urlopen(fetchMethodUrl)
+                cdlog(1, "Downloading zip file: " + packageName)
+                with open(PackagePath, 'wb') as file:
+                    file.write(stream.read())
+                stream.close()
+
+            #Extract zip file
+            checkfile = os.path.isfile(PackagePath)
+            if not checkDirectory and checkfile:
+                if fetchMethodUrl.endswith(".zip"):
+                    cdlog(1, "Extracting zip file: " + packageName)
+
+                elif fetchMethodUrl.endswith(".gz"):
+                    cdlog(1, "Extracting zip file: " + packageName)
+
+                elif fetchMethodUrl.endswith(".tar"):
+                    cdlog(1, "Downloading zip file: " + packageName)
+
+                else:
+                    pass
+        else:
+            pass
 
     #building scons file
     SconsFile = "import os\n"
@@ -197,11 +258,11 @@ def printResults(workingDirectory, buildStr, runStr):
             exit(2)
     else: cdlog(1, "SUCCESS!")
 
-def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib):
+def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
     progOrLib = progOrLib.lower()
     if platform == 'Linux':
-        [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib)
+        [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData)
     elif platform == 'Java' or  platform == 'Swing':
         [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Android':
