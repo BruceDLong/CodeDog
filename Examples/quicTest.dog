@@ -39,7 +39,6 @@ struct SlipQuicConnection_Server: inherits=QuicConnection{
         if (!tssc) {
             LOGX("cannot allocate server stream context");
             lsquic_conn_abort(lsquic_stream_conn(stream));
-            return NULL;
         }
 
         tssc->tssc_sz = 0;
@@ -63,13 +62,13 @@ struct SlipQuicStream_Server: inherits=QuicStream{
         const size_t left = tssc->tssc_sz;
         ssize_t nw;
 
-        nw = lsquic_stream_writef(stream, &reader);
+        nw = lsquic_stream_writef(_lsStream, &reader);
         if (nw > 0 && tssc->tssc_off == tssc->tssc_sz){
             LOGX("wrote all %zd bytes to stream, close stream", left);
-            lsquic_stream_close(stream);
+            lsquic_stream_close(_lsStream);
         }else if (nw < 0){
             LOGX("stream_write() returned %ld, abort connection", (long) nw);
-            lsquic_conn_abort(lsquic_stream_conn(stream));
+            lsquic_conn_abort(lsquic_stream_conn(_lsStream));
         }
     }%>
     void: onClose_CB(their QuicStream: h) <- <%{

@@ -525,6 +525,21 @@ struct server_stream_ctx {
     off_t            tssc_off;           /* Number of bytes written to stream */
     unsigned char    tssc_buf[0x100];    /* Bytes read in from client */
 };
+
+static size_t tssc_read(void *ctx, void *buf, size_t count){
+    server_stream_ctx *tssc = (server_stream_ctx*)ctx;
+
+    if (count > tssc->tssc_sz - tssc->tssc_off)
+        count = tssc->tssc_sz - tssc->tssc_off;
+    memcpy(buf, tssc->tssc_buf + tssc->tssc_off, count);
+    tssc->tssc_off += count;
+    return count;
+}
+static size_t tssc_size(void *ctx){
+    server_stream_ctx *tssc = (server_stream_ctx*)ctx;
+    return tssc->tssc_sz - tssc->tssc_off;
+}
+
 static lsquic_conn_ctx_t * QUIC_on_new_conn (void *stream_if_ctx, struct lsquic_conn *conn);
 static void QUIC_client_on_hsk_done (lsquic_conn_t *conn, enum lsquic_hsk_status status);
 static void QUIC_on_conn_closed (lsquic_conn_t *conn);
@@ -641,19 +656,6 @@ static void QUIC_on_read( lsquic_stream *stream, lsquic_stream_ctx_t *h){
     QuicStream *const quicStream = (QuicStream*)h;
     quicStream->onRead_CB(0);
     LOGX("QUIC: onRead");
-}
-static size_t tssc_read(void *ctx, void *buf, size_t count){
-    server_stream_ctx *tssc = (server_stream_ctx*)ctx;
-
-    if (count > tssc->tssc_sz - tssc->tssc_off)
-        count = tssc->tssc_sz - tssc->tssc_off;
-    memcpy(buf, tssc->tssc_buf + tssc->tssc_off, count);
-    tssc->tssc_off += count;
-    return count;
-}
-static size_t tssc_size(void *ctx){
-    server_stream_ctx *tssc = (server_stream_ctx*)ctx;
-    return tssc->tssc_sz - tssc->tssc_off;
 }
 static void QUIC_on_write(lsquic_stream *stream, lsquic_stream_ctx_t *h){
     QuicStream *const quicStream = (QuicStream*)h;
