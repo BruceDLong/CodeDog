@@ -34,7 +34,7 @@ interface={
         },
 
         { packageName = 'code'
-          fetchMethod = 'zip:http://www.sbeams.org/sample_data/Proteomics/yeast_orfs.new.20040422.gz'
+          fetchMethod = 'zip:https://dev-files.blender.org/file/download/bwdp5reejwpkuh5i2oak/PHID-FILE-nui3bpuan4wdvd7yzjrs/sample.tar.gz'
           updateWhen  = 'never'    // Updating isn't implemented
           buildCmds   = [
               [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux

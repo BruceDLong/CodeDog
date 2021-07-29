@@ -61,9 +61,10 @@ def copyTree(src, dst):
 def gitClone(*args):
     return subprocess.check_call(['git'] + list(args))
 
-# def extractZip(file):
-#     pass
-    
+def extractZip(extractCMD):
+    pipe = subprocess.Popen(extractCMD, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = pipe.communicate()
+
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     fileExtension = '.cpp'
 
@@ -97,8 +98,16 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
                 stream.close()
 
         elif fetchMethod.startswith("zip:"):
-            fileExtensionUrl = fetchMethodUrl.rsplit('.', 1)[-1]
-            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName + '.' + fileExtensionUrl
+            if fetchMethodUrl.endswith(".zip"):
+                fileExtensionUrl = ".zip"
+            elif fetchMethodUrl.endswith(".tar.gz"):
+                fileExtensionUrl = ".tar.gz"
+            elif fetchMethodUrl.endswith(".tar"):
+                fileExtensionUrl = ".tar"
+            else:
+                pass
+
+            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName + fileExtensionUrl
             checkDirectory = os.path.isdir(os.getcwd() + '/' + buildName + '/' + packageName)
             checkfile = os.path.isfile(PackagePath)
             if not checkDirectory and not checkfile:
@@ -113,12 +122,13 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
             if not checkDirectory and checkfile:
                 if fetchMethodUrl.endswith(".zip"):
                     cdlog(1, "Extracting zip file: " + packageName)
+                    extractCMD = 'unzip ' + PackagePath + ' -d ' + packageDirectory + '/' + packageName
+                    extractZip(extractCMD)
 
-                elif fetchMethodUrl.endswith(".gz"):
+                elif fetchMethodUrl.endswith(".tar.gz"):
                     cdlog(1, "Extracting zip file: " + packageName)
-
-                elif fetchMethodUrl.endswith(".tar"):
-                    cdlog(1, "Downloading zip file: " + packageName)
+                    extractCMD = 'tar' + ' xzf ' + PackagePath + ' -C ' + packageDirectory + ' --one-top-level'
+                    extractZip(extractCMD)
 
                 else:
                     pass
