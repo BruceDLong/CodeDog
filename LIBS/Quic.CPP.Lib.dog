@@ -33,7 +33,7 @@ interface={
           ]
         },
 
-        { packageName = 'code'
+        { packageName = 'targzFile'
           fetchMethod = 'zip:https://dev-files.blender.org/file/download/bwdp5reejwpkuh5i2oak/PHID-FILE-nui3bpuan4wdvd7yzjrs/sample.tar.gz'
           updateWhen  = 'never'    // Updating isn't implemented
           buildCmds   = [
