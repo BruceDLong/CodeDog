@@ -26,7 +26,9 @@ struct UnicodeStr {me String: UnicodeStr}
 struct sysLocale {me ULocale: sysLocale}
 struct Udate {me Date: Udate}
 
-struct GLOBAL{}
+struct GLOBAL{
+    me bool: isutf(me char: ch)   <- {}   // TODO: for Proteus codeGen
+}
 
 struct UnicodeMgr {
     // form "pt", "BR" is Java compatible while form "pt_BR" is not

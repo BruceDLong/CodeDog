@@ -84,7 +84,8 @@ struct GLOBAL{
     me timeValue: sleep(me timeValue: milliseconds)         <- <%!%Gsleep(UInt32(%1))%>
     me timeValue: convertToTimeVal()                        <-  <%!%G(Double)(%1)%>
     me timeValue: double()                                  <-  <%!%G(Double)(%1)%>
-
+    me char: toUpper(me char: ch) <- <%!%1.uppercased()%>
+    me char: toLower(me char: ch) <- <%!%1.lowercased()%>
 }
 
 struct timeValue{me Double: timeValue}

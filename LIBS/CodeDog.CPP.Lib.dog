@@ -54,7 +54,6 @@ struct GLOBAL{
     me bool: isspace(me char: ch) <- <%!isspace(%1)%>
     me bool: isalnum(me char: ch) <- <%!isalnum(%1)%>
     me bool: isprint(me char: ch) <- <%!isprint(%1)%>
-    me bool: isutf(me char: ch)   <- <%!isutf(%1)%>
     me string: _strm_getLine(their istream: strm) <- <%{
         string S;
         getline(*strm, S);
@@ -134,6 +133,8 @@ struct GLOBAL{
     me timeValue: convertToL()                                 <- <%!%G%1%>
     me int: convertToIntVal(me int: val)                       <- <%!%G%1%>
     me float: convertToFloatVal()                              <- <%!%G(float)%1%>
+    me char: toUpper(me char: ch) <- {if(ch>="a" and ch<="z"){ch <-- 32} return(ch)}
+    me char: toLower(me char: ch) <- {if(ch>="A" and ch<="Z"){ch <+- 32} return(ch)}
 }
 struct timeValue{me int64: timeValue}
 struct DateValue{me int64: DateValue}
