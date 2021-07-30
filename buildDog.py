@@ -83,7 +83,8 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
         # fetchMethod = packageData[packageNo][1][1][1][0].split(':',1)[0].replace("'", '')
         fetchMethodUrl = packageData[packageNo][1][1][1][0].split(':',1)[1].replace("'", '')
         if fetchMethod.startswith("git:"):
-            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName
+            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName + '/' + packageName
+            makeDir(os.getcwd() + '/' + buildName + '/' + packageName + "/LIBS")
             checkRepo = os.path.isdir(PackagePath)
             if not checkRepo:
                 try:
@@ -96,7 +97,9 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 
         elif fetchMethod.startswith("file:"):
             fileExtensionUrl = fetchMethodUrl.rsplit('.', 1)[-1]
-            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName + '.' + fileExtensionUrl
+            PackagePath = packageDirectory + '/' + packageName + '/' + packageName + '/' + packageName + '.' + fileExtensionUrl
+            makeDir(packageDirectory + '/' + packageName + "/LIBS")
+            makeDir(os.path.dirname(PackagePath))
             checkExistFile = os.path.isfile(PackagePath)
             DownloadFileName = os.path.basename(PackagePath)
             if not checkExistFile:
@@ -124,8 +127,10 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
             else:
                 pass
 
-            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName + fileExtensionUrl
-            checkDirectory = os.path.isdir(os.getcwd() + '/' + buildName + '/' + packageName)
+            zipFileDirectory = packageDirectory + '/' + packageName
+            makeDir(zipFileDirectory + "/LIBS")
+            PackagePath = packageDirectory + '/' + packageName + '/' + packageName + fileExtensionUrl
+            checkDirectory = os.path.isdir(zipFileDirectory + '/' + packageName)
             checkfile = os.path.isfile(PackagePath)
             zipFileName = os.path.basename(PackagePath)
             if not checkDirectory and not checkfile:
@@ -144,27 +149,27 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
             if not checkDirectory and checkfile:
                 if zipFileName.endswith(".zip"):
                     cdlog(1, "Extracting zip file: " + zipFileName)
-                    extractCMD = 'unzip ' + PackagePath + ' -d ' + packageDirectory + '/' + packageName
+                    extractCMD = 'unzip ' + PackagePath + ' -d ' + zipFileDirectory + '/' + packageName
                     extractZip(extractCMD, zipFileName)
 
                 elif zipFileName.endswith(".tar.gz"):
                     cdlog(1, "Extracting zip file: " + zipFileName)
-                    extractCMD = 'tar' + ' xzf ' + PackagePath + ' -C ' + packageDirectory + ' --one-top-level'
+                    extractCMD = 'tar' + ' xzf ' + PackagePath + ' -C ' + zipFileDirectory + ' --one-top-level'
                     extractZip(extractCMD, zipFileName)
 
                 elif zipFileName.endswith(".tar.bz2"):
                     cdlog(1, "Extracting zip file: " + zipFileName)
-                    extractCMD = 'tar' + ' xjf ' + PackagePath + ' -C ' + packageDirectory + ' --one-top-level'
+                    extractCMD = 'tar' + ' xjf ' + PackagePath + ' -C ' + zipFileDirectory + ' --one-top-level'
                     extractZip(extractCMD, zipFileName)
 
                 elif zipFileName.endswith(".tar.xz"):
                     cdlog(1, "Extracting zip file: " + zipFileName)
-                    extractCMD = 'tar' + ' xJf ' + PackagePath + ' -C ' + packageDirectory + ' --one-top-level'
+                    extractCMD = 'tar' + ' xJf ' + PackagePath + ' -C ' + zipFileDirectory + ' --one-top-level'
                     extractZip(extractCMD, zipFileName)
 
                 elif zipFileName.endswith(".tar"):
                     cdlog(1, "Extracting zip file: " + zipFileName)
-                    extractCMD = 'tar' + ' xf ' + PackagePath + ' -C ' + packageDirectory + ' --one-top-level'
+                    extractCMD = 'tar' + ' xf ' + PackagePath + ' -C ' + zipFileDirectory + ' --one-top-level'
                     extractZip(extractCMD, zipFileName)
                 else:
                     pass
