@@ -14,6 +14,9 @@ LibDescription  ={
 struct GLOBAL {
     me UnicodeMgr: unicodeMgr
 
+    me bool: isutf(me char: ch)
+    me wstring: stringToWString(me string: str)
+
     me int: packUTF8Char(me string: str, their int64: pos, their int32: out) <- {
         me char: chr
         out <- 0
@@ -52,11 +55,31 @@ struct DateTimeFields{
     me int: millisecond
 }
 
-struct DateFormat {me SimpleDateFormat: DateFormat}
-struct Normalizer {their Normalizer2: Normalizer}
-struct USpoofChecker {me USpoofChecker: USpoofChecker}
+struct DateFormat:    wraps=SimpleDateFormat{}
+struct Normalizer:    wraps=Normalizer2{}
+struct USpoofChecker: wraps=USpoofChecker{}
 
 struct UnicodeMgr {
+    me sysLocale: SetLocale(me string: code)
+    me string: dateToIntlString(me UDate: date, me UDate: interval, me sysLocale: loc) // TODO: verify works
+    me string: getHour(me UDate: date, me sysLocale: loc)// TODO: verify works
+    me bool: isUnicodeAlpha(me int32: ch)
+    me bool: isUnicodeAlphaNum(me int32: ch)
+    me bool: isUnicodeWordStart(me int32: ch)
+    me bool: isUnicodeWordContinue(me int32: ch)
+    me UnicodeStr: fromUTF8Str(me string: input)
+    me string: toUTF8Str(me UnicodeStr: input)
+    void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out)
+    me string: normalizeStr(me string: input)
+    me UnicodeStr: getDisplayLanguage(me sysLocale: loc, me string: langNameLangDisplayedIn <- "")
+    me UnicodeStr: getDisplayCountry(me sysLocale: loc, me string: countryNameLangDisplayedIn <- "")
+    me timeValue: epocTimeFromDateTime(me int: year, me int: month, me int: date, me int: hour, me int: minute, me int: second)
+    void: dateTimeFromEpocTime(me timeValue: epocTime, their DateTimeFields: dateTimeFields)
+    me string: customPatternDateTime(me UDate: dt, me UnicodeStr: pattern, me string: locPat) //TODO
+    me string: localeString(their sysLocale: loc)
+    me string: getLocaleBaseName(their sysLocale: loc)
+    me sysLocale: getSystemLocale()
+
     me UnicodeStr: chooseFormatPattern(me double: graphInterval) <- {
         me UnicodeStr: dateFormat
         me double: minutes<-1000.0
