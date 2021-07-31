@@ -7,7 +7,7 @@ interface={
     provides=[Quic_implementation]
     packages = [
         { packageName = 'lsQuic'
-          fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git' // could start with git, zip, file, system, etc. (system = apt install lib...)
+          fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git:commit=7fc1254' // could start with git, zip, file, system, etc. (system = apt install lib...)
           updateWhen  = 'never'    // Updating isn't implemented
           buildCmds   = [
               [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
@@ -15,33 +15,6 @@ interface={
           ]
         },
 
-        { packageName = 'HTMLfile'
-          fetchMethod = 'file:https://file-examples-com.github.io/uploads/2017/02/index.html'
-          updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = [
-              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']],
-              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
-          ]
-        },
-
-        { packageName = 'zipcode'
-          fetchMethod = 'zip:https://file-examples-com.github.io/uploads/2017/02/zip_5MB.zip'
-          updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = [
-              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
-              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
-          ]
-        },
-
-        { packageName = 'code'
-          fetchMethod = 'zip:http://www.sbeams.org/sample_data/Proteomics/yeast_orfs.new.20040422.gz'
-          updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = [
-              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
-              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
-          ]
-        }
-/*
         { packageName = 'crypto'
           fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git:commit=7fc1254'
           updateWhen  = 'never'     // Updating isn't implemented
@@ -55,7 +28,7 @@ interface={
           fetchmethod = 'system: install z, z-dev'
         },
 
-        { packageName = 'system'}*/
+        { packageName = 'system'}
     ]
     libFiles=[lsquic, ssl, crypto, z, m]
     headers=[netinet/in.h, netinet/ip.h, arpa/inet.h, sys/types.h, sys/socket.h, netdb.h, openssl/pem.h, openssl/x509.h, openssl/ssl.h, ev.c, lsquic.h]
@@ -292,19 +265,16 @@ static int packets_out_v1 (void *packets_out_ctx, const struct lsquic_out_spec *
     }
     while (n < count);
 
-    if (n < count)
-        LOGX("could not send all of them");    /* TODO */
+    if (n < count) LOGX("could not send all of them");
 
-    if (n > 0)
-        return n;
-    else
-    {
+    if (n > 0) return n;
+    else{
         assert(s < 0);
         return -1;
     }
 }
-/* Read one byte at a time -- when user hits enter, send line to server */
 static void read_stdin (EV_P_ ev_io *w, int revents){
+// Read one byte at a time -- when user hits enter, send line to server
     lsQuicMgr *const quicMgr = (lsQuicMgr*)w->data;
     ssize_t nr;
 
@@ -633,7 +603,7 @@ static lsquic_conn_ctx_t * QUIC_on_new_conn (void *stream_if_ctx, lsquic_conn *c
     LOGX("created new connection");
     QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
     quicEngine->quicMgr.u.c.conn = conn;
-    QuicConnection* connection = quicEngine->__allocNewConn();
+    QuicConnection* connection = quicEngine->allocNewConn();
     connection->lsConn = conn;
     connection->myEngine = quicEngine;
 cout<<"NEW_CONN; engine:"<<quicEngine<<"   conn:"<<conn<<"  slipConn:"<<connection<<"\n";
@@ -673,7 +643,7 @@ static lsquic_stream_ctx_t* QUIC_on_new_stream(void *stream_if_ctx, lsquic_strea
     QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
     lsquic_conn_t* conn = lsquic_stream_conn(stream);
     QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(conn);
-    QuicStream* streamCtx = connection->__allocNewStream();
+    QuicStream* streamCtx = connection->allocNewStream();
     streamCtx->myConnection = connection;
     streamCtx->_lsStream = stream;
     connection->onNewStream_CB(stream);
@@ -699,7 +669,7 @@ void lsQuicSetupSocketsAndCallbacks(QuicEngine* quicEngine, bool asServer){
     lsQuicMgr* quicMgr = &quicEngine->quicMgr;
     char errbuf[0x100];
     if(asServer){
-        if (0 != load_cert(quicEngine->cert_file.data(), quicEngine->key_file.data())) { LOGX("Cannot load certificate"); exit(EXIT_FAILURE);}
+        if (0 != load_cert(quicEngine->cert_file.data(), quicEngine->key_file.data())) { LOGX("Cannot load certificate file:%s",quicEngine->cert_file); exit(EXIT_FAILURE);}
         quicMgr->flags <- quicMgr->flags | quicMgr->IS_SERVER;
     }
     // Set Settings
@@ -804,8 +774,8 @@ struct QuicEngine{
     void: init(me string: filenameTag, me bool: ServerMode, me bool: DoHTTP) <- {
         serverMode<-ServerMode
         doHTTP    <- DoHTTP
-        cert_file <- filenameTag+"CertFile.pem"
-        key_file  <- filenameTag+"KeyFile.pem"
+        cert_file <- "certFile.pem"
+        key_file  <- "keyFile.pem"
 
         if (0 != lsquic_logger_lopt("event=warn")){fprintf(stderr, "invalid log option\n");exit(EXIT_FAILURE);}
         key_log_dir <- filenameTag+"KeyLogDir"

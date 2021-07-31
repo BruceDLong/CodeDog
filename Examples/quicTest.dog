@@ -18,134 +18,55 @@ runCode = `
     me ClientAndServer: clientAndServer;
     clientAndServer.runTest()
 `
-
-// SERVER
-struct SlipQuicEngine_Server: inherits=QuicEngine{
-    void: onNewConnection_CB(their lsquic_conn: conn) <- {
-        //~ QuicEngine *const quicMgr = stream_if_ctx;
-        //~ quicMgr->onNewConnection_CB(conn)
-        log("created new connection");
+struct PingProtocol: inherits=QProtocol {
+    me bool: doStep() <- {return(true)}
+    our QProtocol: createClone() <- {
+        our PingProtocol:: retval
+        retval <deep- self
+        return(retval)
     }
-
-    their QuicConnection: __allocNewConn() <- {their SlipQuicConnection_Server:: retval; return(retval);}
-}
-
-struct SlipQuicConnection_Server: inherits=QuicConnection{
-    void: onConnectionClosed_CB() <- {log("server closed connection")}
-
-    void: onNewStream_CB(their lsquic_stream: stream) <- <%{
-        struct server_stream_ctx *tssc;
-        tssc = (server_stream_ctx*)malloc(sizeof(*tssc));
-        if (!tssc) {
-            LOGX("cannot allocate server stream context");
-            lsquic_conn_abort(lsquic_stream_conn(stream));
-        }
-
-        tssc->tssc_sz = 0;
-        tssc->tssc_off = 0;
-        lsquic_stream_wantread(stream, 1);
-        LOGX("created new echo stream -- want to read");
-    }%>
-
-    their QuicStream: __allocNewStream() <- {their SlipQuicStream_Server:: retval; return(retval);}
-}
-
-
-struct SlipQuicStream_Server: inherits=QuicStream{
-    void: onRead_CB (their QuicStream: h) <- <%{
-        //struct server_stream_ctx *const tssc = (void *) h;
-    }%>
-    void: onWrite_CB(their QuicStream: h) <- <%{
-     // Same functionality as server_on_write_v0(), but use the "reader" callbacks.  This is most useful when data comes from a different source such as file descriptor.
-        struct server_stream_ctx* const tssc = (server_stream_ctx*) h;
-        struct lsquic_reader reader = { tssc_read, tssc_size, tssc, };
-        const size_t left = tssc->tssc_sz;
-        ssize_t nw;
-
-        nw = lsquic_stream_writef(_lsStream, &reader);
-        if (nw > 0 && tssc->tssc_off == tssc->tssc_sz){
-            LOGX("wrote all %zd bytes to stream, close stream", left);
-            lsquic_stream_close(_lsStream);
-        }else if (nw < 0){
-            LOGX("stream_write() returned %ld, abort connection", (long) nw);
-            lsquic_conn_abort(lsquic_stream_conn(_lsStream));
-        }
-    }%>
-    void: onClose_CB(their QuicStream: h) <- <%{
-        struct server_stream_ctx *const tssc = (server_stream_ctx*) h;
-        free(tssc);
-        LOGX("stream closed");
-    }%>
-}
-
-// CLIENT
-struct SlipQuicEngine_Client: inherits=QuicEngine{
-    void: onNewConnection_CB(their lsquic_conn: conn) <- {
-        log("SLIP:C1 created client connection")
+    void: INIT() <- {
+        protocolIDPrefix <- "slip/ping"
     }
-    their QuicConnection: __allocNewConn() <- {their SlipQuicConnection_Client:: retval; return(retval);}
 }
-struct SlipQuicConnection_Client: inherits=QuicConnection{
-    void: onConnectionClosed_CB() <- {
-        log("SLIP:C3 client connection closed");
+struct IDProtocol: inherits=QProtocol {
+    me bool: doStep() <- {return(true)}
+    our QProtocol: createClone() <- {
+        our IDProtocol:: retval
+        retval <deep- self
+        return(retval)
     }
-    void: onNewStream_CB(their lsquic_stream: stream) <- {
-        lsquic_stream_wantwrite(stream, 1)
-        log("SLIP:C2 created client STREAM")
+    void: INIT() <- {
+        protocolIDPrefix <- "slip/ID"
     }
-    their QuicStream: __allocNewStream() <- {their SlipQuicStream_Client: retval; Allocate(retval); return(retval);}
 }
-struct SlipQuicStream_Client: inherits=QuicStream{
-    void: onRead_CB(their QuicStream: h) <- <%{
-        logMgr.Mesg.LogEntry("MESG: ", "SLIP:C4 client::onRead()");
-        lsquic_conn_t *conn;
-        QuicEngine *quicEng;
-        lsQuicMgr  *quicMgr;
-        conn = lsquic_stream_conn(_lsStream);
-        QuicConnection* QConn = (QuicConnection *)lsquic_conn_get_ctx(conn);
-        quicEng =  QConn->myEngine;
-        quicMgr = &quicEng->quicMgr;
-        ssize_t nread;
-        struct client_read_v2_ctx v2ctx = { quicMgr, _lsStream, };
-        nread = lsquic_stream_readf(_lsStream, client_readf_v2, &v2ctx);
-        if (nread < 0){
-            logMgr.Mesg.LogEntry("MESG: ", "error reading from stream (%s) -- exit loop");
-            ev_break(quicMgr->loop, EVBREAK_ONE);
-        }
-    }%>
-    void: onWrite_CB(their QuicStream: h) <- <%{
-        logMgr.Mesg.LogEntry("MESG: ", "SLIP:C5 client::onWrite()");
-        lsquic_conn_t *conn;
-        QuicEngine *quicEng;
-        lsQuicMgr  *quicMgr;
-        conn = lsquic_stream_conn(_lsStream);
-        QuicConnection* QConn = (QuicConnection *)lsquic_conn_get_ctx(conn);
-        quicEng =  QConn->myEngine;
-        quicMgr = &quicEng->quicMgr;
-        ssize_t nw;
-        nw = lsquic_stream_write(_lsStream, quicMgr->u.c.buf, quicMgr->u.c.sz);
-        if (nw > 0){
-            quicMgr->u.c.sz -= (size_t) nw;
-            if (quicMgr->u.c.sz == 0){
-                lsquic_stream_shutdown(_lsStream, 1);
-                lsquic_stream_wantread(_lsStream, 1);
-            }else{
-                memmove(quicMgr->u.c.buf, quicMgr->u.c.buf + nw, quicMgr->u.c.sz);
-            }
-        }else{
-            lsquic_conn_abort(lsquic_stream_conn(_lsStream));
-        }
-    }%>
-    void: onClose_CB(their QuicStream: h) <- {log("SLIP:C6 stream closed");}
+struct CloneProtocol: inherits=QProtocol {
+    me bool: doStep() <- {return(true)}
+    our QProtocol: createClone() <- {
+        our CloneProtocol:: retval
+        retval <deep- self
+        return(retval)
+    }
+    void: INIT() <- {
+        protocolIDPrefix <- "slip/clone"
+    }
 }
+
 
 struct ClientAndServer{
     void: runTest() <- {
-        //~ me SlipQuicEngine_Server: server
-        //~ server.init("SFile", true, false)
-        //~ server.run()
+        our PingProtocol::  pingProtocol
+        our IDProtocol::    idProtocol
+        our CloneProtocol:: cloneProtocol
 
-        me SlipQuicEngine_Client: client
+        me QuicEngine_Server: server
+        server.init("SFile", true, false)
+        server.addProtocol(pingProtocol)
+        server.addProtocol(idProtocol)
+        server.addProtocol(cloneProtocol)
+        server.run()
+
+        me QuicEngine_Client: client
         client.init("CFile", false, false)
         client.run()
     }

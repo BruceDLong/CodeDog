@@ -1702,7 +1702,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     if progSpec.fieldNameInStructHierachy(classes[0], parentClassName, fieldName):
                         inheritMode = 'override'
             abstractFunction = (not('value' in field) or field['value']==None)
-            if abstractFunction and not 'abstract' in classes[0][className]['attrList']:
+            if abstractFunction: # and not 'abstract' in classes[0][className]['attrList']:
                 inheritMode = 'pure-virtual'
                 classes[0][className]['attrList'].append('abstract')
 
