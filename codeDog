@@ -103,6 +103,7 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
                 libFiles+=tmpLibFiles
                 if 'packages' in tagsFromLibFiles[lib]['interface']:
                     packageData = tagsFromLibFiles[lib]['interface']['packages']
+
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
         #cdlog(1, "\nWRITING {} FILE(S) AND COMPILING...".format(len(fileSpecs)))
