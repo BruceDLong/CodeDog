@@ -260,7 +260,7 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     S+='('+value+')'
     return S
 
-def getConstIntFieldStr(fieldName, fieldValue):
+def getConstIntFieldStr(fieldName, fieldValue, intSize):
     S= "static const uint64_t "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
@@ -522,7 +522,12 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
             actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  ctnrName+RDeclP+'size();' +" ++"+lvName+" ){\n")
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
     elif containerCat=="MULTIMAP":
-       cdErr("TODO: finish multimap:"+actionText)
+        itrVarSpec = {'owner':'itr', 'fieldType':'uint64_t'}
+        localVarsAlloc.append([itrName, itrVarSpec])  # Tracking local vars for scope
+        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
+        actionText += indent+'for(auto '+itrName+' ='+frontItr+'; '+itrName+' !='+ctnrName+RDeclP+'end()'+'; ++'+itrName+' ){\n'
+        actionText += indent+'    '+'auto '+repName+' = *'+itrName+';\n'
     else: cdErr("iterateContainerStr() datastructID = " + datastructID)
     return [actionText, loopCounterName, itrIncStr]
 ###################################################### EXPRESSION CODING

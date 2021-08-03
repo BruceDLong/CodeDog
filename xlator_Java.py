@@ -208,15 +208,16 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     S+='('+value+')'
     return S
 
-def getConstIntFieldStr(fieldName, fieldValue):
-    S= "public static final int "+fieldName+ " = " + fieldValue+ ";\n"
+def getConstIntFieldStr(fieldName, fieldValue, intSize):
+    if intSize==32: S= "public static final int "+fieldName+ " = " + fieldValue+ ";\n"
+    else: S= "public static final long "+fieldName+ " = " + fieldValue+ "L;\n"
     return(S)
 
 def getEnumStr(fieldName, enumList):
     S = ''
     count=0
     for enumName in enumList:
-        S += "    " + getConstIntFieldStr(enumName, str(count))
+        S += "    " + getConstIntFieldStr(enumName, str(count), 32)
         count=count+1
     S += "\n"
    # S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'

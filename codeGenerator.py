@@ -377,7 +377,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
             fieldName = progSpec.flattenObjectName(fieldName)
             if fieldType=='flag':
                 cdlog(6, "flag: {}".format(fieldName))
-                structEnums += "    " + xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
+                structEnums += "    " + xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor), 64) +" \t// Flag: "+fieldName+"\n"
                 StaticMemberVars[fieldName]  =className
                 bitCursor += 1;
             elif fieldType=='mode':
@@ -392,8 +392,8 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
 
                 offsetVarName = fieldName+"Offset"
                 maskVarName   = fieldName+"Mask"
-                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor))
-                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask)) + "\n"
+                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor), 64)
+                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask), 64) + "\n"
 
                 # enum
                 enumList=field['typeSpec']['enumList']
@@ -418,8 +418,8 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
 
                 offsetVarName = fieldName+"Offset"
                 maskVarName   = fieldName+"Mask"
-                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor))
-                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask)) + "\n"
+                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor), 64)
+                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask), 64) + "\n"
 
                 enumList=classes[0][fieldType]['tags']['inherits']['fieldType']['altModeList'].asList()
                 StaticMemberVars[offsetVarName]=className
