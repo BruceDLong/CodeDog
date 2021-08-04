@@ -1902,7 +1902,7 @@ def setUpFlagAndModeFields(classes, tags, structsToSetUp, xlator):
             codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(className,  CodeDogAddendumsAcc ), 'Flags and Modes for class '+className)
         currentObjName=''
 
-def codeAllNonGlobalStructs(classes, tags, fileSpecs, structsToImplement, xlator):
+def codeAllNonGlobalStructs(classes, tags, classRecords, structsToImplement, xlator):
     global currentObjName
     global structsNeedingModification
     global constFieldAccs
@@ -1915,12 +1915,12 @@ def codeAllNonGlobalStructs(classes, tags, fileSpecs, structsToImplement, xlator
         if xlator['renderGenerics']=='False' or typeArgList == None or progSpec.isWrappedType(globalClassStore, className):
             classRecord = codeOneStruct(classes, tags, constFieldAccs[progSpec.flattenObjectName(className)], className, xlator)
             if classRecord != None:
-                fileSpecs[className]=classRecord
+                classRecords[className]=classRecord
 
     # Check for final class attributes to add. E.g., 'abstract' or 'mutating'
  #   for className in structsToImplement:
  #       specialAttributes = xlator['addSpecialClassAttributes'](classes, className))
-    return fileSpecs
+    return classRecords
 
 def codeStructureCommands(classes, tags, xlator):
     global ModifierCommands
@@ -2097,13 +2097,13 @@ struct GLOBAL{
 def generateBuildSpecificMainFunctionality(classes, tags, xlator):
     xlator['generateMainFunctionality'](classes, tags)
 
-def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, fileSpecs, headerInfo, MainTopBottom, xlator):
+def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, classRecords, headerInfo, MainTopBottom, xlator):
     global ForwardDeclsForGlobalFuncs
     global libEmbedAboveIncludes
     global libEmbedVeryHigh
     global libEmbedCodeHigh
     global libEmbedCodeLow
-    fileSpecsOut=[]
+    classRecordsOut=[]
     fileExtension=xlator['fileExtension']
     constsEnums=''
     forwardDecls="\n";
@@ -2116,28 +2116,28 @@ def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, fileSpecs, headerInfo,
         for className in structsToImplement:
             typeArgList = progSpec.getTypeArgList(className)
             if(xlator['doesLangHaveGlobals']=='False' or className != 'GLOBAL') and (xlator['renderGenerics']=='False' or typeArgList == None):
-                    fileSpec = fileSpecs[className]
-                    constsEnums   += fileSpec[0]
-                    forwardDecls  += fileSpec[1]
-                    structCodeAcc += fileSpec[2]
-                    funcCodeAcc   += fileSpec[3]
+                    classRecord    = classRecords[className]
+                    constsEnums   += classRecord[0]
+                    forwardDecls  += classRecord[1]
+                    structCodeAcc += classRecord[2]
+                    funcCodeAcc   += classRecord[3]
 
         forwardDecls += globalFuncDeclAcc
         funcCodeAcc  += globalFuncDefnAcc
 
         outputStr = header + constsEnums + forwardDecls + libEmbedVeryHigh + structCodeAcc + ForwardDeclsForGlobalFuncs + libEmbedCodeHigh + MainTopBottom[0] + funcCodeAcc + libEmbedCodeLow + MainTopBottom[1]
         filename = progSpec.fetchTagValue(tags, "FileName")
-        fileSpecsOut.append([filename, outputStr])
+        classRecordsOut.append([filename, outputStr])
 
     else: # Generate a file for each class
-        for fileSpec in fileSpecs:
-            [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc, className, dependancies]  = fileSpec
+        for classRecord in classRecords:
+            [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc, className, dependancies]  = classRecord
             filename = className+fileExtension
             header = makeFileHeader(tags, filename, xlator)
             outputStr = header + constsEnums + forwardDecls + structCodeAcc + funcCodeAcc
-            fileSpecsOut.append([filename, outputStr])
+            classRecordsOut.append([filename, outputStr])
 
-    return fileSpecsOut
+    return classRecordsOut
 
 def clearBuild():
     global localVarsAllocated
@@ -2191,12 +2191,12 @@ def generate(classes, tags, libsToUse, langName, xlator):
     cdlog(1, "GENERATING: Classes...")
     structsToImpl = fetchListOfStructsToImplement(classes, tags)
     setUpFlagAndModeFields(classes, tags, structsToImpl, xlator)
-    fileSpecs=codeAllNonGlobalStructs(classes, tags, {}, structsToImpl, xlator)
+    classRecords=codeAllNonGlobalStructs(classes, tags, {}, structsToImpl, xlator)
     topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
-    fileSpecs=codeAllNonGlobalStructs(classes, tags, fileSpecs, genericStructsGenerated[1], xlator)
+    classRecords=codeAllNonGlobalStructs(classes, tags, classRecords, genericStructsGenerated[1], xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 
-    fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, fileSpecs, [], topBottomStrings, xlator)
+    fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, classRecords, [], topBottomStrings, xlator)
     showNote = False
     if showNote:
         print("\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:")
