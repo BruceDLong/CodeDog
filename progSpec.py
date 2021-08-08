@@ -363,7 +363,7 @@ def markStructAuto(objSpecs, className):
 ###############
 def extractMapFromTagMap(tagmap):
     tagRetMap={}
-    tagmap = tagmap.asList()
+    #tagmap = tagmap.asList()
     if ((not isinstance(tagmap, str)) and len(tagmap)>=2):
         tagmap = tagmap[1]
         for each in tagmap:
