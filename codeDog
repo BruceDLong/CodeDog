@@ -24,7 +24,6 @@ import copy
 import atexit
 from progSpec import cdlog, cdErr
 from os.path import abspath
-from timeit import default_timer as timer
 
 if sys.version_info[0] < 3:
     print("\n\nERROR: CodeDog must be used with Python 3\n")
@@ -44,8 +43,6 @@ if arg1[0]=='-':
     print("Unsupported argument:", arg1)
     exit(1)
 atexit.register(progSpec.whenExit)
-sys.setrecursionlimit(5000)
-startTime = timer()
 
 def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     result='No Language Generator Found for '+buildTags['Lang']
@@ -127,6 +124,4 @@ if len(buildSpecs)==0: cdErr('No Build specification was found')
 macroDefs= {}
 GenerateSystem(classes, buildSpecs, tagStore, macroDefs)
 cdlog(0, "\n######################   D O N E")
-endTime = timer()
-cdlog(0, "\nTIME: {0:.2f} seconds".format(endTime-startTime))
 progSpec.noError=True
