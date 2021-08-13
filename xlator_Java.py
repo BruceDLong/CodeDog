@@ -220,11 +220,11 @@ def getEnumStr(fieldName, enumList):
         S += "    " + getConstIntFieldStr(enumName, str(count), 32)
         count=count+1
     S += "\n"
-   # S += 'public static final String ' + fieldName+'Strings[] = {"'+('", "'.join(enumList))+'"};\n'
     return(S)
 
 def getEnumStringifyFunc(className, enumList):
-    print("TODO: finish getEnumStringifyFunc")
+    S = 'ArrayList<String> ' + className + 'Strings = new ArrayList<String>(Arrays.asList(' + '", "'.join(enumList) + '));\n'
+    return ''
 
 def codeIdentityCheck(S, S2, retType1, retType2, opIn):
     S2 = adjustQuotesForChar(retType1, retType2, S2)
