@@ -69,5 +69,6 @@ struct ClientAndServer{
         me QuicEngine_Client: client
         client.init("CFile", false, "::1", 12345)
         client.run()
+        //BRUCE: REmember to lsquic_engine_destroy(quicMgr.engine);
     }
 }

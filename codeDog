@@ -5,6 +5,7 @@ import progSpec
 import codeDogParser
 import buildDog
 import TestDog
+from threading import Thread
 
 
 ##########  Library Shells
@@ -22,6 +23,7 @@ import errno
 import platform
 import copy
 import atexit
+import threading
 from progSpec import cdlog, cdErr
 from os.path import abspath
 
@@ -111,17 +113,23 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
 
 
 #############################################    L o a d / P a r s e   P r o g r a m   S p e c
+def processMainProgram():
+    cdlog(0, "\n######################   P R O C E S S I N G   M A I N   P R O G R A M   ######################")
+    libraryMngr.findLibraryFiles()
 
-cdlog(0, "\n######################   P R O C E S S I N G   M A I N   P R O G R A M   ######################")
-libraryMngr.findLibraryFiles()
+    filename = abspath(os.getcwd()) + "/" + arg1
+    [ProgSpec, objNames, macroDefs] = [ {}, [], {} ]
+    [tagStore, buildSpecs, classes, newClasses] = codeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
+    print("Marker: Parse Successful")
+    tagStore['dogFilename']=filename
+    if len(buildSpecs)==0: cdErr('No Build specification was found')
+    macroDefs= {}
+    GenerateSystem(classes, buildSpecs, tagStore, macroDefs)
+    cdlog(0, "\n######################   D O N E")
+    progSpec.noError=True
 
-filename = abspath(os.getcwd()) + "/" + arg1
-[ProgSpec, objNames, macroDefs] = [ {}, [], {} ]
-[tagStore, buildSpecs, classes, newClasses] = codeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
-print("Marker: Parse Successful")
-tagStore['dogFilename']=filename
-if len(buildSpecs)==0: cdErr('No Build specification was found')
-macroDefs= {}
-GenerateSystem(classes, buildSpecs, tagStore, macroDefs)
-cdlog(0, "\n######################   D O N E")
-progSpec.noError=True
+threading.stack_size(67108864) # 64MB stack
+sys.setrecursionlimit(5000)
+thread = threading.Thread(target=processMainProgram)
+thread.start()
+thread.join()

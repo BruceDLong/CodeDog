@@ -16,7 +16,7 @@ initCode = `
 deinitCode = `
     deinitQuicSystem()
 `
-featuresNeeded = [Logger]
+featuresNeeded = [Logger,IOBuffer]
 
 struct QuicConnectionID{}
 
@@ -26,6 +26,10 @@ struct QuicEngine{
 
     void: onNewConnection_CB(their QuicConnection: conn) <- {log("BASE::onNewConnection_CB\n")}
     their QuicConnection: allocNewConn() // Just allocate and return your descendent of QuicConnection
+
+    // setMaxStreams()
+    // setStreamLimits()
+    // setConnectionLimits()
 }
 
 struct QuicConnection{
@@ -36,6 +40,12 @@ struct QuicConnection{
     their QuicConnectionID: getConnectionID()
     their QuicStream: allocNewStream()  // Just allocate and return your descendent of QuicStream
     void: abort()
+    //void: ping()
+
+    // on_reset_CB()
+    // on_handshakeDone_CB()
+    // on_sess_resume_info_CB()
+    // getConnectionStatus()
 }
 
 struct QuicStream{
@@ -45,9 +55,15 @@ struct QuicStream{
     void: onWrite_CB(their QuicStream: h) <- {}
     void: onClose_CB(their QuicStream: h) <- {}
 
+    void: requestRead()
+    void: requestWrite()
+    void: close()
+    me int: read(their char:buf, me int: len)
+    me int: write(their char:buf, me int: len)
     void: setPriority(me 1..256: priority)  // Lower value  = higher priority
     void: flushStream()
     void: shutdown(me int: direction) // 0=stop reading, 1=stop writing, 2=stop both
+    their QuicConnection: getConnection()
 }
 /////////////////////////////
 // Engine sub-classes for Client and Server mode + Generic protocols
@@ -142,7 +158,9 @@ struct QuicStream_Server: inherits=QuicStream{
 
 // CLIENT
 struct QuicEngine_Client: inherits=QuicEngine{
+    their strBuf: inputBuf
     void: onNewConnection_CB(their QuicConnection: conn) <- {
+        lsquic_conn_make_stream(conn.lsConn);
         log("SLIP:C1 created client connection")
     }
     their QuicConnection: allocNewConn() <- {their QuicConnection_Client:: retval; return(retval);}
@@ -152,12 +170,16 @@ struct QuicConnection_Client: inherits=QuicConnection{
         log("SLIP:C3 client connection closed");
     }
     void: onNewStream_CB(their QuicStream: stream) <- {
-        stream.requestWrite()
+        their QuicStream_Client: qStream  <- stream
+        their QuicEngine_Client: qcEngine <- myEngine
+        qStream.readBuffer <- qcEngine.inputBuf
+        qStream.requestWrite()
         log("SLIP:C2 created client STREAM")
     }
     their QuicStream: allocNewStream() <- {their QuicStream_Client: retval; Allocate(retval); return(retval);}
 }
 struct QuicStream_Client: inherits=QuicStream{
+    their strBuf: readBuffer
     void: onRead_CB(their QuicStream: h) <- {
         log("SLIP:C4 client::onRead()")
 /*        their QuicConnection: QConn <- getConnection()
@@ -179,6 +201,7 @@ me string: buf <- "                                              "
     me int: nread <- read(buf.data(), buf.size()) //sizeof(buf));
     if (nread > 0){
         print("RESULT:", buf)
+        readBuffer.putStr(buf)
         //fwrite(buf, 1, nread, stdout);
         //fflush(stdout);
     }/*else if (nread == 0){
