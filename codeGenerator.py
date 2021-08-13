@@ -511,7 +511,7 @@ def checkForReservedWord(identifier, currentObjName):
         if currentObjName!="": currentObjName = " in "+currentObjName
         cdErr("Reserved word '"+identifier+"' cannot be used as an identifier"+ currentObjName)
     if currentObjName!="":
-        if identifier in ['break', 'continue', 'return', 'print', 'false', 'NULL', 'true']:
+        if identifier in ['break', 'continue', 'return', 'false', 'NULL', 'true']:
             cdErr("Reserved word '"+identifier+"' cannot be an identifier in "+ currentObjName)
 def applyStructImplemetation(typeSpec,currentObjName,fieldName):
     checkForReservedWord(fieldName, currentObjName)
