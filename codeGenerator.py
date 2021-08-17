@@ -332,9 +332,10 @@ def fetchItemsTypeSpec(segSpec, objsRefed, genericArgs, xlator):
 
                     elif(itemName in StaticMemberVars):
                         parentClassName = staticVarNamePrefix(itemName, '', xlator)
+                        retTypeSpec     = {'owner': 'me', 'fieldType': ['List', [{'tArgOwner': 'me', 'tArgType': 'string'}]], 'note':'not generated from parse', 'reqTagList': [{'tArgOwner': 'me', 'tArgType': 'string'}]}
                         if(parentClassName != ''):
-                            return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
-                        else: return [{'owner':'me', 'fieldType':"string", 'arraySpec':{'note':'not generated from parse', 'owner':'me', 'datastructID':'list'}}, "CONST"]
+                            return [retTypeSpec, "STATIC:"+parentClassName]  # 'string' is probably not always correct.
+                        else: return [retTypeSpec, "CONST"]
                     if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None}, "CONST"]
                     cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                     return [None, "LIB"]      # TODO: Return correct type
@@ -376,7 +377,7 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
             fieldName = progSpec.flattenObjectName(fieldName)
             if fieldType=='flag':
                 cdlog(6, "flag: {}".format(fieldName))
-                structEnums += "    " + xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor)) +" \t// Flag: "+fieldName+"\n"
+                structEnums += "    " + xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor), 64) +" \t// Flag: "+fieldName+"\n"
                 StaticMemberVars[fieldName]  =className
                 bitCursor += 1;
             elif fieldType=='mode':
@@ -391,8 +392,8 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
 
                 offsetVarName = fieldName+"Offset"
                 maskVarName   = fieldName+"Mask"
-                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor))
-                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask)) + "\n"
+                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor), 64)
+                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask), 64) + "\n"
 
                 # enum
                 enumList=field['typeSpec']['enumList']
@@ -417,8 +418,8 @@ def codeFlagAndModeFields(classes, className, tags, xlator):
 
                 offsetVarName = fieldName+"Offset"
                 maskVarName   = fieldName+"Mask"
-                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor))
-                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask)) + "\n"
+                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor), 64)
+                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask), 64) + "\n"
 
                 enumList=classes[0][fieldType]['tags']['inherits']['fieldType']['altModeList'].asList()
                 StaticMemberVars[offsetVarName]=className
@@ -503,7 +504,17 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
     return(None, None)
     #    choose highest score and mark the typedef
 
+def checkForReservedWord(identifier, currentObjName):
+    # TODO: other cases such as class names and enum values are not checked.
+    if identifier in ['auto', 'and', 'or', 'const', 'me', 'my', 'our', 'their', 'we', 'itr', 'while', 'withEach'
+            'do', 'else', 'flag', 'mode', 'for', 'if', 'model', 'struct', 'switch', 'typedef', 'void']:
+        if currentObjName!="": currentObjName = " in "+currentObjName
+        cdErr("Reserved word '"+identifier+"' cannot be used as an identifier"+ currentObjName)
+    if currentObjName!="":
+        if identifier in ['break', 'continue', 'return', 'false', 'NULL', 'true']:
+            cdErr("Reserved word '"+identifier+"' cannot be an identifier in "+ currentObjName)
 def applyStructImplemetation(typeSpec,currentObjName,fieldName):
+    checkForReservedWord(fieldName, currentObjName)
     [structToImplement, fromImpl] = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
     if(structToImplement != None):
         typeSpec['fieldType'][0] = structToImplement
@@ -692,6 +703,7 @@ def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator)
             count+=1
         paramList=None
     return [newName, paramList]
+
 ################################  C o d e   E x p r e s s i o n s
 
 def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, returnType, LorRorP_Val, genericArgs, xlator):
@@ -1380,6 +1392,7 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
     elif (typeOfAction =='conditional'):
         cdlog(5, "If-statement...")
         [S2, conditionTypeSpec] =  codeExpr(action['ifCondition'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
+        if conditionTypeSpec==None: cdErr("Found typeSpec None in codeAction():   "+S2)
         [S2, conditionTypeSpec] =  xlator['adjustConditional'](S2, conditionTypeSpec)
         cdlog(5, "If-statement: Condition is ".format(S2))
         ifCondition = S2
@@ -1700,7 +1713,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     if progSpec.fieldNameInStructHierachy(classes[0], parentClassName, fieldName):
                         inheritMode = 'override'
             abstractFunction = (not('value' in field) or field['value']==None)
-            if abstractFunction and not 'abstract' in classes[0][className]['attrList']:
+            if abstractFunction: # and not 'abstract' in classes[0][className]['attrList']:
                 inheritMode = 'pure-virtual'
                 classes[0][className]['attrList'].append('abstract')
 
@@ -1900,7 +1913,7 @@ def setUpFlagAndModeFields(classes, tags, structsToSetUp, xlator):
             codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(className,  CodeDogAddendumsAcc ), 'Flags and Modes for class '+className)
         currentObjName=''
 
-def codeAllNonGlobalStructs(classes, tags, fileSpecs, structsToImplement, xlator):
+def codeAllNonGlobalStructs(classes, tags, classRecords, structsToImplement, xlator):
     global currentObjName
     global structsNeedingModification
     global constFieldAccs
@@ -1913,12 +1926,12 @@ def codeAllNonGlobalStructs(classes, tags, fileSpecs, structsToImplement, xlator
         if xlator['renderGenerics']=='False' or typeArgList == None or progSpec.isWrappedType(globalClassStore, className):
             classRecord = codeOneStruct(classes, tags, constFieldAccs[progSpec.flattenObjectName(className)], className, xlator)
             if classRecord != None:
-                fileSpecs[className]=classRecord
+                classRecords[className]=classRecord
 
     # Check for final class attributes to add. E.g., 'abstract' or 'mutating'
  #   for className in structsToImplement:
  #       specialAttributes = xlator['addSpecialClassAttributes'](classes, className))
-    return fileSpecs
+    return classRecords
 
 def codeStructureCommands(classes, tags, xlator):
     global ModifierCommands
@@ -2095,13 +2108,13 @@ struct GLOBAL{
 def generateBuildSpecificMainFunctionality(classes, tags, xlator):
     xlator['generateMainFunctionality'](classes, tags)
 
-def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, fileSpecs, headerInfo, MainTopBottom, xlator):
+def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, classRecords, headerInfo, MainTopBottom, xlator):
     global ForwardDeclsForGlobalFuncs
     global libEmbedAboveIncludes
     global libEmbedVeryHigh
     global libEmbedCodeHigh
     global libEmbedCodeLow
-    fileSpecsOut=[]
+    classRecordsOut=[]
     fileExtension=xlator['fileExtension']
     constsEnums=''
     forwardDecls="\n";
@@ -2114,28 +2127,28 @@ def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, fileSpecs, headerInfo,
         for className in structsToImplement:
             typeArgList = progSpec.getTypeArgList(className)
             if(xlator['doesLangHaveGlobals']=='False' or className != 'GLOBAL') and (xlator['renderGenerics']=='False' or typeArgList == None):
-                    fileSpec = fileSpecs[className]
-                    constsEnums   += fileSpec[0]
-                    forwardDecls  += fileSpec[1]
-                    structCodeAcc += fileSpec[2]
-                    funcCodeAcc   += fileSpec[3]
+                    classRecord    = classRecords[className]
+                    constsEnums   += classRecord[0]
+                    forwardDecls  += classRecord[1]
+                    structCodeAcc += classRecord[2]
+                    funcCodeAcc   += classRecord[3]
 
         forwardDecls += globalFuncDeclAcc
         funcCodeAcc  += globalFuncDefnAcc
 
         outputStr = header + constsEnums + forwardDecls + libEmbedVeryHigh + structCodeAcc + ForwardDeclsForGlobalFuncs + libEmbedCodeHigh + MainTopBottom[0] + funcCodeAcc + libEmbedCodeLow + MainTopBottom[1]
         filename = progSpec.fetchTagValue(tags, "FileName")
-        fileSpecsOut.append([filename, outputStr])
+        classRecordsOut.append([filename, outputStr])
 
     else: # Generate a file for each class
-        for fileSpec in fileSpecs:
-            [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc, className, dependancies]  = fileSpec
+        for classRecord in classRecords:
+            [constsEnums, forwardDecls, structCodeAcc, funcCodeAcc, className, dependancies]  = classRecord
             filename = className+fileExtension
             header = makeFileHeader(tags, filename, xlator)
             outputStr = header + constsEnums + forwardDecls + structCodeAcc + funcCodeAcc
-            fileSpecsOut.append([filename, outputStr])
+            classRecordsOut.append([filename, outputStr])
 
-    return fileSpecsOut
+    return classRecordsOut
 
 def clearBuild():
     global localVarsAllocated
@@ -2189,12 +2202,12 @@ def generate(classes, tags, libsToUse, langName, xlator):
     cdlog(1, "GENERATING: Classes...")
     structsToImpl = fetchListOfStructsToImplement(classes, tags)
     setUpFlagAndModeFields(classes, tags, structsToImpl, xlator)
-    fileSpecs=codeAllNonGlobalStructs(classes, tags, {}, structsToImpl, xlator)
+    classRecords=codeAllNonGlobalStructs(classes, tags, {}, structsToImpl, xlator)
     topBottomStrings = xlator['codeMain'](classes, tags, {}, xlator)
-    fileSpecs=codeAllNonGlobalStructs(classes, tags, fileSpecs, genericStructsGenerated[1], xlator)
+    classRecords=codeAllNonGlobalStructs(classes, tags, classRecords, genericStructsGenerated[1], xlator)
     typeDefCode = xlator['produceTypeDefs'](typeDefMap, xlator)
 
-    fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, fileSpecs, [], topBottomStrings, xlator)
+    fileSpecStrings = pieceTogetherTheSourceFiles(classes, tags, True, classRecords, [], topBottomStrings, xlator)
     showNote = False
     if showNote:
         print("\n\nNOTE: The following functions were used but CodeDog couldn't determine the type of their arguments:")

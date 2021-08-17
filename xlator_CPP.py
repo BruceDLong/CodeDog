@@ -260,7 +260,7 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     S+='('+value+')'
     return S
 
-def getConstIntFieldStr(fieldName, fieldValue):
+def getConstIntFieldStr(fieldName, fieldValue, intSize):
     S= "static const uint64_t "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
@@ -318,8 +318,8 @@ def codeComparisonStr(S, S2, retType1, retType2, op):
 ###################################################### CONTAINERS
 def getContaineCategory(containerSpec):
     fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
-    if fTypeKW=='DblLinkedList':
-        return 'DblLinkedList'
+    if fTypeKW=='PovList':
+        return 'PovList'
     elif fTypeKW=='multimap' or fTypeKW=='map' or fTypeKW=='CPP_Map' or fTypeKW=='RBTreeMap':
         return 'MAP'
     elif fTypeKW=='list':
@@ -481,15 +481,16 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     itrName          = repName + "Itr"
     containerCat     = getContaineCategory(ctnrTSpec)
     itrIncStr        = ""
-    if containerCat=='DblLinkedList':
+    if containerCat=='PovList':
         ctrlVarsTypeSpec = {'owner':'our', 'fieldType':['infon']}
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'begin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; "+ itrName + " = " + itrName+"->next ){\n"
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->pItem;\n")
+        cdErr("iterateContainerStr() found PovList: "+repName+"   "+ctnrName)
         return [actionText, loopCounterName, itrIncStr]
-    if containerCat=='MAP':
+    if containerCat=='MAP'     or containerCat=="MULTIMAP":
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
