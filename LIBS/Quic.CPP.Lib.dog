@@ -9,7 +9,6 @@ interface={
 
         { packageName = 'lsQuic'
           fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git' // could start with git, zip, file, system, etc. (system = apt install lib...)
-
           updateWhen  = 'never'    // Updating isn't implemented
           buildCmds   = [
               [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
@@ -54,16 +53,6 @@ interface={
           ]
 
         },
-
-        { packageName = 'libev'
-          fetchMethod = 'zip:http://dist.schmorp.de/libev/libev-4.33.tar.gz'
-          buildCmds   = {
-              Linux   = {
-                         installFiles = ['.']
-                     }
-            }
-        }
-
 
         { packageName = 'system'}*/
 

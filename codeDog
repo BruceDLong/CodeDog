@@ -15,7 +15,7 @@ import xlator_CPP
 import xlator_Java
 #import xlator_JavaScript
 import xlator_Swift
-
+import checkSys
 
 import re
 import os
@@ -33,6 +33,7 @@ if sys.version_info[0] < 3:
 
 codeDogVersion = '2.0'
 
+checkSys.InstallPipModules()
 
 if(len(sys.argv) < 2):
     print("\n    usage: codeDog [-v] filename\n")

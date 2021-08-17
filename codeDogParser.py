@@ -175,7 +175,6 @@ def parseInput(inputStr):
     progSpec.saveTextToErrFile(inputStr)
     try:
         localResults = progSpecParser.parseString(inputStr, parseAll=True)
-
     except ParseBaseException as pe:
         cdErr( "While parsing: {}".format( pe))
     return localResults
