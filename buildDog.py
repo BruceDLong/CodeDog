@@ -11,6 +11,8 @@ import errno
 import shutil
 from progSpec import cdlog, cdErr
 from pathlib import Path
+import urllib
+from urllib.request import urlopen
 
 
 #TODO: error handling
@@ -216,6 +218,7 @@ def FindOrFetchLibraries(buildName, packageData, platform):
 
     return [includeFolders, libFolders]
 
+
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     fileExtension = '.cpp'
 
@@ -223,6 +226,102 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     copyRecursive("Resources", buildName+"/assets")
 
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
+
+    # implement pip as a subprocess:
+    packageDirectory = os.getcwd() + '/' + buildName
+    for packageNo in range(len(packageData)):
+        packageName = packageData[packageNo][1][0][1][0].replace("'", '')
+        fetchMethod = packageData[packageNo][1][1][1][0].replace("'", '')
+        # fetchMethod = packageData[packageNo][1][1][1][0].split(':',1)[0].replace("'", '')
+        fetchMethodUrl = packageData[packageNo][1][1][1][0].split(':',1)[1].replace("'", '')
+        if fetchMethod.startswith("git:"):
+            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName
+            checkRepo = os.path.isdir(PackagePath)
+            if not checkRepo:
+                try:
+                    response = urlopen(fetchMethodUrl)
+                except (urllib.error.URLError, urllib.error.HTTPError):
+                    cdErr("URL not found : " + fetchMethodUrl)
+                else:
+                    cdlog(1, "Cloning git repository: " + packageName)
+                    gitClone("clone", fetchMethodUrl, PackagePath, "--quiet")
+
+        elif fetchMethod.startswith("file:"):
+            fileExtensionUrl = fetchMethodUrl.rsplit('.', 1)[-1]
+            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName + '.' + fileExtensionUrl
+            checkExistFile = os.path.isfile(PackagePath)
+            DownloadFileName = os.path.basename(PackagePath)
+            if not checkExistFile:
+                try:
+                    fileStream = urlopen(fetchMethodUrl)
+                except (urllib.error.URLError, urllib.error.HTTPError):
+                    cdErr("URL not found : " + fetchMethodUrl)
+                else:
+                    cdlog(1, "Downloading file: " + DownloadFileName)
+                    with open(PackagePath, 'wb') as file:
+                        file.write(fileStream.read())
+                    fileStream.close()
+
+        elif fetchMethod.startswith("zip:"):
+            if fetchMethodUrl.endswith(".zip"):
+                fileExtensionUrl = ".zip"
+            elif fetchMethodUrl.endswith(".tar.gz"):
+                fileExtensionUrl = ".tar.gz"
+            elif fetchMethodUrl.endswith(".tar.bz2"):
+                fileExtensionUrl = ".tar.bz2"
+            elif fetchMethodUrl.endswith(".tar.xz"):
+                fileExtensionUrl = ".tar.xz"
+            elif fetchMethodUrl.endswith(".tar"):
+                fileExtensionUrl = ".tar"
+            else:
+                pass
+
+            PackagePath = os.getcwd() + '/' + buildName + '/' + packageName + fileExtensionUrl
+            checkDirectory = os.path.isdir(os.getcwd() + '/' + buildName + '/' + packageName)
+            checkfile = os.path.isfile(PackagePath)
+            zipFileName = os.path.basename(PackagePath)
+            if not checkDirectory and not checkfile:
+                try:
+                    zipStream = urlopen(fetchMethodUrl)
+                except (urllib.error.URLError, urllib.error.HTTPError):
+                    cdErr("URL not found : " + fetchMethodUrl)
+                else:
+                    cdlog(1, "Downloading zip file: " + zipFileName)
+                    with open(PackagePath, 'wb') as file:
+                        file.write(zipStream.read())
+                    zipStream.close()
+
+            #Extract zip file
+            checkfile = os.path.isfile(PackagePath)
+            if not checkDirectory and checkfile:
+                if zipFileName.endswith(".zip"):
+                    cdlog(1, "Extracting zip file: " + zipFileName)
+                    extractCMD = 'unzip ' + PackagePath + ' -d ' + packageDirectory + '/' + packageName
+                    extractZip(extractCMD, zipFileName)
+
+                elif zipFileName.endswith(".tar.gz"):
+                    cdlog(1, "Extracting zip file: " + zipFileName)
+                    extractCMD = 'tar' + ' xzf ' + PackagePath + ' -C ' + packageDirectory + ' --one-top-level'
+                    extractZip(extractCMD, zipFileName)
+
+                elif zipFileName.endswith(".tar.bz2"):
+                    cdlog(1, "Extracting zip file: " + zipFileName)
+                    extractCMD = 'tar' + ' xjf ' + PackagePath + ' -C ' + packageDirectory + ' --one-top-level'
+                    extractZip(extractCMD, zipFileName)
+
+                elif zipFileName.endswith(".tar.xz"):
+                    cdlog(1, "Extracting zip file: " + zipFileName)
+                    extractCMD = 'tar' + ' xJf ' + PackagePath + ' -C ' + packageDirectory + ' --one-top-level'
+                    extractZip(extractCMD, zipFileName)
+
+                elif zipFileName.endswith(".tar"):
+                    cdlog(1, "Extracting zip file: " + zipFileName)
+                    extractCMD = 'tar' + ' xf ' + PackagePath + ' -C ' + packageDirectory + ' --one-top-level'
+                    extractZip(extractCMD, zipFileName)
+                else:
+                    pass
+        else:
+            pass
 
     #building scons file
     SconsFile = "import os\n"

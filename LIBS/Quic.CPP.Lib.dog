@@ -6,8 +6,10 @@ requirements = [
 interface={
     provides=[Quic_implementation]
     packages = [
-        { packageName = 'boringssl'
-          fetchMethod = 'git:https://github.com/google/boringssl@commit=251b516'
+
+        { packageName = 'lsQuic'
+          fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git' // could start with git, zip, file, system, etc. (system = apt install lib...)
+
           updateWhen  = 'never'    // Updating isn't implemented
           buildCmds   = {
               Linux   = {buildCmd = 'cmake . && make'
@@ -17,15 +19,42 @@ interface={
             }
         },
 
-        { packageName = 'lsQuic'
-          fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git@commit=692a910' // could start with git, zip, file, system, etc. (system = apt install lib...)
+
+        { packageName = 'HTMLfile'
+          fetchMethod = 'file:https://file-examples-com.github.io/uploads/2017/02/index.html'
           updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = {
-              Linux   = {buildCmd = 'cmake -DBORINGSSL_DIR="/home/bruce/devl/CodeDog/Examples/LinuxBuild/boringssl/boringssl" . && make'
-                         installFiles = ['src/liblsquic/liblsquic.a', 'include/lsquic.h', 'include/lsquic_types.h']
-                     }
-             // Windows =  ['cmake -DBORINGSSL_INCLUDE="/home/bruce/devl/CodeDog/Examples/LinuxBuild/boringssl/boringssl/include" . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
-            }
+          buildCmds   = [
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']],
+              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
+          ]
+        },
+
+        { packageName = 'zipcode'
+          fetchMethod = 'zip:https://file-examples-com.github.io/uploads/2017/02/zip_5MB.zip'
+          updateWhen  = 'never'    // Updating isn't implemented
+          buildCmds   = [
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
+              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
+          ]
+        },
+
+        { packageName = 'targzFile'
+          fetchMethod = 'zip:https://dev-files.blender.org/file/download/bwdp5reejwpkuh5i2oak/PHID-FILE-nui3bpuan4wdvd7yzjrs/sample.tar.gz'
+          updateWhen  = 'never'    // Updating isn't implemented
+          buildCmds   = [
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
+              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
+          ]
+        }
+/*
+        { packageName = 'crypto'
+          fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git:commit=7fc1254'
+          updateWhen  = 'never'     // Updating isn't implemented
+          buildCmds   = [
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']],
+              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
+          ]
+
         },
 
         { packageName = 'libev'
@@ -36,6 +65,9 @@ interface={
                      }
             }
         }
+
+
+        { packageName = 'system'}*/
 
     ]
     libFiles=[pthread, lsquic, ssl, crypto, z, m]
