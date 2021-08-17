@@ -10,7 +10,7 @@ def DownloadInstallPipModules(pipCMD):
         print("\n\n", decodedOut)
 
 def CheckPipModules():
-    requiredMinimumModulesList = {'pyparsing':'2.4.6', 'GitPython':'3.1.18', 'pycurl':'7'}
+    requiredMinimumModulesList = {'pyparsing':'3.0.0b2', 'GitPython':'3.1.18', 'scons':'4.2.0', 'pycurl':'7.43.0.6'}
     modulesList = []
     for moduleName in requiredMinimumModulesList:
         try:
@@ -37,7 +37,6 @@ def CheckPipModules():
                 print("\nInstalling collected packages: ", module)
                 pipCMD = 'pip install -q %s --disable-pip-version-check' % module
                 DownloadInstallPipModules(pipCMD)
-
         else:
             print("\n\nERROR: CodeDog must be used with python modules\n")
             for module in modulesList:

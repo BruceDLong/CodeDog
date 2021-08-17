@@ -18,7 +18,6 @@ LibDescription ={
 initCode = "signal(SIGSEGV, reportFault)"
 deinitCode = ""
 
-
 struct FileStream{
     me fstream: FileStream
     me void: open(me string: filename) <- <%!open(%1)%>
@@ -109,6 +108,10 @@ struct GLOBAL{
         return retVal;
     }%>
 
+    /* constexpr: strHash(their char: str, me int:h) <- <%{
+        return return !str[h] ? 5381 : (strHash(str, h+1)*33) ^ str[h];
+    }%> */
+
     void: trimLeftWS(their string: str)  <- <%{str->erase(0, str->find_first_not_of("\t\n\v\f\r "));}%>
     void: trimRightWS(their string: str) <- <%{str->erase(str->find_last_not_of("\t\n\v\f\r ")+1);}%>
     me string: trimWS(their string: str) <- {
@@ -136,6 +139,7 @@ struct GLOBAL{
     me char: toUpper(me char: ch) <- {if(ch>="a" and ch<="z"){ch <-- 32} return(ch)}
     me char: toLower(me char: ch) <- {if(ch>="A" and ch<="Z"){ch <+- 32} return(ch)}
 }
+
 struct timeValue{me int64: timeValue}
 struct DateValue{me int64: DateValue}
 struct timeOfDay{me int64: timeOfDay}

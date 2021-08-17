@@ -523,6 +523,17 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
     else: cdErr("iterateContainerStr() datastructID = " + datastructID)
     return [actionText, loopCounterName, itrIncStr]
+
+def codeSwitchExpr(switchKeyExpr, switchKeyTypeSpec):
+    if switchKeyTypeSpec['fieldType'] == 'string':
+        switchKeyExpr = 'strHash(' + switchKeyExpr + ')'
+    return switchKeyExpr
+
+def codeSwitchCase(caseKeyValue, caseKeyTypeSpec):
+    if caseKeyTypeSpec == 'string':
+        caseKeyValue = 'strHash(' + caseKeyValue + ')'
+    return caseKeyValue
+
 ###################################################### EXPRESSION CODING
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
@@ -822,7 +833,12 @@ def addSpecialCode(filename):
         }
         return(acc);
     }
-
+     
+    constexpr unsigned int strHash(const char* str, int h = 0)
+    {
+        return !str[h] ? 5381 : (strHash(str, h+1)*33) ^ str[h];
+    }
+    
     """
 
     decl ="string readFileAsString(string filename)"
@@ -1161,6 +1177,8 @@ def fetchXlators():
     xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
     xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
     xlators['iterateContainerStr']          = iterateContainerStr
+    xlators['codeSwitchExpr']               = codeSwitchExpr
+    xlators['codeSwitchCase']               = codeSwitchCase
     xlators['getEnumStr']                   = getEnumStr
     xlators['getEnumStringifyFunc']         = getEnumStringifyFunc
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
