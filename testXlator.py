@@ -103,7 +103,6 @@ struct testClass{
 #####################################################################################################
      'actions/varAsgn':      ['struct testClass{me void: runTest()<-{me int: actionVarAsgn \n actionVarAsgn<-4567 \n print(actionVarAsgn)}}', 'PGBR:4567'],
      'actions/flagAsgn':     ['struct testClass{flag: isStart \n me void: runTest()<-{print(isStart) \n isStart<-true \n print("-") \n  print(isStart)}}', 'PGBR:0-1'],
-     'actions/modeAsgn':     ['struct testClass{me mode[small, medium, large]: myMode \n me void: runTest()<-{print(myModeStrings[myMode]+ "-") \n myMode<- large \n print(myModeStrings[myMode])}}', 'PGBR:small-large'],
      'actions/stringAsgn':   ['struct testClass{me void: runTest()<-{me string: actionStrAsgn \n actionStrAsgn<-"Hello" \n print(actionStrAsgn)}}', 'PGBR:Hello'],
      #'actions/listAsgn':      ['struct testClass{\nme void: runTest()<-{\nme List<me string>: testList \ntestList[0] <- "HELLO" \nprint(testList[0])}}', 'PGBR:HELLO'],
      'actions/mapAsgn':      ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap \n testMap["key0"]<-"value0" \n print(testMap["key0"])}}', 'PGBR:value0'],
@@ -112,7 +111,6 @@ struct testClass{
      'actions/assigns':      ['''
 struct testClass{
     flag: isStart
-    me mode[small, medium, large]: myMode
     me void: runTest()<-{
         me int: actionVarAsgn
         actionVarAsgn<-4567
@@ -122,9 +120,6 @@ struct testClass{
         isStart<-true
         print(" Bool:")
         print(isStart)
-        print(" Mode:"+myModeStrings[myMode])
-        myMode<- large
-        print(" Mode:"+myModeStrings[myMode])
         me string: actionStrAsgn
         actionStrAsgn<-"Hello"
         print(" AsgnStr:"+actionStrAsgn)
@@ -135,7 +130,7 @@ struct testClass{
         testMap["key0"]<-"value0"
         print(" IDX:"+testMap["key0"])
     }
-}''', 'PGBR:4567 Bool:0 Bool:1 Mode:small Mode:large AsgnStr:Hello IDX:value0',['actions/varAsgn','actions/flagAsgn','actions/modeAsgn','actions/stringAsgn','actions/mapAsgn']],
+}''', 'PGBR:4567 Bool:0 Bool:1 AsgnStr:Hello IDX:value0',['actions/varAsgn','actions/flagAsgn','actions/stringAsgn','actions/mapAsgn']],
 #####################################################################################################
      'actions/conditional':  ['struct testClass{me void: runTest()<-{testFunc(true)}\nme void: testFunc(me bool: isTrue)<-{if (isTrue){print("true")}\nelse{print("false")}}}', 'PGB:'],
      'actions/switch':       ['struct testClass{me void: runTest()<-{me int:myInt<-3\nswitch(myInt){case 3:{print("3")}case 2:{print("2")}default:{print("default")}}}}', 'PGBR:3'],
@@ -556,19 +551,24 @@ struct testClass{
 #####################################################################################################
      'mode/global':       ['struct GlobalMode: inherits=<mode[globalA, globalB, globalC]>{}\nstruct testClass{\n    me GlobalMode: globalMode <- globalC\n    me void: runTest()<-{\n        print(globalMode) print(GlobalModeStrings[globalMode])\n    }}', 'PGBR:2globalC'],
      'mode/struct':       ['struct testClass{mode[sModeA, sModeB, sModeC]: sMode\nme void: runTest()<-{\n    sMode <- sModeA\n    print(sMode)\n    print(sModeStrings[sMode])}}',    'PGBR:0sModeA'],
+     'mode/modeAsgn':     ['struct testClass{me mode[small, medium, large]: myMode \n me void: runTest()<-{print(myModeStrings[myMode]+ "-") \n myMode<- large \n print(myModeStrings[myMode])}}', 'PGBR:small-large'],
      'mode/tests':     ['''
 struct GlobalMode: inherits=<mode[globalA, globalB, globalC]> {}
 struct testClass{
     me GlobalMode: globalMode <- globalC
     mode[sModeA, sModeB, sModeC]: sMode
+    me mode[small, medium, large]: myMode
     me void: runTest()<-{
         print(globalMode)
         print(GlobalModeStrings[globalMode])
         sMode <- sModeA
         print(sMode)
         print(sModeStrings[sMode])
+        print(" Mode:"+myModeStrings[myMode])
+        myMode<- large
+        print(" Mode:"+myModeStrings[myMode])
     }
-}''', 'PGBR:2globalC0sModeA',['mode/global', 'mode/struct' ]],
+}''', 'PGBR:2globalC0sModeA Mode:small Mode:large',['mode/global', 'mode/struct', 'mode/modeAsgn']],
 #####################################################################################################
 
 
