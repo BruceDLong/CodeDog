@@ -11,12 +11,10 @@ interface={
           fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git' // could start with git, zip, file, system, etc. (system = apt install lib...)
 
           updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = {
-              Linux   = {buildCmd = 'cmake . && make'
-                         installFiles = ['ssl/libssl.a', 'crypto/libcrypto.a', 'include']
-                  }
-              Windows = {buildCmd = 'cmake . && make'}
-            }
+          buildCmds   = [
+              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
+              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
+          ]
         },
 
 
