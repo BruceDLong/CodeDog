@@ -191,6 +191,32 @@ def FindOrFetchLibraries(buildName, packageData, platform):
             else:
                 pass
 
+        if buildCmdsMap!={} and platform in buildCmdsMap:
+            #print("###########:",platform, ' = ', buildCmdsMap[platform])
+            buildCommand = buildCmdsMap[platform]
+            buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
+            downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
+
+            if 'buildCmd' in buildCmdMap:
+                actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
+                #print("BUILDCMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
+                runCMD(actualBuildCmd, downloadedFolder)
+
+            if 'installFiles' in buildCmdMap:
+                installfileList = buildCmdMap['installFiles'][1]
+                # ~ installFiles = progSpec.extractListFromTagList(installfileList)
+                # ~ print("    DATA:", str(installFiles)[:100])
+                LibsFolder = packageDirectory + '/' + packageName + "/INSTALL"
+                includeFolders += "     '"+LibsFolder+"',\n"
+                libFolders     += "     '"+LibsFolder+"',\n"
+                for filenameX in installfileList:
+                    filename = downloadedFolder+'/'+filenameX[0][0][1:-1]
+                    cdlog(1, "Install: "+filename)
+                    copyRecursive(filename, LibsFolder)
+
+    return [includeFolders, libFolders]
+
+
 def gitClone(cloneUrl, packageName, packageDirectory):
     import urllib.request
     from git import Repo

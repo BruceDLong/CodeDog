@@ -10,7 +10,7 @@ def DownloadInstallPipModules(pipCMD):
         print("\n\n", decodedOut)
 
 def CheckPipModules():
-    requiredMinimumModulesList = {'pyparsing':'3.0.0b2', 'GitPython':'3.1.18', 'scons':'4.2.0', 'pycurl':'7.43.0.6'}
+    requiredMinimumModulesList = {'pyparsing':'2.4.6', 'GitPython':'3.1.18', 'pycurl':'7'}
     modulesList = []
     for moduleName in requiredMinimumModulesList:
         try:
