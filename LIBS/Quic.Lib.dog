@@ -16,25 +16,36 @@ initCode = `
 deinitCode = `
     deinitQuicSystem()
 `
-featuresNeeded = [Logger]
+featuresNeeded = [Logger,IOBuffer]
 
 struct QuicConnectionID{}
 
 struct QuicEngine{
-    void: init(me string: filenameTag, me bool: ServerMode, me bool: DoHTTP)
+    void: init(me string: filenameTag, me bool: ServerMode, me string: ipAddr, me int:portNum)
     void: run()
 
-    void: onNewConnection_CB(their lsquic_conn: conn) <- {log("BASE::onNewConnection_CB\n")}
-    their QuicConnection: __allocNewConn() // Just allocate and return your descendent of QuicConnection
+    void: onNewConnection_CB(their QuicConnection: conn) <- {log("BASE::onNewConnection_CB\n")}
+    their QuicConnection: allocNewConn() // Just allocate and return your descendent of QuicConnection
+
+    // setMaxStreams()
+    // setStreamLimits()
+    // setConnectionLimits()
 }
 
 struct QuicConnection{
     their QuicEngine:  myEngine
 
-    void: onNewStream_CB(their lsquic_stream: stream)// <- {log("BASE::onNewStream_CB\n")}
+    void: onNewStream_CB(their QuicStream: stream)// <- {log("BASE::onNewStream_CB\n")}
     void: onConnectionClosed_CB()
     their QuicConnectionID: getConnectionID()
-    their QuicStream: __allocNewStream()  // Just allocate and return your descendent of QuicStream
+    their QuicStream: allocNewStream()  // Just allocate and return your descendent of QuicStream
+    void: abort()
+    //void: ping()
+
+    // on_reset_CB()
+    // on_handshakeDone_CB()
+    // on_sess_resume_info_CB()
+    // getConnectionStatus()
 }
 
 struct QuicStream{
@@ -44,8 +55,186 @@ struct QuicStream{
     void: onWrite_CB(their QuicStream: h) <- {}
     void: onClose_CB(their QuicStream: h) <- {}
 
-    void: setPriority(me 1..256: priority)  // Lower value  = higher priority
-    void: flush()
-    void: shutdown(me int: how) // 0, 1, 2
+    void: requestRead()
+    void: requestWrite()
     void: close()
+    me int: read(their char:buf, me int: len)
+    me int: write(their char:buf, me int: len)
+    void: setPriority(me 1..256: priority)  // Lower value  = higher priority
+    void: flushStream()
+    void: shutdown(me int: direction) // 0=stop reading, 1=stop writing, 2=stop both
+    their QuicConnection: getConnection()
+}
+/////////////////////////////
+// Engine sub-classes for Client and Server mode + Generic protocols
+
+struct QProtocol{
+    mode[qREQ, qSRV]: role
+    mode[qOK, qError, qTerminated]: status
+    me int: step
+    me string: protocolIDPrefix
+    me bool: checkProtocolID(me string: protocol) <-{}
+    me bool: doStep()
+    their QuicStream: myStream
+    //void: fork()
+    void: init() <- {}
+    void: terminateStream() <- {}
+    our QProtocol: createClone()
+}
+
+
+// SERVER
+struct QuicEngine_Server: inherits=QuicEngine{
+    me List<our QProtocol>: protocols
+    our QProtocol: chooseProtocol(me string: protocolID) <- {
+        withEach protocol in protocols{
+            print("protocolID:", protocol.protocolIDPrefix)
+            if(protocolID==protocol.protocolIDPrefix){
+                our QProtocol: newProt <- protocol.createClone()
+                return(newProt)
+            }
+        }
+        return(NULL)
+    }
+    void: onNewConnection_CB(their QuicConnection: conn) <- {
+        log("created new connection");
+    }
+    void: addProtocol(our QProtocol: QP) <- {protocols.pushLast(QP)}
+    their QuicConnection: allocNewConn() <- {their QuicConnection_Server:: retval; return(retval);}
+}
+struct QuicConnection_Server: inherits=QuicConnection{
+    void: onConnectionClosed_CB() <- {log("server closed connection")}
+
+    void: onNewStream_CB(their QuicStream: stream) <- {
+        //their server_stream_ctx:: tssc
+        //tssc.tssc_sz <- 0
+        //tssc.tssc_off <- 0
+        stream.requestRead()
+        log("created new echo stream -- want to read")
+    }
+
+    their QuicStream: allocNewStream() <- {their QuicStream_Server:: retval; return(retval);}
+}
+struct QuicStream_Server: inherits=QuicStream{
+    our QProtocol: crntProtocol
+    void: onRead_CB (their QuicStream: h) <- {
+        //struct server_stream_ctx *const tssc = (void *) h;
+        if(crntProtocol==NULL){
+            me string: protocolID <- "ping" //readLine()
+            their QuicEngine_Server: QEng <- myConnection.myEngine
+            crntProtocol <- QEng.chooseProtocol(protocolID)
+            if(crntProtocol==NULL){
+                log("Protocol not found:'"+protocolID+"'")
+             //   terminate stream
+                return()
+            }else{
+                //step <+- 1
+                crntProtocol.init()
+            }
+        }
+        //crntProtocol.doStep(step)
+    }
+    void: onWrite_CB(their QuicStream: h) <- {
+     // Same functionality as server_on_write_v0(), but use the "reader" callbacks.  This is most useful when data comes from a different source such as file descriptor.
+        //server_stream_ctx* const tssc <- (server_stream_ctx*) h;
+        //lsquic_reader reader <- { tssc_read, tssc_size, tssc, };
+        //const size_t left <- tssc->tssc_sz;
+
+        me int: nw //<- lsquic_stream_writef(theStream, &reader);
+        if (nw > 0 ){ //and tssc->tssc_off == tssc->tssc_sz){
+            //LOGX("wrote all %zd bytes to stream, close stream", left);
+            close()
+        }else if (nw < 0){
+            //LOGX("stream_write() returned %ld, abort connection", (long) nw);
+            getConnection().abort();
+        }
+    }
+    void: onClose_CB(their QuicStream: h) <- <%{
+        struct server_stream_ctx *const tssc = (server_stream_ctx*) h;
+        free(tssc);
+        LOGX("stream closed");
+    }%>
+}
+
+// CLIENT
+struct QuicEngine_Client: inherits=QuicEngine{
+    their strBuf: inputBuf
+    void: onNewConnection_CB(their QuicConnection: conn) <- {
+        lsquic_conn_make_stream(conn.lsConn);
+        log("SLIP:C1 created client connection")
+    }
+    their QuicConnection: allocNewConn() <- {their QuicConnection_Client:: retval; return(retval);}
+}
+struct QuicConnection_Client: inherits=QuicConnection{
+    void: onConnectionClosed_CB() <- {
+        log("SLIP:C3 client connection closed");
+    }
+    void: onNewStream_CB(their QuicStream: stream) <- {
+        their QuicStream_Client: qStream  <- stream
+        their QuicEngine_Client: qcEngine <- myEngine
+        qStream.readBuffer <- qcEngine.inputBuf
+        qStream.requestWrite()
+        log("SLIP:C2 created client STREAM")
+    }
+    their QuicStream: allocNewStream() <- {their QuicStream_Client: retval; Allocate(retval); return(retval);}
+}
+struct QuicStream_Client: inherits=QuicStream{
+    their strBuf: readBuffer
+    void: onRead_CB(their QuicStream: h) <- {
+        log("SLIP:C4 client::onRead()")
+/*        their QuicConnection: QConn <- getConnection()
+        their QuicEngine: quicEng <-  QConn.myEngine
+        their lsQuicMgr: quicMgr <- quicEng.quicMgr
+        me client_read_v2_ctx: v2ctx //<- { quicMgr, theStream, }
+       v2ctx.stream_if_ctx <- self
+       v2ctx.conn <- QConn
+        me int: nread //<- read(client_readf_v2, &v2ctx)
+        if (nread < 0){
+            log("error reading from stream (%s) -- exit loop")
+          //  ev_break(quicMgr.loop, EVBREAK_ONE);
+        }
+*/
+
+    //struct tut *tut = (struct tut *) h;
+   // unsigned char buf[1024];
+me string: buf <- "                                              "
+    me int: nread <- read(buf.data(), buf.size()) //sizeof(buf));
+    if (nread > 0){
+        print("RESULT:", buf)
+        readBuffer.putStr(buf)
+        //fwrite(buf, 1, nread, stdout);
+        //fflush(stdout);
+    }/*else if (nread == 0){
+        log("read to end-of-stream: close and read from stdin again");
+        lsquic_stream_shutdown(stream, 0);
+        ev_io_start(tut->tut_loop, &tut->tut_u.c.stdin_w);
+    }else{
+        LOG("error reading from stream (%s) -- exit loop");
+        ev_break(tut->tut_loop, EVBREAK_ONE);
+    }*/
+    }
+    void: onWrite_CB(their QuicStream: h) <- {
+        log("SLIP:C5 client::onWrite()")
+        their QuicConnection: QConn <- getConnection()
+        their QuicEngine: quicEng <-  QConn.myEngine
+        their lsQuicMgr: quicMgr <- quicEng.quicMgr
+        me string: message <- "!ECURB\n"
+        //me int: nw <- write(quicMgr.u.c.buf, quicMgr.u.c.sz);
+        me int: nw <- write(message.data(), message.size());
+        if (nw > 0){
+                log("WROTE:"+toString(nw)+" bytes")
+                shutdown(1);
+                requestRead()
+          /*  quicMgr.u.c.sz <-- nw
+            if (quicMgr.u.c.sz == 0){
+                shutdown(1);
+                requestRead()
+            }else{
+                memmove(quicMgr->u.c.buf, quicMgr->u.c.buf + nw, quicMgr->u.c.sz);
+            }*/
+        }else{
+            getConnection().abort();
+        }
+    }
+    void: onClose_CB(their QuicStream: h) <- {log("SLIP:C6 stream closed");}
 }

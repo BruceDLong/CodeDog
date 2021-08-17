@@ -6,14 +6,19 @@ requirements = [
 interface={
     provides=[Quic_implementation]
     packages = [
+
         { packageName = 'lsQuic'
           fetchMethod = 'git:https://github.com/litespeedtech/lsquic.git' // could start with git, zip, file, system, etc. (system = apt install lib...)
+
           updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = [
-              [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']], // How to build and files to install for Linux
-              [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
-          ]
+          buildCmds   = {
+              Linux   = {buildCmd = 'cmake . && make'
+                         installFiles = ['ssl/libssl.a', 'crypto/libcrypto.a', 'include']
+                  }
+              Windows = {buildCmd = 'cmake . && make'}
+            }
         },
+
 
         { packageName = 'HTMLfile'
           fetchMethod = 'file:https://file-examples-com.github.io/uploads/2017/02/index.html'
@@ -49,15 +54,23 @@ interface={
               [linux,   'cmake . && make', ['src/lsquic.a',   'includes/lsquic.h']],
               [windows, 'cmake . && make', ['src/lsquic.dll', 'includes/lsquic.h']]
           ]
+
         },
 
-        { packageName = 'zlib'
-          fetchmethod = 'system: install z, z-dev'
-        },
+        { packageName = 'libev'
+          fetchMethod = 'zip:http://dist.schmorp.de/libev/libev-4.33.tar.gz'
+          buildCmds   = {
+              Linux   = {
+                         installFiles = ['.']
+                     }
+            }
+        }
+
 
         { packageName = 'system'}*/
+
     ]
-    libFiles=[lsquic, ssl, crypto, z, m]
+    libFiles=[pthread, lsquic, ssl, crypto, z, m]
     headers=[netinet/in.h, netinet/ip.h, arpa/inet.h, sys/types.h, sys/socket.h, netdb.h, openssl/pem.h, openssl/x509.h, openssl/ssl.h, ev.c, lsquic.h]
 }
 
@@ -65,7 +78,6 @@ featuresNeeded = [Logger]
 
 embedAboveIncludes = `
 #define EV_STANDALONE 1
-#define EV_API_STATIC 1
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 `
 
@@ -292,19 +304,16 @@ static int packets_out_v1 (void *packets_out_ctx, const struct lsquic_out_spec *
     }
     while (n < count);
 
-    if (n < count)
-        LOGX("could not send all of them");    /* TODO */
+    if (n < count) LOGX("could not send all of them");
 
-    if (n > 0)
-        return n;
-    else
-    {
+    if (n > 0) return n;
+    else{
         assert(s < 0);
         return -1;
     }
 }
-/* Read one byte at a time -- when user hits enter, send line to server */
 static void read_stdin (EV_P_ ev_io *w, int revents){
+// Read one byte at a time -- when user hits enter, send line to server
     lsQuicMgr *const quicMgr = (lsQuicMgr*)w->data;
     ssize_t nr;
 
@@ -502,49 +511,6 @@ static void read_socket (EV_P_ ev_io *w, int revents){
     process_conns(quicMgr);
 }
 
-static void *keylog_open (void *ctx, lsquic_conn_t *conn){
-    const char *const dir = ctx ? (char*)ctx : ".";
-    const lsquic_cid_t *cid;
-    FILE *fh;
-    int sz;
-    unsigned i;
-    char id_str[MAX_CID_LEN * 2 + 1];
-    char path[PATH_MAX];
-    static const char b2c[17] = "0123456789ABCDEF";
-
-    cid = lsquic_conn_id(conn);
-    for (i = 0; i < cid->len; ++i)
-    {
-        id_str[i * 2 + 0] = b2c[ cid->idbuf[i] >> 4 ];
-        id_str[i * 2 + 1] = b2c[ cid->idbuf[i] & 0xF ];
-    }
-    id_str[i * 2] = '\0';
-    sz = snprintf(path, sizeof(path), "%s/%s.keys", dir, id_str);
-    if ((size_t) sz >= sizeof(path))
-    {
-        LOGX("WARN: %s: file too long", __func__);
-        return NULL;
-    }
-    fh = fopen(path, "wb");
-    if (!fh)
-        LOGX("WARN: could not open %s for writing: %s", path, strerror(errno));
-    return fh;
-}
-static void keylog_log_line (void *handle, const char *line){
-    fputs(line, (FILE*)handle);
-    fputs("\n", (FILE*)handle);
-    fflush((FILE*)handle);
-}
-static void keylog_close (void *handle){
-    fclose((FILE*)handle);
-}
-static const struct lsquic_keylog_if keylog_if = {
-    .kli_open       = keylog_open,
-    .kli_log_line   = keylog_log_line,
-    .kli_close      = keylog_close,
-};
-
-
 //////// Quic callbacks and utilities
 
 struct server_stream_ctx {
@@ -567,7 +533,7 @@ static size_t tssc_size(void *ctx){
     return tssc->tssc_sz - tssc->tssc_off;
 }
 
-static lsquic_conn_ctx_t * QUIC_on_new_conn (void *stream_if_ctx, struct lsquic_conn *conn);
+static QuicConnection * QUIC_on_new_conn (void *stream_if_ctx, struct lsquic_conn *conn);
 static void QUIC_client_on_hsk_done (lsquic_conn_t *conn, enum lsquic_hsk_status status);
 static void QUIC_on_conn_closed (lsquic_conn_t *conn);
 static lsquic_stream_ctx_t * QUIC_on_new_stream(void *stream_if_ctx, struct lsquic_stream *stream);
@@ -575,16 +541,7 @@ static void QUIC_on_read(struct lsquic_stream *stream, lsquic_stream_ctx_t *h);
 static void QUIC_on_write(struct lsquic_stream *stream, lsquic_stream_ctx_t *h);
 static void QUIC_on_close(struct lsquic_stream *stream, lsquic_stream_ctx_t *h);
 
-static struct lsquic_stream_if quic_callbacks = {
-    .on_new_conn        = QUIC_on_new_conn,
-    .on_goaway_received = NULL,
-    .on_conn_closed     = QUIC_on_conn_closed,
-    .on_new_stream      = QUIC_on_new_stream,
-    .on_read            = QUIC_on_read,
-    .on_write           = QUIC_on_write,
-    .on_close           = QUIC_on_close,
-    .on_hsk_done        = QUIC_client_on_hsk_done
-};
+static lsquic_stream_if quic_callbacks;
 
 struct client_read_v2_ctx {
     lsQuicMgr  *quicMgr;
@@ -611,7 +568,7 @@ union Addr{
     struct sockaddr_in6 addr6;
 };
 
-void lsQuicSetupSocketsAndCallbacks(QuicEngine* quicEngine, bool asServer);
+void lsQuicSetupSocketsAndCallbacks(QuicEngine* quicEngine, bool asServer, string ipAddr, int portNum);
 void runEngine(QuicEngine* quicEngine);
 
 void initQuicSystem(){
@@ -621,6 +578,17 @@ void initQuicSystem(){
     if (!logFileHandle) {perror("cannot open log file for writing");exit(EXIT_FAILURE);}
     setvbuf(logFileHandle, nullptr, _IOLBF, 0);
     lsquic_logger_init(&logger_if, logFileHandle, LLTS_HHMMSSUS);
+
+    // Initialize constant structs
+    quic_callbacks.on_new_conn        = QUIC_on_new_conn;
+    quic_callbacks.on_goaway_received = NULL;
+    quic_callbacks.on_conn_closed     = QUIC_on_conn_closed;
+    quic_callbacks.on_new_stream      = QUIC_on_new_stream;
+    quic_callbacks.on_read            = QUIC_on_read;
+    quic_callbacks.on_write           = QUIC_on_write;
+    quic_callbacks.on_close           = QUIC_on_close;
+    quic_callbacks.on_hsk_done        = QUIC_client_on_hsk_done;
+
     // Initialize quic global engine
     if (0 != lsquic_global_init(LSQUIC_GLOBAL_SERVER | LSQUIC_GLOBAL_CLIENT)) {fprintf(stderr, "global initialization failed\n"); exit(EXIT_FAILURE);}
 }
@@ -629,24 +597,23 @@ void deinitQuicSystem(){
 }
 `
 embedLow = `
-static lsquic_conn_ctx_t * QUIC_on_new_conn (void *stream_if_ctx, lsquic_conn *conn){
+static QuicConnection* QUIC_on_new_conn (void *stream_if_ctx, lsquic_conn *conn){
     LOGX("created new connection");
     QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
     quicEngine->quicMgr.u.c.conn = conn;
-    QuicConnection* connection = quicEngine->__allocNewConn();
+    QuicConnection* connection = quicEngine->allocNewConn();
     connection->lsConn = conn;
     connection->myEngine = quicEngine;
 cout<<"NEW_CONN; engine:"<<quicEngine<<"   conn:"<<conn<<"  slipConn:"<<connection<<"\n";
-    quicEngine->onNewConnection_CB(conn);
-    return (lsquic_conn_ctx_t*)connection;
+    quicEngine->onNewConnection_CB(connection);
+    return connection;
 }
 
 static void QUIC_client_on_hsk_done (lsquic_conn_t *conn, enum lsquic_hsk_status status){
     QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(conn);
     QuicEngine* quicEngine = connection->myEngine;
 
-    switch (status)
-    {
+    switch (status){
     case LSQ_HSK_OK:
     case LSQ_HSK_RESUMED_OK:
         LOGX("handshake successful, start stdin watcher");
@@ -673,10 +640,10 @@ static lsquic_stream_ctx_t* QUIC_on_new_stream(void *stream_if_ctx, lsquic_strea
     QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
     lsquic_conn_t* conn = lsquic_stream_conn(stream);
     QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(conn);
-    QuicStream* streamCtx = connection->__allocNewStream();
+    QuicStream* streamCtx = connection->allocNewStream();
     streamCtx->myConnection = connection;
-    streamCtx->_lsStream = stream;
-    connection->onNewStream_CB(stream);
+    streamCtx->theStream = stream;
+    connection->onNewStream_CB(streamCtx);
     return (lsquic_stream_ctx_t*)streamCtx;
 }
 static void QUIC_on_read( lsquic_stream *stream, lsquic_stream_ctx_t *h){
@@ -695,11 +662,11 @@ static void QUIC_on_close(lsquic_stream *stream, lsquic_stream_ctx_t *h){
     LOGX("stream closed");
 }
 
-void lsQuicSetupSocketsAndCallbacks(QuicEngine* quicEngine, bool asServer){
+void lsQuicSetupSocketsAndCallbacks(QuicEngine* quicEngine, bool asServer, string ipAddr, int portNum){
     lsQuicMgr* quicMgr = &quicEngine->quicMgr;
     char errbuf[0x100];
     if(asServer){
-        if (0 != load_cert(quicEngine->cert_file.data(), quicEngine->key_file.data())) { LOGX("Cannot load certificate"); exit(EXIT_FAILURE);}
+        if (0 != load_cert(quicEngine->cert_file.data(), quicEngine->key_file.data())) { LOGX("Cannot load certificate file:%s",quicEngine->cert_file); exit(EXIT_FAILURE);}
         quicMgr->flags <- quicMgr->flags | quicMgr->IS_SERVER;
     }
     // Set Settings
@@ -714,18 +681,16 @@ void lsQuicSetupSocketsAndCallbacks(QuicEngine* quicEngine, bool asServer){
 
     // Set up socket addr
     Addr* addr = &quicEngine->addr;
-string IPaddr = "::1"; string port = "12345";
-cout<<"IPAddr:"<<IPaddr<<" port:"<<port<<"\n";
-int portNum = 12345;
-    if (inet_pton(AF_INET, IPaddr.data(), &addr->addr4.sin_addr)){
+cout<<"IPAddr:"<<ipAddr<<" port:"<<portNum<<"\n";
+    if (inet_pton(AF_INET, ipAddr.data(), &addr->addr4.sin_addr)){
         addr->addr4.sin_family = AF_INET;
         addr->addr4.sin_port   = htons(portNum);
     }
-    else if (memset(&addr->addr6, 0, sizeof(addr->addr6)),  inet_pton(AF_INET6, IPaddr.data(), &addr->addr6.sin6_addr)){
+    else if (memset(&addr->addr6, 0, sizeof(addr->addr6)),  inet_pton(AF_INET6, ipAddr.data(), &addr->addr6.sin6_addr)){
         addr->addr6.sin6_family = AF_INET6;
         addr->addr6.sin6_port   = htons(portNum);
     }
-    else {LOGX((string("'")+IPaddr+"' is not a valid IP address").data()); exit(EXIT_FAILURE);}
+    else {LOGX((string("'")+ipAddr+"' is not a valid IP address").data()); exit(EXIT_FAILURE);}
 
     // Set up socket
     quicMgr->sock_fd = socket(addr->sa.sa_family, SOCK_DGRAM, 0);
@@ -755,11 +720,8 @@ int portNum = 12345;
     eapi.ea_packets_out_ctx = quicMgr;
     eapi.ea_stream_if       = &quic_callbacks;
     eapi.ea_stream_if_ctx   = quicEngine;
-    //~ eapi.ea_get_ssl_ctx     = get_ssl_ctx;
-    //~ if (key_log_dir!=""){
-        //~ eapi.ea_keylog_if  = &keylog_if;
-        //~ eapi.ea_keylog_ctx = (void *) key_log_dir;
-    //~ }
+    eapi.ea_get_ssl_ctx     = get_ssl_ctx;
+    //~ As needed, set up key logging. See latest lsQuic tutorial
     eapi.ea_settings = settings;
 
     // Create the engine
@@ -801,17 +763,17 @@ struct QuicEngine{
     me bool: serverMode
     me bool: doHTTP
 
-    void: init(me string: filenameTag, me bool: ServerMode, me bool: DoHTTP) <- {
+    void: init(me string: filenameTag, me bool: ServerMode, me string: ipAddr, me int:portNum) <- {
         serverMode<-ServerMode
-        doHTTP    <- DoHTTP
-        cert_file <- filenameTag+"CertFile.pem"
-        key_file  <- filenameTag+"KeyFile.pem"
+        doHTTP    <- false
+        cert_file <- "certFile.pem"
+        key_file  <- "keyFile.pem"
 
         if (0 != lsquic_logger_lopt("event=warn")){fprintf(stderr, "invalid log option\n");exit(EXIT_FAILURE);}
         key_log_dir <- filenameTag+"KeyLogDir"
        // lsquic_set_log_level("warn") // debug, info, notice, warning, error, alert, emerg, crit
         s_verbose <- 1             // 0=less logging
-        lsQuicSetupSocketsAndCallbacks(self, serverMode)
+        lsQuicSetupSocketsAndCallbacks(self, serverMode, ipAddr, portNum)
     }
 
     void: run() <- {
@@ -824,14 +786,19 @@ struct QuicConnection{
     ///their QuicEngine:  myEngine
 
     ///void: onConnectionClosed_CB()
-    their QuicConnectionID: getConnectionID() <- <%{return((lsquic_cid_t*)lsquic_conn_id(lsConn));}%>
+    their QuicConnectionID: getConnectionID() <- <%!(lsquic_cid_t*)lsquic_conn_id(%0.lsConn)}%>
+    void: abort() <- <%{lsquic_conn_abort(lsConn);}%>
 }
 
 struct QuicStream{
-    void: setPriority(me 1..256: priority) <- <%!lsquic_stream_set_priority(%0, %1)%>
-    void: flush()               <- <%!lsquic_stream_flush(%0)%>
-    void: shutdown(me int: how) <- <%!lsquic_stream_shutdown(%0, %1)%>
-    void: close()               <- <%!lsquic_stream_close(%0)%>
-
-    their lsquic_stream: _lsStream
+    void: setPriority(me 1..256: priority) <- <%{lsquic_stream_set_priority(theStream, priority);}%>
+    void: requestRead()         <- <%{lsquic_stream_wantread(theStream, 1);}%>
+    void: requestWrite()        <- <%{lsquic_stream_wantwrite(theStream, 1);}%>
+    void: flushStream()         <- <%{lsquic_stream_flush(theStream);}%>
+    void: shutdown(me int: how) <- <%{lsquic_stream_shutdown(theStream, how);}%>
+    void: close()               <- <%{lsquic_stream_close(theStream);}%>
+    me int: read(their char:buf, me int: len)   <- <%{return(lsquic_stream_read(theStream, buf, len));}%>
+    me int: write(their char:buf, me int: len)  <- <%{return(lsquic_stream_write(theStream, buf, len));}%>
+    their QuicConnection: getConnection()       <- <%{return((QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(theStream)));}%>
+    their lsquic_stream: theStream
 }

@@ -5,6 +5,7 @@ import progSpec
 import codeDogParser
 import buildDog
 import TestDog
+from threading import Thread
 
 
 ##########  Library Shells
@@ -22,9 +23,9 @@ import errno
 import platform
 import copy
 import atexit
+import threading
 from progSpec import cdlog, cdErr
 from os.path import abspath
-from timeit import default_timer as timer
 
 if sys.version_info[0] < 3:
     print("\n\nERROR: CodeDog must be used with Python 3\n")
@@ -44,8 +45,6 @@ if arg1[0]=='-':
     print("Unsupported argument:", arg1)
     exit(1)
 atexit.register(progSpec.whenExit)
-sys.setrecursionlimit(5000)
-startTime = timer()
 
 def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     result='No Language Generator Found for '+buildTags['Lang']
@@ -96,12 +95,14 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         langGenTag = buildTags['Lang']
         libFiles=[]
         tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
+        packageData = []
         for lib in libsToUse:
             if 'interface' in tagsFromLibFiles[lib] and 'libFiles' in tagsFromLibFiles[lib]['interface']:
                 tmpLibFiles = tagsFromLibFiles[lib]['interface']['libFiles']
                 libFiles+=tmpLibFiles
                 if 'packages' in tagsFromLibFiles[lib]['interface']:
                     packageData = tagsFromLibFiles[lib]['interface']['packages']
+
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
         #cdlog(1, "\nWRITING {} FILE(S) AND COMPILING...".format(len(fileSpecs)))
@@ -112,19 +113,23 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
 
 
 #############################################    L o a d / P a r s e   P r o g r a m   S p e c
+def processMainProgram():
+    cdlog(0, "\n######################   P R O C E S S I N G   M A I N   P R O G R A M   ######################")
+    libraryMngr.findLibraryFiles()
 
-cdlog(0, "\n######################   P R O C E S S I N G   M A I N   P R O G R A M   ######################")
-libraryMngr.findLibraryFiles()
+    filename = abspath(os.getcwd()) + "/" + arg1
+    [ProgSpec, objNames, macroDefs] = [ {}, [], {} ]
+    [tagStore, buildSpecs, classes, newClasses] = codeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
+    print("Marker: Parse Successful")
+    tagStore['dogFilename']=filename
+    if len(buildSpecs)==0: cdErr('No Build specification was found')
+    macroDefs= {}
+    GenerateSystem(classes, buildSpecs, tagStore, macroDefs)
+    cdlog(0, "\n######################   D O N E")
+    progSpec.noError=True
 
-filename = abspath(os.getcwd()) + "/" + arg1
-[ProgSpec, objNames, macroDefs] = [ {}, [], {} ]
-[tagStore, buildSpecs, classes, newClasses] = codeGenerator.loadProgSpecFromDogFile(filename, ProgSpec, objNames, {}, macroDefs)
-print("Marker: Parse Successful")
-tagStore['dogFilename']=filename
-if len(buildSpecs)==0: cdErr('No Build specification was found')
-macroDefs= {}
-GenerateSystem(classes, buildSpecs, tagStore, macroDefs)
-cdlog(0, "\n######################   D O N E")
-endTime = timer()
-cdlog(0, "\nTIME: {0:.2f} seconds".format(endTime-startTime))
-progSpec.noError=True
+threading.stack_size(67108864) # 64MB stack
+sys.setrecursionlimit(5000)
+thread = threading.Thread(target=processMainProgram)
+thread.start()
+thread.join()

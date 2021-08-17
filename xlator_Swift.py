@@ -264,7 +264,7 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     S+='('+value+')'
     return S
 
-def getConstIntFieldStr(fieldName, fieldValue):
+def getConstIntFieldStr(fieldName, fieldValue, intSize):
     S= "static let "+fieldName+ ": Int = " + fieldValue+ ";\n"
     return(S)
 
@@ -272,7 +272,7 @@ def getEnumStr(fieldName, enumList):
     S = ''
     count=0
     for enumName in enumList:
-        S += "    " + getConstIntFieldStr(enumName, str(count))
+        S += "    " + getConstIntFieldStr(enumName, str(count), 32)
         count=count+1
     S += "\n"
     return(S)
@@ -377,7 +377,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     itrName          = repName + "Itr"
     containerCat     = getContaineCategory(ctnrTSpec)
     itrIncStr        = ""
-    if containerCat=='DblLinkedList': cdErr("TODO: handle dblLinkedList")
+    if containerCat=='PovList': cdErr("TODO: handle PovList")
     if containerCat=='MAP':
         if(reqTagList != None):
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])

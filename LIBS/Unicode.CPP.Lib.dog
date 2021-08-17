@@ -45,13 +45,14 @@ UErrorCode uErr=U_ZERO_ERROR;
 const icu::Normalizer2 *UNormalizer=Normalizer2::getNFKCCasefoldInstance(uErr);
 `
 /////////////////////////////////  STRUCT CONVERTERS
-struct UnicodeStr {me UnicodeString: UnicodeStr}
-struct sysLocale {me Locale: sysLocale}
-struct Udate {me UDate: Udate}
-struct UniErrorCode {me UErrorCode: UniErrorCode}
+struct UnicodeStr:   wraps=UnicodeString{}
+struct sysLocale:    wraps=Locale{}
+struct Udate:        wraps=UDate{}
+struct UniErrorCode: wraps=UErrorCode{}
 
 struct GLOBAL{
     me Udate: exampleUDate <- 1532000000000
+    me bool: isutf(me char: ch)   <- <%!isutf(%1)%>
 
     me wstring: stringToWString(me string: str) <- <%{
         std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
@@ -59,10 +60,15 @@ struct GLOBAL{
     }%>
 }
 
-struct UnicodeMgr {
-    me string: dateToIntlString(me UDate: date, me UDate: interval, me Locale: loc) <- <%{
+struct UnicodeMgr  {
+    me sysLocale: SetLocale(me string: code) <- <%{
+        Locale locale = Locale::createCanonical(code.data());
+        return locale;
+    }%>
+
+    me string: dateToIntlString(me UDate: date, me UDate: interval, me sysLocale: loc) <- <%{
         UErrorCode success = U_ZERO_ERROR;
-    UnicodeString dateUniStr, pattern;
+        UnicodeString dateUniStr, pattern;
         string uniLabel;
         pattern = chooseFormatPattern(interval);
         SimpleDateFormat* simpleDateFormat = new SimpleDateFormat(pattern, loc, success);
@@ -71,7 +77,7 @@ struct UnicodeMgr {
         return uniLabel;
     }%>
 
-    me string: getHour(me UDate: date, me Locale: loc) <- <%{
+    me string: getHour(me UDate: date, me sysLocale: loc) <- <%{
         UErrorCode success = U_ZERO_ERROR;
         UnicodeString pattern = "k";   // k: hour in day (1~24)
         UnicodeString uniStrHr;
@@ -109,12 +115,12 @@ struct UnicodeMgr {
         return(output);
     }%>
 
-    me string: toUTF8Str(me UnicodeString: input) <- <%{
+    me string: toUTF8Str(me UnicodeStr: input) <- <%{
         string output = "";
         input.toUTF8String(output);
         return(output);
     }%>
-    void: UnicodeStrToUTF8_String(me UnicodeString: s, their string: out) <- <%{
+    void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out) <- <%{
         int32_t len=s.length() * 5;
         char c[len];
         CheckedArrayByteSink sbs(c,len);
@@ -127,14 +133,9 @@ struct UnicodeMgr {
         return(outputUTF8);
     }%>
 
-    me sysLocale: SetLocale(me string: code) <- <%{
-        Locale locale = Locale::createCanonical(code.data());
-        return locale;
-    }%>
-
     // Optionally pass in a display language. For example:
     // to display "French, Italian, English" in successive calls to relevant locales, pass "en"
-    me UnicodeStr: getDisplayLanguage(me Locale: loc, me string: langNameLangDisplayedIn <- "") <- <%{
+    me UnicodeStr: getDisplayLanguage(me sysLocale: loc, me string: langNameLangDisplayedIn <- "") <- <%{
         UnicodeString langName;
         if (langNameLangDisplayedIn != "") {
             Locale dispLoc = SetLocale(langNameLangDisplayedIn);
@@ -147,7 +148,7 @@ struct UnicodeMgr {
 
     // Optionally pass in a display language. For example:
     // to display "France, Italy, England" in successive calls to relevant locales, pass "en"
-    me UnicodeStr: getDisplayCountry(me Locale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{
+    me UnicodeStr: getDisplayCountry(me sysLocale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{
         UnicodeString dispCountry;
         if (countryNameLangDisplayedIn != "") {
             Locale dispLoc = SetLocale(countryNameLangDisplayedIn);
@@ -190,7 +191,7 @@ struct UnicodeMgr {
         dateUniStr.toUTF8String(output);
         return output;
     }%>
-    me string: localeString(their Locale: loc) <- <%{
+    me string: localeString(their sysLocale: loc) <- <%{
         icu::UnicodeString lang,country;
         string R, tmp;
         UnicodeStrToUTF8_String(loc->getDisplayLanguage(*loc, lang), &R); R+=" - ";
@@ -199,11 +200,11 @@ struct UnicodeMgr {
         return R;
     }%>
 
-    me string: getLocaleBaseName(their Locale: loc) <- <%{
+    me string: getLocaleBaseName(their sysLocale: loc) <- <%{
         return loc->getBaseName();
     }%>
 
-    me Locale: getSystemLocale() <- <%{
+    me sysLocale: getSystemLocale() <- <%{
         return icu::Locale();
     }%>
 }
