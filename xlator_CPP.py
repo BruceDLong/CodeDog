@@ -260,7 +260,7 @@ def getCodeAllocSetStr(varTypeStr, owner, value):
     S+='('+value+')'
     return S
 
-def getConstIntFieldStr(fieldName, fieldValue):
+def getConstIntFieldStr(fieldName, fieldValue, intSize):
     S= "static const uint64_t "+fieldName+ " = " + fieldValue+ ";"
     return(S)
 
@@ -490,7 +490,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->pItem;\n")
         cdErr("iterateContainerStr() found PovList: "+repName+"   "+ctnrName)
         return [actionText, loopCounterName, itrIncStr]
-    if containerCat=='MAP':
+    if containerCat=='MAP'     or containerCat=="MULTIMAP":
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
@@ -521,8 +521,6 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         else:
             actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  ctnrName+RDeclP+'size();' +" ++"+lvName+" ){\n")
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
-    elif containerCat=="MULTIMAP":
-       cdErr("TODO: finish multimap:"+actionText)
     else: cdErr("iterateContainerStr() datastructID = " + datastructID)
     return [actionText, loopCounterName, itrIncStr]
 ###################################################### EXPRESSION CODING

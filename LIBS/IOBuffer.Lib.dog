@@ -1,4 +1,5 @@
 // IOBuffer.Lib.dog
+featuresNeeded = [Threads]
 
 struct strInnerBuf{
     me string: buf
