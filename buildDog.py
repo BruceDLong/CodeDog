@@ -216,6 +216,83 @@ def FindOrFetchLibraries(buildName, packageData, platform):
 
     return [includeFolders, libFolders]
 
+
+def gitClone(cloneUrl, packageName, packageDirectory):
+    import urllib.request
+    from git import Repo
+    packagePath = packageDirectory + '/' + packageName + '/' + packageName
+    checkRepo = os.path.isdir(packagePath)
+    if not checkRepo:
+        try:
+            urllib.request.urlopen(cloneUrl)
+        except (urllib.error.URLError, urllib.error.HTTPError):
+            cdErr("URL not found : " + cloneUrl)
+        else:
+            cdlog(1, "Cloning git repository: " + packageName)
+            Repo.clone_from(cloneUrl, packagePath)
+            makeDir(packageDirectory + '/' + packageName + "/LIBS")
+
+def downloadFile(downloadUrl, packageName, packageDirectory):
+    import pycurl
+    downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
+    packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
+    makeDir(packageDirectory + '/' + packageName + "/LIBS")
+    makeDir(os.path.dirname(packagePath))
+    checkRepo = os.path.isfile(packagePath)
+    if not checkRepo:
+        try:
+            cdlog(1, "Downloading file: " + packageName)
+            with open(packagePath, 'wb') as f:
+                c = pycurl.Curl()
+                c.setopt(c.URL, downloadUrl)
+                c.setopt(c.WRITEDATA, f)
+                c.perform()
+                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
+                c.close()
+        except:
+            cdErr("URL not found : " + downloadUrl)
+
+def downloadExtractZip(downloadUrl, packageName, packageDirectory):
+    import pycurl
+    zipExtension = ""
+    if downloadUrl.endswith(".zip"):
+        zipExtension = ".zip"
+    elif downloadUrl.endswith(".tar.gz"):
+        zipExtension = ".tar.gz"
+    elif downloadUrl.endswith(".tar.bz2"):
+        zipExtension = ".tar.bz2"
+    elif downloadUrl.endswith(".tar.xz"):
+        zipExtension = ".tar.xz"
+    elif downloadUrl.endswith(".tar"):
+        zipExtension = ".tar"
+    else:
+        pass
+
+    zipFileDirectory = packageDirectory + '/' + packageName
+    packagePath = zipFileDirectory + '/' + packageName + zipExtension
+    checkDirectory = os.path.isdir(zipFileDirectory)
+    zipFileName = os.path.basename(packagePath)
+    if not checkDirectory:
+        try:
+            makeDir(zipFileDirectory + "/LIBS")
+            cdlog(1, "Downloading zip file: " + zipFileName)
+            with open(packagePath, 'wb') as f:
+                c = pycurl.Curl()
+                c.setopt(c.URL, downloadUrl)
+                c.setopt(c.WRITEDATA, f)
+                c.perform()
+                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
+                c.close()
+        except:
+            cdErr("URL not found : " + downloadUrl)
+        else:
+            try:
+                cdlog(1, "Extracting zip file: " + zipFileName)
+                shutil.unpack_archive(packagePath, zipFileDirectory)
+            except:
+                cdErr("Corrupted zip archive file: " + zipFileName)
+
+
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     fileExtension = '.cpp'
 
@@ -223,6 +300,27 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     copyRecursive("Resources", buildName+"/assets")
 
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
+
+    packageDirectory = os.getcwd() + '/' + buildName
+
+    for package in packageData:
+        packageMap = progSpec.extractMapFromTagMap(package)
+        packageName = fetchMethod = fetchMethodUrl = ""
+        if 'packageName' in packageMap:
+            packageName = packageMap['packageName'][1:-1]
+        if 'fetchMethod' in packageMap:
+            fetchMethod = packageMap['fetchMethod'][1:-1]
+            fetchMethodUrl = packageMap['fetchMethod'][1:-1].split(':', 1)[1]
+
+
+        if fetchMethod.startswith("git:"):
+            gitClone(fetchMethodUrl, packageName, packageDirectory)
+        elif fetchMethod.startswith("file:"):
+            downloadFile(fetchMethodUrl, packageName, packageDirectory)
+        elif fetchMethod.startswith("zip:"):
+            downloadExtractZip(fetchMethodUrl, packageName, packageDirectory)
+        else:
+            pass
 
     #building scons file
     SconsFile = "import os\n"

@@ -1435,13 +1435,13 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
     elif (typeOfAction == 'switchStmt'):
         cdlog(5, "Switch statement: switch({})".format(str(action['switchKey'])))
         [switchKeyExpr, switchKeyTypeSpec] = codeExpr(action['switchKey'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-        actionText += indent+"switch("+ switchKeyExpr + "){\n"
+        actionText += indent+"switch("+ xlator['codeSwitchExpr'](switchKeyExpr, switchKeyTypeSpec)  + "){\n"
         blockPrefix = xlator['blockPrefix']
         for sCases in action['switchCases']:
             actionText += indent
             for sCase in sCases[0]:
                 [caseKeyValue, caseKeyTypeSpec] = codeExpr(sCase[0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-                actionText += "    case "+caseKeyValue+": "
+                actionText += "    case "+xlator['codeSwitchCase'](caseKeyValue, caseKeyTypeSpec)+": "
             caseAction = sCases[1]
             actionText += blockPrefix + codeActionSeq(caseAction, indent+'    ', objsRefed, returnType, genericArgs, xlator)
             actionText += xlator['codeSwitchBreak'](caseAction, indent, xlator)

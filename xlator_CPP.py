@@ -523,6 +523,17 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
     else: cdErr("iterateContainerStr() datastructID = " + datastructID)
     return [actionText, loopCounterName, itrIncStr]
+
+def codeSwitchExpr(switchKeyExpr, switchKeyTypeSpec):
+    if switchKeyTypeSpec['fieldType'] == 'string':
+        switchKeyExpr = '_strHash(' + switchKeyExpr + '.data())'
+    return switchKeyExpr
+
+def codeSwitchCase(caseKeyValue, caseKeyTypeSpec):
+    if caseKeyTypeSpec == 'string':
+        caseKeyValue = '_strHash(' + caseKeyValue + ')'
+    return caseKeyValue
+
 ###################################################### EXPRESSION CODING
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
@@ -821,6 +832,10 @@ def addSpecialCode(filename):
             acc += argv[i];
         }
         return(acc);
+    }
+
+    constexpr unsigned int _strHash(const char* str, int h = 0){
+        return !str[h] ? 5381 : (_strHash(str, h+1)*33) ^ str[h];
     }
 
     """
@@ -1178,6 +1193,8 @@ def fetchXlators():
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
     xlators['codeConstructorArgText']       = codeConstructorArgText
+    xlators['codeSwitchExpr']               = codeSwitchExpr
+    xlators['codeSwitchCase']               = codeSwitchCase
     xlators['codeSwitchBreak']              = codeSwitchBreak
     xlators['codeCopyConstructor']          = codeCopyConstructor
     xlators['codeRangeSpec']                = codeRangeSpec

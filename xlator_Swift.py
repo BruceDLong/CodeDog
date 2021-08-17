@@ -417,6 +417,13 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
     localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
     return [actionText, loopCounterName, itrIncStr]
+
+def codeSwitchExpr(switchKeyExpr, switchKeyTypeSpec):
+    return switchKeyExpr
+
+def codeSwitchCase(caseKeyValue, caseKeyTypeSpec):
+    return caseKeyValue
+
 ###################################################### EXPRESSION CODING
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
@@ -1027,6 +1034,8 @@ def fetchXlators():
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
     xlators['codeConstructorArgText']       = codeConstructorArgText
+    xlators['codeSwitchExpr']               = codeSwitchExpr
+    xlators['codeSwitchCase']               = codeSwitchCase
     xlators['codeSwitchBreak']              = codeSwitchBreak
     xlators['codeCopyConstructor']          = codeCopyConstructor
     xlators['codeRangeSpec']                = codeRangeSpec
