@@ -37,6 +37,7 @@ def CheckPipModules():
                 print("\nInstalling collected packages: ", module)
                 pipCMD = 'pip install -q %s --disable-pip-version-check' % module
                 DownloadInstallPipModules(pipCMD)
+
         else:
             print("\n\nERROR: CodeDog must be used with python modules\n")
             for module in modulesList:

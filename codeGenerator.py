@@ -504,7 +504,17 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
     return(None, None)
     #    choose highest score and mark the typedef
 
+def checkForReservedWord(identifier, currentObjName):
+    # TODO: other cases such as class names and enum values are not checked.
+    if identifier in ['auto', 'and', 'or', 'const', 'me', 'my', 'our', 'their', 'we', 'itr', 'while', 'withEach'
+            'do', 'else', 'flag', 'mode', 'for', 'if', 'model', 'struct', 'switch', 'typedef', 'void']:
+        if currentObjName!="": currentObjName = " in "+currentObjName
+        cdErr("Reserved word '"+identifier+"' cannot be used as an identifier"+ currentObjName)
+    if currentObjName!="":
+        if identifier in ['break', 'continue', 'return', 'false', 'NULL', 'true']:
+            cdErr("Reserved word '"+identifier+"' cannot be an identifier in "+ currentObjName)
 def applyStructImplemetation(typeSpec,currentObjName,fieldName):
+    checkForReservedWord(fieldName, currentObjName)
     [structToImplement, fromImpl] = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
     if(structToImplement != None):
         typeSpec['fieldType'][0] = structToImplement
@@ -693,6 +703,7 @@ def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator)
             count+=1
         paramList=None
     return [newName, paramList]
+
 ################################  C o d e   E x p r e s s i o n s
 
 def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previousTypeSpec, objsRefed, returnType, LorRorP_Val, genericArgs, xlator):

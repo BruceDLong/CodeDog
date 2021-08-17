@@ -4,13 +4,14 @@
 import sys
 import re
 import copy
+from timeit import default_timer as timer
 from pyparsing import ParseResults
 
 MaxLogLevelToShow = 1
 
 storeOfBaseTypesUsed={} # Registry of all types used
 
-
+startTime = timer()
 #########################
 # Variables to store what classes and fields were added after a marked point (When MarkItems=True).
 # So that they can be "rolled back" later. (For rolling back libaries, etc.)
@@ -363,7 +364,7 @@ def markStructAuto(objSpecs, className):
 ###############
 def extractMapFromTagMap(tagmap):
     tagRetMap={}
-    tagmap = tagmap.asList()
+    #tagmap = tagmap.asList()
     if ((not isinstance(tagmap, str)) and len(tagmap)>=2):
         tagmap = tagmap[1]
         for each in tagmap:
@@ -1321,6 +1322,8 @@ def cdErr(mesg):
     exit(1)
 
 def whenExit():
+    endTime = timer()
+    print("\nTIME: {0:.2f} seconds".format(endTime-startTime))
     global lastLogMesgs
     global highestLvl
     global noError

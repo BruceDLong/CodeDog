@@ -490,7 +490,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
                     + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->pItem;\n")
         cdErr("iterateContainerStr() found PovList: "+repName+"   "+ctnrName)
         return [actionText, loopCounterName, itrIncStr]
-    if containerCat=='MAP':
+    if containerCat=='MAP'     or containerCat=="MULTIMAP":
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
@@ -521,13 +521,6 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         else:
             actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  ctnrName+RDeclP+'size();' +" ++"+lvName+" ){\n")
         actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
-    elif containerCat=="MULTIMAP":
-        itrVarSpec = {'owner':'itr', 'fieldType':'uint64_t'}
-        localVarsAlloc.append([itrName, itrVarSpec])  # Tracking local vars for scope
-        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
-        actionText += indent+'for(auto '+itrName+' ='+frontItr+'; '+itrName+' !='+ctnrName+RDeclP+'end()'+'; ++'+itrName+' ){\n'
-        actionText += indent+'    '+'auto '+repName+' = *'+itrName+';\n'
     else: cdErr("iterateContainerStr() datastructID = " + datastructID)
     return [actionText, loopCounterName, itrIncStr]
 ###################################################### EXPRESSION CODING
