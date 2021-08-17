@@ -1018,8 +1018,6 @@ def fetchXlators():
     xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
     xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
     xlators['iterateContainerStr']          = iterateContainerStr
-    xlators['codeSwitchExpr']               = codeSwitchExpr
-    xlators['codeSwitchCase']               = codeSwitchCase
     xlators['getEnumStr']                   = getEnumStr
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
@@ -1036,6 +1034,8 @@ def fetchXlators():
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
     xlators['codeConstructorArgText']       = codeConstructorArgText
+    xlators['codeSwitchExpr']               = codeSwitchExpr
+    xlators['codeSwitchCase']               = codeSwitchCase
     xlators['codeSwitchBreak']              = codeSwitchBreak
     xlators['codeCopyConstructor']          = codeCopyConstructor
     xlators['codeRangeSpec']                = codeRangeSpec

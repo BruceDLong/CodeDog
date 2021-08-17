@@ -10,7 +10,7 @@ def DownloadInstallPipModules(pipCMD):
         print("\n\n", decodedOut)
 
 def CheckPipModules():
-    requiredMinimumModulesList = {'pyparsing':'3.0.0b2', 'GitPython':'3.1.18', 'scons':'4.2.0', 'pycurl':'7.43.0.6'}
+    requiredMinimumModulesList = {'pyparsing':'2.4.6', 'GitPython':'3.1.18', 'pycurl':'7'}
     modulesList = []
     for moduleName in requiredMinimumModulesList:
         try:
@@ -23,7 +23,7 @@ def CheckPipModules():
             installedModuleVersion = float(".".join(version[:2]))
             moduleVersion = requiredMinimumModulesList[moduleName].split(".")
             requiredModuleVersion = float(".".join(moduleVersion[:2]))
-            if not installedModuleVersion >= requiredModuleVersion:
+            if installedModuleVersion < requiredModuleVersion:
                 modulesList.append("%s==%s" % (moduleName, requiredMinimumModulesList[moduleName]))
 
     if modulesList:
@@ -32,10 +32,11 @@ def CheckPipModules():
             print("     %s" % module)
 
         installationPermission = input("Do you want to install? [Y/n] ")
-        if installationPermission.lower() == 'y' or installationPermission.lower() == 'yes':
+        if installationPermission.lower() == 'y' or installationPermission.lower() == 'yes' or installationPermission == '':
             for module in modulesList:
-                print("\nInstalling collected packages: ", module)
-                pipCMD = 'pip install -q %s --disable-pip-version-check' % module
+                moduleBaseName = module[:module.find("==")]
+                print("\nInstalling package: ", moduleBaseName)
+                pipCMD = 'pip install -q %s --disable-pip-version-check' % moduleBaseName
                 DownloadInstallPipModules(pipCMD)
         else:
             print("\n\nERROR: CodeDog must be used with python modules\n")
@@ -45,5 +46,5 @@ def CheckPipModules():
 
 def AddSystemPath():
     addPathPermission = input("Do you want to add CodeDog to System Path? [Y/n] ")
-    if addPathPermission.lower() == 'y' or addPathPermission.lower() == 'yes':
+    if addPathPermission.lower() == 'y' or addPathPermission.lower() == 'yes' or addPathPermission == '':
         pass

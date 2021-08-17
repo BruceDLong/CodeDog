@@ -526,12 +526,12 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
 
 def codeSwitchExpr(switchKeyExpr, switchKeyTypeSpec):
     if switchKeyTypeSpec['fieldType'] == 'string':
-        switchKeyExpr = 'strHash(' + switchKeyExpr + ')'
+        switchKeyExpr = '_strHash(' + switchKeyExpr + '.data())'
     return switchKeyExpr
 
 def codeSwitchCase(caseKeyValue, caseKeyTypeSpec):
     if caseKeyTypeSpec == 'string':
-        caseKeyValue = 'strHash(' + caseKeyValue + ')'
+        caseKeyValue = '_strHash(' + caseKeyValue + ')'
     return caseKeyValue
 
 ###################################################### EXPRESSION CODING
@@ -833,12 +833,11 @@ def addSpecialCode(filename):
         }
         return(acc);
     }
-     
-    constexpr unsigned int strHash(const char* str, int h = 0)
-    {
-        return !str[h] ? 5381 : (strHash(str, h+1)*33) ^ str[h];
+
+    constexpr unsigned int _strHash(const char* str, int h = 0){
+        return !str[h] ? 5381 : (_strHash(str, h+1)*33) ^ str[h];
     }
-    
+
     """
 
     decl ="string readFileAsString(string filename)"
@@ -1177,8 +1176,6 @@ def fetchXlators():
     xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
     xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
     xlators['iterateContainerStr']          = iterateContainerStr
-    xlators['codeSwitchExpr']               = codeSwitchExpr
-    xlators['codeSwitchCase']               = codeSwitchCase
     xlators['getEnumStr']                   = getEnumStr
     xlators['getEnumStringifyFunc']         = getEnumStringifyFunc
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
@@ -1196,6 +1193,8 @@ def fetchXlators():
     xlators['codeIncrement']                = codeIncrement
     xlators['codeDecrement']                = codeDecrement
     xlators['codeConstructorArgText']       = codeConstructorArgText
+    xlators['codeSwitchExpr']               = codeSwitchExpr
+    xlators['codeSwitchCase']               = codeSwitchCase
     xlators['codeSwitchBreak']              = codeSwitchBreak
     xlators['codeCopyConstructor']          = codeCopyConstructor
     xlators['codeRangeSpec']                = codeRangeSpec
