@@ -47,13 +47,14 @@ def bitsNeeded(n):
         return 1 + bitsNeeded((n + 1) // 2)
 ###### Routines to track types of identifiers and to look up type based on identifier.
 
-globalClassStore    = []
-globalTagStore      = None
-localVarsAllocated  = []   # Format: [varName, typeSpec]
-localArgsAllocated  = []   # Format: [varName, typeSpec]
-currentObjName      = ''
-inheritedEnums      = {}
-constFieldAccs      = {}
+globalClassStore     = []
+globalTagStore       = None
+localVarsAllocated   = []   # Format: [varName, typeSpec]
+localArgsAllocated   = []   # Format: [varName, typeSpec]
+currentObjName       = ''
+inheritedEnums       = {}
+constFieldAccs       = {}
+globalModeStringsAcc = ''
 genericStructsGenerated = [ {}, [] ]
 
 def typeIsInteger(fieldType):
@@ -231,6 +232,8 @@ def CheckObjectVars(className, itemName, fieldIDArgList):
         for value in enumValues:
             if value == searchFieldID:
                 field['fieldID'] = "{}::{}".format(enumInheritedType, searchFieldID)
+                field['typeSpec']['isGlobalEnum'] = True
+                field['typeSpec']['fieldType'] = enumInheritedType
                 return field
 
     #print("WARNING: Could not find field", itemName ,"in", className, "or inherited enums")
@@ -348,6 +351,10 @@ modeStateNames={}
 def getModeStateNames():
     global modeStateNames
     return modeStateNames
+
+def getInheritedEnums():
+    global inheritedEnums
+    return inheritedEnums
 
 def codeFlagAndModeFields(classes, className, tags, xlator):
     cdlog(5, "                    Coding flags and modes for: {}".format(className))
@@ -773,7 +780,10 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         else:
             [typeSpecOut, SRC]=fetchItemsTypeSpec(segSpec, objsRefed, genericArgs, xlator) # Possibly adds a codeConversion to typeSpecOut
             if typeSpecOut: typeSpecOut = getGenericTypeSpec(genericArgs, typeSpecOut, xlator)
-        if(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
+            if xlator['doesLangHaveGlobals']=='False':
+                if typeSpecOut and 'isGlobalEnum' in typeSpecOut and typeSpecOut['isGlobalEnum']:namePrefix = progSpec.fieldTypeKeyword(typeSpecOut)+ '.'
+                elif(SRC=="GLOBAL"): namePrefix = xlator['GlobalVarPrefix']
+                elif name in modeStateNames and modeStateNames[name]=='modeStrings': namePrefix = xlator['GlobalVarPrefix']+modeStateNames[name]+'.'
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
         if isNewContainer == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
@@ -1833,10 +1843,12 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
     global currentObjName
     global structsNeedingModification
     global StaticMemberVars
-    classRecord=None
-    constsEnums=""  # this isn't used. Remove it?
-    dependancies=[]
-    currentObjName=className
+    global globalModeStringsAcc
+    classRecord    = None
+    constsEnums    = ""  # this isn't used. Remove it?
+    dependancies   = []
+    currentObjName = className
+    funcCode       = ''
     if((xlator['doesLangHaveGlobals']=='False') or className != 'GLOBAL'): # and ('enumList' not in classes[0][className]['typeSpec'])):
         inheritsMode = False
         try:
@@ -1884,6 +1896,7 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
             progSpec.populateCallableStructFields(callableStructFields, globalClassStore, className)
             [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
             structCode+= constFieldCode
+            if className=='GLOBAL' and xlator['doesLangHaveGlobals']==False: structCode += '\n_ModeStrings modeStrings = new _ModeStrings();'
 
             attrList = classDef['attrList']
             if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
@@ -1970,6 +1983,10 @@ def codeStructureCommands(classes, tags, xlator):
                 funcName        = funcArgs[1]
                 #print '     addCallProxy:', className, funcName, proxyStyle, platformTag
                 pattern_WriteCallProxy.apply(classes, tags, proxyStyle, className, funcName, platformTag)
+
+def codeModeStringsStruct():
+    global globalModeStringsAcc
+    return('\nclass _ModeStrings{\n'+globalModeStringsAcc+'}\n')
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
@@ -2135,6 +2152,7 @@ def pieceTogetherTheSourceFiles(classes, tags, oneFileTF, classRecords, headerIn
 
         forwardDecls += globalFuncDeclAcc
         funcCodeAcc  += globalFuncDefnAcc
+        if xlator['doesLangHaveGlobals']=='False': structCodeAcc += codeModeStringsStruct()
 
         outputStr = header + constsEnums + forwardDecls + libEmbedVeryHigh + structCodeAcc + ForwardDeclsForGlobalFuncs + libEmbedCodeHigh + MainTopBottom[0] + funcCodeAcc + libEmbedCodeLow + MainTopBottom[1]
         filename = progSpec.fetchTagValue(tags, "FileName")

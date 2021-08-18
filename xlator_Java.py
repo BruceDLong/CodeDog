@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, logLvl
-from codeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getModeStateNames, codeExpr, convertType, generateGenericStructName, getGenericTypeSpec
+from codeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParameterList, makeTagText, codeAction, getModeStateNames, codeExpr, convertType, generateGenericStructName, getGenericTypeSpec, getInheritedEnums
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -222,9 +222,13 @@ def getEnumStr(fieldName, enumList):
     S += "\n"
     return(S)
 
+def getEnumStructStr(fieldName, enumList):
+    S = 'enum '+fieldName+'{'+ ', '.join(enumList) +'}\n'
+    return S
+
 def getEnumStringifyFunc(className, enumList):
-    S = 'ArrayList<String> ' + className + 'Strings = new ArrayList<String>(Arrays.asList(' + '", "'.join(enumList) + '));\n'
-    return ''
+    S = 'String[] ' + className + 'Strings = {"' + '", "'.join(enumList) + '"};\n'
+    return S
 
 def codeIdentityCheck(S, S2, retType1, retType2, opIn):
     S2 = adjustQuotesForChar(retType1, retType2, S2)
@@ -521,6 +525,7 @@ def codeSpecialReference(segSpec, objsRefed, genericArgs, xlator):
                     fieldType = adjustBaseTypes(fieldType, False)
                 else: fieldType = argTypeSpec
                 if fieldType == "timeValue" or fieldType == "int" or fieldType == "double": S2 = '('+S2+')'
+                elif fieldType in getInheritedEnums(): S2 = S2 + '.ordinal()'
                 S+=S2
             S+=")"
             retOwner='me'
@@ -928,6 +933,7 @@ def fetchXlators():
     xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
+    xlators['getEnumStructStr']             = getEnumStructStr
     xlators['getEnumStringifyFunc']         = getEnumStringifyFunc
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
     xlators['codeVarField_Str']             = codeVarField_Str
