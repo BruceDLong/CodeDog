@@ -291,8 +291,11 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
     if LorR_Val=='RVAL':
         #Next line may be cause of bug with printing modes.  remove 'not'?
-        if (previousSegName in getModeStateNames()):
-            S= '.get((int)' + idx + ')'
+        modeStateNames = getModeStateNames()
+        if previousSegName in modeStateNames:
+            modeStruct = modeStateNames[previousSegName]
+            if modeStruct=='modeStrings': S = '[(int)' + idx + '.ordinal()]'
+            else: S= '.get((int)' + idx + ')'
         elif (containerType== 'ArrayList' or containerType== 'TreeMap' or containerType== 'Java_ArrayList' or containerType== 'Map' or containerType== 'multimap'or containerType== 'Java_Map'):
             S= '.get(' + idx + ')'
         elif (containerType== 'string'):
