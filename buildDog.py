@@ -16,7 +16,7 @@ from pathlib import Path
 #TODO: error handling
 
 def runCMD(myCMD, myDir):
-    print("        COMMAND: ", myCMD, "\n")
+    print("\nCOMMAND: ", myCMD, "\n")
     pipe = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
     if out:
@@ -365,7 +365,8 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     runStr = "./" + fileName
     SconsFileOut += '    )\n'
     SconsFile += sconsCppPaths + sconsLibPaths + sconsLibs + sconsConfigs + SconsFileOut + '\n'
-    writeFile(buildName, 'SConstruct', [[['SConstruct'],SconsFile]], "")
+    sconsFilename = fileName+".scons"
+    writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
     return [workingDirectory, buildStr, runStr]
 
 def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
@@ -438,14 +439,14 @@ def iOSBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, plat
     writeFile(projectDirectory+'/'+projectName, fileName, fileSpecs, fileExtension)
     return [projectDirectory, buildCmd, runCmd]
 
-def printResults(workingDirectory, buildStr, runStr):
+def BuildAndPrintResults(workingDirectory, buildStr, runStr):
     cdlog(1, "Compiling From: {}".format(workingDirectory))
     print("     NOTE: Build Command is: ", buildStr, "\n")
     print("     NOTE: Run Command is: ", runStr, "\n")
     #print ("workingDirectory: ", workingDirectory)
     pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = pipe.communicate()
-    if out: print("Result: \n",out.decode('utf-8'))
+    if out: print("Result: \n"+out.decode('utf-8'))
     if err:
         decodedErr = err.decode('UTF-8')
         if "error:" in decodedErr or "SyntaxError:" in decodedErr:
@@ -474,7 +475,7 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     else:
         print("buildDog.py error: build string not generated for "+ buildName)
         exit(2)
-    if platform!='Android': printResults(workingDirectory, buildStr, runStr)
+    if platform!='Android': BuildAndPrintResults(workingDirectory, buildStr, runStr)
     print("--------------------------")
     return
 
@@ -497,8 +498,8 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         buildStr = langStr + debugMode + " " + minLangStr + fileStr  + " " + libStr + " " + outputFileStr
         """
 
-        currentFileDir = os.path.dirname(__file__)
-        buildStr = f"python3 {currentFileDir}/Scons/scons.py"
+        codeDogPath = os.path.dirname(os.path.realpath(__file__))
+        buildStr = f"python3 {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
     elif platform == 'Java' or  platform == 'Swing':
         buildStr = ''
         libStr = ''
@@ -529,3 +530,32 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
     else:
         buildStr=''
     return buildStr
+
+def buildWithScons(name, cmdLineArgs):
+    #print("cmdLineArgs:", ' '.join(cmdLineArgs))
+    sconsFile = lastFile = ''
+    fCount = 0
+    basepath = os.getcwd()
+    for fname in os.listdir(basepath):
+        path = os.path.join(basepath, fname)
+        if os.path.isdir(path): continue
+        if(fname.endswith(".scons")):
+            fCount += 1
+            lastFile = fname
+            if fname==name+".scons":
+                sconsFile = fname
+                break
+    if fCount==1 and name=='': sconsFile=lastFile
+    if sconsFile=='':
+        print("BUILDING: Could not find '"+name+".scons'\n")
+        exit(1)
+    else:
+        if name=='' and fCount!=1:
+            print("BUILDING: Could not figure out what to build.")
+
+        codeDogPath = os.path.dirname(os.path.realpath(__file__))
+        otherSconsArgs = ' '.join(cmdLineArgs)
+        sconsCMD = "python3 "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
+        result = runCMD(sconsCMD, basepath)
+        print(result)
+        print("\nSUCCESS\n")

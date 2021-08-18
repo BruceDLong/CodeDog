@@ -1,6 +1,17 @@
 import subprocess
 import pkg_resources
-# import importlib_metadata
+import os
+
+def AddSystemPath():
+    pathList = os.get_exec_path()
+    codeDogPath = os.path.dirname(os.path.realpath(__file__))
+    if codeDogPath in pathList: return
+    addPathPermission = input("Do you want to add CodeDog to the System Path? [Y/n] ")
+    if addPathPermission.lower() == 'y' or addPathPermission.lower() == 'yes' or addPathPermission == '':
+        # Research how to permanently set the path for Linux, Mac, Windows via python3
+        pass
+    else:
+        print("If you wish to add CodeDog to the system path manually, it is:\n    ", codeDogPath)
 
 def DownloadInstallPipModules(pipCMD):
     pipe = subprocess.Popen(pipCMD, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -10,6 +21,7 @@ def DownloadInstallPipModules(pipCMD):
         print("\n\n", decodedOut)
 
 def CheckPipModules():
+    AddSystemPath()
     requiredMinimumModulesList = {'pyparsing':'2.4.6', 'GitPython':'3.1.18', 'pycurl':'7'}
     modulesList = []
     for moduleName in requiredMinimumModulesList:
@@ -36,15 +48,10 @@ def CheckPipModules():
             for module in modulesList:
                 moduleBaseName = module[:module.find("==")]
                 print("\nInstalling package: ", moduleBaseName)
-                pipCMD = 'pip install -q %s --disable-pip-version-check' % moduleBaseName
+                pipCMD = 'pip3 install -q %s --disable-pip-version-check' % moduleBaseName
                 DownloadInstallPipModules(pipCMD)
         else:
             print("\n\nERROR: CodeDog must be used with python modules\n")
             for module in modulesList:
                 print("     %s" % module)
             exit(1)
-
-def AddSystemPath():
-    addPathPermission = input("Do you want to add CodeDog to System Path? [Y/n] ")
-    if addPathPermission.lower() == 'y' or addPathPermission.lower() == 'yes' or addPathPermission == '':
-        pass

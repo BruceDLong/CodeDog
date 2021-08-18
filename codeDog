@@ -9,7 +9,6 @@ import progSpec
 import codeDogParser
 import buildDog
 import TestDog
-import checkSys
 
 ##########  Library Shells
 import libraryMngr
@@ -18,7 +17,6 @@ import xlator_CPP
 import xlator_Java
 #import xlator_JavaScript
 import xlator_Swift
-import checkSys
 
 import re
 import os
@@ -30,8 +28,8 @@ import threading
 from progSpec import cdlog, cdErr
 from os.path import abspath
 
-if sys.version_info[0] < 3:
-    print("\n\nERROR: CodeDog must be used with Python 3\n")
+if sys.version_info.major < 3 or (sys.version_info.major == 3 and  sys.version_info.minor < 5):
+    print("\n\nERROR: CodeDog must be used with Python 3.5 or newer\n")
     exit(1)
 
 codeDogVersion = '2.0'
@@ -42,6 +40,12 @@ if(len(sys.argv) < 2):
 arg1 = sys.argv[1]
 if arg1=="-v" or arg1=='--version':
     print("\n    CodeDog application compiler version "+ codeDogVersion+"\n")
+    exit(1)
+if arg1=="-b" or arg1=='--build':
+    name = ''
+    lastArg=2
+    if(len(sys.argv) >2 and sys.argv[2][0]!='-'): name = sys.argv[2]; lastArg=3
+    buildDog.buildWithScons(name, sys.argv[lastArg:])
     exit(1)
 if arg1[0]=='-':
     print("Unsupported argument:", arg1)
