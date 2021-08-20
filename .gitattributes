@@ -1,3 +1,7 @@
+Examples/*.dog linguist-detectable
+Examples/*.dog linguist-language=CodeDog
+LIBS/*.dog linguist-detectable
+LIBS/*.dog linguist-language=CodeDog
 *.dog linguist-detectable
 *.dog linguist-language=CodeDog
 
