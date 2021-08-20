@@ -1,0 +1,4 @@
+*.dog linguist-language=CodeDog
+
+Docs/** linguist-documentation
+Scons/** linguist-vendored
