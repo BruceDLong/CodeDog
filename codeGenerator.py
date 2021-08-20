@@ -1860,8 +1860,14 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
             cdlog(1, "   Class that inherits mode: " + className)
             forwardDeclsOut = ""
             enumVals = classes[0][className]['tags']['inherits']['fieldType']['altModeList']
-            structCodeOut = "\n" + xlator['getEnumStr'](className, enumVals).lstrip()
-            funcCode = xlator['getEnumStringifyFunc'](className, enumVals)
+            if xlator['doesLangHaveGlobals']=='True':
+                structCodeOut = "\n" + xlator['getEnumStr'](className, enumVals).lstrip()
+                funcCode = xlator['getEnumStringifyFunc'](className, enumVals)
+                modeStateNames[className+'Strings']    = "GLOBAL"
+            else:
+                structCodeOut = "\n" + xlator['getEnumStructStr'](className, enumVals).lstrip()
+                globalModeStringsAcc += xlator['getEnumStringifyFunc'](className, enumVals)
+                modeStateNames[className+'Strings']    = "modeStrings"
             inheritedEnums[className] = enumVals
             StaticMemberVars[className+'Strings']  = "GLOBAL"
         else:
@@ -1896,7 +1902,7 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
             progSpec.populateCallableStructFields(callableStructFields, globalClassStore, className)
             [structCode, funcCode, globalCode]=codeStructFields(classes, className, tags, '    ', objsRefed, xlator)
             structCode+= constFieldCode
-            if className=='GLOBAL' and xlator['doesLangHaveGlobals']==False: structCode += '\n_ModeStrings modeStrings = new _ModeStrings();'
+            if className=='GLOBAL' and xlator['doesLangHaveGlobals']=='False': structCode += '\n    _ModeStrings modeStrings = new _ModeStrings();\n'
 
             attrList = classDef['attrList']
             if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
@@ -1986,7 +1992,7 @@ def codeStructureCommands(classes, tags, xlator):
 
 def codeModeStringsStruct():
     global globalModeStringsAcc
-    return('\nclass _ModeStrings{\n'+globalModeStringsAcc+'}\n')
+    return('\nclass _ModeStrings{\n    '+globalModeStringsAcc+'}\n')
 
 def makeTagText(tags, tagName):
     tagVal=progSpec.fetchTagValue(tags, tagName)
