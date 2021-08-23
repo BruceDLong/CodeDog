@@ -649,15 +649,24 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
                     genericArgsOut[tArgList[count]]=reqTag
                     count += 1
                 fromImpl['genericArgs'] = genericArgsOut
-                if 'atTypeSpec' in fromImpl:
-                    atTSpec  = fromImpl['atTypeSpec']
-                    atTypeKW = progSpec.fieldTypeKeyword(atTSpec)
-                    if atTypeKW in genericArgsOut:
-                        atTSpec['owner']     = genericArgsOut[atTypeKW]['tArgOwner']
-                        atTSpec['fieldType'] = genericArgsOut[atTypeKW]['tArgType']
-            classInfo = getGenericClassInfo(fTypeKW)
-            if classInfo['typeArgList']==None:
-                classInfo['typeArgList'] = tArgList
+                for implName in fromImpl:
+                    if implName == 'atTypeSpec' or implName=='atKeyTypeSpec':
+                        implSpec  = fromImpl[implName]
+                        implTypeKW = progSpec.fieldTypeKeyword(implSpec)
+                        if implTypeKW in genericArgsOut:
+                            implSpec['owner']     = genericArgsOut[implTypeKW]['tArgOwner']
+                            implSpec['fieldType'] = genericArgsOut[implTypeKW]['tArgType']
+                    elif implName=='itrTypeSpec':
+                        implSpec  = fromImpl[implName]
+                        if 'fromGeneric' not in implSpec:
+                            implTypeKW = progSpec.fieldTypeKeyword(implSpec)
+                            implSpec['fieldType'] = generateGenericStructName(implTypeKW, reqTagList, genericArgs, xlator)
+                            implSpec['fromGeneric'] = True
+                            print('fromImpl:',implSpec['fieldType'] )
+                classInfo = fromImpl
+            else:
+                classInfo = getGenericClassInfo(fTypeKW)
+                if classInfo['typeArgList']==None: classInfo['typeArgList'] = tArgList
             typeSpecOut['fromImplemented'] = classInfo
         else:
             classInfo = getGenericClassInfo(fTypeKW)
