@@ -662,7 +662,6 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
                             implTypeKW = progSpec.fieldTypeKeyword(implSpec)
                             implSpec['fieldType'] = generateGenericStructName(implTypeKW, reqTagList, genericArgs, xlator)
                             implSpec['fromGeneric'] = True
-                            print('fromImpl:',implSpec['fieldType'] )
                 classInfo = fromImpl
             else:
                 classInfo = getGenericClassInfo(fTypeKW)
@@ -979,7 +978,8 @@ def codeItemRef(name, LorR_Val, objsRefed, returnType, LorRorP_Val, genericArgs,
         if(segStr.find("%0") >= 0):
     #        if connector=='->' and owner!='itr': S="*("+S+")"
             S=segStr.replace("%0", S)
-            S=S[len(connector):]
+            lenConnector = len(connector)
+            if S[:lenConnector]==connector: S=S[lenConnector:]
         else: S+=segStr
 
 
