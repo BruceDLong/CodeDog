@@ -330,19 +330,23 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
             idxTypeKW      = progSpec.getTypeFromTemplateArg(reqTagList[0])
             valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
-        loopCounterName  = repName+'_key'
+        loopCounterName = repName+'_key'
+        itrTypeKW = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec))
         idxTypeKW = adjustBaseTypes(idxTypeKW, True)
         valueFieldType = adjustBaseTypes(valueFieldType, True)
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        actionText += (indent + 'for(Map.Entry<'+idxTypeKW+','+valueFieldType+'> '+repName+'Entry : '+ctnrName+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
+        if '__RB' in datastructID:
+            actionText += (indent + 'for('+itrTypeKW+' '+repName+'Entry = '+ctnrName+'.find('+StartKey+'); '+repName+'Entry !='+ctnrName+'.find('+EndKey+'); '+repName+'Entry.__inc()){\n' +
+                       indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.node.value;\n' +
+                       indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.node.key;\n'  )
+        else:
+            actionText += (indent + 'for(Map.Entry<'+idxTypeKW+','+valueFieldType+'> '+repName+'Entry : '+ctnrName+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
                        indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
                        indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.getKey();\n'  )
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
-    else:
-        print("DSID iterateRangeContainerStr:",datastructID,containerCat)
-        exit(2)
+    else: cdErr("DSID iterateRangeContainerStr:"+datastructID+" "+containerCat)
     return [actionText, loopCounterName]
 
 def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBackward,indent,genericArgs,xlator):
@@ -359,11 +363,11 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)
     itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
-    itrName          = repName + "Itr"
+    itrName          = repName
     containerCat     = getContaineCategory(ctnrTSpec)
     itrIncStr        = ""
     if containerCat=='PovList': cdErr("PovList: "+repName+"   "+ctnrName) # this should be called PovList
-    if containerCat=='MAP':
+    if containerCat=='MAP' or containerCat=="MULTIMAP":
         reqTagString    = getReqTagString(classes, ctnrTSpec)
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
