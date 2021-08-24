@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [BigNumbers_implementation]
     libFiles = []
-    headers  = []
+    headers  = [java.math.BigInteger, java.math.BigDecimal]
 }
 
 LibDescription ={
@@ -14,7 +14,7 @@ LibDescription ={
     description = 'Built in routines for Java'
 }
 
-struct BigInt: wraps = TODO{
+struct BigInt: wraps = BigInteger{
     //me int64: convertToIntVal()            <- <%!%>
     me int: hexNumToBigInt(me string: val) <- <%{}%>            // TODO: for Proteus codeGen
     me int: binNumToBigInt(me string: val) <- <%{}%>            // TODO: for Proteus codeGen

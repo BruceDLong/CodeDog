@@ -285,7 +285,12 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
             if modeStruct=='modeStrings': S = '[(int)' + idx + '.ordinal()]'
             else: S= '.get((int)' + idx + ')'
         elif (containerType== 'string'):
-            S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
+            fTypeKW = progSpec.fieldTypeKeyword(idxTypeSpec)
+            mod = ''
+            if fTypeKW!='numeric' and fTypeKW!='int':
+                jType = adjustBaseTypes(fTypeKW, False)
+                mod = '(int)'
+            S= '.charAt(' + mod + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
         else:
             fieldDefAt = CheckObjectVars(containerType, "at", "")
             if fieldDefAt:
@@ -448,6 +453,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
                 typeKeyword = adjustBaseTypes(typeKeyword, True)
             else: typeKeyword = retTypeKW
             S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
+        elif item0=='{':cdErr("TODO: finish Java initialize new map")
         else:
             expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
@@ -959,4 +965,5 @@ def fetchXlators():
     xlators['getVirtualFuncText']           = getVirtualFuncText
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
     xlators['makePtrOpt']                   = makePtrOpt
+    xlators['adjustBaseTypes']              = adjustBaseTypes
     return(xlators)

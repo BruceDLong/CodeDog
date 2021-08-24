@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[]
-    headers =[android.os.HandlerThread, java.lang.Thread.*]
+    headers =[java.lang.Thread, java.util.concurrent.Semaphore]
 }
 
 LibDescription  = {
