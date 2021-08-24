@@ -1,0 +1,116 @@
+// CodeDog Unicode Library
+requirements = [
+    [tagOneOf, Platform, [Swing]]
+]
+
+interface={
+    provides = [Unicode_platform_implementation]
+    libFiles=[]
+    headers=[java.util.Locale, java.text.SimpleDateFormat, java.util.Calendar, java.util.GregorianCalendar]
+}
+
+LibDescription  ={
+    useStatus   = 'dynamic'
+    description = 'Unicode for Java'
+    features    = [Unicode]
+    platforms   = [Java]
+    bindings    = [Java]
+    Lang        = [Java]
+}
+embedVeryHigh = `
+`
+embedHigh = `
+`
+/////////////////////////////////  STRUCT CONVERTERS
+struct UnicodeStr: wraps=String{}
+struct sysLocale:  wraps=Locale{}
+struct UDate:      wraps=double{}
+struct wstring:    wraps=String{}
+
+struct GLOBAL{
+    me bool: isutf(me char: ch)   <- {return(false);}   // TODO: for Proteus codeGen
+    me wstring: stringToWString(me string: str) <- <%{return("");}%>
+    me int: remainingOctets(me char: ch) <- <%{return(0);}%>
+}
+
+struct UnicodeMgr {
+    me sysLocale: SetLocale(me string: code) <- <%{
+        Locale location = new Locale(code);
+        return location;
+    }%>
+
+    me string: dateToIntlString(me UDate: date, me UDate: interval, me sysLocale: loc) <- <%{ // TODO: verify works
+        SimpleDateFormat dateOut = new SimpleDateFormat(Double.toString(date));
+        String pattern = chooseFormatPattern(interval);
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
+        String uniLabel = simpleDateFormat.format(dateOut);
+        return uniLabel;
+    }%>
+
+    me string: getHour(me UDate: date, me sysLocale: loc) <- <%{ // TODO: verify works
+        String pattern = "k";   // k: hour in day (1~24)
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
+        String hour = simpleDateFormat.format(date);
+        return hour;
+    }%>
+
+    me bool: isUnicodeAlpha(me int32: ch) <- <%{return(false);}%>
+    me bool: isUnicodeAlphaNum(me int32: ch) <- <%{return(false);}%>
+    me bool: isUnicodeWordStart(me int32: ch) <-{return(false);}
+    me bool: isUnicodeWordContinue(me int32: ch) <-<%{return(false);}%>
+    me UnicodeStr: fromUTF8Str(me string: input) <- <%{
+        String output = null;
+        try {
+            output = new String(input.getBytes("ISO-8859-1"), "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            return null;
+        }
+        return output;
+    }%>
+    me string: toUTF8Str(me UnicodeStr: input) <- <%{
+        String output = null;
+        try {
+            output = new String(input.getBytes("UTF-8"), "ISO-8859-1");
+        } catch (java.io.UnsupportedEncodingException e) {
+            return null;
+        }
+        return output;
+    }%>
+    void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out) <- <%{}%>
+    me string: normalizeStr(me string: input) <- <%{return("");}%>
+
+    me UnicodeStr: getDisplayLanguage(me sysLocale: loc, me string: langNameLangDisplayedIn <- "") <- <%{return("");}%>
+
+    me UnicodeStr: getDisplayCountry(me sysLocale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{return("");}%>
+
+    me timeValue: epocTimeFromDateTime(me int: year, me int: month, me int: date, me int: hour, me int: minute, me int: second) <- <%{
+        Calendar cal = new GregorianCalendar(year, month, date, hour, minute, second);
+        long retval = cal.getTimeInMillis();
+        return retval;
+    }%>
+
+   void: dateTimeFromEpocTime(me timeValue: epocTime, their DateTimeFields: dateTimeFields) <- <%{
+        Calendar cal = new GregorianCalendar();
+        cal.setTimeInMillis(epocTime);
+        dateTimeFields.year = cal.get(Calendar.YEAR);
+        dateTimeFields.month = cal.get(Calendar.MONTH);
+        dateTimeFields.day = cal.get(Calendar.DATE);
+        dateTimeFields.hour = cal.get(Calendar.HOUR_OF_DAY);
+        dateTimeFields.minute = cal.get(Calendar.MINUTE);
+        dateTimeFields.second = cal.get(Calendar.SECOND);
+        dateTimeFields.millisecond = cal.get(Calendar.MILLISECOND);
+    }%>
+
+    me string: customPatternDateTime(me UDate: time, me UnicodeStr: pattern, me string: locPat) <- <%{// TODO: verify works
+        Date date = new Date(Double.toString(time));
+        Locale loc = new Locale(locPat);
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
+        String uniLabel = simpleDateFormat.format(date);
+        return uniLabel;
+    }%>
+
+    me string: localeString(their sysLocale: loc) <- <%{return("");}%>
+    me string: getLocaleBaseName(their sysLocale: loc) <- <%{return("");}%>
+    me sysLocale: getSystemLocale() <- <%{return(Locale.getDefault());}%>
+}
+
