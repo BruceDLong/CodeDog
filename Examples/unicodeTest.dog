@@ -33,7 +33,7 @@ struct GLOBAL{
         // TEST 2 normalizeStr()
         me string: uniNorm <- unicodeMgr.normalizeStr(hello)
         if(uniNorm=='hello world!\n'){print("TEST 2 PASS: " ,uniNorm)}
-        else{print("TEST 2 FAIL: " ,uniNorm)}
+        else{print("TEST 2 FAIL: " ,uniNorm, "\n")}
 
         // TEST 3 SetLocale() getDisplayLanguage()
         me string: code <- "fr_FR"
@@ -50,11 +50,21 @@ struct GLOBAL{
 
         // TEST 5 getDisplayCountry()
         me UnicodeStr: dispCountry2 <- unicodeMgr.getDisplayCountry(loc, testLang)
-        if(dispCountry2=="França"){print("TEST 4 PASS: " ,dispCountry2, "\n")}
-        else{print("TEST 4 FAIL: " ,dispCountry2, "\n")}
+        if(dispCountry2=="França"){print("TEST 5 PASS: " ,dispCountry2, "\n")}
+        else{print("TEST 5 FAIL: " ,dispCountry2, "\n")}
 
-        //TODO: write more tests for: dateToIntlString() getHour() isUnicodeAlpha() isUnicodeAlphaNum() isUnicodeWordStart()
-        // isUnicodeWordContinue() UnicodeStrToUTF8_String() epocTimeFromDateTime() dateTimeFromEpocTime() customPatternDateTime()
-        // localeString() getLocaleBaseName() getSystemLocale()
+        // TEST 6 getSystemLocale()
+        me UnicodeStr: sysLang <- unicodeMgr.getDisplayLanguage(loc)
+        if(sysLang=="French"){print("TEST 6 PASS: " ,sysLang, "\n")}
+        else{print("TEST 6 FAIL: " ,sysLang, "\n")}
+
+        // TEST 7 getLocaleBaseName()
+        me string: baseName <- unicodeMgr.getLocaleBaseName(loc)
+        if(baseName=="fr_FR"){print("TEST 7 PASS: " ,baseName, "\n")}
+        else{print("TEST 7 FAIL: " ,baseName, "\n")}
+
+        //TODO: for Proteus write tests for: isUnicodeAlpha() isUnicodeWordContinue() isUnicodeWordStart()
+        //TODO: for CLIP write tests for: localeString() UnicodeStrToUTF8_String()
+        //TODO: for Widgets and Dashes write tests for: customPatternDateTime() epocTimeFromDateTime() dateTimeFromEpocTime() getHour() dateToIntlString()
     }
 }
