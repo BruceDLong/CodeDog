@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [Unicode_platform_implementation]
     libFiles=[]
-    headers=[java.util.Locale, java.text.SimpleDateFormat, java.util.Calendar, java.util.GregorianCalendar]
+    headers=[java.util.Locale, java.text.SimpleDateFormat, java.util.Calendar, java.util.GregorianCalendar, java.text.Normalizer]
 }
 
 LibDescription  ={
@@ -35,7 +35,15 @@ struct GLOBAL{
 
 struct UnicodeMgr {
     me sysLocale: SetLocale(me string: code) <- <%{
-        Locale location = new Locale(code);
+        Locale location;
+        if(code.contains("_")){
+            String[] codeSplit = code.split("_");
+            String language = codeSplit[0];
+            String country = codeSplit[1];
+            location = new Locale(language, country);
+        }else{
+            location = new Locale(code);
+        }
         return location;
     }%>
 
@@ -77,11 +85,34 @@ struct UnicodeMgr {
         return output;
     }%>
     void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out) <- <%{}%>
-    me string: normalizeStr(me string: input) <- <%{return("");}%>
 
-    me UnicodeStr: getDisplayLanguage(me sysLocale: loc, me string: langNameLangDisplayedIn <- "") <- <%{return("");}%>
+    me string: normalizeStr(me string: input) <- <%{
+        String outStr = Normalizer.normalize(input, Normalizer.Form.NFC);
+        outStr = outStr.toLowerCase();
+        return(outStr);
+    }%>
 
-    me UnicodeStr: getDisplayCountry(me sysLocale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{return("");}%>
+    me UnicodeStr: getDisplayLanguage(me sysLocale: loc, me string: langNameLangDisplayedIn <- "") <- <%{
+        String langName;
+        if (langNameLangDisplayedIn != "") {
+            Locale dispLoc = new Locale(langNameLangDisplayedIn);
+            langName = loc.getDisplayLanguage(dispLoc);
+        } else {
+            langName = loc.getDisplayLanguage();
+        }
+        return(langName);
+    }%>
+
+    me UnicodeStr: getDisplayCountry(me sysLocale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{
+        String dispCountry;
+        if (countryNameLangDisplayedIn != "") {
+            Locale dispLoc = new Locale(countryNameLangDisplayedIn);
+            dispCountry = loc.getDisplayCountry(dispLoc);
+        } else {
+            dispCountry = loc.getDisplayCountry();
+        }
+        return(dispCountry);
+    }%>
 
     me timeValue: epocTimeFromDateTime(me int: year, me int: month, me int: date, me int: hour, me int: minute, me int: second) <- <%{
         Calendar cal = new GregorianCalendar(year, month, date, hour, minute, second);
@@ -110,7 +141,12 @@ struct UnicodeMgr {
     }%>
 
     me string: localeString(their sysLocale: loc) <- <%{return("");}%>
-    me string: getLocaleBaseName(their sysLocale: loc) <- <%{return("");}%>
+    me string: getLocaleBaseName(their sysLocale: loc) <- <%{
+        String country = loc.getCountry();
+        String language = loc.getLanguage();
+        String baseNme = language + "_" + country;
+        return(baseNme);
+    }%>
     me sysLocale: getSystemLocale() <- <%{return(Locale.getDefault());}%>
 }
 
