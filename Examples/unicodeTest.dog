@@ -1,0 +1,70 @@
+// unicodeTest.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "Unicode Test"
+FileName = "unicodeTest"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is a test for Unicode Libraries"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [Unicode]
+
+LicenseText = `Public Domain`
+
+
+runCode=`runProg()`
+
+struct GLOBAL{
+    void: runProg() <- {
+        // TEST 1 fromUTF8Str() toUTF8Str()
+        print("UNICODE TESTS\n")
+        me string: hello <- "Hello World!\n"
+        me UnicodeStr: uniHello <- unicodeMgr.fromUTF8Str(hello)
+        me string: output <- unicodeMgr.toUTF8Str(uniHello)
+        if(output=='Hello World!\n'){print("TEST 1 PASS: " ,output)}
+        else{print("TEST 1 FAIL: " ,output)}
+
+        // TEST 2 normalizeStr()
+        me string: uniNorm <- unicodeMgr.normalizeStr(hello)
+        if(uniNorm=='hello world!\n'){print("TEST 2 PASS: " ,uniNorm)}
+        else{print("TEST 2 FAIL: " ,uniNorm, "\n")}
+
+        // TEST 3 SetLocale() getDisplayLanguage()
+        me string: code <- "fr_FR"
+        me string: testLang <- "pt"
+        me sysLocale: loc <- unicodeMgr.SetLocale(code)
+        me UnicodeStr: dispName1 <- unicodeMgr.getDisplayLanguage(loc)
+        if(dispName1=="French"){print("TEST 3 PASS: " ,dispName1, "\n")}
+        else{print("TEST 3 FAIL: " ,dispName1, "\n")}
+
+        // TEST 4 getDisplayCountry()
+        me UnicodeStr: dispCountry1 <- unicodeMgr.getDisplayCountry(loc)
+        if(dispCountry1=="France"){print("TEST 4 PASS: " ,dispCountry1, "\n")}
+        else{print("TEST 4 FAIL: " ,dispCountry1, "\n")}
+
+        // TEST 5 getDisplayCountry()
+        me UnicodeStr: dispCountry2 <- unicodeMgr.getDisplayCountry(loc, testLang)
+        if(dispCountry2=="França"){print("TEST 5 PASS: " ,dispCountry2, "\n")}
+        else{print("TEST 5 FAIL: " ,dispCountry2, "\n")}
+
+        // TEST 6 getSystemLocale()
+        me UnicodeStr: sysLang <- unicodeMgr.getDisplayLanguage(loc)
+        if(sysLang=="French"){print("TEST 6 PASS: " ,sysLang, "\n")}
+        else{print("TEST 6 FAIL: " ,sysLang, "\n")}
+
+        // TEST 7 getLocaleBaseName()
+        me string: baseName <- unicodeMgr.getLocaleBaseName(loc)
+        if(baseName=="fr_FR"){print("TEST 7 PASS: " ,baseName, "\n")}
+        else{print("TEST 7 FAIL: " ,baseName, "\n")}
+
+        //TODO: for Proteus write tests for: isUnicodeAlpha() isUnicodeWordContinue() isUnicodeWordStart()
+        //TODO: for CLIP write tests for: localeString() UnicodeStrToUTF8_String()
+        //TODO: for Widgets and Dashes write tests for: customPatternDateTime() epocTimeFromDateTime() dateTimeFromEpocTime() getHour() dateToIntlString()
+    }
+}

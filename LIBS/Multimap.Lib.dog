@@ -1,6 +1,34 @@
 // CodeDog Multimap
 requirements = [[require, Multimap_implementation]]
 
+model MultimapNode<keyType, valueType>{
+    keyType: key
+    valueType: value
+    their RBNode<keyType, valueType>: goNext()
+    their RBNode<keyType, valueType>: goPrev()
+}
+model MultimapItr<keyType, valueType>{
+    our MultimapNode<keyType, valueType>: node
+    our MultimapNode<keyType, valueType>: goNext()
+    //our MultimapNode<keyType, valueType>: goPrev()
+    valueType: val()
+}
+model Multimap<keyType, valueType>{
+    valueType: at(keyType)
+    void: clear()
+    me bool: containsKey(keyType: key)
+    our MultimapItr: end()
+    void: erase(keyType: key)
+    our MultimapItr: find(keyType: key)
+    valueType: first()
+    our MultimapItr: front()
+    our MultimapItr: insert(keyType: key, valueType: value)
+    me bool:  isEmpty()
+    valueType: last()
+    //itr valueType: lower_bound(keyType: key)
+    me uint:  size()
+}
+
 struct RBMultimapItr<keyType, valueType>: implements=MapItr{
     their RBNode<keyType, valueType>: node
     their RBMultimap<keyType, valueType>: container
