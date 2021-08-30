@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[]
-    headers =[java.lang.Thread, java.util.concurrent.Semaphore]
+    headers =[java.lang.Thread, java.util.concurrent.locks.ReentrantLock, java.util.concurrent.Semaphore]
 }
 
 LibDescription  = {
@@ -23,19 +23,23 @@ struct Threads: wraps=Thread ownerMe=their{
     void: run()             <- {}
     bool: isActive()        <- <%!isAlive();%>
     void: start()           <- <%!start();%>
-    void: waitForExit()     <- <%!join(0);%>
+    void: waitForExit()     <- <%!try{%0.join(0);}catch(InterruptedException e){e.printStackTrace();}%>
 }
 
-struct Mutex: wraps=TODO{
-    //void: lock()        <- <%!%>
-    //void: unlock()      <- <%!%>
-    //bool: tryLock()     <- <%!%>
+struct Mutex: wraps=ReentrantLock{
+    void: lock()        <- <%!lock()%>
+    void: unlock()      <- <%!unlock()%>
+    bool: tryLock()     <- <%!tryLock()%>
 }
 
-struct MutexMngr: wraps=TODO{
-    //void: lock()        <- <%!%>
-    //void: unlock()      <- <%!%>
-    //bool: tryLock()     <- <%!%>
+struct MutexMngr{
+    me Mutex: mtx
+
+    void: lock()        <- <%!mtx.lock()%>
+    void: unlock()      <- <%!mtx.unlock()%>
+    bool: tryLock()     <- <%!mtx.tryLock()%>
+    // CONSTRUCTORS ////////////////////
+    none: MutexMngr(me Mutex: __mutex)<-{mtx <- __mutex}
 }
 
 struct SyncLock: wraps = TODO {
@@ -44,7 +48,7 @@ struct SyncLock: wraps = TODO {
     //void: notifyAll()                <- <%!%>
 }
 
-struct Semaphore: wraps=TODO {
+struct Semaphore: wraps=Semaphore {
     //void: post()        <- <%!%>
     //void: wait()        <- <%!%>
 }

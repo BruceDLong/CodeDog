@@ -1286,6 +1286,13 @@ def genIfBody(ifBody, indent, objsRefed, returnType, genericArgs, xlator):
         ifBodyText += actionOut
     return ifBodyText
 
+def codeCriticalSection(criticalSection, indent, objsRefed, returnType, genericArgs, xlator):
+    criticalText = ""
+    for criticalStmt in criticalSection:
+        actionOut = codeAction(criticalStmt, indent + "    ", objsRefed, returnType, genericArgs, xlator)
+        criticalText += actionOut
+    return criticalText
+
 def encodeConditionalStatement(action, indent, objsRefed, returnType, genericArgs, xlator):
     [S2, conditionTypeSpec] =  codeExpr(action['ifCondition'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
     [S2, conditionTypeSpec] =  xlator['adjustConditional'](S2, conditionTypeSpec)
@@ -1469,6 +1476,13 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
             actionListText += actionListOut
         blockPrefix = xlator['blockPrefix']
         actionText += indent + blockPrefix + "{\n" + actionListText + indent + '}\n'
+    elif (typeOfAction =='protect'):
+        cdlog(5, "Protect Statement")
+        mutex           = action['mutex'][0]
+        criticalSection = action['criticalSection']
+        criticalText    = codeCriticalSection(action['criticalSection'], indent, objsRefed, returnType, genericArgs, xlator)
+        [mutex, mtxTypeSpec]=codeExpr(mutex, objsRefed, None, None, 'RVAL', genericArgs, xlator)
+        actionText = xlator['codeProtectBlock'](mutex, criticalText, indent, xlator)
     else:
         print("error in codeAction: ", action)
         exit(2)
