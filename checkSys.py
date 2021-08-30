@@ -3,13 +3,52 @@ import pkg_resources
 import os
 
 def AddSystemPath():
+    from sys import platform
     pathList = os.get_exec_path()
     codeDogPath = os.path.dirname(os.path.realpath(__file__))
     if codeDogPath in pathList: return
     addPathPermission = input("Do you want to add CodeDog to the System Path? [Y/n] ")
     if addPathPermission.lower() == 'y' or addPathPermission.lower() == 'yes' or addPathPermission == '':
         # Research how to permanently set the path for Linux, Mac, Windows via python3
-        pass
+        if platform == "linux" or platform == "linux2":
+            bashfile = os.path.join(os.path.expanduser('~'), '.bashrc')
+            sytemflag = 0
+            systemPath = 'PATH="$PATH:$HOME/devl/CodeDog"'
+            with open(bashfile, 'r') as f:
+                if systemPath in f.read():
+                    sytemflag = 1
+
+            if not sytemflag:
+                with open(bashfile, 'a') as f:
+                    f.write('\n%s\n' %systemPath)
+
+        elif platform == "darwin":
+            sytemflag = 0
+            zshrcfile = os.path.join(os.path.expanduser('~'), '.zshrc')
+            systemPath = 'export PATH="$PATH:$HOME/devl/CodeDog"'
+            with open(zshrcfile, 'a+') as f:
+                if systemPath in f.read():
+                    sytemflag = 1
+
+            if not sytemflag:
+                with open(zshrcfile, 'a+') as f:
+                    f.write('\n%s\n' %systemPath)
+
+        elif platform == "win32" or platform == "win64":
+            sytemflag = 0
+            import winreg as reg
+            key = reg.OpenKey(reg.HKEY_CURRENT_USER, 'Environment', 0, reg.KEY_ALL_ACCESS)
+            try:
+                value, _ = reg.QueryValueEx(key, 'PATH')
+            except WindowsError:
+                value = ''
+            if 'CodeDog' in value:
+                sytemflag = 1
+            if not sytemflag:
+                codeDogPath = os.getcwd()
+                value += ";" + codeDogPath + "\CodeDog;"
+                reg.SetValueEx(key, 'PATH', 0, reg.REG_EXPAND_SZ, value)
+                reg.CloseKey(key)
     else:
         print("If you wish to add CodeDog to the system path manually, it is:\n    ", codeDogPath)
 

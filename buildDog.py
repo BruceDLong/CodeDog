@@ -14,6 +14,11 @@ from pathlib import Path
 
 
 #TODO: error handling
+def string_escape(s, encoding='utf-8'):
+    return (s.encode('latin1')         # To bytes, required by 'unicode-escape'
+             .decode('unicode-escape') # Perform the actual octal-escaping decode
+             .encode('latin1')         # 1:1 mapping back to bytes
+             .decode(encoding))        # Decode original encoding
 
 def runCMD(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
@@ -23,12 +28,14 @@ def runCMD(myCMD, myDir):
         #print("        Result: ",out)
         pass
     if err:
-        print("\n", err)
-        if (err.find(b"ERROR")) >= 0:
+        print("ERRORS:---------------\n")
+        print(string_escape(str(err))[2:-1])
+        print("----------------------\n")
+        if (err.find(b"ERROR")) >= 0 or err.find(b"error")>=0:
             exit(1)
-    decodedOut = bytes.decode(out)
+    decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
     if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
-    return decodedOut
+    return str(decodedOut)
 
 def makeDirs(dirToGen):
     #print("dirToGen:", dirToGen)

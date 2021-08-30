@@ -535,7 +535,7 @@ struct readMultiLine {
                     case 6: {mgr.moveRight()}                 // CTRL-F - Move forward/right
                     case 7: {return(submitText())}            // CTRL-G - GO. Submit this text for processing.
                     case 8: {mgr.moveHome()}                  // CTRL-H - Home
-                    case 9: {mgr.doTab()}                     // CTRL-I
+                  //case 9: {mgr.doTab()}                     // CTRL-I
                     case 10: {mgr.cycleSaveModes()}           // CTRL-J
                     case 11: {chkEd(mgr.clearToEOL())}        // CTRL-K - Kill to end-of-line
                     case 12: {}                               // CTRL-L - Clear screen
@@ -573,6 +573,9 @@ struct readMultiLine {
                             else {return(submitText())}
                         }
                         chkEd(mgr.doEnter())
+                    }
+                    case 9: { // hack for Proteus Clip
+                        return(submitText() + "\r")
                     }
                 }
             }else{
