@@ -718,6 +718,10 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
     return S
 
 ############################################
+def codeProtectBlock(mutex, criticalText, indent, xlator):
+    S = criticalText
+    return(S)
+
 def codeMain(classes, tags, objsRefed, xlator):
     cdlog(3, "\n            Generating GLOBAL...")
     if("GLOBAL" in classes[1]):
@@ -1208,4 +1212,5 @@ def fetchXlators():
     xlators['xlateLangType']                = xlateLangType
     xlators['makePtrOpt']                   = makePtrOpt
     xlators['adjustBaseTypes']              = adjustBaseTypes
+    xlators['codeProtectBlock']             = codeProtectBlock
     return(xlators)

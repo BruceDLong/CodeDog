@@ -105,6 +105,7 @@ conditionalAction <<= Group(
             Group(Keyword("if") - "(" + rValue("ifCondition") + ")" + actionSeq("ifBody"))("ifStatement")
             + Optional(Group((Keyword("else") | Keyword("but")) + Group(actionSeq | conditionalAction)("elseBody"))("optionalElse"))
         )("conditionalAction")
+protectAction = Group(Keyword("protect")("protectStmt") - "(" + rValue("mutex") + ")" + actionSeq("criticalSection"))("protectAction")
 traversalModes = Keyword("Forward") | Keyword("Backward") | Keyword("Preorder") | Keyword("Inorder") | Keyword("Postorder") | Keyword("BreadthFirst") | Keyword("DF_Iterative")
 rangeSpec = Group(Keyword("RANGE") - '(' + rValue + ".." + rValue + ')')
 whileSpec = Group(Keyword('WHILE') + '(' + expr + ')')
@@ -123,7 +124,7 @@ repeatedAction = Group(
         )("repeatedAction")
 
 action = Group((assign("assign") | swap('swap') | varRef("funcCall") | fieldDef('fieldDef') ) + Optional(comment)) + Optional(";").suppress()
-actionSeq <<=  Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | actionSeq | action))("actionList") + "}")("actionSeq")
+actionSeq <<=  Group(Literal("{")("actSeqID") - (ZeroOrMore(switchStmt | conditionalAction | repeatedAction | whileAction | protectAction | actionSeq | action))("actionList") + "}")("actionSeq")
 rValueVerbatim = Group("<%" + SkipTo("%>", include=True))("rValueVerbatim")
 funcBody = Group(actionSeq | rValueVerbatim)("funcBody")
 
@@ -465,6 +466,13 @@ def extractActItem(funcName, actionItem):
             calledFuncParams = calledFuncLastSegment[2]
 
         progSpec.appendToFuncsCalled(calledFuncName, calledFuncParams)
+# Function Call
+    elif actionItem.protectStmt:
+        protectStmt     = actionItem.protectStmt
+        mutex           = actionItem.mutex
+        critSectionIn   = actionItem.criticalSection
+        critSectionOut  = extractActSeq(funcName, critSectionIn)
+        thisActionItem = {'typeOfAction':"protect", 'mutex':mutex, 'criticalSection':critSectionOut}
     else:
         cdErr("problem in extractActItem: actionItem:".format(str(actionItem)))
         exit(1)

@@ -586,6 +586,10 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
     return S
 
 ############################################
+def codeProtectBlock(mutex, criticalText, indent, xlator):
+    S = indent+'try{\n'+indent+'    '+mutex+'.mtx.lock();\n'+criticalText+indent+'}finally{'+mutex+'.mtx.unlock();}\n'
+    return(S)
+
 def codeMain(classes, tags, objsRefed, xlator):
     return ["", ""]
 
@@ -603,7 +607,7 @@ def codeStructText(classes, attrList, parentClass, classInherits, classImplement
         parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, structName)
         parentClass=' extends ' +parentClass
     elif classInherits!=None:
-        parentClass=' extends ' + classInherits[0][0]
+        parentClass=' extends ' + progSpec.getUnwrappedClassFieldTypeKeyWord(classes, classInherits[0][0])
     if classImplements!=None:
         # TODO: verify if classImplements is used
         #print(structName, "Implements: " , classImplements)
@@ -966,4 +970,5 @@ def fetchXlators():
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
     xlators['makePtrOpt']                   = makePtrOpt
     xlators['adjustBaseTypes']              = adjustBaseTypes
+    xlators['codeProtectBlock']             = codeProtectBlock
     return(xlators)
