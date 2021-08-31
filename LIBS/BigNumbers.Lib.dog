@@ -149,4 +149,8 @@ struct FlexNum{
     none: FlexNum(me string:str) <- {
         fromString(str)
     }
+    none: FlexNum(me int64:num)  <- {val <- num}
+    none: FlexNum(me uint64:num) <- {val <- num}
+    none: FlexNum(me double:num) <- {val <- num}
+    none: FlexNum(me float:num)  <- {val <- num}
 }

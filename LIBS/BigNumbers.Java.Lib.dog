@@ -14,6 +14,11 @@ LibDescription ={
     description = 'Built in routines for Java'
 }
 
+struct GLOBAL{
+    me string: toString(me BigInt: val) <- <%!toString()%>
+    me string: toString(me BigFrac: val) <- <%!toString()%>
+    me string: toString(me BigFloat: val) <- <%!toString()%>
+}
 struct BigInt: wraps = BigInteger{
     //me int64: convertToIntVal()            <- <%!%>
     me int: hexNumToBigInt(me string: val) <- <%{}%>            // TODO: for Proteus codeGen
@@ -36,15 +41,11 @@ struct BigFrac: wraps = TODO{
 }
 struct FlexNum{
     me double: convertToFloat()  <- <%{}%>                      // TODO: for Proteus codeGen
-    //void: normalize()            <- <%{}%>
-    //void: setNumerator(me string: numerator)     <- <%{}%>
-    //void: setDenominator(me string: denominator) <- <%{}%>
-    //me BigInt: getNumerator()    <- <%{}%>
-    //me BigInt: getDenominator()  <- <%{}%>
+    void: normalize()            <- <%{}%>
+    void: setNumerator(me string: numerator)     <- <%{}%>
+    void: setDenominator(me string: denominator) <- <%{}%>
+    me BigInt: getNumerator()    <- <%{}%>
+    me BigInt: getDenominator()  <- <%{}%>
     // CONSTRUCTORS
     //none: FlexNum(me BigInt:num) <- <%{}%>
-    //none: FlexNum(me int64:num)  <- <%{}%>
-    //none: FlexNum(me uint64:num) <- <%{}%>
-    //none: FlexNum(me double:num) <- <%{}%>
-    //none: FlexNum(me float:num)  <- <%{}%>
 }
