@@ -251,7 +251,7 @@ struct GUI_ctxt{
     me double: cur_y
     me Canvas: GCanvas
 
-    me none: GUI_ctxt () <- {
+    me void: INIT() <- {
         Allocate(paint)
         Allocate(GPath)
     }
@@ -285,11 +285,11 @@ struct GLOBAL: inherits=AppCompatActivity{
         cr.paint.setTextSize(font.size);
         cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
         cr.GCanvas.drawText(text, (float)x, (float)y, cr.paint);
-        deltaSize size = getTextSize(cr, text, font);
+        deltaSize size = getTextSize(text, font);
         return(size);
     }%>
     me deltaSize: renderTextCentered(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
-        deltaSize size = getTextSize(cr, text, font);
+        deltaSize size = getTextSize(text, font);
         cr.paint.setTextSize(font.size);
         cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
         renderText(cr, text, font, x-size.width/2, y);
@@ -297,7 +297,7 @@ struct GLOBAL: inherits=AppCompatActivity{
     }%>
     me deltaSize: renderTextRotate(me GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y, me double: degrees, me string: justify) <- <%{
         double radians    = degrees*(Math.PI/180.);
-        deltaSize size    = getTextSize(cr, text, font);
+        deltaSize size    = getTextSize(text, font);
         double hypotenuse = size.width;
         deltaSize tmpSize = new deltaSize(0,0);
         if(justify == "right"){x=x-hypotenuse;}
@@ -316,12 +316,13 @@ struct GLOBAL: inherits=AppCompatActivity{
         cr.GCanvas.rotate(degrees, (float)x, (float)y);
     }%>
     me void: restore(me GUI_ctxt: cr) <- <%!%G%1.GCanvas.restore()%>
-    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me fontSpec: font) <- <%{
+    me deltaSize: getTextSize(me string: text, me fontSpec: font) <- <%{
         Rect bounds = new Rect();
+        Paint pt = new Paint ( );
         deltaSize size = new deltaSize(0,0);
-        cr.paint.setTextSize(font.size);
-        cr.paint.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
-        cr.paint.getTextBounds(text, 0, text.length(), bounds);
+        pt.setTextSize(font.size);
+        pt.setTypeface(Typeface.create(font.name, Typeface.NORMAL));
+        pt.getTextBounds(text, 0, text.length(), bounds);
         size.height = bounds.height();
         size.width = bounds.width();
         return(size);
@@ -339,6 +340,11 @@ struct GLOBAL: inherits=AppCompatActivity{
             cr.GCanvas.drawBitmap(newBitmap, (float)x, (float)y, cr.paint);
             Log.v("TAG", "display image: " + filename);
         } catch (IOException e) {Log.e("TAG", e.getMessage());}
+    }%>
+    void: displayBackgroundImage(their GUI_ctxt: cr, me string: filename) <- <%{
+        filename = "./assets/" + filename;
+        // TODO: finish displayBackgroundImage
+
     }%>
 
     // //GUI INTERFACE:

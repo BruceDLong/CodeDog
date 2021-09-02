@@ -254,7 +254,7 @@ struct Styler{
 
     me Map<me string, me int>: userDoubles
     void: setCustomDouble(me string: key, me string: value) <- {
-        userIntegers.insert(key, toDouble(value))
+        userIntegers.insert(key, toInt(value))
     }
 
     void: INIT()<-{

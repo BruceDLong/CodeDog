@@ -1,10 +1,10 @@
 // minimalGUI.dog
 
-//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
 //SwingBuild: Platform='Java' CPU='JavaVM' Lang='Java' optimize='speed';
 //AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
 //iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
-MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
+//MacBuild: Platform='MacOS' Lang='Swift' optimize='speed';
 
 Title = "minimalGUI"
 FileName = "minimalGUI"
@@ -31,7 +31,7 @@ struct testWidget: inherits=DashboardWidget{
 
     void: draw(their GUI_ctxt: cr) <- {
         print("In DRAW TEST WIDGET!!!!!!!()\n")
-        me cdColor: lineColor <- cdColor(255,0,0)
+        me cdColor: lineColor <- cdColor(255,0,0,255)
         cr.setColor(lineColor)
         cr.setLineWidth(5)
         cr.moveTo(0, 0)
@@ -40,9 +40,9 @@ struct testWidget: inherits=DashboardWidget{
         cr.lineTo(0, 1200)
         cr.strokeNow()
 
-        me cdColor: lineColor2 <- cdColor(0,250,255)
+        me cdColor: lineColor2 <- cdColor(0,250,255,255)
         cr.setColor(lineColor2)
-        our fontSpec:: testFont{"Ariel", 20, 0}
+        our fontSpec:: testFont{"Ariel", "20"}
         renderText(cr, "Hello World!", testFont, 150, 100)
         cr.strokeNow()
 
@@ -110,7 +110,7 @@ struct GLOBAL{
 struct APP{
     me void: createAppArea(me GUI_Frame: frame) <- {
         Allocate(drawAnX)
-        Allocate(drawAnX.dashboardDBW)
+        //Allocate(drawAnX.dashboardDBW)
         drawing_area  <- gui.newCanvas()
         drawing_area.setParent(drawAnX)
         gui.setWidgetSize(drawing_area, 1200, 1200)
