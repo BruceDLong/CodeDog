@@ -20,6 +20,7 @@ struct GLOBAL{
     me string: toString(me BigFloat: val) <- <%{
         string retVal = "";
         int64_t exp;
+// WINDOWS: mp_exp_t exp;
         string digits       = val.get_str(exp,10,12);
         int64_t digitsGiven = digits.size();
         if(exp <= 0){

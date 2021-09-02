@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [CodeDog_implementation]
     libFiles = []
-    headers  = [signal.h, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm]
+    headers  = [signal.h, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm, vector, chrono] //direct.h Add for windows Only
 }
 
 
@@ -72,6 +72,8 @@ struct GLOBAL{
             req.tv_nsec = milliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
        }
        return nanosleep(&req , &rem);
+// WINDOWS: std::this_thread::sleep_for(std::chrono::milliseconds(req.tv_nsec));
+// WINDOWS: return 0;
    }%>
 
     me string: readAssetAsString(me string: filename) <- <%{
@@ -84,8 +86,10 @@ struct GLOBAL{
     me string: execCmd(me string: command) <- <%{
       FILE* pipe;
       std::array<char, 128> buffer;
+// WINDOWS: std::vector<char> buffer(128);
       string result = "";
       pipe = popen(command.data(), "r");
+// WINDOWS: pipe = _popen(command.data(), "r");
       if (pipe == NULL) {
         cout<<"Cannot execute command:'" << command<<"'\n";
         return "";
@@ -94,6 +98,7 @@ struct GLOBAL{
         result = result+buffer.data();
       }
       pclose(pipe);
+// WINDOWS: _pclose(pipe);
       return result;
     }%>
 

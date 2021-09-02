@@ -108,6 +108,7 @@ struct UnicodeMgr  {
             U_GC_MC_MASK|U_GC_MN_MASK)     // Character modifiers
             )!=0) return(true);
         else if(ch==0x005f or ch==0x002d or ch==0x0027){return(true);} // "_" or "-" or "'"
+// WINDOWS: else if(ch==0x005f || ch==0x002d || ch==0x0027){return(true);} // "_" or "-" or "'"
         return(false);
     }%>
     me UnicodeStr: fromUTF8Str(me string: input) <- <%{
@@ -123,9 +124,12 @@ struct UnicodeMgr  {
     void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out) <- <%{
         int32_t len=s.length() * 5;
         char c[len];
+// WINDOWS: std::vector<char> c(len);
         CheckedArrayByteSink sbs(c,len);
+// WINDOWS: CheckedArrayByteSink sbs(c.data(),len);
         s.toUTF8(sbs);
         *out=string(c, strlen(c));
+// WINDOWS: *out=string(c.data(), strlen(c.data()));
     }%>
     me string: normalizeStr(me string: input) <- <%{
         UnicodeString uniNorm = UNormalizer->normalize(fromUTF8Str(input.data()), uErr);

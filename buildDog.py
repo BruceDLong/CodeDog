@@ -391,11 +391,35 @@ def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
         libStr += "-l"+libFile+ " "
         #print "libStr: " + libStr
 
+    #building scons file
+    SconsFile = "import os\n"
+    SconsFile += "\nenv = Environment(ENV=os.environ)\n"
+    SconsFileType = "Program"
+
+    SconsFileOut = 'env.'+SconsFileType+'(\n'
+    SconsFileOut += '    target='+'"'+fileName+'",\n'
+    SconsFileOut += '    source='+'"'+fileSpecs[0][0]+fileExtension+'",\n'
+
+    codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+  #  SconsFileOut += '    env["LIBPATH"]=["'+codeDogFolder+'"],\n'
+    sconsConfigs = ""
+
+    sconsLibs     = 'env["LIBS"] = []\n'
+    # sconsCppPaths = 'env["CPPPATH"]=[\n'+includeFolders+']\n'
+    sconsCppPaths = 'env["CPPPATH"]=[]\n'
+    sconsLibPaths = 'env["LIBPATH"]=[\n     "'+codeDogFolder+'"\n]\n'
+    libStr=""
+    firstTime = True
+
     currentDirectory = os.getcwd()
     #TODO check if above is typo
     workingDirectory = currentDirectory + os.sep + buildName
     buildStr = getBuildSting(fileName,"",platform,buildName)
     runStr = "python " + "..\CodeDog\\" + fileName
+    SconsFileOut += '    )\n'
+    SconsFile += sconsCppPaths + sconsLibPaths + sconsLibs + sconsConfigs + SconsFileOut + '\n'
+    sconsFilename = "SConstruct"
+    writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
     return [workingDirectory, buildStr, runStr]
 
 def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):

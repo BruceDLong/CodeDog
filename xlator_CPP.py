@@ -778,7 +778,8 @@ def produceTypeDefs(typeDefMap, xlator):
 
 def addSpecialCode(filename):
     S='\n\n//////////// C++ specific code:\n'
-    S += "\n\nusing namespace std;\n\n"
+    S += "\n\nusing namespace std;\n"
+    S += "typedef unsigned int uint;\n\n"
     S += 'const string filename = "' + filename + '";\n'
     S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
 
@@ -818,6 +819,7 @@ def addSpecialCode(filename):
     string getAssetsDir(){
         string fileDir = "./assets";
         mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+// WINDOWS: _mkdir(fileDir.data());
         return (fileDir);
     }
     bool doesFileExist(string filePath){
