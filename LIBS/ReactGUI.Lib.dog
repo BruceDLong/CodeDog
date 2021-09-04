@@ -127,8 +127,8 @@ struct ParamRec{
 
 struct ReactiveControl{
     me bool: isActive
-    me bool: expandsX()<-{}
-    me bool: expandsY()<-{}
+    me bool: expandsX()<-{return(false)}
+    me bool: expandsY()<-{return(false)}
     void: setMetrics(their ParamRec: PR) <- {}
     void: draw(our dashDrawing: dr, their ParamRec: PR, their Presenter: presenter) <- {}
     void: fetchState() <- {}
@@ -574,6 +574,7 @@ struct ProactiveGUIWidget: inherits=DashboardWidget{
         primaryBtnIsDown <- true
         primaryButtonDownX <- event.x
         primaryButtonDownY <- event.y
+        return(false)
     }
     me bool: primaryClick(their GUI_ButtonEvent: event) <- {
         me bool: retval <- false
