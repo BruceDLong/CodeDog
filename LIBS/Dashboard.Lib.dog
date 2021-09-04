@@ -62,7 +62,7 @@ struct Dashboard: inherits=dash{
         return(NULL)
     }
 
-    me void: addChild(our dash: child) <- {child.dashParent<-self; dashChildren.pushLast(child)}
+    me void: addChild(our dash: child) <- {child.dashParent<-self; dashChildren.append(child)}
 
     void: addDependent(me string: key, their dash: dashPtr) <- {
         if(! dependentItems.containsKey(key)){
@@ -79,7 +79,7 @@ struct Dashboard: inherits=dash{
         me GUI_Scalar: smallToY <- to.posY
         me GUI_Scalar: largeToY <- to.posY + to.height
         our arrow: Arrow {fromX, fromY, intersectPoint(fromX, smallToX, largeToX), intersectPoint(fromY, smallToY, largeToY)}
-        decorations.pushLast(Arrow)
+        decorations.append(Arrow)
     }
 
     void: addRelation(me string: relationType, their dash: from, their dash: to) <- {
@@ -176,7 +176,7 @@ struct Dashboard: inherits=dash{
 
     //me bool: secondaryClick(their GUI_ButtonEvent: event) <- {print("RIGHT BUTTON!\n"); drawToPDF('infonView.pdf', 11.0, 8.5, 0.4); return(true)}
 
-    void: init(me string: label) <- {
+    void: INIT(me string: label) <- {
         title <- label+".Dashboard"
         isHidden <- false
     }
@@ -342,7 +342,7 @@ struct listOfItems: inherits=dash{
     }
 
     void: updatePush(our dash: element) <- {
-        elements.pushLast(element)
+        elements.append(element)
     }
 
     void: setPos(me GUI_Scalar:x, me GUI_Scalar:y, me GUI_Scalar: extCursor) <- {

@@ -90,6 +90,7 @@ struct GLOBAL{
     me int: convertToIntVal()                               <- <%!%G (int)(%1)%>
     me float: convertToFloatVal()                           <- <%!%G (%1f)%>
     me long: stol(me string: S)                             <- <%!%GLong.parseLong(%1)%>
+    me int: toInt(me string: val)                           <- <%!%G Integer.parseInt(%1)%>
     me char: toUpper(me char: ch) <- {if(ch>="a" and ch<="z"){ch <-- 32} return(ch)}
     me char: toLower(me char: ch) <- {if(ch>="A" and ch<="Z"){ch <+- 32} return(ch)}
 }
