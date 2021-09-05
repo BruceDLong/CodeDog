@@ -5,8 +5,10 @@ requirements = [
 
 interface={
     provides = [Unicode_platform_implementation]
-    libFiles=[]
-    headers=[java.util.Locale, java.text.SimpleDateFormat, java.util.Calendar, java.util.GregorianCalendar, java.text.Normalizer]
+    headers  = [java.util.Locale, java.text.SimpleDateFormat,
+                java.util.Calendar, java.util.GregorianCalendar,
+                java.text.Normalizer, java.lang.Character.*
+               ]
 }
 
 LibDescription  ={
@@ -62,10 +64,24 @@ struct UnicodeMgr {
         return hour;
     }%>
 
-    me bool: isUnicodeAlpha(me int32: ch) <- <%{return(false);}%>
-    me bool: isUnicodeAlphaNum(me int32: ch) <- <%{return(false);}%>
-    me bool: isUnicodeWordStart(me int32: ch) <-{return(false);}
-    me bool: isUnicodeWordContinue(me int32: ch) <-<%{return(false);}%>
+    me bool: isUnicodeAlpha(me int32: ch) <- <%{
+        return(Character.isLetter(ch));
+    }%>
+    me bool: isUnicodeAlphaNum(me int32: ch) <- <%{
+        return(Character.isLetterOrDigit(ch));
+    }%>
+    me bool: isUnicodeWordStart(me int32: ch) <-{
+        if(isUnicodeAlpha(ch)){return(true)}
+        else if(ch==0x005f){  // Underscore
+            return(true)
+        }
+        return(false)
+    }
+    me bool: isUnicodeWordContinue(me int32: ch) <-<%{
+        if(isUnicodeAlphaNum(ch)) {return(true);}
+        else if(ch==0x005f || ch==0x002d || ch==0x0027){return(true);} // "_" or "-" or "'"*/
+        return(false);
+    }%>
     me UnicodeStr: fromUTF8Str(me string: input) <- <%{
         String output = null;
         try {
@@ -75,6 +91,7 @@ struct UnicodeMgr {
         }
         return output;
     }%>
+
     me string: toUTF8Str(me UnicodeStr: input) <- <%{
         String output = null;
         try {

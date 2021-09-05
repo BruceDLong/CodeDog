@@ -63,7 +63,27 @@ struct GLOBAL{
         if(baseName=="fr_FR"){print("TEST 7 PASS: " ,baseName, "\n")}
         else{print("TEST 7 FAIL: " ,baseName, "\n")}
 
-        //TODO: for Proteus write tests for: isUnicodeAlpha() isUnicodeWordContinue() isUnicodeWordStart()
+        // TEST 8 isUnicodeAlpha()
+        me char: alphaChar <- 0x41
+        if(unicodeMgr.isUnicodeAlpha(alphaChar)){print("TEST 8 PASS: " ,alphaChar, "\n")}
+        else{print("TEST 8 FAIL: " ,alphaChar, "\n")}
+
+        // TEST 9 isUnicodeAlphaNum()
+        me char: alphaNumChar <- 0x41
+        if(unicodeMgr.isUnicodeAlphaNum(alphaNumChar)){print("TEST 9 PASS: " ,alphaNumChar, "\n")}
+        else{print("TEST 9 FAIL: " ,alphaNumChar, "\n")}
+
+        // TEST 10 isUnicodeWordStart()
+        me char: unicodeStart <- 0x005f
+        if(unicodeMgr.isUnicodeWordStart(unicodeStart)){print("TEST 10 PASS: " ,unicodeStart, "\n")}
+        else{print("TEST 10 FAIL: " ,unicodeStart, "\n")}
+
+        // TEST 11 isUnicodeWordContinue()
+        me char: unicodeCont <- 0x0027
+        if(unicodeMgr.isUnicodeWordContinue(unicodeCont)){print("TEST 11 PASS: " ,unicodeCont, "\n")}
+        else{print("TEST 11 FAIL: " ,unicodeCont, "\n")}
+
+        //TODO: for Proteus write tests for: ()
         //TODO: for CLIP write tests for: localeString() UnicodeStrToUTF8_String()
         //TODO: for Widgets and Dashes write tests for: customPatternDateTime() epocTimeFromDateTime() dateTimeFromEpocTime() getHour() dateToIntlString()
     }

@@ -4,9 +4,11 @@ requirements = [
 ]
 
 interface={
-    provides=[Unicode_implementation]
-    libFiles=[]
-    headers=[android.icu.util.ULocale, android.icu.text.SimpleDateFormat, android.icu.util.Calendar, android.icu.util.GregorianCalendar]
+    provides = [Unicode_platform_implementation]
+    headers  = [android.icu.util.ULocale, android.icu.text.SimpleDateFormat,
+                android.icu.util.Calendar, android.icu.util.GregorianCalendar,
+                java.text.Normalizer
+               ]
 }
 
 LibDescription  ={
@@ -24,51 +26,110 @@ embedHigh = `
 /////////////////////////////////  STRUCT CONVERTERS
 struct UnicodeStr: wraps=String{}
 struct sysLocale:  wraps=ULocale{}
-struct Udate:      wraps=long{}
+struct UDate:      wraps=double{}
+struct wstring:    wraps=String{}
 
 struct GLOBAL{
-    me bool: isutf(me char: ch)   <- {}   // TODO: for Proteus codeGen
-    //me wstring: stringToWString(me string: str) <- <%{}%>
+    me bool: isutf(me char: ch)   <- {return(false);}   // TODO: for Proteus codeGen
+    me wstring: stringToWString(me string: str) <- <%{return("");}%>
+    me int: remainingOctets(me char: ch) <- <%{return(0);}%>
 }
 
 struct UnicodeMgr {
-    // form "pt", "BR" is Java compatible while form "pt_BR" is not
     me sysLocale: SetLocale(me string: code) <- <%{
-        ULocale location = new ULocale(code);
+        ULocale location;
+        if(code.contains("_")){
+            String[] codeSplit = code.split("_");
+            String language = codeSplit[0];
+            String country = codeSplit[1];
+            location = new ULocale(language, country);
+        }else{
+            location = new ULocale(code);
+        }
         return location;
     }%>
 
-    me string: dateToIntlString(me Udate: time, me double: interval, me sysLocale: loc) <- <%{ // TODO: verify works
-        Date date = new Date(time);
+    me string: dateToIntlString(me UDate: date, me UDate: interval, me sysLocale: loc) <- <%{ // TODO: verify works
+        SimpleDateFormat dateOut = new SimpleDateFormat(Double.toString(date));
         String pattern = chooseFormatPattern(interval);
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
-        String uniLabel = simpleDateFormat.format(date);
+        String uniLabel = simpleDateFormat.format(dateOut);
         return uniLabel;
     }%>
 
-    me string: getHour(me Udate: date, me sysLocale: loc) <- <%{ // TODO: verify works
+    me string: getHour(me UDate: date, me sysLocale: loc) <- <%{ // TODO: verify works
         String pattern = "k";   // k: hour in day (1~24)
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
         String hour = simpleDateFormat.format(date);
         return hour;
     }%>
 
-    //me bool: isUnicodeAlpha(me int32: ch) <- <%{}%>
-    //me bool: isUnicodeAlphaNum(me int32: ch) <- <%{}%>
-    me bool: isUnicodeWordStart(me int32: ch) <-{}
-    me bool: isUnicodeWordContinue(me int32: ch) <-<%{}%>
-    //me UnicodeStr: fromUTF8Str(me string: input) <- <%{}%>
-    //me string: toUTF8Str(me UnicodeStr: input) <- <%{}%>
-    //void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out) <- <%{}%>
-    me string: normalizeStr(me string: input) <- <%{}%>
+    me bool: isUnicodeAlpha(me int32: ch) <- <%{
+        return(isLetter(ch));
+    }%>
+    me bool: isUnicodeAlphaNum(me int32: ch) <- <%{
+        return(isLetterOrDigit(ch));
+    }%>
+    me bool: isUnicodeWordStart(me int32: ch) <-{
+        if(isUnicodeAlpha(ch)){return(true)}
+        else if(ch==0x005f){  // Underscore
+            return(true)
+        }
+        return(false)
+    }
+    me bool: isUnicodeWordContinue(me int32: ch) <-<%{
+        if(isUnicodeAlphaNum(ch)) {return(true);}
+        else if(ch==0x005f || ch==0x002d || ch==0x0027){return(true);} // "_" or "-" or "'"*/
+        return(false);
+    }%>
+    me UnicodeStr: fromUTF8Str(me string: input) <- <%{
+        String output = null;
+        try {
+            output = new String(input.getBytes("ISO-8859-1"), "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            return null;
+        }
+        return output;
+    }%>
 
-    // Optionally pass in a display language. For example:
-    // to display "French, Italian, English" in successive calls to relevant locales, pass "en"
-    //me UnicodeStr: getDisplayLanguage(me sysLocale: loc, me string: langNameLangDisplayedIn <- "") <- <%{}%>
+    me string: toUTF8Str(me UnicodeStr: input) <- <%{
+        String output = null;
+        try {
+            output = new String(input.getBytes("UTF-8"), "ISO-8859-1");
+        } catch (java.io.UnsupportedEncodingException e) {
+            return null;
+        }
+        return output;
+    }%>
+    void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out) <- <%{}%>
 
-    // Optionally pass in a display language. For example:
-    // to display "France, Italy, England" in successive calls to relevant locales, pass "en"
-    //me UnicodeStr: getDisplayCountry(me sysLocale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{}%>
+    me string: normalizeStr(me string: input) <- <%{
+        String outStr = Normalizer.normalize(input, Normalizer.Form.NFC);
+        outStr = outStr.toLowerCase();
+        return(outStr);
+    }%>
+
+    me UnicodeStr: getDisplayLanguage(me sysLocale: loc, me string: langNameLangDisplayedIn <- "") <- <%{
+        String langName;
+        if (langNameLangDisplayedIn != "") {
+            ULocale dispLoc = new ULocale(langNameLangDisplayedIn);
+            langName = loc.getDisplayLanguage(dispLoc);
+        } else {
+            langName = loc.getDisplayLanguage();
+        }
+        return(langName);
+    }%>
+
+    me UnicodeStr: getDisplayCountry(me sysLocale: loc, me string: countryNameLangDisplayedIn <- "") <- <%{
+        String dispCountry;
+        if (countryNameLangDisplayedIn != "") {
+            ULocale dispLoc = new ULocale(countryNameLangDisplayedIn);
+            dispCountry = loc.getDisplayCountry(dispLoc);
+        } else {
+            dispCountry = loc.getDisplayCountry();
+        }
+        return(dispCountry);
+    }%>
 
     me timeValue: epocTimeFromDateTime(me int: year, me int: month, me int: date, me int: hour, me int: minute, me int: second) <- <%{
         Calendar cal = new GregorianCalendar(year, month, date, hour, minute, second);
@@ -88,16 +149,21 @@ struct UnicodeMgr {
         dateTimeFields.millisecond = cal.get(Calendar.MILLISECOND);
     }%>
 
-    me string: customPatternDateTime(me Udate: time, me UnicodeStr: pattern, me string: locPat) <- <%{// TODO: verify works
-        Date date = new Date(time);
+    me string: customPatternDateTime(me UDate: time, me UnicodeStr: pattern, me string: locPat) <- <%{// TODO: verify works
+        Date date = new Date(Double.toString(time));
         ULocale loc = new ULocale(locPat);
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern, loc);
         String uniLabel = simpleDateFormat.format(date);
         return uniLabel;
     }%>
 
-    //me string: localeString(their sysLocale: loc) <- <%{}%>
-    me string: getLocaleBaseName(their sysLocale: loc) <- <%{}%>
-    me sysLocale: getSystemLocale() <- <%{}%>
+    me string: localeString(their sysLocale: loc) <- <%{return("");}%>
+    me string: getLocaleBaseName(their sysLocale: loc) <- <%{
+        String country = loc.getCountry();
+        String language = loc.getLanguage();
+        String baseNme = language + "_" + country;
+        return(baseNme);
+    }%>
+    me sysLocale: getSystemLocale() <- <%{return(ULocale.getDefault());}%>
 }
 
