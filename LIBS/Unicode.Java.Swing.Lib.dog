@@ -63,22 +63,11 @@ struct UnicodeMgr {
         String hour = simpleDateFormat.format(date);
         return hour;
     }%>
-
-    me bool: isUnicodeAlpha(me int32: ch) <- <%{
-        return(Character.isLetter(ch));
-    }%>
-    me bool: isUnicodeAlphaNum(me int32: ch) <- <%{
-        return(Character.isLetterOrDigit(ch));
-    }%>
-    me bool: isUnicodeWordStart(me int32: ch) <-{
-        if(isUnicodeAlpha(ch)){return(true)}
-        else if(ch==0x005f){  // Underscore
-            return(true)
-        }
-        return(false)
-    }
+    me bool: isUnicodeAlpha(me int32: ch)     <- <%!%GCharacter.isLetter(%1)%>
+    me bool: isUnicodeAlphaNum(me int32: ch)  <- <%!%GCharacter.isLetterOrDigit(%1)%>
+    me bool: isUnicodeWordStart(me int32: ch) <- <%!%GCharacter.isLetter(%1)%>
     me bool: isUnicodeWordContinue(me int32: ch) <-<%{
-        if(isUnicodeAlphaNum(ch)) {return(true);}
+        if(Character.isLetterOrDigit(ch)) {return(true);}
         else if(ch==0x005f || ch==0x002d || ch==0x0027){return(true);} // "_" or "-" or "'"*/
         return(false);
     }%>

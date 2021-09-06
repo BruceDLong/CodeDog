@@ -4,11 +4,12 @@ requirements = [
 ]
 
 interface={
-    provides=[Unicode_implementation]
-    libFiles=[`pkg-config --libs --cflags icu-uc icu-io`]
-    headers=[unicode/locid.h, unicode/unistr.h, unicode/putil.h, unicode/ustream.h, unicode/normalizer2.h, unicode/calendar.h,
-             unicode/gregocal.h, unicode/smpdtfmt.h, unicode/utypes.h, codecvt, locale
-            ]
+    provides = [Unicode_implementation]
+    libFiles = [`pkg-config --libs --cflags icu-uc icu-io`]
+    headers  = [unicode/locid.h, unicode/unistr.h, unicode/putil.h,
+                unicode/ustream.h, unicode/normalizer2.h, unicode/calendar.h,
+                unicode/gregocal.h, unicode/smpdtfmt.h, unicode/utypes.h, codecvt, locale
+               ]
 }
 
 LibDescription  ={
@@ -87,19 +88,9 @@ struct UnicodeMgr  {
         uniStrHr.toUTF8String(hour);
         return hour;
     }%>
-    me bool: isUnicodeAlpha(me int32: ch) <- <%{
-        return(u_isalnum(ch));
-    }%>
-    me bool: isUnicodeAlphaNum(me int32: ch) <- <%{
-        return(u_isalpha(ch));
-    }%>
-    me bool: isUnicodeWordStart(me int32: ch) <-{
-        if(isUnicodeAlpha(ch)){return(true)}
-        else if(ch==0x005f){  // Underscore
-            return(true)
-        }
-        return(false)
-    }
+    me bool: isUnicodeAlpha(me int32: ch)     <- <%!%Gu_isalpha(%1)%>
+    me bool: isUnicodeAlphaNum(me int32: ch)  <- <%!%Gu_isalnum(%1)%>
+    me bool: isUnicodeWordStart(me int32: ch) <- <%!%Gu_isalpha(%1)%>
     me bool: isUnicodeWordContinue(me int32: ch) <-<%{
         int32_t props = U_GET_GC_MASK(ch);
         //props=UTRIE2_GET16(&propsTrie, ch);

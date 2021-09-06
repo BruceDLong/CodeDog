@@ -71,6 +71,11 @@ Examples/iPhoneBuild/
 Examples/LinuxBuild/
 Examples/AndroidBuild/
 Examples/MacBuild/
+Tests/SwingBuild/
+Tests/iPhoneBuild/
+Tests/LinuxBuild/
+Tests/AndroidBuild/
+Tests/MacBuild/
 LIBS/Tests/LinuxTestBuild/
 
 # Testing

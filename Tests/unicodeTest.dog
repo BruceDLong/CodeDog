@@ -74,7 +74,7 @@ struct GLOBAL{
         else{print("TEST 9 FAIL: " ,alphaNumChar, "\n")}
 
         // TEST 10 isUnicodeWordStart()
-        me char: unicodeStart <- 0x005f
+        me char: unicodeStart <- 0x43
         if(unicodeMgr.isUnicodeWordStart(unicodeStart)){print("TEST 10 PASS: " ,unicodeStart, "\n")}
         else{print("TEST 10 FAIL: " ,unicodeStart, "\n")}
 
