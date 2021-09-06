@@ -155,17 +155,26 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
         return S
 
+def convertToInt(S, typeSpec):
+    fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
+    if fTypeKW=='numeric': return S
+    if fTypeKW == 'char': S = 'Character.getNumericValue('+S+')'
+    return S
+
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
-    LHS_KeyType = progSpec.fieldTypeKeyword(lhsTypeSpec)
-    RHS_KeyType = progSpec.fieldTypeKeyword(rhsTypeSpec)
-    if LHS_KeyType == 'bool'or LHS_KeyType == 'boolean':
+    LTypeKW = progSpec.fieldTypeKeyword(lhsTypeSpec)
+    RTypeKW = progSpec.fieldTypeKeyword(rhsTypeSpec)
+    if LTypeKW == 'bool'or LTypeKW == 'boolean':
         if progSpec.typeIsPointer(rhsTypeSpec):
             return '(' + RHScodeStr + ' == null)'
-        if (RHS_KeyType=='int' or RHS_KeyType=='flag'):
+        if (RTypeKW=='int' or RTypeKW=='flag'):
             if RHScodeStr[0]=='!': return '(' + RHScodeStr[1:] + ' == 0)'
             else: return '(' + RHScodeStr + ' != 0)'
         if RHScodeStr == "0": return "false"
         if RHScodeStr == "1": return "true"
+    if LTypeKW != RTypeKW:
+        if LTypeKW == 'char' and RTypeKW == 'numeric':
+            RHScodeStr = '(char)('+ RHScodeStr +')'
     return RHScodeStr
 
 def getTheDerefPtrMods(itemTypeSpec):
@@ -455,7 +464,8 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
             S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
         elif item0=='{':cdErr("TODO: finish Java initialize new map")
         else:
-            expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
+            fTypeKW = progSpec.varTypeKeyWord(expectedTypeSpec)
+            owner   = progSpec.getOwnerFromTypeSpec(expectedTypeSpec)
             if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
             elif (item0[0]=='"'):
                 if returnType != None and returnType["fieldType"]=="char":
@@ -470,11 +480,13 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
                     retTypeSpec='String'
             else:
                 S+=item0;
-                if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):
-                    retTypeSpec=expected_KeyType
+                if retTypeSpec == 'noType' and (fTypeKW=='bool' or item0=='true' or item0=='false'):
+                    retTypeSpec={'owner': owner, 'fieldType': 'bool'}
+                if retTypeSpec == 'noType' and progSpec.typeIsInteger(fTypeKW):
+                    retTypeSpec={'owner': owner, 'fieldType': fTypeKW}
                 if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):
                     retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
-                if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):retTypeSpec=expected_KeyType
+
     else: # CODEDOG LITERALS
         if isinstance(item0[0], str):
             S+=item0[0]
@@ -491,6 +503,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
             if (len(item0[0]) > 1  and item0[0][0]==typeKeyword and item0[0][1] and item0[0][1]=='('):
                 codeStr = 'new ' + codeStr
             S+=codeStr                                # Code variable reference or function call
+    if retTypeSpec == 'noType': print("Warning: type Spec not found.", S)
     return [S, retTypeSpec]
 
 ######################################################
@@ -963,7 +976,6 @@ def fetchXlators():
     xlators['codeCopyConstructor']          = codeCopyConstructor
     xlators['codeRangeSpec']                = codeRangeSpec
     xlators['codeConstField_Str']           = codeConstField_Str
-    xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
     xlators['codeConstructorCall']          = codeConstructorCall
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
     xlators['getVirtualFuncText']           = getVirtualFuncText
@@ -971,4 +983,5 @@ def fetchXlators():
     xlators['makePtrOpt']                   = makePtrOpt
     xlators['adjustBaseTypes']              = adjustBaseTypes
     xlators['codeProtectBlock']             = codeProtectBlock
+    xlators['convertToInt']                 = convertToInt
     return(xlators)

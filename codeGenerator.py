@@ -1124,44 +1124,46 @@ def codeIsEQ(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, generic
             retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
     return [S, retTypeSpec]
 
-def codeAnd(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
+def codeBitwiseAnd(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     [S, retTypeSpec] = codeIsEQ(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         [S_derefd, isDerefd] = xlator['derefPtr'](S, retTypeSpec)
+        S = xlator['convertToInt'](S, retTypeSpec)
         for i in item[1]:
-            [S2, retTypeSpec] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+            [S2, retType2] = codeIsEQ(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+            S2 = xlator['convertToInt'](S2, retType2)
             S+= ' & '+S2
     return [S, retTypeSpec]
 
-def codeXOR(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
-    [S, retTypeSpec]=codeAnd(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+def codeBitwiseXOR(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
+    [S, retTypeSpec]=codeBitwiseAnd(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         [S_derefd, isDerefd] = xlator['derefPtr'](S, retTypeSpec)
         for i in item[1]:
-            [S2, retType2] = codeAnd(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+            [S2, retType2] = codeBitwiseAnd(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
             S+= ' ^ '+S2
     return [S, retTypeSpec]
 
-def codeBar(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
-    [S, retTypeSpec] = codeXOR(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+def codeBitwiseOr(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
+    [S, retTypeSpec] = codeBitwiseXOR(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
     if len(item) > 1 and len(item[1])>0:
         if (isinstance(retTypeSpec, int)): cdlog(logLvl(), "Invalid item in ==: {}".format(item[0]))
         [S_derefd, isDerefd] = xlator['derefPtr'](S, retTypeSpec)
         for i in item[1]:
-            [S2, retType2] = codeXOR(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+            [S2, retType2] = codeBitwiseXOR(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
             S+= ' | '+S2
     return [S, retTypeSpec]
 
-def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
-    [S, retTypeSpec] = codeBar(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+def codeLogicalAnd(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
+    [S, retTypeSpec] = codeBitwiseOr(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
     if len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=xlator['derefPtr'](S, retTypeSpec)
         for i in item[1]:
             if (i[0] == 'and'):
                 S = xlator['checkForTypeCastNeed']('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeBar(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+                [S2, retTypeSpec] = codeBitwiseOr(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
                 S2 = xlator['checkForTypeCastNeed']('bool', retTypeSpec, S2)
                 [S2, isDerefd]=xlator['derefPtr'](S2, retTypeSpec)
                 S+=' && ' + S2
@@ -1169,14 +1171,14 @@ def codeLogAnd(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
             retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
     return [S, retTypeSpec]
 
-def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
-    [S, retTypeSpec] = codeLogAnd(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+def codeLogicalOr(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
+    [S, retTypeSpec] = codeLogicalAnd(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
     if len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=xlator['derefPtr'](S, retTypeSpec)
         for i in item[1]:
             if (i[0] == 'or'):
                 S = xlator['checkForTypeCastNeed']('bool', retTypeSpec, S)
-                [S2, retTypeSpec] = codeLogAnd(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+                [S2, retTypeSpec] = codeLogicalAnd(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
                 [S2, isDerefd]=xlator['derefPtr'](S2, retTypeSpec)
                 S2 = xlator['checkForTypeCastNeed']('bool', retTypeSpec, S2)
                 S+=' || ' + S2
@@ -1185,12 +1187,12 @@ def codeLogOr(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, generi
     return [S, retTypeSpec]
 
 def codeExpr(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
-    [S, retTypeSpec] = codeLogOr(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+    [S, retTypeSpec] = codeLogicalOr(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
     if not isinstance(item, str) and len(item) > 1 and len(item[1])>0:
         [S, isDerefd]=xlator['derefPtr'](S, retTypeSpec)
         for i in item[1]:
             if (i[0] == '<-'):
-                [S2, retTypeSpec] = codeLogOr(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
+                [S2, retTypeSpec] = codeLogicalOr(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
                 [S2, isDerefd]=xlator['derefPtr'](S2, retTypeSpec)
                 S+=' = ' + S2
             else: print("ERROR: '<-' expected in code generator."); exit(2)

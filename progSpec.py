@@ -1164,7 +1164,24 @@ def typeIsInteger(fieldType):
         return True
     return False
 
+def isStringHexNum(S):
+    if len(S) < 3: return False
+    if not (S[:2]=='0x' or S[:2]=='0X'): return False
+    hexNums = set("0123456789abcdefABCDEF")
+    for char in S[2:]:
+        if not (char in hexNums):return False
+    return True
+
+def isStringBinNum(S):
+    if len(S) < 3: return False
+    if not (S[:2]=='0b' or S[:2]=='0B'): return False
+    for char in S[2:]:
+        if not char.isdigit():return False
+    return True
+
 def isStringNumeric(S):
+    if isStringHexNum(S): return True
+    if isStringBinNum(S): return True
     countDots = 0
     for char in S:
         if char == '.':

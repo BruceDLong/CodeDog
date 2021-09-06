@@ -162,6 +162,9 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
     return S
 
+def convertToInt(S, typeSpec):
+    return S
+
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
     return RHScodeStr
 
@@ -1213,4 +1216,5 @@ def fetchXlators():
     xlators['makePtrOpt']                   = makePtrOpt
     xlators['adjustBaseTypes']              = adjustBaseTypes
     xlators['codeProtectBlock']             = codeProtectBlock
+    xlators['convertToInt']                 = convertToInt
     return(xlators)

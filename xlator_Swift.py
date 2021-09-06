@@ -152,6 +152,9 @@ def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator
             S = 'Optional<'+paramType+'>.none'
     return S
 
+def convertToInt(S, typeSpec):
+    return S
+
 def checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHScodeStr):
     LHS_KeyType = progSpec.fieldTypeKeyword(lhsTypeSpec)
     RHS_KeyType = progSpec.fieldTypeKeyword(rhsTypeSpec)
@@ -1047,4 +1050,5 @@ def fetchXlators():
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
     xlators['xlateLangType']                = xlateLangType
     xlators['makePtrOpt']                   = makePtrOpt
+    xlators['convertToInt']                 = convertToInt
     return(xlators)
