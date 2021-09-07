@@ -441,9 +441,6 @@ else:
 
 testsToRun = gatherListOfTestsToRun(testListSpec)
 reportText = runListedTests(testsToRun)
-print("********** T E S T    R E S U L T S **********")
-print(reportText)
-print("**********************************************")
 writePrepend("xlatorTests/failedTests.txt", "Failed tests: \n")
 writePrepend("xlatorTests/failedTests.txt","Run on: "+ str(date.today())+"\n\n")
 

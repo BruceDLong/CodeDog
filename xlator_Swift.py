@@ -111,8 +111,6 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     langType = applyOwner(owner, langType, varMode)
     if langType=='TYPE ERROR': print(langType, owner, fieldType);
     InnerLangType = langType
-    reqTagString = getReqTagString(classes, typeSpec)
-    langType += reqTagString
     if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
     if varMode != 'alloc': fieldAttrs = applyOwner(owner, langType, varMode)
     return [langType, fieldAttrs]   # E.g.: langType='uint', file
@@ -1051,4 +1049,5 @@ def fetchXlators():
     xlators['xlateLangType']                = xlateLangType
     xlators['makePtrOpt']                   = makePtrOpt
     xlators['convertToInt']                 = convertToInt
+    xlators['getReqTagString']              = getReqTagString
     return(xlators)

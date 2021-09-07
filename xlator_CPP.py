@@ -1217,4 +1217,5 @@ def fetchXlators():
     xlators['adjustBaseTypes']              = adjustBaseTypes
     xlators['codeProtectBlock']             = codeProtectBlock
     xlators['convertToInt']                 = convertToInt
+    xlators['getReqTagString']              = getReqTagString
     return(xlators)

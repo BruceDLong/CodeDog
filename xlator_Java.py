@@ -112,8 +112,6 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     langType = applyOwner(typeSpec, owner, langType, actionOrField, varMode)
     if langType=='TYPE ERROR': print(langType, owner, fieldType);
     InnerLangType = langType
-    reqTagString = getReqTagString(classes, typeSpec)
-    langType += reqTagString
     if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
     if owner =="const": InnerLangType = fieldType
     return [langType, InnerLangType]
@@ -396,7 +394,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     elif containerCat=="LIST":
         containedOwner = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
         keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
-        [iteratorTypeStr, innerType]=convertType(ctrlVarsTypeSpec, 'var', 'action', genericArgs, xlator)
+        [iteratorTypeStr, innerType] = convertType(ctrlVarsTypeSpec, 'var', 'action', genericArgs, xlator)
         loopVarName=repName+"Idx";
         if(isBackward):
             actionText += (indent + "for(int "+loopVarName+'='+ctnrName+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+'){\n'
@@ -671,13 +669,9 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     [convertedType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     reqTagList = progSpec.getReqTagList(lhsTypeSpec)
     fTypeKW = progSpec.fieldTypeKeyword(lhsTypeSpec)
-    if reqTagList and not progSpec.isWrappedType(classes, fTypeKW) and not progSpec.isAbstractStruct(classes[0], fTypeKW):
-        if owner=='itr':
-            itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(fTypeKW, lhsTypeSpec))
-            convertedType = generateGenericStructName(itrType, reqTagList, genericArgs, xlator)
-        else: convertedType = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
-        lhsTypeSpec = getGenericTypeSpec(genericArgs, lhsTypeSpec, xlator)
-        if 'fromImplemented' in lhsTypeSpec: lhsTypeSpec.pop('fromImplemented')
+    if owner=='itr':
+        itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(fTypeKW, lhsTypeSpec))
+        convertedType = generateGenericStructName(itrType, reqTagList, genericArgs, xlator)
     localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     containerTypeSpec = progSpec.getContainerSpec(lhsTypeSpec)
     if progSpec.isOldContainerTempFunc(lhsTypeSpec): cdErr("Deprecated container type: "+ lhsTypeSpec)
@@ -984,4 +978,5 @@ def fetchXlators():
     xlators['adjustBaseTypes']              = adjustBaseTypes
     xlators['codeProtectBlock']             = codeProtectBlock
     xlators['convertToInt']                 = convertToInt
+    xlators['getReqTagString']              = getReqTagString
     return(xlators)
