@@ -25,7 +25,6 @@ def getContainerType(typeSpec, actionOrField):
             datastructID = containerTypeSpec['datastructID']
         else:   # it's a parseResult
             datastructID = containerTypeSpec['datastructID'][0]
-    elif progSpec.isOldContainerTempFunc(typeSpec): cdErr("Deprecated container type: "+ typeSpec)
     else:
         owner = progSpec.getOwnerFromTypeSpec(typeSpec)
         datastructID = 'None'
@@ -105,7 +104,6 @@ def getReqTagString(classes, typeSpec):
 
 def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    if progSpec.isOldContainerTempFunc(typeSpec): cdErr("Deprecated container type: "+ typeSpec)
     if(isinstance(fieldType, str)):
         langType = adjustBaseTypes(fieldType, progSpec.isNewContainerTempFunc(typeSpec))
     else: langType = progSpec.flattenObjectName(fieldType[0])
@@ -128,10 +126,10 @@ def isComparableType(typeSpec):
 
 def codeIteratorOperation(itrCommand, fieldType):
     result = ''
-    if itrCommand=='goNext':  result='%0.next()'
+    if itrCommand=='goNext':  result='%0.goNext()'
     elif itrCommand=='goPrev':result='%0.JAVA ERROR!'
-    elif itrCommand=='key':   result='%0.getKey()'
-    elif itrCommand=='val':   result='%0'
+    elif itrCommand=='key':   result='%0.node.key'
+    elif itrCommand=='val':   result='%0.node.value'
     return result
 
 def recodeStringFunctions(name, typeSpec):
@@ -280,7 +278,6 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     if progSpec.isNewContainerTempFunc(typeSpecIn): return(name, typeSpecOut, paramList, convertedIdxType)
-    if progSpec.isOldContainerTempFunc(typeSpecIn): cdErr("Deprecated container type: "+ typeSpecIn)
     return(name, typeSpecOut, paramList, convertedIdxType)
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
@@ -674,7 +671,6 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
         convertedType = generateGenericStructName(itrType, reqTagList, genericArgs, xlator)
     localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     containerTypeSpec = progSpec.getContainerSpec(lhsTypeSpec)
-    if progSpec.isOldContainerTempFunc(lhsTypeSpec): cdErr("Deprecated container type: "+ lhsTypeSpec)
     isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)
     fTypeKW = adjustBaseTypes(convertedType, isAContainer)
     if isinstance(containerTypeSpec, str) and containerTypeSpec == None:

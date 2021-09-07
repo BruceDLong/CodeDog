@@ -25,7 +25,6 @@ def getContainerType(typeSpec, actionOrField):
             datastructID = containerTypeSpec['datastructID']
         else:   # it's a parseResult
             datastructID = containerTypeSpec['datastructID'][0]
-    elif progSpec.isOldContainerTempFunc(typeSpec): print("Deprecated container type:", typeSpec); exit(2);
     else:
         owner = progSpec.getOwnerFromTypeSpec(typeSpec)
         datastructID = 'None'
@@ -103,7 +102,6 @@ def getReqTagString(classes, typeSpec):
 
 def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    if progSpec.isOldContainerTempFunc(typeSpec): print("Deprecated container type:", typeSpec); exit(2);
     fieldAttrs=''
     if(isinstance(fieldType, str)):
         langType = adjustBaseTypes(fieldType, progSpec.isNewContainerTempFunc(typeSpec))
@@ -319,7 +317,6 @@ def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, para
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     if progSpec.isNewContainerTempFunc(typeSpecIn): return(name, typeSpecOut, paramList, convertedIdxType)
-    if progSpec.isOldContainerTempFunc(typeSpecIn): print("Deprecated container type:", typeSpecIn); exit(2);
     return(name, typeSpecOut, paramList, convertedIdxType)
 
 def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):

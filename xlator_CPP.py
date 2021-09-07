@@ -441,7 +441,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
     actionText       = ""
     loopCounterName  = ""
     ctnrOwner        = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-    containedType    = progSpec.getFieldTypeKeyWordOld(ctnrTSpec)
+    containedType    = progSpec.fieldTypeKeyword(ctnrTSpec)
     ctrlVarsTypeSpec = {'owner':ctnrOwner, 'fieldType':containedType}
     itrName          = repName + "Itr"
     if progSpec.ownerIsPointer(ctnrOwner): connector="->"
@@ -473,7 +473,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     actionText       = ""
     loopCounterName  = repName+'_key'
     owner            = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-    containedType    = progSpec.getFieldTypeKeyWordOld(ctnrTSpec)
+    containedType    = progSpec.getContainerFirstElementType(ctnrTSpec)
     ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ctnrOwner)

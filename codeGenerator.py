@@ -678,6 +678,7 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
 def convertType(typeSpec, varMode, actionOrField, genericArgs, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     global globalClassStore
+    if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(typeSpec): cdErr("Deprecated container type in convertType(): "+ str(typeSpec))
     typeSpec  = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
     ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
     fieldType = progSpec.getFieldTypeNew(typeSpec)
@@ -772,6 +773,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             typeSpecOut['codeConverter'] = codeCvrtText
 
     elif IsAContainer and (not isNewContainer or name[0]=='['):
+        if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(typeSpecIn): cdErr("Deprecated container type in codeNameSeg(): "+ str(typeSpecIn))
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')
         [valOwner, valFieldType]=progSpec.getContainerValueOwnerAndType(typeSpecIn)
         typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
@@ -779,6 +781,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             [S2, idxTypeSpec] = codeExpr(name[1], objsRefed, None, None, LorRorP_Val, genericArgs, xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName, idxTypeSpec)
             return [S, typeSpecOut, S2,'']
+        if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(typeSpecOut): cdErr("Deprecated container type in codeNameSeg(): "+ str(typeSpecOut))
         [name, tmpTypeSpec, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxTypeSpec, typeSpecOut, paramList, genericArgs, xlator)
         typeSpecOut = copy.copy(tmpTypeSpec)
 
@@ -1237,10 +1240,11 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
         exit(2)
     elif(keyRange):
         [ctnrName, containerTSpec] = codeExpr(keyRange[0][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
+        if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(containerTSpec): cdErr("Deprecated container type in codeRepetition(): "+ str(containerTSpec))
         [StartKey, StartTypeSpec] = codeExpr(keyRange[2][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [EndKey,   EndTypeSpec] = codeExpr(keyRange[4][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [datastructID, indexTypeKeyWord, ctnrOwner]=xlator['getContainerType'](containerTSpec, '')
-        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.getFieldTypeKeyWordOld(containerTSpec)[0])
+        wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.fieldTypeKeyword(containerTSpec)[0])
         if(wrappedTypeSpec != None):containerTSpec=wrappedTypeSpec
         [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTSpec,ctnrOwner,repName,ctnrName,datastructID,indexTypeKeyWord,indent,xlator)
         actionText += actionTextOut
@@ -1332,6 +1336,7 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
         fieldDef=action['fieldDef']
         typeSpec= fieldDef['typeSpec']
         fieldName =fieldDef['fieldName']
+        if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(typeSpec): cdErr("Deprecated container type in codeAction: "+ fieldName)
         applyStructImplemetation(typeSpec,currentObjName,fieldName)
         cdlog(5, "Action newVar: {}".format(fieldName))
         varDeclareStr = xlator['codeNewVarStr'](globalClassStore, globalTagStore, typeSpec, fieldName, fieldDef, indent, objsRefed, 'action', genericArgs, localVarsAllocated, xlator)

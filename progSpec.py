@@ -904,15 +904,6 @@ def getFieldType(typeSpec):
     if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
-def getFieldTypeKeyWordOld(typeSpec):
-    # TODO: delete this function when dynamic types working
-    if(typeSpec==None):return None
-    fieldType = getFieldType(typeSpec)
-    if isinstance(fieldType, str): return fieldType
-    if isinstance(fieldType[0], str): return fieldType[0]
-    print("TODO: reduce field type to key word in progSpec.getFieldTypeKeyWord():",fieldType)
-    exit(2)
-
 def getContainerFirstElementType(typeSpec):
     reqTagList=getReqTagList(typeSpec)
     if reqTagList:
