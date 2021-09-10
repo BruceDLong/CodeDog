@@ -10,7 +10,7 @@ interface={
         { packageName = 'pocketsphinx'
           fetchMethod = 'git:https://github.com/cmusphinx/pocketsphinx.git'
           updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = { Linux = {buildCmd = './autogen.sh'
+          buildCmds   = { Linux = {buildCmd = './autogen.sh'                  //generates the header files
                                     installFiles = ['include']}
                         Windows = {buildCmd = 'cmake . && make'}
             }
@@ -18,7 +18,7 @@ interface={
         { packageName = 'sphinxbase'
           fetchMethod = 'git:https://github.com/cmusphinx/sphinxbase.git'
           updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = { Linux = {buildCmd = './autogen.sh' 
+          buildCmds   = { Linux = {buildCmd = './autogen.sh'                  //generates the header files
                                     installFiles = ['include']}
                         Windows = {buildCmd = 'cmake . && make'}
             }
@@ -38,36 +38,40 @@ struct SpeechToTextConvert{
     their char: hyp   
 
     void: init(me string: hmmPackage, me string: lmFilepath, me string: dictPackage) <- {
-        config <- cmd_ln_init(NULL, ps_args(), TRUE, "-hmm", hmmPackage.c_str(), "-lm", lmFilepath.c_str(),"-dict", dictPackage.c_str(), NULL)
-        ps <- ps_init(config)
-	    rv <- ps_start_utt(ps)
+        config <- cmd_ln_init(NULL, ps_args(), TRUE, "-hmm", hmmPackage.c_str(), "-lm", lmFilepath.c_str(),"-dict", dictPackage.c_str(), NULL)  // Create a configuration object
+        ps <- ps_init(config)       // initialize the decoder
+	    rv <- ps_start_utt(ps)      // open the file and start decoding the utterance
     }
 
+    // Open audio file
     void: attachStream(me string: audioFilePath) <- {
         fh <- fopen(audioFilePath.c_str(), "rb")
     }
 
+    // Read audio file and retrieve the hypothesis of recognition result. 
     void: analyze() <- <%{
         int16 buf[512];
         while (!feof(fh)) {
         size_t nsamp;
         nsamp = fread(buf, 2, 512, fh);
-        rv = ps_process_raw(ps, buf, nsamp, FALSE, FALSE);
+        rv = ps_process_raw(ps, buf, nsamp, FALSE, FALSE); // Read 512 samples at a time from the file, and feed them to the decoder
         }
 
-        rv = ps_end_utt(ps);
-        hyp = ps_get_hyp(ps, &score);
+        rv = ps_end_utt(ps);                // Mark the end of the utterance 
+        hyp = ps_get_hyp(ps, &score);       // The hypothesis to get recognition result
     }%>
 
+    // Save recognition result to text file
     void: getResult(me string: outputFilePath) <- {
         fw <- fopen(outputFilePath.c_str(), "wb")
         fwrite(hyp, strlen(hyp), 1, fw)
     }
 
+    // Clean up the objects
     void: deinit() <- {
         fclose(fh)
         fclose(fw)
-        ps_free(ps)
-        cmd_ln_free_r(config)
+        ps_free(ps)                 // Clean up the object that was returned by ps_init()
+        cmd_ln_free_r(config)       // Free the configuration object
     }
 }

@@ -21,17 +21,17 @@ STTx.runTest()
 
 struct STTx{
     void: runTest() <- {
-        me string: hmmPackage <- "pocketsphinx/pocketsphinx/model/en-us/en-us"
-        me string: lmFilepath <- "pocketsphinx/pocketsphinx/model/en-us/en-us.lm.bin"
-        me string: dictFilepath <- "pocketsphinx/pocketsphinx/model/en-us/cmudict-en-us.dict"
-        me string: audioFilepath <- "assets/001.wav"
-        me string: ouputTextFilepath <- "assets/sttx.txt"
+        me string: hmmPackage <- "pocketsphinx/pocketsphinx/model/en-us/en-us"                  // Directory containing acoustic model files path. 
+        me string: lmFilepath <- "pocketsphinx/pocketsphinx/model/en-us/en-us.lm.bin"           // Word trigram language model input file path.
+        me string: dictFilepath <- "pocketsphinx/pocketsphinx/model/en-us/cmudict-en-us.dict"   // Main pronunciation dictionary (lexicon) input file path.
+        me string: audioFilepath <- "assets/001.wav"                                            // Audio file path
+        me string: ouputTextFilepath <- "assets/sttx.txt"                                       // Output text file path
         
-        me SpeechToTextConvert: sttx
-        sttx.init(hmmPackage, lmFilepath, dictFilepath)
-        sttx.attachStream(audioFilepath)
-        sttx.analyze()
-        sttx.getResult(ouputTextFilepath)
-        sttx.deinit()
+        me SpeechToTextConvert: sttx                         // SpeechToTextConvert structure variable
+        sttx.init(hmmPackage, lmFilepath, dictFilepath)      // init() function with model's files path
+        sttx.attachStream(audioFilepath)                    // attach() function with audio file path
+        sttx.analyze()                                      // analyze() function for recognition 
+        sttx.getResult(ouputTextFilepath)                   // getResult() function with output text file for save result of recognition
+        sttx.deinit()                                       // deinit() function for clean up objects
     }
 }

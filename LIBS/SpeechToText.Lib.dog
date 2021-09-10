@@ -11,7 +11,6 @@ LibDescription ={
 
 featuresNeeded = [Logger]
 
-
 struct SpeechToTextConvert{
     void: init(me string: hmmPackage, me string: lmFilepath, me string: dictPackage)
     void: attachStream(me string: audioFilePath)
