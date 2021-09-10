@@ -27,11 +27,11 @@ struct STTx{
         me string: audioFilepath <- "assets/001.wav"
         me string: ouputTextFilepath <- "assets/sttx.txt"
         
-        me SpeechToTextConvert: sttc
-        sttc.init(hmmPackage, lmFilepath, dictFilepath)
-        sttc.attachStream(audioFilepath)
-        sttc.analyze()
-        sttc.getResult(ouputTextFilepath)
-        sttc.deinit()
+        me SpeechToTextConvert: sttx
+        sttx.init(hmmPackage, lmFilepath, dictFilepath)
+        sttx.attachStream(audioFilepath)
+        sttx.analyze()
+        sttx.getResult(ouputTextFilepath)
+        sttx.deinit()
     }
 }
