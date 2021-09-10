@@ -237,14 +237,14 @@ def gitClone(cloneUrl, packageName, packageDirectory):
         else:
             cdlog(1, "Cloning git repository: " + packageName)
             Repo.clone_from(cloneUrl, packagePath)
-            makeDir(packageDirectory + '/' + packageName + "/LIBS")
+            makeDirs(packageDirectory + '/' + packageName + "/LIBS")
 
 def downloadFile(downloadUrl, packageName, packageDirectory):
     import pycurl
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
     packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
-    makeDir(packageDirectory + '/' + packageName + "/LIBS")
-    makeDir(os.path.dirname(packagePath))
+    makeDirs(packageDirectory + '/' + packageName + "/LIBS")
+    makeDirs(os.path.dirname(packagePath))
     checkRepo = os.path.isfile(packagePath)
     if not checkRepo:
         try:
@@ -281,7 +281,7 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
     zipFileName = os.path.basename(packagePath)
     if not checkDirectory:
         try:
-            makeDir(zipFileDirectory + "/LIBS")
+            makeDirs(zipFileDirectory + "/LIBS")
             cdlog(1, "Downloading zip file: " + zipFileName)
             with open(packagePath, 'wb') as f:
                 c = pycurl.Curl()

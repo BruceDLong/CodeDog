@@ -1,0 +1,37 @@
+// SpeechText.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+
+
+Title = "Speech Text"
+FileName = "speechtext"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is an example of a speech to text program"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [SpeechToText]
+
+LicenseText = `Public Domain`
+
+runCode=`me STTx: STTx;
+STTx.runTest()
+`
+
+struct STTx{
+    void: runTest() <- {
+        me string: hmmPackage <- "pocketsphinx/pocketsphinx/model/en-us/en-us"
+        me string: lmFilepath <- "pocketsphinx/pocketsphinx/model/en-us/en-us.lm.bin"
+        me string: dictFilepath <- "pocketsphinx/pocketsphinx/model/en-us/cmudict-en-us.dict"
+        me string: audioFilepath <- "assets/001.wav"
+        me string: ouputTextFilepath <- "assets/sttx.txt"
+        
+        me SpeechToTextConvert: sttx
+        sttx.init(hmmPackage, lmFilepath, dictFilepath)
+        sttx.attachStream(audioFilepath)
+        sttx.analyze()
+        sttx.getResult(ouputTextFilepath)
+        sttx.deinit()
+    }
+}
