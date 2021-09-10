@@ -1,0 +1,21 @@
+// SpeechToText.Lib.dog
+
+requirements = [
+    [require, SpeechToText_implementation]
+]
+
+LibDescription ={
+    useStatus   = static
+    description ='Interface to the speech to text library'
+}
+
+featuresNeeded = [Logger]
+
+
+struct SpeechToTextConvert{
+    void: init(me string: hmmPackage, me string: lmFilepath, me string: dictPackage)
+    void: attachStream(me string: audioFilePath)
+    void: analyze()
+    void: getResult(me string: outputFilePath)
+    void: deinit()
+}

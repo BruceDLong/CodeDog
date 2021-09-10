@@ -1,0 +1,73 @@
+// SpeechToText.CPP.Lib.dog
+
+requirements = [
+    [tagOneOf, Lang, [CPP]]
+]
+
+interface={
+    provides=[SpeechToText_implementation]
+    packages = [
+        { packageName = 'pocketsphinx'
+          fetchMethod = 'git:https://github.com/cmusphinx/pocketsphinx.git'
+          updateWhen  = 'never'    // Updating isn't implemented
+          buildCmds   = { Linux = {buildCmd = './autogen.sh'
+                                    installFiles = ['include']}
+                        Windows = {buildCmd = 'cmake . && make'}
+            }
+        },
+        { packageName = 'sphinxbase'
+          fetchMethod = 'git:https://github.com/cmusphinx/sphinxbase.git'
+          updateWhen  = 'never'    // Updating isn't implemented
+          buildCmds   = { Linux = {buildCmd = './autogen.sh' 
+                                    installFiles = ['include']}
+                        Windows = {buildCmd = 'cmake . && make'}
+            }
+        }
+    ]
+    libFiles=[pocketsphinx, sphinxbase, sphinxad]
+    headers  = [pocketsphinx.h]
+} 
+
+struct SpeechToTextConvert{
+    their ps_decoder_t: ps
+    their cmd_ln_t: config
+    me int: rv
+    their FILE: fh
+    me int32: score
+    their FILE: fw
+    their char: hyp   
+
+    void: init(me string: hmmPackage, me string: lmFilepath, me string: dictPackage) <- {
+        config <- cmd_ln_init(NULL, ps_args(), TRUE, "-hmm", hmmPackage.c_str(), "-lm", lmFilepath.c_str(),"-dict", dictPackage.c_str(), NULL)
+        ps <- ps_init(config)
+	    rv <- ps_start_utt(ps)
+    }
+
+    void: attachStream(me string: audioFilePath) <- {
+        fh <- fopen(audioFilePath.c_str(), "rb")
+    }
+
+    void: analyze() <- <%{
+        int16 buf[512];
+        while (!feof(fh)) {
+        size_t nsamp;
+        nsamp = fread(buf, 2, 512, fh);
+        rv = ps_process_raw(ps, buf, nsamp, FALSE, FALSE);
+        }
+
+        rv = ps_end_utt(ps);
+        hyp = ps_get_hyp(ps, &score);
+    }%>
+
+    void: getResult(me string: outputFilePath) <- {
+        fw <- fopen(outputFilePath.c_str(), "wb")
+        fwrite(hyp, strlen(hyp), 1, fw)
+    }
+
+    void: deinit() <- {
+        fclose(fh)
+        fclose(fw)
+        ps_free(ps)
+        cmd_ln_free_r(config)
+    }
+}
