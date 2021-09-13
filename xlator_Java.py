@@ -315,8 +315,9 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ctnrOwner,repName,ctnrName,datastructID,idxTypeKW,indent,xlator):
+def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
+    [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
     actionText       = ""
     loopCounterName  = ""
     ctnrOwner        = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
@@ -348,7 +349,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
                        indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.getKey();\n'  )
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
-    else: cdErr("DSID iterateRangeContainerStr:"+datastructID+" "+containerCat)
+    else: cdErr("DSID iterateRangeFromTo:"+datastructID+" "+containerCat)
     return [actionText, loopCounterName]
 
 def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBackward,indent,genericArgs,xlator):
@@ -941,7 +942,7 @@ def fetchXlators():
     xlators['codeNewVarStr']                = codeNewVarStr
     xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
     xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
-    xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
+    xlators['iterateRangeFromTo']           = iterateRangeFromTo
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
     xlators['getEnumStructStr']             = getEnumStructStr

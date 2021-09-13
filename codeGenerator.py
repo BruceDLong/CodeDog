@@ -276,7 +276,7 @@ def getFieldIDArgList(segSpec, objsRefed, genericArgs, xlator):
             #print(argTypeSpec)
             keyWord = progSpec.fieldTypeKeyword(argTypeSpec)
             if keyWord == 'flag':keyWord ='bool'
-            if keyWord == 'NONE':keyWord ='NULL'
+            if keyWord == None:keyWord ='NULL'
             if(count >0 ):
                 fieldIDArgList += ','
                 argListStr     += ', '
@@ -678,7 +678,7 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
 def convertType(typeSpec, varMode, actionOrField, genericArgs, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     global globalClassStore
-    if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(typeSpec): cdErr("Deprecated container type in convertType(): "+ str(typeSpec))
+    isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, "convertType", xlator['renderGenerics'])
     typeSpec  = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
     ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
     fieldType = progSpec.getFieldTypeNew(typeSpec)
@@ -730,30 +730,27 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
     # if TypeSpecIn has 'dummyType', this is a non-member (or self) and the first segment of the reference.
     # return example: ['getData()', <typeSpec>, <alternate form>, 'OBJVAR']
     global globalClassStore
-    S=''
-    S_alt=''
-    SRC=''
-    namePrefix=''  # For static_Global vars
-    typeSpecOut={'owner':'', 'fieldType':'void'}
-    paramList=None
+    S           = ''
+    S_alt       = ''
+    SRC         = ''
+    namePrefix  = ''  # For static_Global vars
+    typeSpecOut = {'owner':'', 'fieldType':'void'}
+    name        = segSpec[0]
+    owner       = progSpec.getTypeSpecOwner(typeSpecIn)
+    fTypeKW     = progSpec.fieldTypeKeyword(typeSpecIn)
+    isOldCtnr   = progSpec.isOldContainerTempFuncErr(typeSpecIn, 'codeNameSeg1 '+currentObjName+' ' +str(name), xlator['renderGenerics'])
+    isNewCtnr   = progSpec.isAContainer(typeSpecIn)
+    isContainer = isOldCtnr or isNewCtnr
+
+    paramList   = None
     if len(segSpec) > 1 and segSpec[1]=='(':
         if(len(segSpec)==2):
             paramList=[]
         else:
             paramList=segSpec[2]
 
-    name=segSpec[0]
-    owner=progSpec.getTypeSpecOwner(typeSpecIn)
-    if 'fieldType' in typeSpecIn:
-        fieldTypeIn = progSpec.fieldTypeKeyword(typeSpecIn)
-    else: fieldTypeIn = None
-
-    isNewContainer = False
-    if progSpec.isNewContainerTempFunc(typeSpecIn): isNewContainer = True
-
-    IsAContainer = progSpec.isAContainer(typeSpecIn)
-    if (fieldTypeIn!=None and not IsAContainer):
-        if fieldTypeIn=="string":
+    if (fTypeKW!=None and not isContainer):
+        if fTypeKW=="string":
             [name, tmpTypeSpec] = xlator['recodeStringFunctions'](name, typeSpecOut)
             typeSpecOut = copy.copy(tmpTypeSpec)
 
@@ -772,8 +769,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 if typeSpecOut['owner']=='itr': typeSpecOut['owner']='me'
             typeSpecOut['codeConverter'] = codeCvrtText
 
-    elif IsAContainer and (not isNewContainer or name[0]=='['):
-        if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(typeSpecIn): cdErr("Deprecated container type in codeNameSeg(): "+ str(typeSpecIn))
+    elif isOldCtnr or (isNewCtnr and name[0]=='['):
         [containerType, idxTypeSpec, owner]=xlator['getContainerType'](typeSpecIn, '')
         [valOwner, valFieldType]=progSpec.getContainerValueOwnerAndType(typeSpecIn)
         typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
@@ -781,7 +777,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
             [S2, idxTypeSpec] = codeExpr(name[1], objsRefed, None, None, LorRorP_Val, genericArgs, xlator)
             S += xlator['codeArrayIndex'](S2, containerType, LorR_Val, previousSegName, idxTypeSpec)
             return [S, typeSpecOut, S2,'']
-        if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(typeSpecOut): cdErr("Deprecated container type in codeNameSeg(): "+ str(typeSpecOut))
+        progSpec.isOldContainerTempFuncErr(typeSpecOut, 'codeNameSeg2' +currentObjName+' '+str(name), xlator['renderGenerics'])
         [name, tmpTypeSpec, paramList, convertedIdxType]= xlator['getContainerTypeInfo'](globalClassStore, containerType, name, idxTypeSpec, typeSpecOut, paramList, genericArgs, xlator)
         typeSpecOut = copy.copy(tmpTypeSpec)
 
@@ -801,8 +797,8 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 elif name in modeStateNames and modeStateNames[name]=='modeStrings': namePrefix = xlator['GlobalVarPrefix']+modeStateNames[name]+'.'
         if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
     else:
-        if isNewContainer == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
-        else: fType=progSpec.fieldTypeKeyword(fieldTypeIn)
+        if isNewCtnr == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
+        else: fType=progSpec.fieldTypeKeyword(fTypeKW)
         if(name=='allocate'):
             S_alt=' = '+codeAllocater(typeSpecIn, genericArgs, xlator)
             typeSpecOut={'owner':'me', 'fieldType': 'void'}
@@ -824,7 +820,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                 typeSpecOut = tmpTypeSpec
                 if typeSpecOut!=0:
                     typeSpecOut = copyTypeSpec(getGenericTypeSpec(genericArgs, typeSpecOut['typeSpec'], xlator))
-                    if isNewContainer == True:
+                    if isNewCtnr == True:
                         segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut)
                         segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut)
                         [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(globalClassStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
@@ -833,7 +829,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
                         if(innerTypeKeyWord):
                             typeSpecOut['fieldType'][0] = innerTypeKeyWord
                     typeSpecOut = copyTypeSpec(typeSpecOut)
-                else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType, " isNewContainer:",isNewContainer)
+                else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType)
 
     if typeSpecOut and 'codeConverter' in typeSpecOut:
         [convertedName, paramList]=convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator)
@@ -1240,17 +1236,20 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
         exit(2)
     elif(keyRange):
         [ctnrName, containerTSpec] = codeExpr(keyRange[0][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-        if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(containerTSpec): cdErr("Deprecated container type in codeRepetition(): "+ str(containerTSpec))
+        isOldCtnr = progSpec.isOldContainerTempFuncErr(containerTSpec, 'codeRepetition1 '+currentObjName+' '+ctnrName, xlator['renderGenerics'])
         [StartKey, StartTypeSpec] = codeExpr(keyRange[2][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [EndKey,   EndTypeSpec] = codeExpr(keyRange[4][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [datastructID, indexTypeKeyWord, ctnrOwner]=xlator['getContainerType'](containerTSpec, '')
         wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.fieldTypeKeyword(containerTSpec)[0])
         if(wrappedTypeSpec != None):containerTSpec=wrappedTypeSpec
-        [actionTextOut, loopCounterName] = xlator['iterateRangeContainerStr'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTSpec,ctnrOwner,repName,ctnrName,datastructID,indexTypeKeyWord,indent,xlator)
+        [actionTextOut, loopCounterName] = xlator['iterateRangeFromTo'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTSpec,repName,ctnrName,indent,xlator)
         actionText += actionTextOut
     else: # interate over a container
         [ctnrName, containerTSpec] = codeExpr(action['repList'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-        if containerTSpec==None or not progSpec.isAContainer(containerTSpec): cdErr("'"+ctnrName+"' is not a container so cannot be iterated over."+str(containerTSpec))
+        isOldCtnr = progSpec.isOldContainerTempFuncErr(containerTSpec, 'codeRepetition2 '+currentObjName+' '+ctnrName, xlator['renderGenerics'])
+        isNewCtnr = progSpec.isAContainer(containerTSpec)
+        isContainer = isOldCtnr or isNewCtnr
+        if containerTSpec==None or not isContainer: cdErr("'"+ctnrName+"' is not a container so cannot be iterated over."+str(containerTSpec))
         if(traversalMode=='Forward' or traversalMode==None):
             isBackward=False
         elif(traversalMode=='Backward'):
@@ -1333,10 +1332,10 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
     typeOfAction = action['typeOfAction']
 
     if (typeOfAction =='newVar'):
-        fieldDef=action['fieldDef']
-        typeSpec= fieldDef['typeSpec']
-        fieldName =fieldDef['fieldName']
-        if xlator['renderGenerics']=='True' and progSpec.isOldContainerTempFunc(typeSpec): cdErr("Deprecated container type in codeAction: "+ fieldName)
+        fieldDef = action['fieldDef']
+        typeSpec  = fieldDef['typeSpec']
+        fieldName = fieldDef['fieldName']
+        isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, 'codeAction '+currentObjName+' '+fieldName, xlator['renderGenerics'])
         applyStructImplemetation(typeSpec,currentObjName,fieldName)
         cdlog(5, "Action newVar: {}".format(fieldName))
         varDeclareStr = xlator['codeNewVarStr'](globalClassStore, globalTagStore, typeSpec, fieldName, fieldDef, indent, objsRefed, 'action', genericArgs, localVarsAllocated, xlator)
@@ -1517,10 +1516,13 @@ def getCtorArgTypes(className, genericArgs, xlator):
     ctorArgTypes = []
     count=0
     for field in progSpec.generateListOfFieldsToImplement(globalClassStore, className):
-        tSpec  = field['typeSpec']
-        fType  = progSpec.fieldTypeKeyword(tSpec)
-        fOwner = progSpec.getOwnerFromTypeSpec(tSpec)
-        if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner == 'we' or (tSpec['argList'] or tSpec['argList']!=None) or (progSpec.isAContainer(tSpec) and not progSpec.typeIsPointer(tSpec)):
+        tSpec     = field['typeSpec']
+        fType     = progSpec.fieldTypeKeyword(tSpec)
+        fOwner    = progSpec.getOwnerFromTypeSpec(tSpec)
+        isOldCtnr = progSpec.isOldContainerTempFuncErr(tSpec, 'getCtorArgTypes '+currentObjName, xlator['renderGenerics'])
+        isNewCtnr = progSpec.isAContainer(tSpec)
+        isContainer = isOldCtnr or isNewCtnr
+        if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner == 'we' or (tSpec['argList'] or tSpec['argList']!=None) or (isContainer and not progSpec.typeIsPointer(tSpec)):
             continue
         if(fOwner != 'me' and fOwner != 'my') or (isinstance(fType, str) and ((isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
             [convertedType, innerType] = convertType(tSpec, 'var', 'constructor', genericArgs, xlator)
@@ -1544,7 +1546,10 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
         fieldType=progSpec.fieldTypeKeyword(typeSpec)
         if(fieldType=='flag' or fieldType=='mode'): continue
         if(typeSpec['argList'] or typeSpec['argList']!=None): continue
-        if progSpec.isAContainer(typeSpec) and not progSpec.typeIsPointer(typeSpec): continue
+        isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, 'codeConstructor '+currentObjName, xlator['renderGenerics'])
+        isNewCtnr = progSpec.isAContainer(typeSpec)
+        isContainer = isOldCtnr or isNewCtnr
+        if isContainer and not progSpec.typeIsPointer(typeSpec): continue
         fieldOwner=progSpec.getOwnerFromTypeSpec(typeSpec)
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
         [convertedType, innerType] = convertType(typeSpec, 'var', 'constructor', genericArgs, xlator)

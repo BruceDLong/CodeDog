@@ -333,12 +333,13 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for " + repName + " in stride(from:"+ S_hi+"-1" + ", through: " + S_low + ", by: -1){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ctnrOwner,repName,ctnrName,datastructID,idxTypeKW,indent,xlator):
+def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
+    [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
     actionText       = ""
     loopCounterName  = ""
-    containedType    = progSpec.getFieldTypeNew(ctnrTSpec)
     ctnrOwner        = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
+    containedType    = progSpec.getFieldTypeNew(ctnrTSpec)
     ctrlVarsTypeSpec = {'owner':ctnrOwner, 'fieldType':containedType}
     containerCat     = getContaineCategory(ctnrTSpec)
     if containerCat == "MAP":
@@ -353,7 +354,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
     elif datastructID=='list' and willBeModifiedDuringTraversal:
         pass;
     else:
-        print("DSID iterateRangeContainerStr:",datastructID,ctnrTSpec)
+        print("DSID iterateRangeFromTo:",datastructID,ctnrTSpec)
         exit(2)
     return [actionText, loopCounterName]
 
@@ -1014,7 +1015,7 @@ def fetchXlators():
     xlators['codeNewVarStr']                = codeNewVarStr
     xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
     xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
-    xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
+    xlators['iterateRangeFromTo']           = iterateRangeFromTo
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
