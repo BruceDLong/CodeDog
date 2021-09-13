@@ -160,7 +160,7 @@ struct testClass{
      'actions/listKeyRep':   ['struct testClass{me void: runTest()<-{me List<me int>:testKeyList<-[2,3,5,8,13,21]\nwithEach TK in testKeyList {print(TK_key,"-", TK, " ")}}}', 'PGBR:0-2 1-3 2-5 3-8 4-13 5-21 '],
      'actions/mapRep':       ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMap\ntestMap["E"]<-"every"\ntestMap["G"]<-"good"\ntestMap["B"]<-"boy"\ntestMap["D"]<-"does"\ntestMap["F"]<-"fine"\nwithEach M in testMap {print(M," ")}}}', 'PGBR:boy does every fine good '],
      'actions/mapKeyRep':    ['struct testClass{me void: runTest()<-{me Map<me string, me string>:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"\nwithEach MK in testMapKey {print(MK_key,"-",MK," ")}}}', 'PGBR:B-boy D-does E-every F-fine G-good '],
-     'actions/deleteListRep':['struct testClass{me void: runTest()<-{me List<me int>:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
+     #'actions/deleteListRep':['struct testClass{me void: runTest()<-{me List<me int>:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}}}', 'PGBR:2 3 5 13 21 '],
      'actions/repetitions':  ['''
 struct testClass{
     me void: runTest()<-{
@@ -176,10 +176,9 @@ struct testClass{
         withEach M in testMap {print(M," ")}
         me Map<me string, me string>:testMapKey\ntestMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
         withEach MK in testMapKey {print(MK_key,"-",MK," ")}
-        me List<me int>:testDelList<-[2,3,5,8,13,21]\nwithEach TD in testDelList {if(TD_key==3){testDelList.erase(TD_key)\nTDIdx<-TDIdx-1}\nelse{print(TD, " ")}}
     }
-}''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good B-boy D-does E-every F-fine G-good 2 3 5 13 21 ',
-    ['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep','actions/deleteListRep']],
+}''', 'PGBR:2 3 4 5 5 4 3 2 2 13 -22 188 188 -22 13 2 0-2 1-3 2-5 3-8 4-13 5-21 boy does every fine good B-boy D-does E-every F-fine G-good ',
+    ['actions/rangeRep','actions/backRangeRep','actions/listRep','actions/backListRep','actions/listKeyRep','actions/mapRep','actions/mapKeyRep']],
 ###################################################################################################
      'actions/plusEquals':    ['struct testClass{me void: runTest()<-{me int:A<-2 \n A<+-1 \n print(A)}}', 'PGBR:3'],
      'actions/minusEquals':   ['struct testClass{me void: runTest()<-{me int:A<-2 \n A<--1 \n print(A)}}', 'PGBR:1'],
@@ -484,7 +483,7 @@ struct testClass{
     // const string
     const string: constStr <- "Hello"
     // const char
-    const char: constChar <-"M"
+    //const char: constChar <-'M'
     // const double
     const double: pi <- 3.14
     // const ints
@@ -498,7 +497,7 @@ struct testClass{
     const bool: constBool <- true
     me void: runTest()<-{
         print(constStr)
-        print(constChar)
+        //print(constChar)
         print(pi)
         print(constInt)
         print(constInt32)
@@ -509,7 +508,7 @@ struct testClass{
         if(constBool){print("p")}
     }
 }
-''', 'PGBR:HelloM3.14123123123123123pp', ['class/constStrAsgn', 'class/constDblAsgn','class/constIntAsgn','class/constInt32Asgn','class/constInt64Asgn','class/constUint32Asgn','class/constUint64Asgn','class/boolAsgn','class/constStrAsgn']],
+''', 'PGBR:Hello3.14123123123123123pp', ['class/constStrAsgn', 'class/constDblAsgn','class/constIntAsgn','class/constInt32Asgn','class/constInt64Asgn','class/constUint32Asgn','class/constUint64Asgn','class/boolAsgn']],
 
 
 #####################################################################################################

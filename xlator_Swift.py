@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, isStruct
-from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr, convertType, generateGenericStructName, getGenericTypeSpec
+from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, codeAction, codeExpr, convertType, generateGenericStructName, getGenericTypeSpec, CheckObjectVars
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -323,7 +323,9 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
     if (containerType == 'string'):
         S= '[index: '+idx+']'
     else:
-        S= '[' + idx +']'
+        fieldDefAt = CheckObjectVars(containerType, "at", "")
+        if fieldDefAt: S= '.at(' + idx +')'
+        else: S= '[' + idx +']'
     return S
 ###################################################### CONTAINER REPETITIONS
 def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
@@ -810,7 +812,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
     decl = ''
     if className=='GLOBAL': defn =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
-    else: defn =  indent  + "static let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
+    else: defn =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
     return [defn, decl]
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
