@@ -47,6 +47,28 @@ NOTE:
 
  */
 
+/*  REGARDING THE STREAM PARSER:
+    In order to make the parser capable of stream-parsing several changes are made to a normal Earley Parser.
+    One is that A-items take care of their next-youngest-sibling's child (NYS). This means we can access the child before the
+    next-youngest-sibling is created. This is because the NYS will not be created until its child is fully parsed. So if the
+    NYS stored its own child we could not access the members of lists, or the first items in a sequence until the end of
+    parsing the whole list or sequence.
+
+    A consequence is that the usual method of learning which path succeeds will not work because it happens near the end of its parse.
+    We need a different method of determining which path is correct which happen earlier. The major part of this involves pre-calculating
+    how many steps up the tree will be valid when a particular production finishes. Then when a production completes we walk up the tree
+    that many steps marking A-Items by setting their pred's next field or their child field (which would normally be the child of their as-of-yet
+    unborn sibling)
+
+    This gets most cases, but it cannot tell if the next, not-yet-parsed field of a REPetition is going to be a new list item
+    or if it is the EndOfList marker. For the parse you can just wait to see it the next item comes in or if the AItem's parse finishes.
+    Unfortunatly, if another thread is waiting for that item to be parsed so that it can Extract it, it will wait too long. So we also
+    need a method of determining when a list has finished.
+
+    NOTE: The above means that if you need to know the span of an AItem (it's start and end charactar positions), you must
+          check its .next field's span.
+*/
+
 featuresNeeded = [IOBuffer, Threads]
 
 struct production{
@@ -120,7 +142,6 @@ struct stateRec{
     me List<me pedigree>: pedigrees
     our stateRec: next
     our stateRec: child
-    flag: pathNotChosen
     flag: resolved
 
     // The following flags are used in streaming mode:
@@ -144,6 +165,7 @@ struct stateRec{
         if(resolved){S<+-"-R"}
        return(S)
     }
+    me int64: span() <- {return(crntPos-originPos)}
 
 flag: MARKer1  // Use these to mark staterecs in grapher
 flag: MARKer2  // They are for debugging and can be removed
@@ -183,15 +205,17 @@ struct EParser{
         if(doQuickParse){preCalcNullability()}
     }
 
+    void: putString(me string: data) <- {
+        streamToParse.putStr(data)
+        topOffSSets()
+    }
 
     me char: getCharAt(me int64: pos) <- {
         me char: ch <- streamToParse.at(pos)
-        topOffSSets()
         return(ch)
     }
     our strBufItr: getItrAt(me int64: pos) <- {
         our strBufItr: bufItr <- streamToParse.getItrAt(pos)
-        topOffSSets()
         return(bufItr)
     }
 
@@ -493,9 +517,12 @@ struct EParser{
             logStr <+- "SLOT: "+ toString(tmp)+"'"+ ch+ "' - size:\n"
             withEach SRec in SSet.stateRecs {
                 logStr <+- SRec.mySymbol()+": "
-                logStr <+- SRec.pedigrees[0].pred.mySymbol()+": "
-                logStr <+- SRec.pedigrees[0].cause.mySymbol()+":"
-                logStr <+- "    "+SRec.stringify(self)+"\n"
+                withEach ped in SRec.pedigrees{
+                    logStr <+- ped.pred.mySymbol()+": "
+                    logStr <+- ped.cause.mySymbol()+": "
+                }
+            logStr <+- toString(SRec.productionID)
+                logStr <+- "    \t"+SRec.stringify(self)+"\n"
             }
             log(logStr)
         }
@@ -985,6 +1012,7 @@ struct EParser{
         if(!Duplicate){
             if(ProdType == parseSEQ or ProdType == parseREP or ProdType == parseALT or ProdType == parseAUTO){
                 Allocate(newStateRecPtr, productionID, seqPos, origin, crntPos)
+                newStateRecPtr.mySymbol() // This just help get the symbols numbered in order for debugging.
                 if(ProdType == parseREP){newStateRecPtr.isREP<-true}
                 //log("ALLOC:"+newStateRecPtr.mySymbol() + ": "+newStateRecPtr.stringify(self))
                 newStateRecPtr.pedigrees.append(pedigree(pred, cause, productionID))
@@ -1042,15 +1070,8 @@ struct EParser{
         from.childIsFilled<-true
         streamingSRecChildLock.notifyOne()
     }
-    me bool: predIsNotChosen(our stateRec: SRec) <- {
-        our stateRec: pred <- chosenPed(SRec).pred
-        if(pred!=NULL and pred.pathNotChosen){
-            return(true)
-        }
-        return(false)
-    }
+
     our stateRec: advanceCompletion(our stateRec: SRec, our stateRec: backSRec) <- {
-        if(predIsNotChosen(SRec)){return(NULL)}
         our stateRec: newItem <- NULL
         me int: backSRecProductionID <- backSRec.productionID
         me int64: backSRecOriginPos  <- backSRec.originPos
@@ -1061,7 +1082,7 @@ struct EParser{
             me int: MAX_ITEMS  <- backProd.items[2]
             if((backSRecSeqPos < MAX_ITEMS or MAX_ITEMS==0) and backProd.items[0] == SRec.productionID ){//log(" ADVANCING REP: ")
                 newItem <- addProductionToStateSet(crntPos, backSRecProductionID, backSRecSeqPos+1, backSRecOriginPos, backSRec, NULL)
-    //log(" ADVANCING REP: "+SRec.mySymbol()+"  makes:"+newItem.mySymbol())
+               //log(" ADVANCING REP: "+SRec.mySymbol()+"  makes:"+newItem.mySymbol())
             }
         } else if(prodTypeFlag==parseSEQ){
             if(backSRecSeqPos < backProd.items.size() and backProd.items[backSRecSeqPos] == SRec.productionID){//log(" ADVANCING SEQ: "+SRec.mySymbol())
@@ -1086,8 +1107,20 @@ struct EParser{
             }
         }
     }
+    me List<our stateRec>: itemsToResolve
 
     void: complete(our stateRec: SRec, me int64: crntPos) <- {
+        /* If this is called on a SEQ or ALT, a valid parse has been found. However it may not be fully completed because
+         * there may be REPetitionss (including for OPTionals) that are not compelete. A REP seq could have 0 or more items.
+         * We fill in all the next/child fields but do not mark them finished until we know. (Actually, it may be better to not fill them yet as they could be wrong and changed later.)
+         * Any item that is a tentative REP or has an tentative REP inside is tentative. Even completed REPs can be tentative because they could belong to a future or past SRec.
+         * For example, in infons, A mostly-parsed ListInfo may actually be a ListItem. (Of course they shouldn't get linked in)
+         * So when a REP stateRec is added, it won't be removed but it could be replaced. It could be the END-OF-LIST marker or it could become a full item.
+         * Once a REP's child is filled in and completed it should mean that the REP is permanent and complete. We can percolate that completeness up the tree.
+         * The problem case is when a REP node does not have a child how do we know if it is complete? It could have its child filled or it could be replaced.
+         * We can sometimes tell by looking at the min and max number of REPs. Otherwise we can tell thusly: When we pass this charactar pos, if all advances from this char pos
+         * go through a REP than that REP is complete. (Though it may still be pypassed from earlier branches, but we won't extract past those until they are resolved.
+         */
         me int: productionID <- SRec.productionID
         me int64: originPos  <- SRec.originPos
 
@@ -1095,21 +1128,18 @@ struct EParser{
 
         if(!doQuickParse){registerCompletion(SRec)}
         their stateSets: SSet  <- SSets[originPos]
-        withEach backSRec in SSet.stateRecs {
+        withEach backSRec in SSet.stateRecs { // If backSRec is not SRec, advance backSRec.
             if(!(crntPos==originPos and backSRec.productionID==productionID and backSRec.SeqPosition==SRec.SeqPosition and backSRec.originPos==originPos)){
                 our stateRec: newSRec <- advanceCompletion(SRec, backSRec)
             }
         }
 
         SRec.MARKer2<-true
-        if(SRec.isREP or SRec.child!=NULL){
-            //log("PARSE_DONE-B:"+SRec.mySymbol())
-            SRec.parseDone <- true
-        }
-        bottomUpResolve(SRec, grammar[productionID].lvlsToBackApprove, "C ")
-        if(SRec.child!=NULL and SRec.child.isREP){
-            closeRepStateRec(SRec.child)
-        }
+        //if(SRec.isREP or SRec.child!=NULL){SRec.parseDone <- true}
+       // if(!SRec.isREP){
+            itemsToResolve.append(SRec)
+       // }
+        //if(SRec.child!=NULL and SRec.child.isREP){closeRepStateRec(SRec.child)}
     }
 
     me bool: ruleIsDone(our stateRec: SRec)<-{
@@ -1142,7 +1172,6 @@ struct EParser{
                 if(nextItem){topItem<-nextItem}
             }
             if(!topItem.parseDone){
-                //log("PARSE_DONE-C:"+topItem.mySymbol())
                 topItem.parseDone<-true
                 if(topItem.next==NULL){setSRecNextTo(topItem, NULL, "Notify:")}
             }
@@ -1225,6 +1254,7 @@ struct EParser{
             log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: " + toString(crntPos)+ " '" + streamToParse.atSafe(crntPos)+"'")
 //withEach SRecI1 in SSet.stateRecs {log("    iSLOT:" + SRecI1.mySymbol()+"_: "+SRecI1.stringify(self))} log("#############################")
             resetCompletions(crntPos)
+            itemsToResolve.clear()
             withEach SRec in SSet.stateRecs {
                 their production: prod <- grammar[SRec.productionID]
                 me int: ProdType       <- prod.prodType
@@ -1256,11 +1286,14 @@ struct EParser{
                     }
                 }
             }
-//            log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
+        //streamingSegmentResolve(crntPos)
+            withEach SRecToResolve in itemsToResolve{bottomUpResolve(SRecToResolve, grammar[SRecToResolve.productionID].lvlsToBackApprove, "C ")}
+            //log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
 //withEach SRecI in SSet.stateRecs {log("    oSLOT:" + SRecI.mySymbol()+"_: "+SRecI.stringify(self))} log("#############################")
             crntPos <+- 1
         }
         parseTreeFinished <- true
+        //dump()
         //log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
     }
 
@@ -1327,7 +1360,32 @@ struct EParser{
     }
 
     me int: choosePedigreeToFollow(me int: prodID, their List<me pedigree>: peds) <- {
-        return(0)
+        me int: retval <- 0
+if(true or prodID!=143){return(retval)}
+        if(peds.size()>1){
+            me string: logStr <- "AMGIBUITY:"+toString(prodID)+" ("+grammar[prodID].nameToStr(rnames)+")"
+            me int: highestSpanIdx <- 0
+            me int64: highestSpan  <- 0
+            me int: count <- 0
+            withEach ped in peds{
+                // if(prodID==143){}
+                if(ped.cause){
+                    me int: span <- ped.cause.span()
+                    if(span > highestSpan){
+                        highestSpanIdx <- count
+                        highestSpan    <- span
+                    }
+                    logStr <+- "  pred:"+ped.pred.mySymbol()
+                    logStr <+- "  cause:"+ped.cause.mySymbol()
+                    logStr <+- "  span:"+toString(span)
+                    logStr <+- ",  "
+                }
+                count <+- 1
+            }
+            retval <- highestSpanIdx
+            log(logStr+"  ret:"+toString(retval))
+        }
+        return(retval)
     }
 
     their pedigree: chosenPed(our stateRec: SRec) <- {
@@ -1348,8 +1406,6 @@ struct EParser{
     our stateRec: bottomUpResolve(our stateRec: SRec, me int: level, me string: indent) <- {
         if(level<=0){return(NULL)}
         //log(indent+"RESOLVE:"+SRec.mySymbol()+": "+SRec.stringify(self) + "  LEVEL:"+toString(level))
-  //  if(SRec.mySymbol()=="stateRec111" and !SRec.parseDone and SRec.child==NULL and SRec.isREP){log("SKIPPING:"+SRec.mySymbol()); return(NULL)}
-//if(!SRec.childIsFilled){return(NULL)}
         our stateRec: crntRec <- SRec
         our stateRec: lastSRec <- NULL
         while(crntRec!=NULL){
@@ -1357,25 +1413,20 @@ struct EParser{
             crntRec <- setPredsNext(crntRec, indent+"-A  ")
         }
         if(lastSRec!=NULL){  // TODO: Try not recursing if already done
-            me int: count <- 0
             withEach ped in lastSRec.pedigrees {
                 our stateRec: cause <- ped.cause
-   // log("COUNT:"+toString(count))
-  //  if(lastSRec.mySymbol()=="stateRec170" and count==0){count<+-1; log("SKIPPING:"+cause.mySymbol()); cause.pathNotChosen<-true; dumpGraph("Skipping", 1) continue()}
                 if(cause){
                     setSRecChildTo(cause, lastSRec, indent +"r   ")
-                    if(lastSRec.parseDone){
+                    if(lastSRec.parseDone){ //TODO: Test whether tests can pass without this section
                         setPredsNext(cause, indent+"cause: ") // only do if lastSRec is totally done, no more reps.
                     }
                     if(level==1){
                         if(lastSRec.child!=NULL and lastSRec.isREP){cause.MARKer1<-true
-                            //log("REP_RESOLVE):"+lastSRec.mySymbol()+"  cause:"+cause.mySymbol())
                             SRec.parseDone <- true
                             bottomUpResolve(cause, 2, indent+"|x  ") // TODO: This makes redundant calls. Improve it
                         }
                     }else {bottomUpResolve(cause, level-1, indent+"|   ")}
                 }
-                count <+- 1
             }
         }
         //sleep(100) // test with this, extractionComplete, tell Bruce if it breaks
@@ -1383,6 +1434,8 @@ struct EParser{
         return(NULL)
     }
 
+
+//////////////////////////////// Top Resolver (Fastest resolve but does not stream)
 //TODO: Fix topDownResolve()
     our stateRec: topDownResolve(our stateRec: SRec, me string: indent) <- {
         log("TopDownParser broken for now"); exit(2)
