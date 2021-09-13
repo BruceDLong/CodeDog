@@ -596,7 +596,8 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
 
 ############################################
 def codeProtectBlock(mutex, criticalText, indent, xlator):
-    S = indent+'try{\n'+indent+'    '+mutex+'.mtx.lock();\n'+criticalText+indent+'}finally{'+mutex+'.mtx.unlock();}\n'
+    S = indent+'MutexMngr mtxMgr = new MutexMngr('+mutex+');\n'
+    S += indent+'try{\n'+indent+'    '+mutex+'.lock();\n'+criticalText+indent+'}finally{'+mutex+'.unlock();}\n'
     return(S)
 
 def codeMain(classes, tags, objsRefed, xlator):
