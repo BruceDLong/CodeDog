@@ -2,7 +2,7 @@
 import progSpec
 import codeDogParser
 from progSpec import cdlog, cdErr, isStruct
-from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, makeTagText, codeAction, codeExpr, convertType, generateGenericStructName, getGenericTypeSpec
+from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAllocater, appendGlobalFuncAcc, codeParameterList, codeAction, codeExpr, convertType, generateGenericStructName, getGenericTypeSpec, CheckObjectVars
 
 ###### Routines to track types of identifiers and to look up type based on identifier.
 def getContainerType(typeSpec, actionOrField):
@@ -323,7 +323,9 @@ def codeArrayIndex(idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
     if (containerType == 'string'):
         S= '[index: '+idx+']'
     else:
-        S= '[' + idx +']'
+        fieldDefAt = CheckObjectVars(containerType, "at", "")
+        if fieldDefAt: S= '.at(' + idx +')'
+        else: S= '[' + idx +']'
     return S
 ###################################################### CONTAINER REPETITIONS
 def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
@@ -333,12 +335,13 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for " + repName + " in stride(from:"+ S_hi+"-1" + ", through: " + S_low + ", by: -1){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ctnrOwner,repName,ctnrName,datastructID,idxTypeKW,indent,xlator):
+def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
+    [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
     actionText       = ""
     loopCounterName  = ""
-    containedType    = progSpec.getFieldTypeNew(ctnrTSpec)
     ctnrOwner        = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
+    containedType    = progSpec.getFieldTypeNew(ctnrTSpec)
     ctrlVarsTypeSpec = {'owner':ctnrOwner, 'fieldType':containedType}
     containerCat     = getContaineCategory(ctnrTSpec)
     if containerCat == "MAP":
@@ -353,7 +356,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
     elif datastructID=='list' and willBeModifiedDuringTraversal:
         pass;
     else:
-        print("DSID iterateRangeContainerStr:",datastructID,ctnrTSpec)
+        print("DSID iterateRangeFromTo:",datastructID,ctnrTSpec)
         exit(2)
     return [actionText, loopCounterName]
 
@@ -809,7 +812,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
     decl = ''
     if className=='GLOBAL': defn =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
-    else: defn =  indent  + "static let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
+    else: defn =  indent  + "let " + fieldName + ':'+ convertedType  + fieldValueText +';\n';
     return [defn, decl]
 
 def codeVarField_Str(convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
@@ -1014,7 +1017,7 @@ def fetchXlators():
     xlators['codeNewVarStr']                = codeNewVarStr
     xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
     xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
-    xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
+    xlators['iterateRangeFromTo']           = iterateRangeFromTo
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
     xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str

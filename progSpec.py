@@ -771,10 +771,19 @@ def isNewContainerTempFunc(typeSpec):
 def isOldContainerTempFunc(typeSpec):
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
+def isOldContainerTempFuncErr(typeSpec, source, renderGenerics):
+    if'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
+        if renderGenerics =='True':
+            cdErr("Deprecated container type in " + source)
+        #else: print("Warning: Deprecated container type in  " + source)
+        return True
+    return False
+
 def isAContainer(typeSpec):
     if typeSpec==None:return(False)
     if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
-    return(isOldContainerTempFunc(typeSpec))
+    # TODO: remove check for Old Container
+    return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def getContainerSpec(typeSpec):
     if isNewContainerTempFunc(typeSpec):
@@ -1091,9 +1100,10 @@ def baseStructName(structName):
 
 def fieldTypeKeyword(fieldType):
     # fieldType can be fieldType or typeSpec
-    if fieldType==None: return 'NONE'
+    if fieldType==None: return None
+    if 'dummyType' in fieldType: return None
     if 'owner' in fieldType and fieldType['owner']=='PTR':
-        return 'NONE'
+        return None
     if 'fieldType' in fieldType:    # if var fieldType is typeSpec
         fieldType = fieldType['fieldType']
     if isinstance(fieldType, str):

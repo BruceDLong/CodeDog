@@ -436,8 +436,9 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
         S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
     return (S)
 
-def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ctnrOwner,repName,ctnrName,datastructID,idxTypeKW,indent,xlator):
+def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
+    [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
     actionText       = ""
     loopCounterName  = ""
     ctnrOwner        = progSpec.getContainerFirstElementOwner(ctnrTSpec)
@@ -462,7 +463,7 @@ def iterateRangeContainerStr(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,ct
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
     else:
-        print("DSID iterateRangeContainerStr:",datastructID,containerCat)
+        print("DSID iterateRangeFromTo:",datastructID,containerCat)
         exit(2)
     return [actionText, loopCounterName]
 
@@ -722,7 +723,10 @@ def checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsType, LHS, LHSPar
 
 ############################################
 def codeProtectBlock(mutex, criticalText, indent, xlator):
-    S = criticalText
+    S = indent+'{\n'
+    S += indent+'    Unique_Lock_Mutex mtxMgr('+mutex+');\n'
+    S += criticalText
+    S += indent+'}\n'
     return(S)
 
 def codeMain(classes, tags, objsRefed, xlator):
@@ -1181,7 +1185,7 @@ def fetchXlators():
     xlators['codeNewVarStr']                = codeNewVarStr
     xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
     xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
-    xlators['iterateRangeContainerStr']     = iterateRangeContainerStr
+    xlators['iterateRangeFromTo']           = iterateRangeFromTo
     xlators['iterateContainerStr']          = iterateContainerStr
     xlators['getEnumStr']                   = getEnumStr
     xlators['getEnumStringifyFunc']         = getEnumStringifyFunc

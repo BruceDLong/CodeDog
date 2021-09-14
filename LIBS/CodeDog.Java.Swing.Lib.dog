@@ -1,6 +1,6 @@
 ////////// Add routines for Java Swing
 requirements = [
-    [tagOneOf, Platform, [Swing]]
+    [tagOneOf, Platform, [Swing, Java]]
 ]
 
 interface={

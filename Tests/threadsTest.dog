@@ -1,0 +1,165 @@
+// threadsTest.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';
+//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
+//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+
+Title = "Threads Test"
+FileName = "threadsTest"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is a test for Threads Libraries"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [Threads]
+
+LicenseText = `Public Domain`
+
+
+runCode=`
+    testThreads()
+    //testMutex()
+    //testMutexMgr()
+    //testSyncLock()
+`
+
+struct GLOBAL{
+    me Mutex: mtx
+    me SyncLock: syncLk
+    me bool: printThread <- false
+    me bool: printValue  <- false
+    me int: waitCount    <- 0
+
+    void: testThreads() <- {
+        print("TEST THREADS!\n")
+        me ThreadTester: tester
+        tester.start()
+        withEach num in RANGE(1..1000){
+            print("\nVALUE:", num)
+        }
+        printThread <- false
+        tester.waitForExit()
+    }
+    void: testMutex() <- {
+        print("TEST MUTEX!\n")
+        me MutexTester: tester
+        tester.start()
+        withEach num in RANGE(1..10000){
+            if(num==1){printThread<-true}
+            if(num % 5 == 0){
+                mtx.lock()
+                if(printValue){
+                    print("\nA")
+                    print("\nB")
+                    print("\nC")
+                    print("\nD")
+                }
+                mtx.unlock()
+            }
+            else{
+                mtx.lock()
+                if(printValue){
+                    print("\nVALUE:", num)
+                }
+                mtx.unlock()
+            }
+        }
+        printThread <- false
+        tester.waitForExit()
+    }
+    void: testMutexMgr() <- {
+        print("TEST MUTEXMGR!\n")
+        me MutexMgrTester: tester
+        tester.start()
+        withEach num in RANGE(1..10000){
+            if(num==1){printThread<-true}
+            if(num % 5 == 0){
+                protect(mtx){
+                    if(printValue){
+                        print("\nA")
+                        print("\nB")
+                        print("\nC")
+                        print("\nD")
+                    }
+                }
+            }
+            else{
+                protect(mtx){
+                    if(printValue){
+                        print("\nVALUE:", num)
+                    }
+                }
+            }
+        }
+        printThread <- false
+        tester.waitForExit()
+    }
+    void: testSyncLock() <- {
+        print("TEST SYNCLOCK!\n")
+        me SyncLockTester: tester
+        tester.start()
+        protect(mtx){
+            while(waitCount < 200){
+                syncLk.wait(mtxMgr);
+            }
+        }
+        withEach num in RANGE(1..500){
+            if(printValue){
+                protect(mtx){
+                    print("\nVALUE:", num)
+                }
+            }
+        }
+        tester.waitForExit()
+    }
+}
+
+struct ThreadTester: inherits=Threads{
+    void: run()<-{
+        withEach n in RANGE(1..1000){
+            print("\n            THREAD:", n)
+        }
+        printValue  <- false
+    }
+
+}
+struct MutexTester: inherits=Threads{
+    void: run()<-{
+        withEach n in RANGE(1..1000){
+            if(n==1){printValue<-true}
+            mtx.lock()
+            if(printThread){print("\n            THREAD:", n)}
+            mtx.unlock()
+        }
+        printValue  <- false
+    }
+}
+struct MutexMgrTester: inherits=Threads{
+    void: run()<-{
+        withEach n in RANGE(1..1000){
+            if(n==1){printValue<-true}
+            protect(mtx){
+                if(printThread){print("\n            THREAD:", n)}
+            }
+        }
+        printValue  <- false
+    }
+}
+
+struct SyncLockTester: inherits=Threads{
+    void: run()<-{
+        withEach n in RANGE(1..700){
+            if(n==1){printValue<-true}
+            protect(mtx){
+                waitCount <- n
+                if (n == 200) {
+                    syncLk.notifyOne()
+                }
+                if(n>200){print("\n            THREAD:", n)}
+            }
+        }
+        printValue  <- false
+    }
+}

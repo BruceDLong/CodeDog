@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# CodeDog Xlator tester
+# CodeDog tests for COntainers
 import os
 from progSpec import cdlog
 import errno
@@ -250,7 +250,7 @@ struct testClass{
 
 tags = """BuildCmd = ""
 Title = "Infomage - DataDog"
-FileName = "testXlator"
+FileName = "containerTests"
 Version = "0.1"
 CopyrightMesg = "Copyright (c) 2015-2016 Bruce Long"
 Authors = "Bruce Long"
@@ -292,7 +292,7 @@ def runCmd(workingDirectory, runString):
 
 def RunCodeDogPrg(testString):
     path = "xlatorTests"
-    fileName = "testXlator.dog"
+    fileName = "containerTests.dog"
     writeFile(path, fileName, testString)
     runString ="codeDog " + fileName
     workingDirectory = os.getcwd() + "/" + path
@@ -421,7 +421,7 @@ if (xlatorName == "cpp"):
     buildSpec = "LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';\n"
     buildSpec += "//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
     buildSpec += "//SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';"
-    runSpec = "./testXlator"
+    runSpec = "./containerTests"
     runDirectory = workingDirectory + "/LinuxBuild"
 elif(xlatorName == "swing" or xlatorName == "java" or xlatorName == "Java"):
     buildSpec = "SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
@@ -433,7 +433,7 @@ elif(xlatorName == "swift" or xlatorName == "Swift" ):
     buildSpec = "SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';\n"
     buildSpec += "//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
     buildSpec += "//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';"
-    runSpec = "./testXlator"
+    runSpec = "./containerTests"
     runDirectory = workingDirectory + "/SwiftBuild"
 else:
     print(("UNKNOWN XLATOR: ", xlatorName))
