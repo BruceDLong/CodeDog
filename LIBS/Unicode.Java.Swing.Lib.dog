@@ -1,6 +1,6 @@
 // CodeDog Unicode Library
 requirements = [
-    [tagOneOf, Platform, [Swing]]
+    [tagOneOf, Platform, [Swing, Java]]
 ]
 
 interface={

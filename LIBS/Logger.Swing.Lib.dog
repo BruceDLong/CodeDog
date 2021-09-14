@@ -1,6 +1,6 @@
 /////////// Add routines for C++
 requirements = [
-    [tagOneOf, Platform, [Swing]]
+    [tagOneOf, Platform, [Swing, Java]]
 ]
 
 interface={
