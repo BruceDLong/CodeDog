@@ -6,10 +6,10 @@ gi.require_version("Gtk", "3.0")
 gi.require_version('Pango', '1.0')
 gi.require_version('PangoCairo', '1.0')
 from gi.repository import Gtk as gtk
-from gi.repository import Pango, PangoCairo
+from gi.repository import Pango, PangoCairo, Gdk
 
 import cairo
-import math
+from math import pi
 
 import sys
 
@@ -38,6 +38,13 @@ def heachArg(line):
     #print("heachArg:",line,"|", heachVal,"|", keyWord)
     return(line, heachVal, keyWord)
 
+def heachBetween(line, start, end):
+    stPos = line.find(start)
+    edPos = line.find(end, stPos)
+    heachVal = line[stPos+len(start) : edPos]
+    retLine = line[:stPos] + line[edPos+len(end):]
+    return(retLine, heachVal)
+
 def messageBox(self, text, title):
     dlg = gtk.MessageDialog(parent=self, flags=0, message_type=gtk.MessageType.INFO, buttons=gtk.ButtonsType.CLOSE, text=title)
     dlg.set_title(title)
@@ -54,13 +61,13 @@ def renderText(cr, x, y, text, fontStr=""):
     layout = PangoCairo.create_layout(cr)
     layout.set_font_description(Pango.font_description_from_string(fontStr))
     layout.set_alignment(Pango.Alignment.CENTER)
-    layout.set_markup(text, -1)
+    layout.set_text(text, -1)
+    #layout.set_markup(text, -1)
     cr.move_to(x,y)
     PangoCairo.show_layout(cr, layout)
 
 def draw_rounded(cr, area, radius):
     """ draws rectangles with rounded (circular arc) corners """
-    from math import pi
     a,b,c,d=area
     cr.arc(a + radius, c + radius, radius, 2*(pi/2), 3*(pi/2))
     cr.arc(b - radius, c + radius, radius, 3*(pi/2), 4*(pi/2))
@@ -74,6 +81,7 @@ def fatalError(mesg):
     exit(-1)
 
 class ActionSorter:
+    numSteps = 0
     seqSets = []
     altSets = []
     states  = []
@@ -214,14 +222,9 @@ class ActionSorter:
             print(">>:"+str(PUTs[1]['eventDesc']))
 
 ### TODO NEXT:
-###    * Integrate and test action-sorting. Esp Alloc.Seq, Arrow, State, Putting
-###    * Choose correct key for addAsAltSet and test it
-###    * Make iteration of this: InitIteration(), GetNext()
-###
-###    * Draw SeqSet, Seq*, AltSet
 ###    * Draw Arrows
 ###    * Set states and use colors
-###    * Add controls: next, prev, zoom+-, 'peview of next', etc.
+###    * Add controls:  'peview of next', etc.
     def addAsSeqSet(self, aRecord):
         aItem = aRecord[1]
         SetKey = aItem['prodName']+"%%"+str(aItem['originPos'])
@@ -244,6 +247,7 @@ class ActionSorter:
 
     def insertPItem(self, pItem):
         aRecord = [self.IdxNum, pItem]
+        self.numSteps += 1
         self.IdxNum += 1
         opType = pItem['opType']
         if opType=='ALLOC':
@@ -260,6 +264,7 @@ class ActionSorter:
             self.states.append(aRecord)
         elif opType=='PUTTING':
             self.putChars.append(aRecord)
+        else: self.numSteps -= 1
 
 class DrawingAreaFrame(gtk.Frame):
     def __init__(self, css=None, border_width=0):
@@ -273,16 +278,31 @@ class DrawingAreaFrame(gtk.Frame):
         self.area = gtk.DrawingArea()
         self.add(self.area)
 
+        self.scaleFactor = 1.0
         self.area.connect("draw", self.OnDraw)
         #self.area.connect('configure-event', self.on_configure)
 
-    parseEvents = []
-    actionSorter= ActionSorter()
+    scaleFactor = 1.0
+    parseEvents   = []
+    actionSorter  = ActionSorter()
+    charColWidths = []      # Store the width in pixels of each char column for drawing
+    charPositions = []
 
     def clear(self):
         self.parseEvents = []
 
+    def cleanNameString(self, nameStr):
+        nameStr = nameStr.replace('_str', '')
+        nameStr = nameStr.replace('innerInfon', 'inInf')
+        nameStr = nameStr.replace('_', '.')
+        nameStr = nameStr.replace('SEQ', 'seq')
+        nameStr = nameStr.replace('ALT', 'alt')
+        return nameStr
+
+    AllocMap = {}  # Look up items by their stateRec#
+
     def addParseEvent(self, logLine):
+        #ALLOC: SREC: stateRec170: PartPath_str_REP: NULL: [REP: 3..3: PartPath_str 0 0 (pos:0) -NBL]
         #ALLOC: SREC: stateRec155: [ALT: 1..2: infon_str_ALT41_SEQ42  > | infon_str_ALT41_SEQ43 | innerInfon_str  >  (pos:0)]
         #ALLOC: SREC: stateRec156: [SEQ: 1..2: wsc bang_OPT infon_str_ALT41  > ws funcParts_str quoteBack_OPT  (pos:0)]
         #ALLOC: SREC: stateRec157: [Aut: 2..2:  > "white space" (pos:0)] =''
@@ -299,9 +319,11 @@ class DrawingAreaFrame(gtk.Frame):
             parseEvent = {}
             parseEvent['opType'] = opType
             if opType=="ALLOC":
+                parseEvent['prodVal'] = ''
                 logLine, objType  = heachToSymbol(logLine, ":"); parseEvent['objType'] = objType
                 logLine, recName  = heachToSymbol(logLine, ":"); parseEvent['recName'] = recName
-                logLine, prodName = heachToSymbol(logLine, ": "); parseEvent['prodName'] = prodName
+                logLine, prodName = heachToSymbol(logLine, ": ")
+                logLine, causeName = heachToSymbol(logLine, ": "); parseEvent['causeName'] = causeName
                 logLine = logLine[1:-1] #Remove the [ ]
                 logLine, prodType  = heachToSymbol(logLine, ":"); parseEvent['prodType'] = prodType
                 logLine, charRange = heachToSymbol(logLine, ":")
@@ -309,16 +331,36 @@ class DrawingAreaFrame(gtk.Frame):
                 endPos = str(charRange[1:]); parseEvent['endPos'] = int(endPos)
                 seqPos = logLine[logLine.find('pos:')+4:]
                 seqPos = seqPos[:seqPos.find(')')]
-                parseEvent['seqPos'] = int(seqPos)
+                iSeqPos = int(seqPos)
+                parseEvent['seqPos'] = iSeqPos
                 if prodType=='SEQ':
-                    pass
+                    partName = logLine[logLine.find('> ')+2:]
+                    partName = partName[:partName.find(' ')]
+                    if partName.startswith('(pos'): partName="END"
                 elif prodType=='ALT':
-                    pass
-                elif prodType=='Aut':
-                    pass
-                elif prodType=='REP':
-                    pass
+                    logLine, pos = heachBetween(logLine, '(pos:', ')')
+                    logLine = logLine.replace(' ','').replace('>','').replace('|',' | ')
+                    if iSeqPos==0: # Any alt
+                        partName = logLine
+                    else:# One alt chosen
+                        altItems = logLine.split('|')
+                        partName = altItems[iSeqPos-1]
 
+                elif prodType=='Aut':
+                    if prodName=="'white space or C comment'": prodName='WSC'
+                    elif prodName=="'a unicode identifier'":   prodName='unicodeID'
+                    elif prodName=="'a quoted string with single or double quotes and escapes'":   prodName='"string"'
+                    elif prodName=="'white space'":       prodName='WS'
+                    elif prodName=="'a rational number'": prodName='number'
+                    if int(originPos) < int(endPos):
+                        parseEvent['prodVal'] = "'"+ self.finalChars[int(originPos):int(endPos)]+"'"
+                    partName = 'pos:'+seqPos
+                elif prodType=='REP':
+                    partName = 'item# '+seqPos
+
+                # Clean prodName and partName
+                parseEvent['prodName'] = self.cleanNameString(prodName)
+                parseEvent['partName'] = self.cleanNameString(partName)
 
                 parseEvent['eventDesc'] = ("ALLOCATED "+parseEvent['objType']+" as "+parseEvent['recName']
                                            +'  prodType:'+ parseEvent['prodType']
@@ -326,7 +368,11 @@ class DrawingAreaFrame(gtk.Frame):
                                            +'  originPos:'+ str(parseEvent['originPos'])
                                            +'  endPos:'+ str(parseEvent['endPos'])
                                            +'  seqPos:'+ str(parseEvent['seqPos'])
+                                           +'  partName:'+ str(parseEvent['partName'])
+                                           +'  causeName:'+ str(parseEvent['causeName'])
+                                           +'  prodVal:'+ str(parseEvent['prodVal'])
                                            )
+                self.AllocMap[recName] = parseEvent
             elif opType=="ARROW":
                 logLine, arrowType = heachToSymbol(logLine, ":"); parseEvent['arrowType'] = arrowType
                 logLine, fieldID, fieldVal = heachArg(logLine); parseEvent[fieldID] = fieldVal
@@ -337,115 +383,216 @@ class DrawingAreaFrame(gtk.Frame):
             elif opType=="STATE":
                 parseEvent['eventDesc'] = "STATE update "
             elif opType=="PUTTING":
+                self.finalChars += logLine
                 parseEvent['putChars'] = logLine
                 parseEvent['eventDesc'] = "PUTTING '"+parseEvent['putChars']+"'"
+
             self.parseEvents.append(parseEvent)
             #print(">"+parseEvent['eventDesc'])
 
-    def drawSeqSRec(self, cr, SRec, yPos, xPos, xEnd):
+    def drawSeqSRec(self, cr, SRec, yPos, xPos, width):
         print("    DRAW_SREC:", SRec[0], SRec[1]['eventDesc'])
         opType = SRec[1]['opType']
         if opType=='ALLOC':
-            cr.set_line_width(1)
+            cr.set_line_width(4)
             off = 0# self.SlotSpan / 2
+            SRec[1]['startXPos']=xPos+2
+            SRec[1]['startYPos']=yPos
+            SRec[1]['endXPos']=xPos+width-4
+            SRec[1]['endYPos']=yPos+50
             originPos = SRec[1]['originPos']
             endPos = SRec[1]['endPos']
-            cr.set_source_rgb(0.5,0.5,0.5)
-            cr.rectangle(xPos, yPos, 100, 50)
-            cr.stroke()
+            cr.rectangle(xPos+2, yPos, width-2, 50)
+            cr.stroke_preserve()
+            cr.set_line_width(1)
+            cr.set_source_rgb(0.8,0.8,0.9)
+            cr.rectangle(xPos+2, yPos, width-2, 50)
+            cr.fill()
+            cr.set_source_rgb(0,0,0)
             renderText(cr, xPos+5,yPos+3, SRec[1]['recName'], "Sans Normal 8")
-            renderText(cr, xPos+5,yPos+10, SRec[1]['prodName'], "Sans Normal 8")
-
+            renderText(cr, xPos+5,yPos+13, SRec[1]['prodName'], "Sans Normal 8")
+            renderText(cr, xPos+5,yPos+23, SRec[1]['partName'], "Sans Normal 8")
+            renderText(cr, xPos+5,yPos+33, SRec[1]['prodVal'], "Sans Normal 8")
+            cr.stroke()
         elif opType=='STATE':
             pass
 
-    def drawSRecSeqSet(self, cr, pItem, yPos):
-        crntXPos = 0
-        prevXPos = 0
-        prevXEnd = 0
-        print("DRAW_SRecSet:")
-        for SRec in pItem:
-            originPos = SRec[1]['originPos']
-            endPos = SRec[1]['endPos']
-            seqPos = SRec[1]['seqPos']
-            #originPos*self.SlotSpan+off
-            if originPos==endPos:
-                xPos = prevXEnd
-                xEnd = xPos+100
-            else:
-                xPos = originPos*self.SlotSpan
-                xEnd = xPos+100
-            self.drawSeqSRec(cr, SRec, yPos, xPos, xEnd)
-            prevXPos=crntXPos
-            prevXEnd=xEnd
-        return(50)
+    def drawSRecSeqSet(self, cr, pItem, xPos, yPos):
+        #print("DRAW_SEQSet:")
+        prevXEnd = xPos
+        startXPos = prevXEnd
+        parent    = pItem[1][0][1]['causeName']
+        originPos = pItem[1][0][1]['originPos']
+        self.charPositions[originPos] = min(self.charPositions[originPos], xPos)
+        count=0
+        for SRec in pItem[1]:
+            #print('COUNTS:', SRec[0], ' / ',self.maxStepsToDraw )
+            if SRec[0]>self.maxStepsToDraw: break
+            startXPos = prevXEnd
+            parent    = SRec[1]['causeName']
+            if prevXEnd==xPos and parent!='NULL' and 'startXPos' in self.AllocMap[parent]:
+                startXPos = max(startXPos, self.AllocMap[parent]['startXPos'])
+            #originPos = SRec[1]['originPos']
+            endPos    = SRec[1]['endPos']
+            seqPos    = SRec[1]['seqPos']
+            #originPos*self.SlotSpan+off:
 
-    def drawSRecAltSet(self, cr, pItem, yPos):
-        pass
+            width =SRec[1]['pixWidth']
 
-    def drawArrow(self, pItem):
-        print("DRAW_ARROW:", pItem[0], pItem[1]['eventDesc'])
+            if pItem[0]=='seqSet': cr.set_source_rgb(0,0,0)
+            elif pItem[0]=='altSet': cr.set_source_rgb(1.0,0.3,0.0)
+            self.drawSeqSRec(cr, SRec, yPos, startXPos, width)
+            prevXEnd = startXPos + width
+            count += 1
+        return(count, 50)
 
+
+    def drawArrow(self, cr, pItem):
+        arrow=pItem[1]
+        fromArw = arrow['from']
+        toArw   = arrow['to']
+        arrowType = arrow['arrowType']
+        print("DRAW_ARROW:", arrowType, fromArw, toArw)
+        if fromArw=='NULL': return
+
+        arrowFrom = self.AllocMap[fromArw]
+        fromXPosS=arrowFrom['startXPos']
+        fromYPosS=arrowFrom['startYPos']
+        fromXPosE=arrowFrom['endXPos']
+        fromYPosE=arrowFrom['endYPos']
+
+        if toArw!='NULL':
+            arrowTo   = self.AllocMap[toArw]
+            toXPosS  =arrowTo['startXPos']
+            toYPosS  =arrowTo['startYPos']
+            toXPosE  =arrowTo['endXPos']
+            toYPosE  =arrowTo['endYPos']
+        #print("COORDS:", fromXPos, toXPos, fromYPos, toYPos)
+        if arrowType=='NEXT':
+            cr.arc(fromXPosE+3, fromYPosS, 16, pi, 0.0)
+            cr.rel_line_to(-5, -5)
+            cr.rel_move_to(5, 5)
+            cr.rel_line_to(5, -5)
+            if toArw=='NULL': renderText(cr, fromXPosE+8, fromYPosS+1, 'NULL', "Sans Normal 7")
+            renderText(cr, fromXPosE-8, fromYPosS-13, 'next', "Sans Normal 6")
+        elif arrowType=='CHILD':
+            frmX = fromXPosS + ((fromXPosE-fromXPosS)/2)
+            toX  = toXPosS+((toXPosE-toXPosS)/2)
+            cr.move_to(frmX, fromYPosE)
+            cr.line_to(toX, toYPosS)
+            cr.rel_line_to(-5, -5)
+            cr.rel_move_to(5, 5)
+            cr.rel_line_to(5, -5)
+            txtX = frmX+((toX - frmX)/2)
+            txty = fromYPosE + ((toYPosS - fromYPosE)/2)
+            renderText(cr, txtX+3, txty, 'child', "Sans Normal 6")
+        elif arrowType=='PRED':
+            pass
+        elif arrowType=='CAUSE':
+            pass
+        cr.stroke()
 
 
 
     putChars = ""
+    finalChars = ''
     SlotSpan = 0
-    maxStepsToDraw = 30
+    maxStepsToDraw = 1
+    allocsToDo = 0
 
     def OnDraw(self, area, cr):
-        self.maxStepsToDraw
+        self.set_size_request(10000, 5000)
         #print("Starting Draw:",len(self.parseEvents),"steps...")
         height = self.get_allocated_height()
         width = self.get_allocated_width()
-        cr.set_source_rgb(0,0,0)
+        cr.set_source_rgb(1,1,1)
         cr.rectangle(0,0,width, height)
         cr.fill()
-        cr.set_source_rgb(1, 1, 0)
+        cr.set_source_rgb(1, 1, 1)
 
         crntY = 20
-        count=0
+        allocCount=0
+        putCount = 0
         self.putChars = ""
-        self.actionSorter.resetIter()
         AllocsAndStates=[]
         Arrows = []
         print("DRAWING ALL ITEMS:")
+        self.actionSorter.resetIter()
         while self.actionSorter.crntItem!=None:
             pRecord = self.actionSorter.crntItem
             itemType = self.actionSorter.crntItemType
+            #print('RECORD:',pRecord)
             if itemType=='seqSet' or itemType=='altSet':
-                AllocsAndStates.append([itemType, pRecord])
+                if pRecord[0][0]<=self.maxStepsToDraw:
+                    AllocsAndStates.append([itemType, pRecord])
+                allocCount += 1
             elif itemType=='arrow':
-                Arrows.append(pRecord)
+                if pRecord[0]<=self.maxStepsToDraw:
+                    Arrows.append(pRecord)
             elif itemType=='state':
-                AllocsAndStates.append(pRecord)
+                if pRecord[0]<=self.maxStepsToDraw:
+                    AllocsAndStates.append(pRecord)
             elif itemType=='PUTCHars':
+                putCount += 1
                 pItem = pRecord[1]
                 self.putChars += pItem['putChars']
-            if count > self.maxStepsToDraw: break
+            print("ITEM#", allocCount, ':', itemType, 'maxSteps:', self.maxStepsToDraw)
+            if allocCount > self.maxStepsToDraw: break # TODO: This condition goes too far
             self.actionSorter.goNext()
-            count += 1
 
-        # Draw Characters at the top
-        self.SlotSpan = width / len(self.putChars)
-        xCur = 0 #self.SlotSpan/2
-        for ch in self.putChars:
-            renderText(cr, xCur,crntY, ch, "Sans Normal 32")
-            xCur += self.SlotSpan
+        # Calculate column widths and positions
+        CharsPut = self.putChars+'x'
+        self.SlotSpan = (width-10) / len(CharsPut)
+        for ch in CharsPut: self.charColWidths.append(self.SlotSpan)
+        for ch in CharsPut: self.charPositions.append(9999999)
+
+
+        cr.scale(self.scaleFactor, self.scaleFactor)
+        # ~ # Draw Characters at the top
+        # ~ xCur = 5
+        # ~ for ch in CharsPut:
+            # ~ renderText(cr, xCur,crntY, ch, "Sans Normal 32")
+            # ~ xCur += self.SlotSpan
         crntY += 80
-
+        inrY = crntY
         # Draw Allocs and States
+        oldStartX = 5
+        oldOrigin = 0
+        stepsDone = 0
+        self.allocsToDo= self.maxStepsToDraw-(len(Arrows) + putCount)
         for item in AllocsAndStates:
+            parent   = item[1][0][1]['causeName']
+            orignPos = item[1][0][1]['originPos']
+            if parent!='NULL':
+                if 'startXPos' in self.AllocMap[parent]:
+                    startXPos =self.AllocMap[parent]['startXPos']
+                    startYPos =self.AllocMap[parent]['startYPos']
+                else: startXPos=oldStartX; print("START_X_POS Not Found:", parent)
+            else: startXPos=oldStartX
+            if orignPos != oldOrigin: inrY = startYPos+60
             newHeight = 0
-            if item[0]=='seqSet':
-                newHeight = self.drawSRecSeqSet(cr, item[1], crntY)
-            elif item[0]=='altSet':
-                newHeight = self.drawSRecAltSet(cr, item, crntY)
-            crntY += newHeight+10
+            print("DOING SEQ:", str(item)[:50])
+            count, newHeight = self.drawSRecSeqSet(cr, item, startXPos, inrY)
+            inrY += newHeight+10
+            stepsDone += count
+            #if stepsDone >= self.allocsToDo: print("OVERMAX"); break
+            oldStartX = startXPos
+            oldOrigin = orignPos
 
         # Draw Arrows
         for arrow in Arrows:
-            self.drawArrow(arrow)
+            self.drawArrow(cr, arrow)
+
+        # Draw Characters at the top
+        xCur = 5
+        crntY = 20
+        pos = 0
+        for ch in CharsPut:
+            renderText(cr, self.charPositions[pos]+5 ,crntY, ch, "Sans Normal 32")
+            xCur += self.SlotSpan
+            pos += 1
+        crntY += 80
+
 
 
     def loadParseLog(self, filename):
@@ -460,19 +607,62 @@ class DrawingAreaFrame(gtk.Frame):
 
         for pItem in self.parseEvents:
             self.actionSorter.insertPItem(pItem)
-        #self.actionSorter.dump()
-        #self.actionSorter.resetIter()
-        #while self.actionSorter.crntItem!=None:
-        #    print(">>>", self.actionSorter.crntItem[0], self.actionSorter.crntItem[1]['eventDesc'])
-        #    self.actionSorter.goNext()
+
+        actionItems =  []
+        self.actionSorter.resetIter()
+        while self.actionSorter.crntItem!=None:
+            pRecord = self.actionSorter.crntItem
+            itemType = self.actionSorter.crntItemType
+            if itemType=='seqSet' or itemType=='altSet':
+                actionItems.append([itemType, pRecord])
+                # ~ print("$$",itemType)
+                # ~ for itm in pRecord:
+                    # ~ print("    >",itm)
+            self.actionSorter.goNext()
+
+        print("Back sizing...")
+        for aItem in reversed(actionItems):
+            if aItem[0]=='seqSet' or aItem[0]=='altSet':
+                rec = aItem[1][0][1]
+                #print("#"+str(aItem))
+                S="SEQSET: "
+                colNum=rec['originPos']
+                minParentWidth = 0
+                S+="@startPos:"+str(colNum)+"  "+rec['prodName']+": ["
+                parentRecID = rec['causeName']
+                for subItem in aItem[1]:
+                    item = subItem[1]
+                    if not 'pixWidth' in item: item['pixWidth']=100
+                    minParentWidth += item['pixWidth']
+                    #isNull = item['originPos']==item['endPos']
+                    #if isNull
+                    S+=item['partName']+'('+str(item['pixWidth'])+')  '
+                if parentRecID!='NULL':
+                    parentRec = self.AllocMap[parentRecID]
+                    if not 'pixWidth' in parentRec: parentRec['pixWidth']=100
+                    #print('CHILD:',rec['recName'],', parent:',parentRec['recName'])
+                    parentRec['pixWidth']=max(minParentWidth, parentRec['pixWidth'])
+                    S += '('+str(parentRec['pixWidth'])+')'
+
+            #elif aItem[0]=='altSet':
+            #print("%"+S+"]")
+        print("Total Steps:", self.actionSorter.numSteps)
+        #exit(0)
 
 class Window(gtk.Window):
+    viewPort = gtk.Viewport()
     def __init__(self, title="my program"):
         gtk.Window.__init__(self)
+        scrollWin=gtk.ScrolledWindow()
+        #viewPort =gtk.Viewport()
+        scrollWin.add(self.viewPort)
+        #viewPort.add()
+        self.add(scrollWin)
         self.set_title(title)
         self.set_default_size(1800, 800)
         self.connect("destroy", gtk.main_quit)
         self.connect('configure_event', self.OnResize)
+        self.connect("key-press-event",self.on_key_press_event)
 
     def OnResize(self, d, w):
         global W
@@ -480,10 +670,29 @@ class Window(gtk.Window):
         global app
         W, H = self.get_size()
 
+    def on_key_press_event(self, widget, event):
+        global animator
+        #print("Key press on widget: ", widget)
+        #print("          Modifiers: ", event.state)
+        #print("      Key val, name: ", event.keyval, Gdk.keyval_name(event.keyval))
+        keyName = Gdk.keyval_name(event.keyval)
+        # check the event modifiers (can also use SHIFTMASK, etc)
+        #ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
+
+        # see if we recognise a keypress
+        #if ctrl and event.keyval == Gdk.KEY_h:
+        crntScale = animator.scaleFactor
+        steps = animator.maxStepsToDraw
+        if keyName=='Down': animator.scaleFactor = max(crntScale-0.05, 0.1); animator.queue_draw()
+        elif keyName=='Up': animator.scaleFactor = min(crntScale+0.05, 5.0); animator.queue_draw()
+        elif keyName=='Left':  animator.maxStepsToDraw = max(steps-1, 1); animator.queue_draw()
+        elif keyName=='Right': animator.maxStepsToDraw = min(steps+1, animator.actionSorter.numSteps); animator.queue_draw()
+        print("STEP:", animator.maxStepsToDraw,'/', animator.actionSorter.numSteps)
+
 
 win = Window(title="Earley Parse Animation")
 animator = DrawingAreaFrame()
-win.add(animator)
+win.viewPort.add(animator)
 win.show_all()
 
 animator.loadParseLog(filename)

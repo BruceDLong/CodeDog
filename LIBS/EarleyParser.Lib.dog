@@ -106,7 +106,7 @@ struct production{
             if(seqPos==0) {S <+- " > "}
             S <+- '"' + constStr + '"'
             if(seqPos>0) {S <+- " > "}
-            S <+- '(pos:%i`seqPos`)'
+            S <+- ' (pos:%i`seqPos`)'
         } else {
             if(ProdType==parseALT and seqPos==0) {S <+- " > "}
             withEach p in items {
@@ -1017,7 +1017,7 @@ struct EParser{
                 Allocate(newStateRecPtr, productionID, seqPos, origin, crntPos)
                 newStateRecPtr.mySymbol() // This just help get the symbols numbered in order for debugging.
                 if(ProdType == parseREP){newStateRecPtr.isREP<-true}
-                log("ALLOC: SREC: "+newStateRecPtr.mySymbol() + ": "+grammar[productionID].nameToStr(rnames)+": "+newStateRecPtr.stringify(self))
+                log("ALLOC: SREC: "+newStateRecPtr.mySymbol() + ": "+grammar[productionID].nameToStr(rnames)+": "+cause.mySymbol()+": "+newStateRecPtr.stringify(self))
                 newStateRecPtr.pedigrees.append(pedigree(pred, cause, productionID))
                 if(productionID==startProduction and origin==0) {lastTopLevelItem <- newStateRecPtr}
                 //log("  AddToCol:"+toString(crntPos)+" cause:"+cause.mySymbol()+" pred:"+ pred.mySymbol()+": "+newStateRecPtr.mySymbol() + ": "+newStateRecPtr.stringify(self))
