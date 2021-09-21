@@ -14,7 +14,7 @@ Authors = "Bruce Long, Tiffany Lawrence"
 Description = "minimalPatternMakeGUI"
 ProgramOrLibrary = "program"
 
-featuresNeeded = [GUI_ToolKit, Dashboard,List,NativeWidgets]
+featuresNeeded = [GUI_ToolKit,Dashboard,NativeWidgets]
 
 LicenseText = `This file is part of the "Proteus suite" All Rights Reserved.`
 
@@ -22,7 +22,10 @@ runCode=`
     logMgr.init(OFile)
     isFirstRun<-true
 `
-
+classOptions = {
+    //StaticInfo2_Dialog_GUI_WeightPoundsWidget={useClass=IntDraggerWidget}
+    //StaticInfo2_Dialog_GUI_HeightWidget={useClass=IntLengthDraggerWidget}
+}
 mainStyle = {
     colors = {
     }
@@ -60,13 +63,19 @@ model StaticInfo1_Dialog_GUI{
     void: load() <-{}
 }
 model StaticInfo2: dialogStyle=WizardChildLast{
+    me int: height
+    me int: weightPounds
     mode[sedentary, lightlyActive, Active, veryActive]: activityLevel
     mode[type1, type2, gestational, preDiabetes, none]:   typeOfDiabetes
 }
 model StaticInfo2_Dialog_GUI{
     bool: isComplete() <- {
+        me int: heightVal         <- HeightWidget.getValue()
+        me int: weightPoundsVal   <- WeightPoundsWidget.getValue()
         me int: activityLevelVal  <- ActivityLevelWidget.getValue()
         me int: typeOfDiabetesVal <- TypeOfDiabetesWidget.getValue()
+        if (50>heightVal or heightVal>84){return(false)}
+        if (50>weightPoundsVal or weightPoundsVal>1000){return(false)}
         if (activityLevelVal==-1){return(false)}
         if (typeOfDiabetesVal==-1){return(false)}
         return(true)
@@ -153,7 +162,7 @@ do codeModelToGUI(appModel)
 
 struct GLOBAL{
     me bool: isFirstRun
-
+    their GUI_canvas: drawing_area
     me void: initializeAppGui() <- {}
 }
 

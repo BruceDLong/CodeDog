@@ -23,6 +23,7 @@ struct CPP_Deque<nodeType>: implements=List wraps=deque native=lang specs={inser
     itr nodeType: deleteNth(me int: position)   <- <%!%0.erase(%0.begin()+%1)%>
     itr nodeType: end()                         <- <%!end()%>           // returns itr to past-the-end element
     itr nodeType: erase(itr nodeType: position) <- <%!%0.erase(%0.begin()+%1)%>
+    itr nodeType: eraseInterval(itr nodeType: start, itr nodeType: end) <- <%!erase(%1, %2)%>
     nodeType: first()                           <- <%!front()%>
     itr nodeType: front()                       <- <%!begin()%>
     nodeType: __getAt(me int: position)         <- <%!at(%1)%>
