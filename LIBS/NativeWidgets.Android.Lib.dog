@@ -173,12 +173,12 @@ struct GUI{
     me GUI_Frame: GUI_menuWithLabel(me string: label) <- <%!%Gnew Menu(%1)%>
     me GUI_menuBar: create_TopSubMenu(our GUI_menuBar: dummyMenubar, me string: text) <- {
         me ourSubMenu: subMenu{text}
-        GLOBAL.static_Global.thisApp.menubar.items.pushLast(subMenu)
+        GLOBAL.static_Global.thisApp.menubar.items.append(subMenu)
         return(subMenu)
     }
     me void: create_MenuItem(me GUI_menu: menu, me string: menuLabel) <- {
         our ourSubMenu: thisMenuItem{menuLabel}
-        menu.items.pushLast(thisMenuItem)
+        menu.items.append(thisMenuItem)
     }
     me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: text) <- <%  {
         ourSubMenu subMenu = new ourSubMenu(text);

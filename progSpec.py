@@ -861,17 +861,22 @@ def getNewContainerFirstElementOwnerTempFunc(typeSpec):
     elif reqTagList == None: return(None)
     return(None)
 
+def getFromImpl(typeSpec):
+    if 'fromImplemented' in typeSpec:
+        return typeSpec['fromImplemented']
+    return None
+
 def getContainerKeyOwnerAndType(typeSpec):
     owner     = getContainerFirstElementOwner(typeSpec)
     fieldType = fieldTypeKeyword(typeSpec)
     if not isNewContainerTempFunc(typeSpec): return[owner, fieldType]
     reqTagList = getReqTagList(typeSpec)
-    if "fromImplemented" in typeSpec:
-        fromImplemented = typeSpec['fromImplemented']
-        if 'typeArgList' in fromImplemented:
-            typeArgList = fromImplemented['typeArgList']
-        if 'atKeyTypeSpec' in fromImplemented:
-            fieldDefAt = fromImplemented['atKeyTypeSpec']
+    fromImpl   = getFromImpl(typeSpec)
+    if fromImpl:
+        if 'typeArgList' in fromImpl:
+            typeArgList = fromImpl['typeArgList']
+        if 'atKeyTypeSpec' in fromImpl:
+            fieldDefAt = fromImpl['atKeyTypeSpec']
         if typeArgList and fieldDefAt:
             atOwner  = fieldDefAt['owner']
             atTypeKW = fieldTypeKeyword(fieldDefAt)
@@ -887,12 +892,12 @@ def getContainerValueOwnerAndType(typeSpec):
     fieldType = fieldTypeKeyword(typeSpec)
     if not isNewContainerTempFunc(typeSpec): return[owner, fieldType]
     reqTagList = getReqTagList(typeSpec)
-    if "fromImplemented" in typeSpec:
-        fromImplemented = typeSpec['fromImplemented']
-        if 'typeArgList' in fromImplemented:
-            typeArgList = fromImplemented['typeArgList']
-        if 'atTypeSpec' in fromImplemented:
-            fieldDefAt = fromImplemented['atTypeSpec']
+    fromImpl = getFromImpl(typeSpec)
+    if fromImpl:
+        if 'typeArgList' in fromImpl:
+            typeArgList = fromImpl['typeArgList']
+        if 'atTypeSpec' in fromImpl:
+            fieldDefAt = fromImpl['atTypeSpec']
         if typeArgList and fieldDefAt:
             atOwner  = fieldDefAt['owner']
             atTypeKW = fieldTypeKeyword(fieldDefAt)
@@ -980,11 +985,10 @@ def getCodeConverterByFieldID(classes, structName, fieldName, prevNameSeg, conne
             return prevNameSeg+connector+fieldName+"()"
     return prevNameSeg+connector+fieldName+"()"
 
-def getItrTypeOfDataStruct(datastructID, containerType):
-    if 'fromImplemented' in containerType:
-        fromImplemented = containerType['fromImplemented']
-        if 'itrTypeSpec' in fromImplemented:
-            return fromImplemented['itrTypeSpec']
+def getItrTypeOfDataStruct(containerType):
+    fromImpl = getFromImpl(containerType)
+    if fromImpl and 'itrTypeSpec' in fromImpl:
+        return fromImpl['itrTypeSpec']
     return None
 
 #### Packed Template Arg Handling Functions ####

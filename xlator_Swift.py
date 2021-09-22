@@ -371,7 +371,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     ctrlVarsTypeSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ctnrOwner)
-    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)
+    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
     itrFieldType     = progSpec.fieldTypeKeyword(itrTypeSpec)
     itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
@@ -384,7 +384,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec  = {'owner':ctnrTSpec['owner'], 'fieldType':containedType, 'codeConverter':(repName+'!.key')}
         ctrlVarsTypeSpec['codeConverter'] = (repName+'!.value')
-        itrType     = progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)
+        itrType     = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
         itrTypeKW   = progSpec.fieldTypeKeyword(itrType)
         itrTypeKW   = generateGenericStructName(itrTypeKW, reqTagList, genericArgs, xlator)
         itrDeclStr  = indent + 'var '+itrName+":"+itrTypeKW+' = '+ctnrName+'.front()\n'
@@ -745,7 +745,8 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
         convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
         allocFieldType = convertedType
         lhsTypeSpec = getGenericTypeSpec(genericArgs, lhsTypeSpec, xlator)
-        if 'fromImplemented' in lhsTypeSpec: lhsTypeSpec.pop('fromImplemented')
+        fromImpl = progSpec.getFromImpl(lhsTypeSpec)
+        if fromImpl: lhsTypeSpec.pop('fromImplemented')
         localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     else:
         localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope

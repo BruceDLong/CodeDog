@@ -68,7 +68,7 @@ def applyOwner(typeSpec, owner, langType, actionOrField, varMode):
     elif owner=='our':   langType = langType
     elif owner=='their': langType = langType
     elif owner=='itr':
-        langType  = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(langType, typeSpec))
+        langType  = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(typeSpec))
         if langType=='nodeType': cdErr("TODO: design iterators in Java!!!!!!!!!!!!!!!!!!!!!!!!!! "+langType)
     elif owner=='we': langType = 'static '+langType
     else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
@@ -334,7 +334,7 @@ def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,
             valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
         loopCounterName = repName+'_key'
-        itrTypeKW = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec))
+        itrTypeKW = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec))
         idxTypeKW = adjustBaseTypes(idxTypeKW, True)
         valueFieldType = adjustBaseTypes(valueFieldType, True)
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
@@ -363,7 +363,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     ctrlVarsTypeSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ctnrOwner)
-    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)
+    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
     itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
     itrName          = repName
@@ -383,7 +383,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         else:
             keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':idxTypeKW, 'codeConverter':(repName+'.node.key')}
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.node.value')
-            itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)) + ' '
+            itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec)) + ' '
             frontItr   = ctnrName+'.front()'
             if not 'generic' in ctnrTSpec: itrType += reqTagString
             actionText += (indent + 'for('+itrType + itrName+' ='+frontItr + '; ' + itrName + '.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n')
@@ -669,7 +669,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     reqTagList = progSpec.getReqTagList(lhsTypeSpec)
     fTypeKW = progSpec.fieldTypeKeyword(lhsTypeSpec)
     if owner=='itr':
-        itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(fTypeKW, lhsTypeSpec))
+        itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(lhsTypeSpec))
         convertedType = generateGenericStructName(itrType, reqTagList, genericArgs, xlator)
     localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     containerTypeSpec = progSpec.getContainerSpec(lhsTypeSpec)

@@ -639,8 +639,8 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
         typeSpecOut = copyTypeSpec(typeSpec)
         convertedType = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
         typeSpecOut['fieldType'] = [copy.copy(convertedType)]
-        if 'fromImplemented' in typeSpecOut:
-            fromImpl = typeSpecOut['fromImplemented']
+        fromImpl = progSpec.getFromImpl(typeSpecOut)
+        if fromImpl:
             tArgList = fromImpl['typeArgList']
             genericArgsOut = {}
             if tArgList:

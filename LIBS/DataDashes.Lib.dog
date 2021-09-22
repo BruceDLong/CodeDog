@@ -399,7 +399,7 @@ struct dataCacheStreams {
     void: addNewStream(me string: ID) <- {
         our dataCacheStream:: dcStream
         dcStream.title <- ID
-        dataStreams.pushLast(dcStream)
+        dataStreams.append(dcStream)
     }
     void: setDataPoint(me int: streamID, me timeValue: timeStamp, me datum: value) <- {
         dataStreams[streamID].dataMap[timeStamp] <- value
@@ -670,7 +670,7 @@ struct graph: inherits=dash COMMAND_addCallProxy=["bundledArgs:applyDataRange"]{
         prevTimeGap  <- 0
 
         withEach dataStream in dataStreamSrcs.dataStreams {
-            dataStreamsTitleTable.pushLast(dataStream.title)
+            dataStreamsTitleTable.append(dataStream.title)
         }
 
         timeInterval <- zoomTable[zoomLevel]

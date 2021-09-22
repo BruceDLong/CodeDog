@@ -441,9 +441,9 @@ def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,
     [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
     actionText       = ""
     loopCounterName  = ""
-    ctnrOwner        = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-    containedType    = progSpec.fieldTypeKeyword(ctnrTSpec)
-    ctrlVarsTypeSpec = {'owner':ctnrOwner, 'fieldType':containedType}
+    firstOwner       = progSpec.getContainerFirstElementOwner(ctnrTSpec)
+    firstType        = progSpec.fieldTypeKeyword(ctnrTSpec)
+    ctrlVarsTypeSpec = {'owner':firstOwner, 'fieldType':firstType}
     itrName          = repName + "Itr"
     if progSpec.ownerIsPointer(ctnrOwner): connector="->"
     else: connector = "."
@@ -453,7 +453,7 @@ def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
-        keyVarSpec = {'owner':'itr', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        keyVarSpec = {'owner':'itr', 'fieldType':firstType, 'codeConverter':(repName+'.first')}
         loopCounterName  = repName+'_key'
         ctrlVarsTypeSpec['codeConverter'] = (repName+'.second')
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
@@ -473,12 +473,12 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
     actionText       = ""
     loopCounterName  = repName+'_key'
-    owner            = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-    containedType    = progSpec.getFieldTypeKeyWordOld(ctnrTSpec)
-    ctrlVarsTypeSpec = {'owner':owner, 'fieldType':containedType}
+    firstOwner       = progSpec.getContainerFirstElementOwner(ctnrTSpec)
+    firstType        = progSpec.getFieldTypeKeyWordOld(ctnrTSpec)
+    ctrlVarsTypeSpec = {'owner':firstOwner, 'fieldType':firstType}
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ctnrOwner)
-    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(datastructID, ctnrTSpec)
+    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
     itrFieldType     = progSpec.fieldTypeKeyword(itrTypeSpec)
     itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
@@ -498,7 +498,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
-        keyVarSpec  = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
+        keyVarSpec  = {'owner':'me', 'fieldType':firstType, 'codeConverter':(repName+'.first')}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         getNodeVal  = progSpec.getCodeConverterByFieldID(classes, itrFieldType, 'val', repName,RNodeP)
         ctrlVarsTypeSpec['codeConverter'] = (getNodeVal)
@@ -507,7 +507,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         actionText += (indent + "for( auto " + itrName+' ='+frontItr + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
                     + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
     elif containerCat=='LIST' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
-        keyVarSpec = {'owner':owner, 'fieldType':containedType}
+        keyVarSpec = {'owner':firstOwner, 'fieldType':firstType}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         if isBackward:
@@ -518,7 +518,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     elif(containerCat=='DEQUE' or datastructID=='deque' or datastructID=='CPP_Deque') and willBeModifiedDuringTraversal:
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
         lvName=repName+"Idx"
-        idxVarSpec = {'owner':'itr', 'fieldType':containedType}
+        idxVarSpec = {'owner':'itr', 'fieldType':firstType}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         localVarsAlloc.append([lvName, idxVarSpec]) # Tracking local vars for scope
