@@ -170,7 +170,7 @@ class ActionSorter:
         if nAltSet!=None: nextIDs.append(self.altSets[nAltSet][0][0])
         else: nextIDs.append(None)
 
-        if nState!=None: nextIDs.append(self.states[nState][0])
+        if nState!=None: nextIDs.append(self.states[nState][0][0])
         else: nextIDs.append(None)
 
         if nArrow!=None: nextIDs.append(self.arrows[nArrow][0])
@@ -198,6 +198,10 @@ class ActionSorter:
         elif lowestValIDX==2: self.crntItem = self.states[nState];    self.crntStateDelta = nState; self.crntItemType='state'
         elif lowestValIDX==3: self.crntItem = self.arrows[nArrow];    self.crntArrow = nArrow;      self.crntItemType='arrow'
         elif lowestValIDX==4: self.crntItem = self.putChars[nPUT];    self.crntPUT   = nPUT;        self.crntItemType='PUTCHars'
+
+        if lowestValIDX==0 or lowestValIDX==1: # Reset SeqStates and altStates
+            for sItem in self.crntItem:
+                sItem[1]['STATES']={}
 
         return self.crntItem
 
@@ -261,7 +265,7 @@ class ActionSorter:
         elif opType=="ARROW":
             self.arrows.append(aRecord)
         elif opType=='STATE':
-            self.states.append(aRecord)
+            self.states.append([aRecord])
         elif opType=='PUTTING':
             self.putChars.append(aRecord)
         else: self.numSteps -= 1
@@ -362,7 +366,7 @@ class DrawingAreaFrame(gtk.Frame):
                 parseEvent['prodName'] = self.cleanNameString(prodName)
                 parseEvent['partName'] = self.cleanNameString(partName)
 
-                parseEvent['eventDesc'] = ("ALLOCATED "+parseEvent['objType']+" as "+parseEvent['recName']
+                parseEvent['eventDesc'] = ("Allocated "+parseEvent['recName']+":"
                                            +'  prodType:'+ parseEvent['prodType']
                                            +'  prodName:'+ parseEvent['prodName']
                                            +'  originPos:'+ str(parseEvent['originPos'])
@@ -381,7 +385,12 @@ class DrawingAreaFrame(gtk.Frame):
 
                 parseEvent['eventDesc'] = "ARROW "+parseEvent['arrowType']+"  FROM:"+parseEvent['from']+" TO:"+parseEvent['to']
             elif opType=="STATE":
-                parseEvent['eventDesc'] = "STATE update "
+                logLine, recName  = heachToSymbol(logLine, ":"); parseEvent['recName'] = recName
+                logLine, fieldID, fieldVal = heachArg(logLine);
+                parseEvent['fieldID'] = fieldID
+                parseEvent['fieldVal'] = fieldVal
+                parseEvent['eventDesc'] = "STATE: "+recName+"."+fieldID+" = "+fieldVal
+                #print(">"+parseEvent['eventDesc'])
             elif opType=="PUTTING":
                 self.finalChars += logLine
                 parseEvent['putChars'] = logLine
@@ -389,13 +398,17 @@ class DrawingAreaFrame(gtk.Frame):
 
             self.parseEvents.append(parseEvent)
             #print(">"+parseEvent['eventDesc'])
+
+
     lastItemDesc = ''
+
     def drawSeqSRec(self, cr, SRec, yPos, xPos, width):
         #print("    DRAW_SREC:", SRec[0], SRec[1]['eventDesc'])
         opType = SRec[1]['opType']
         if opType=='ALLOC':
             cr.set_line_width(4)
-            off = 0# self.SlotSpan / 2
+            #print("SREC:",SRec)
+            states=SRec[1]['STATES']
             SRec[1]['startXPos']=xPos+2
             SRec[1]['startYPos']=yPos
             SRec[1]['endXPos']=xPos+width-4
@@ -407,7 +420,20 @@ class DrawingAreaFrame(gtk.Frame):
             cr.stroke_preserve()
             cr.set_line_width(1)
             if 'child' in SRec[1]: cr.set_source_rgb(0.6,0.6,0.7)
-            else: cr.set_source_rgb(0.8,0.8,0.9)
+            else: cr.set_source_rgb(0.9,0.9,0.95)
+
+            ResolveState = 'Initial'
+            if 'RESOLVE_State'  in states: ResolveState=states['RESOLVE_State']
+            if ResolveState=='RESOLVE': cr.set_source_rgb(0.8,0.1,0.8)
+
+            NextState = 'INITIAL'
+            ChildState= 'INITIAL'
+            if 'NEXT_State'  in states: NextState=states['NEXT_State']
+            if 'CHILD_State' in states: ChildState=states['CHILD_State']
+            if NextState=='RELEASED' and ChildState=='RELEASED': cr.set_source_rgb(0.1,0.8,0.0)
+            elif NextState=='RELEASED': cr.set_source_rgb(0.8,0.8,0.0)
+            elif ChildState=='RELEASED': cr.set_source_rgb(0.7,0.7,0.9)
+
             cr.rectangle(xPos+2, yPos, width-2, 50)
             cr.fill()
             cr.set_source_rgb(0,0,0)
@@ -416,8 +442,6 @@ class DrawingAreaFrame(gtk.Frame):
             renderText(cr, xPos+5,yPos+23, SRec[1]['partName'], "Sans Normal 8")
             renderText(cr, xPos+5,yPos+33, SRec[1]['prodVal'], "Sans Normal 8")
             cr.stroke()
-        elif opType=='STATE':
-            pass
 
     def drawSRecSeqSet(self, cr, pItem, xPos, yPos):
         #print("DRAW_SEQSet:")
@@ -449,6 +473,19 @@ class DrawingAreaFrame(gtk.Frame):
         return(count, 50)
 
 
+    def drawFlatCurvedArrow(self, cr, xStart, xEnd, yPos):
+        cr.save()
+        width  = xEnd-xStart
+        height = width/20
+        if xStart<xEnd: height += 14
+        else: height -= 14
+        xCenter = xStart+(width/2)
+        cr.translate(xCenter, yPos)
+        cr.scale(abs(width)/2.0, height/2.0)
+        cr.arc(0, 0, 1, pi, 2*pi)
+        cr.restore()
+        cr.stroke()
+
     def drawArrow(self, cr, pItem):
         arrow=pItem[1]
         fromArw = arrow['from']
@@ -456,6 +493,9 @@ class DrawingAreaFrame(gtk.Frame):
         arrowType = arrow['arrowType']
         #print("DRAW_ARROW:", arrowType, fromArw, toArw)
         if fromArw=='NULL': return
+        if not(fromArw in self.AllocMap):
+            print('Node',fromArw, 'has an arrow but is not allocated.')
+            return
 
         arrowFrom = self.AllocMap[fromArw]
         fromXPosS=arrowFrom['startXPos']
@@ -472,17 +512,57 @@ class DrawingAreaFrame(gtk.Frame):
         #print("COORDS:", fromXPos, toXPos, fromYPos, toYPos)
         cr.set_source_rgb(0,0,0)
         if arrowType=='NEXT':
-            cr.arc(fromXPosE+3, fromYPosS, 16, pi, 0.0)
-            cr.rel_line_to(-5, -5)
-            cr.rel_move_to(5, 5)
-            cr.rel_line_to(5, -5)
-            if toArw=='NULL': renderText(cr, fromXPosE+8, fromYPosS+1, 'NULL', "Sans Normal 7")
-            renderText(cr, fromXPosE-8, fromYPosS-13, 'next', "Sans Normal 6")
+            cr.set_source_rgb(1.0,0,0)
+            if(toArw=='NULL' or (fromYPosE==toYPosE and (abs(fromXPosE-toXPosS)<30))):
+                cr.arc(fromXPosE+3, fromYPosS, 16, pi, 0.0)
+                cr.rel_line_to(-5, -5)
+                cr.rel_move_to(5, 5)
+                cr.rel_line_to(5, -5)
+                if toArw=='NULL': renderText(cr, fromXPosE+8, fromYPosS+1, 'NULL', "Sans Normal 7")
+                renderText(cr, fromXPosE-8, fromYPosS-13, 'next', "Sans Normal 6")
+            else: # items aren't inline with each other
+                frmX = fromXPosE-7
+                toX  = toXPosS +7
+                yPos = fromYPosS
+                self.drawFlatCurvedArrow(cr, frmX, toX, yPos)
+                cr.move_to(toX, yPos)
+                cr.rel_line_to(-5, -5)
+                cr.rel_move_to(5, 5)
+                cr.rel_line_to(5, -5)
+                cr.stroke()
+                txtX = toX-5
+                txty = yPos - 16
+                renderText(cr, txtX, txty, 'next', "Sans Normal 6")
+        elif arrowType=='PRED':
+            cr.set_source_rgb(1.0,0,1.0)
+            if(toArw=='NULL' or (fromYPosE==toYPosE and (abs(toXPosE-fromXPosS)<30))):
+                cr.arc(fromXPosS+3, fromYPosE, 16, 0.0, pi)
+                cr.rel_line_to(-5, 5)
+                cr.rel_move_to(5, -5)
+                cr.rel_line_to(5, 5)
+                if toArw=='NULL': renderText(cr, fromXPosS-8, fromYPosE-1, 'NULL', "Sans Normal 7")
+                renderText(cr, fromXPosS+8, fromYPosE+13, 'pred', "Sans Normal 6")
+            else: # items aren't inline with each other
+                frmX = fromXPosS+7
+                toX  = toXPosE -7
+                yPos = fromYPosE
+                self.drawFlatCurvedArrow(cr, frmX, toX, yPos)
+                cr.move_to(toX, yPos)
+                cr.rel_line_to(-5, 5)
+                cr.rel_move_to(5, -5)
+                cr.rel_line_to(5, 5)
+                cr.stroke()
+                txtX = toX-12
+                txty = yPos - 16
+                renderText(cr, txtX, txty, 'pred', "Sans Normal 6")
+
         elif arrowType=='CHILD':
             arrowFrom['child']=arrowTo
-            cr.set_source_rgb(0,1.0,0)
-            frmX = fromXPosS + ((fromXPosE-fromXPosS)/2) -3
+            cr.set_source_rgb(0.2,0.8,0.2)
             toX  = toXPosS+((toXPosE-toXPosS)/2)  -3
+            if abs(fromXPosS-toXPosS)<10:
+                  frmX = toX+20
+            else: frmX = fromXPosS + ((fromXPosE-fromXPosS)/2)-20 -3
             cr.move_to(frmX, fromYPosE)
             cr.line_to(toX, toYPosS)
             cr.rel_line_to(-5, -5)
@@ -491,18 +571,12 @@ class DrawingAreaFrame(gtk.Frame):
             txtX = frmX+((toX - frmX)/2)
             txty = fromYPosE + ((toYPosS - fromYPosE)/2)
             renderText(cr, txtX+3, txty+5, 'child', "Sans Normal 6")
-        elif arrowType=='PRED':
-            cr.arc(fromXPosS+3, fromYPosE, 16, 0.0, pi)
-            cr.rel_line_to(-5, 5)
-            cr.rel_move_to(5, -5)
-            cr.rel_line_to(5, 5)
-            if toArw=='NULL': renderText(cr, fromXPosS-8, fromYPosE-1, 'NULL', "Sans Normal 7")
-            renderText(cr, fromXPosS+8, fromYPosE+13, 'pred', "Sans Normal 6")
-
         elif arrowType=='CAUSE':
             cr.set_source_rgb(0,0,1.0)
             frmX = fromXPosS + ((fromXPosE-fromXPosS)/2)  +3
-            toX  = toXPosS+((toXPosE-toXPosS)/2)   +3
+            if abs(fromXPosS-toXPosS)<10:
+                  toX =frmX+20
+            else: toX = toXPosS+((toXPosE-toXPosS)/2)-20   +3
             cr.move_to(frmX, fromYPosS)
             cr.line_to(toX, toYPosE)
             cr.rel_line_to(-5, 5)
@@ -529,14 +603,15 @@ class DrawingAreaFrame(gtk.Frame):
         cr.set_source_rgb(1,1,1)
         cr.rectangle(0,0,width, height)
         cr.fill()
-        cr.set_source_rgb(1, 1, 1)
+        cr.set_source_rgb(1,1,1)
 
         crntY = 20
         allocCount=0
         putCount = 0
         self.putChars = ""
-        AllocsAndStates=[]
+        Allocs=[]
         Arrows = []
+        States = []
         #print("DRAWING ALL ITEMS:")
         refToLastStepDone=None
         self.actionSorter.resetIter()
@@ -546,7 +621,7 @@ class DrawingAreaFrame(gtk.Frame):
             #print('RECORD:',pRecord)
             if itemType=='seqSet' or itemType=='altSet':
                 if pRecord[0][0]<=self.maxStepsToDraw:
-                    AllocsAndStates.append([itemType, pRecord])
+                    Allocs.append([itemType, pRecord])
                     refToLastStepDone="ALLOC"
                 allocCount += 1
             elif itemType=='arrow':
@@ -554,9 +629,9 @@ class DrawingAreaFrame(gtk.Frame):
                     Arrows.append(pRecord)
                     refToLastStepDone = pRecord[1]['eventDesc']
             elif itemType=='state':
-                if pRecord[0]<=self.maxStepsToDraw:
-                    AllocsAndStates.append(pRecord)
-                    refToLastStepDone = pRecord[1]['eventDesc']
+                if pRecord[0][0]<=self.maxStepsToDraw:
+                    States.append([itemType, pRecord])
+                    refToLastStepDone = pRecord[0][1]['eventDesc']+':'
             elif itemType=='PUTCHars':
                 putCount += 1
                 pItem = pRecord[1]
@@ -582,28 +657,41 @@ class DrawingAreaFrame(gtk.Frame):
         crntY += 80
         inrY = crntY
         # Draw Allocs and States
+        for state in States:
+            itmMap = state[1][0][1]
+            objID=itmMap['recName']
+            if not(objID in self.AllocMap):
+                print('Node',objID, "has a STATE but isn't allocated.")
+                continue
+            obj  = self.AllocMap[objID]
+            obj['STATES'][itmMap['fieldID']] = itmMap['fieldVal']
+            #print("OBJ:",obj)
         oldStartX = 5
         oldOrigin = 0
         stepsDone = 0
         self.allocsToDo= self.maxStepsToDraw-(len(Arrows) + putCount)
-        for item in AllocsAndStates:
-            parent   = item[1][0][1]['causeName']
-            orignPos = item[1][0][1]['originPos']
-            if parent!='NULL':
-                if 'startXPos' in self.AllocMap[parent]:
-                    startXPos =self.AllocMap[parent]['startXPos']
-                    startYPos =self.AllocMap[parent]['startYPos']
-                else: startXPos=oldStartX; print("START_X_POS Not Found:", parent)
-            else: startXPos=oldStartX
-            if orignPos != oldOrigin: inrY = startYPos+60
-            newHeight = 0
-            #print("DOING SEQ:", str(item)[:50])
-            count, newHeight = self.drawSRecSeqSet(cr, item, startXPos, inrY)
-            inrY += newHeight+10
-            stepsDone += count
-            #if stepsDone >= self.allocsToDo: print("OVERMAX"); break
-            oldStartX = startXPos
-            oldOrigin = orignPos
+        for item in Allocs:
+            itmMap = item[1][0][1]
+            opType = itmMap['opType']
+            if opType=='ALLOC':
+                parent   = itmMap['causeName']
+                orignPos = itmMap['originPos']
+                if parent!='NULL':
+                    if 'startXPos' in self.AllocMap[parent]:
+                        startXPos =self.AllocMap[parent]['startXPos']
+                        startYPos =self.AllocMap[parent]['startYPos']
+                    else: startXPos=oldStartX; print("START_X_POS Not Found:", parent)
+                else: startXPos=oldStartX
+                if orignPos != oldOrigin: inrY = startYPos+60
+                newHeight = 0
+                #print("DOING SEQ:", str(item)[:50])
+                count, newHeight = self.drawSRecSeqSet(cr, item, startXPos, inrY)
+                inrY += newHeight+10
+                stepsDone += count
+                #if stepsDone >= self.allocsToDo: print("OVERMAX"); break
+                oldStartX = startXPos
+                oldOrigin = orignPos
+
 
         # Draw Arrows
         for arrow in Arrows:
@@ -619,9 +707,10 @@ class DrawingAreaFrame(gtk.Frame):
             xCur += self.SlotSpan
             pos += 1
         cr.set_source_rgb(0,0,1.0)
-        if refToLastStepDone=='ALLOC': refToLastStepDone=self.lastItemDesc
-        renderText(cr, 20 ,20, "Step:"+str(animator.maxStepsToDraw)+" / "+str(self.actionSorter.numSteps)+": "+refToLastStepDone, "Sans Normal 24")
-        print("RECORD:", refToLastStepDone)
+        if refToLastStepDone=='ALLOC': refToLastStepDone=self.lastItemDesc[:self.lastItemDesc.find(':')]
+        if refToLastStepDone==None: refToLastStepDone='Beginning:'
+        renderText(cr, 20 ,20, "   Step:"+str(animator.maxStepsToDraw)+" / "+str(self.actionSorter.numSteps)+": "+refToLastStepDone, "Sans Normal 24")
+        print("CrntStep:", refToLastStepDone)
         crntY += 80
 
 
@@ -630,7 +719,8 @@ class DrawingAreaFrame(gtk.Frame):
         lineNum = 0
         try:
             with open(filename) as file:
-                while (line := file.readline().rstrip()):
+                while (line := file.readline()):
+                    line = line.rstrip()
                     lineNum += 1
                     self.addParseEvent(line)
         except IOError as err:
@@ -714,7 +804,7 @@ class Window(gtk.Window):
         #if ctrl and event.keyval == Gdk.KEY_h:
         crntScale = animator.scaleFactor
         steps = animator.maxStepsToDraw
-        if keyName=='Down': animator.scaleFactor = max(crntScale-0.05, 0.1); animator.queue_draw()
+        if keyName=='Down': animator.scaleFactor = max(crntScale-0.05, 0.05); animator.queue_draw()
         elif keyName=='Up': animator.scaleFactor = min(crntScale+0.05, 5.0); animator.queue_draw()
         elif keyName=='Left':  animator.maxStepsToDraw = max(steps-1, 1); animator.queue_draw()
         elif keyName=='Right': animator.maxStepsToDraw = min(steps+1, animator.actionSorter.numSteps); animator.queue_draw()
