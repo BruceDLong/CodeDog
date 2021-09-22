@@ -110,7 +110,6 @@ struct GLOBAL{
 struct APP{
     me void: createAppArea(me GUI_Frame: frame) <- {
         Allocate(drawAnX)
-        //Allocate(drawAnX.dashboardDBW)
         drawing_area  <- gui.newCanvas()
         drawing_area.setParent(drawAnX)
         gui.setWidgetSize(drawing_area, 1200, 1200)

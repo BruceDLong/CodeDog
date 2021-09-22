@@ -500,7 +500,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec  = {'owner':'me', 'fieldType':containedType, 'codeConverter':(repName+'.first')}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        getNodeVal  = progSpec.getCodeConverterByFieldID(classes, itrFieldType, "val", repName,RNodeP)
+        getNodeVal  = progSpec.getCodeConverterByFieldID(classes, itrFieldType, 'val', repName,RNodeP)
         ctrlVarsTypeSpec['codeConverter'] = (getNodeVal)
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
         frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
@@ -515,11 +515,13 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
         else:
             actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'begin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+ itrName + " ){\n")
         actionText += indent+"    "+"auto "+repName+" = *"+itrName+";\n"
-    elif (datastructID=='deque' or datastructID=='CPP_Deque' ) and willBeModifiedDuringTraversal:
+    elif(containerCat=='DEQUE' or datastructID=='deque' or datastructID=='CPP_Deque') and willBeModifiedDuringTraversal:
         keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
+        lvName=repName+"Idx"
+        idxVarSpec = {'owner':'itr', 'fieldType':containedType}
         localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-        lvName=repName+"Idx"
+        localVarsAlloc.append([lvName, idxVarSpec]) # Tracking local vars for scope
         if isBackward:
             actionText += (indent + "for( int64_t " + lvName+' = '+ctnrName+RDeclP+'size()-1; ' + lvName+" >= 0; "+" --"+lvName+" ){\n")
         else:

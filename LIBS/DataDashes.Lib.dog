@@ -42,7 +42,7 @@ struct verticalScale: inherits=graphScale{
         // AXIS VALUE LABELS
         withEach val in RANGE(0.. (hiVal-lowVal)/step+1){
             label <- dblToString(val*step+lowVal, 2)
-            size <- getTextSize(cr, label, styler.smallFont)
+            size <- getTextSize(label, styler.smallFont)
             YPoint <- yOrig-(val*step*span/(hiVal-lowVal)-size.height/3)
             if(textSlant){
                 if (tickOffset > 0){XPoint <- xOrig+tickOffset+tickPadding+size.height/2}
@@ -121,7 +121,7 @@ struct horizontalScale: inherits=graphScale{
         withEach val in RANGE(0.. (hiVal-lowVal)/step){
             if(isDate){label <- unicodeMgr.dateToIntlString(val*step+firstTick, hiVal-lowVal, loc)}
             else      {label <- dblToString(val*step+firstTick, 2)}
-            size <- getTextSize(cr, title, styler.smallFont)
+            size <- getTextSize(title, styler.smallFont)
             if (tickOffset > 0){tickHeight  <- tickOffset+tickPadding; YPoint <- yOrig+tickHeight}
             else               {tickHeight  <- tickOffset-tickPadding; YPoint <- yOrig+tickHeight+size.height}
             if(textSlant){
@@ -147,7 +147,7 @@ struct horizontalScale: inherits=graphScale{
 
 
         // SCALE TITLE
-        size <- getTextSize(cr, title, styler.defaultFont)
+        size <- getTextSize(title, styler.defaultFont)
         if(tickOffset > 0){YPoint <- yOrig+tickHeight+labelHeight+titlePadding+titlePadding}
         else              {YPoint <- yOrig+tickHeight-labelHeight-titlePadding}
         renderText(cr, title, styler.defaultFont, span/2, YPoint)
@@ -290,7 +290,7 @@ struct streamToggle: inherits=dash{
         }
         label <- dataStreamsTitleTbl[state]
         left.drawCircleBtn(cr)
-        labelSize <- getTextSize(cr, label, styler.smallFont)
+        labelSize <- getTextSize(label, styler.smallFont)
         renderTextCentered(cr, label, styler.smallFont, posX + 3*radius + maxLabelLength/2, posY + labelSize.height)
         right.drawCircleBtn(cr)
         cr.strokeNow()
@@ -762,8 +762,6 @@ struct graphWidget: inherits=DashboardWidget{
         title   <- 'DashboardWidget.'+label
         canvas  <- thisApp.gui.newCanvas()
         canvas.setParent(self)
-        dashboardDBW.dashParent <- self
-        dashboardDBW.canvas <- canvas
         thisApp.gui.setWidgetSize(canvas, 400, 500)  // This is to make ANdroid canvas size
         //    their scrollerWidget:: scrollView  <- ()
         //    their GUI_ScrollingWindow: scrollerFrame <- scrollView.makeScrollerWidget(canvas)
@@ -774,33 +772,4 @@ struct graphWidget: inherits=DashboardWidget{
         EventDispatcher.registerWidgetForEventDispatcher(canvas, self)
         return(managedWidget)
     }
-    void: draw(their GUI_ctxt: cr) <- {
-        dashboardDBW.draw(cr)
-    }
-
-    me bool: primaryClick(their GUI_ButtonEvent: event) <- {
-        return(dashboardDBW.primaryClick(event))
-    }
-
-    me bool: secondaryClick(their GUI_ButtonEvent: event) <- {
-        return(dashboardDBW.secondaryClick(event))
-    }
-
-    me bool: primaryDn(their GUI_ButtonEvent: event) <- {
-        return(dashboardDBW.primaryDn(event))
-    }
-
-    me bool: primaryUp(their GUI_ButtonEvent: event) <- {
-        return(dashboardDBW.primaryUp(event))
-    }
-
-    me bool: mouseMoved(their GUI_MotionEvent: event) <- {
-        return(dashboardDBW.mouseMoved(event))
-    }
-
-    me void: drawToPDF(me string: filename, me double: inchesWide, me double: inchesHigh, me double: scale) <- {
-        dashboardDBW.drawToPDF(filename, inchesWide, inchesHigh, scale)
-    }
-
-    void: INIT() <- {Allocate(dashboardDBW)}
 }
