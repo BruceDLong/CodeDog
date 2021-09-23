@@ -422,6 +422,14 @@ def codeSwitchCase(caseKeyValue, caseKeyTypeSpec):
     return caseKeyValue
 
 ###################################################### EXPRESSION CODING
+def codeNotOperator(S, S2,retTypeSpec):
+    if progSpec.varsTypeCategory(retTypeSpec) != 'bool':
+        if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
+        S2='('+S2+' != nil)'
+        retTypeSpec='bool'
+    else: S+='!' + S2
+    return [S, retTypeSpec]
+
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
     #print('                  factor: ', item)
@@ -435,11 +443,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
             S+='(' + S2 +')'
         elif item0=='!':
             [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
-            if progSpec.varsTypeCategory(retTypeSpec) != 'bool':
-                if S2[-1]=='!': S2=S2[:-1]   # Todo: Better detect this
-                S2='('+S2+' != nil)'
-                retTypeSpec='bool'
-            else: S+='!' + S2
+            [S, retTypeSpec]  = codeNotOperator(S, S2,retTypeSpec)
         elif item0=='-':
             [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
             S+='-' + S2
@@ -451,15 +455,17 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
                 tmp+=S2
             tmp+="]"
             S+=tmp
+        elif item0=='{':
+            cdErr("TODO: finish Swift initialize new map")
         else:
-            expected_KeyType = progSpec.varTypeKeyWord(expectedTypeSpec)
-            if expected_KeyType == "BigInt":
+            fTypeKW = progSpec.varTypeKeyWord(expectedTypeSpec)
+            if fTypeKW == "BigInt":
                 S += item0
                 retTypeSpec='BigInt'
-            elif expected_KeyType == "BigFloat":
+            elif fTypeKW == "BigFloat":
                 S += item0 + "_mpf"
                 retTypeSpec='BigFloat'
-            elif expected_KeyType == "BigFrac":
+            elif fTypeKW == "BigFrac":
                 S += item0 + "_mpq"
                 retTypeSpec='BigFrac'
             elif(item0[0]=="'"):
@@ -478,11 +484,10 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
                     retTypeSpec='String'
             else:
                 S+=item0;
-                if item0=='false' or item0=='true':
-                    retTypeSpec={'owner': 'literal', 'fieldType': 'bool'}
-                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):
-                    retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
-                if retTypeSpec == 'noType' and progSpec.typeIsInteger(expected_KeyType):retTypeSpec=expected_KeyType
+                if item0=='false' or item0=='true': retTypeSpec={'owner': 'literal', 'fieldType': 'bool'}
+                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0): retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
+                if retTypeSpec == 'noType' and progSpec.typeIsInteger(fTypeKW): retTypeSpec=fTypeKW
+
     else: # CODEDOG LITERALS
         if isinstance(item0[0], str):
             S+=item0[0]

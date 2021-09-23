@@ -542,6 +542,10 @@ def codeSwitchCase(caseKeyValue, caseKeyTypeSpec):
     return caseKeyValue
 
 ###################################################### EXPRESSION CODING
+def codeNotOperator(S, S2,retTypeSpec):
+    S+='!' + S2
+    return [S, retTypeSpec]
+
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
     #print('                  factor: ', item)
@@ -555,7 +559,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
             S+='(' + S2 +')'
         elif item0=='!':
             [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
-            S+='!' + S2
+            [S, retTypeSpec]  = codeNotOperator(S, S2,retTypeSpec)
         elif item0=='-':
             [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
             S+='-' + S2
@@ -606,12 +610,10 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
                     retTypeSpec='string'
             else:
                 S+=item0;
-                if item0=='false' or item0=='true':
-                    retTypeSpec={'owner': 'literal', 'fieldType': 'bool'}
-                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):
-                    retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
-                if retTypeSpec == 'noType' and progSpec.typeIsInteger(fTypeKW):retTypeSpec=fTypeKW
-                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
+                if item0=='false' or item0=='true': retTypeSpec={'owner': 'literal', 'fieldType': 'bool'}
+                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0): retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
+                if retTypeSpec == 'noType' and progSpec.typeIsInteger(fTypeKW): retTypeSpec=fTypeKW
+
     else: # CODEDOG LITERALS
         if isinstance(item0[0], str):
             S+=item0[0]

@@ -411,6 +411,13 @@ def codeSwitchCase(caseKeyValue, caseKeyTypeSpec):
     return caseKeyValue
 
 ###################################################### EXPRESSION CODING
+def codeNotOperator(S, S2,retTypeSpec):
+    if(progSpec.typeIsPointer(retTypeSpec)):
+        S= '('+S2+' == null)'
+        retTypeSpec='bool'
+    else: S+='!' + S2
+    return [S, retTypeSpec]
+
 def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator):
     ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
     #print('                  factor: ', item)
@@ -424,10 +431,7 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
             S+='(' + S2 +')'
         elif item0=='!':
             [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
-            if(progSpec.typeIsPointer(retTypeSpec)):
-                S= '('+S2+' == null)'
-                retTypeSpec='bool'
-            else: S+='!' + S2
+            [S, retTypeSpec]  = codeNotOperator(S, S2,retTypeSpec)
         elif item0=='-':
             [S2, retTypeSpec] = codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, xlator)
             S+='-' + S2
@@ -457,11 +461,22 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
                 typeKeyword = adjustBaseTypes(typeKeyword, True)
             else: typeKeyword = retTypeKW
             S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
-        elif item0=='{':cdErr("TODO: finish Java initialize new map")
+        elif item0=='{':
+            cdErr("TODO: finish Java initialize new map")
         else:
             fTypeKW = progSpec.varTypeKeyWord(expectedTypeSpec)
-            owner   = progSpec.getOwnerFromTypeSpec(expectedTypeSpec)
-            if(item0[0]=="'"):    S+=codeUserMesg(item0[1:-1], xlator);   retTypeSpec='String'
+            if fTypeKW == "BigInt":
+                S += item0
+                retTypeSpec='BigInt'
+            elif fTypeKW == "BigFloat":
+                S += item0 + "_mpf"
+                retTypeSpec='BigFloat'
+            elif fTypeKW == "BigFrac":
+                S += item0 + "_mpq"
+                retTypeSpec='BigFrac'
+            elif(item0[0]=="'"):
+                retTypeSpec='String'
+                S+=codeUserMesg(item0[1:-1], xlator)
             elif (item0[0]=='"'):
                 if returnType != None and returnType["fieldType"]=="char":
                     retTypeSpec='char'
@@ -475,12 +490,9 @@ def codeFactor(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, gener
                     retTypeSpec='String'
             else:
                 S+=item0;
-                if retTypeSpec == 'noType' and (fTypeKW=='bool' or item0=='true' or item0=='false'):
-                    retTypeSpec={'owner': owner, 'fieldType': 'bool'}
-                if retTypeSpec == 'noType' and progSpec.typeIsInteger(fTypeKW):
-                    retTypeSpec={'owner': owner, 'fieldType': fTypeKW}
-                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0):
-                    retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
+                if item0=='false' or item0=='true': retTypeSpec={'owner': 'literal', 'fieldType': 'bool'}
+                if retTypeSpec == 'noType' and progSpec.isStringNumeric(item0): retTypeSpec={'owner': 'literal', 'fieldType': 'numeric'}
+                if retTypeSpec == 'noType' and progSpec.typeIsInteger(fTypeKW): retTypeSpec=fTypeKW
 
     else: # CODEDOG LITERALS
         if isinstance(item0[0], str):

@@ -4,6 +4,7 @@ import os
 import errno
 import subprocess
 import sys;  sys.dont_write_bytecode = True
+import copy
 from datetime import date
 buildSpec = ""
 runSpec = ""
@@ -12,7 +13,7 @@ runDirectory = ""
 
 testDefinitions = {
 #####################################################################################################
-'list     ': ['''
+'lists': ['''
 struct testClass{
     me List<me int>: classList
     we List<me string>: weList
@@ -52,7 +53,7 @@ struct testClass{
     }
 }''', 'PGBR: isEmpty:true7486513valAt:8firstItm:7lastItm:3firstPop:7lastPop:3Size:5   item:4   item:8   item:6   item:5   item:1Size after clear:0'],
 ###################################################################################################
-'map1     ': ['''
+'maps1': ['''
 struct gloop<key, value>{
     me int: i
     me key: k
@@ -76,7 +77,7 @@ struct testClass{
     }
 }''', 'PGBR: isEmpty:true bb aa 3 ccaabbcc 0'],
 ###################################################################################################
-'map2     ': ['''
+'maps2': ['''
 struct testClass{
     me int: runTest()<-{
         me Map<me string, me int>: mapStringInt
@@ -90,7 +91,7 @@ struct testClass{
     }
 }''', 'PGBR: isEmpty:true012 at(cc)=2'],
 ###################################################################################################
-'listReps ': ['''
+'listReps': ['''
 struct testClass{
     me void: runTest()<-{
         print("RANGE:")
@@ -109,7 +110,7 @@ struct testClass{
      }
 }''', 'PGBR:RANGE:2 3 4 5  RANGEBKWD:5 4 3 2  LIST:2 13 -22 188  LISTBKWD:188 -22 13 2  LISTKEY:0-2 1-3 2-5 3-8 4-13 5-21 '],
 ###################################################################################################
-'mapReps  ': ['''
+'mapReps': ['''
 struct testClass{
     me void: runTest()<-{
         me Map<me string, me string>:testMap
@@ -121,7 +122,7 @@ struct testClass{
     }
 }''', 'PGBR:boy does every fine good B-boy D-does E-every F-fine G-good '],
 ###################################################################################################
-'twoMaps  ': ['''
+'twoMaps': ['''
 struct testClass{
     me void: runTest()<-{
         me Map<me string, me string>:testMapStrStr
@@ -137,7 +138,7 @@ struct testClass{
     }
 }''', 'PGBR:zeroonetwo012'],
 ###################################################################################################
-'mapWraps ': ['''
+'mapWraps': ['''
 struct wrappedStr: wraps = string{}
 struct testClass{
     me void: runTest()<-{
@@ -149,7 +150,7 @@ struct testClass{
     }
 }''', 'PGBR:zeroonetwo'],
 ###################################################################################################
-'mapReps2 ': ['''
+'mapReps2': ['''
 struct txtOut{
     me bool: isHidden
     me int: val
@@ -179,7 +180,7 @@ struct testClass{
     }
 }''', 'PGBR: at:0 at:1 at:2'],
 ###################################################################################################
-'multimap ': ['''
+'multimap': ['''
 struct testClass{
     me void: runTest()<-{
         me Multimap<me int, me string>: mapIntString
@@ -198,7 +199,7 @@ struct testClass{
     }
 }''', 'PGBR: isEmpty:true aa 4 cc [1..1]bb [1..1]qq 0'],
 ###################################################################################################
-'iterator ': ['''
+'iterator': ['''
 struct testClass{
     me void: runTest()<-{
         me Map<me int, me string>: testMap
@@ -209,7 +210,7 @@ struct testClass{
     }
 }''', 'PGBR:Found'],
 ###################################################################################################
-'mapInsert': ['''
+'mapAdd': ['''
 struct testClass{
     me void: runTest()<-{
         me Map<me int, me string>: mapIntString
@@ -345,34 +346,17 @@ def ExecCodeDogTest(testSpec, buildSpec, testName,toPrint):
                     return "***Run Fail*** expected '"+str(reqSpec)+"' not '"+decodedOut+"'"
     else: return "***Error: no out***"
 
-def runDeps(testKey):
-    global buildSpec
-    global testDefinitions
-    depsList=[]
-    depsReportText = ""
-    if (len(testDefinitions[testKey])>2):
-        depsList = testDefinitions[testKey][2]
-    for dep in depsList:
-        testResult = ExecCodeDogTest(testDefinitions[dep], buildSpec,dep,True)
-        depsReportText +=  "        " + dep + " : "+testResult+  "\n"
-        if(testResult != "Success"):
-            writePrepend("xlatorTests/failedTests.txt",dep)
-    return depsReportText
-
 def runListedTests(testsToRun):
     global buildSpec
     global testDefinitions
     clearErrorFile()
-    print('\n________________________________\n'+xlatorLabel+'\n')
+    print('________________________________\n'+xlatorLabel)
     reportText = ""
     for testKey in testsToRun:
         #print(("Running test: ", testKey))
-        testResult = ExecCodeDogTest(testDefinitions[testKey], buildSpec, testKey,False)
-        print("testResult: ", testKey, ":  ", testResult)
+        testResult = ExecCodeDogTest(copy.copy(testDefinitions[testKey]), buildSpec, testKey,False)
+        print("testResult: ", testKey, ":\t", testResult)
         reportText+= testKey + ": "+testResult+  "\n"
-        #if(testResult!="Success"):
-            #depsReportText = runDeps(testKey)
-            #reportText+= depsReportText
     return reportText
 
 def gatherListOfTestsToRun(keywordList):
@@ -439,7 +423,11 @@ xlatorLabel  = ''
 testsToRun = gatherListOfTestsToRun(testListSpec)
 workingDirectory = os.getcwd() + "/xlatorTests"
 
-if (xlatorName == "cpp"):
+if (xlatorName == "all"):
+    getCPPTest()
+    getJavaTest()
+    getSwiftTest()
+elif (xlatorName == "cpp"):
     getCPPTest()
 elif(xlatorName == "swing" or xlatorName == "java" or xlatorName == "Java"):
     getJavaTest()

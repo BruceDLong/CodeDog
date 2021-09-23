@@ -374,42 +374,44 @@ def checkForReservedWord(identifier, currentObjName):
             cdErr("Reserved word '"+identifier+"' cannot be an identifier in "+ currentObjName)
 
 #### GENERIC TYPE HANDLING #############################################
-def getGenericClassInfo(className):
-    classInfo   = {}
-    typeArgList = progSpec.getTypeArgList(className)
-    classInfo["typeArgList"] = typeArgList
+def makeFromImpl(className, implName):
+    retVal   = {}
+    retVal['implements'] = implName
+    typeArgs = progSpec.getTypeArgList(className)
+    retVal["typeArgList"] = typeArgs
     fieldDefAt  = CheckObjectVars(className, "at", "")
     if fieldDefAt:
         typeSpecAt = fieldDefAt['typeSpec']
         atTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(typeSpecAt), "fieldType":progSpec.fieldTypeKeyword(typeSpecAt)}
-        classInfo["atTypeSpec"] = atTypeSpec
+        retVal["atTypeSpec"] = atTypeSpec
         # Now try to get the 'key' typeSpec
         if 'argList' in typeSpecAt and typeSpecAt['argList']!=None:
             firstParametersSpec = typeSpecAt['argList'][0]
             firstParametersTypeSpec = firstParametersSpec['typeSpec']
             keyTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(firstParametersTypeSpec), "fieldType":progSpec.fieldTypeKeyword(firstParametersTypeSpec)}
-            classInfo["atKeyTypeSpec"] = keyTypeSpec
+            retVal["atKeyTypeSpec"] = keyTypeSpec
     fieldDefFind = CheckObjectVars(className, "find", "")
     if fieldDefFind:
         itrTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
-        classInfo['itrTypeSpec'] = itrTypeSpec
-    return classInfo
+        retVal['itrTypeSpec'] = itrTypeSpec
+    return retVal
 
 def chooseStructImplementationToUse(typeSpec,className,fieldName):
     fieldType = progSpec.getFieldType(typeSpec)
     if not isinstance(fieldType, str) and  len(fieldType) >1:
+        ctnrCat = fieldType[0]
         if ('chosenType' in fieldType):
             return(None, None, None)
-        implementationOptions = progSpec.getImplementationOptionsFor(fieldType[0])
-        if(implementationOptions == None):
-            if fieldType[0]=="List" or fieldType[0]=="MultiMap":
-                print("******WARNING: no implementationOptions found for container  ", fieldType[0] ,className,"::",fieldName)
-                # Check to confirm List is in features needed
+        implOptions = progSpec.getImplementationOptionsFor(ctnrCat)
+        if(implOptions == None):
+            if ctnrCat=="List" or ctnrCat=="Map" or ctnrCat=="Multimap" :
+                print("******WARNING: no implementation options found for container ", ctnrCat ,className,"::",fieldName)
+                # Check to confirm container type is in features needed
         else:
             reqTags = progSpec.getReqTags(fieldType)
-            highestScore = -1
-            highestScoreClassName = None
-            for option in implementationOptions:
+            hiScoreVal = -1
+            hiScoreName = None
+            for option in implOptions:
                 optionClassDef =  progSpec.findSpecOf(globalClassStore[0], option, "struct")
                 if 'tags' in optionClassDef and 'specs' in optionClassDef['tags']:
                     optionTags  = optionClassDef['tags']
@@ -420,13 +422,14 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
                         if nativeTag == "lang": implScore += 6
                         if nativeTag == "platform": implScore += 5
                     if(errorMsg != ""): cdErr(errorMsg)
-                    if(implScore > highestScore):
-                        highestScore = implScore
-                        highestScoreClassName = optionClassDef['name']
-            if highestScoreClassName != None:
-                fromImpl = getGenericClassInfo(highestScoreClassName)
+                    if(implScore > hiScoreVal):
+                        hiScoreVal = implScore
+                        hiScoreName = optionClassDef['name']
+            if hiScoreName != None:
+                fromImpl = makeFromImpl(hiScoreName, ctnrCat)
             else: fromImpl = None
-            return(highestScoreClassName,fromImpl)
+            print("IMPLEMENTS:", ctnrCat, '->', hiScoreName)
+            return(hiScoreName,fromImpl)
     return(None, None)
     #    choose highest score and mark the typedef
 
@@ -549,37 +552,37 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
         typeSpecOut = copyTypeSpec(typeSpec)
         cvrtType = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
         typeSpecOut['fieldType'] = [copy.copy(cvrtType)]
-        fromImpl = progSpec.getFromImpl(typeSpecOut)
-        if fromImpl:
-            tArgList = fromImpl['typeArgList']
+        fromImplIn = progSpec.getFromImpl(typeSpecOut)
+        if fromImplIn:
+            tArgList = fromImplIn['typeArgList']
             genericArgsOut = {}
             if tArgList:
                 count = 0
                 for reqTag in reqTagList:
                     genericArgsOut[tArgList[count]]=reqTag
                     count += 1
-                fromImpl['genericArgs'] = genericArgsOut
-                for implName in fromImpl:
+                fromImplIn['genericArgs'] = genericArgsOut
+                for implName in fromImplIn:
                     if implName == 'atTypeSpec' or implName=='atKeyTypeSpec':
-                        implSpec  = fromImpl[implName]
+                        implSpec  = fromImplIn[implName]
                         implTypeKW = progSpec.fieldTypeKeyword(implSpec)
                         if implTypeKW in genericArgsOut:
                             implSpec['owner']     = genericArgsOut[implTypeKW]['tArgOwner']
                             implSpec['fieldType'] = genericArgsOut[implTypeKW]['tArgType']
                     elif implName=='itrTypeSpec':
-                        implSpec  = fromImpl[implName]
+                        implSpec  = fromImplIn[implName]
                         if 'fromGeneric' not in implSpec:
                             implTypeKW = progSpec.fieldTypeKeyword(implSpec)
                             implSpec['fieldType'] = generateGenericStructName(implTypeKW, reqTagList, genericArgs, xlator)
                             implSpec['fromGeneric'] = True
-                classInfo = fromImpl
+                fromImplOut = fromImplIn
             else:
-                classInfo = getGenericClassInfo(fTypeKW)
-                if classInfo['typeArgList']==None: classInfo['typeArgList'] = tArgList
-            typeSpecOut['fromImplemented'] = classInfo
+                fromImplOut = makeFromImpl(fTypeKW, fromImplIn['implements'])
+                if fromImplOut['typeArgList']==None: fromImplOut['typeArgList'] = tArgList
+            typeSpecOut['fromImplemented'] = fromImplOut
         else:
-            classInfo = getGenericClassInfo(fTypeKW)
-            typeSpecOut['fromImplemented'] = classInfo
+            fromImplOut = makeFromImpl(fTypeKW, '')
+            typeSpecOut['fromImplemented'] = fromImplOut
         typeSpecOut['generic'] = True
     else:
         typeSpecOut = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
