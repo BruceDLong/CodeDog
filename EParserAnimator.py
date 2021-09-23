@@ -9,6 +9,7 @@ from gi.repository import Gtk as gtk
 from gi.repository import Pango, PangoCairo, Gdk
 
 import cairo
+import math
 from math import pi
 
 import sys
@@ -270,6 +271,18 @@ class ActionSorter:
             self.putChars.append(aRecord)
         else: self.numSteps -= 1
 
+def matrixScaleComponent(M):
+    a = M.xx
+    b = M.yx
+    c = M.xy
+    d = M.yy
+    e = M.x0
+    f = M.y0
+
+    scaleX = math.sqrt((a * a) + (c * c))
+    scaleY = math.sqrt((b * b) + (d * d))
+    return [scaleX, scaleY]
+
 class DrawingAreaFrame(gtk.Frame):
     def __init__(self, css=None, border_width=0):
         super().__init__()
@@ -282,15 +295,21 @@ class DrawingAreaFrame(gtk.Frame):
         self.area = gtk.DrawingArea()
         self.add(self.area)
 
-        self.scaleFactor = 1.0
         self.area.connect("draw", self.OnDraw)
         #self.area.connect('configure-event', self.on_configure)
 
-    scaleFactor = 1.0
+    matrix = cairo.Matrix()
     parseEvents   = []
     actionSorter  = ActionSorter()
     charColWidths = []      # Store the width in pixels of each char column for drawing
     charPositions = []
+
+    def scaleFactor(self):
+        return matrixScaleComponent(self.matrix)[0]
+    def crntXOffset(self):  # What part of the canvas is in the top corner
+        return self.matrix.x0
+    def crntYOffset(self):  # What part of the canvas is in the top corner
+        return self.matrix.y0
 
     def clear(self):
         self.parseEvents = []
@@ -379,11 +398,11 @@ class DrawingAreaFrame(gtk.Frame):
                 self.AllocMap[recName] = parseEvent
             elif opType=="ARROW":
                 logLine, arrowType = heachToSymbol(logLine, ":"); parseEvent['arrowType'] = arrowType
-                logLine, fieldID, fieldVal = heachArg(logLine); parseEvent[fieldID] = fieldVal
-                #print("FOUND:"+ fieldID+"|"+fieldVal+"|")
-                logLine, fieldID, fieldVal = heachArg(logLine); parseEvent[fieldID] = fieldVal
+                logLine, fieldIDFrm, fieldVal1 = heachArg(logLine); parseEvent[fieldIDFrm] = fieldVal1
+                logLine, fieldIDTo, fieldVal2 = heachArg(logLine); parseEvent[fieldIDTo] = fieldVal2
+                #print("FOUND: "+ fieldIDFrm+":"+fieldVal1+",  "+fieldIDTo+":"+fieldVal2, "at line:", self.lineNum)
 
-                parseEvent['eventDesc'] = "ARROW "+parseEvent['arrowType']+"  FROM:"+parseEvent['from']+" TO:"+parseEvent['to']
+                parseEvent['eventDesc'] = "ARROW "+parseEvent['arrowType']+"  "+fieldIDFrm+":"+parseEvent['from']+" "+fieldIDTo+":"+parseEvent['to']
             elif opType=="STATE":
                 logLine, recName  = heachToSymbol(logLine, ":"); parseEvent['recName'] = recName
                 logLine, fieldID, fieldVal = heachArg(logLine);
@@ -433,6 +452,8 @@ class DrawingAreaFrame(gtk.Frame):
             if NextState=='RELEASED' and ChildState=='RELEASED': cr.set_source_rgb(0.1,0.8,0.0)
             elif NextState=='RELEASED': cr.set_source_rgb(0.8,0.8,0.0)
             elif ChildState=='RELEASED': cr.set_source_rgb(0.7,0.7,0.9)
+            elif NextState=='WAITING': cr.set_source_rgb(0.8,0.1,0.0)
+            elif ChildState=='WAITING': cr.set_source_rgb(0.9,0.1,0.9)
 
             cr.rectangle(xPos+2, yPos, width-2, 50)
             cr.fill()
@@ -596,7 +617,7 @@ class DrawingAreaFrame(gtk.Frame):
     allocsToDo = 0
 
     def OnDraw(self, area, cr):
-        self.set_size_request(10000, 5000)
+        #self.set_size_request(10000, 5000)
         #print("Starting Draw:",len(self.parseEvents),"steps...")
         height = self.get_allocated_height()
         width = self.get_allocated_width()
@@ -647,13 +668,8 @@ class DrawingAreaFrame(gtk.Frame):
         for ch in CharsPut: self.charColWidths.append(self.SlotSpan)
         for ch in CharsPut: self.charPositions.append(9999999)
 
+        cr.set_matrix(self.matrix)
 
-        cr.scale(self.scaleFactor, self.scaleFactor)
-        # ~ # Draw Characters at the top
-        # ~ xCur = 5
-        # ~ for ch in CharsPut:
-            # ~ renderText(cr, xCur,crntY, ch, "Sans Normal 32")
-            # ~ xCur += self.SlotSpan
         crntY += 80
         inrY = crntY
         # Draw Allocs and States
@@ -713,15 +729,28 @@ class DrawingAreaFrame(gtk.Frame):
         print("CrntStep:", refToLastStepDone)
         crntY += 80
 
+    def rescale(self, newScale):
+        oldScale = self.scaleFactor()
+        self.matrix.scale(1/oldScale, 1/oldScale)
+        self.matrix.scale(newScale, newScale)
 
+    def scaleAboutPoint(self, scale, x,y):
+        oldScale = self.scaleFactor()
+        canvasX = (-self.crntXOffset()+x)*(1/oldScale)
+        canvasY = (-self.crntYOffset()+y)*(1/oldScale)
+        totalScale = (1/oldScale)*scale
+        self.matrix.translate(canvasX, canvasY)
+        self.matrix.scale(totalScale, totalScale)
+        self.matrix.translate(-canvasX, -canvasY)
+
+    lineNum = 0
 
     def loadParseLog(self, filename):
-        lineNum = 0
         try:
             with open(filename) as file:
                 while (line := file.readline()):
                     line = line.rstrip()
-                    lineNum += 1
+                    self.lineNum += 1
                     self.addParseEvent(line)
         except IOError as err:
             fatalError(str(err))
@@ -772,18 +801,28 @@ class DrawingAreaFrame(gtk.Frame):
 
 class Window(gtk.Window):
     viewPort = gtk.Viewport()
+    xDragStart = 0
+    yDragStart = 0
+
     def __init__(self, title="my program"):
         gtk.Window.__init__(self)
-        scrollWin=gtk.ScrolledWindow()
+        #scrollWin=gtk.ScrolledWindow()
         #viewPort =gtk.Viewport()
-        scrollWin.add(self.viewPort)
+        #scrollWin.add(self.viewPort)
         #viewPort.add()
-        self.add(scrollWin)
+        #self.add(scrollWin)
         self.set_title(title)
         self.set_default_size(1800, 800)
+        # Gdk.EventMask.SCROLL_MASK
+        self.add_events(Gdk.EventMask.SCROLL_MASK)
         self.connect("destroy", gtk.main_quit)
         self.connect('configure_event', self.OnResize)
         self.connect("key-press-event",self.on_key_press_event)
+        self.connect("button-press-event", self.on_mouseClick)
+        self.connect("button-release-event", self.on_mouseUp)
+        #self.connect('event-after',self.on_mouseUp)
+        self.connect("motion-notify-event", self.on_mouseMove)
+        self.connect('scroll-event', self.on_scrollWheel)
 
     def OnResize(self, d, w):
         global W
@@ -802,20 +841,99 @@ class Window(gtk.Window):
 
         # see if we recognise a keypress
         #if ctrl and event.keyval == Gdk.KEY_h:
-        crntScale = animator.scaleFactor
+        crntScale = animator.scaleFactor()
         steps = animator.maxStepsToDraw
-        if keyName=='Down': animator.scaleFactor = max(crntScale-0.05, 0.05); animator.queue_draw()
-        elif keyName=='Up': animator.scaleFactor = min(crntScale+0.05, 5.0); animator.queue_draw()
+        if keyName=='Down': animator.rescale(max(crntScale-0.05, 0.05)); animator.queue_draw()
+        elif keyName=='Up': animator.rescale(min(crntScale+0.05, 5.00)); animator.queue_draw()
         elif keyName=='Left':  animator.maxStepsToDraw = max(steps-1, 1); animator.queue_draw()
         elif keyName=='Right': animator.maxStepsToDraw = min(steps+1, animator.actionSorter.numSteps); animator.queue_draw()
-        elif keyName=='End':  animator.maxStepsToDraw = animator.actionSorter.numSteps; animator.queue_draw(); return True
-        elif keyName=='Home': animator.maxStepsToDraw = 2; animator.queue_draw()
+        elif keyName=='End':  animator.maxStepsToDraw = animator.actionSorter.numSteps; animator.queue_draw();
+        elif keyName=='Home': animator.matrix=cairo.Matrix(); animator.maxStepsToDraw = 2; animator.queue_draw()
         #print("STEP:", animator.maxStepsToDraw,'/', animator.actionSorter.numSteps)
+        return True
+
+
+    dragging=False
+    XCoordOrig = 0
+    YCoordOrig = 0
+
+    def on_mouseClick(self, widget, event):
+        global animator
+        button = event.button
+        xLoc = event.x
+        yLoc = event.y
+        if button==1: #Left mouse button
+            #print('BOTTON PRESSED:', xLoc, yLoc)
+            self.xDragStart = xLoc
+            self.yDragStart = yLoc
+            self.XCoordOrig = animator.crntXOffset()
+            self.YCoordOrig = animator.crntYOffset()
+            self.dragging=True
+        else: print("BUTTON#",button)
+        return True
+
+    def on_mouseUp(self, widget, event):
+        global animator
+        button = event.button
+        xLoc = event.x
+        yLoc = event.y
+        if button==1: #Left mouse button
+            if self.dragging:
+                #print('BOTTON Released:', xLoc-self.xDragStart, yLoc-self.yDragStart)
+                animator.matrix.x0 = self.XCoordOrig + (xLoc-self.xDragStart)
+                animator.matrix.y0 = self.YCoordOrig + (yLoc-self.yDragStart)
+                self.dragging=False
+                animator.queue_draw()
+        return True
+
+    def on_mouseMove(self, widget, event):
+        global animator
+        print("Current MOVE:")
+        xLoc = event.x
+        yLoc = event.y
+        if self.dragging:
+            animator.matrix.x0 = self.XCoordOrig + (xLoc-self.xDragStart)
+            animator.matrix.y0 = self.YCoordOrig + (yLoc-self.yDragStart)
+            animator.queue_draw()
+        return True
+
+    def on_scrollWheel(self, widget, event):
+        global animator
+        crntScale = animator.scaleFactor()
+        #print("Current scale:",crntScale)
+        """ handles on scroll wheel event"""
+        # Handles zoom in / zoom out on mouse wheel
+        direction = event.direction
+        #event.get_scroll_deltas()
+        #direction=event.delta_X
+        xLoc = event.x
+        yLoc = event.y
+        if direction == 4:
+            #print("SMOOTH SCROLL  delta_x:",event.delta_x,"  delta_y:",event.delta_y )
+            if event.delta_y<0: direction=0
+            else: direction = 1
+            return False
+
+        if direction == 1:  # scrolling down -> zoom out
+            #print("SCROLL_DOWN")
+            newFactor = max(crntScale*0.95, 0.05)
+            #animator.rescale(newFactor)
+            animator.scaleAboutPoint(newFactor, xLoc, yLoc)
+            animator.queue_draw()
+
+        elif direction == 0:
+            #print("SCROLL_UP")
+            newFactor = min(crntScale*1.05, 5.0)
+            #animator.rescale(newFactor)
+            animator.scaleAboutPoint(newFactor, xLoc, yLoc)
+            animator.queue_draw()
+
+        return True
 
 
 win = Window(title="Earley Parse Animation")
 animator = DrawingAreaFrame()
-win.viewPort.add(animator)
+win.add(animator)
 win.show_all()
 
 animator.loadParseLog(filename)
