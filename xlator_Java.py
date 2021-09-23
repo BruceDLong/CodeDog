@@ -8,23 +8,22 @@ from codeGenerator import codeItemRef, codeUserMesg, codeAllocater, codeParamete
 def getContainerType(typeSpec, actionOrField):
     idxType=''
     if progSpec.isNewContainerTempFunc(typeSpec):
-        containerTypeSpec = progSpec.getContainerSpec(typeSpec)
-        if 'owner' in containerTypeSpec: owner=progSpec.getOwnerFromTypeSpec(containerTypeSpec)
-        else: owner='me'
-        if 'indexType' in containerTypeSpec:
-            if 'IDXowner' in containerTypeSpec['indexType']:
-                idxOwner=containerTypeSpec['indexType']['IDXowner'][0]
-                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
-                idxType=applyOwner(typeSpec, idxOwner, idxType, '')
+        ctnrTSpec = progSpec.getContainerSpec(typeSpec)
+        if 'owner' in ctnrTSpec: owner=progSpec.getOwnerFromTypeSpec(ctnrTSpec)
+        else: owner = 'me'
+        if 'indexType' in ctnrTSpec:
+            if 'IDXowner' in ctnrTSpec['indexType']:
+                idxOwner = ctnrTSpec['indexType']['IDXowner'][0]
+                idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
+                idxType  = applyOwner(typeSpec, idxOwner, idxType, '')
             else:
-                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
+                idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
         else:
             idxType = progSpec.getFieldType(typeSpec)
-        adjustBaseTypes(idxType, True)
-        if(isinstance(containerTypeSpec['datastructID'], str)):
-            datastructID = containerTypeSpec['datastructID']
+        if(isinstance(ctnrTSpec['datastructID'], str)):
+            datastructID = ctnrTSpec['datastructID']
         else:   # it's a parseResult
-            datastructID = containerTypeSpec['datastructID'][0]
+            datastructID = ctnrTSpec['datastructID'][0]
     else:
         owner = progSpec.getOwnerFromTypeSpec(typeSpec)
         datastructID = 'None'
@@ -91,11 +90,11 @@ def getReqTagString(classes, typeSpec):
         reqTagString = "<"
         count = 0
         for reqTag in reqTagList:
-            reqOwner = progSpec.getOwnerFromTemplateArg(reqTag)
-            varTypeKeyword = progSpec.getTypeFromTemplateArg(reqTag)
-            unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc', reqOwner)
-            unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
-            reqType = adjustBaseTypes(unwrappedTypeKeyword, True)
+            reqOwnr     = progSpec.getOwnerFromTemplateArg(reqTag)
+            varTypeKW   = progSpec.getTypeFromTemplateArg(reqTag)
+            unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKW, 'alloc', reqOwnr)
+            unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
+            reqType     = adjustBaseTypes(unwrappedKW, True)
             if(count>0):reqTagString += ", "
             reqTagString += reqType
             count += 1
@@ -133,7 +132,8 @@ def codeIteratorOperation(itrCommand, fieldType):
     return result
 
 def recodeStringFunctions(name, typeSpec):
-    if name == "size": name = "length"
+    if name == "size":
+        name = "length"
     elif name == "subStr":
         typeSpec['codeConverter']='%0.substring(%1, %1+%2)'
         typeSpec['fieldType']='String'
@@ -149,7 +149,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     return S
 
 def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
-        return S
+    return S
 
 def convertToInt(S, typeSpec):
     fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
@@ -320,9 +320,9 @@ def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,
     [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
     actionText       = ""
     loopCounterName  = ""
-    ctnrOwner        = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
-    containedType    = progSpec.getFieldTypeNew(ctnrTSpec)
-    ctrlVarsTypeSpec = {'owner':ctnrOwner, 'fieldType':containedType}
+    firstOwner       = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
+    firstType        = progSpec.getNewContainerFirstElementTypeTempFunc(ctnrTSpec)
+    ctrlVarsTypeSpec = {'owner':firstOwner, 'fieldType':firstType}
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
     containerCat     = getContaineCategory(ctnrTSpec)
     if containerCat=="MAP" or containerCat=="MULTIMAP":
@@ -332,7 +332,7 @@ def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
             idxTypeKW      = progSpec.getTypeFromTemplateArg(reqTagList[0])
             valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
-        keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
+        keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':firstType}
         loopCounterName = repName+'_key'
         itrTypeKW = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec))
         idxTypeKW = adjustBaseTypes(idxTypeKW, True)
@@ -358,11 +358,11 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
     actionText       = ""
     loopCounterName  = repName+'_key'
-    owner            = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-    containedType    = progSpec.getContainerFirstElementType(ctnrTSpec)
-    ctrlVarsTypeSpec = {'owner':ctnrTSpec['owner'], 'fieldType':containedType}
+    firstOwner       = progSpec.getContainerFirstElementOwner(ctnrTSpec)
+    firstType        = progSpec.getContainerFirstElementType(ctnrTSpec)
+    ctrlVarsTypeSpec = {'owner':firstOwner, 'fieldType':firstType}
     reqTagList       = progSpec.getReqTagList(ctnrTSpec)
-    [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(ctnrOwner)
+    [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(firstOwner)
     itrTypeSpec      = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
     itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
@@ -376,12 +376,12 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         if datastructID=='TreeMap' or datastructID=='Java_Map':
-            keyVarSpec  = {'owner':ctnrTSpec['owner'], 'fieldType':idxTypeKW, 'codeConverter':(repName+'.getKey()')}
+            keyVarSpec  = {'owner':firstOwner, 'fieldType':idxTypeKW, 'codeConverter':(repName+'.getKey()')}
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
             iteratorTypeStr="Map.Entry"+reqTagString
             actionText += indent + "for("+iteratorTypeStr+" " + repName+' :'+ ctnrName+".entrySet()){\n"
         else:
-            keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':idxTypeKW, 'codeConverter':(repName+'.node.key')}
+            keyVarSpec = {'owner':firstOwner, 'fieldType':idxTypeKW, 'codeConverter':(repName+'.node.key')}
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.node.value')
             itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec)) + ' '
             frontItr   = ctnrName+'.front()'
@@ -391,7 +391,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
                 # + indent+"    "+itrType+repName+" = *"+itrName+";\n")
     elif containerCat=="LIST":
         containedOwner = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
-        keyVarSpec     = {'owner':containedOwner, 'fieldType':containedType}
+        keyVarSpec     = {'owner':containedOwner, 'fieldType':firstType}
         [iteratorTypeStr, innerType] = convertType(ctrlVarsTypeSpec, 'var', 'action', genericArgs, xlator)
         loopVarName=repName+"Idx";
         if(isBackward):
@@ -672,10 +672,10 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
         itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(lhsTypeSpec))
         convertedType = generateGenericStructName(itrType, reqTagList, genericArgs, xlator)
     localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
-    containerTypeSpec = progSpec.getContainerSpec(lhsTypeSpec)
+    ctnrTSpec = progSpec.getContainerSpec(lhsTypeSpec)
     isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)
     fTypeKW = adjustBaseTypes(convertedType, isAContainer)
-    if isinstance(containerTypeSpec, str) and containerTypeSpec == None:
+    if isinstance(ctnrTSpec, str) and ctnrTSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
             RHS = S2

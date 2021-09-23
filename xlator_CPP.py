@@ -8,20 +8,20 @@ from codeGenerator import codeItemRef, codeUserMesg, codeStructFields, codeAlloc
 def getContainerType(typeSpec, actionOrField):
     idxType=''
     if progSpec.isAContainer(typeSpec):
-        containerTypeSpec = progSpec.getContainerSpec(typeSpec)
-        if 'owner' in containerTypeSpec: owner=progSpec.getOwnerFromTypeSpec(containerTypeSpec)
-        else: owner='me'
-        if 'indexType' in containerTypeSpec:
-            if 'IDXowner' in containerTypeSpec['indexType']:
-                idxOwner=containerTypeSpec['indexType']['IDXowner'][0]
-                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
-                idxType=applyOwner(idxOwner, idxType, '')
+        ctnrTSpec = progSpec.getContainerSpec(typeSpec)
+        if 'owner' in ctnrTSpec: owner=progSpec.getOwnerFromTypeSpec(ctnrTSpec)
+        else: owner = 'me'
+        if 'indexType' in ctnrTSpec:
+            if 'IDXowner' in ctnrTSpec['indexType']:
+                idxOwner = ctnrTSpec['indexType']['IDXowner'][0]
+                idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
+                idxType  = applyOwner(idxOwner, idxType, '')
             else:
-                idxType=containerTypeSpec['indexType']['idxBaseType'][0][0]
-        if(isinstance(containerTypeSpec['datastructID'], str)):
-            datastructID = containerTypeSpec['datastructID']
+                idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
+        if(isinstance(ctnrTSpec['datastructID'], str)):
+            datastructID = ctnrTSpec['datastructID']
         else:   # it's a parseResult
-            datastructID = containerTypeSpec['datastructID'][0]
+            datastructID = ctnrTSpec['datastructID'][0]
         if idxType[0:4]=='uint': idxType+='_t'
         if(datastructID=='list'): datastructID = "deque"
         if(datastructID=='iterableList'): datastructID = "list"
@@ -86,12 +86,12 @@ def getReqTagString(classes, typeSpec):
         reqTagString = "<"
         count = 0
         for reqTag in reqTagList:
-            reqOwner = progSpec.getOwnerFromTemplateArg(reqTag)
-            varTypeKeyword = progSpec.getTypeFromTemplateArg(reqTag)
-            unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKeyword, 'alloc', reqOwner)
-            unwrappedTypeKeyword = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKeyword)
-            unwrappedTypeKeyword = adjustBaseTypes(unwrappedTypeKeyword)
-            reqType = applyOwner(unwrappedOwner, unwrappedTypeKeyword, '')
+            reqOwnr     = progSpec.getOwnerFromTemplateArg(reqTag)
+            varTypeKW   = progSpec.getTypeFromTemplateArg(reqTag)
+            unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKW, 'alloc', reqOwnr)
+            unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
+            unwrappedKW = adjustBaseTypes(unwrappedKW)
+            reqType     = applyOwner(unwrappedOwner, unwrappedKW, '')
             if(count>0):reqTagString += ", "
             reqTagString += reqType
             count += 1
@@ -110,11 +110,11 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
     if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
 
     if progSpec.isAContainer(typeSpec):
-        containerTypeSpec = progSpec.getContainerSpec(typeSpec)
-        if(containerTypeSpec): # Make list, map, etc
+        ctnrTSpec = progSpec.getContainerSpec(typeSpec)
+        if(ctnrTSpec): # Make list, map, etc
             [containerType, idxType, idxOwner]=getContainerType(typeSpec, '')
-            if 'owner' in containerTypeSpec:
-                ctnrOwner = progSpec.getOwnerFromTypeSpec(containerTypeSpec)
+            if 'owner' in ctnrTSpec:
+                ctnrOwner = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
             else: ctnrOwner='me'
             idxType  = adjustBaseTypes(idxType)
             if idxType=='timeValue': idxType = 'int64_t'

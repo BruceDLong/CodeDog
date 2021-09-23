@@ -581,15 +581,15 @@ def generateGenericStructName(className, reqTagList, genericArgs, xlator):
         count = 0
         for reqTag in reqTagList:
             genericType        = progSpec.getTypeFromTemplateArg(reqTag)
-            unwrappedFTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
-            genericStructName+="_"+unwrappedFTypeKW
+            unwrappedKW        = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
+            genericStructName += "_"+unwrappedKW
             genericArgs[typeArgList[count]]=reqTag
             count += 1
     else:
         for gArg in genericArgs:
             genericType        = progSpec.getTypeFromTemplateArg(genericArgs[gArg])
-            unwrappedFTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
-            genericStructName += "_"+unwrappedFTypeKW
+            unwrappedKW        = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
+            genericStructName += "_"+unwrappedKW
     if not genericStructName in genericStructsGenerated[1]:
         print("ADD:",genericStructName)
         genericStructsGenerated[1].append(genericStructName)
@@ -681,22 +681,17 @@ def convertType(typeSpec, varMode, actionOrField, genericArgs, xlator):
     isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, "convertType", xlator['renderGenerics'])
     typeSpec  = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
     ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
-    fieldType = progSpec.getFieldTypeNew(typeSpec)
-    if not isinstance(fieldType, str):
-        if len(fieldType) > 1 and fieldType[1] == "..":
-            fieldType = "int"
-        else:
-            fieldType=fieldType[0]
-    unwrappedFTypeKW = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, fieldType)
-    ownerOut = xlator['getUnwrappedClassOwner'](globalClassStore, typeSpec, fieldType, varMode, ownerIn)
+    fTypeKW   = progSpec.fieldTypeKeyword(typeSpec)
+    unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, fTypeKW)
+    ownerOut  = xlator['getUnwrappedClassOwner'](globalClassStore, typeSpec, fTypeKW, varMode, ownerIn)
     reqTagList = progSpec.getReqTagList(typeSpec)
     if reqTagList and xlator['renderGenerics']=='True':
-        if not progSpec.isWrappedType(globalClassStore, fieldType) and not progSpec.isAbstractStruct(globalClassStore[0], fieldType):
-            unwrappedFTypeKW = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
+        if not progSpec.isWrappedType(globalClassStore, fTypeKW) and not progSpec.isAbstractStruct(globalClassStore[0], fTypeKW):
+            unwrappedKW = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
         else:
             reqTagString = xlator['getReqTagString'](globalClassStore, typeSpec)
-            unwrappedFTypeKW = unwrappedFTypeKW + reqTagString
-    retVal   = xlator['xlateLangType'](globalClassStore, typeSpec, ownerOut, unwrappedFTypeKW, varMode, actionOrField, xlator)
+            unwrappedKW = unwrappedKW + reqTagString
+    retVal   = xlator['xlateLangType'](globalClassStore, typeSpec, ownerOut, unwrappedKW, varMode, actionOrField, xlator)
     return retVal
 
 def codeAllocater(typeSpec, genericArgs, xlator):
@@ -816,8 +811,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         else:
             if fType!='string':
                 [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, genericArgs, xlator)
-                tmpTypeSpec = CheckObjectVars(fType, name, fieldIDArgList)
-                typeSpecOut = tmpTypeSpec
+                typeSpecOut = CheckObjectVars(fType, name, fieldIDArgList)
                 if typeSpecOut!=0:
                     typeSpecOut = copyTypeSpec(getGenericTypeSpec(genericArgs, typeSpecOut['typeSpec'], xlator))
                     if isNewCtnr == True:
@@ -1239,7 +1233,7 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
         isOldCtnr = progSpec.isOldContainerTempFuncErr(containerTSpec, 'codeRepetition1 '+currentObjName+' '+ctnrName, xlator['renderGenerics'])
         [StartKey, StartTypeSpec] = codeExpr(keyRange[2][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [EndKey,   EndTypeSpec] = codeExpr(keyRange[4][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-        [datastructID, indexTypeKeyWord, ctnrOwner]=xlator['getContainerType'](containerTSpec, '')
+        [datastructID, idxTypeKW, ctnrOwner]=xlator['getContainerType'](containerTSpec, '')
         wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.fieldTypeKeyword(containerTSpec)[0])
         if(wrappedTypeSpec != None):containerTSpec=wrappedTypeSpec
         [actionTextOut, loopCounterName] = xlator['iterateRangeFromTo'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTSpec,repName,ctnrName,indent,xlator)
