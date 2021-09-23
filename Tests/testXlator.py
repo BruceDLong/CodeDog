@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # CodeDog Xlator tester
 import os
-from progSpec import cdlog
 import errno
 import subprocess
 import sys;  sys.dont_write_bytecode = True

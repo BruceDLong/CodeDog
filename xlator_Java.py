@@ -317,27 +317,27 @@ def codeRangeSpec(traversalMode, ctrType, repName, S_low, S_hi, indent, xlator):
 def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent,xlator):
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
-    actionText       = ""
-    loopCounterName  = ""
-    firstOwner       = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
-    firstType        = progSpec.getNewContainerFirstElementTypeTempFunc(ctnrTSpec)
-    ctrlVarsTypeSpec = {'owner':firstOwner, 'fieldType':firstType}
-    reqTagList       = progSpec.getReqTagList(ctnrTSpec)
-    containerCat     = getContaineCategory(ctnrTSpec)
+    actionText   = ""
+    loopCntrName = ""
+    firstOwner   = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
+    firstType    = progSpec.getNewContainerFirstElementTypeTempFunc(ctnrTSpec)
+    firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
+    reqTagList   = progSpec.getReqTagList(ctnrTSpec)
+    containerCat = getContaineCategory(ctnrTSpec)
     if containerCat=="MAP" or containerCat=="MULTIMAP":
         valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
         if(reqTagList != None):
-            ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
-            ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+            firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
             idxTypeKW      = progSpec.getTypeFromTemplateArg(reqTagList[0])
             valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
         keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':firstType}
-        loopCounterName = repName+'_key'
+        loopCntrName = repName+'_key'
         itrTypeKW = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec))
         idxTypeKW = adjustBaseTypes(idxTypeKW, True)
         valueFieldType = adjustBaseTypes(valueFieldType, True)
-        localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-        localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
+        localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
+        localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
         if '__RB' in datastructID:
             actionText += (indent + 'for('+itrTypeKW+' '+repName+'Entry = '+ctnrName+'.find('+StartKey+'); '+repName+'Entry !='+ctnrName+'.find('+EndKey+'); '+repName+'Entry.__inc()){\n' +
                        indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.node.value;\n' +
@@ -349,39 +349,39 @@ def iterateRangeFromTo(classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,
     elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
     elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
     else: cdErr("DSID iterateRangeFromTo:"+datastructID+" "+containerCat)
-    return [actionText, loopCounterName]
+    return [actionText, loopCntrName]
 
 def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBackward,indent,genericArgs,xlator):
     #TODO: handle isBackward
     willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
     [datastructID, idxTypeKW, ctnrOwner]=getContainerType(ctnrTSpec, 'action')
-    actionText       = ""
-    loopCounterName  = repName+'_key'
-    firstOwner       = progSpec.getContainerFirstElementOwner(ctnrTSpec)
-    firstType        = progSpec.getContainerFirstElementType(ctnrTSpec)
-    ctrlVarsTypeSpec = {'owner':firstOwner, 'fieldType':firstType}
-    reqTagList       = progSpec.getReqTagList(ctnrTSpec)
+    actionText   = ""
+    loopCntrName = repName+'_key'
+    itrIncStr    = ""
+    firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
+    firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
+    firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
+    reqTagList   = progSpec.getReqTagList(ctnrTSpec)
+    itrTSpec     = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
+    itrOwner     = progSpec.getOwnerFromTypeSpec(itrTSpec)
+    itrName      = repName
+    containerCat = getContaineCategory(ctnrTSpec)
     [LDeclP, RDeclP, LDeclA, RDeclA] = ChoosePtrDecorationForSimpleCase(firstOwner)
-    itrTypeSpec      = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
-    itrOwner         = progSpec.getOwnerFromTypeSpec(itrTypeSpec)
     [LNodeP, RNodeP, LNodeA, RNodeA] = ChoosePtrDecorationForSimpleCase(itrOwner)
-    itrName          = repName
-    containerCat     = getContaineCategory(ctnrTSpec)
-    itrIncStr        = ""
     if containerCat=='PovList': cdErr("PovList: "+repName+"   "+ctnrName) # this should be called PovList
     if containerCat=='MAP' or containerCat=="MULTIMAP":
         reqTagStr    = getReqTagString(classes, ctnrTSpec)
         if(reqTagList != None):
-            ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
-            ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+            firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+            firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         if datastructID=='TreeMap' or datastructID=='Java_Map':
             keyVarSpec  = {'owner':firstOwner, 'fieldType':idxTypeKW, 'codeConverter':(repName+'.getKey()')}
-            ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
+            firstTSpec['codeConverter'] = (repName+'.getValue()')
             iteratorTypeStr="Map.Entry"+reqTagStr
             actionText += indent + "for("+iteratorTypeStr+" " + repName+' :'+ ctnrName+".entrySet()){\n"
         else:
             keyVarSpec = {'owner':firstOwner, 'fieldType':idxTypeKW, 'codeConverter':(repName+'.node.key')}
-            ctrlVarsTypeSpec['codeConverter'] = (repName+'.node.value')
+            firstTSpec['codeConverter'] = (repName+'.node.value')
             itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec)) + ' '
             frontItr   = ctnrName+'.front()'
             if not 'generic' in ctnrTSpec: itrType += reqTagStr
@@ -391,7 +391,7 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     elif containerCat=="LIST":
         containedOwner = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
         keyVarSpec     = {'owner':containedOwner, 'fieldType':firstType}
-        [iteratorTypeStr, innerType] = convertType(ctrlVarsTypeSpec, 'var', 'action', genericArgs, xlator)
+        [iteratorTypeStr, innerType] = convertType(firstTSpec, 'var', 'action', genericArgs, xlator)
         loopVarName=repName+"Idx";
         if(isBackward):
             actionText += (indent + "for(int "+loopVarName+'='+ctnrName+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+'){\n'
@@ -400,9 +400,9 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
             actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + ctnrName+'.size(); ' + loopVarName+' += 1){\n'
                         + indent + indent + iteratorTypeStr+' '+repName+" = "+ctnrName+".get("+loopVarName+");\n")
     else: cdErr("iterateContainerStr() datastructID = " + datastructID)
-    localVarsAlloc.append([loopCounterName, keyVarSpec])  # Tracking local vars for scope
-    localVarsAlloc.append([repName, ctrlVarsTypeSpec]) # Tracking local vars for scope
-    return [actionText, loopCounterName, itrIncStr]
+    localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
+    localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+    return [actionText, loopCntrName, itrIncStr]
 
 def codeSwitchExpr(switchKeyExpr, switchKeyTypeSpec):
     return switchKeyExpr
