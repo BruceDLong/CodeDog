@@ -82,10 +82,10 @@ def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
     return owner
 
 def getReqTagString(classes, typeSpec):
-    reqTagString = ""
+    reqTagStr  = ""
     reqTagList = progSpec.getReqTagList(typeSpec)
     if(reqTagList != None):
-        reqTagString = "<"
+        reqTagStr = "<"
         count = 0
         for reqTag in reqTagList:
             reqOwnr     = progSpec.getOwnerFromTemplateArg(reqTag)
@@ -93,24 +93,22 @@ def getReqTagString(classes, typeSpec):
             unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKW, 'alloc', reqOwnr)
             unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
             reqType     = adjustBaseTypes(unwrappedKW, True)
-            if(count>0):reqTagString += ", "
-            reqTagString += reqType
+            if(count>0): reqTagStr += ", "
+            reqTagStr += reqType
             count += 1
-        reqTagString += ">"
-    return reqTagString
+        reqTagStr += ">"
+    return reqTagStr
 
-def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, xlator):
+def xlateLangType(classes, typeSpec, owner, fTypeKW, varMode, actionOrField):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    fieldAttrs=''
-    if(isinstance(fieldType, str)):
-        langType = adjustBaseTypes(fieldType, progSpec.isNewContainerTempFunc(typeSpec))
-    else: langType = progSpec.flattenObjectName(fieldType[0])
+    innerType=''
+    langType = adjustBaseTypes(fTypeKW, progSpec.isNewContainerTempFunc(typeSpec))
     langType = applyOwner(owner, langType, varMode)
-    if langType=='TYPE ERROR': print(langType, owner, fieldType);
-    InnerLangType = langType
-    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
-    if varMode != 'alloc': fieldAttrs = applyOwner(owner, langType, varMode)
-    return [langType, fieldAttrs]   # E.g.: langType='uint', file
+    if langType=='TYPE ERROR': print(langType, owner, fTypeKW);
+    innerType = langType
+    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, innerType]
+    if varMode != 'alloc': innerType = applyOwner(owner, langType, varMode)
+    return [langType, innerType]
 
 def makePtrOpt(typeSpec):
     # Make pointer field variables optionals
@@ -143,8 +141,8 @@ def langStringFormatterCommand(fmtStr, argStr):
 def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
     if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
         if LorRorP_Val == "PARAM" and S=="nil":
-            [paramType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)
-            S = 'Optional<'+paramType+'>.none'
+            [cvrtType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)
+            S = 'Optional<'+cvrtType+'>.none'
     return S
 
 def convertToInt(S, typeSpec):
@@ -400,7 +398,6 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
             idxTypeKW        = adjustBaseTypes(idxTypeKW, False)
             containedOwner = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
             keyVarSpec     = {'owner':containedOwner, 'fieldType':firstType}
-            [iteratorTypeStr, innerType]=convertType(ctrlVarsTypeSpec, 'var', 'action', genericArgs, xlator)
             loopVarName=repName+"Idx";
             if(isBackward):
                 actionText += (indent + "for " + repName+' in '+ ctnrName +".reversed() {\n")
@@ -736,13 +733,13 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    [convertedType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    [cvrtType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     reqTagList = progSpec.getReqTagList(lhsTypeSpec)
     fieldType = progSpec.fieldTypeKeyword(lhsTypeSpec)
-    [allocFieldType, allocFieldAttrs] = convertType(lhsTypeSpec, 'alloc', '', genericArgs, xlator)
-    if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(classes, fieldType) and not progSpec.isAbstractStruct(classes[0], fieldType):
-        convertedType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
-        allocFieldType = convertedType
+    [allocFieldType, innerType] = convertType(lhsTypeSpec, 'alloc', '', genericArgs, xlator)
+    if reqTagList and not progSpec.isWrappedType(classes, fieldType) and not progSpec.isAbstractStruct(classes[0], fieldType):
+        cvrtType = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
+        allocFieldType = cvrtType
         lhsTypeSpec = getGenericTypeSpec(genericArgs, lhsTypeSpec, xlator)
         fromImpl = progSpec.getFromImpl(lhsTypeSpec)
         if fromImpl: lhsTypeSpec.pop('fromImplemented')
@@ -767,16 +764,16 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
                 rhsTypeSpec = paramTypeList[0]
                 rhsType     = progSpec.getFieldType(rhsTypeSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                if True or not isinstance(rhsType, str) and convertedType==rhsType[0]:
+                if True or not isinstance(rhsType, str) and cvrtType==rhsType[0]:
                     assignValue = " = " + CPL   # Act like a copy constructor
             if(assignValue==''): assignValue = ' = ' + allocFieldType + CPL
         else:
             assignValue = variableDefaultValueString(allocFieldType, False, owner)
     fieldTypeMod = makePtrOpt(lhsTypeSpec)
     if (assignValue == ""):
-        varDeclareStr= "var " + varName + ": "+ convertedType + fieldTypeMod + " = " + allocFieldType + '()'
+        varDeclareStr= "var " + varName + ": "+ cvrtType + fieldTypeMod + " = " + allocFieldType + '()'
     else:
-        varDeclareStr= "var " + varName + ": "+ convertedType + fieldTypeMod + assignValue
+        varDeclareStr= "var " + varName + ": "+ cvrtType + fieldTypeMod + assignValue
     return(varDeclareStr)
 
 def codeIncrement(varName):
@@ -790,21 +787,21 @@ def isNumericType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator):
+def codeVarFieldRHS_Str(fieldName, cvrtType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator):
     fieldValueText=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     isTypeArg = False
     if typeArgList:
         for typeArg in typeArgList:
-            if convertedType == typeArg: isTypeArg = True
+            if cvrtType == typeArg: isTypeArg = True
     if paramList!=None:
         if paramList[-1] == "^&useCtor//8":
             del paramList[-1]
         [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, genericArgs, xlator)
-        fieldValueText=" = " + convertedType + CPL
+        fieldValueText=" = " + cvrtType + CPL
     else:
-        fieldValueText = variableDefaultValueString(convertedType, isTypeArg, fieldOwner)
-        if fieldValueText and convertedType != 'String':
+        fieldValueText = variableDefaultValueString(cvrtType, isTypeArg, fieldOwner)
+        if fieldValueText and cvrtType != 'String':
             fieldValueText += makePtrOpt(typeSpec) # Default String value can't be optional
     return fieldValueText
 
@@ -1044,7 +1041,6 @@ def fetchXlators():
     xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
     xlators['getVirtualFuncText']           = getVirtualFuncText
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
-    xlators['xlateLangType']                = xlateLangType
     xlators['makePtrOpt']                   = makePtrOpt
     xlators['convertToInt']                 = convertToInt
     xlators['getReqTagString']              = getReqTagString

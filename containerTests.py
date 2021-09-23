@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# CodeDog tests for COntainers
+# CodeDog tests for Containers
 import os
 from progSpec import cdlog
 import errno
@@ -13,8 +13,7 @@ runDirectory = ""
 
 testDefinitions = {
 #####################################################################################################
-     'lists/lists':   ['', 'PGB:'],
-     'lists/lists':   ['''
+'list     ': ['''
 struct testClass{
     me List<me int>: classList
     we List<me string>: weList
@@ -52,11 +51,9 @@ struct testClass{
         me List<me string>: meStringList
         me List<me timeValue>: meTimeValList
     }
-}''', 'PGBR: isEmpty:true7486513valAt:8firstItm:7lastItm:3firstPop:7lastPop:3Size:5   item:4   item:8   item:6   item:5   item:1Size after clear:0',
-        ['','']],
+}''', 'PGBR: isEmpty:true7486513valAt:8firstItm:7lastItm:3firstPop:7lastPop:3Size:5   item:4   item:8   item:6   item:5   item:1Size after clear:0'],
 ###################################################################################################
-     'maps/maps':     ['', 'PGB:'],
-     'maps/maps':     ['''
+'map1     ': ['''
 struct gloop<key, value>{
     me int: i
     me key: k
@@ -78,11 +75,9 @@ struct testClass{
         mapIntString.clear()
         print(" ",mapIntString.size())
     }
-}''', 'PGBR: isEmpty:true bb aa 3 ccaabbcc 0',
-        ['', '']],
+}''', 'PGBR: isEmpty:true bb aa 3 ccaabbcc 0'],
 ###################################################################################################
-     'maps/maps2':     ['', 'PGB:'],
-     'maps/maps2':     ['''
+'map2     ': ['''
 struct testClass{
     me int: runTest()<-{
         me Map<me string, me int>: mapStringInt
@@ -94,11 +89,9 @@ struct testClass{
         print(" at(cc)=",mapStringInt.at("cc"))
         return(mapStringInt.at("cc"))
     }
-}''', 'PGBR: isEmpty:true012 at(cc)=2',
-        ['', '']],
+}''', 'PGBR: isEmpty:true012 at(cc)=2'],
 ###################################################################################################
-     'reps/Lists':  ['', 'PGB:'],
-     'reps/Lists':  ['''
+'listReps ': ['''
 struct testClass{
     me void: runTest()<-{
         print("RANGE:")
@@ -115,11 +108,9 @@ struct testClass{
         print(" LISTKEY:")
         withEach TK in testKeyList {print(TK_key,"-", TK, " ")}
      }
-}''', 'PGBR:RANGE:2 3 4 5  RANGEBKWD:5 4 3 2  LIST:2 13 -22 188  LISTBKWD:188 -22 13 2  LISTKEY:0-2 1-3 2-5 3-8 4-13 5-21 ',
-    ['','']],
+}''', 'PGBR:RANGE:2 3 4 5  RANGEBKWD:5 4 3 2  LIST:2 13 -22 188  LISTBKWD:188 -22 13 2  LISTKEY:0-2 1-3 2-5 3-8 4-13 5-21 '],
 ###################################################################################################
-     'reps/Maps':  ['', 'PGB:'],
-     'reps/Maps':  ['''
+'mapReps  ': ['''
 struct testClass{
     me void: runTest()<-{
         me Map<me string, me string>:testMap
@@ -129,11 +120,9 @@ struct testClass{
         testMapKey["E"]<-"every"\ntestMapKey["G"]<-"good"\ntestMapKey["B"]<-"boy"\ntestMapKey["D"]<-"does"\ntestMapKey["F"]<-"fine"
         withEach MK in testMapKey {print(MK_key,"-",MK," ")}
     }
-}''', 'PGBR:boy does every fine good B-boy D-does E-every F-fine G-good ',
-    ['','']],
+}''', 'PGBR:boy does every fine good B-boy D-does E-every F-fine G-good '],
 ###################################################################################################
-     'maps/twoMaps':  ['', 'PGB:'],
-     'maps/twoMaps':  ['''
+'twoMaps  ': ['''
 struct testClass{
     me void: runTest()<-{
         me Map<me string, me string>:testMapStrStr
@@ -147,11 +136,9 @@ struct testClass{
         withEach strItm in testMapStrStr{print(strItm)}
         withEach intItm in testMapStrInt{print(intItm)}
     }
-}''', 'PGBR:zeroonetwo012',
-    ['','']],
+}''', 'PGBR:zeroonetwo012'],
 ###################################################################################################
-     'maps/wraps':  ['', 'PGB:'],
-     'maps/wraps':  ['''
+'mapWraps ': ['''
 struct wrappedStr: wraps = string{}
 struct testClass{
     me void: runTest()<-{
@@ -161,11 +148,9 @@ struct testClass{
         testMapStringMyString.insert("cc","two")
         withEach strItm in testMapStringMyString{print(strItm)}
     }
-}''', 'PGBR:zeroonetwo',
-    ['','']],
+}''', 'PGBR:zeroonetwo'],
 ###################################################################################################
-     'maps/reps':  ['', 'PGB:'],
-     'maps/reps':  ['''
+'mapReps2 ': ['''
 struct txtOut{
     me bool: isHidden
     me int: val
@@ -193,11 +178,9 @@ struct testClass{
             }
         }
     }
-}''', 'PGBR: at:0 at:1 at:2',
-    ['','']],
+}''', 'PGBR: at:0 at:1 at:2'],
 ###################################################################################################
-     'multimaps/multimaps':  ['', 'PGB:'],
-     'multimaps/multimaps':  ['''
+'multimap ': ['''
 struct testClass{
     me void: runTest()<-{
         me Multimap<me int, me string>: mapIntString
@@ -214,11 +197,9 @@ struct testClass{
         mapIntString.clear()
         print(" ",mapIntString.size())
     }
-}''', 'PGBR: isEmpty:true aa 4 cc [1..1]bb [1..1]qq 0',
-    ['','']],
+}''', 'PGBR: isEmpty:true aa 4 cc [1..1]bb [1..1]qq 0'],
 ###################################################################################################
-     'itrs/iterators':    ['', 'PGB:'],
-     'itrs/iterators':    ['''
+'iterator ': ['''
 struct testClass{
     me void: runTest()<-{
         me Map<me int, me string>: testMap
@@ -227,11 +208,9 @@ struct testClass{
         if(testItr == testMap.end()){print("End")}
         else{print("Found")}
     }
-}''', 'PGBR:Found',
-    ['','']],
+}''', 'PGBR:Found'],
 ###################################################################################################
-     'maps/insert':     ['', 'PGB:'],
-     'maps/insert':     ['''
+'mapInsert': ['''
 struct testClass{
     me void: runTest()<-{
         me Map<me int, me string>: mapIntString
@@ -385,6 +364,7 @@ def runListedTests(testsToRun):
     global buildSpec
     global testDefinitions
     clearErrorFile()
+    print('\n________________________________\n'+xlatorLabel+'\n')
     reportText = ""
     for testKey in testsToRun:
         #print(("Running test: ", testKey))
@@ -403,9 +383,50 @@ def gatherListOfTestsToRun(keywordList):
         testList = keywordList
     else:
         for key in testDefinitions:
-            if (len(testDefinitions[key])>2 and  len(testDefinitions[key][2])>0):
-                testList.append(key)
+            testList.append(key)
     return testList
+
+def getCPPTest():
+    global xlatorLabel
+    global buildSpec
+    global runSpec
+    global runDirectory
+    global workingDirectory
+    xlatorLabel = 'TESTING: CPP'
+    buildSpec = "LinuxBuild: Platform='Linux' Lang='CPP';\n"
+    buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
+    runSpec = "./containerTests"
+    runDirectory = workingDirectory + "/LinuxBuild"
+    runListedTests(testsToRun)
+
+def getJavaTest():
+    global xlatorLabel
+    global buildSpec
+    global runSpec
+    global runDirectory
+    global workingDirectory
+    xlatorLabel = 'TESTING: JAVA'
+    buildSpec = "SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP';\n"
+    buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
+    runSpec = "java GLOBAL"
+    runDirectory = workingDirectory + "/SwingBuild"
+    runListedTests(testsToRun)
+
+def getSwiftTest():
+    global xlatorLabel
+    global buildSpec
+    global runSpec
+    global runDirectory
+    global workingDirectory
+    xlatorLabel = 'TESTING: SWIFT'
+    buildSpec = "SwiftBuild: Platform='Swift' Lang='Swift';\n"
+    buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP';"
+    runSpec = "./containerTests"
+    runDirectory = workingDirectory + "/SwiftBuild"
+    runListedTests(testsToRun)
 
 ###################################
 # Get command line: tests and xlator name
@@ -413,34 +434,22 @@ if len(sys.argv)==1:
     print(("\nUsage:", sys.argv[0], "<xlatorName> [test-names...]\n"))
     exit(0)
 
-xlatorName = sys.argv[1]
+xlatorName   = sys.argv[1]
 testListSpec = sys.argv[2:]
-
+xlatorLabel  = ''
+testsToRun = gatherListOfTestsToRun(testListSpec)
 workingDirectory = os.getcwd() + "/xlatorTests"
+
 if (xlatorName == "cpp"):
-    buildSpec = "LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';\n"
-    buildSpec += "//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
-    buildSpec += "//SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';"
-    runSpec = "./containerTests"
-    runDirectory = workingDirectory + "/LinuxBuild"
+    getCPPTest()
 elif(xlatorName == "swing" or xlatorName == "java" or xlatorName == "Java"):
-    buildSpec = "SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
-    buildSpec += "//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';\n"
-    buildSpec += "//SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';"
-    runSpec = "java GLOBAL"
-    runDirectory = workingDirectory + "/SwingBuild"
-elif(xlatorName == "swift" or xlatorName == "Swift" ):
-    buildSpec = "SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';\n"
-    buildSpec += "//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
-    buildSpec += "//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';"
-    runSpec = "./containerTests"
-    runDirectory = workingDirectory + "/SwiftBuild"
+    getJavaTest()
+elif(xlatorName == "swift" or xlatorName == "Swift"):
+    getSwiftTest()
 else:
     print(("UNKNOWN XLATOR: ", xlatorName))
     exit(0)
 
-testsToRun = gatherListOfTestsToRun(testListSpec)
-reportText = runListedTests(testsToRun)
 writePrepend("xlatorTests/failedTests.txt", "Failed tests: \n")
 writePrepend("xlatorTests/failedTests.txt","Run on: "+ str(date.today())+"\n\n")
 

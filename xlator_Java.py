@@ -84,10 +84,10 @@ def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
     return ownerOut
 
 def getReqTagString(classes, typeSpec):
-    reqTagString = ""
+    reqTagStr  = ""
     reqTagList = progSpec.getReqTagList(typeSpec)
     if(reqTagList != None):
-        reqTagString = "<"
+        reqTagStr = "<"
         count = 0
         for reqTag in reqTagList:
             reqOwnr     = progSpec.getOwnerFromTemplateArg(reqTag)
@@ -95,23 +95,22 @@ def getReqTagString(classes, typeSpec):
             unwrappedOwner=getUnwrappedClassOwner(classes, typeSpec, varTypeKW, 'alloc', reqOwnr)
             unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
             reqType     = adjustBaseTypes(unwrappedKW, True)
-            if(count>0):reqTagString += ", "
-            reqTagString += reqType
+            if(count>0): reqTagStr += ", "
+            reqTagStr += reqType
             count += 1
-        reqTagString += ">"
-    return reqTagString
+        reqTagStr += ">"
+    return reqTagStr
 
-def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, xlator):
+def xlateLangType(classes, typeSpec, owner, fTypeKW, varMode, actionOrField):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    if(isinstance(fieldType, str)):
-        langType = adjustBaseTypes(fieldType, progSpec.isNewContainerTempFunc(typeSpec))
-    else: langType = progSpec.flattenObjectName(fieldType[0])
+    innerType=''
+    langType = adjustBaseTypes(fTypeKW, progSpec.isNewContainerTempFunc(typeSpec))
     langType = applyOwner(typeSpec, owner, langType, actionOrField, varMode)
-    if langType=='TYPE ERROR': print(langType, owner, fieldType);
-    InnerLangType = langType
-    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
-    if owner =="const": InnerLangType = fieldType
-    return [langType, InnerLangType]
+    if langType=='TYPE ERROR': print(langType, owner, fTypeKW);
+    innerType = langType
+    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, innerType]
+    if owner =="const": innerType = fTypeKW
+    return [langType, innerType]
 
 def makePtrOpt(typeSpec):
     return('')
@@ -371,21 +370,21 @@ def iterateContainerStr(classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBack
     itrIncStr        = ""
     if containerCat=='PovList': cdErr("PovList: "+repName+"   "+ctnrName) # this should be called PovList
     if containerCat=='MAP' or containerCat=="MULTIMAP":
-        reqTagString    = getReqTagString(classes, ctnrTSpec)
+        reqTagStr    = getReqTagString(classes, ctnrTSpec)
         if(reqTagList != None):
             ctrlVarsTypeSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
             ctrlVarsTypeSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
         if datastructID=='TreeMap' or datastructID=='Java_Map':
             keyVarSpec  = {'owner':firstOwner, 'fieldType':idxTypeKW, 'codeConverter':(repName+'.getKey()')}
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.getValue()')
-            iteratorTypeStr="Map.Entry"+reqTagString
+            iteratorTypeStr="Map.Entry"+reqTagStr
             actionText += indent + "for("+iteratorTypeStr+" " + repName+' :'+ ctnrName+".entrySet()){\n"
         else:
             keyVarSpec = {'owner':firstOwner, 'fieldType':idxTypeKW, 'codeConverter':(repName+'.node.key')}
             ctrlVarsTypeSpec['codeConverter'] = (repName+'.node.value')
             itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec)) + ' '
             frontItr   = ctnrName+'.front()'
-            if not 'generic' in ctnrTSpec: itrType += reqTagString
+            if not 'generic' in ctnrTSpec: itrType += reqTagStr
             actionText += (indent + 'for('+itrType + itrName+' ='+frontItr + '; ' + itrName + '.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n')
            #actionText += (indent + "for("+itrType + itrName+' ='+frontItr + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
                 # + indent+"    "+itrType+repName+" = *"+itrName+";\n")
@@ -665,16 +664,16 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    [convertedType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    [cvrtType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     reqTagList = progSpec.getReqTagList(lhsTypeSpec)
     fTypeKW = progSpec.fieldTypeKeyword(lhsTypeSpec)
     if owner=='itr':
         itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(lhsTypeSpec))
-        convertedType = generateGenericStructName(itrType, reqTagList, genericArgs, xlator)
+        cvrtType = generateGenericStructName(itrType, reqTagList, genericArgs, xlator)
     localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     ctnrTSpec = progSpec.getContainerSpec(lhsTypeSpec)
     isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)
-    fTypeKW = adjustBaseTypes(convertedType, isAContainer)
+    fTypeKW = adjustBaseTypes(cvrtType, isAContainer)
     if isinstance(ctnrTSpec, str) and ctnrTSpec == None:
         if(fieldDef['value']):
             [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
@@ -684,7 +683,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
         else: assignValue=''
     elif(fieldDef['value']):
         [S2, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs, xlator)
-        S2=checkForTypeCastNeed(convertedType, rhsTypeSpec, S2)
+        S2=checkForTypeCastNeed(cvrtType, rhsTypeSpec, S2)
         RHS = S2
         if varTypeIsValueType(fTypeKW):
             assignValue=' = '+ RHS
@@ -736,21 +735,21 @@ def varTypeIsValueType(convertedType):
         return True
     return False
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator):
+def codeVarFieldRHS_Str(fieldName, cvrtType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator):
     fieldValueText=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     if fieldOwner=='we':
-        convertedType = convertedType.replace('static ', '', 1)
-    if (not varTypeIsValueType(convertedType) and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const')):
-        if fieldOwner =="const": convertedType = fieldType
+        cvrtType = cvrtType.replace('static ', '', 1)
+    if (not varTypeIsValueType(cvrtType) and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const')):
+        if fieldOwner =="const": cvrtType = innerType
         if paramList!=None:
             #TODO: make test case
             if paramList[-1] == "^&useCtor//8":
                 del paramList[-1]
             [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, genericArgs, xlator)
-            fieldValueText=" = new " + convertedType + CPL
+            fieldValueText=" = new " + cvrtType + CPL
         elif typeArgList == None:
-            fieldValueText=" = new " + convertedType + "()"
+            fieldValueText=" = new " + cvrtType + "()"
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):

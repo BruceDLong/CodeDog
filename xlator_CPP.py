@@ -80,10 +80,10 @@ def getUnwrappedClassOwner(classes, typeSpec, fieldType, varMode, ownerIn):
     return ownerOut
 
 def getReqTagString(classes, typeSpec):
-    reqTagString = ""
+    reqTagStr  = ""
     reqTagList = progSpec.getReqTagList(typeSpec)
     if(reqTagList != None):
-        reqTagString = "<"
+        reqTagStr = "<"
         count = 0
         for reqTag in reqTagList:
             reqOwnr     = progSpec.getOwnerFromTemplateArg(reqTag)
@@ -92,24 +92,25 @@ def getReqTagString(classes, typeSpec):
             unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
             unwrappedKW = adjustBaseTypes(unwrappedKW)
             reqType     = applyOwner(unwrappedOwner, unwrappedKW, '')
-            if(count>0):reqTagString += ", "
-            reqTagString += reqType
+            if(count>0):reqTagStr += ", "
+            reqTagStr += reqType
             count += 1
-        reqTagString += ">"
-    return reqTagString
+        reqTagStr += ">"
+    return reqTagStr
 
-def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, xlator):
+def xlateLangType(classes, typeSpec, owner, fTypeKW, varMode, actionOrField):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-    langType = adjustBaseTypes(fieldType)
-    InnerLangType = langType
-    reqTagString = getReqTagString(classes, typeSpec)
-    langType += reqTagString
-    if reqTagString != '':InnerLangType = langType
+    langType  = adjustBaseTypes(fTypeKW)
+    innerType = langType
+    reqTagStr = getReqTagString(classes, typeSpec)
+    langType += reqTagStr
+    if reqTagStr != '':innerType = langType
     if varMode != 'alloc': langType = applyOwner(owner, langType, varMode)
 
-    if progSpec.isNewContainerTempFunc(typeSpec): return [langType, InnerLangType]
+    if progSpec.isNewContainerTempFunc(typeSpec):
+        return [langType, innerType]
 
-    if progSpec.isAContainer(typeSpec):
+    if progSpec.isOldContainerTempFunc(typeSpec):
         ctnrTSpec = progSpec.getContainerSpec(typeSpec)
         if(ctnrTSpec): # Make list, map, etc
             [containerType, idxType, idxOwner]=getContainerType(typeSpec, '')
@@ -130,10 +131,10 @@ def xlateLangType(classes, typeSpec, owner, fieldType, varMode, actionOrField, x
             elif containerType=='multimap':
                 if varMode == 'alloc': langType = applyOwner(owner, langType, varMode)
                 langType="multimap< "+idxType+', '+langType+" >"
-            InnerLangType = langType
+            innerType = langType
             if varMode != 'alloc':
                 langType=applyOwner(ctnrOwner, langType, varMode)
-    return [langType, InnerLangType]
+    return [langType, innerType]
 
 def makePtrOpt(typeSpec):
     return('')
@@ -890,7 +891,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
     if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
         del fieldDef['paramList'][-1]
         useCtor = True
-    [convertedType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
+    [cvrtType, innerType] = convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, xlator)
     localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
     if(fieldDef['value']):
         [RHS, rhsTypeSpec]=codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs, xlator)
@@ -912,7 +913,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
                 rhsTypeSpec = paramTypeList[0]
                 rhsType     = progSpec.fieldTypeKeyword(rhsTypeSpec)
                 # TODO: Remove the 'True' and make this check object heirarchies or similar solution
-                if True or not isinstance(rhsType, str) and convertedType==rhsType[0]:
+                if True or not isinstance(rhsType, str) and cvrtType==rhsType[0]:
                     [leftMod, rightMod] = determinePtrConfigForNewVars(lhsTypeSpec, rhsTypeSpec, useCtor)
                     if(not useCtor): assignValue += " = "    # Use a copy constructor
                     if(isAllocated):
@@ -935,7 +936,7 @@ def codeNewVarStr(classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRef
             elif(fieldTypeCat=='bool'):
                 assignValue = '= false'
 
-    varDeclareStr= convertedType + " " + varName + assignValue
+    varDeclareStr= cvrtType + " " + varName + assignValue
     return(varDeclareStr)
 
 def codeIncrement(varName):
@@ -944,7 +945,7 @@ def codeIncrement(varName):
 def codeDecrement(varName):
     return "--" + varName
 
-def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator):
+def codeVarFieldRHS_Str(fieldName, cvrtType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator):
     fieldValueText=""
     fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
     #TODO: make test case
@@ -954,7 +955,7 @@ def codeVarFieldRHS_Str(fieldName, convertedType, fieldType, typeSpec, paramList
         [CPL, paramTypeList] = codeParameterList(fieldName, paramList, None, objsRefed, genericArgs, xlator)
         fieldValueText += CPL
     if isAllocated == True:
-        fieldValueText = " = " + getCodeAllocSetStr(fieldType, fieldOwner, "")
+        fieldValueText = " = " + getCodeAllocSetStr(innerType, fieldOwner, "")
     return fieldValueText
 
 def codeConstField_Str(convertedType, fieldName, fieldValueText, className, indent, xlator ):
@@ -1218,7 +1219,6 @@ def fetchXlators():
     xlators['getVirtualFuncText']           = getVirtualFuncText
     xlators['specialFunction']              = specialFunction
     xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
-    xlators['xlateLangType']                = xlateLangType
     xlators['makePtrOpt']                   = makePtrOpt
     xlators['adjustBaseTypes']              = adjustBaseTypes
     xlators['codeProtectBlock']             = codeProtectBlock

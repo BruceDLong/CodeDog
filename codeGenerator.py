@@ -127,7 +127,7 @@ def reassembleFieldID(classAndFuncName, argList):
     fullFieldID += ")"
     return(fullFieldID)
 
-def convertFieldIDType(fieldID, convertType):
+def convertFieldIDType(fieldID, cvrtType):
     [classAndFuncName, argList] = disassembleFieldID(fieldID)
     if(argList != None):
         newArgList= []
@@ -138,6 +138,7 @@ def convertFieldIDType(fieldID, convertType):
                 newArgList.append(arg)
         fieldID = reassembleFieldID(classAndFuncName, newArgList)
     return(fieldID)
+
 def isArgNumeric(arg):
     if arg=='numeric' or arg=='int' or arg=='int32' or arg=='int64'  or arg=='uint' or arg=='uint32' or arg=='uint64' or arg=='BigInt':
         return True
@@ -637,8 +638,8 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
     reqTagList = progSpec.getReqTagList(typeSpec)
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fTypeKW) and not progSpec.isAbstractStruct(globalClassStore[0], fTypeKW):
         typeSpecOut = copyTypeSpec(typeSpec)
-        convertedType = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
-        typeSpecOut['fieldType'] = [copy.copy(convertedType)]
+        cvrtType = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
+        typeSpecOut['fieldType'] = [copy.copy(cvrtType)]
         fromImpl = progSpec.getFromImpl(typeSpecOut)
         if fromImpl:
             tArgList = fromImpl['typeArgList']
@@ -678,7 +679,7 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
 def convertType(typeSpec, varMode, actionOrField, genericArgs, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     global globalClassStore
-    isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, "convertType", xlator['renderGenerics'])
+    isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, "convertType1", xlator['renderGenerics'])
     typeSpec  = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
     ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
     fTypeKW   = progSpec.fieldTypeKeyword(typeSpec)
@@ -689,17 +690,17 @@ def convertType(typeSpec, varMode, actionOrField, genericArgs, xlator):
         if not progSpec.isWrappedType(globalClassStore, fTypeKW) and not progSpec.isAbstractStruct(globalClassStore[0], fTypeKW):
             unwrappedKW = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
         else:
-            reqTagString = xlator['getReqTagString'](globalClassStore, typeSpec)
-            unwrappedKW = unwrappedKW + reqTagString
-    retVal   = xlator['xlateLangType'](globalClassStore, typeSpec, ownerOut, unwrappedKW, varMode, actionOrField, xlator)
+            reqTagStr   = xlator['getReqTagString'](globalClassStore, typeSpec)
+            unwrappedKW = unwrappedKW + reqTagStr
+    retVal   = xlator['xlateLangType'](globalClassStore, typeSpec, ownerOut, unwrappedKW, varMode, actionOrField)
     return retVal
 
 def codeAllocater(typeSpec, genericArgs, xlator):
     S     = ''
     owner = progSpec.getTypeSpecOwner(typeSpec)
     fieldType = progSpec.fieldTypeKeyword(typeSpec)
-    [convertedType, innerType]  = convertType(typeSpec, 'alloc', '', genericArgs, xlator)
-    S= xlator['getCodeAllocStr'](convertedType, owner);
+    [cvrtType, innerType]  = convertType(typeSpec, 'alloc', '', genericArgs, xlator)
+    S= xlator['getCodeAllocStr'](cvrtType, owner);
     return S
 
 def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator):
@@ -1411,12 +1412,11 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
         LHS = action['LHS']
         RHS =  action['RHS']
         typeSpec   = fetchItemsTypeSpec(LHS, objsRefed, genericArgs, xlator)
-        [typeLHS, innerTypeLHS] = convertType(typeSpec[0], 'var', 'action', genericArgs, xlator)
+        [LCvrtType, innerType] = convertType(typeSpec[0], 'var', 'action', genericArgs, xlator)
         typeSpec   = fetchItemsTypeSpec(RHS, objsRefed, genericArgs, xlator)
-        [typeRHS, innerTypeRHS] = convertType(typeSpec[0], 'var', 'action', genericArgs, xlator)
         LHS = LHS[0]
         RHS = RHS[0]
-        actionText = indent + typeLHS + " tmp = " + LHS + ";\n"
+        actionText = indent + LCvrtType + " tmp = " + LHS + ";\n"
         actionText += indent + LHS + " = " + RHS + ";\n"
         actionText += indent + RHS + " = " + "tmp;\n"
     elif (typeOfAction =='conditional'):
@@ -1519,8 +1519,8 @@ def getCtorArgTypes(className, genericArgs, xlator):
         if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner == 'we' or (tSpec['argList'] or tSpec['argList']!=None) or (isContainer and not progSpec.typeIsPointer(tSpec)):
             continue
         if(fOwner != 'me' and fOwner != 'my') or (isinstance(fType, str) and ((isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
-            [convertedType, innerType] = convertType(tSpec, 'var', 'constructor', genericArgs, xlator)
-            ctorArgTypes.append(convertedType)
+            [cvrtType, innerType] = convertType(tSpec, 'var', 'constructor', genericArgs, xlator)
+            ctorArgTypes.append(cvrtType)
     return ctorArgTypes
 
 def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArgs, xlator):
@@ -1546,12 +1546,12 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
         if isContainer and not progSpec.typeIsPointer(typeSpec): continue
         fieldOwner=progSpec.getOwnerFromTypeSpec(typeSpec)
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
-        [convertedType, innerType] = convertType(typeSpec, 'var', 'constructor', genericArgs, xlator)
+        [cvrtType, innerType] = convertType(typeSpec, 'var', 'constructor', genericArgs, xlator)
         fieldName=field['fieldName']
         if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
         else: isTemplateVar = False
 
-        cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, convertedType))
+        cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, cvrtType))
         defaultVal=''
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
@@ -1571,11 +1571,11 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
                         [defaultVal, defaultValueTypeSpec] = codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs, xlator)
         if defaultVal != '':
         #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
-            ctorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
+            ctorArgs += xlator['codeConstructorArgText'](fieldName, count, cvrtType, defaultVal, xlator)+ ","
             ctorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
 
             count += 1
-        copyCtorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, isTemplateVar, xlator)
+        copyCtorArgs += xlator['codeCopyConstructor'](fieldName, cvrtType, isTemplateVar, xlator)
 
     funcBody    = ''
     ctorCode    = ''
@@ -1648,10 +1648,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         fieldArglist = typeSpec['argList']
         paramList = field['paramList']
         [intermediateType, innerType] = convertType(typeSpec, 'var', 'field', genericArgs, xlator)
-        convertedType = progSpec.flattenObjectName(intermediateType)
+        cvrtType = progSpec.flattenObjectName(intermediateType)
         typeSpec = getGenericTypeSpec(genericArgs, typeSpec, xlator)
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
-        typeDefName = convertedType # progSpec.createTypedefName(fieldType)
+        typeDefName = cvrtType # progSpec.createTypedefName(fieldType)
         ## ASSIGNMENTS###############################################
 
         if 'value' in field and field['value']!=None and len(field['value'])>1:
@@ -1672,7 +1672,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
                 isAllocated = False
                 paramList = None
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, cvrtType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator)
             #print ("    RHS none: ", fieldValueText)
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, str):
@@ -1691,9 +1691,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
         ############ CODE MEMBER VARIABLE ##########################################################
         if(fieldOwner=='const'):
-            [structCode, topFuncDefCode] = xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, className, indent, xlator )
+            [structCode, topFuncDefCode] = xlator['codeConstField_Str'](cvrtType, fieldName, fieldValueText, className, indent, xlator )
         elif(fieldArglist==None):
-            [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent)
+            [structCode, funcDefCode] = xlator['codeVarField_Str'](cvrtType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent)
 
         ###### ArgList exists so this is a FUNCTION###########
         else:
@@ -1719,14 +1719,14 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     argFieldType=progSpec.fieldTypeKeyword(argTypeSpec)
                     if progSpec.typeIsPointer(argTypeSpec): arg
                     applyStructImplemetation(argTypeSpec,className,argFieldName)
-                    [argType, innerType] = convertType(argTypeSpec, 'arg', 'field', genericArgs, xlator)
-                    argListText+= xlator['codeArgText'](argFieldName, argType, argOwner, argTypeSpec, overRideOper, typeArgList, xlator)
+                    [argCvrtType, innerType] = convertType(argTypeSpec, 'arg', 'field', genericArgs, xlator)
+                    argListText+= xlator['codeArgText'](argFieldName, argCvrtType, argOwner, argTypeSpec, overRideOper, typeArgList, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
             #### RETURN TYPE ###########################################
             FirstReturnType = copy.copy(typeSpec) # TODO: Un-Hardcode FirstReturnType, typeSpec?
             if(fieldType[0] != '<%'):
-                pass #registerType(className, fieldName, convertedType, typeDefName)
-            else: typeDefName=convertedType
+                pass #registerType(className, fieldName, cvrtType, typeDefName)
+            else: typeDefName=cvrtType
             if(typeDefName=='none'):
                 typeDefName=''
 
