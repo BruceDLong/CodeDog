@@ -127,7 +127,7 @@ def reassembleFieldID(classAndFuncName, argList):
     fullFieldID += ")"
     return(fullFieldID)
 
-def convertFieldIDType(fieldID, convertType):
+def convertFieldIDType(fieldID, cvrtType):
     [classAndFuncName, argList] = disassembleFieldID(fieldID)
     if(argList != None):
         newArgList= []
@@ -138,6 +138,7 @@ def convertFieldIDType(fieldID, convertType):
                 newArgList.append(arg)
         fieldID = reassembleFieldID(classAndFuncName, newArgList)
     return(fieldID)
+
 def isArgNumeric(arg):
     if arg=='numeric' or arg=='int' or arg=='int32' or arg=='int64'  or arg=='uint' or arg=='uint32' or arg=='uint64' or arg=='BigInt':
         return True
@@ -356,105 +357,23 @@ def getInheritedEnums():
     global inheritedEnums
     return inheritedEnums
 
-def codeFlagAndModeFields(classes, className, tags, xlator):
-    cdlog(5, "                    Coding flags and modes for: {}".format(className))
-    global StaticMemberVars
-    global modeStateNames
-    flagsVarNeeded = False
-    bitCursor=0
-    structEnums=""
-    CodeDogAddendums = ""
-    classDef = classes[0][className]
-    for field in progSpec.generateListOfFieldsToImplement(classes, className):
-        fieldType=progSpec.getFieldType(field['typeSpec'])
-        fieldName=field['fieldName'];
-        inheritsMode = False
-
-        if isinstance(fieldType, list) and len(fieldType) == 1:
-            fieldType = fieldType[0]
-        try:
-            if classes[0][fieldType]['tags']['inherits']['fieldType'].get('altModeIndicator', 0):
-                inheritsMode = True
-        except (KeyError, TypeError) as e:
-            cdlog(6, "{}\n failed dict lookup in codeFlagAndModeFields".format(e))
-
-        if fieldType=='flag' or fieldType=='mode' or inheritsMode:
-            flagsVarNeeded=True
-
-            fieldName = progSpec.flattenObjectName(fieldName)
-            if fieldType=='flag':
-                cdlog(6, "flag: {}".format(fieldName))
-                structEnums += "    " + xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor), 64) +" \t// Flag: "+fieldName+"\n"
-                StaticMemberVars[fieldName]  =className
-                bitCursor += 1;
-            elif fieldType=='mode':
-                cdlog(6, "mode: {}[]".format(fieldName))
-                structEnums += "\n// For Mode "+fieldName+"\n"
-                # calculate field and bit position
-                enumSize= len(field['typeSpec']['enumList'])
-                numEnumBits=bitsNeeded(enumSize)
-                #field[3]=enumSize;
-                #field[4]=numEnumBits;
-                enumMask=((1 << numEnumBits) - 1) << bitCursor
-
-                offsetVarName = fieldName+"Offset"
-                maskVarName   = fieldName+"Mask"
-                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor), 64)
-                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask), 64) + "\n"
-
-                # enum
-                enumList=field['typeSpec']['enumList']
-                structEnums += xlator['getEnumStr'](fieldName, enumList)
-                CodeDogAddendums += "    we List<me string>: "+fieldName+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
-
-                # Record the utility vars' parent-classes
-                StaticMemberVars[offsetVarName]=className
-                StaticMemberVars[maskVarName]  =className
-                StaticMemberVars[fieldName+'Strings']  = className
-                modeStateNames[fieldName+'Strings']=className
-                for eItem in enumList:
-                    StaticMemberVars[eItem]=className
-
-                bitCursor=bitCursor+numEnumBits;
-            elif inheritsMode:
-                cdlog(6, "mode inherited: {}[]".format(fieldName))
-                structEnums += "\n// For Inherited Mode "+fieldName+"\n"
-                enumSize= len(classes[0][fieldType]['tags']['inherits']['fieldType']['altModeList'].asList())
-                numEnumBits=bitsNeeded(enumSize)
-                enumMask=((1 << numEnumBits) - 1) << bitCursor
-
-                offsetVarName = fieldName+"Offset"
-                maskVarName   = fieldName+"Mask"
-                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor), 64)
-                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask), 64) + "\n"
-
-                enumList=classes[0][fieldType]['tags']['inherits']['fieldType']['altModeList'].asList()
-                StaticMemberVars[offsetVarName]=className
-                StaticMemberVars[maskVarName]  =className
-                StaticMemberVars[fieldName+'Strings']  = className
-                modeStateNames[fieldName+'Strings']=className
-                for eItem in enumList:
-                    StaticMemberVars[eItem]=className
-
-                bitCursor=bitCursor+numEnumBits;
-
-    try:
-        if classes[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
-            enumList=classes[0][className]['tags']['inherits']['fieldType']['altModeList'].asList()
-            CodeDogAddendums += "    we List<me string>: "+className+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
-    except (KeyError, TypeError) as e:
-        cdlog(6, "Warning: caught an exception error in codeFlagAndModeFields")
-
-    if structEnums!="": structEnums="\n\n// *** Code for manipulating "+className+' flags and modes ***\n'+structEnums
-    classDef['flagsVarNeeded'] = flagsVarNeeded
-    return [flagsVarNeeded, structEnums, CodeDogAddendums]
-
 typeDefMap={}
 ObjectsFieldTypeMap={}
 def registerType(objName, fieldName, typeOfField, typeDefTag):
     ObjectsFieldTypeMap[objName+'::'+fieldName]={'rawType':typeOfField, 'typeDef':typeDefTag}
     typeDefMap[typeOfField]=typeDefTag
 
+def checkForReservedWord(identifier, currentObjName):
+    # TODO: other cases such as class names and enum values are not checked.
+    if identifier in ['auto', 'and', 'or', 'const', 'me', 'my', 'our', 'their', 'we', 'itr', 'while', 'withEach'
+            'do', 'else', 'flag', 'mode', 'for', 'if', 'model', 'struct', 'switch', 'typedef', 'void']:
+        if currentObjName!="": currentObjName = " in "+currentObjName
+        cdErr("Reserved word '"+identifier+"' cannot be used as an identifier"+ currentObjName)
+    if currentObjName!="":
+        if identifier in ['break', 'continue', 'return', 'false', 'NULL', 'true']:
+            cdErr("Reserved word '"+identifier+"' cannot be an identifier in "+ currentObjName)
+
+#### GENERIC TYPE HANDLING #############################################
 def getGenericClassInfo(className):
     classInfo   = {}
     typeArgList = progSpec.getTypeArgList(className)
@@ -511,15 +430,6 @@ def chooseStructImplementationToUse(typeSpec,className,fieldName):
     return(None, None)
     #    choose highest score and mark the typedef
 
-def checkForReservedWord(identifier, currentObjName):
-    # TODO: other cases such as class names and enum values are not checked.
-    if identifier in ['auto', 'and', 'or', 'const', 'me', 'my', 'our', 'their', 'we', 'itr', 'while', 'withEach'
-            'do', 'else', 'flag', 'mode', 'for', 'if', 'model', 'struct', 'switch', 'typedef', 'void']:
-        if currentObjName!="": currentObjName = " in "+currentObjName
-        cdErr("Reserved word '"+identifier+"' cannot be used as an identifier"+ currentObjName)
-    if currentObjName!="":
-        if identifier in ['break', 'continue', 'return', 'false', 'NULL', 'true']:
-            cdErr("Reserved word '"+identifier+"' cannot be an identifier in "+ currentObjName)
 def applyStructImplemetation(typeSpec,currentObjName,fieldName):
     checkForReservedWord(fieldName, currentObjName)
     [structToImplement, fromImpl] = chooseStructImplementationToUse(typeSpec,currentObjName,fieldName)
@@ -528,13 +438,13 @@ def applyStructImplemetation(typeSpec,currentObjName,fieldName):
         if fromImpl != None: typeSpec['fromImplemented']  = fromImpl
     return typeSpec
 
-#### GENERIC TYPE HANDLING #############################################
 def copyFieldType(fType):
     if isinstance(fType,str):copyFieldType = copy.copy(fType)
     else:
         copyFieldType=[]
         for prop in fType:copyFieldType.append(copy.copy(prop))
     return copyFieldType
+
 def copyTypeSpec(typeSpec):
     copyTypeSpec = {}
     for prop in typeSpec:
@@ -581,15 +491,15 @@ def generateGenericStructName(className, reqTagList, genericArgs, xlator):
         count = 0
         for reqTag in reqTagList:
             genericType        = progSpec.getTypeFromTemplateArg(reqTag)
-            unwrappedFTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
-            genericStructName+="_"+unwrappedFTypeKW
+            unwrappedKW        = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
+            genericStructName += "_"+unwrappedKW
             genericArgs[typeArgList[count]]=reqTag
             count += 1
     else:
         for gArg in genericArgs:
             genericType        = progSpec.getTypeFromTemplateArg(genericArgs[gArg])
-            unwrappedFTypeKW   = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
-            genericStructName += "_"+unwrappedFTypeKW
+            unwrappedKW        = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, genericType)
+            genericStructName += "_"+unwrappedKW
     if not genericStructName in genericStructsGenerated[1]:
         print("ADD:",genericStructName)
         genericStructsGenerated[1].append(genericStructName)
@@ -637,10 +547,10 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
     reqTagList = progSpec.getReqTagList(typeSpec)
     if reqTagList and xlator['renderGenerics']=='True' and not progSpec.isWrappedType(globalClassStore, fTypeKW) and not progSpec.isAbstractStruct(globalClassStore[0], fTypeKW):
         typeSpecOut = copyTypeSpec(typeSpec)
-        convertedType = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
-        typeSpecOut['fieldType'] = [copy.copy(convertedType)]
-        if 'fromImplemented' in typeSpecOut:
-            fromImpl = typeSpecOut['fromImplemented']
+        cvrtType = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
+        typeSpecOut['fieldType'] = [copy.copy(cvrtType)]
+        fromImpl = progSpec.getFromImpl(typeSpecOut)
+        if fromImpl:
             tArgList = fromImpl['typeArgList']
             genericArgsOut = {}
             if tArgList:
@@ -675,36 +585,32 @@ def getGenericTypeSpec(genericArgs, typeSpec, xlator):
         typeSpecOut = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
     return typeSpecOut
 
+########################################################################
 def convertType(typeSpec, varMode, actionOrField, genericArgs, xlator):
     # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
     global globalClassStore
-    isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, "convertType", xlator['renderGenerics'])
+    isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, "convertType1", xlator['renderGenerics'])
     typeSpec  = getGenericFieldsTypeSpec(genericArgs, typeSpec, xlator)
     ownerIn   = progSpec.getOwnerFromTypeSpec(typeSpec)
-    fieldType = progSpec.getFieldTypeNew(typeSpec)
-    if not isinstance(fieldType, str):
-        if len(fieldType) > 1 and fieldType[1] == "..":
-            fieldType = "int"
-        else:
-            fieldType=fieldType[0]
-    unwrappedFTypeKW = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, fieldType)
-    ownerOut = xlator['getUnwrappedClassOwner'](globalClassStore, typeSpec, fieldType, varMode, ownerIn)
+    fTypeKW   = progSpec.fieldTypeKeyword(typeSpec)
+    unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(globalClassStore, fTypeKW)
+    ownerOut  = xlator['getUnwrappedClassOwner'](globalClassStore, typeSpec, fTypeKW, varMode, ownerIn)
     reqTagList = progSpec.getReqTagList(typeSpec)
     if reqTagList and xlator['renderGenerics']=='True':
-        if not progSpec.isWrappedType(globalClassStore, fieldType) and not progSpec.isAbstractStruct(globalClassStore[0], fieldType):
-            unwrappedFTypeKW = generateGenericStructName(fieldType, reqTagList, genericArgs, xlator)
+        if not progSpec.isWrappedType(globalClassStore, fTypeKW) and not progSpec.isAbstractStruct(globalClassStore[0], fTypeKW):
+            unwrappedKW = generateGenericStructName(fTypeKW, reqTagList, genericArgs, xlator)
         else:
-            reqTagString = xlator['getReqTagString'](globalClassStore, typeSpec)
-            unwrappedFTypeKW = unwrappedFTypeKW + reqTagString
-    retVal   = xlator['xlateLangType'](globalClassStore, typeSpec, ownerOut, unwrappedFTypeKW, varMode, actionOrField, xlator)
+            reqTagStr   = xlator['getReqTagString'](globalClassStore, typeSpec)
+            unwrappedKW = unwrappedKW + reqTagStr
+    retVal   = xlator['xlateLangType'](globalClassStore, typeSpec, ownerOut, unwrappedKW, varMode, actionOrField)
     return retVal
 
 def codeAllocater(typeSpec, genericArgs, xlator):
     S     = ''
     owner = progSpec.getTypeSpecOwner(typeSpec)
     fieldType = progSpec.fieldTypeKeyword(typeSpec)
-    [convertedType, innerType]  = convertType(typeSpec, 'alloc', '', genericArgs, xlator)
-    S= xlator['getCodeAllocStr'](convertedType, owner);
+    [cvrtType, innerType]  = convertType(typeSpec, 'alloc', '', genericArgs, xlator)
+    S= xlator['getCodeAllocStr'](cvrtType, owner);
     return S
 
 def convertNameSeg(typeSpecOut, name, paramList, objsRefed, genericArgs, xlator):
@@ -816,8 +722,7 @@ def codeNameSeg(segSpec, typeSpecIn, connector, LorR_Val, previousSegName, previ
         else:
             if fType!='string':
                 [argListStr, fieldIDArgList] = getFieldIDArgList(segSpec, objsRefed, genericArgs, xlator)
-                tmpTypeSpec = CheckObjectVars(fType, name, fieldIDArgList)
-                typeSpecOut = tmpTypeSpec
+                typeSpecOut = CheckObjectVars(fType, name, fieldIDArgList)
                 if typeSpecOut!=0:
                     typeSpecOut = copyTypeSpec(getGenericTypeSpec(genericArgs, typeSpecOut['typeSpec'], xlator))
                     if isNewCtnr == True:
@@ -1202,7 +1107,7 @@ def codeExpr(item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, generic
             retTypeSpec = {'owner': 'me', 'fieldType': 'bool'}
     return [S, retTypeSpec]
 
-#################################################################
+#### ACTIONS ###########################################################
 def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
     actionText = ""
     repBody    = action['repBody']
@@ -1239,7 +1144,7 @@ def codeRepetition(action, objsRefed, returnType, indent, genericArgs, xlator):
         isOldCtnr = progSpec.isOldContainerTempFuncErr(containerTSpec, 'codeRepetition1 '+currentObjName+' '+ctnrName, xlator['renderGenerics'])
         [StartKey, StartTypeSpec] = codeExpr(keyRange[2][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
         [EndKey,   EndTypeSpec] = codeExpr(keyRange[4][0], objsRefed, None, None, 'RVAL', genericArgs, xlator)
-        [datastructID, indexTypeKeyWord, ctnrOwner]=xlator['getContainerType'](containerTSpec, '')
+        [datastructID, idxTypeKW, ctnrOwner]=xlator['getContainerType'](containerTSpec, '')
         wrappedTypeSpec = progSpec.isWrappedType(globalClassStore, progSpec.fieldTypeKeyword(containerTSpec)[0])
         if(wrappedTypeSpec != None):containerTSpec=wrappedTypeSpec
         [actionTextOut, loopCounterName] = xlator['iterateRangeFromTo'](globalClassStore,localVarsAllocated, StartKey, EndKey, containerTSpec,repName,ctnrName,indent,xlator)
@@ -1417,12 +1322,11 @@ def codeAction(action, indent, objsRefed, returnType, genericArgs, xlator):
         LHS = action['LHS']
         RHS =  action['RHS']
         typeSpec   = fetchItemsTypeSpec(LHS, objsRefed, genericArgs, xlator)
-        [typeLHS, innerTypeLHS] = convertType(typeSpec[0], 'var', 'action', genericArgs, xlator)
+        [LCvrtType, innerType] = convertType(typeSpec[0], 'var', 'action', genericArgs, xlator)
         typeSpec   = fetchItemsTypeSpec(RHS, objsRefed, genericArgs, xlator)
-        [typeRHS, innerTypeRHS] = convertType(typeSpec[0], 'var', 'action', genericArgs, xlator)
         LHS = LHS[0]
         RHS = RHS[0]
-        actionText = indent + typeLHS + " tmp = " + LHS + ";\n"
+        actionText = indent + LCvrtType + " tmp = " + LHS + ";\n"
         actionText += indent + LHS + " = " + RHS + ";\n"
         actionText += indent + RHS + " = " + "tmp;\n"
     elif (typeOfAction =='conditional'):
@@ -1512,6 +1416,7 @@ def codeActionSeq(actSeq, indent, objsRefed, returnType, genericArgs, xlator):
         localVarRecord=localVarsAllocated.pop()
     return actSeqText
 
+#### CONSTRUCTORS ######################################################
 def getCtorArgTypes(className, genericArgs, xlator):
     ctorArgTypes = []
     count=0
@@ -1525,8 +1430,8 @@ def getCtorArgTypes(className, genericArgs, xlator):
         if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner == 'we' or (tSpec['argList'] or tSpec['argList']!=None) or (isContainer and not progSpec.typeIsPointer(tSpec)):
             continue
         if(fOwner != 'me' and fOwner != 'my') or (isinstance(fType, str) and ((isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
-            [convertedType, innerType] = convertType(tSpec, 'var', 'constructor', genericArgs, xlator)
-            ctorArgTypes.append(convertedType)
+            [cvrtType, innerType] = convertType(tSpec, 'var', 'constructor', genericArgs, xlator)
+            ctorArgTypes.append(cvrtType)
     return ctorArgTypes
 
 def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArgs, xlator):
@@ -1552,12 +1457,12 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
         if isContainer and not progSpec.typeIsPointer(typeSpec): continue
         fieldOwner=progSpec.getOwnerFromTypeSpec(typeSpec)
         if(fieldOwner=='const' or fieldOwner == 'we'): continue
-        [convertedType, innerType] = convertType(typeSpec, 'var', 'constructor', genericArgs, xlator)
+        [cvrtType, innerType] = convertType(typeSpec, 'var', 'constructor', genericArgs, xlator)
         fieldName=field['fieldName']
         if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
         else: isTemplateVar = False
 
-        cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, convertedType))
+        cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, cvrtType))
         defaultVal=''
         if(fieldOwner != 'me'):
             if(fieldOwner != 'my'):
@@ -1577,11 +1482,11 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
                         [defaultVal, defaultValueTypeSpec] = codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs, xlator)
         if defaultVal != '':
         #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
-            ctorArgs += xlator['codeConstructorArgText'](fieldName, count, convertedType, defaultVal, xlator)+ ","
+            ctorArgs += xlator['codeConstructorArgText'](fieldName, count, cvrtType, defaultVal, xlator)+ ","
             ctorInit += xlator['codeConstructorInit'](fieldName, count, defaultVal, xlator)
 
             count += 1
-        copyCtorArgs += xlator['codeCopyConstructor'](fieldName, convertedType, isTemplateVar, xlator)
+        copyCtorArgs += xlator['codeCopyConstructor'](fieldName, cvrtType, isTemplateVar, xlator)
 
     funcBody    = ''
     ctorCode    = ''
@@ -1608,7 +1513,7 @@ def codeConstructor(classes, className, tags, objsRefed, typeArgList, genericArg
         ctorCode += xlator['codeConstructors'](flatClassName, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper, xlator)
     return ctorCode
 
-#### codeStructFields ##################################################
+#### STRUCT FIELDS #####################################################
 def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     global currentObjName
     global ForwardDeclsForGlobalFuncs
@@ -1654,10 +1559,10 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
         fieldArglist = typeSpec['argList']
         paramList = field['paramList']
         [intermediateType, innerType] = convertType(typeSpec, 'var', 'field', genericArgs, xlator)
-        convertedType = progSpec.flattenObjectName(intermediateType)
+        cvrtType = progSpec.flattenObjectName(intermediateType)
         typeSpec = getGenericTypeSpec(genericArgs, typeSpec, xlator)
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
-        typeDefName = convertedType # progSpec.createTypedefName(fieldType)
+        typeDefName = cvrtType # progSpec.createTypedefName(fieldType)
         ## ASSIGNMENTS###############################################
 
         if 'value' in field and field['value']!=None and len(field['value'])>1:
@@ -1678,7 +1583,7 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
             if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
                 isAllocated = False
                 paramList = None
-            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, convertedType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator)
+            fieldValueText=xlator['codeVarFieldRHS_Str'](fieldName, cvrtType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs, xlator)
             #print ("    RHS none: ", fieldValueText)
         elif(fieldOwner=='const'):
             if isinstance(fieldValue, str):
@@ -1697,9 +1602,9 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
 
         ############ CODE MEMBER VARIABLE ##########################################################
         if(fieldOwner=='const'):
-            [structCode, topFuncDefCode] = xlator['codeConstField_Str'](convertedType, fieldName, fieldValueText, className, indent, xlator )
+            [structCode, topFuncDefCode] = xlator['codeConstField_Str'](cvrtType, fieldName, fieldValueText, className, indent, xlator )
         elif(fieldArglist==None):
-            [structCode, funcDefCode] = xlator['codeVarField_Str'](convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent)
+            [structCode, funcDefCode] = xlator['codeVarField_Str'](cvrtType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent)
 
         ###### ArgList exists so this is a FUNCTION###########
         else:
@@ -1725,14 +1630,14 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
                     argFieldType=progSpec.fieldTypeKeyword(argTypeSpec)
                     if progSpec.typeIsPointer(argTypeSpec): arg
                     applyStructImplemetation(argTypeSpec,className,argFieldName)
-                    [argType, innerType] = convertType(argTypeSpec, 'arg', 'field', genericArgs, xlator)
-                    argListText+= xlator['codeArgText'](argFieldName, argType, argOwner, argTypeSpec, overRideOper, typeArgList, xlator)
+                    [argCvrtType, innerType] = convertType(argTypeSpec, 'arg', 'field', genericArgs, xlator)
+                    argListText+= xlator['codeArgText'](argFieldName, argCvrtType, argOwner, argTypeSpec, overRideOper, typeArgList, xlator)
                     localArgsAllocated.append([argFieldName, argTypeSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
             #### RETURN TYPE ###########################################
             FirstReturnType = copy.copy(typeSpec) # TODO: Un-Hardcode FirstReturnType, typeSpec?
             if(fieldType[0] != '<%'):
-                pass #registerType(className, fieldName, convertedType, typeDefName)
-            else: typeDefName=convertedType
+                pass #registerType(className, fieldName, cvrtType, typeDefName)
+            else: typeDefName=cvrtType
             if(typeDefName=='none'):
                 typeDefName=''
 
@@ -1811,6 +1716,12 @@ def codeStructFields(classes, className, tags, indent, objsRefed, xlator):
     funcDefCodeAcc = topFuncDefCodeAcc + funcDefCodeAcc
     return [structCodeAcc, funcDefCodeAcc, globalFuncsAcc]
 
+def findIDX(classList, className):
+    # Returns the index in classList of className or -1
+    for findIdx in range(0, len(classList)):
+        if classList[findIdx][0]==className: return findIdx
+    return -1
+
 def processDependancies(classes, item, searchList, newList):
     if searchList[item][1]==0:
         searchList[item][1]=1
@@ -1824,12 +1735,6 @@ def processDependancies(classes, item, searchList, newList):
     elif searchList[item][1]==1:
         pass
         #print("WARNING: Dependancy cycle detected including class "+searchList[item][0])
-
-def findIDX(classList, className):
-    # Returns the index in classList of className or -1
-    for findIdx in range(0, len(classList)):
-        if classList[findIdx][0]==className: return findIdx
-    return -1
 
 def sortClassesForDependancies(classes, classList):
     newList=[]
@@ -1936,6 +1841,100 @@ def codeOneStruct(classes, tags, constFieldCode, className, xlator):
         classRecord = [constsEnums, forwardDeclsOut, structCodeOut, funcCode, className, dependancies]
     currentObjName=''
     return classRecord
+
+#### FLAGS and MODES ###################################################
+def codeFlagAndModeFields(classes, className, tags, xlator):
+    cdlog(5, "                    Coding flags and modes for: {}".format(className))
+    global StaticMemberVars
+    global modeStateNames
+    flagsVarNeeded = False
+    bitCursor=0
+    structEnums=""
+    CodeDogAddendums = ""
+    classDef = classes[0][className]
+    for field in progSpec.generateListOfFieldsToImplement(classes, className):
+        fieldType=progSpec.getFieldType(field['typeSpec'])
+        fieldName=field['fieldName'];
+        inheritsMode = False
+
+        if isinstance(fieldType, list) and len(fieldType) == 1:
+            fieldType = fieldType[0]
+        try:
+            if classes[0][fieldType]['tags']['inherits']['fieldType'].get('altModeIndicator', 0):
+                inheritsMode = True
+        except (KeyError, TypeError) as e:
+            cdlog(6, "{}\n failed dict lookup in codeFlagAndModeFields".format(e))
+
+        if fieldType=='flag' or fieldType=='mode' or inheritsMode:
+            flagsVarNeeded=True
+
+            fieldName = progSpec.flattenObjectName(fieldName)
+            if fieldType=='flag':
+                cdlog(6, "flag: {}".format(fieldName))
+                structEnums += "    " + xlator['getConstIntFieldStr'](fieldName, hex(1<<bitCursor), 64) +" \t// Flag: "+fieldName+"\n"
+                StaticMemberVars[fieldName]  =className
+                bitCursor += 1;
+            elif fieldType=='mode':
+                cdlog(6, "mode: {}[]".format(fieldName))
+                structEnums += "\n// For Mode "+fieldName+"\n"
+                # calculate field and bit position
+                enumSize= len(field['typeSpec']['enumList'])
+                numEnumBits=bitsNeeded(enumSize)
+                #field[3]=enumSize;
+                #field[4]=numEnumBits;
+                enumMask=((1 << numEnumBits) - 1) << bitCursor
+
+                offsetVarName = fieldName+"Offset"
+                maskVarName   = fieldName+"Mask"
+                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor), 64)
+                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask), 64) + "\n"
+
+                # enum
+                enumList=field['typeSpec']['enumList']
+                structEnums += xlator['getEnumStr'](fieldName, enumList)
+                CodeDogAddendums += "    we List<me string>: "+fieldName+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
+
+                # Record the utility vars' parent-classes
+                StaticMemberVars[offsetVarName]=className
+                StaticMemberVars[maskVarName]  =className
+                StaticMemberVars[fieldName+'Strings']  = className
+                modeStateNames[fieldName+'Strings']=className
+                for eItem in enumList:
+                    StaticMemberVars[eItem]=className
+
+                bitCursor=bitCursor+numEnumBits;
+            elif inheritsMode:
+                cdlog(6, "mode inherited: {}[]".format(fieldName))
+                structEnums += "\n// For Inherited Mode "+fieldName+"\n"
+                enumSize= len(classes[0][fieldType]['tags']['inherits']['fieldType']['altModeList'].asList())
+                numEnumBits=bitsNeeded(enumSize)
+                enumMask=((1 << numEnumBits) - 1) << bitCursor
+
+                offsetVarName = fieldName+"Offset"
+                maskVarName   = fieldName+"Mask"
+                structEnums += "    "+xlator['getConstIntFieldStr'](offsetVarName, hex(bitCursor), 64)
+                structEnums += "    "+xlator['getConstIntFieldStr'](maskVarName,   hex(enumMask), 64) + "\n"
+
+                enumList=classes[0][fieldType]['tags']['inherits']['fieldType']['altModeList'].asList()
+                StaticMemberVars[offsetVarName]=className
+                StaticMemberVars[maskVarName]  =className
+                StaticMemberVars[fieldName+'Strings']  = className
+                modeStateNames[fieldName+'Strings']=className
+                for eItem in enumList:
+                    StaticMemberVars[eItem]=className
+
+                bitCursor=bitCursor+numEnumBits;
+
+    try:
+        if classes[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
+            enumList=classes[0][className]['tags']['inherits']['fieldType']['altModeList'].asList()
+            CodeDogAddendums += "    we List<me string>: "+className+'Strings' + ' <- ' + '["'+('", "'.join(enumList))+'"]\n'
+    except (KeyError, TypeError) as e:
+        cdlog(6, "Warning: caught an exception error in codeFlagAndModeFields")
+
+    if structEnums!="": structEnums="\n\n// *** Code for manipulating "+className+' flags and modes ***\n'+structEnums
+    classDef['flagsVarNeeded'] = flagsVarNeeded
+    return [flagsVarNeeded, structEnums, CodeDogAddendums]
 
 def setUpFlagAndModeFields(classes, tags, structsToSetUp, xlator):
     global currentObjName

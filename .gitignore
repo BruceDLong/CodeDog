@@ -66,17 +66,13 @@ target/
 ErrFile.dog
 
 # Build Directories
-Examples/SwingBuild/
-Examples/iPhoneBuild/
-Examples/LinuxBuild/
-Examples/AndroidBuild/
-Examples/MacBuild/
-Tests/SwingBuild/
-Tests/iPhoneBuild/
-Tests/LinuxBuild/
-Tests/AndroidBuild/
-Tests/MacBuild/
-LIBS/Tests/LinuxTestBuild/
+SwiftBuild/
+SwingBuild/
+iPhoneBuild/
+LinuxBuild/
+AndroidBuild/
+MacBuild/
+LinuxTestBuild/
 
 # Testing
 xlatorTests/

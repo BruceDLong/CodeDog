@@ -787,7 +787,8 @@ def isAContainer(typeSpec):
 
 def getContainerSpec(typeSpec):
     if isNewContainerTempFunc(typeSpec):
-        fieldType=getFieldTypeNew(typeSpec)
+        if 'fieldType' in typeSpec: fieldType = typeSpec['fieldType']
+        else: fieldType = None
         containerType=fieldType[0]
         return {'owner': typeSpec['owner'], 'datastructID':containerType}
     return(typeSpec['arraySpec'])
@@ -861,17 +862,22 @@ def getNewContainerFirstElementOwnerTempFunc(typeSpec):
     elif reqTagList == None: return(None)
     return(None)
 
+def getFromImpl(typeSpec):
+    if 'fromImplemented' in typeSpec:
+        return typeSpec['fromImplemented']
+    return None
+
 def getContainerKeyOwnerAndType(typeSpec):
     owner     = getContainerFirstElementOwner(typeSpec)
     fieldType = fieldTypeKeyword(typeSpec)
     if not isNewContainerTempFunc(typeSpec): return[owner, fieldType]
     reqTagList = getReqTagList(typeSpec)
-    if "fromImplemented" in typeSpec:
-        fromImplemented = typeSpec['fromImplemented']
-        if 'typeArgList' in fromImplemented:
-            typeArgList = fromImplemented['typeArgList']
-        if 'atKeyTypeSpec' in fromImplemented:
-            fieldDefAt = fromImplemented['atKeyTypeSpec']
+    fromImpl   = getFromImpl(typeSpec)
+    if fromImpl:
+        if 'typeArgList' in fromImpl:
+            typeArgList = fromImpl['typeArgList']
+        if 'atKeyTypeSpec' in fromImpl:
+            fieldDefAt = fromImpl['atKeyTypeSpec']
         if typeArgList and fieldDefAt:
             atOwner  = fieldDefAt['owner']
             atTypeKW = fieldTypeKeyword(fieldDefAt)
@@ -883,28 +889,49 @@ def getContainerKeyOwnerAndType(typeSpec):
     return[owner, fieldType]
 
 def getContainerValueOwnerAndType(typeSpec):
-    owner     = getContainerFirstElementOwner(typeSpec)
-    fieldType = fieldTypeKeyword(typeSpec)
-    if not isNewContainerTempFunc(typeSpec): return[owner, fieldType]
+    owner      = getContainerFirstElementOwner(typeSpec)
+    fTypeKW    = fieldTypeKeyword(typeSpec)
+    if not isNewContainerTempFunc(typeSpec): return[owner, fTypeKW]
     reqTagList = getReqTagList(typeSpec)
-    if "fromImplemented" in typeSpec:
-        fromImplemented = typeSpec['fromImplemented']
-        if 'typeArgList' in fromImplemented:
-            typeArgList = fromImplemented['typeArgList']
-        if 'atTypeSpec' in fromImplemented:
-            fieldDefAt = fromImplemented['atTypeSpec']
-        if typeArgList and fieldDefAt:
-            atOwner  = fieldDefAt['owner']
-            atTypeKW = fieldTypeKeyword(fieldDefAt)
-            if atTypeKW in typeArgList:
-                idxAt = typeArgList.index(atTypeKW)
+    fromImpl   = getFromImpl(typeSpec)
+    if fromImpl:
+        if 'typeArgList' in fromImpl: tArgList = fromImpl['typeArgList']
+        else: tArgList = None; print("WARNING: no tARGs found in progSpec.getCtnrSecond")
+        if 'atTypeSpec' in fromImpl: fDefAt = fromImpl['atTypeSpec']
+        else: fDefAt = None; print("WARNING: no atTSpec found in progSpec.getCtnrSecond")
+        if tArgList and fDefAt:
+            atOwner  = fDefAt['owner']
+            atTypeKW = fieldTypeKeyword(fDefAt)
+            if atTypeKW in tArgList:
+                idxAt   = tArgList.index(atTypeKW)
                 valType = reqTagList[idxAt]
                 return[valType['tArgOwner'], valType['tArgType']]
             else: return[atOwner, atTypeKW]
     if reqTagList:
         owner     = reqTagList[0]['tArgOwner']
-        fieldType = reqTagList[0]['tArgType']
-    return[owner, fieldType]
+        fTypeKW   = reqTagList[0]['tArgType']
+    return[owner, fTypeKW]
+
+def fieldTypeKeyword(fieldType):
+    # fieldType can be fieldType or typeSpec
+    if fieldType==None: return None
+    if 'dummyType' in fieldType: return None
+    if 'owner' in fieldType and fieldType['owner']=='PTR':
+        return None
+    if 'fieldType' in fieldType:    # if var fieldType is typeSpec
+        fieldType = fieldType['fieldType']
+    if isinstance(fieldType, str):
+        return fieldType
+    if isinstance(fieldType, list):
+        if len(fieldType) > 1 and fieldType[1] == '..':
+            return 'int'
+    if('varType' in fieldType[0]):
+        fieldType = fieldType[0]['varType']
+    if isinstance(fieldType[0], str):
+        return fieldType[0]
+    if isinstance(fieldType[0][0], str):
+        return fieldType[0][0]
+    cdErr("?Invalid fieldTypeKeyword?")
 
 def getFieldType(typeSpec):
     retVal = getNewContainerFirstElementTypeTempFunc(typeSpec)
@@ -926,10 +953,6 @@ def getContainerFirstElementType(typeSpec):
     reqTagList=getReqTagList(typeSpec)
     if reqTagList:
         return(reqTagList[0]['tArgType'])
-    return None
-
-def getFieldTypeNew(typeSpec):
-    if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
     return None
 
 def getContainerFirstElementOwner(typeSpec):
@@ -980,7 +1003,7 @@ def getCodeConverterByFieldID(classes, structName, fieldName, prevNameSeg, conne
             return prevNameSeg+connector+fieldName+"()"
     return prevNameSeg+connector+fieldName+"()"
 
-def getItrTypeOfDataStruct(datastructID, containerType):
+def getItrTypeOfDataStruct(containerType):
     if 'fromImplemented' in containerType:
         fromImplemented = containerType['fromImplemented']
         if 'itrTypeSpec' in fromImplemented:
@@ -1097,24 +1120,6 @@ def baseStructName(structName):
     colonIndex=structName.find('::')
     if(colonIndex==-1): return structName
     return structName[0:colonIndex]
-
-def fieldTypeKeyword(fieldType):
-    # fieldType can be fieldType or typeSpec
-    if fieldType==None: return None
-    if 'dummyType' in fieldType: return None
-    if 'owner' in fieldType and fieldType['owner']=='PTR':
-        return None
-    if 'fieldType' in fieldType:    # if var fieldType is typeSpec
-        fieldType = fieldType['fieldType']
-    if isinstance(fieldType, str):
-        return fieldType
-    if('varType' in fieldType[0]):
-        fieldType = fieldType[0]['varType']
-    if isinstance(fieldType[0], str):
-        return fieldType[0]
-    if isinstance(fieldType[0][0], str):
-        return fieldType[0][0]
-    cdErr("?Invalid fieldTypeKeyword?")
 
 def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
     funcField = doesClassContainFunc(classes, className, funcName)
