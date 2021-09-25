@@ -13,7 +13,7 @@ storeOfBaseTypesUsed={} # Registry of all types used
 
 startTime = timer()
 #########################
-# Variables to store what classes and fields were added after a marked point (When MarkItems=True).
+# Variables to store what Classes and fields were added after a marked point (When MarkItems=True).
 # So that they can be "rolled back" later. (For rolling back libaries, etc.)
 
 MarkItems=False
@@ -331,7 +331,7 @@ def addField(objSpecs, className, stateType, packedField):
             if field['value']==packedField['value']: return
             cdErr(fieldID+" is being contradictorily redefined.")
 
-        # Don't override flags and modes in derived classes
+        # Don't override flags and modes in derived Classes
         if fieldType=='flag' or fieldType=='mode':
             if fieldIDAlreadyDeclaredInStruct(objSpecs, className, fieldID):
                 cdlog(2, "Note: The field '" + fieldID + "' already exists. Not overriding")

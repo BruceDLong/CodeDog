@@ -138,7 +138,7 @@ def langStringFormatterCommand(fmtStr, argStr):
     S='String(format:'+'"'+ fmtStr +'"'+ argStr +')'
     return S
 
-def LanguageSpecificDecorations(classes, S, typeSpec, owner, LorRorP_Val, xlator):
+def LanguageSpecificDecorations(S, typeSpec, owner, LorRorP_Val, xlator):
     if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
         if LorRorP_Val == "PARAM" and S=="nil":
             [cvrtType, innerType] = convertType(typeSpec, 'arg', '', genericArgs, xlator)
@@ -310,7 +310,7 @@ def getContaineCategory(containerSpec):
         return 'LIST'
     return None
 
-def getContainerTypeInfo(classes, containerType, name, idxType, typeSpecIn, paramList, genericArgs, xlator):
+def getContainerTypeInfo(containerType, name, idxType, typeSpecIn, paramList, genericArgs, xlator):
     convertedIdxType = ""
     typeSpecOut = typeSpecIn
     if progSpec.isNewContainerTempFunc(typeSpecIn): return(name, typeSpecOut, paramList, convertedIdxType)
@@ -595,7 +595,7 @@ def codeMain(classes, tags, objsRefed, xlator):
         if(classes[0]["GLOBAL"]['stateType'] != 'struct'):
             print("ERROR: GLOBAL must be a 'struct'.")
             exit(2)
-        [structCode, funcCode, globalFuncs]=codeStructFields(classes, "GLOBAL", tags, '', objsRefed, xlator)
+        [structCode, funcCode, globalFuncs]=codeStructFields("GLOBAL", tags, '', objsRefed, xlator)
         if(funcCode==''): funcCode="// No main() function.\n"
         if(structCode==''): structCode="// No Main Globals.\n"
         funcCode = "\n\n"+funcCode+"\nmain();" # TODO: figure out why call to main isn't generated and un-hardcode this
@@ -990,63 +990,63 @@ def fetchXlators():
     xlators['iteratorsUseOperators'] = "False"
     xlators['renderGenerics']        = "True"
     xlators['renameInitFuncs']       = "True"
-    xlators['codeFactor']                   = codeFactor
-    xlators['codeComparisonStr']            = codeComparisonStr
-    xlators['codeIdentityCheck']            = codeIdentityCheck
-    xlators['derefPtr']                     = derefPtr
-    xlators['applyOwner']                   = applyOwner
-    xlators['adjustConditional']            = adjustConditional
-    xlators['includeDirective']             = includeDirective
-    xlators['codeMain']                     = codeMain
-    xlators['produceTypeDefs']              = produceTypeDefs
+    xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
     xlators['addSpecialCode']               = addSpecialCode
+    xlators['adjustConditional']            = adjustConditional
+    xlators['applyOwner']                   = applyOwner
     xlators['applyTypecast']                = applyTypecast
+    xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
+    xlators['checkIfSpecialAssignmentFormIsNeeded'] = checkIfSpecialAssignmentFormIsNeeded
+    xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
+    xlators['codeArgText']                  = codeArgText
+    xlators['codeArrayIndex']               = codeArrayIndex
+    xlators['codeComparisonStr']            = codeComparisonStr
+    xlators['codeConstField_Str']           = codeConstField_Str
+    xlators['codeConstructor']              = codeConstructor
+    xlators['codeConstructorArgText']       = codeConstructorArgText
+    xlators['codeConstructorCall']          = codeConstructorCall
+    xlators['codeConstructorInit']          = codeConstructorInit
+    xlators['codeConstructors']             = codeConstructors
+    xlators['codeCopyConstructor']          = codeCopyConstructor
+    xlators['codeDecrement']                = codeDecrement
+    xlators['codeFactor']                   = codeFactor
+    xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
+    xlators['codeIdentityCheck']            = codeIdentityCheck
+    xlators['codeIncrement']                = codeIncrement
     xlators['codeIteratorOperation']        = codeIteratorOperation
-    xlators['xlateLangType']                = xlateLangType
+    xlators['codeMain']                     = codeMain
+    xlators['codeNewVarStr']                = codeNewVarStr
+    xlators['codeRangeSpec']                = codeRangeSpec
+    xlators['codeSetBits']                  = codeSetBits
+    xlators['codeSpecialReference']         = codeSpecialReference
+    xlators['codeStructText']               = codeStructText
+    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
+    xlators['codeSwitchBreak']              = codeSwitchBreak
+    xlators['codeSwitchCase']               = codeSwitchCase
+    xlators['codeSwitchExpr']               = codeSwitchExpr
+    xlators['codeVarField_Str']             = codeVarField_Str
+    xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
+    xlators['convertToInt']                 = convertToInt
+    xlators['derefPtr']                     = derefPtr
+    xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
+    xlators['extraCodeForTopOfFuntion']     = extraCodeForTopOfFuntion
+    xlators['generateMainFunctionality']    = generateMainFunctionality
+    xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
+    xlators['getCodeAllocStr']              = getCodeAllocStr
+    xlators['getConstIntFieldStr']          = getConstIntFieldStr
     xlators['getContainerType']             = getContainerType
-    xlators['recodeStringFunctions']        = recodeStringFunctions
+    xlators['getContainerTypeInfo']         = getContainerTypeInfo
+    xlators['getEnumStr']                   = getEnumStr
+    xlators['getReqTagString']              = getReqTagString
+    xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
+    xlators['getVirtualFuncText']           = getVirtualFuncText
+    xlators['includeDirective']             = includeDirective
+    xlators['iterateContainerStr']          = iterateContainerStr
+    xlators['iterateRangeFromTo']           = iterateRangeFromTo
     xlators['langStringFormatterCommand']   = langStringFormatterCommand
     xlators['LanguageSpecificDecorations']  = LanguageSpecificDecorations
-    xlators['getCodeAllocStr']              = getCodeAllocStr
-    xlators['getCodeAllocSetStr']           = getCodeAllocSetStr
-    xlators['codeSpecialReference']         = codeSpecialReference
-    xlators['checkIfSpecialAssignmentFormIsNeeded'] = checkIfSpecialAssignmentFormIsNeeded
-    xlators['getConstIntFieldStr']          = getConstIntFieldStr
-    xlators['codeStructText']               = codeStructText
-    xlators['getContainerTypeInfo']         = getContainerTypeInfo
-    xlators['codeNewVarStr']                = codeNewVarStr
-    xlators['chooseVirtualRValOwner']       = chooseVirtualRValOwner
-    xlators['determinePtrConfigForAssignments'] = determinePtrConfigForAssignments
-    xlators['iterateRangeFromTo']           = iterateRangeFromTo
-    xlators['iterateContainerStr']          = iterateContainerStr
-    xlators['getEnumStr']                   = getEnumStr
-    xlators['codeVarFieldRHS_Str']          = codeVarFieldRHS_Str
-    xlators['codeVarField_Str']             = codeVarField_Str
-    xlators['codeFuncHeaderStr']            = codeFuncHeaderStr
-    xlators['extraCodeForTopOfFuntion']     = extraCodeForTopOfFuntion
-    xlators['codeArrayIndex']               = codeArrayIndex
-    xlators['codeSetBits']                  = codeSetBits
-    xlators['generateMainFunctionality']    = generateMainFunctionality
-    xlators['addGLOBALSpecialCode']         = addGLOBALSpecialCode
-    xlators['codeArgText']                  = codeArgText
-    xlators['codeConstructor']              = codeConstructor
-    xlators['codeConstructors']             = codeConstructors
-    xlators['codeConstructorInit']          = codeConstructorInit
-    xlators['codeIncrement']                = codeIncrement
-    xlators['codeDecrement']                = codeDecrement
-    xlators['codeConstructorArgText']       = codeConstructorArgText
-    xlators['codeSwitchExpr']               = codeSwitchExpr
-    xlators['codeSwitchCase']               = codeSwitchCase
-    xlators['codeSwitchBreak']              = codeSwitchBreak
-    xlators['codeCopyConstructor']          = codeCopyConstructor
-    xlators['codeRangeSpec']                = codeRangeSpec
-    xlators['codeConstField_Str']           = codeConstField_Str
-    xlators['checkForTypeCastNeed']         = checkForTypeCastNeed
-    xlators['codeConstructorCall']          = codeConstructorCall
-    xlators['codeSuperConstructorCall']     = codeSuperConstructorCall
-    xlators['getVirtualFuncText']           = getVirtualFuncText
-    xlators['getUnwrappedClassOwner']       = getUnwrappedClassOwner
     xlators['makePtrOpt']                   = makePtrOpt
-    xlators['convertToInt']                 = convertToInt
-    xlators['getReqTagString']              = getReqTagString
+    xlators['produceTypeDefs']              = produceTypeDefs
+    xlators['recodeStringFunctions']        = recodeStringFunctions
+    xlators['xlateLangType']                = xlateLangType
     return(xlators)
