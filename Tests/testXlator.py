@@ -3,12 +3,14 @@
 import os
 import errno
 import subprocess
+import copy
 import sys;  sys.dont_write_bytecode = True
 from datetime import date
 buildSpec = ""
 runSpec = ""
 workingDirectory = ""
 runDirectory = ""
+reportText = ""
 
 testDefinitions = {
     #TODO make more cases for strings and chars with various combinations of double and single quotes
@@ -703,7 +705,7 @@ def runDeps(testKey):
     if (len(testDefinitions[testKey])>2):
         depsList = testDefinitions[testKey][2]
     for dep in depsList:
-        testResult = ExecCodeDogTest(testDefinitions[dep], buildSpec,dep,True)
+        testResult = ExecCodeDogTest(copy.copy(testDefinitions[dep]), buildSpec,dep,True)
         depsReportText +=  "        " + dep + " : "+testResult+  "\n"
         if(testResult != "Success"):
             writePrepend("xlatorTests/failedTests.txt",dep)
@@ -713,15 +715,17 @@ def runListedTests(testsToRun):
     global buildSpec
     global testDefinitions
     clearErrorFile()
-    reportText = ""
+    print('________________________________\n'+xlatorLabel)
+    reportText = '________________________________\n'+xlatorLabel
     for testKey in testsToRun:
         #print(("Running test: ", testKey))
-        testResult = ExecCodeDogTest(testDefinitions[testKey], buildSpec, testKey,False)
-        print(".")
+        testResult = ExecCodeDogTest(copy.copy(testDefinitions[testKey]), buildSpec, testKey,False)
+        print(testKey, ":\t\t", testResult)
         reportText+= testKey + ": "+testResult+  "\n"
         if(testResult!="Success"):
             depsReportText = runDeps(testKey)
             reportText+= depsReportText
+            print(testKey, ":\t\t", depsReportText)
     return reportText
 
 def gatherListOfTestsToRun(keywordList):
@@ -735,6 +739,49 @@ def gatherListOfTestsToRun(keywordList):
                 testList.append(key)
     return testList
 
+def getCPPTest():
+    global xlatorLabel
+    global buildSpec
+    global runSpec
+    global runDirectory
+    global workingDirectory
+    global reportText
+    xlatorLabel = 'TESTING: CPP'
+    buildSpec = "LinuxBuild: Platform='Linux' Lang='CPP';\n"
+    buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
+    runSpec = "./testXlator"
+    runDirectory = workingDirectory + "/LinuxBuild"
+    reportText += runListedTests(testsToRun)
+
+def getJavaTest():
+    global xlatorLabel
+    global buildSpec
+    global runSpec
+    global runDirectory
+    global workingDirectory
+    xlatorLabel = 'TESTING: JAVA'
+    buildSpec = "SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP';\n"
+    buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
+    runSpec = "java GLOBAL"
+    runDirectory = workingDirectory + "/SwingBuild"
+    runListedTests(testsToRun)
+
+def getSwiftTest():
+    global xlatorLabel
+    global buildSpec
+    global runSpec
+    global runDirectory
+    global workingDirectory
+    xlatorLabel = 'TESTING: SWIFT'
+    buildSpec = "SwiftBuild: Platform='Swift' Lang='Swift';\n"
+    buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
+    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP';"
+    runSpec = "./testXlator"
+    runDirectory = workingDirectory + "/SwiftBuild"
+    runListedTests(testsToRun)
+
 ###################################
 # Get command line: tests and xlator name
 if len(sys.argv)==1:
@@ -743,34 +790,25 @@ if len(sys.argv)==1:
 
 xlatorName = sys.argv[1]
 testListSpec = sys.argv[2:]
+testsToRun = gatherListOfTestsToRun(testListSpec)
 
 workingDirectory = os.getcwd() + "/xlatorTests"
-if (xlatorName == "cpp"):
-    buildSpec = "LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';\n"
-    buildSpec += "//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
-    buildSpec += "//SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';"
-    runSpec = "./testXlator"
-    runDirectory = workingDirectory + "/LinuxBuild"
+if (xlatorName == "all"):
+    getCPPTest()
+    getJavaTest()
+    getSwiftTest()
+elif (xlatorName == "cpp"):
+    getCPPTest()
 elif(xlatorName == "swing" or xlatorName == "java" or xlatorName == "Java"):
-    buildSpec = "SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
-    buildSpec += "//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';\n"
-    buildSpec += "//SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';"
-    runSpec = "java GLOBAL"
-    runDirectory = workingDirectory + "/SwingBuild"
-elif(xlatorName == "swift" or xlatorName == "Swift" ):
-    buildSpec = "SwiftBuild: Platform='Swift' CPU='amd64' Lang='Swift' optimize='speed';\n"
-    buildSpec += "//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';\n"
-    buildSpec += "//LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';"
-    runSpec = "./testXlator"
-    runDirectory = workingDirectory + "/SwiftBuild"
+    getJavaTest()
+elif(xlatorName == "swift" or xlatorName == "Swift"):
+    getSwiftTest()
 else:
     print(("UNKNOWN XLATOR: ", xlatorName))
     exit(0)
 
-testsToRun = gatherListOfTestsToRun(testListSpec)
-reportText = runListedTests(testsToRun)
-print("********** T E S T    R E S U L T S **********")
-print(reportText)
-print("**********************************************")
+#print("********** T E S T    R E S U L T S **********")
+#print(reportText)
+#print("**********************************************")
 writePrepend("xlatorTests/failedTests.txt", "Failed tests: \n")
 writePrepend("xlatorTests/failedTests.txt","Run on: "+ str(date.today())+"\n\n")

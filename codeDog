@@ -16,7 +16,10 @@ import codeGenerator
 import xlator_CPP
 import xlator_Java
 #import xlator_JavaScript
-import xlator_Swift
+from xlator_Swift import Xlator_Swift
+from xlator_Java  import Xlator_Java
+from xlator_CPP  import Xlator_CPP
+import xlator
 
 import re
 import os
@@ -57,13 +60,13 @@ def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     langGenTag = buildTags['Lang']
     if(langGenTag == 'CPP'):
         langName='C + +'
-        xlator = xlator_CPP.fetchXlators()
+        xlator = Xlator_CPP()
     elif(langGenTag == 'Java'):
         langName='J A V A'
-        xlator = xlator_Java.fetchXlators()
+        xlator = Xlator_Java()
     elif(langGenTag == 'Swift'):
         langName='S W I F T'
-        xlator = xlator_Swift.fetchXlators()
+        xlator = Xlator_Swift()
     else:
         cdErr( "ERROR: No language generator found for ".format( langGenTag))
         exit(1)
