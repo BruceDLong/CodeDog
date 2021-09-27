@@ -61,6 +61,13 @@ struct Mutex: wraps = mutex{
     bool: tryLock()     <- <%!try_lock()%>
 }
 
+struct NestableMutex: wraps = recursive_mutex{
+    void: lock()        <- <%!lock()%>
+    void: unlock()      <- <%!unlock()%>
+    bool: tryLock()     <- <%!try_lock()%>
+}
+
+
 struct MutexMngr: wraps = Unique_Lock_Mutex{
     void: lock()        <- <%!lock()%>
     void: unlock()      <- <%!unlock()%>

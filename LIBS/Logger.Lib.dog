@@ -8,12 +8,12 @@ featuresNeeded = [List]//, Threads]
 struct logger{
     me string: logStr
     me bool: isVisible
-    //me Mutex: loggerMutex
+    me Mutex: loggerMutex
     me void: Show()             <- {isVisible <- true}
     me void: Hide()             <- {isVisible <- false}
     me void: Route(me string: routeSpec)
-    //me void: LogEntry(me string: loggerName, me string: logText) <- {me MutexMngr: MtxMgr{loggerMutex}; logMgr.writeToLog(loggerName+logText)}
-    me void: LogEntry(me string: loggerName, me string: logText) <- {logMgr.writeToLog(loggerName+logText)}
+    me void: LogEntry(me string: loggerName, me string: logText) <- {me MutexMngr: MtxMgr{loggerMutex}; logMgr.writeToLog(loggerName+logText)}
+//me void: LogEntry(me string: loggerName, me string: logText) <- {logMgr.writeToLog(loggerName+logText)}
 }
 
 struct logManager{
