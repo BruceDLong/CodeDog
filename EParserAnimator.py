@@ -411,10 +411,11 @@ class DrawingAreaFrame(gtk.Frame):
                 parseEvent['eventDesc'] = "STATE: "+recName+"."+fieldID+" = "+fieldVal
                 #print(">"+parseEvent['eventDesc'])
             elif opType=="PUTTING":
-                self.finalChars += logLine
-                parseEvent['putChars'] = logLine
+                self.finalChars += logLine+"\n"
+                parseEvent['putChars'] = logLine+"\n"
                 parseEvent['eventDesc'] = "PUTTING '"+parseEvent['putChars']+"'"
 
+            parseEvent['eventDesc'] = parseEvent['eventDesc'].replace('\n', '\\n')
             self.parseEvents.append(parseEvent)
             #print(">"+parseEvent['eventDesc'])
 
@@ -435,15 +436,20 @@ class DrawingAreaFrame(gtk.Frame):
             originPos = SRec[1]['originPos']
             endPos = SRec[1]['endPos']
             self.lastItemDesc=SRec[1]['eventDesc']
-            cr.rectangle(xPos+2, yPos, width-2, 50)
-            cr.stroke_preserve()
-            cr.set_line_width(1)
-            if 'child' in SRec[1]: cr.set_source_rgb(0.6,0.6,0.7)
-            else: cr.set_source_rgb(0.9,0.9,0.95)
 
             ResolveState = 'Initial'
             if 'RESOLVE_State'  in states: ResolveState=states['RESOLVE_State']
-            if ResolveState=='RESOLVE': cr.set_source_rgb(0.8,0.1,0.8)
+            if ResolveState=='FAILED': cr.set_source_rgb(0.8,0.8,0.8)
+
+
+            cr.rectangle(xPos+2, yPos, width-2, 50)
+            cr.stroke_preserve()
+            cr.set_line_width(1)
+            if 'child' in SRec[1]: cr.set_source_rgb(0.6,0.6,0.6)
+            else: cr.set_source_rgb(0.8,0.8,0.85)
+
+            if ResolveState=='RESOLVED': cr.set_source_rgb(0.8,0.3,0.8)
+            if ResolveState=='FAILED': cr.set_source_rgb(1,1,1)
 
             NextState = 'INITIAL'
             ChildState= 'INITIAL'
@@ -451,9 +457,9 @@ class DrawingAreaFrame(gtk.Frame):
             if 'CHILD_State' in states: ChildState=states['CHILD_State']
             if NextState=='RELEASED' and ChildState=='RELEASED': cr.set_source_rgb(0.1,0.8,0.0)
             elif NextState=='RELEASED': cr.set_source_rgb(0.8,0.8,0.0)
-            elif ChildState=='RELEASED': cr.set_source_rgb(0.7,0.7,0.9)
+            elif ChildState=='RELEASED': cr.set_source_rgb(0.6,0.6,1.0)
             elif NextState=='WAITING': cr.set_source_rgb(0.8,0.1,0.0)
-            elif ChildState=='WAITING': cr.set_source_rgb(0.9,0.1,0.9)
+            elif ChildState=='WAITING': cr.set_source_rgb(1.0,0.1,0.9)
 
             cr.rectangle(xPos+2, yPos, width-2, 50)
             cr.fill()
@@ -525,7 +531,10 @@ class DrawingAreaFrame(gtk.Frame):
         fromYPosE=arrowFrom['endYPos']
 
         if toArw!='NULL':
-            arrowTo   = self.AllocMap[toArw]
+            if not toArw in self.AllocMap:
+                print("ERROR:",toArw, "missing from AllocMap. Cannot draw it")
+                return
+            arrowTo  = self.AllocMap[toArw]
             toXPosS  =arrowTo['startXPos']
             toYPosS  =arrowTo['startYPos']
             toXPosE  =arrowTo['endXPos']
@@ -615,6 +624,7 @@ class DrawingAreaFrame(gtk.Frame):
     SlotSpan = 0
     maxStepsToDraw = 2
     allocsToDo = 0
+    prevLastStepDesc = ''
 
     def OnDraw(self, area, cr):
         #self.set_size_request(10000, 5000)
@@ -715,19 +725,29 @@ class DrawingAreaFrame(gtk.Frame):
 
         # Draw Characters at the top
         xCur = 5
-        crntY = 20
+        crntY = 40
         pos = 0
+        prevXPos =0
         cr.set_source_rgb(0,0,0)
         for ch in CharsPut:
-            renderText(cr, self.charPositions[pos]+5 ,crntY, ch, "Sans Normal 32")
+            char=ch
+            if ch=='\n': char='\\n'
+            elif ch=='\t': char='\\t'
+            xPos = self.charPositions[pos]
+            if xPos==prevXPos: continue
+            if xPos > 8888888: xPos = prevXPos+50
+            renderText(cr, xPos+5 ,crntY, char, "Sans Normal 32")
             xCur += self.SlotSpan
+            prevXPos = xPos
             pos += 1
         cr.set_source_rgb(0,0,1.0)
         if refToLastStepDone=='ALLOC': refToLastStepDone=self.lastItemDesc[:self.lastItemDesc.find(':')]
         if refToLastStepDone==None: refToLastStepDone='Beginning:'
-        renderText(cr, 20 ,20, "   Step:"+str(animator.maxStepsToDraw)+" / "+str(self.actionSorter.numSteps)+": "+refToLastStepDone, "Sans Normal 24")
-        print("CrntStep:", refToLastStepDone)
-        crntY += 80
+        renderText(cr, 20 ,10, "   Step:"+str(animator.maxStepsToDraw)+" / "+str(self.actionSorter.numSteps)+": "+refToLastStepDone, "Sans Normal 24")
+        if refToLastStepDone != self.prevLastStepDesc:
+            print("CrntStep:", refToLastStepDone)
+            self.prevLastStepDesc = refToLastStepDone
+
 
     def rescale(self, newScale):
         oldScale = self.scaleFactor()
@@ -788,6 +808,9 @@ class DrawingAreaFrame(gtk.Frame):
                     #if isNull
                     S+=item['partName']+'('+str(item['pixWidth'])+')  '
                 if parentRecID!='NULL':
+                    if not parentRecID in self.AllocMap:
+                        print("ERROR:",parentRecID,"not in AllocMap")
+                        continue
                     parentRec = self.AllocMap[parentRecID]
                     if not 'pixWidth' in parentRec: parentRec['pixWidth']=100
                     #print('CHILD:',rec['recName'],', parent:',parentRec['recName'])
@@ -812,7 +835,7 @@ class Window(gtk.Window):
         #viewPort.add()
         #self.add(scrollWin)
         self.set_title(title)
-        self.set_default_size(1800, 800)
+        self.set_default_size(3500, 2000)
         # Gdk.EventMask.SCROLL_MASK
         self.add_events(Gdk.EventMask.SCROLL_MASK)
         self.connect("destroy", gtk.main_quit)
@@ -869,7 +892,7 @@ class Window(gtk.Window):
             self.XCoordOrig = animator.crntXOffset()
             self.YCoordOrig = animator.crntYOffset()
             self.dragging=True
-        else: print("BUTTON#",button)
+        #else: print("BUTTON#",button)
         return True
 
     def on_mouseUp(self, widget, event):
@@ -888,7 +911,6 @@ class Window(gtk.Window):
 
     def on_mouseMove(self, widget, event):
         global animator
-        print("Current MOVE:")
         xLoc = event.x
         yLoc = event.y
         if self.dragging:

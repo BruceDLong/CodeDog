@@ -688,19 +688,17 @@ def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
 
 def writeParserWrapperFunction(classes, className):
     S='''
-struct GLOBAL{
+struct EParser{
     our <CLASSNAME>: Parse_<CLASSNAME>(me string: textIn) <- {
         our <CLASSNAME>: result
-        me EParser: parser
-        parser.populateGrammar()
-        parser.initParseFromString("<CLASSNAME>", parser.<CLASSNAME>_str, textIn)
-        parser.doParse()
-        if (parser.doesParseHaveError()) {
-            print("Parse Error:" + parser.errorMesg + "\\n")
+        initParseFromString("<CLASSNAME>", <CLASSNAME>_str, textIn)
+        doParse()
+        if (doesParseHaveError()) {
+            print("Parse Error:" + errorMesg + "\\n")
         } else {
-            our stateRec: topItem <- parser.topDownResolve(parser.lastTopLevelItem, "")
+            our stateRec: topItem <- topDownResolve(lastTopLevelItem, "")
             Allocate(result)
-            parser.Extract_<CLASSNAME>_to_<CLASSNAME>(topItem, result)
+            Extract_<CLASSNAME>_to_<CLASSNAME>(topItem, result)
         }
         return(result)
     }
