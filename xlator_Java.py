@@ -629,8 +629,13 @@ class Xlator_Java(Xlator):
 
     ############################################
     def codeProtectBlock(self, mutex, criticalText, indent):
-        S = indent+'MutexMngr mtxMgr = new MutexMngr('+mutex+');\n'
-        S += indent+'try{\n'+indent+'    '+mutex+'.lock();\n'+criticalText+indent+'}finally{'+mutex+'.unlock();}\n'
+        S = indent+'{\n'
+        S += indent+'    MutexMngr mtxMgr = new MutexMngr('+mutex+');\n'
+        S += indent+'    try{\n'
+        S += indent+'        '+mutex+'.lock();\n'
+        S += criticalText
+        S += indent+'    }finally{'+mutex+'.unlock();}\n'
+        S += indent+'}\n'
         return(S)
 
     def codeMain(self, classes, tags, objsRefed):

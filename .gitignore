@@ -68,6 +68,7 @@ ErrFile.dog
 # Build Directories
 SwiftBuild/
 SwingBuild/
+JavaBuild/
 iPhoneBuild/
 LinuxBuild/
 AndroidBuild/

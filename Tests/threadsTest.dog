@@ -1,9 +1,8 @@
 // threadsTest.dog
 
-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
-//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';
-//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
-//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+//LinuxBuild: Platform='Linux' Lang='CPP';
+JavaBuild: Platform='Java'  Lang='Java';
+//SwiftBuild: Platform='Swift' Lang='Swift';
 
 Title = "Threads Test"
 FileName = "threadsTest"
@@ -20,13 +19,17 @@ LicenseText = `Public Domain`
 
 runCode=`
     testThreads()
+    //tryPThreadMtx()
     //testMutex()
     //testMutexMgr()
+    //testPThreadCond()
     //testSyncLock()
 `
 
 struct GLOBAL{
+    //me pthread_mutex_t: pMtx
     me Mutex: mtx
+    //me pthread_cond_t: pT_condV
     me SyncLock: syncLk
     me bool: printThread <- false
     me bool: printValue  <- false
@@ -42,6 +45,33 @@ struct GLOBAL{
         printThread <- false
         tester.waitForExit()
     }
+    /*void: tryPThreadMtx() <- {
+        print("TEST P_THREAD MUTEX!\n")
+        me PT_MTX_TESTER: tester
+        tester.start()
+        withEach num in RANGE(1..10000){
+            if(num==1){printThread<-true}
+            if(num % 5 == 0){
+                pthread_mutex_lock(pMtx)
+                if(printValue){
+                    print("\nA")
+                    print("\nB")
+                    print("\nC")
+                    print("\nD")
+                }
+                pthread_mutex_unlock(pMtx)
+            }
+            else{
+                pthread_mutex_lock(pMtx)
+                if(printValue){
+                    print("\nVALUE:", num)
+                }
+                pthread_mutex_unlock(pMtx)
+            }
+        }
+        printThread <- false
+        tester.waitForExit()
+    }*/
     void: testMutex() <- {
         print("TEST MUTEX!\n")
         me MutexTester: tester
@@ -96,6 +126,24 @@ struct GLOBAL{
         printThread <- false
         tester.waitForExit()
     }
+    /*void: testPThreadCond() <- {
+        print("TEST PTHREAD CONDITION VARIABLE!\n")
+        me PT_CONDVAR_TESTER: tester
+        tester.start()
+        pthread_mutex_lock(pMtx)
+        while(waitCount < 200){
+            pthread_cond_wait(pT_condV, pMtx);
+        }
+        pthread_mutex_unlock(pMtx)
+        withEach num in RANGE(1..500){
+            if(printValue){
+                pthread_mutex_lock(pMtx)
+                    print("\nVALUE:", num)
+                pthread_mutex_unlock(pMtx)
+            }
+        }
+        tester.waitForExit()
+    }*/
     void: testSyncLock() <- {
         print("TEST SYNCLOCK!\n")
         me SyncLockTester: tester
@@ -125,6 +173,17 @@ struct ThreadTester: inherits=Threads{
     }
 
 }
+/*struct PT_MTX_TESTER: inherits=Threads{
+    void: run()<-{
+        withEach n in RANGE(1..1000){
+            if(n==1){printValue<-true}
+            pthread_mutex_lock(pMtx)
+            if(printThread){print("\n            THREAD:", n)}
+            pthread_mutex_unlock(pMtx)
+        }
+        printValue  <- false
+    }
+}*/
 struct MutexTester: inherits=Threads{
     void: run()<-{
         withEach n in RANGE(1..1000){
@@ -147,7 +206,21 @@ struct MutexMgrTester: inherits=Threads{
         printValue  <- false
     }
 }
-
+/*struct PT_CONDVAR_TESTER: inherits=Threads{
+    void: run()<-{
+        withEach n in RANGE(1..700){
+            if(n==1){printValue<-true}
+            pthread_mutex_lock(pMtx)
+            waitCount <- n
+            if (n == 200) {
+                pthread_cond_signal(pT_condV)
+            }
+            if(n>200){print("\n            THREAD:", n)}
+            pthread_mutex_unlock(pMtx)
+        }
+        printValue  <- false
+    }
+}*/
 struct SyncLockTester: inherits=Threads{
     void: run()<-{
         withEach n in RANGE(1..700){
@@ -163,3 +236,6 @@ struct SyncLockTester: inherits=Threads{
         printValue  <- false
     }
 }
+
+//// LINKS /////////////////////////////////////////////////////////////
+// Swift pthreads: https://rderik.com/blog/multithreading-with-pthreads-in-swift/

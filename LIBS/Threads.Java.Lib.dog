@@ -16,7 +16,23 @@ LibDescription  = {
     features    = [Threads]
     Lang        = [Java]
 }
-
+embedHigh = `
+class __SyncLock{
+    public void wait(ReentrantLock mutex){
+        try{
+            synchronized (this){
+                mutex.unlock();
+                wait();
+            }
+        }
+        catch(InterruptedException ie){}
+        finally{mutex.lock();}
+    }
+    public synchronized void notifyOne() {
+        notify();
+    }
+}
+`
 struct Threads: wraps=Thread ownerMe=their{
     me bool: notDone <- true
     me uint: ID()           <- {return(5);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
@@ -42,9 +58,9 @@ struct MutexMngr{
     none: MutexMngr(me Mutex: __mutex)<-{mtx <- __mutex}
 }
 
-struct SyncLock: wraps = TODO {
-    void: wait(me MutexMngr: lock)   <- <%{}%>          // TODO: for Proteus codeGen
-    void: notifyOne()                <- <%{}%>          // TODO: for Proteus codeGen
+struct SyncLock: wraps = __SyncLock {
+    void: wait(me MutexMngr: lock)   <- <%!wait(%1.mtx)%>          // TODO: for Proteus codeGen
+    void: notifyOne()                <- <%!notifyOne()%>          // TODO: for Proteus codeGen
     //void: notifyAll()                <- <%!%>
 }
 
@@ -52,3 +68,21 @@ struct Semaphore: wraps=Semaphore {
     //void: post()        <- <%!%>
     //void: wait()        <- <%!%>
 }
+
+/*struct GLOBAL{ // pthread_mutex_t
+    void: pthread_mutex_init(their pthread_mutex_t: mtx, their int: attr) <- <%!pthread_mutex_init(%1, %2)%>
+    void: pthread_mutex_consistent_np(their pthread_mutex_t: mtx)         <- <%!pthread_mutex_consistent_np(%1)%>
+    void: pthread_mutex_lock(their pthread_mutex_t: mtx)                  <- <%!pthread_mutex_lock(%1)%>
+    void: pthread_mutex_unlock(their pthread_mutex_t: mtx)                <- <%!pthread_mutex_unlock(%1)%>
+    void: pthread_mutex_trylock(their pthread_mutex_t: mtx)               <- <%!pthread_mutex_trylock(%1)%>
+    void: pthread_mutex_destroy(their pthread_mutex_t: mtx)               <- <%!pthread_mutex_destroy(%1)%>
+}
+
+struct GLOBAL{ // pthread_cond_t
+    void: pthread_cond_init(their pthread_cond_t: cv, their int: attr)               <- <%!pthread_cond_init(%1, %2)%>
+    void: pthread_cond_wait(their pthread_cond_t: cv, their pthread_mutex_t: lock)   <- <%!pthread_cond_wait(%1, %2)%>
+    void: pthread_cond_signal(their pthread_cond_t: cv)                              <- <%!pthread_cond_signal(%1)%>
+    void: pthread_cond_timedwait(their pthread_cond_t: cv, their pthread_mutex_t: mp, their timestruct_t: time) <- <%!pthread_cond_timedwait(%1,%2,%3)%>
+    void: pthread_cond_broadcast(their pthread_cond_t: cv)                           <- <%!pthread_cond_broadcast(%1)%>
+    void: pthread_cond_destroy(their pthread_cond_t: cv)                             <- <%!pthread_cond_destroy(%1)%>
+}*/

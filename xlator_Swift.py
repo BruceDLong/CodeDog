@@ -612,6 +612,9 @@ class Xlator_Swift(Xlator):
         return S
 
     ######################################################
+    def codeProtectBlock(self, mutex, criticalText, indent):
+        return(criticalText)
+
     def codeMain(self, classes, tags, objsRefed):
         cdlog(3, "\n            Generating GLOBAL...")
         if("GLOBAL" in classes[1]):
