@@ -12,13 +12,11 @@ import TestDog
 
 ##########  Library Shells
 import libraryMngr
-import codeGenerator
-import xlator_CPP
-import xlator_Java
+from codeGenerator import CodeGenerator
 #import xlator_JavaScript
-from xlator_Swift import Xlator_Swift
-from xlator_Java  import Xlator_Java
-from xlator_CPP  import Xlator_CPP
+from xlator_Swift  import Xlator_Swift
+from xlator_Java   import Xlator_Java
+from xlator_CPP    import Xlator_CPP
 import xlator
 
 import re
@@ -54,6 +52,7 @@ if arg1[0]=='-':
     print("Unsupported argument:", arg1)
     exit(1)
 atexit.register(progSpec.whenExit)
+codeGenerator = CodeGenerator()
 
 def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     result='No Language Generator Found for '+buildTags['Lang']
@@ -70,6 +69,7 @@ def GenerateProgram(classes, buildTags, tagsList, libsToUse):
     else:
         cdErr( "ERROR: No language generator found for ".format( langGenTag))
         exit(1)
+    xlator.codeGen = codeGenerator
     result=codeGenerator.generate(classes, tagsList, libsToUse, langName, xlator)
     return result
 

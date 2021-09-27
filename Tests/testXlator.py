@@ -547,7 +547,7 @@ struct testClass{
         }
     }
 }
-''', 'PGBR:H\ne\nl\nl\no1\n2\n3\n4\n5 \n \n \n \n ', ['action/withEachStr','action/withEachStrInts','action/withEachStrSpaces','action/withEachStrNone']],
+''', 'PGBR:H\ne\nl\nl\no1\n2\n3\n4\n5 \n \n \n \n ', ['action/withEachStrchars','action/withEachStrInts','action/withEachStrSpaces','action/withEachStrNone']],
 #####################################################################################################
      'mode/global':       ['struct GlobalMode: inherits=<mode[globalA, globalB, globalC]>{}\nstruct testClass{\n    me GlobalMode: globalMode <- globalC\n    me void: runTest()<-{\n        print(globalMode) print(GlobalModeStrings[globalMode])\n    }}', 'PGBR:2globalC'],
      'mode/struct':       ['struct testClass{mode[sModeA, sModeB, sModeC]: sMode\nme void: runTest()<-{\n    sMode <- sModeA\n    print(sMode)\n    print(sModeStrings[sMode])}}',    'PGBR:0sModeA'],
@@ -725,7 +725,7 @@ def runListedTests(testsToRun):
         if(testResult!="Success"):
             depsReportText = runDeps(testKey)
             reportText+= depsReportText
-            print(testKey, ":\t\t", depsReportText)
+            print(depsReportText)
     return reportText
 
 def gatherListOfTestsToRun(keywordList):
