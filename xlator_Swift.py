@@ -38,7 +38,7 @@ class Xlator_Swift(Xlator):
                 if 'IDXowner' in ctnrTSpec['indexType']:
                     idxOwner = ctnrTSpec['indexType']['IDXowner'][0]
                     idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
-                    idxType  = self.applyOwner(idxOwner, idxType, '')
+                    idxType  = self.applyOwner(ctnrTSpec, idxOwner, idxType)
                 else:
                     idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
             else:
@@ -69,7 +69,7 @@ class Xlator_Swift(Xlator):
         else: langType=progSpec.flattenObjectName(fieldType[0])
         return langType
 
-    def applyOwner(self, owner, langType, varMode):
+    def applyOwner(self, typeSpec, owner, langType):
         if owner=='me':
             langType = langType
         elif owner=='my':
@@ -79,13 +79,15 @@ class Xlator_Swift(Xlator):
         elif owner=='their':
             langType = langType
         elif owner=='itr':
-            langType += '::iterator'
+            reqTagList  = progSpec.getReqTagList(typeSpec)
+            itrType     = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(typeSpec))
+            genericArgs = progSpec.getGenericArgsFromTypeSpec(typeSpec)
+            langType    = self.codeGen.generateGenericStructName(itrType, reqTagList, genericArgs, self)
         elif owner=='const':
             langType = langType
         elif owner=='we':
             langType += 'public static'
-        else:
-            langType = ''
+        else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
         return langType
 
     def getUnwrappedClassOwner(self, classes, typeSpec, fieldType, varMode, ownerIn):
@@ -126,11 +128,11 @@ class Xlator_Swift(Xlator):
         # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
         innerType=''
         langType = self.adjustBaseTypes(fTypeKW, progSpec.isNewContainerTempFunc(typeSpec))
-        langType = self.applyOwner(owner, langType, varMode)
+        langType = self.applyOwner(typeSpec, owner, langType)
         if langType=='TYPE ERROR': print(langType, owner, fTypeKW);
         innerType = langType
         if progSpec.isNewContainerTempFunc(typeSpec): return [langType, innerType]
-        if varMode != 'alloc': innerType = self.applyOwner(owner, langType, varMode)
+        if varMode != 'alloc': innerType = self.applyOwner(typeSpec, owner, langType)
         return [langType, innerType]
 
     def makePtrOpt(self, typeSpec):
@@ -765,20 +767,8 @@ class Xlator_Swift(Xlator):
             del fieldDef['paramList'][-1]
             useCtor = True
         [cvrtType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, self)
-        reqTagList = progSpec.getReqTagList(lhsTypeSpec)
-        fieldType = progSpec.fieldTypeKeyword(lhsTypeSpec)
+        localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
         [allocFieldType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'alloc', '', genericArgs, self)
-        progSpec.isWrappedType(classes, fieldType)
-        progSpec.isAbstractStruct(classes[0], fieldType)
-        if reqTagList and not progSpec.isWrappedType(classes, fieldType) and not progSpec.isAbstractStruct(classes[0], fieldType):
-            cvrtType = self.codeGen.generateGenericStructName(fieldType, reqTagList, genericArgs, self)
-            allocFieldType = cvrtType
-            lhsTypeSpec = self.codeGen.getGenericTypeSpec(genericArgs, lhsTypeSpec, self)
-            fromImpl = progSpec.getFromImpl(lhsTypeSpec)
-            if fromImpl: lhsTypeSpec.pop('fromImplemented')
-            localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
-        else:
-            localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
         if(fieldDef['value']):
             [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, self)
             [leftMod, rightMod]=self.chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)

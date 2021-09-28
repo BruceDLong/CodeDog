@@ -733,6 +733,21 @@ def getGenericArgs(ObjectDef):
     if('genericArgs' in ObjectDef): return(ObjectDef['genericArgs'])
     else: return(None)
 
+def getGenericArgsFromTypeSpec(typeSpec):
+    genericArgs = {}
+    reqTagList = getReqTagList(typeSpec)
+    if reqTagList:
+        fromImpl = getFromImpl(typeSpec)
+        if fromImpl:
+            tArgList = fromImpl['typeArgList']
+            if tArgList:
+                count = 0
+                for reqTag in reqTagList:
+                    genericArgs[tArgList[count]]=reqTag
+                    count += 1
+        return genericArgs
+    return None
+
 def getTypeArgList(className):
     if not isinstance(className, str):
         print("ERROR: in progSpec.getTypeArgList(): expected a string not: "+ str(className))

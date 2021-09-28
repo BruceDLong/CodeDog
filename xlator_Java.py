@@ -37,7 +37,7 @@ class Xlator_Java(Xlator):
                 if 'IDXowner' in ctnrTSpec['indexType']:
                     idxOwner = ctnrTSpec['indexType']['IDXowner'][0]
                     idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
-                    idxType  = self.applyOwner(typeSpec, idxOwner, idxType, '')
+                    idxType  = self.applyOwner(typeSpec, idxOwner, idxType)
                 else:
                     idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
             else:
@@ -76,22 +76,24 @@ class Xlator_Java(Xlator):
                 else: javaType=progSpec.flattenObjectName(fieldType)
         return javaType
 
-    def isJavaPrimativeType(self, fieldType):
-        if fieldType=="int" or fieldType=="boolean" or fieldType=="float" or fieldType=="double" or fieldType=="long" or fieldType=="char": return True
-        return False
-
-    def applyOwner(self, typeSpec, owner, langType, actionOrField, varMode):
-        if owner=='const':
-            if actionOrField=="field": langType = "final static "+langType
-            else: langType = "final "+langType
-        elif owner=='me':    langType = langType
-        elif owner=='my':    langType = langType
-        elif owner=='our':   langType = langType
-        elif owner=='their': langType = langType
+    def applyOwner(self, typeSpec, owner, langType):
+        if owner=='me':
+            langType = langType
+        elif owner=='my':
+            langType = langType
+        elif owner=='our':
+            langType = langType
+        elif owner=='their':
+            langType = langType
         elif owner=='itr':
-            langType  = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(typeSpec))
-            if langType=='nodeType': cdErr("TODO: design iterators in Java!!!!!!!!!!!!!!!!!!!!!!!!!! "+langType)
-        elif owner=='we': langType = 'static '+langType
+            reqTagList  = progSpec.getReqTagList(typeSpec)
+            itrType     = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(typeSpec))
+            genericArgs = progSpec.getGenericArgsFromTypeSpec(typeSpec)
+            langType    = self.codeGen.generateGenericStructName(itrType, reqTagList, genericArgs, self)
+        elif owner=='const':
+            langType = "final "+langType
+        elif owner=='we':
+            langType = 'static '+langType
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
         return langType
 
@@ -127,7 +129,7 @@ class Xlator_Java(Xlator):
         # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
         innerType=''
         langType = self.adjustBaseTypes(fTypeKW, progSpec.isNewContainerTempFunc(typeSpec))
-        langType = self.applyOwner(typeSpec, owner, langType, actionOrField, varMode)
+        langType = self.applyOwner(typeSpec, owner, langType)
         if langType=='TYPE ERROR': print(langType, owner, fTypeKW);
         innerType = langType
         if progSpec.isNewContainerTempFunc(typeSpec): return [langType, innerType]
@@ -694,6 +696,10 @@ class Xlator_Java(Xlator):
 
         codeDogParser.AddToObjectFromText(classes[0], classes[1], GLOBAL_CODE, 'Java special code')
 
+    def isJavaPrimativeType(self, fieldType):
+        if fieldType=="int" or fieldType=="boolean" or fieldType=="float" or fieldType=="double" or fieldType=="long" or fieldType=="char": return True
+        return False
+
     def codeNewVarStr(self, classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, localVarsAllocated):
         varDeclareStr = ''
         assignValue   = ''
@@ -704,11 +710,6 @@ class Xlator_Java(Xlator):
             del fieldDef['paramList'][-1]
             useCtor = True
         [cvrtType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, self)
-        reqTagList = progSpec.getReqTagList(lhsTypeSpec)
-        fTypeKW = progSpec.fieldTypeKeyword(lhsTypeSpec)
-        if owner=='itr':
-            itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(lhsTypeSpec))
-            cvrtType = self.codeGen.generateGenericStructName(itrType, reqTagList, genericArgs, self)
         localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
         ctnrTSpec = progSpec.getContainerSpec(lhsTypeSpec)
         isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)

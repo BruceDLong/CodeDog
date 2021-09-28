@@ -9,7 +9,7 @@ class Xlator(object):
     def adjustBaseTypes(self, fieldType, isContainer):
         cdErr("In base class Xlator::adjustBaseTypes.")
 
-    def applyOwner(self, owner, langType, varMode):
+    def applyOwner(self, typeSpec, owner, langType):
         cdErr("In base class Xlator::applyOwner.")
 
     def getUnwrappedClassOwner(self, classes, typeSpec, fieldType, varMode, ownerIn):

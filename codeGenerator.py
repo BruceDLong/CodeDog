@@ -542,12 +542,8 @@ class CodeGenerator(object):
             fromImplIn = progSpec.getFromImpl(typeSpecOut)
             if fromImplIn:
                 tArgList = fromImplIn['typeArgList']
-                genericArgsOut = {}
                 if tArgList:
-                    count = 0
-                    for reqTag in reqTagList:
-                        genericArgsOut[tArgList[count]]=reqTag
-                        count += 1
+                    genericArgsOut = progSpec.getGenericArgsFromTypeSpec(typeSpecOut)
                     fromImplIn['genericArgs'] = genericArgsOut
                     for implName in fromImplIn:
                         if implName == 'atTypeSpec' or implName=='atKeyTypeSpec':
@@ -740,7 +736,7 @@ class CodeGenerator(object):
                     T0Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(self.globalClassStore, T0Type)
                     T0Type  = xlator.adjustBaseTypes(T0Type)
                     T0Owner = progSpec.getOwnerFromTemplateArg(reqTagList[0])
-                    T0Type  = xlator.applyOwner(T0Owner, T0Type, "")
+                    T0Type  = xlator.applyOwner(typeSpecOut, T0Owner, T0Type)
                     convertedName = convertedName.replace("%T0Type",T0Type)
                 else: cdErr("ERROR: looking for T0Type in codeConverter but reqTagList found in TypeSpec.")
             if "%T1Type" in convertedName:
@@ -749,7 +745,7 @@ class CodeGenerator(object):
                     T1Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(self.globalClassStore, T1Type)
                     T1Type  = xlator.adjustBaseTypes(T1Type)
                     T1Owner = progSpec.getOwnerFromTemplateArg(reqTagList[1])
-                    T1Type  = xlator.applyOwner(T1Owner, T1Type, "")
+                    T1Type  = xlator.applyOwner(typeSpecOut, T1Owner, T1Type)
                     convertedName = convertedName.replace("%T1Type",T1Type)
                 else: cdErr("ERROR: looking for T1Type in codeConverter but reqTagList found in TypeSpec.")
             #print("codeConverter ",name,"->",convertedName, typeSpecOut)
@@ -1871,7 +1867,6 @@ class CodeGenerator(object):
                     self.StaticMemberVars[maskVarName]  =className
                     self.StaticMemberVars[fieldName+'Strings']  = className
                     self.modeStateNames[fieldName+'Strings']=className
-                    print("$$$$$", self.modeStateNames)
                     for eItem in enumList:
                         self.StaticMemberVars[eItem]=className
 

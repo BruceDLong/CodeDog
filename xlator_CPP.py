@@ -37,7 +37,7 @@ class Xlator_CPP(Xlator):
                 if 'IDXowner' in ctnrTSpec['indexType']:
                     idxOwner = ctnrTSpec['indexType']['IDXowner'][0]
                     idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
-                    idxType  = self.applyOwner(idxOwner, idxType, '')
+                    idxType  = self.applyOwner(ctnrTSpec, idxOwner, idxType)
                 else:
                     idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
             if(isinstance(ctnrTSpec['datastructID'], str)):
@@ -63,7 +63,7 @@ class Xlator_CPP(Xlator):
         else: langType=progSpec.flattenObjectName(fieldType[0])
         return langType
 
-    def applyOwner(self, owner, langType, varMode):
+    def applyOwner(self, typeSpec, owner, langType):
         if owner=='me':
             langType = langType
         elif owner=='my':
@@ -84,8 +84,7 @@ class Xlator_CPP(Xlator):
             langType += '**'
         elif owner=='dblTheir':
             langType += '**'
-        else:
-            cdErr("ERROR: Owner of type not valid '" + owner + "'")
+        else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
         return langType
 
     def getUnwrappedClassOwner(self, classes, typeSpec, fieldType, varMode, ownerIn):
@@ -113,7 +112,7 @@ class Xlator_CPP(Xlator):
                 unwrappedOwner=self.getUnwrappedClassOwner(classes, typeSpec, varTypeKW, 'alloc', reqOwnr)
                 unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
                 unwrappedKW = self.adjustBaseTypes(unwrappedKW)
-                reqType     = self.applyOwner(unwrappedOwner, unwrappedKW, '')
+                reqType     = self.applyOwner(typeSpec, unwrappedOwner, unwrappedKW)
                 if(count>0):reqTagStr += ", "
                 reqTagStr += reqType
                 count += 1
@@ -127,7 +126,7 @@ class Xlator_CPP(Xlator):
         reqTagStr = self.getReqTagString(classes, typeSpec)
         langType += reqTagStr
         if reqTagStr != '':innerType = langType
-        if varMode != 'alloc': langType = self.applyOwner(owner, langType, varMode)
+        if varMode != 'alloc': langType = self.applyOwner(typeSpec, owner, langType)
 
         if progSpec.isNewContainerTempFunc(typeSpec):
             return [langType, innerType]
@@ -142,20 +141,20 @@ class Xlator_CPP(Xlator):
                 idxType  = self.adjustBaseTypes(idxType)
                 if idxType=='timeValue': idxType = 'int64_t'
                 if containerType=='deque':
-                    if varMode == 'alloc': langType = self.applyOwner(owner, langType, varMode)
+                    if varMode == 'alloc': langType = self.applyOwner(typeSpec, owner, langType)
                     langType="deque< "+langType+" >"
                 elif containerType=='list':
-                    if varMode == 'alloc': langType = self.applyOwner(owner, langType, varMode)
+                    if varMode == 'alloc': langType = self.applyOwner(typeSpec, owner, langType)
                     langType="list< "+langType+" >"
                 elif containerType=='map':
-                    if varMode == 'alloc': langType = self.applyOwner(owner, langType, varMode)
+                    if varMode == 'alloc': langType = self.applyOwner(typeSpec, owner, langType)
                     langType="map< "+idxType+', '+langType+" >"
                 elif containerType=='multimap':
-                    if varMode == 'alloc': langType = self.applyOwner(owner, langType, varMode)
+                    if varMode == 'alloc': langType = self.applyOwner(typeSpec, owner, langType)
                     langType="multimap< "+idxType+', '+langType+" >"
                 innerType = langType
                 if varMode != 'alloc':
-                    langType=self.applyOwner(ctnrOwner, langType, varMode)
+                    langType=self.applyOwner(typeSpec, ctnrOwner, langType)
         return [langType, innerType]
 
     def makePtrOpt(self, typeSpec):
