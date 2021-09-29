@@ -937,9 +937,8 @@ def fieldTypeKeyword(fieldType):
         fieldType = fieldType['fieldType']
     if isinstance(fieldType, str):
         return fieldType
-    if isinstance(fieldType, list):
-        if len(fieldType) > 1 and fieldType[1] == '..':
-            return 'int'
+    if len(fieldType) > 1 and fieldType[1] == '..':
+        return 'int'
     if('varType' in fieldType[0]):
         fieldType = fieldType[0]['varType']
     if isinstance(fieldType[0], str):

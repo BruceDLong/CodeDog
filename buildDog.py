@@ -13,6 +13,7 @@ from progSpec import cdlog, cdErr
 from pathlib import Path
 
 
+importantFolders = {}
 #TODO: error handling
 def string_escape(s, encoding='utf-8'):
     return (s.encode('latin1')         # To bytes, required by 'unicode-escape'
@@ -44,7 +45,7 @@ def makeDirs(dirToGen):
     except FileExistsError:
         # Another thread was already created the directory when
         # several simultaneous requests has come
-        if os.path.isdir(os.path.dirname(abs_path)):
+        if os.path.isdir(os.path.dirname(dirToGen)):
             pass
         else:
             raise
@@ -96,16 +97,6 @@ def copyRecursive(src, dst, symlinks=False):
                 # ~ errors.extend((src, dst, str(why)))
         # ~ if errors:
             # ~ raise shutil.Error(errors)
-
-def gitClone(cloneUrl, packageName, packageDirectory):
-    import urllib.request
-    from git import Repo
-    packagePath = packageDirectory + '/' + packageName + '/' + packageName
-    checkRepo = os.path.isdir(packagePath)
-    if not checkRepo:
-        cdlog(1, "Cloning git repository: " + packageName)
-        Repo.clone_from(cloneUrl, packagePath)
-        makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
 
 def downloadFile(downloadUrl, packageName, packageDirectory):
     import pycurl
@@ -206,6 +197,8 @@ def FindOrFetchLibraries(buildName, packageData, platform):
 
             if 'buildCmd' in buildCmdMap:
                 actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
+                for folderKey,folderVal in importantFolders.items():
+                    actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
                 #print("BUILDCMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
                 runCMD(actualBuildCmd, downloadedFolder)
 
@@ -214,6 +207,9 @@ def FindOrFetchLibraries(buildName, packageData, platform):
                 # ~ installFiles = progSpec.extractListFromTagList(installfileList)
                 # ~ print("    DATA:", str(installFiles)[:100])
                 LibsFolder = packageDirectory + '/' + packageName + "/INSTALL"
+                makeDirs(LibsFolder)
+                importantFolders[packageName+'@Install'] = LibsFolder
+                importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
                 includeFolders += "     '"+LibsFolder+"',\n"
                 libFolders     += "     '"+LibsFolder+"',\n"
                 for filenameX in installfileList:
@@ -234,10 +230,10 @@ def gitClone(cloneUrl, packageName, packageDirectory):
             urllib.request.urlopen(cloneUrl)
         except (urllib.error.URLError, urllib.error.HTTPError):
             cdErr("URL not found : " + cloneUrl)
-        else:
-            cdlog(1, "Cloning git repository: " + packageName)
-            Repo.clone_from(cloneUrl, packagePath)
-            makeDirs(packageDirectory + '/' + packageName + "/LIBS")
+
+        cdlog(1, "Cloning git repository: " + packageName)
+        Repo.clone_from(cloneUrl, packagePath)
+        makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
 
 def downloadFile(downloadUrl, packageName, packageDirectory):
     import pycurl
