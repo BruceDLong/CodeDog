@@ -3,6 +3,12 @@
 // Widgets for constructing a DataManager
 
 featuresNeeded = [Networking, Websockets]
+model infonTypeSpec{       // Represents an infon source / views
+    me string: IdTag
+    me string: longTitle
+    me string: shortTitle
+    me bool: isDefault
+}
 struct infonTypeSpec{}
 struct dataSourceDetails{}
 struct DataManager{
