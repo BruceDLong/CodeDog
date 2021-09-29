@@ -1,9 +1,8 @@
 // unicodeTest.dog
 
-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
-//SwingBuild: Platform='Swing' CPU='JavaVM' Lang='Java' optimize='speed';
-//AndroidBuild: Platform='Android' CPU='JavaVM' Lang='Java' optimize='power';
-//iPhoneBuild: Platform='IOS' CPU='amd64' Lang='Swift' optimize='speed';
+LinuxBuild: Platform='Linux' Lang='CPP';
+//JavaBuild: Platform='Swing' Lang='Java';
+//SwiftBuild: Platform='Swift' Lang='Swift';
 
 Title = "Unicode Test"
 FileName = "unicodeTest"

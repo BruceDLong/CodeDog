@@ -89,7 +89,7 @@ class Xlator_Java(Xlator):
             reqTagList  = progSpec.getReqTagList(typeSpec)
             itrType     = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(typeSpec))
             genericArgs = progSpec.getGenericArgsFromTypeSpec(typeSpec)
-            langType    = self.codeGen.generateGenericStructName(itrType, reqTagList, genericArgs, self)
+            langType    = self.codeGen.generateGenericStructName(itrType, reqTagList, genericArgs)
         elif owner=='const':
             langType = "final "+langType
         elif owner=='we':
@@ -406,7 +406,7 @@ class Xlator_Java(Xlator):
             else:
                 keyVarSpec = {'owner':firstOwner, 'fieldType':idxTypeKW, 'codeConverter':(repName+'.node.key')}
                 firstTSpec['codeConverter'] = (repName+'.node.value')
-                itrType    = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec)) + ' '
+                itrType    = self.codeGen.convertType(itrTSpec, 'var', 'action', genericArgs)[0]+' '
                 frontItr   = ctnrName+'.front()'
                 if not 'generic' in ctnrTSpec: itrType += reqTagStr
                 actionText += (indent + 'for('+itrType + itrName+' ='+frontItr + '; ' + itrName + '.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n')
@@ -415,7 +415,7 @@ class Xlator_Java(Xlator):
         elif containerCat=="LIST":
             containedOwner = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
             keyVarSpec     = {'owner':containedOwner, 'fieldType':firstType}
-            [iteratorTypeStr, innerType] = self.codeGen.convertType(firstTSpec, 'var', 'action', genericArgs, self)
+            [iteratorTypeStr, innerType] = self.codeGen.convertType(firstTSpec, 'var', 'action', genericArgs)
             loopVarName=repName+"Idx";
             if(isBackward):
                 actionText += (indent + "for(int "+loopVarName+'='+ctnrName+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+'){\n'
@@ -451,20 +451,20 @@ class Xlator_Java(Xlator):
         #print("ITEM0=", item0, ">>>>>", item)
         if (isinstance(item0, str)):
             if item0=='(':
-                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, self)
+                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 S+='(' + S2 +')'
             elif item0=='!':
-                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, self)
+                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 [S, retTypeSpec]  = self.codeNotOperator(S, S2,retTypeSpec)
             elif item0=='-':
-                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, self)
+                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 S+='-' + S2
             elif item0=='[':
                 count=0
                 tmp="(Arrays.asList("
                 for expr in item[1:-1]:
                     count+=1
-                    [S2, exprTypeSpec] = self.codeGen.codeExpr(expr, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, self)
+                    [S2, exprTypeSpec] = self.codeGen.codeExpr(expr, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                     if not exprTypeSpec=='noType':
                         retTypeSpec = self.adjustBaseTypes(exprTypeSpec, True)
                     if count>1: tmp+=', '
@@ -500,7 +500,7 @@ class Xlator_Java(Xlator):
                     retTypeSpec='BigFrac'
                 elif(item0[0]=="'"):
                     retTypeSpec='String'
-                    S+=self.codeGen.codeUserMesg(item0[1:-1], self)
+                    S+=self.codeGen.codeUserMesg(item0[1:-1])
                 elif (item0[0]=='"'):
                     if returnType != None and returnType["fieldType"]=="char":
                         retTypeSpec='char'
@@ -526,7 +526,7 @@ class Xlator_Java(Xlator):
                 if isinstance(S, int): retTypeSpec = 'int64'
                 else:  retTypeSpec = 'int32'
             else:
-                [codeStr, retTypeSpec, prntType, AltIDXFormat]=self.codeGen.codeItemRef(item0, 'RVAL', objsRefed, returnType, LorRorP_Val, genericArgs, self)
+                [codeStr, retTypeSpec, prntType, AltIDXFormat]=self.codeGen.codeItemRef(item0, 'RVAL', objsRefed, returnType, LorRorP_Val, genericArgs)
                 if(codeStr=="NULL"):
                     codeStr="null"
                     retTypeSpec={'owner':"PTR"}
@@ -569,7 +569,7 @@ class Xlator_Java(Xlator):
                 for P in paramList:
                     if(count!=0): S+=" + "
                     count+=1
-                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, self)
+                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs)
                     if 'fieldType' in argTypeSpec:
                         fieldType = progSpec.fieldTypeKeyword(argTypeSpec)
                         fieldType = self.adjustBaseTypes(fieldType, False)
@@ -581,19 +581,19 @@ class Xlator_Java(Xlator):
                 retOwner='me'
                 fieldType='string'
             elif(funcName=='AllocateOrClear'):
-                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', genericArgs, self)
-                S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs, self)+"();}"
+                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', genericArgs)
+                S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+"();}"
             elif(funcName=='Allocate'):
-                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', genericArgs, self)
+                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', genericArgs)
                 fieldType = progSpec.fieldTypeKeyword(varTypeSpec)
-                S+=varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs, self)+'('
+                S+=varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+'('
                 count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
                 if fieldType=='workerMsgThread':
                     S += '"workerMsgThread"'
                 else:
                     for P in paramList[1:]:
                         if(count>0): S+=', '
-                        [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, self)
+                        [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs)
                         S+=S2
                         count=count+1
                 S+=")"
@@ -605,7 +605,7 @@ class Xlator_Java(Xlator):
                 if len(paramList)==0: S+='this'
             elif(funcName=='toStr'):
                 if len(paramList)==1:
-                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0][0], objsRefed, None, None, 'PARAM', genericArgs, self)
+                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0][0], objsRefed, None, None, 'PARAM', genericArgs)
                     [S2, isDerefd]=self.derefPtr(S2, argTypeSpec)
                     S+='String.valueOf('+S2+')'
                     fieldType='String'
@@ -709,20 +709,20 @@ class Xlator_Java(Xlator):
         if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
             del fieldDef['paramList'][-1]
             useCtor = True
-        [cvrtType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, self)
+        [cvrtType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'var', actionOrField, genericArgs)
         localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
         ctnrTSpec = progSpec.getContainerSpec(lhsTypeSpec)
         isAContainer=progSpec.isNewContainerTempFunc(lhsTypeSpec)
         fTypeKW = self.adjustBaseTypes(cvrtType, isAContainer)
         if isinstance(ctnrTSpec, str) and ctnrTSpec == None:
             if(fieldDef['value']):
-                [S2, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, self)
+                [S2, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs)
                 RHS = S2
                 assignValue=' = '+ RHS
                 #TODO: make test case
             else: assignValue=''
         elif(fieldDef['value']):
-            [S2, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs, self)
+            [S2, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs)
             S2=self.checkForTypeCastNeed(cvrtType, rhsTypeSpec, S2)
             RHS = S2
             if self.varTypeIsValueType(fTypeKW):
@@ -738,7 +738,7 @@ class Xlator_Java(Xlator):
             CPL=''
             if fieldDef['paramList'] != None:       # call constructor  # curly bracket param list
                 # Code the constructor's arguments
-                [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs, self)
+                [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs)
                 if len(paramTypeList)==1:
                     if not isinstance(paramTypeList[0], dict):
                         print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
@@ -786,7 +786,7 @@ class Xlator_Java(Xlator):
                 #TODO: make test case
                 if paramList[-1] == "^&useCtor//8":
                     del paramList[-1]
-                [CPL, paramTypeList] = self.codeGen.codeParameterList(fieldName, paramList, None, objsRefed, genericArgs, self)
+                [CPL, paramTypeList] = self.codeGen.codeParameterList(fieldName, paramList, None, objsRefed, genericArgs)
                 fieldValueText=" = new " + cvrtType + CPL
             elif typeArgList == None:
                 fieldValueText=" = new " + cvrtType + "()"

@@ -70,7 +70,8 @@ def GenerateProgram(classes, buildTags, tagsList, libsToUse):
         cdErr( "ERROR: No language generator found for ".format( langGenTag))
         exit(1)
     xlator.codeGen = codeGenerator
-    result=codeGenerator.generate(classes, tagsList, libsToUse, langName, xlator)
+    codeGenerator.xlator = xlator
+    result=codeGenerator.generate(classes, tagsList, libsToUse, langName)
     return result
 
 def GenerateSystem(classes, buildSpecs, tags, macroDefs):

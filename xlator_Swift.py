@@ -82,7 +82,7 @@ class Xlator_Swift(Xlator):
             reqTagList  = progSpec.getReqTagList(typeSpec)
             itrType     = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(typeSpec))
             genericArgs = progSpec.getGenericArgsFromTypeSpec(typeSpec)
-            langType    = self.codeGen.generateGenericStructName(itrType, reqTagList, genericArgs, self)
+            langType    = self.codeGen.generateGenericStructName(itrType, reqTagList, genericArgs)
         elif owner=='const':
             langType = langType
         elif owner=='we':
@@ -166,7 +166,7 @@ class Xlator_Swift(Xlator):
     def LanguageSpecificDecorations(self, S, typeSpec, owner, LorRorP_Val):
         if typeSpec!= 0 and progSpec.typeIsPointer(typeSpec) and typeSpec['owner']!='itr' and not 'codeConverter' in typeSpec:
             if LorRorP_Val == "PARAM" and S=="nil":
-                [cvrtType, innerType] = self.codeGen.convertType(typeSpec, 'arg', '', genericArgs, self)
+                [cvrtType, innerType] = self.codeGen.convertType(typeSpec, 'arg', '', genericArgs)
                 S = 'Optional<'+cvrtType+'>.none'
         return S
 
@@ -394,7 +394,7 @@ class Xlator_Swift(Xlator):
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
         itrTSpec     = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
-        itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
+        itrType    = progSpec.fieldTypeKeyword(itrTSpec)
         itrOwner     = progSpec.getOwnerFromTypeSpec(itrTSpec)
         itrName      = repName + "Itr"
         containerCat = self.getContaineCategory(ctnrTSpec)
@@ -402,17 +402,17 @@ class Xlator_Swift(Xlator):
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
         if containerCat=='PovList': cdErr("TODO: handle PovList")
         if containerCat=='MAP':
+            reqTagStr    = self.getReqTagString(classes, ctnrTSpec)
             if(reqTagList != None):
+                firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
                 firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
             keyVarSpec  = {'owner':firstOwner, 'fieldType':firstType, 'codeConverter':(repName+'!.key')}
             firstTSpec['codeConverter'] = (repName+'!.value')
-            itrType     = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
-            itrTypeKW   = progSpec.fieldTypeKeyword(itrType)
-            itrTypeKW   = self.codeGen.generateGenericStructName(itrTypeKW, reqTagList, genericArgs, self)
-            itrDeclStr  = indent + 'var '+itrName+":"+itrTypeKW+' = '+ctnrName+'.front()\n'
+            itrType    = self.codeGen.convertType(itrTSpec, 'var', 'action', genericArgs)[0]+' '
+            itrDeclStr  = indent + 'var '+itrName+":"+itrType+' = '+ctnrName+'.front()\n'
             localVarsAlloc.append([itrName, itrType])
             endItrName       = repName + "EndItr"
-            endItrStr   = indent + 'var ' + endItrName + ':'+itrTypeKW+' = '+ctnrName+'.end()\n'
+            endItrStr   = indent + 'var ' + endItrName + ':'+itrType+' = '+ctnrName+'.end()\n'
             itrIncStr   = indent + "    " + itrName + " = " + itrName + ".__inc()\n"
             actionText += itrDeclStr + endItrStr
             actionText += (indent + 'while ' + itrName + '.node !== '+endItrName+'.node {\n')
@@ -464,18 +464,18 @@ class Xlator_Swift(Xlator):
         #print("ITEM0=", item0, ">>>>>", item)
         if (isinstance(item0, str)):
             if item0=='(':
-                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, self)
+                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 S+='(' + S2 +')'
             elif item0=='!':
-                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, self)
+                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 [S, retTypeSpec]  = self.codeNotOperator(S, S2,retTypeSpec)
             elif item0=='-':
-                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, self)
+                [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 S+='-' + S2
             elif item0=='[':
                 tmp="["
                 for expr in item[1:-1]:
-                    [S2, retTypeSpec] = self.codeGen.codeExpr(expr, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs, self)
+                    [S2, retTypeSpec] = self.codeGen.codeExpr(expr, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                     if len(tmp)>1: tmp+=", "
                     tmp+=S2
                 tmp+="]"
@@ -495,7 +495,7 @@ class Xlator_Swift(Xlator):
                     retTypeSpec='BigFrac'
                 elif(item0[0]=="'"):
                     retTypeSpec='string'
-                    S+=self.codeGen.codeUserMesg(item0[1:-1], self)
+                    S+=self.codeGen.codeUserMesg(item0[1:-1])
                 elif (item0[0]=='"'):
                     if returnType != None and returnType["fieldType"]=="char":
                         retTypeSpec='char'
@@ -521,7 +521,7 @@ class Xlator_Swift(Xlator):
                 if isinstance(S, int): retTypeSpec = 'int64'
                 else:  retTypeSpec = 'int32'
             else:
-                [codeStr, retTypeSpec, prntType, AltIDXFormat]=self.codeGen.codeItemRef(item0, 'RVAL', objsRefed, returnType, LorRorP_Val, genericArgs, self)
+                [codeStr, retTypeSpec, prntType, AltIDXFormat]=self.codeGen.codeItemRef(item0, 'RVAL', objsRefed, returnType, LorRorP_Val, genericArgs)
                 if(codeStr=="NULL"):
                     codeStr="nil"
                     retTypeSpec={'owner':"PTR"}
@@ -554,32 +554,32 @@ class Xlator_Swift(Xlator):
                 S+='print('
                 count = 0
                 for P in paramList:
-                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, self)
+                    [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs)
                     [S2, isDerefd]=self.derefPtr(S2, argTypeSpec)
                     if(count>0): S+=', '
                     S+=S2
                     count= count + 1
                 S+=',separator:"", terminator:"")'
             elif(funcName=='AllocateOrClear'):
-                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', genericArgs, self)
+                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], objsRefed, None, None, 'PARAM', genericArgs)
                 if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
                 if(varName[-1]=='!'): varNameUnRefed=varName[:-1]  # Remove a reference. It would be better to do this in self.codeGen.codeExpr but may take some work.
                 else: varNameUnRefed=varName
-                S+='if('+varNameUnRefed+' != nil){'+varName+'.clear();} else {'+varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs, self)+"();}"
+                S+='if('+varNameUnRefed+' != nil){'+varName+'.clear();} else {'+varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+"();}"
             elif(funcName=='Allocate'):
-                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], objsRefed, None, None, 'LVAL', genericArgs, self)
+                [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], objsRefed, None, None, 'LVAL', genericArgs)
                 if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
-                S+=varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs, self)+'('
+                S+=varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+'('
                 count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
                 for P in paramList[1:]:
                     if(count>0): S+=', '
-                    [S2, argType]=self.codeGen.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs, self)
+                    [S2, argType]=self.codeGen.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs)
                     S+=S2
                     count=count+1
                 S+=")"
             elif(funcName=='callPeriodically'):
-                [objName,  fieldType]=self.codeGen.codeExpr(paramList[1][0], objsRefed, None, None, 'PARAM', genericArgs, self)
-                [interval,  intSpec] = self.codeGen.codeExpr(paramList[2][0], objsRefed, None, None, 'PARAM', genericArgs, self)
+                [objName,  fieldType]=self.codeGen.codeExpr(paramList[1][0], objsRefed, None, None, 'PARAM', genericArgs)
+                [interval,  intSpec] = self.codeGen.codeExpr(paramList[2][0], objsRefed, None, None, 'PARAM', genericArgs)
                 varTypeSpec= fieldType['fieldType'][0]
                 wrapperName="cb_wraps_"+varTypeSpec
                 S+='g_timeout_add('+interval+', '+wrapperName+', '+objName+')'
@@ -594,7 +594,7 @@ class Xlator_Swift(Xlator):
                 if len(paramList)==0: S+='return'
             elif(funcName=='toStr'):
                 if len(paramList)==1:
-                    [S2, argType]=self.codeGen.codeExpr(P[0][0], objsRefed, None, None, 'PARAM', genericArgs, self)
+                    [S2, argType]=self.codeGen.codeExpr(P[0][0], objsRefed, None, None, 'PARAM', genericArgs)
                     S2=self.derefPtr(S2, argType)
                     S+='to_string('+S2+')'
                     returnType='string'
@@ -623,7 +623,7 @@ class Xlator_Swift(Xlator):
             if(classes[0]["GLOBAL"]['stateType'] != 'struct'):
                 print("ERROR: GLOBAL must be a 'struct'.")
                 exit(2)
-            [structCode, funcCode, globalFuncs]=self.codeGen.codeStructFields("GLOBAL", tags, '', objsRefed, self)
+            [structCode, funcCode, globalFuncs]=self.codeGen.codeStructFields("GLOBAL", tags, '', objsRefed)
             if(funcCode==''): funcCode="// No main() function.\n"
             if(structCode==''): structCode="// No Main Globals.\n"
             funcCode = "\n\n"+funcCode+"\nmain();" # TODO: figure out why call to main isn't generated and un-hardcode this
@@ -766,11 +766,11 @@ class Xlator_Swift(Xlator):
         if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
             del fieldDef['paramList'][-1]
             useCtor = True
-        [cvrtType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'var', actionOrField, genericArgs, self)
+        [cvrtType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'var', actionOrField, genericArgs)
         localVarsAllocated.append([varName, lhsTypeSpec])  # Tracking local vars for scope
-        [allocFieldType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'alloc', '', genericArgs, self)
+        [allocFieldType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'alloc', '', genericArgs)
         if(fieldDef['value']):
-            [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs, self)
+            [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], objsRefed, None, None, 'RVAL', genericArgs)
             [leftMod, rightMod]=self.chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)
             RHS = leftMod+RHS+rightMod
             RHS = self.checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHS)
@@ -779,7 +779,7 @@ class Xlator_Swift(Xlator):
             CPL=''
             if fieldDef['paramList'] != None:       # call constructor  # curly bracket param list
                 # Code the constructor's arguments
-                [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs, self)
+                [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs)
                 if len(paramTypeList)==1:
                     if not isinstance(paramTypeList[0], dict):
                         print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
@@ -820,7 +820,7 @@ class Xlator_Swift(Xlator):
         if paramList!=None:
             if paramList[-1] == "^&useCtor//8":
                 del paramList[-1]
-            [CPL, paramTypeList] = self.codeGen.codeParameterList(fieldName, paramList, None, objsRefed, genericArgs, self)
+            [CPL, paramTypeList] = self.codeGen.codeParameterList(fieldName, paramList, None, objsRefed, genericArgs)
             fieldValueText=" = " + cvrtType + CPL
         else:
             fieldValueText = self.variableDefaultValueString(cvrtType, isTypeArg, fieldOwner)

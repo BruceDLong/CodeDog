@@ -1,0 +1,58 @@
+// bigNumbersTest.dog
+
+LinuxBuild: Platform='Linux' Lang='CPP';
+//JavaBuild: Platform='Swing' Lang='Java';
+//SwiftBuild: Platform='Swift' Lang='Swift';
+
+Title = "BigNumbers Test"
+FileName = "bigNumbersTest"
+CopyrightMesg = "Public Domain"
+Description = "This is a test for BigNumbers Libraries"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [BigNumbers]
+
+LicenseText = `Public Domain`
+
+
+runCode=`runProg()`
+
+struct GLOBAL{
+    void: runProg() <- {
+        print("BIGNUMBERS TESTS\n")
+        // TEST 1
+        me BigInt: A <- 100000000
+        me BigInt: B <- 555555555
+        me BigInt: C <- A + B
+        if(toString(C)=="655555555"){print("TEST 1 PASS: " ,toString(C), "\n")}
+        else{print("TEST 1 FAIL: " ,toString(C), "\n")}
+
+        // TEST 2
+        me BigInt: D <- C - B
+        if(D==A){print("TEST 2 PASS: " ,toString(D), "\n")}
+        else{print("TEST 2 FAIL: " ,toString(D), "\n")}
+
+        // TEST 3
+        me BigInt: E <- A * B
+        if(toString(E)=="55555555500000000"){print("TEST 3 PASS: " ,toString(E), "\n")}
+        else{print("TEST 3 FAIL: " ,toString(E), "\n")}
+
+        // TEST 4
+        me BigInt: F <- E / B
+        if(F==A){print("TEST 4 PASS: " ,toString(F), "\n")}
+        else{print("TEST 4 FAIL: " ,toString(F), "\n")}
+
+        // TEST 5
+        me int64: I64 <- 12345
+        me BigInt: I <- I64
+        if(I==12345){print("TEST 5 PASS: " ,toString(I), "\n")}
+        else{print("TEST 5 FAIL: " ,toString(I), "\n")}
+
+        // TEST 6
+        me int:   Ji <- 45678
+        me BigInt: J <- Ji
+        if(J==45678){print("TEST 6 PASS: " ,toString(J), "\n")}
+        else{print("TEST 6 FAIL: " ,toString(J), "\n")}
+
+    }
+}
