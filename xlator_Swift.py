@@ -38,7 +38,7 @@ class Xlator_Swift(Xlator):
                 if 'IDXowner' in ctnrTSpec['indexType']:
                     idxOwner = ctnrTSpec['indexType']['IDXowner'][0]
                     idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
-                    idxType  = self.applyOwner(ctnrTSpec, idxOwner, idxType)
+                    idxType  = self.applyOwner(typeSpec, idxOwner, idxType)
                 else:
                     idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
             else:
@@ -53,6 +53,7 @@ class Xlator_Swift(Xlator):
         return [datastructID, idxType, owner]
 
     def adjustBaseTypes(self, fieldType, isContainer):
+        langType = ''
         if(isinstance(fieldType, str)):
             if(fieldType=='uint8' or fieldType=='uint16'or fieldType=='uint32'): return 'UInt32'
             elif(fieldType=='int8' or fieldType=='int16' or fieldType=='int32'): return 'Int32'
@@ -328,11 +329,17 @@ class Xlator_Swift(Xlator):
 
     ###################################################### CONTAINERS
     def getContaineCategory(self, containerSpec):
+        fromImpl=progSpec.getFromImpl(containerSpec)
+        if fromImpl and 'implements' in fromImpl:
+            return fromImpl['implements']
         fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
-        if fTypeKW=='multimap' or fTypeKW=='map' or fTypeKW=='Swift_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
-            return 'MAP'
+        print("WARNING: Container Category not recorded for:",fTypeKW)
+        if fTypeKW=='PovList':
+            return 'PovList'
+        elif fTypeKW=='multimap' or fTypeKW=='map' or fTypeKW=='Swift_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
+            return 'map'
         elif fTypeKW=='list' or fTypeKW=='Swift_Array' or "__List_" in fTypeKW:
-            return 'LIST'
+            return 'list'
         return None
 
     def getContainerTypeInfo(self, containerType, name, idxType, typeSpecIn, paramList, genericArgs):
@@ -361,25 +368,39 @@ class Xlator_Swift(Xlator):
         willBeModifiedDuringTraversal=True   # TODO: Set this programatically later.
         [datastructID, idxTypeKW, ctnrOwner]=self.getContainerType(ctnrTSpec, 'action')
         actionText   = ""
-        loopCntrName = ""
-        firstOwner   = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
-        firstType    = progSpec.getNewContainerFirstElementTypeTempFunc(ctnrTSpec)
+        loopCntrName = repName+'_key'
+        itrIncStr    = ""
+        firstOwner   = progSpec.getContainerFirstElementOwner(ctnrTSpec)
+        firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
+        reqTagList   = progSpec.getReqTagList(ctnrTSpec)
+        itrTSpec     = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
+        itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec)) + ' '
+        itrName      = repName + "Itr"
         containerCat = self.getContaineCategory(ctnrTSpec)
-        if containerCat == "MAP":
+        if containerCat=="Map" or containerCat=="Multimap":
+            valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
+            if(reqTagList != None):
+                firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
+                firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
+                idxTypeKW      = progSpec.getTypeFromTemplateArg(reqTagList[0])
+                valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
             keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':firstType, 'codeConverter':(repName+'.first')}
+            firstTSpec['codeConverter'] = (repName+'.value')
             localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
-            firstTSpec['codeConverter'] = (repName+'.second')
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
-            actionText += (indent + "for( auto " + repName+'Itr ='+ ctnrName+'->lower_bound('+StartKey+')' + "; " + repName + "Itr !=" + ctnrName+'->upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
-                        + indent+"    "+"auto "+repName+" = *"+repName+"Itr;\n")
-        elif datastructID=='list' or (datastructID=='list' and not willBeModifiedDuringTraversal):
-            pass;
-        elif datastructID=='list' and willBeModifiedDuringTraversal:
-            pass;
-        else:
-            print("DSID iterateRangeFromTo:",datastructID,ctnrTSpec)
-            exit(2)
+            itrDeclStr  = indent + 'var '+itrName+":"+itrType+' = '+ctnrName+'.lower_bound('+StartKey+')\n'
+            localVarsAlloc.append([itrName, itrType])
+            endItrName       = repName + "EndItr"
+            endItrStr   = indent + 'var ' + endItrName + ':'+itrType+' = '+ctnrName+'.upper_bound('+EndKey+')\n'
+            itrIncStr   = indent + "    " + itrName + " = " + itrName + ".__inc()\n"
+
+            actionText += itrDeclStr + endItrStr
+            actionText += (indent + 'while ' + itrName + '.node !== '+endItrName+'.node {\n')
+            actionText += (indent + "    var  " + repName + " = " + itrName + ".node\n")
+        elif datastructID=='List' and not willBeModifiedDuringTraversal: pass;
+        elif datastructID=='List' and willBeModifiedDuringTraversal: pass;
+        else: cdErr("DSID iterateRangeFromTo:"+datastructID+" "+containerCat)
         return [actionText, loopCntrName]
 
     def iterateContainerStr(self, classes,localVarsAlloc,ctnrTSpec,repName,ctnrName,isBackward,indent,genericArgs):
@@ -401,7 +422,7 @@ class Xlator_Swift(Xlator):
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
         if containerCat=='PovList': cdErr("TODO: handle PovList")
-        if containerCat=='MAP':
+        if containerCat=='Map':
             reqTagStr    = self.getReqTagString(classes, ctnrTSpec)
             if(reqTagList != None):
                 firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
@@ -418,7 +439,7 @@ class Xlator_Swift(Xlator):
             actionText += (indent + 'while ' + itrName + '.node !== '+endItrName+'.node {\n')
             actionText += (indent + "    var  " + repName + " = " + itrName + ".node\n")
             # TODO: increment ITR
-        elif containerCat=="LIST":
+        elif containerCat=="List":
             if willBeModifiedDuringTraversal:
                 idxTypeKW        = self.adjustBaseTypes(idxTypeKW, False)
                 containedOwner = progSpec.getOwnerFromTypeSpec(ctnrTSpec)

@@ -74,7 +74,8 @@ struct RBMultimapItr<keyType, valueType>: implements=MapItr{
     me bool: __isEqual(me RBMultimapItr<keyType, valueType>: RHS) <- {
         return(node === RHS.node)
     }
-    valueType: val()                         <- <%!%0%>
+    valueType: val() <- {return(node.value)}
+    keyType: key() <- {return(node.key)}
 }
 
 struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs={insert=logarithmic find=logarithmic at=logarithmic}{ // constant
@@ -160,7 +161,9 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
         }
         return(prevNode.value)
     }
-    //itr valueType: lower_bound(keyType: key) <- {}
+    me RBMultimapItr<keyType, valueType>: lower_bound(keyType: key) <- {
+        return(find(key))
+    }
     valueType: popFirst() <- {
         me RBMultimapItr<keyType, valueType>: frontItr <- front()
         their RBNode<keyType, valueType>: frontNode <- frontItr.node
@@ -169,6 +172,9 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
     }
     //their RBNode<keyType, valueType>: popLast() <- {}
     me uint:  size() <- {return(mapSize)}
+    me RBMultimapItr<keyType, valueType>: upper_bound(keyType: key) <- {
+        return(find(key+1))
+    }
     ////////////////////////////////////////////////////////////////////
     me bool: isLeftChild(their RBNode<keyType, valueType>: node) <- {
         if(node.parent != NULL and node === node.parent.left){return(true)}
@@ -289,7 +295,7 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
     }
 
     me void: BSTInsert(their RBNode<keyType, valueType>: root, their RBNode<keyType, valueType>: newNode) <- {
-        if(newNode.key > root.key){
+        if(newNode.key >= root.key){
             if(root.right === Leaf){
                 root.right <- newNode
                 newNode.parent <- root
@@ -365,8 +371,6 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
     }
 
     me void: deleteCase1(their RBNode<keyType, valueType>: doubleBlackNode) <- {
-        print ("deleteCase1: ", doubleBlackNode.key, "\n")
-        if(doubleBlackNode === Leaf){print("    Leaf\n")}
         if(doubleBlackNode.parent == NULL){
             Root <- doubleBlackNode
             return()
@@ -375,7 +379,6 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
     }
 
     me void: deleteCase2(their RBNode<keyType, valueType>: doubleBlackNode) <- {
-        print ("deleteCase2: ", doubleBlackNode.key, "\n")
         their RBNode<keyType, valueType>: siblingNode
         siblingNode <- findSiblingNode(doubleBlackNode)
         if(siblingNode.isBlack == false){
@@ -387,7 +390,6 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
     }
 
     me void: deleteCase3(their RBNode<keyType, valueType>: doubleBlackNode) <- {
-        print ("deleteCase3: ", doubleBlackNode.key, "\n")
         their RBNode<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
         if(doubleBlackNode.parent.isBlack == true and siblingNode.isBlack == true and siblingNode.left.isBlack == true and siblingNode.right.isBlack == true){
             siblingNode.isBlack <- false
@@ -396,7 +398,6 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
     }
 
     me void: deleteCase4(their RBNode<keyType, valueType>: doubleBlackNode) <- {
-        print ("deleteCase4: ", doubleBlackNode.key, "\n")
         their RBNode<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
         if(doubleBlackNode.parent.isBlack == false and siblingNode.isBlack == true and siblingNode.left.isBlack == true and siblingNode.right.isBlack == true){
             siblingNode.isBlack <- false
@@ -406,7 +407,6 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
     }
 
     me void: deleteCase5(their RBNode<keyType, valueType>: doubleBlackNode) <- {
-        print ("deleteCase5: ", doubleBlackNode.key, "\n")
         their RBNode<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
         if(siblingNode.isBlack == true){
             if(isLeftChild(doubleBlackNode) == true and siblingNode.right.isBlack == true and siblingNode.left.isBlack == false){
@@ -419,7 +419,6 @@ struct RBMultimap<keyType, valueType>: implements=Multimap native=codeDog specs=
     }
 
     me void: deleteCase6(their RBNode<keyType, valueType>: doubleBlackNode) <- {
-        print ("deleteCase6: ", doubleBlackNode.key, "\n")
         their RBNode<keyType, valueType>: siblingNode <- findSiblingNode(doubleBlackNode)
         siblingNode.isBlack <- siblingNode.parent.isBlack
         siblingNode.parent.isBlack <- true

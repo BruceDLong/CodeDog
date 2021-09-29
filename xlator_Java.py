@@ -52,29 +52,29 @@ class Xlator_Java(Xlator):
         return [datastructID, idxType, owner]
 
     def adjustBaseTypes(self, fieldType, isContainer):
-        javaType = ''
+        langType = ''
         if fieldType !="":
             if isContainer:
-                if fieldType=='int':         javaType = 'Integer'
-                elif fieldType=='long':      javaType = 'Long'
-                elif fieldType=='double':    javaType = 'Double'
-                elif fieldType=='timeValue': javaType = 'Long' # this is hack and should be removed ASAP
-                elif fieldType=='int64':     javaType = 'Long'
-                elif fieldType=='string':    javaType = 'String'
-                elif fieldType=='uint':      javaType = 'Integer'
+                if fieldType=='int':         langType = 'Integer'
+                elif fieldType=='long':      langType = 'Long'
+                elif fieldType=='double':    langType = 'Double'
+                elif fieldType=='timeValue': langType = 'Long' # this is hack and should be removed ASAP
+                elif fieldType=='int64':     langType = 'Long'
+                elif fieldType=='string':    langType = 'String'
+                elif fieldType=='uint':      langType = 'Integer'
                 else:
-                    javaType = fieldType
+                    langType = fieldType
             else:
-                if(fieldType=='int32'):      javaType= 'int'
-                elif(fieldType=='uint32'or fieldType=='uint'):  javaType='int'  # these should be long but Java won't allow
-                elif(fieldType=='int64' or fieldType=='uint64'):javaType= 'long'
-                elif(fieldType=='uint8' or fieldType=='uint16'):javaType='uint32'
-                elif(fieldType=='int8'  or fieldType=='int16'): javaType='int32'
-                elif(fieldType=='char' ):    javaType= 'char'
-                elif(fieldType=='bool' ):    javaType= 'boolean'
-                elif(fieldType=='string'):   javaType= 'String'
-                else: javaType=progSpec.flattenObjectName(fieldType)
-        return javaType
+                if(fieldType=='int32'):      langType= 'int'
+                elif(fieldType=='uint32'or fieldType=='uint'):  langType='int'  # these should be long but Java won't allow
+                elif(fieldType=='int64' or fieldType=='uint64'):langType= 'long'
+                elif(fieldType=='uint8' or fieldType=='uint16'):langType='uint32'
+                elif(fieldType=='int8'  or fieldType=='int16'): langType='int32'
+                elif(fieldType=='char' ):    langType= 'char'
+                elif(fieldType=='bool' ):    langType= 'boolean'
+                elif(fieldType=='string'):   langType= 'String'
+                else: langType=progSpec.flattenObjectName(fieldType)
+        return langType
 
     def applyOwner(self, typeSpec, owner, langType):
         if owner=='me':
@@ -286,15 +286,19 @@ class Xlator_Java(Xlator):
 
     ###################################################### CONTAINERS
     def getContaineCategory(self, containerSpec):
+        fromImpl=progSpec.getFromImpl(containerSpec)
+        if fromImpl and 'implements' in fromImpl:
+            return fromImpl['implements']
         fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
+        print("WARNING: Container Category not recorded for:",fTypeKW)
         if fTypeKW=='PovList':
             return 'PovList'
         elif fTypeKW=='TreeMap' or fTypeKW=='Java_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
-            return 'MAP'
+            return 'Map'
         elif fTypeKW=='list' or fTypeKW=='Java_ArrayList' or "__List_" in fTypeKW or "__CDList" in fTypeKW:
-            return 'LIST'
+            return 'List'
         elif 'Multimap' in fTypeKW:
-            return 'MULTIMAP'
+            return 'Multimap'
         return None
 
     def getContainerTypeInfo(self, containerType, name, idxType, typeSpecIn, paramList, genericArgs):
@@ -348,7 +352,7 @@ class Xlator_Java(Xlator):
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
         containerCat = self.getContaineCategory(ctnrTSpec)
-        if containerCat=="MAP" or containerCat=="MULTIMAP":
+        if containerCat=="Map" or containerCat=="Multimap":
             valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
             if(reqTagList != None):
                 firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
@@ -357,21 +361,21 @@ class Xlator_Java(Xlator):
                 valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
             keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':firstType}
             loopCntrName = repName+'_key'
-            itrTypeKW = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec))
+            itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec))
             idxTypeKW = self.adjustBaseTypes(idxTypeKW, True)
             valueFieldType = self.adjustBaseTypes(valueFieldType, True)
             localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
             if '__RB' in datastructID:
-                actionText += (indent + 'for('+itrTypeKW+' '+repName+'Entry = '+ctnrName+'.find('+StartKey+'); '+repName+'Entry !='+ctnrName+'.find('+EndKey+'); '+repName+'Entry.__inc()){\n' +
+                actionText += (indent + 'for('+itrType+' '+repName+'Entry = '+ctnrName+'.lower_bound('+StartKey+'); '+repName+'Entry.node !='+ctnrName+'.upper_bound('+EndKey+').node; '+repName+'Entry.__inc()){\n' +
                            indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.node.value;\n' +
                            indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.node.key;\n'  )
             else:
                 actionText += (indent + 'for(Map.Entry<'+idxTypeKW+','+valueFieldType+'> '+repName+'Entry : '+ctnrName+'.subMap('+StartKey+', '+EndKey+').entrySet()){\n' +
                            indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.getValue();\n' +
                            indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.getKey();\n'  )
-        elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
-        elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
+        elif datastructID=='List' and not willBeModifiedDuringTraversal: pass;
+        elif datastructID=='List' and willBeModifiedDuringTraversal: pass;
         else: cdErr("DSID iterateRangeFromTo:"+datastructID+" "+containerCat)
         return [actionText, loopCntrName]
 
@@ -393,7 +397,7 @@ class Xlator_Java(Xlator):
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
         if containerCat=='PovList': cdErr("PovList: "+repName+"   "+ctnrName) # this should be called PovList
-        if containerCat=='MAP' or containerCat=="MULTIMAP":
+        if containerCat=='Map' or containerCat=="Multimap":
             reqTagStr    = self.getReqTagString(classes, ctnrTSpec)
             if(reqTagList != None):
                 firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
@@ -412,7 +416,7 @@ class Xlator_Java(Xlator):
                 actionText += (indent + 'for('+itrType + itrName+' ='+frontItr + '; ' + itrName + '.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n')
                #actionText += (indent + "for("+itrType + itrName+' ='+frontItr + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
                     # + indent+"    "+itrType+repName+" = *"+itrName+";\n")
-        elif containerCat=="LIST":
+        elif containerCat=="List":
             containedOwner = progSpec.getOwnerFromTypeSpec(ctnrTSpec)
             keyVarSpec     = {'owner':containedOwner, 'fieldType':firstType}
             [iteratorTypeStr, innerType] = self.codeGen.convertType(firstTSpec, 'var', 'action', genericArgs)
