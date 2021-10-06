@@ -13,7 +13,7 @@ interface={
             }
         }
     ]
-    libFiles = [icu-uc, icu-io, icuin]
+    libFiles = [icuuc, icuio, icuin]
     headers=[unicode/locid.h, unicode/unistr.h, unicode/putil.h, unicode/ustream.h, unicode/normalizer2.h, unicode/calendar.h,
              unicode/gregocal.h, unicode/smpdtfmt.h, unicode/utypes.h, codecvt, locale
             ]

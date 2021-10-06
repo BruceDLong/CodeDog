@@ -18,6 +18,29 @@ LibDescription ={
 
 initCode = "signal(SIGSEGV, reportFault)"
 deinitCode = ""
+embedVeryHigh = `
+        bool doesFileExist(string filePath){
+            ifstream ifile(filename);
+            return (bool)ifile;
+        }
+
+        void copyAssetToWritableFolder(string fromPath, string toPath){
+            //TODO: finish func body if package C++
+        }
+
+        string joinCmdStrings(int count , char *argv[]) {
+            string acc="";
+            for(int i=1; i<count; ++i){
+                if(i>1) acc+=" ";
+                acc += argv[i];
+            }
+            return(acc);
+        }
+
+        constexpr unsigned int _strHash(const char* str, int h = 0){
+            return !str[h] ? 5381 : (_strHash(str, h+1)*33) ^ str[h];
+        }
+`
 
 struct FileStream{
     me fstream: FileStream
