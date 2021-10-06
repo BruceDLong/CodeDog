@@ -1,0 +1,49 @@
+/////////// Add routines for C++
+requirements = [
+    [tagOneOf, LangVersion, [MSVC]]
+]
+
+interface={
+    provides = [CodeDog_langVersion_implementation]
+    libFiles = []
+    headers  = [signal.h, string, cstring, memory, cstdint, list, deque, map, cstdarg, iostream, fstream, sys/stat.h, math.h, algorithm, vector, chrono] //direct.h Add for windows Only
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in routines for CPP'
+}
+
+initCode = ""
+deinitCode = ""
+struct GLOBAL{
+    me int: sleep(me int: milliseconds) <- <%{
+       struct timespec req, rem;
+       if(milliseconds > 999) {
+            req.tv_sec = (int)(milliseconds / 1000);                            /* Must be Non-Negative */
+            req.tv_nsec = (milliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
+       }else{
+            req.tv_sec = 0;                         /* Must be Non-Negative */
+            req.tv_nsec = milliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
+       }
+        std::this_thread::sleep_for(std::chrono::milliseconds(req.tv_nsec));
+        return 0;
+   }%>
+
+    me string: execCmd(me string: command) <- <%{
+      FILE* pipe;
+      std::vector<char> buffer(128);
+      string result = "";
+      pipe = _popen(command.data(), "r");
+      if (pipe == NULL) {
+        cout<<"Cannot execute command:'" << command<<"'\n";
+        return "";
+      }
+      while(fgets(buffer.data(), 128, pipe) != NULL) {
+        result = result+buffer.data();
+      }
+      _pclose(pipe);
+      return result;
+    }%>
+}
+

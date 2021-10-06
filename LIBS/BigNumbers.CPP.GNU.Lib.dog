@@ -1,0 +1,52 @@
+/////////// Add routines for C++
+requirements = [
+    [tagOneOf, LangVersion, [GNU]]
+]
+
+interface={
+    provides = [BigNumbers_langVersion_implementation]
+    libFiles = [gmp, gmpxx]
+    headers  = [gmp.h, gmpxx.h]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in routines for CPP'
+}
+
+struct GLOBAL{
+    me string: toString(me BigFloat: val) <- <%{
+        string retVal = "";
+        int64_t exp;
+        string digits       = val.get_str(exp,10,12);
+        int64_t digitsGiven = digits.size();
+        if(exp <= 0){
+            if(digitsGiven==0){
+                retVal = "0";
+            }else{
+                string zeros = "0.";
+                int64_t endVal = -exp;
+                for(int64_t i=0; i<endVal; i++){
+                    zeros+="0";
+                }
+                retVal = zeros+digits;
+            }
+        }else{
+            if(digitsGiven>exp){
+                retVal=digits.substr(0,exp)+"."+digits.substr(exp,digitsGiven);
+            }
+            else if(digitsGiven==exp){
+                retVal=digits;
+            }
+            else{//digitsGiven<exp
+                retVal=digits;
+                int64_t endVal = exp-digitsGiven;
+                for(int64_t i=0; i<endVal; i++){
+                    retVal+="0";
+                }
+            }
+        }
+        //logMgr.Mesg.LogEntry("  ", "     exp:"+std::to_string(exp)+ "     digitsGiven:"+std::to_string(digitsGiven)+ "   digits:"+digits);
+        return(retVal);
+    }%>
+}
