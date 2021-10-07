@@ -2,6 +2,7 @@
 # import into codeDog.py and call from there
 # args to build function: path, libraries etc
 # get it to work with C++ or print error msg
+from __future__ import unicode_literals
 import progSpec
 import os
 import subprocess
@@ -11,6 +12,7 @@ import errno
 import shutil
 from progSpec import cdlog, cdErr
 from pathlib import Path
+import environmentMngr as emgr
 
 
 importantFolders = {}
@@ -20,6 +22,7 @@ def string_escape(s, encoding='utf-8'):
              .decode('unicode-escape') # Perform the actual octal-escaping decode
              .encode('latin1')         # 1:1 mapping back to bytes
              .decode(encoding))        # Decode original encoding
+
 
 def runCMD(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
@@ -37,6 +40,26 @@ def runCMD(myCMD, myDir):
     decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
     if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
     return str(decodedOut)
+
+
+def runCmdStreaming(myCMD):
+    print("\nCOMMAND: ", myCMD, "\n")    
+    process = subprocess.Popen(myCMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True,)
+    
+    returnCode = process.poll()
+
+    while process.poll() is None:
+        output = process.stdout.readline()
+        if output:
+            print(output.strip())
+
+    err = process.stderr.readline()
+    if err:
+        print("ERRORS:---------------\n")
+        print(err.strip())
+
+    return process.returncode
+
 
 def makeDirs(dirToGen):
     #print("dirToGen:", dirToGen)
@@ -201,6 +224,17 @@ def FindOrFetchLibraries(buildName, packageData, platform):
                     actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
                 #print("BUILDCMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
                 runCMD(actualBuildCmd, downloadedFolder)
+
+                # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
+                # for toolName in toolList:
+                #     if emgr.checkTool(toolName):
+                #         runCMD(actualBuildCmd, downloadedFolder)
+                #     else:
+                #         packageManager = emgr.findPackageManager()
+                #         if not packageManager:
+                #             cdErr(f"Unable to find Package Manager.\nPlease install {packageName} manually : " + {packageName})
+                #         else:
+                #             emgr.getPackageManagerCMD(toolName, packageManager)
 
             if 'installFiles' in buildCmdMap:
                 installfileList = buildCmdMap['installFiles'][1]
