@@ -229,10 +229,10 @@ class CodeGenerator(object):
         for enumInheritedType, enumValues in self.inheritedEnums.items():
             for value in enumValues:
                 if value == searchFieldID:
-                    field['fieldID'] = "{}::{}".format(enumInheritedType, searchFieldID)
-                    field['typeSpec']['isGlobalEnum'] = True
-                    field['typeSpec']['fieldType'] = enumInheritedType
-                    return field
+                    newField = {'typeSpec': {'owner': 'me', 'fieldType': enumInheritedType}, 'fieldName': itemName}
+                    newField['fieldID'] = "{}::{}".format(enumInheritedType, searchFieldID)
+                    newField['typeSpec']['isGlobalEnum'] = True
+                    return newField
 
         #print("WARNING: Could not find field", itemName ,"in", className, "or inherited enums")
         return 0 # Field not found in model
@@ -419,7 +419,7 @@ class CodeGenerator(object):
                 if hiScoreName != None:
                     fromImpl = self.makeFromImpl(hiScoreName, ctnrCat)
                 else: fromImpl = None
-                print("IMPLEMENTS:", ctnrCat, '->', hiScoreName)
+                #print("IMPLEMENTS:", ctnrCat, '->', hiScoreName)
                 return(hiScoreName,fromImpl)
         return(None, None)
         #    choose highest score and mark the typedef

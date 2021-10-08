@@ -2,6 +2,7 @@
 # import into codeDog.py and call from there
 # args to build function: path, libraries etc
 # get it to work with C++ or print error msg
+from __future__ import unicode_literals
 import progSpec
 import os
 import subprocess
@@ -11,6 +12,7 @@ import errno
 import shutil
 from progSpec import cdlog, cdErr
 from pathlib import Path
+import environmentMngr as emgr
 
 
 importantFolders = {}
@@ -20,6 +22,7 @@ def string_escape(s, encoding='utf-8'):
              .decode('unicode-escape') # Perform the actual octal-escaping decode
              .encode('latin1')         # 1:1 mapping back to bytes
              .decode(encoding))        # Decode original encoding
+
 
 def runCMD(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
@@ -37,6 +40,26 @@ def runCMD(myCMD, myDir):
     decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
     if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
     return str(decodedOut)
+
+
+def runCmdStreaming(myCMD):
+    print("\nCOMMAND: ", myCMD, "\n")    
+    process = subprocess.Popen(myCMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True,)
+    
+    returnCode = process.poll()
+
+    while process.poll() is None:
+        output = process.stdout.readline()
+        if output:
+            print(output.strip())
+
+    err = process.stderr.readline()
+    if err:
+        print("ERRORS:---------------\n")
+        print(err.strip())
+
+    return process.returncode
+
 
 def makeDirs(dirToGen):
     #print("dirToGen:", dirToGen)
@@ -99,7 +122,7 @@ def copyRecursive(src, dst, symlinks=False):
             # ~ raise shutil.Error(errors)
 
 def downloadFile(downloadUrl, packageName, packageDirectory):
-    import pycurl
+    import urllib3
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
     packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
     makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
@@ -108,18 +131,21 @@ def downloadFile(downloadUrl, packageName, packageDirectory):
     if not checkRepo:
         try:
             cdlog(1, "Downloading file: " + packageName)
-            with open(packagePath, 'wb') as f:
-                c = pycurl.Curl()
-                c.setopt(c.URL, downloadUrl)
-                c.setopt(c.WRITEDATA, f)
-                c.perform()
-                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
-                c.close()
+            http = urllib3.PoolManager()
+            r = http.request('GET', downloadUrl, preload_content=False)
         except:
             cdErr("URL not found : " + downloadUrl)
+        else:
+            with open(packagePath, 'wb') as out:
+                while True:
+                    data = r.read(1028)
+                    if not data:
+                        break
+                    out.write(data)
+            r.release_conn()
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
-    import pycurl
+    import urllib3
     zipExtension = ""
     if downloadUrl.endswith(".zip"):
         zipExtension = ".zip"
@@ -142,16 +168,18 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
         try:
             makeDirs(zipFileDirectory + "/INSTALL")
             cdlog(1, "Downloading zip file: " + zipFileName)
-            with open(packagePath, 'wb') as f:
-                c = pycurl.Curl()
-                c.setopt(c.URL, downloadUrl)
-                c.setopt(c.WRITEDATA, f)
-                c.perform()
-                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
-                c.close()
+            http = urllib3.PoolManager()
+            r = http.request('GET', downloadUrl, preload_content=False)
         except:
             cdErr("URL not found : " + downloadUrl)
         else:
+            with open(packagePath, 'wb') as out:
+                while True:
+                    data = r.read(1028)
+                    if not data:
+                        break
+                    out.write(data)
+            r.release_conn()
             try:
                 cdlog(1, "Extracting zip file: " + zipFileName)
                 shutil.unpack_archive(packagePath, zipFileDirectory)
@@ -202,6 +230,17 @@ def FindOrFetchLibraries(buildName, packageData, platform):
                 #print("BUILDCMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
                 runCMD(actualBuildCmd, downloadedFolder)
 
+                # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
+                # for toolName in toolList:
+                #     if emgr.checkTool(toolName):
+                #         runCMD(actualBuildCmd, downloadedFolder)
+                #     else:
+                #         packageManager = emgr.findPackageManager()
+                #         if not packageManager:
+                #             print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
+                #         else:
+                #             emgr.getPackageManagerCMD(toolName, packageManager)
+
             if 'installFiles' in buildCmdMap:
                 installfileList = buildCmdMap['installFiles'][1]
                 # ~ installFiles = progSpec.extractListFromTagList(installfileList)
@@ -236,7 +275,7 @@ def gitClone(cloneUrl, packageName, packageDirectory):
         makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
 
 def downloadFile(downloadUrl, packageName, packageDirectory):
-    import pycurl
+    import urllib3
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
     packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
     makeDirs(packageDirectory + '/' + packageName + "/LIBS")
@@ -245,18 +284,21 @@ def downloadFile(downloadUrl, packageName, packageDirectory):
     if not checkRepo:
         try:
             cdlog(1, "Downloading file: " + packageName)
-            with open(packagePath, 'wb') as f:
-                c = pycurl.Curl()
-                c.setopt(c.URL, downloadUrl)
-                c.setopt(c.WRITEDATA, f)
-                c.perform()
-                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
-                c.close()
+            http = urllib3.PoolManager()
+            r = http.request('GET', downloadUrl, preload_content=False)
         except:
             cdErr("URL not found : " + downloadUrl)
+        else:
+            with open(packagePath, 'wb') as out:
+                while True:
+                    data = r.read(1028)
+                    if not data:
+                        break
+                    out.write(data)
+            r.release_conn()
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
-    import pycurl
+    import urllib3
     zipExtension = ""
     if downloadUrl.endswith(".zip"):
         zipExtension = ".zip"
@@ -279,16 +321,18 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
         try:
             makeDirs(zipFileDirectory + "/LIBS")
             cdlog(1, "Downloading zip file: " + zipFileName)
-            with open(packagePath, 'wb') as f:
-                c = pycurl.Curl()
-                c.setopt(c.URL, downloadUrl)
-                c.setopt(c.WRITEDATA, f)
-                c.perform()
-                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
-                c.close()
+            http = urllib3.PoolManager()
+            r = http.request('GET', downloadUrl, preload_content=False)
         except:
             cdErr("URL not found : " + downloadUrl)
         else:
+            with open(packagePath, 'wb') as out:
+                while True:
+                    data = r.read(1028)
+                    if not data:
+                        break
+                    out.write(data)
+            r.release_conn()
             try:
                 cdlog(1, "Extracting zip file: " + zipFileName)
                 shutil.unpack_archive(packagePath, zipFileDirectory)
