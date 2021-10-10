@@ -1,7 +1,6 @@
 # buildDog.py
-# import into codeDog.py and call from there
-# args to build function: path, libraries etc
-# get it to work with C++ or print error msg
+
+
 from __future__ import unicode_literals
 import progSpec
 import os
@@ -37,15 +36,15 @@ def runCMD(myCMD, myDir):
         print("----------------------\n")
         if (err.find(b"ERROR")) >= 0 or err.find(b"error")>=0:
             exit(1)
-    decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
-    if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
-    return str(decodedOut)
+    #decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
+    #if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
+    return string_escape(str(out)).strip
 
 
-def runCmdStreaming(myCMD):
-    print("\nCOMMAND: ", myCMD, "\n")    
-    process = subprocess.Popen(myCMD, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True,)
-    
+def runCmdStreaming(myCMD, myDir):
+    print("\nCOMMAND: ", myCMD, "\n")
+    process = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True,)
+
     returnCode = process.poll()
 
     while process.poll() is None:
@@ -134,7 +133,7 @@ def downloadFile(downloadUrl, packageName, packageDirectory):
             http = urllib3.PoolManager()
             r = http.request('GET', downloadUrl, preload_content=False)
         except:
-            cdErr("URL not found : " + downloadUrl)
+            cdErr("URL not found: " + downloadUrl)
         else:
             with open(packagePath, 'wb') as out:
                 while True:
@@ -171,7 +170,7 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
             http = urllib3.PoolManager()
             r = http.request('GET', downloadUrl, preload_content=False)
         except:
-            cdErr("URL not found : " + downloadUrl)
+            cdErr("URL not found: " + downloadUrl)
         else:
             with open(packagePath, 'wb') as out:
                 while True:
@@ -227,13 +226,13 @@ def FindOrFetchLibraries(buildName, packageData, platform):
                 actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
                 for folderKey,folderVal in importantFolders.items():
                     actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
-                #print("BUILDCMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
-                runCMD(actualBuildCmd, downloadedFolder)
+                #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
+                runCmdStreaming(actualBuildCmd, downloadedFolder)
 
                 # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
                 # for toolName in toolList:
                 #     if emgr.checkTool(toolName):
-                #         runCMD(actualBuildCmd, downloadedFolder)
+                #         runCmdStreaming(actualBuildCmd, downloadedFolder)
                 #     else:
                 #         packageManager = emgr.findPackageManager()
                 #         if not packageManager:
@@ -268,7 +267,7 @@ def gitClone(cloneUrl, packageName, packageDirectory):
         try:
             urllib.request.urlopen(cloneUrl)
         except (urllib.error.URLError, urllib.error.HTTPError):
-            cdErr("URL not found : " + cloneUrl)
+            cdErr("URL not found: " + cloneUrl)
 
         cdlog(1, "Cloning git repository: " + packageName)
         Repo.clone_from(cloneUrl, packagePath)
@@ -287,7 +286,7 @@ def downloadFile(downloadUrl, packageName, packageDirectory):
             http = urllib3.PoolManager()
             r = http.request('GET', downloadUrl, preload_content=False)
         except:
-            cdErr("URL not found : " + downloadUrl)
+            cdErr("URL not found: " + downloadUrl)
         else:
             with open(packagePath, 'wb') as out:
                 while True:
@@ -324,7 +323,7 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
             http = urllib3.PoolManager()
             r = http.request('GET', downloadUrl, preload_content=False)
         except:
-            cdErr("URL not found : " + downloadUrl)
+            cdErr("URL not found: " + downloadUrl)
         else:
             with open(packagePath, 'wb') as out:
                 while True:
@@ -371,7 +370,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 
     #building scons file
     SconsFile = "import os\n"
-    SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -fpermissive')\n"
+    SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -fpermissive  -fdiagnostics-color=always')\n"
     if progOrLib=='program': SconsFileType = "Program"
     elif progOrLib=='library': SconsFileType = "Library"
     elif progOrLib=='staticlibrary': SconsFileType = "StaticLibrary"
@@ -603,6 +602,6 @@ def buildWithScons(name, cmdLineArgs):
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
         otherSconsArgs = ' '.join(cmdLineArgs)
         sconsCMD = "python3 "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
-        result = runCMD(sconsCMD, basepath)
+        result = runCmdStreaming(sconsCMD, basepath)
         print(result)
         print("\nSUCCESS\n")

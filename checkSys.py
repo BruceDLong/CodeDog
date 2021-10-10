@@ -58,15 +58,6 @@ def AddSystemPath():
                 value += ";" + codeDogPath + "\CodeDog;"
                 reg.SetValueEx(key, 'PATH', 0, reg.REG_EXPAND_SZ, value)
                 reg.CloseKey(key)
-
-                print("Creating executable file.")
-                # Create codeDog bat file.
-                batFile = '@echo off\n'
-                batFile += f'{sys.executable} {codeDogPath}\codeDog %*'
-                batFile += '\npause' # for pause code if needed. 
-                with open("codeDog.bat", "w+") as cbf:
-                    cbf.write(batFile)
-
             else:
                 print("If you wish to add CodeDog to the system path manually, it is:\n    ", codeDogPath)
 

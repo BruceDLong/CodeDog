@@ -25,7 +25,7 @@ def packageInstalled(packageManagar, packageName):
         return True
     else:
         print(f"Unable to install package. \nPlease install manually : {packageName}")
-        cdErr(f"Unable to install package. \nPlease install {packageName} manually : " + {packageName})
+        cdErr("Unable to install package. \nPlease install manually : " + packageName)
 
 def getPackageManagerCMD(packageName, installedPackageManagerList):
     packageExtension = packageName.split(".")[-1]
