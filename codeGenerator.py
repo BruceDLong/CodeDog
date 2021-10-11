@@ -324,7 +324,6 @@ class CodeGenerator(object):
                     else:
                         REF=self.CheckClassStaticVars(self.currentObjName, itemName)
                         if(REF):
-                            progSpec.addDependancyToStruct(self.currentObjName, itemName)
                             return REF
 
                         elif(itemName in self.StaticMemberVars):
@@ -2056,8 +2055,7 @@ class CodeGenerator(object):
         return headerStr
 
     def convertTemplateClasses(self, tags):
-        structsToImplement = self.fetchListOfStructsToImplement(tags)
-        for className in structsToImplement:
+        for className in self.classStore[1]:
             for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
                 typeSpec =field['typeSpec']
                 fieldName =field['fieldName']

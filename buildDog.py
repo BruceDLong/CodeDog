@@ -36,7 +36,6 @@ def runCMD(myCMD, myDir):
         print("----------------------\n")
         if (err.find(b"ERROR")) >= 0 or err.find(b"error")>=0:
             exit(1)
-
     #decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
     #if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
     return string_escape(str(out)).strip
@@ -185,16 +184,14 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
                 cdErr("Could not extract zip archive file: " + zipFileName)
 
 def FindOrFetchLibraries(buildName, packageData, platform):
-    pathDelim = '/'
-    if platform == 'Windows': pathDelim = '\\'
-    packageDirectory = os.getcwd() + pathDelim + buildName
+    #print("#############:buildName:", buildName, platform)
+    packageDirectory = os.getcwd() + '/' + buildName
     [includeFolders, libFolders] = ["", ""]
     for libPackages in packageData:
         for package in libPackages:
             packageMap = progSpec.extractMapFromTagMap(package)
             packageName = fetchType = fetchURL = fetchCommit = ""
             buildCmdsMap = {}
-
             if 'packageName' in packageMap:
                 packageName = packageMap['packageName'][1:-1]
             if 'fetchMethod' in packageMap:
@@ -220,40 +217,40 @@ def FindOrFetchLibraries(buildName, packageData, platform):
 
             if buildCmdsMap!={} and platform in buildCmdsMap:
             #print("###########:",platform, ' = ', buildCmdsMap[platform])
-                buildCommand = buildCmdsMap[platform]
-                buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
-                downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
+            buildCommand = buildCmdsMap[platform]
+            buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
+            downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
 
-                if 'buildCmd' in buildCmdMap:
-                    actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
-                    for folderKey,folderVal in importantFolders.items():
-                        actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
-                    #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
+            if 'buildCmd' in buildCmdMap:
+                actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
+                for folderKey,folderVal in importantFolders.items():
+                    actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
+                #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
                     runCMD(actualBuildCmd, downloadedFolder)
-                    # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
-                    # for toolName in toolList:
-                    #     if emgr.checkTool(toolName):
-                    #         runCmdStreaming(actualBuildCmd, downloadedFolder)
-                    #     else:
-                    #         packageManager = emgr.findPackageManager()
-                    #         if not packageManager:
-                    #             print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
-                    #         else:
-                    #             emgr.getPackageManagerCMD(toolName, packageManager)
-                if 'installFiles' in buildCmdMap:
-                    installfileList = buildCmdMap['installFiles'][1]
-                    # ~ installFiles = progSpec.extractListFromTagList(installfileList)
+                # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
+                # for toolName in toolList:
+                #     if emgr.checkTool(toolName):
+                #         runCmdStreaming(actualBuildCmd, downloadedFolder)
+                #     else:
+                #         packageManager = emgr.findPackageManager()
+                #         if not packageManager:
+                #             print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
+                #         else:
+                #             emgr.getPackageManagerCMD(toolName, packageManager)
+            if 'installFiles' in buildCmdMap:
+                installfileList = buildCmdMap['installFiles'][1]
+                # ~ installFiles = progSpec.extractListFromTagList(installfileList)
                 # ~ print("    DATA:", str(installFiles)[:100])
-                    LibsFolder = packageDirectory + '/' + packageName + "/INSTALL"
-                    makeDirs(LibsFolder)
-                    importantFolders[packageName+'@Install'] = LibsFolder
-                    importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
+                LibsFolder = packageDirectory + '/' + packageName + "/INSTALL"
+                makeDirs(LibsFolder)
+                importantFolders[packageName+'@Install'] = LibsFolder
+                importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
                     includeFolders += "     r'"+LibsFolder+"',\n"
                     libFolders     += "     r'"+LibsFolder+"',\n"
-                    for filenameX in installfileList:
-                        filename = downloadedFolder+'/'+filenameX[0][0][1:-1]
-                        cdlog(1, "Install: "+filename)
-                        copyRecursive(filename, LibsFolder)
+                for filenameX in installfileList:
+                    filename = downloadedFolder+'/'+filenameX[0][0][1:-1]
+                    cdlog(1, "Install: "+filename)
+                    copyRecursive(filename, LibsFolder)
 
     return [includeFolders, libFolders]
 
@@ -627,7 +624,7 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
     return buildStr
 
 def buildWithScons(name, cmdLineArgs):
-    print("cmdLineArgs:", ' '.join(cmdLineArgs))
+    #print("cmdLineArgs:", ' '.join(cmdLineArgs))
     sconsFile = lastFile = ''
     fCount = 0
     basepath = os.getcwd()
