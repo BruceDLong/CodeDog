@@ -2159,7 +2159,7 @@ class CodeGenerator(object):
         self.tagStore=tags[0]
         # self.buildStr_libs +=  progSpec.fetchTagValue(tags, "FileName")
         self.libInterfacesText=self.connectLibraries(tags, libsToUse)
-
+        self.applyPatterns(classes, tags)
         cdlog(0, "\n##############  G E N E R A T I N G   "+langName+"   C O D E . . .")
         self.convertTemplateClasses(tags)
         cdlog(1, "GENERATING: Top-level (e.g., main())...")
@@ -2193,7 +2193,8 @@ class CodeGenerator(object):
         # Set tag defaults as needed
         if not ('featuresNeeded' in TopLevelTags):
             TopLevelTags['featuresNeeded'] = []
-        TopLevelTags['featuresNeeded'].insert(0, 'CodeDog')
+        if not ('CodeDog' in TopLevelTags['featuresNeeded']):
+            TopLevelTags['featuresNeeded'].insert(0, 'CodeDog')
         # TODO: default to localhost for Platform, and CPU, etc. Add more combinations as needed.
         if not ('Platform' in TopLevelTags):
             platformID=platform.system()
@@ -2204,37 +2205,46 @@ class CodeGenerator(object):
         #TODO: fix automatic featuresNeeded
         for typeName in progSpec.storeOfBaseTypesUsed:
             if(typeName=='BigInt' or typeName=='BigFrac'):
-                print('NOTE: Need Large Numbers')
                 progSpec.setFeatureNeeded(TopLevelTags, 'BigNumbers', progSpec.storeOfBaseTypesUsed[typeName])
 
-    def ScanAndApplyPatterns(self, classes, topTags, newTags):
-        if self.tagStore==None:
-            if topTags!={}: TopLevelTags=topTags
-            else: TopLevelTags=newTags
-        else: TopLevelTags=self.tagStore
-        #if len(self.classStore[1])>0: cdlog(1, "Applying Patterns...")
+    patternsToApply = []
+
+    def applyPatterns(self, classes, tags):
+        for patternSpec in self.patternsToApply:
+            pattName   =patternSpec['patternName']
+            patternArgs=patternSpec['patternParams']
+            patternTags=patternSpec['patternTags']   # [newTags, topTags]
+            if self.tagStore==None:
+                if patternTags[1] != {}: TopLevelTags=patternTags[1] # topTags
+                else: TopLevelTags=patternTags[0] # newTags
+            else: TopLevelTags=self.tagStore
+            cdlog(1, "APPLYING PATTERN: {}: {}".format( pattName, patternArgs))
+
+            if   pattName=='makeGUI':            pattern_GUI_Toolkit.apply(classes, TopLevelTags)
+            elif pattName=='codeModelToGUI':     pattern_MakeGUI.apply(classes, patternTags, patternArgs[0])
+            elif pattName=='ManageCmdLine':      pattern_ManageCmdLine.apply(classes, tags[0])
+            elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, patternTags[0], patternArgs)
+            elif pattName=='codeModelDashes':    pattern_DispData.apply(classes, patternTags, patternArgs[0], patternArgs[1])
+            elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, patternTags, patternArgs[0], patternArgs[1])
+            elif pattName=='codeModelToString':  pattern_DispData.apply(classes, patternTags, patternArgs[0], 'text')
+            elif pattName=='codeModelToProteus': pattern_DispData.apply(classes, patternTags, patternArgs[0], 'Proteus')
+            elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, patternTags, patternArgs)
+            elif pattName=='makeRBMap':          pattern_RBMap.apply(   classes, patternTags, patternArgs[0], patternArgs[1])
+            elif pattName=='makeStyler':         pattern_MakeStyler.apply(classes, patternTags, patternArgs[0])
+            else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
+        self.patternsToApply.clear()
+
+
+    def ScanAndEnquePatterns(self, classes, topTags, newTags):
+        #if len(self.classStore[1])>0: cdlog(1, "Enqueing Patterns...")
         itemsToDelete=[]; count=0;
         for item in classes[1]:
             if item[0]=='!':
                 itemsToDelete.append(count)
                 pattNameIdx=item[1:]
-                pattName=classes[0][pattNameIdx]['name']
-                patternArgs=classes[0][pattNameIdx]['parameters']
-                cdlog(1, "APPLYING PATTERN: {}: {}".format( pattName, patternArgs))
-
-                if   pattName=='makeGUI':            pattern_GUI_Toolkit.apply(classes, TopLevelTags)
-                elif pattName=='codeModelToGUI':     pattern_MakeGUI.apply(classes, [newTags, topTags], patternArgs[0])
-                elif pattName=='ManageCmdLine':      pattern_ManageCmdLine.apply(classes, newTags)
-                elif pattName=='GeneratePtrSymbols': pattern_GenSymbols.apply(classes, newTags, patternArgs)
-                elif pattName=='codeModelDashes':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
-                elif pattName=='codeDataDisplay':    pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
-                elif pattName=='codeModelToString':  pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'text')
-                elif pattName=='codeModelToProteus': pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'Proteus')
-               # elif pattName=='codeModelToGUI':     pattern_DispData.apply(classes, [newTags, topTags], patternArgs[0], 'toGUI')
-                elif pattName=='makeMenu':           pattern_MakeMenu.apply(classes, [newTags, topTags], patternArgs)
-                elif pattName=='makeRBMap':          pattern_RBMap.apply(classes, [newTags, topTags], patternArgs[0], patternArgs[1])
-                elif pattName=='makeStyler':         pattern_MakeStyler.apply(classes, [newTags, topTags], patternArgs[0])
-                else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
+                pattParse = classes[0][pattNameIdx]
+                patternSpec = {'patternName':pattParse['name'], 'patternParams':pattParse['parameters'], 'patternTags':[newTags, topTags]}
+                self.patternsToApply.append(patternSpec)
             count+=1
         for toDel in reversed(itemsToDelete):
             del(classes[1][toDel])
@@ -2244,7 +2254,7 @@ class CodeGenerator(object):
         codeDogStr = libraryMngr.processIncludedFiles(codeDogStr, filename)
         [tagStore, buildSpecs, FileClasses, newClasses] = codeDogParser.parseCodeDogString(codeDogStr, ProgSpec, objNames, macroDefs, filename)
         self.GroomTags(tagStore)
-        self.ScanAndApplyPatterns(FileClasses, topLvlTags, tagStore)
+        self.ScanAndEnquePatterns(FileClasses, topLvlTags, tagStore)
         stringStructs.CreateStructsForStringModels(FileClasses, newClasses, tagStore)
         return [tagStore, buildSpecs, FileClasses,newClasses]
 

@@ -1,0 +1,18 @@
+// TextToSpeech.dog
+
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+
+
+Title = "Text to Speech"
+FileName = "textspeech"
+Version = "1.0"
+CopyrightMesg = "Public Domain"
+Authors = "Bruce Long"
+Description = "This is an example of a text to example program"
+ProgramOrLibrary = "program"
+
+featuresNeeded = [TextToSpeech]
+
+LicenseText = `Public Domain`
+
+runCode=``

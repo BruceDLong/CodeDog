@@ -41,6 +41,7 @@ def AddSystemPath():
                 print("If you wish to add CodeDog to the system path manually, it is:\n    ", codeDogPath)
 
     elif platform == "win32" or platform == "win64":
+        import sys
         sytemflag = 0
         import winreg as reg
         key = reg.OpenKey(reg.HKEY_CURRENT_USER, 'Environment', 0, reg.KEY_ALL_ACCESS)
@@ -69,14 +70,14 @@ def DownloadInstallPipModules(pipCMD):
 
 def CheckPipModules():
     AddSystemPath()
-    requiredMinimumModulesList = {'pyparsing':'2.4.6', 'GitPython':'3.1.18'}
+    requiredMinimumModulesList = {'pyparsing':'2.0', 'GitPython':'3.1', 'urllib3':'1.25'}
     modulesList = []
     for moduleName in requiredMinimumModulesList:
         try:
             # version = importlib_metadata.version(moduleName)
             version = pkg_resources.get_distribution(moduleName).version
         except:
-            modulesList.append("%s==%s" % (moduleName, requiredMinimumModulesList[moduleName]))
+            modulesList.append("%s~=%s" % (moduleName, requiredMinimumModulesList[moduleName]))
         else:
             version = version.split(".")
             installedModuleVersion = float(".".join(version[:2]))
@@ -94,8 +95,9 @@ def CheckPipModules():
         if installationPermission.lower() == 'y' or installationPermission.lower() == 'yes' or installationPermission == '':
             for module in modulesList:
                 moduleBaseName = module[:module.find("==")]
+                latestModule = module.replace('==','~=')
                 print("\nInstalling package: ", moduleBaseName)
-                pipCMD = 'pip3 install -q %s --disable-pip-version-check' % moduleBaseName
+                pipCMD = 'pip3 install -q %s --disable-pip-version-check' % latestModule
                 DownloadInstallPipModules(pipCMD)
         else:
             print("\n\nERROR: CodeDog must be used with python modules\n")

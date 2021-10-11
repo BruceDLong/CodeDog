@@ -353,6 +353,7 @@ def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     fileExtension = '.cpp'
 
+
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName+"/assets")
 
