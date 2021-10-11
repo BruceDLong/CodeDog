@@ -3,7 +3,6 @@ import subprocess
 from progSpec import cdlog, cdErr
 
 def checkTool(toolName):
-    if toolName=='golang-go': toolName='go'  #Check for Go language
     if subprocess.call(["which", toolName], stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
         return True
     else:
@@ -55,14 +54,6 @@ def getPackageManagerCMD(packageName, installedPackageManagerList):
         elif ipm == 'brew':
             if packageInstalled("brew install --cask", packageName):
                 break
-
-
-#TODO: error handling
-def string_escape(s, encoding='utf-8'):
-    return (s.encode('latin1')         # To bytes, required by 'unicode-escape'
-             .decode('unicode-escape') # Perform the actual octal-escaping decode
-             .encode('latin1')         # 1:1 mapping back to bytes
-             .decode(encoding))        # Decode original encoding
 
 
 def checkAndUpgradeOSPackageVersions(packageName):

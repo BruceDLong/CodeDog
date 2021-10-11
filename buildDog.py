@@ -11,6 +11,7 @@ import errno
 import shutil
 from progSpec import cdlog, cdErr
 from pathlib import Path
+import checkSys
 import environmentMngr as emgr
 
 
@@ -120,7 +121,9 @@ def copyRecursive(src, dst, symlinks=False):
         # ~ if errors:
             # ~ raise shutil.Error(errors)
 
+
 def downloadFile(downloadUrl, packageName, packageDirectory):
+    checkSys.CheckPipModules({'urllib3':'1.25'})
     import urllib3
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
     packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
@@ -142,6 +145,7 @@ def downloadFile(downloadUrl, packageName, packageDirectory):
                         break
                     out.write(data)
             r.release_conn()
+
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
     import urllib3
@@ -184,6 +188,7 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
                 shutil.unpack_archive(packagePath, zipFileDirectory)
             except:
                 cdErr("Could not extract zip archive file: " + zipFileName)
+
 
 def FindOrFetchLibraries(buildName, packageData, platform):
     #print("#############:buildName:", buildName, platform)
@@ -231,6 +236,7 @@ def FindOrFetchLibraries(buildName, packageData, platform):
 
                 # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
                 # for toolName in toolList:
+                #     if toolName=='golang-go': toolName='go'  #Check for Go language
                 #     if emgr.checkTool(toolName):
                 #         runCmdStreaming(actualBuildCmd, downloadedFolder)
                 #     else:
@@ -259,6 +265,7 @@ def FindOrFetchLibraries(buildName, packageData, platform):
 
 
 def gitClone(cloneUrl, packageName, packageDirectory):
+    checkSys.CheckPipModules({'GitPython':'3.1'})
     import urllib.request
     from git import Repo
     packagePath = packageDirectory + '/' + packageName + '/' + packageName
@@ -272,71 +279,6 @@ def gitClone(cloneUrl, packageName, packageDirectory):
         cdlog(1, "Cloning git repository: " + packageName)
         Repo.clone_from(cloneUrl, packagePath)
         makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
-
-def downloadFile(downloadUrl, packageName, packageDirectory):
-    import urllib3
-    downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
-    packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
-    makeDirs(packageDirectory + '/' + packageName + "/LIBS")
-    makeDirs(os.path.dirname(packagePath))
-    checkRepo = os.path.isfile(packagePath)
-    if not checkRepo:
-        try:
-            cdlog(1, "Downloading file: " + packageName)
-            http = urllib3.PoolManager()
-            r = http.request('GET', downloadUrl, preload_content=False)
-        except:
-            cdErr("URL not found: " + downloadUrl)
-        else:
-            with open(packagePath, 'wb') as out:
-                while True:
-                    data = r.read(1028)
-                    if not data:
-                        break
-                    out.write(data)
-            r.release_conn()
-
-def downloadExtractZip(downloadUrl, packageName, packageDirectory):
-    import urllib3
-    zipExtension = ""
-    if downloadUrl.endswith(".zip"):
-        zipExtension = ".zip"
-    elif downloadUrl.endswith(".tar.gz"):
-        zipExtension = ".tar.gz"
-    elif downloadUrl.endswith(".tar.bz2"):
-        zipExtension = ".tar.bz2"
-    elif downloadUrl.endswith(".tar.xz"):
-        zipExtension = ".tar.xz"
-    elif downloadUrl.endswith(".tar"):
-        zipExtension = ".tar"
-    else:
-        pass
-
-    zipFileDirectory = packageDirectory + '/' + packageName
-    packagePath = zipFileDirectory + '/' + packageName + zipExtension
-    checkDirectory = os.path.isdir(zipFileDirectory)
-    zipFileName = os.path.basename(packagePath)
-    if not checkDirectory:
-        try:
-            makeDirs(zipFileDirectory + "/LIBS")
-            cdlog(1, "Downloading zip file: " + zipFileName)
-            http = urllib3.PoolManager()
-            r = http.request('GET', downloadUrl, preload_content=False)
-        except:
-            cdErr("URL not found: " + downloadUrl)
-        else:
-            with open(packagePath, 'wb') as out:
-                while True:
-                    data = r.read(1028)
-                    if not data:
-                        break
-                    out.write(data)
-            r.release_conn()
-            try:
-                cdlog(1, "Extracting zip file: " + zipFileName)
-                shutil.unpack_archive(packagePath, zipFileDirectory)
-            except:
-                cdErr("Corrupted zip archive file: " + zipFileName)
 
 
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
