@@ -1,15 +1,12 @@
 // CodeDog Unicode Library
 requirements = [
-    [tagOneOf, Lang, [CPP]]
+    [tagOneOf, Lang, [CPP]],
+    [require, Unicode_langVersion_implementation]
 ]
 
 interface={
     provides = [Unicode_implementation]
-    libFiles = [`pkg-config --libs --cflags icu-uc icu-io`]
-    headers  = [unicode/locid.h, unicode/unistr.h, unicode/putil.h,
-                unicode/ustream.h, unicode/normalizer2.h, unicode/calendar.h,
-                unicode/gregocal.h, unicode/smpdtfmt.h, unicode/utypes.h, codecvt, locale
-               ]
+    //headers  = [codecvt, locale]
 }
 
 LibDescription  ={
@@ -55,10 +52,6 @@ struct GLOBAL{
     me Udate: exampleUDate <- 1532000000000
     me bool: isutf(me char: ch)   <- <%!isutf(%1)%>
 
-    me wstring: stringToWString(me string: str) <- <%{
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-        return converter.from_bytes(str);
-    }%>
 }
 
 struct UnicodeMgr  {
@@ -91,16 +84,7 @@ struct UnicodeMgr  {
     me bool: isUnicodeAlpha(me int32: ch)     <- <%!%Gu_isalpha(%1)%>
     me bool: isUnicodeAlphaNum(me int32: ch)  <- <%!%Gu_isalnum(%1)%>
     me bool: isUnicodeWordStart(me int32: ch) <- <%!%Gu_isalpha(%1)%>
-    me bool: isUnicodeWordContinue(me int32: ch) <-<%{
-        int32_t props = U_GET_GC_MASK(ch);
-        //props=UTRIE2_GET16(&propsTrie, ch);
-        if((props&
-            (U_GC_ND_MASK | U_GC_L_MASK |  // Number Digits or Letters
-            U_GC_MC_MASK|U_GC_MN_MASK)     // Character modifiers
-            )!=0) return(true);
-        else if(ch==0x005f or ch==0x002d or ch==0x0027){return(true);} // "_" or "-" or "'"
-        return(false);
-    }%>
+
     me UnicodeStr: fromUTF8Str(me string: input) <- <%{
         UnicodeString output = UnicodeString::fromUTF8(input);
         return(output);
@@ -111,13 +95,7 @@ struct UnicodeMgr  {
         input.toUTF8String(output);
         return(output);
     }%>
-    void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out) <- <%{
-        int32_t len=s.length() * 5;
-        char c[len];
-        CheckedArrayByteSink sbs(c,len);
-        s.toUTF8(sbs);
-        *out=string(c, strlen(c));
-    }%>
+
     me string: normalizeStr(me string: input) <- <%{
         UnicodeString uniNorm = UNormalizer->normalize(fromUTF8Str(input.data()), uErr);
         string outputUTF8 = toUTF8Str(uniNorm);

@@ -111,7 +111,8 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
                 tmpLibFiles = tagsFromLibFiles[lib]['interface']['libFiles']
                 libFiles+=tmpLibFiles
                 if 'packages' in tagsFromLibFiles[lib]['interface']:
-                    packageData = tagsFromLibFiles[lib]['interface']['packages']
+                    packageData.append(tagsFromLibFiles[lib]['interface']['packages'])
+
 
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')

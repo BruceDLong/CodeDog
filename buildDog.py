@@ -34,7 +34,12 @@ def runCMD(myCMD, myDir):
         print("----------------------\n")
         if (err.find(b"ERROR")) >= 0 or err.find(b"error")>=0:
             exit(1)
-    decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
+    out = out.replace(b'\UXXXXXXXX',b'\\UXXXXXXXX')
+    decodedOut = ''
+    try:
+        decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
+    except:
+        decodedOut = str(out)
     if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
     return str(decodedOut)
 
@@ -159,63 +164,64 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
                 cdErr("Could not extract zip archive file: " + zipFileName)
 
 def FindOrFetchLibraries(buildName, packageData, platform):
-    #print("#############:buildName:", buildName, platform)
-    packageDirectory = os.getcwd() + '/' + buildName
+    pathDelim = '/'
+    if platform == 'Windows': pathDelim = '\\'
+    packageDirectory = os.getcwd() + pathDelim + buildName
     [includeFolders, libFolders] = ["", ""]
-    for package in packageData:
-        packageMap = progSpec.extractMapFromTagMap(package)
-        packageName = fetchType = fetchURL = fetchCommit = ""
-        buildCmdsMap = {}
-        if 'packageName' in packageMap:
-            packageName = packageMap['packageName'][1:-1]
-        if 'fetchMethod' in packageMap:
-            fetchMethod = packageMap['fetchMethod'][1:-1]
-            fetchSpec   = packageMap['fetchMethod'][1:-1].split(':', 1)
-            fetchType   = fetchSpec[0]
-            splitSpec   = fetchSpec[1].split('@', 1)
-            fetchURL    = splitSpec[0]
-            if len(splitSpec)>=2: fetchCommit = splitSpec[1]
-        if 'buildCmds' in packageMap:
-            buildCmds = packageMap['buildCmds']
-            buildCmdsMap = progSpec.extractMapFromTagMap(buildCmds)
+    for libPackages in packageData:
+        for package in libPackages:
+            packageMap = progSpec.extractMapFromTagMap(package)
+            packageName = fetchType = fetchURL = fetchCommit = ""
+            buildCmdsMap = {}
 
-        if packageName!="" and fetchMethod!="":
-            if fetchType == "git":
-                gitClone(fetchURL, packageName, packageDirectory)
-            elif fetchType == "file":
-                downloadFile(fetchURL, packageName, packageDirectory)
-            elif fetchType == "zip":
-                downloadExtractZip(fetchURL, packageName, packageDirectory)
-            else:
-                pass
+            if 'packageName' in packageMap:
+                packageName = packageMap['packageName'][1:-1]
+            if 'fetchMethod' in packageMap:
+                fetchMethod = packageMap['fetchMethod'][1:-1]
+                fetchSpec   = packageMap['fetchMethod'][1:-1].split(':', 1)
+                fetchType   = fetchSpec[0]
+                splitSpec   = fetchSpec[1].split('@', 1)
+                fetchURL    = splitSpec[0]
+                if len(splitSpec)>=2: fetchCommit = splitSpec[1]
+            if 'buildCmds' in packageMap:
+                buildCmds = packageMap['buildCmds']
+                buildCmdsMap = progSpec.extractMapFromTagMap(buildCmds)
 
-        if buildCmdsMap!={} and platform in buildCmdsMap:
-            #print("###########:",platform, ' = ', buildCmdsMap[platform])
-            buildCommand = buildCmdsMap[platform]
-            buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
-            downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
+            if packageName!="" and fetchMethod!="":
+                if fetchType == "git":
+                    gitClone(fetchURL, packageName, packageDirectory)
+                elif fetchType == "file":
+                    downloadFile(fetchURL, packageName, packageDirectory)
+                elif fetchType == "zip":
+                    downloadExtractZip(fetchURL, packageName, packageDirectory)
+                else:
+                    pass
 
-            if 'buildCmd' in buildCmdMap:
-                actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
-                for folderKey,folderVal in importantFolders.items():
-                    actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
-                #print("BUILDCMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
-                runCMD(actualBuildCmd, downloadedFolder)
+            if buildCmdsMap!={} and platform in buildCmdsMap:
+                buildCommand = buildCmdsMap[platform]
+                buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
+                downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
 
-            if 'installFiles' in buildCmdMap:
-                installfileList = buildCmdMap['installFiles'][1]
-                # ~ installFiles = progSpec.extractListFromTagList(installfileList)
-                # ~ print("    DATA:", str(installFiles)[:100])
-                LibsFolder = packageDirectory + '/' + packageName + "/INSTALL"
-                makeDirs(LibsFolder)
-                importantFolders[packageName+'@Install'] = LibsFolder
-                importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
-                includeFolders += "     '"+LibsFolder+"',\n"
-                libFolders     += "     '"+LibsFolder+"',\n"
-                for filenameX in installfileList:
-                    filename = downloadedFolder+'/'+filenameX[0][0][1:-1]
-                    cdlog(1, "Install: "+filename)
-                    copyRecursive(filename, LibsFolder)
+                if 'buildCmd' in buildCmdMap:
+                    actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
+                    for folderKey,folderVal in importantFolders.items():
+                        actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
+                    #print("BUILDCMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
+                    runCMD(actualBuildCmd, downloadedFolder)
+
+                if 'installFiles' in buildCmdMap:
+                    installfileList = buildCmdMap['installFiles'][1]
+                    # ~ installFiles = progSpec.extractListFromTagList(installfileList)
+                    LibsFolder = packageDirectory + pathDelim + packageName + pathDelim + "INSTALL"
+                    makeDirs(LibsFolder)
+                    importantFolders[packageName+'@Install'] = LibsFolder
+                    importantFolders[packageName] = packageDirectory + pathDelim + packageName + pathDelim + packageName
+                    includeFolders += "     r'"+LibsFolder+"',\n"
+                    libFolders     += "     r'"+LibsFolder+"',\n"
+                    for filenameX in installfileList:
+                        filename = downloadedFolder+pathDelim+filenameX[0][0][1:-1]
+                        cdlog(1, "Install: "+filename)
+                        copyRecursive(filename, LibsFolder)
 
     return [includeFolders, libFolders]
 
@@ -256,7 +262,7 @@ def downloadFile(downloadUrl, packageName, packageDirectory):
             cdErr("URL not found : " + downloadUrl)
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
-    import pycurl
+    import urllib
     zipExtension = ""
     if downloadUrl.endswith(".zip"):
         zipExtension = ".zip"
@@ -280,7 +286,7 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
             makeDirs(zipFileDirectory + "/LIBS")
             cdlog(1, "Downloading zip file: " + zipFileName)
             with open(packagePath, 'wb') as f:
-                c = pycurl.Curl()
+                c = urllib.request()
                 c.setopt(c.URL, downloadUrl)
                 c.setopt(c.WRITEDATA, f)
                 c.perform()
@@ -295,6 +301,54 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
             except:
                 cdErr("Corrupted zip archive file: " + zipFileName)
 
+def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension):
+    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
+    SconsFile = "import os\n\n"
+    SconsFile += "env = Environment(ENV=os.environ)\n"
+    #SconsFile += "env.MergeFlags('-g -fpermissive')\n"
+    if progOrLib=='program': SconsFileType = "Program"
+    elif progOrLib=='library': SconsFileType = "Library"
+    elif progOrLib=='staticlibrary': SconsFileType = "StaticLibrary"
+    elif progOrLib=='sharedlibrary': SconsFileType = "SharedLibrary"
+    else: SconsFileType = "Library"
+
+    SconsFileOut = 'env.'+SconsFileType+'(\n'
+    SconsFileOut += '    target='+'"'+fileName+'",\n'
+    SconsFileOut += '    source='+'"'+fileSpecs[0][0]+fileExtension+'",\n'
+
+    codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+  #  SconsFileOut += '    env["LIBPATH"]=["'+codeDogFolder+'"],\n'
+    sconsConfigs = ""
+
+    sconsLibs     = 'env["LIBS"] = ['
+    sconsCppPaths = 'env["CPPPATH"]=[\n'+includeFolders+']\n'
+    sconsLibPaths = 'env["LIBPATH"]=[\n     r"'+codeDogFolder+'",\n'+libFolders+']\n'
+    libStr=""
+    firstTime = True
+    for libFile in libFiles:
+        if libFile.startswith('pkg-config'):
+            libStr += "`"+libFile+"` "
+            #sconsConfigs += 'env.ParseConfig("'+libFile+'")\n'
+        else:
+            if libFile =='pthread':
+                #sconsConfigs += 'env.MergeFlags("-pthread")\n'
+                sconsConfigs += ''
+            else:
+                libStr += "-l"+libFile
+                if not firstTime: sconsLibs += ', '
+                firstTime=False
+                sconsLibs += '"'+libFile+'"'
+    sconsLibs += ']\n'
+        #print "libStr: " + libStr
+    currentDirectory = os.getcwd()
+    #TODO check if above is typo
+    workingDirectory = currentDirectory + "\\" + buildName
+    buildStr = getBuildSting(fileName,libStr,platform,buildName)
+    runStr = "./" + fileName
+    SconsFileOut += '    )\n'
+    SconsFile += sconsCppPaths + sconsLibPaths + sconsLibs + sconsConfigs + SconsFileOut + '\n'
+    sconsFilename = fileName+".scons"
+    writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
 
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     fileExtension = '.cpp'
@@ -372,13 +426,14 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
     return [workingDirectory, buildStr, runStr]
 
-def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     buildStr = ''
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
     libStr = "-I " + codeDogFolder + " "
     #minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
     #outputFileStr = '-o ' + fileName
+    buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension)
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName + os.sep + "assets")
@@ -470,7 +525,7 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     elif platform == 'Swift':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Windows':
-        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData)
     elif platform == 'MacOS':
         [workingDirectory, buildStr, runStr] = buildMac.macBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'IOS':
@@ -558,7 +613,7 @@ def buildWithScons(name, cmdLineArgs):
 
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
         otherSconsArgs = ' '.join(cmdLineArgs)
-        sconsCMD = "python3 "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
+        sconsCMD = "python3 "+codeDogPath+os.sep+"Scons"+os.sep+"scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
         result = runCMD(sconsCMD, basepath)
         print(result)
         print("\nSUCCESS\n")
