@@ -324,7 +324,6 @@ class CodeGenerator(object):
                     else:
                         REF=self.CheckClassStaticVars(self.currentObjName, itemName)
                         if(REF):
-                            progSpec.addDependencyToStruct(self.currentObjName, REF[0])
                             return REF
 
                         elif(itemName in self.StaticMemberVars):
