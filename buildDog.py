@@ -1,7 +1,7 @@
 # buildDog.py
-# import into codeDog.py and call from there
-# args to build function: path, libraries etc
-# get it to work with C++ or print error msg
+
+
+from __future__ import unicode_literals
 import progSpec
 import os
 import subprocess
@@ -11,6 +11,7 @@ import errno
 import shutil
 from progSpec import cdlog, cdErr
 from pathlib import Path
+import environmentMngr as emgr
 
 
 importantFolders = {}
@@ -20,6 +21,7 @@ def string_escape(s, encoding='utf-8'):
              .decode('unicode-escape') # Perform the actual octal-escaping decode
              .encode('latin1')         # 1:1 mapping back to bytes
              .decode(encoding))        # Decode original encoding
+
 
 def runCMD(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
@@ -34,14 +36,29 @@ def runCMD(myCMD, myDir):
         print("----------------------\n")
         if (err.find(b"ERROR")) >= 0 or err.find(b"error")>=0:
             exit(1)
-    out = out.replace(b'\UXXXXXXXX',b'\\UXXXXXXXX')
-    decodedOut = ''
-    try:
-        decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
-    except:
-        decodedOut = str(out)
-    if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
-    return str(decodedOut)
+    #decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
+    #if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
+    return string_escape(str(out)).strip
+
+
+def runCmdStreaming(myCMD, myDir):
+    print("\nCOMMAND: ", myCMD, "\n")
+    process = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True,)
+
+    returnCode = process.poll()
+
+    while process.poll() is None:
+        output = process.stdout.readline()
+        if output:
+            print(output.strip())
+
+    err = process.stderr.readline()
+    if err:
+        print("ERRORS:---------------\n")
+        print(err.strip())
+
+    return process.returncode
+
 
 def makeDirs(dirToGen):
     #print("dirToGen:", dirToGen)
@@ -104,7 +121,7 @@ def copyRecursive(src, dst, symlinks=False):
             # ~ raise shutil.Error(errors)
 
 def downloadFile(downloadUrl, packageName, packageDirectory):
-    import pycurl
+    import urllib3
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
     packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
     makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
@@ -113,18 +130,21 @@ def downloadFile(downloadUrl, packageName, packageDirectory):
     if not checkRepo:
         try:
             cdlog(1, "Downloading file: " + packageName)
-            with open(packagePath, 'wb') as f:
-                c = pycurl.Curl()
-                c.setopt(c.URL, downloadUrl)
-                c.setopt(c.WRITEDATA, f)
-                c.perform()
-                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
-                c.close()
+            http = urllib3.PoolManager()
+            r = http.request('GET', downloadUrl, preload_content=False)
         except:
-            cdErr("URL not found : " + downloadUrl)
+            cdErr("URL not found: " + downloadUrl)
+        else:
+            with open(packagePath, 'wb') as out:
+                while True:
+                    data = r.read(1028)
+                    if not data:
+                        break
+                    out.write(data)
+            r.release_conn()
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
-    import pycurl
+    import urllib3
     zipExtension = ""
     if downloadUrl.endswith(".zip"):
         zipExtension = ".zip"
@@ -147,16 +167,18 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
         try:
             makeDirs(zipFileDirectory + "/INSTALL")
             cdlog(1, "Downloading zip file: " + zipFileName)
-            with open(packagePath, 'wb') as f:
-                c = pycurl.Curl()
-                c.setopt(c.URL, downloadUrl)
-                c.setopt(c.WRITEDATA, f)
-                c.perform()
-                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
-                c.close()
+            http = urllib3.PoolManager()
+            r = http.request('GET', downloadUrl, preload_content=False)
         except:
-            cdErr("URL not found : " + downloadUrl)
+            cdErr("URL not found: " + downloadUrl)
         else:
+            with open(packagePath, 'wb') as out:
+                while True:
+                    data = r.read(1028)
+                    if not data:
+                        break
+                    out.write(data)
+            r.release_conn()
             try:
                 cdlog(1, "Extracting zip file: " + zipFileName)
                 shutil.unpack_archive(packagePath, zipFileDirectory)
@@ -164,16 +186,14 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
                 cdErr("Could not extract zip archive file: " + zipFileName)
 
 def FindOrFetchLibraries(buildName, packageData, platform):
-    pathDelim = '/'
-    if platform == 'Windows': pathDelim = '\\'
-    packageDirectory = os.getcwd() + pathDelim + buildName
+    #print("#############:buildName:", buildName, platform)
+    packageDirectory = os.getcwd() + '/' + buildName
     [includeFolders, libFolders] = ["", ""]
     for libPackages in packageData:
         for package in libPackages:
             packageMap = progSpec.extractMapFromTagMap(package)
             packageName = fetchType = fetchURL = fetchCommit = ""
             buildCmdsMap = {}
-
             if 'packageName' in packageMap:
                 packageName = packageMap['packageName'][1:-1]
             if 'fetchMethod' in packageMap:
@@ -198,6 +218,7 @@ def FindOrFetchLibraries(buildName, packageData, platform):
                     pass
 
             if buildCmdsMap!={} and platform in buildCmdsMap:
+                #print("###########:",platform, ' = ', buildCmdsMap[platform])
                 buildCommand = buildCmdsMap[platform]
                 buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
                 downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
@@ -206,20 +227,32 @@ def FindOrFetchLibraries(buildName, packageData, platform):
                     actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
                     for folderKey,folderVal in importantFolders.items():
                         actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
-                    #print("BUILDCMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
-                    runCMD(actualBuildCmd, downloadedFolder)
+                    #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
+                    runCmdStreaming(actualBuildCmd, downloadedFolder)
+
+                    # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
+                    # for toolName in toolList:
+                    #     if emgr.checkTool(toolName):
+                    #         runCmdStreaming(actualBuildCmd, downloadedFolder)
+                    #     else:
+                    #         packageManager = emgr.findPackageManager()
+                    #         if not packageManager:
+                    #             print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
+                    #         else:
+                    #             emgr.getPackageManagerCMD(toolName, packageManager)
 
                 if 'installFiles' in buildCmdMap:
                     installfileList = buildCmdMap['installFiles'][1]
                     # ~ installFiles = progSpec.extractListFromTagList(installfileList)
-                    LibsFolder = packageDirectory + pathDelim + packageName + pathDelim + "INSTALL"
+                    # ~ print("    DATA:", str(installFiles)[:100])
+                    LibsFolder = packageDirectory + '/' + packageName + "/INSTALL"
                     makeDirs(LibsFolder)
                     importantFolders[packageName+'@Install'] = LibsFolder
-                    importantFolders[packageName] = packageDirectory + pathDelim + packageName + pathDelim + packageName
-                    includeFolders += "     r'"+LibsFolder+"',\n"
-                    libFolders     += "     r'"+LibsFolder+"',\n"
+                    importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
+                    includeFolders += "     '"+LibsFolder+"',\n"
+                    libFolders     += "     '"+LibsFolder+"',\n"
                     for filenameX in installfileList:
-                        filename = downloadedFolder+pathDelim+filenameX[0][0][1:-1]
+                        filename = downloadedFolder+'/'+filenameX[0][0][1:-1]
                         cdlog(1, "Install: "+filename)
                         copyRecursive(filename, LibsFolder)
 
@@ -235,14 +268,14 @@ def gitClone(cloneUrl, packageName, packageDirectory):
         try:
             urllib.request.urlopen(cloneUrl)
         except (urllib.error.URLError, urllib.error.HTTPError):
-            cdErr("URL not found : " + cloneUrl)
+            cdErr("URL not found: " + cloneUrl)
 
         cdlog(1, "Cloning git repository: " + packageName)
         Repo.clone_from(cloneUrl, packagePath)
         makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
 
 def downloadFile(downloadUrl, packageName, packageDirectory):
-    import pycurl
+    import urllib3
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
     packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
     makeDirs(packageDirectory + '/' + packageName + "/LIBS")
@@ -251,18 +284,21 @@ def downloadFile(downloadUrl, packageName, packageDirectory):
     if not checkRepo:
         try:
             cdlog(1, "Downloading file: " + packageName)
-            with open(packagePath, 'wb') as f:
-                c = pycurl.Curl()
-                c.setopt(c.URL, downloadUrl)
-                c.setopt(c.WRITEDATA, f)
-                c.perform()
-                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
-                c.close()
+            http = urllib3.PoolManager()
+            r = http.request('GET', downloadUrl, preload_content=False)
         except:
-            cdErr("URL not found : " + downloadUrl)
+            cdErr("URL not found: " + downloadUrl)
+        else:
+            with open(packagePath, 'wb') as out:
+                while True:
+                    data = r.read(1028)
+                    if not data:
+                        break
+                    out.write(data)
+            r.release_conn()
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
-    import urllib
+    import urllib3
     zipExtension = ""
     if downloadUrl.endswith(".zip"):
         zipExtension = ".zip"
@@ -285,74 +321,27 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
         try:
             makeDirs(zipFileDirectory + "/LIBS")
             cdlog(1, "Downloading zip file: " + zipFileName)
-            with open(packagePath, 'wb') as f:
-                c = urllib.request()
-                c.setopt(c.URL, downloadUrl)
-                c.setopt(c.WRITEDATA, f)
-                c.perform()
-                # print('Status: %d' % c.getinfo(c.RESPONSE_CODE))
-                c.close()
+            http = urllib3.PoolManager()
+            r = http.request('GET', downloadUrl, preload_content=False)
         except:
-            cdErr("URL not found : " + downloadUrl)
+            cdErr("URL not found: " + downloadUrl)
         else:
+            with open(packagePath, 'wb') as out:
+                while True:
+                    data = r.read(1028)
+                    if not data:
+                        break
+                    out.write(data)
+            r.release_conn()
             try:
                 cdlog(1, "Extracting zip file: " + zipFileName)
                 shutil.unpack_archive(packagePath, zipFileDirectory)
             except:
                 cdErr("Corrupted zip archive file: " + zipFileName)
 
-def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension):
-    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
-    SconsFile = "import os\n\n"
-    SconsFile += "env = Environment(ENV=os.environ)\n"
-    #SconsFile += "env.MergeFlags('-g -fpermissive')\n"
-    if progOrLib=='program': SconsFileType = "Program"
-    elif progOrLib=='library': SconsFileType = "Library"
-    elif progOrLib=='staticlibrary': SconsFileType = "StaticLibrary"
-    elif progOrLib=='sharedlibrary': SconsFileType = "SharedLibrary"
-    else: SconsFileType = "Library"
-
-    SconsFileOut = 'env.'+SconsFileType+'(\n'
-    SconsFileOut += '    target='+'"'+fileName+'",\n'
-    SconsFileOut += '    source='+'"'+fileSpecs[0][0]+fileExtension+'",\n'
-
-    codeDogFolder = os.path.dirname(os.path.realpath(__file__))
-  #  SconsFileOut += '    env["LIBPATH"]=["'+codeDogFolder+'"],\n'
-    sconsConfigs = ""
-
-    sconsLibs     = 'env["LIBS"] = ['
-    sconsCppPaths = 'env["CPPPATH"]=[\n'+includeFolders+']\n'
-    sconsLibPaths = 'env["LIBPATH"]=[\n     r"'+codeDogFolder+'",\n'+libFolders+']\n'
-    libStr=""
-    firstTime = True
-    for libFile in libFiles:
-        if libFile.startswith('pkg-config'):
-            libStr += "`"+libFile+"` "
-            #sconsConfigs += 'env.ParseConfig("'+libFile+'")\n'
-        else:
-            if libFile =='pthread':
-                #sconsConfigs += 'env.MergeFlags("-pthread")\n'
-                sconsConfigs += ''
-            else:
-                libStr += "-l"+libFile
-                if not firstTime: sconsLibs += ', '
-                firstTime=False
-                sconsLibs += '"'+libFile+'"'
-    sconsLibs += ']\n'
-        #print "libStr: " + libStr
-    currentDirectory = os.getcwd()
-    #TODO check if above is typo
-    workingDirectory = currentDirectory + "\\" + buildName
-    buildStr = getBuildSting(fileName,libStr,platform,buildName)
-    runStr = "./" + fileName
-    SconsFileOut += '    )\n'
-    SconsFile += sconsCppPaths + sconsLibPaths + sconsLibs + sconsConfigs + SconsFileOut + '\n'
-    sconsFilename = fileName+".scons"
-    writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
 
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     fileExtension = '.cpp'
-
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName+"/assets")
@@ -382,7 +371,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 
     #building scons file
     SconsFile = "import os\n"
-    SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -fpermissive')\n"
+    SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -fpermissive  -fdiagnostics-color=always')\n"
     if progOrLib=='program': SconsFileType = "Program"
     elif progOrLib=='library': SconsFileType = "Library"
     elif progOrLib=='staticlibrary': SconsFileType = "StaticLibrary"
@@ -427,14 +416,13 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
     return [workingDirectory, buildStr, runStr]
 
-def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
+def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
     buildStr = ''
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
     libStr = "-I " + codeDogFolder + " "
     #minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
     #outputFileStr = '-o ' + fileName
-    buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension)
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName + os.sep + "assets")
@@ -526,7 +514,7 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     elif platform == 'Swift':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Windows':
-        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData)
+        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'MacOS':
         [workingDirectory, buildStr, runStr] = buildMac.macBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'IOS':
@@ -614,7 +602,7 @@ def buildWithScons(name, cmdLineArgs):
 
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
         otherSconsArgs = ' '.join(cmdLineArgs)
-        sconsCMD = "python3 "+codeDogPath+os.sep+"Scons"+os.sep+"scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
-        result = runCMD(sconsCMD, basepath)
+        sconsCMD = "python3 "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
+        result = runCmdStreaming(sconsCMD, basepath)
         print(result)
         print("\nSUCCESS\n")
