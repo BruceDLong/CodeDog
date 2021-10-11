@@ -5,7 +5,7 @@ import codeDogParser
 
 
 def apply(classes, tags):
-    progSpec.appendToStringTagValue(tags, 'initCode', 'CommandLineManager.processCmdLine(prgArgs, false)')
+    progSpec.addCodeToInit(tags, 'CommandLineManager.processCmdLine(prgArgs, false)')
 
     code = r"""
     struct GLOBAL{

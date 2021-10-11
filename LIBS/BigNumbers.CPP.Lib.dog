@@ -63,5 +63,7 @@ struct FlexNum{
         mpz_ptr D = val.get_den_mpz_t();
         mpz_set_ui(D,1);
     }%>
+    none: FlexNum(me int64:num)  <- <%{val = (signed long)num;}%>
+    none: FlexNum(me uint64:num) <- <%{val = (unsigned long)num;}%>
 
 }

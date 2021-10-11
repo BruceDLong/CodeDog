@@ -368,6 +368,18 @@ def CodeRValExpr(toFieldType, VarTag, suffix):
     else: print("TOFIELDTYPE:", toFieldType); exit(2);
     return CODE_RVAL
 
+postParseFunctionsByClassName={}
+
+def getPostParseFunctionName(classes, structName):
+    if structName in postParseFunctionsByClassName:
+        return postParseFunctionsByClassName[structName]
+    if progSpec.doesClassContainFunc(classes, structName, 'postParseProcessing'):
+        postParseFunctionsByClassName[structName]='postParseProcessing'
+        return 'postParseProcessing'
+    elif progSpec.doesClassContainFunc(classes, structName, 'postParseProcessingEtc'):
+        postParseFunctionsByClassName[structName]='postParseProcessingEtc'
+        return 'postParseProcessingEtc'
+    return None
 
 def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase, VarName, advancePtr, coFactualCode, indent, level, logLvl):
     debugTmp=False # Erase this line
@@ -539,10 +551,8 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child'
         gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and getNextStateRec('+childRecName+') !=NULL){\n'
         if fromIsALT:
-          #  print "ALT-#1"
             gatherFieldCode+=Write_ALT_Extracter(classes, fTypeKW, fields, childRecName, '', 'tmpVar', indent+'    ', level)
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
-
         elif fromIsStruct and not toIsBaseType:
             gatherFieldCode+='\n'+indent+toFieldOwner+' '+progSpec.baseStructName(toFTypeKW)+': tmpVar'
             if toFieldOwner!='me':
@@ -550,12 +560,12 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
             #print "##### FUNCT:", getFunctionName(fTypeKW, toFTypeKW)
             gatherFieldCode+='\n'+indent+getFunctionName(fTypeKW, toFTypeKW)+'(getChildStateRec('+childRecName+') , tmpVar)\n'
-
+            PP_FuncName = getPostParseFunctionName(classes, toFTypeKW)
+            if PP_FuncName!=None:
+                gatherFieldCode+='\n'+indent+'if(!'+CODE_RVAL+'.postParseProcessed){'+PP_FuncName+'_'+toFTypeKW+'('+CODE_RVAL+')}'
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, ".next")
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
-
-        #gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
 
         gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
         # UNCOMMENT FOR DEGUG: S+= '    docPos('+str(level)+', '+VarTag+', "Get Next in LIST for: '+humanIDType+'")\n'
@@ -650,6 +660,7 @@ extracterFunctionAccumulator = ""
 alreadyWrittenFunctions={}
 
 def Write_structExtracter(classes, ToStructName, FromStructName, fields, nameForFunc, logLvl):
+    global extracterFunctionAccumulator
     memObjFields=[]
     progSpec.populateCallableStructFields(memObjFields, classes, ToStructName)
     if memObjFields==None: cdErr("struct {} is not defined".format(ToStructName.replace('str','mem')))
@@ -658,8 +669,23 @@ def Write_structExtracter(classes, ToStructName, FromStructName, fields, nameFor
     for field in fields: # Extract all the fields in the string version.
         S+=Write_fieldExtracter(classes, ToStructName, field, memObjFields, 'SRec', '', advance, '', '    ', 0, logLvl+1)
         advance=True
-    if  ToStructName== FromStructName and progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessing'):
-        S += '        memStruct.postParseProcessing()\n'
+    if  ToStructName==FromStructName:
+        if progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessing'):
+            postParseFuncName = "postParseProcessing_"+ToStructName
+            S += "        "+postParseFuncName+"(memStruct)\n"
+            newStructtxt='\n struct '+ToStructName+'{flag: postParseProcessed}\n'
+            codeDogParser.AddToObjectFromText(classes[0], classes[1], newStructtxt, 'Adding '+ToStructName+'{flag: postParseProcessed}')
+            pppFunc="\n    void: "+postParseFuncName+"(their "+ToStructName+": item) <- {item.postParseProcessing();  item.postParseProcessed<-true}\n"
+            #print("postParseProcessing:",pppFunc)
+            extracterFunctionAccumulator += pppFunc
+        elif progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessingEtc'):
+            postParseFuncName = "postParseProcessingEtc_"+ToStructName
+            S += "        "+postParseFuncName+"(memStruct)\n        memStruct.postParseProcessed<-true\n"
+            newStructtxt='\n struct '+ToStructName+'{flag: postParseProcessed}\n'
+            codeDogParser.AddToObjectFromText(classes[0], classes[1], newStructtxt, 'Adding '+ToStructName+'{flag: postParseProcessed}')
+            pppFunc="\n    void: "+postParseFuncName+"(their "+ToStructName+": item) <- {print(\"Override this function!\")}\n"
+            #print("postParseProcessingEtc:",pppFunc)
+            extracterFunctionAccumulator += pppFunc
     return S
 
 def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
@@ -788,7 +814,7 @@ struct Threaded_<CLASSNAME>ParseAndExtractor{
     }
 }
 '''.replace('<CLASSNAME>', className)
-    codeDogParser.AddToObjectFromText(classes[0], classes[1], S, 'Parse_'+className+'()')
+    codeDogParser.AddToObjectFromText(classes[0], classes[1], S, 'Parse_'+className+'() and threaded parse support structs')
 
 def CreateStructsForStringModels(classes, newClasses, tags):
     # Define fieldResult struct

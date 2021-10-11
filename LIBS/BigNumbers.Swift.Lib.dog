@@ -15,3 +15,7 @@ LibDescription ={
     description = 'Built in routines for Swift'
 }
 
+struct FlexNum{
+    none: FlexNum(me int64:num)  <- {val <- num}
+    none: FlexNum(me uint64:num) <- {val <- num}
+}

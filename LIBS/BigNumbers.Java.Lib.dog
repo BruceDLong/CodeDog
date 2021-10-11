@@ -48,4 +48,6 @@ struct FlexNum{
     me BigInt: getDenominator()  <- <%{}%>
     // CONSTRUCTORS
     //none: FlexNum(me BigInt:num) <- <%{}%>
+    none: FlexNum(me int64:num)  <- {val <- num}
+    none: FlexNum(me uint64:num) <- {val <- num}
 }

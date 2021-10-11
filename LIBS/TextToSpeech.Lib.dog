@@ -1,0 +1,18 @@
+// TextToSpeech.Lib.dog
+
+requirements = [
+    [require, TextToSpeech_implementation]
+]
+
+LibDescription ={
+    useStatus   = static
+    description ='Interface to the Text to speech library'
+}
+
+featuresNeeded = [Logger]
+
+
+struct TextToSpeechConvert{
+    void: init()
+    void: deinit()
+}
