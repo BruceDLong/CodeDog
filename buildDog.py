@@ -158,12 +158,14 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
         pass
 
     zipFileDirectory = packageDirectory + '/' + packageName
+    innerPackageName = packageName     # TODO: get actual innerPackageName
+    innerPackageDir  = zipFileDirectory + '/' + innerPackageName
     packagePath = zipFileDirectory + '/' + packageName + zipExtension
     checkDirectory = os.path.isdir(zipFileDirectory)
     zipFileName = os.path.basename(downloadUrl)
     if not checkDirectory:
         try:
-            makeDirs(zipFileDirectory + "/INSTALL")
+            makeDirs(zipFileDirectory)
             cdlog(1, "Downloading zip file: " + zipFileName)
             http = urllib3.PoolManager()
             r = http.request('GET', downloadUrl, preload_content=False)
@@ -179,7 +181,7 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
             r.release_conn()
             try:
                 cdlog(1, "Extracting zip file: " + zipFileName)
-                shutil.unpack_archive(packagePath, zipFileDirectory)
+                shutil.unpack_archive(packagePath, innerPackageDir)
             except:
                 cdErr("Could not extract zip archive file: " + zipFileName)
 
@@ -216,41 +218,45 @@ def FindOrFetchLibraries(buildName, packageData, platform):
                     pass
 
             if buildCmdsMap!={} and platform in buildCmdsMap:
-            #print("###########:",platform, ' = ', buildCmdsMap[platform])
-            buildCommand = buildCmdsMap[platform]
-            buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
-            downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
 
-            if 'buildCmd' in buildCmdMap:
-                actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
-                for folderKey,folderVal in importantFolders.items():
-                    actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
-                #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
+               #print("###########:",platform, ' = ', buildCmdsMap[platform])
+                buildCommand = buildCmdsMap[platform]
+                buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
+                downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
+
+                if 'buildCmd' in buildCmdMap:
+                    actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
+
+                    for folderKey,folderVal in importantFolders.items():
+                        actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
+                    #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
                     runCMD(actualBuildCmd, downloadedFolder)
-                # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
-                # for toolName in toolList:
-                #     if emgr.checkTool(toolName):
-                #         runCmdStreaming(actualBuildCmd, downloadedFolder)
-                #     else:
-                #         packageManager = emgr.findPackageManager()
-                #         if not packageManager:
-                #             print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
-                #         else:
-                #             emgr.getPackageManagerCMD(toolName, packageManager)
-            if 'installFiles' in buildCmdMap:
-                installfileList = buildCmdMap['installFiles'][1]
-                # ~ installFiles = progSpec.extractListFromTagList(installfileList)
-                # ~ print("    DATA:", str(installFiles)[:100])
-                LibsFolder = packageDirectory + '/' + packageName + "/INSTALL"
-                makeDirs(LibsFolder)
-                importantFolders[packageName+'@Install'] = LibsFolder
-                importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
+                    # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
+                    # for toolName in toolList:
+                    #     if emgr.checkTool(toolName):
+                    #         runCmdStreaming(actualBuildCmd, downloadedFolder)
+                    #     else:
+                    #         packageManager = emgr.findPackageManager()
+                    #         if not packageManager:
+                    #             print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
+                    #         else:
+                    #             emgr.getPackageManagerCMD(toolName, packageManager)
+
+                if 'installFiles' in buildCmdMap:
+                    installfileList = buildCmdMap['installFiles'][1]
+                    # ~ installFiles = progSpec.extractListFromTagList(installfileList)
+                    # ~ print("    DATA:", str(installFiles)[:100])
+                    LibsFolder = packageDirectory + '/' + packageName + "/INSTALL"
+                    makeDirs(LibsFolder)
+                    importantFolders[packageName+'@Install'] = LibsFolder
+                    importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
                     includeFolders += "     r'"+LibsFolder+"',\n"
                     libFolders     += "     r'"+LibsFolder+"',\n"
-                for filenameX in installfileList:
-                    filename = downloadedFolder+'/'+filenameX[0][0][1:-1]
-                    cdlog(1, "Install: "+filename)
-                    copyRecursive(filename, LibsFolder)
+                    for filenameX in installfileList:
+                        filename = downloadedFolder+'/'+filenameX[0][0][1:-1]
+                        cdlog(1, "Install: "+filename)
+
+                        copyRecursive(filename, LibsFolder)
 
     return [includeFolders, libFolders]
 
@@ -292,48 +298,6 @@ def downloadFile(downloadUrl, packageName, packageDirectory):
                         break
                     out.write(data)
             r.release_conn()
-
-def downloadExtractZip(downloadUrl, packageName, packageDirectory):
-    import urllib3
-    zipExtension = ""
-    if downloadUrl.endswith(".zip"):
-        zipExtension = ".zip"
-    elif downloadUrl.endswith(".tar.gz"):
-        zipExtension = ".tar.gz"
-    elif downloadUrl.endswith(".tar.bz2"):
-        zipExtension = ".tar.bz2"
-    elif downloadUrl.endswith(".tar.xz"):
-        zipExtension = ".tar.xz"
-    elif downloadUrl.endswith(".tar"):
-        zipExtension = ".tar"
-    else:
-        pass
-
-    zipFileDirectory = packageDirectory + '/' + packageName
-    packagePath = zipFileDirectory + '/' + packageName + zipExtension
-    checkDirectory = os.path.isdir(zipFileDirectory)
-    zipFileName = os.path.basename(packagePath)
-    if not checkDirectory:
-        try:
-            makeDirs(zipFileDirectory + "/LIBS")
-            cdlog(1, "Downloading zip file: " + zipFileName)
-            http = urllib3.PoolManager()
-            r = http.request('GET', downloadUrl, preload_content=False)
-        except:
-            cdErr("URL not found: " + downloadUrl)
-        else:
-            with open(packagePath, 'wb') as out:
-                while True:
-                    data = r.read(1028)
-                    if not data:
-                        break
-                    out.write(data)
-            r.release_conn()
-            try:
-                cdlog(1, "Extracting zip file: " + zipFileName)
-                shutil.unpack_archive(packagePath, zipFileDirectory)
-            except:
-                cdErr("Corrupted zip archive file: " + zipFileName)
 
 def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension):
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
@@ -480,7 +444,7 @@ def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     #TODO check if above is typo
     workingDirectory = currentDirectory + os.sep + buildName
     buildStr = getBuildSting(fileName,"",platform,buildName)
-    runStr = "python " + "..\CodeDog\\" + fileName
+    runStr = fileName + ".exe"
     return [workingDirectory, buildStr, runStr]
 
 def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
@@ -532,20 +496,12 @@ def iOSBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, plat
     return [projectDirectory, buildCmd, runCmd]
 
 def BuildAndPrintResults(workingDirectory, buildStr, runStr):
-    cdlog(1, "Compiling From: {}".format(workingDirectory))
-    print("     NOTE: Build Command is: ", buildStr, "\n")
-    print("     NOTE: Run Command is: ", runStr, "\n")
-    #print ("workingDirectory: ", workingDirectory)
-    pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = pipe.communicate()
-    if out: print("Result: \n"+out.decode('utf-8'))
-    if err:
-        decodedErr = err.decode('UTF-8')
-        if "error:" in decodedErr or "SyntaxError:" in decodedErr:
-            print("Error Messages:\n--------------------------\n", err.decode('UTF-8'))
-            print("--------------------------")
-            exit(2)
-    else: cdlog(1, "SUCCESS!")
+    print("\n")
+    cdlog(1, "     NOTE: Build Command is: "+ buildStr)
+    cdlog(1, "     NOTE: Run Command is: "+ runStr)
+    cdlog(1, "     NOTE: Build Directory is: "+ workingDirectory)
+    runCMD(buildStr,workingDirectory)
+    cdlog(1, "SUCCESS!")
 
 def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
@@ -612,10 +568,8 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         fileExtension = '.swift'
         buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
     elif platform == 'Windows':
-        langStr = 'cl /EHsc'
-        fileExtension = '.cpp'
-        fileStr  = fileName + fileExtension
-        buildStr = langStr + " " + fileStr
+        codeDogPath = os.path.dirname(os.path.realpath(__file__))
+        buildStr = f"python3 {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
     elif platform == 'MacOS':
         buildStr = "// swift build -Xswiftc -suppress-warnings \n"
         buildStr += "// swift run  -Xswiftc -suppress-warnings \n"
