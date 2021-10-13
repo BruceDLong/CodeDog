@@ -324,7 +324,6 @@ class CodeGenerator(object):
                     else:
                         REF=self.CheckClassStaticVars(self.currentObjName, itemName)
                         if(REF):
-                            progSpec.addDependancyToStruct(self.currentObjName, itemName)
                             return REF
 
                         elif(itemName in self.StaticMemberVars):
@@ -2012,41 +2011,43 @@ class CodeGenerator(object):
         headerTopStr = ''
         #cdlog(2, 'Integrating {}'.format(libID))
         # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
+        if libID in tagsFromLibFiles:
+            libFileTags = tagsFromLibFiles[libID]
+            if 'embedAboveIncludes'in libFileTags: self.libEmbedAboveIncludes+= libFileTags['embedAboveIncludes']
+            if 'embedVeryHigh'     in libFileTags: self.libEmbedVeryHigh     += libFileTags['embedVeryHigh']
+            if 'embedHigh'         in libFileTags: self.libEmbedCodeHigh     += libFileTags['embedHigh']
+            if 'embedLow'          in libFileTags: self.libEmbedCodeLow      += libFileTags['embedLow']
+            if 'initCode'          in libFileTags: self.libInitCodeAcc       += libFileTags['initCode']
+            if 'deinitCode'        in libFileTags: self.libDeinitCodeAcc      = libFileTags['deinitCode'] + self.libDeinitCodeAcc + "\n"
 
-        if 'embedAboveIncludes'in tagsFromLibFiles[libID]: self.libEmbedAboveIncludes+= tagsFromLibFiles[libID]['embedAboveIncludes']
-        if 'embedVeryHigh'     in tagsFromLibFiles[libID]: self.libEmbedVeryHigh     += tagsFromLibFiles[libID]['embedVeryHigh']
-        if 'embedHigh'         in tagsFromLibFiles[libID]: self.libEmbedCodeHigh     += tagsFromLibFiles[libID]['embedHigh']
-        if 'embedLow'          in tagsFromLibFiles[libID]: self.libEmbedCodeLow      += tagsFromLibFiles[libID]['embedLow']
-        if 'initCode'          in tagsFromLibFiles[libID]: self.libInitCodeAcc       += tagsFromLibFiles[libID]['initCode']
-        if 'deinitCode'        in tagsFromLibFiles[libID]: self.libDeinitCodeAcc      = tagsFromLibFiles[libID]['deinitCode'] + self.libDeinitCodeAcc + "\n"
+            if 'interface' in libFileTags:
+                if 'libFiles' in libFileTags['interface']:
+                    libFiles = libFileTags['interface']['libFiles']
 
-        if 'interface' in tagsFromLibFiles[libID]:
-            if 'libFiles' in tagsFromLibFiles[libID]['interface']:
-                libFiles = tagsFromLibFiles[libID]['interface']['libFiles']
+                    for libFile in libFiles:
+                        if libFile.startswith('pkg-config'):
+                            self.buildStr_libs += "`"
+                            self.buildStr_libs += libFile
+                            self.buildStr_libs += "` "
+                        else:
+                            if libFile =='pthread': self.buildStr_libs += '-pthread ';
+                            else: self.buildStr_libs += "-l"+libFile+ " "
 
-                for libFile in libFiles:
-                    if libFile.startswith('pkg-config'):
-                        self.buildStr_libs += "`"
-                        self.buildStr_libs += libFile
-                        self.buildStr_libs += "` "
-                    else:
-                        if libFile =='pthread': self.buildStr_libs += '-pthread ';
-                        else: self.buildStr_libs += "-l"+libFile+ " "
+                if 'headers' in libFileTags['interface']:
+                    libHeaders = libFileTags['interface']['headers']
+                    for libHdr in libHeaders:
+                        if libHdr == '"stdafx.h"':
+                            headerTopStr = self.xlator.includeDirective(libHdr)
+                        else:
+                            headerStr += self.xlator.includeDirective(libHdr)
 
-            if 'headers' in tagsFromLibFiles[libID]['interface']:
-                libHeaders = tagsFromLibFiles[libID]['interface']['headers']
-                for libHdr in libHeaders:
-                    if libHdr == '"stdafx.h"':
-                        headerTopStr = self.xlator.includeDirective(libHdr)
-                    else:
-                        headerStr += self.xlator.includeDirective(libHdr)
         return [headerStr, headerTopStr]
 
     def connectLibraries(self, tags, libsToUse):
         headerStr = ''
         tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
         for libFilename in libsToUse:
-            cdlog(1, 'ATTACHING LIBRARY: '+libFilename)
+            cdlog(1, 'ATTACHING LIBRARY: '+str(libFilename))
             [headerStrOut, headerTopStr] = self.integrateLibrary(tags, tagsFromLibFiles, libFilename)
             headerStr = headerTopStr + headerStr + headerStrOut
             macroDefs= {}
@@ -2054,8 +2055,7 @@ class CodeGenerator(object):
         return headerStr
 
     def convertTemplateClasses(self, tags):
-        structsToImplement = self.fetchListOfStructsToImplement(tags)
-        for className in structsToImplement:
+        for className in self.classStore[1]:
             for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
                 typeSpec =field['typeSpec']
                 fieldName =field['fieldName']

@@ -376,7 +376,7 @@ def getCPPTest():
     global runDirectory
     global workingDirectory
     xlatorLabel = 'TESTING: CPP'
-    buildSpec = "LinuxBuild: Platform='Linux' Lang='CPP';\n"
+    buildSpec = "LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';\n"
     buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
     buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
     runSpec = "./containerTests"
@@ -391,7 +391,7 @@ def getJavaTest():
     global workingDirectory
     xlatorLabel = 'TESTING: JAVA'
     buildSpec = "SwingBuild: Platform='Swing' Lang='Java';\n"
-    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP';\n"
+    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';\n"
     buildSpec += "//SwiftBuild: Platform='Swift' Lang='Swift';"
     runSpec = "java GLOBAL"
     runDirectory = workingDirectory + "/SwingBuild"
@@ -406,7 +406,7 @@ def getSwiftTest():
     xlatorLabel = 'TESTING: SWIFT'
     buildSpec = "SwiftBuild: Platform='Swift' Lang='Swift';\n"
     buildSpec += "//SwingBuild: Platform='Swing' Lang='Java';\n"
-    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP';"
+    buildSpec += "//LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';"
     runSpec = "./containerTests"
     runDirectory = workingDirectory + "/SwiftBuild"
     runListedTests(testsToRun)

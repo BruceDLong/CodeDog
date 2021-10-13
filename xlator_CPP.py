@@ -813,70 +813,12 @@ class Xlator_CPP(Xlator):
     def addSpecialCode(self, filename):
         S='\n\n//////////// C++ specific code:\n'
         S += "\n\nusing namespace std;\n\n"
+        S += "typedef unsigned int uint;\n\n"
         S += 'const string filename = "' + filename + '";\n'
         S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
 
         S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
         S += "#define SetBits(item, mask, val) {(item) &= ~((uint64_t)mask); (item)|=((uint64_t)val);}\n"
-
-        S+="""
-        // Thanks to Erik Aronesty via stackoverflow.com
-        // Like printf but returns a string.
-        // #include <memory>, #include <cstdarg>
-        inline std::string strFmt(const std::string fmt_str, ...) {
-            int final_n, n = fmt_str.size() * 2; /* reserve 2 times as much as the length of the fmt_str */
-            std::string str;
-            std::unique_ptr<char[]> formatted;
-            va_list ap;
-            while(1) {
-                formatted.reset(new char[n]); /* wrap the plain char array into the unique_ptr */
-                strcpy(&formatted[0], fmt_str.c_str());
-    // WINDOWS: strcpy_s(&formatted[0], n, fmt_str.c_str());
-                va_start(ap, fmt_str);
-                final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
-                va_end(ap);
-                if (final_n < 0 || final_n >= n)
-                    n += abs(final_n - n + 1);
-                else
-                    break;
-            }
-            return std::string(formatted.get());
-        }
-
-        string getFilesDirAsString(){
-            string fileDir = "./";
-            mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    // WINDOWS: _mkdir(fileDir.data());
-            return (fileDir);
-        }
-        string getAssetsDir(){
-            string fileDir = "./assets";
-            mkdir(fileDir.data(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-            return (fileDir);
-        }
-        bool doesFileExist(string filePath){
-            ifstream ifile(filename);
-            return (bool)ifile;
-        }
-
-        void copyAssetToWritableFolder(string fromPath, string toPath){
-            //TODO: finish func body if package C++
-        }
-
-        string joinCmdStrings(int count , char *argv[]) {
-            string acc="";
-            for(int i=1; i<count; ++i){
-                if(i>1) acc+=" ";
-                acc += argv[i];
-            }
-            return(acc);
-        }
-
-        constexpr unsigned int _strHash(const char* str, int h = 0){
-            return !str[h] ? 5381 : (_strHash(str, h+1)*33) ^ str[h];
-        }
-
-        """
 
         decl ="string readFileAsString(string filename)"
         defn="""{
