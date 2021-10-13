@@ -10,7 +10,7 @@ interface={
         { packageName = 'mimic1'
           fetchMethod = 'git:https://github.com/MycroftAI/mimic1.git'
           updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = { Linux = {buildCmd = './dependencies.sh --prefix="/usr/local" && ./autogen.sh && ./configure --prefix="/usr/local" && make'
+          buildCmds   = { Linux = {buildCmd = './dependencies.sh && ./autogen.sh && ./configure && make'
                                     }
                         Windows = {buildCmd = 'cmake . && make'}
             }

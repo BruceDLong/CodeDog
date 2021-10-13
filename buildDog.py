@@ -122,29 +122,14 @@ def copyRecursive(src, dst, symlinks=False):
             # ~ raise shutil.Error(errors)
 
 
-def downloadFile(downloadUrl, packageName, packageDirectory):
-    checkSys.CheckPipModules({'urllib3':'1.25'})
-    import urllib3
+def downloadPackageFile(downloadUrl, packageName, packageDirectory):
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
     packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
     makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
     makeDirs(os.path.dirname(packagePath))
     checkRepo = os.path.isfile(packagePath)
     if not checkRepo:
-        try:
-            cdlog(1, "Downloading file: " + packageName)
-            http = urllib3.PoolManager()
-            r = http.request('GET', downloadUrl, preload_content=False)
-        except:
-            cdErr("URL not found: " + downloadUrl)
-        else:
-            with open(packagePath, 'wb') as out:
-                while True:
-                    data = r.read(1028)
-                    if not data:
-                        break
-                    out.write(data)
-            r.release_conn()
+        emgr.downloadFile(packagePath, downloadUrl)
 
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
@@ -168,26 +153,13 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
     checkDirectory = os.path.isdir(zipFileDirectory)
     zipFileName = os.path.basename(downloadUrl)
     if not checkDirectory:
+        makeDirs(zipFileDirectory + "/INSTALL")
+        emgr.downloadFile(packagePath, downloadUrl)
         try:
-            makeDirs(zipFileDirectory + "/INSTALL")
-            cdlog(1, "Downloading zip file: " + zipFileName)
-            http = urllib3.PoolManager()
-            r = http.request('GET', downloadUrl, preload_content=False)
+            cdlog(1, "Extracting zip file: " + zipFileName)
+            shutil.unpack_archive(packagePath, zipFileDirectory)
         except:
-            cdErr("URL not found: " + downloadUrl)
-        else:
-            with open(packagePath, 'wb') as out:
-                while True:
-                    data = r.read(1028)
-                    if not data:
-                        break
-                    out.write(data)
-            r.release_conn()
-            try:
-                cdlog(1, "Extracting zip file: " + zipFileName)
-                shutil.unpack_archive(packagePath, zipFileDirectory)
-            except:
-                cdErr("Could not extract zip archive file: " + zipFileName)
+            cdErr("Could not extract zip archive file: " + zipFileName)
 
 
 def FindOrFetchLibraries(buildName, packageData, platform):
@@ -215,7 +187,7 @@ def FindOrFetchLibraries(buildName, packageData, platform):
             if fetchType == "git":
                 gitClone(fetchURL, packageName, packageDirectory)
             elif fetchType == "file":
-                downloadFile(fetchURL, packageName, packageDirectory)
+                downloadPackageFile(fetchURL, packageName, packageDirectory)
             elif fetchType == "zip":
                 downloadExtractZip(fetchURL, packageName, packageDirectory)
             else:
@@ -237,7 +209,7 @@ def FindOrFetchLibraries(buildName, packageData, platform):
                 # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
                 # for toolName in toolList:
                 #     if toolName=='golang-go': toolName='go'  #Check for Go language
-                #     if emgr.checkTool(toolName):
+                #     if emgr.checkToolLinux(toolName):
                 #         runCmdStreaming(actualBuildCmd, downloadedFolder)
                 #     else:
                 #         packageManager = emgr.findPackageManager()
@@ -304,7 +276,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
         if fetchMethod.startswith("git:"):
             gitClone(fetchMethodUrl, packageName, packageDirectory)
         elif fetchMethod.startswith("file:"):
-            downloadFile(fetchMethodUrl, packageName, packageDirectory)
+            downloadPackageFile(fetchMethodUrl, packageName, packageDirectory)
         elif fetchMethod.startswith("zip:"):
             downloadExtractZip(fetchMethodUrl, packageName, packageDirectory)
         else:
