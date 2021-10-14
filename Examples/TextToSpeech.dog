@@ -15,4 +15,18 @@ featuresNeeded = [TextToSpeech]
 
 LicenseText = `Public Domain`
 
-runCode=``
+runCode=`me TTSc: TTSc;
+TTSc.runTest()
+`
+
+struct TTSc{
+    void: runTest() <- {
+
+        me string: setText <- "This is Codedog project Text to speech Program"
+
+        me TextToSpeechConvert: ttsc
+        ttsc.init()
+        ttsc.analyze(setText)
+        ttsc.deinit()
+    }
+}

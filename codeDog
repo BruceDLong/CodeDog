@@ -2,8 +2,10 @@
 # CodeDog Program Maker
 import sys;  sys.dont_write_bytecode = True
 import checkSys
+import environmentMngr as envmgr
 
-checkSys.CheckPipModules()
+envmgr.installPipPackage()
+checkSys.CheckPipModules({'pyparsing':'2.0'})
 
 import progSpec
 import codeDogParser

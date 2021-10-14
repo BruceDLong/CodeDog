@@ -11,6 +11,7 @@ import errno
 import shutil
 from progSpec import cdlog, cdErr
 from pathlib import Path
+import checkSys
 import environmentMngr as emgr
 
 
@@ -118,28 +119,16 @@ def copyRecursive(src, dst, symlinks=False):
         # ~ if errors:
             # ~ raise shutil.Error(errors)
 
-def downloadFile(downloadUrl, packageName, packageDirectory):
-    import urllib3
+
+def downloadPackageFile(downloadUrl, packageName, packageDirectory):
     downloadFileExtension = downloadUrl.rsplit('.', 1)[-1]
     packagePath = packageDirectory + '/' + packageName + '/' + packageName + '.' + downloadFileExtension
     makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
     makeDirs(os.path.dirname(packagePath))
     checkRepo = os.path.isfile(packagePath)
     if not checkRepo:
-        try:
-            cdlog(1, "Downloading file: " + packageName)
-            http = urllib3.PoolManager()
-            r = http.request('GET', downloadUrl, preload_content=False)
-        except:
-            cdErr("URL not found: " + downloadUrl)
-        else:
-            with open(packagePath, 'wb') as out:
-                while True:
-                    data = r.read(1028)
-                    if not data:
-                        break
-                    out.write(data)
-            r.release_conn()
+        emgr.downloadFile(packagePath, downloadUrl)
+
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
     import urllib3
@@ -164,6 +153,8 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
     checkDirectory = os.path.isdir(zipFileDirectory)
     zipFileName = os.path.basename(downloadUrl)
     if not checkDirectory:
+        makeDirs(zipFileDirectory + "/INSTALL")
+        emgr.downloadFile(packagePath, downloadUrl)
         try:
             makeDirs(zipFileDirectory)
             cdlog(1, "Downloading zip file: " + zipFileName)
@@ -262,6 +253,7 @@ def FindOrFetchLibraries(buildName, packageData, platform):
 
 
 def gitClone(cloneUrl, packageName, packageDirectory):
+    checkSys.CheckPipModules({'GitPython':'3.1'})
     import urllib.request
     from git import Repo
     packagePath = packageDirectory + '/' + packageName + '/' + packageName
@@ -371,7 +363,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
         if fetchMethod.startswith("git:"):
             gitClone(fetchMethodUrl, packageName, packageDirectory)
         elif fetchMethod.startswith("file:"):
-            downloadFile(fetchMethodUrl, packageName, packageDirectory)
+            downloadPackageFile(fetchMethodUrl, packageName, packageDirectory)
         elif fetchMethod.startswith("zip:"):
             downloadExtractZip(fetchMethodUrl, packageName, packageDirectory)
         else:

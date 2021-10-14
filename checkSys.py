@@ -68,9 +68,8 @@ def DownloadInstallPipModules(pipCMD):
     if err:
         print("\n\n", decodedOut)
 
-def CheckPipModules():
+def CheckPipModules(requiredMinimumModulesList):
     AddSystemPath()
-    requiredMinimumModulesList = {'pyparsing':'2.0', 'GitPython':'3.1', 'urllib3':'1.25'}
     modulesList = []
     for moduleName in requiredMinimumModulesList:
         try:
@@ -87,7 +86,7 @@ def CheckPipModules():
                 modulesList.append("%s==%s" % (moduleName, requiredMinimumModulesList[moduleName]))
 
     if modulesList:
-        print("CodeDog must be used with Python Modules")
+        print("This program must be used with Python Modules")
         for module in modulesList:
             print("     %s" % module)
 
