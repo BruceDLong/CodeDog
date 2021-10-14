@@ -690,7 +690,7 @@ def parseCodeDogLibTags(inputString):
     try:
         localResults = libTagParser.parseString(inputString, parseAll = False)
     except ParseException as pe:
-        cdErr( "Error parsing lib tags: {}".format( pe))
+        cdErr( "While parsing lib tags: {}".format( pe))
 
     tagStore = extractTagDefs(localResults.libTagParser.tagDefList)
     return tagStore
