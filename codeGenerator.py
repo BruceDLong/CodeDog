@@ -963,32 +963,43 @@ class CodeGenerator(object):
         [S, retTypeSpec]=self.xlator.codeFactor(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             for i in item[1]:
                 #print '               term:', i
-                if   (i[0] == '*'): S+=' * '
-                elif (i[0] == '/'): S+=' / '
-                elif (i[0] == '%'): S+=' % '
+                if   (i[0] == '*'): op = ' * '
+                elif (i[0] == '/'): op = ' / '
+                elif (i[0] == '%'): op = ' % '
                 else: print("ERROR: One of '*', '/' or '%' expected in code generator."); exit(2)
                 [S2, retType2] = self.xlator.codeFactor(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
-                S+=S2
+
+                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt'):
+                    [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
+                    S+= op + S2
+                else:
+                    fType2 = progSpec.fieldTypeKeyword(retType2)
+                    S = self.xlator.codeTermAsFunc(S, S2, fType1, fType2, op)
         return [S, retTypeSpec]
 
     def codePlus(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec]=self.codeTerm(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             if isDerefd:
                 keyType = progSpec.varTypeKeyWord(retTypeSpec)
                 retTypeSpec={'owner': 'me', 'fieldType': keyType}
             for  i in item[1]:
-                if   (i[0] == '+'): S+=' + '
-                elif (i[0] == '-'): S+=' - '
+                if   (i[0] == '+'): op = ' + '
+                elif (i[0] == '-'): op = ' - '
                 else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
                 [S2, retType2] = self.codeTerm(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
-                if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
-                S+=S2
+                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt'):
+                    if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
+                    S += op+S2
+                else:
+                    fType2 = progSpec.fieldTypeKeyword(retType2)
+                    S = self.xlator.codePlusAsFunc(S, S2, fType1, fType2, op)
         return [S, retTypeSpec]
 
     def codeComparison(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -1740,6 +1751,9 @@ class CodeGenerator(object):
         classList=libNameList + progNameList
         # TODO: make list global then return early if global list the same size as classList
         classList=self.sortClassesForDependancies(classList)
+        if self.xlator.LanguageName=='Java':
+            classList.pop(classList.index('GLOBAL'))
+            classList.insert(0,'GLOBAL')
         return classList
 
     def codeOneStruct(self, tags, constFieldCode, className):

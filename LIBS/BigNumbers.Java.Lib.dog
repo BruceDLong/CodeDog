@@ -5,8 +5,8 @@ requirements = [
 
 interface={
     provides = [BigNumbers_implementation]
-    libFiles = []
-    headers  = [java.math.BigInteger, java.math.BigDecimal]
+    libFiles = [commons-math3.jar]
+    headers  = [java.math.BigInteger, java.math.BigDecimal, org.apache.commons.math3.util.*]
 }
 
 LibDescription ={
@@ -15,7 +15,7 @@ LibDescription ={
 }
 
 struct GLOBAL{
-    me string: toString(me BigInt: val) <- <%!toString()%>
+    me string: toString(me BigInt: val) <- <%!%G%1.toString()%>
     me string: toString(me BigFrac: val) <- <%!toString()%>
     me string: toString(me BigFloat: val) <- <%!toString()%>
 }
@@ -25,29 +25,541 @@ struct BigInt: wraps = BigInteger{
     me int: binNumToBigInt(me string: val) <- <%{}%>            // TODO: for Proteus codeGen
     //me int: decNumToBigInt(me string: val) <- <%!%>
 }
-struct BigFloat: wraps = TODO{
+struct BigFloat: wraps = BigDecimal{
     //me double: convertToFloat()              <- <%!%>
     //me int: hexNumToBigFloat(me string: val) <- <%!%>
     //me int: binNumToBigFloat(me string: val) <- <%!%>
     //me int: decNumToBigFloat(me string: val) <- <%!%>
 }
 
-struct BigFrac: wraps = TODO{
+struct BigFrac{
+    // Thanks To: http://commons.apache.org/proper/commons-math/javadocs/api-3.3/org/apache/commons/math3/fraction/BigFraction.html
+    const BigFrac:: ONE {1}
+    const BigFrac:: ZERO {0}
+    const BigFrac:: MINUS_ONE {-1}
+    me BigInt: numerator
+    me BigInt: denominator
+
+    me BigInt: ONE_HUNDRED {100}
     //me double: convertToFloat()             <- <%!%>
     //me double: normalize()                  <- <%!%>
     //me int: hexNumToBigFrac(me string: val) <- <%!%>
     //me int: binNumToBigFrac(me string: val) <- <%!%>
     //me int: decNumToBigFrac(me string: val) <- <%!%>
+
+    none: BigFrac() <- <%{
+        this(BigInteger.ZERO, BigInteger.ONE);
+    }%>
+
+    none: BigFrac(me BigInt: num) <- <%{
+        this(num, BigInteger.ONE);
+    }%>
+
+    none: BigFrac(me BigInt: num, me BigInt: den) <- <%{
+        //if (BigInteger.ZERO.equals(den)) {throw new  ZeroException(LocalizedFormats.ZERO_DENOMINATOR);}
+        if (BigInteger.ZERO.equals(num)) {
+            numerator   = BigInteger.ZERO;
+            denominator = BigInteger.ONE;
+        } else {
+
+            // reduce numerator and denominator by greatest common denominator
+             BigInteger gcd = num.gcd(den);
+            if (BigInteger.ONE.compareTo(gcd) < 0) {
+                num = num.divide(gcd);
+                den = den.divide(gcd);
+            }
+
+            // move sign to numerator
+            if (BigInteger.ZERO.compareTo(den) > 0) {
+                num = num.negate();
+                den = den.negate();
+            }
+
+            // store the values in the  fields
+            numerator   = num;
+            denominator = den;
+
+        }
+    }%>
+
+    none: BigFrac(me double: value) <- <%{
+        //if (Double.isNaN(value)) {throw new MathIllegalArgumentException(LocalizedFormats.NAN_VALUE_CONVERSION);}
+        //if (Double.isInfinite(value)) {throw new  MathIllegalArgumentException(LocalizedFormats.INFINITE_VALUE_CONVERSION);}
+
+        // compute m and k such that value = m * 2^k
+        long bits     = Double.doubleToLongBits(value);
+        long sign     = bits & 0x8000000000000000L;
+        long exponent = bits & 0x7ff0000000000000L;
+        long m              = bits & 0x000fffffffffffffL;
+        if (exponent != 0) {
+            // this was a normalized number, add the implicit most significant bit
+            m |= 0x0010000000000000L;
+        }
+        if (sign != 0) {
+            m = -m;
+        }
+        int k = ((int) (exponent >> 52)) - 1075;
+        while (((m & 0x001ffffffffffffeL) != 0) && ((m & 0x1) == 0)) {
+            m >>= 1;
+            ++k;
+        }
+
+        if (k < 0) {
+            numerator   = BigInteger.valueOf(m);
+            denominator = BigInteger.ZERO.flipBit(-k);
+        } else {
+            numerator   = BigInteger.valueOf(m).multiply(BigInteger.ZERO.flipBit(k));
+            denominator = BigInteger.ONE;
+        }
+
+    }%>
+
+    none: BigFrac(me double: value,  me double: epsilon,  me int32: maxIterations) <- <%{
+        this(value, epsilon, Integer.MAX_VALUE, maxIterations);
+    }%>
+
+    none: BigFrac(me double: value,  me double: epsilon,  me int32: maxDenominator, me int32: maxIterations) <- <%{
+        long overflow = Integer.MAX_VALUE;
+        double r0 = value;
+        long a0 = (long) FastMath.floor(r0);
+
+        //if (FastMath.abs(a0) > overflow) {throw new  FractionConversionException(value, a0, 1l);}
+
+        // check for (almost) integer arguments, which should not go
+        // to iterations.
+        if (FastMath.abs(a0 - value) < epsilon) {
+            numerator = BigInteger.valueOf(a0);
+            denominator = BigInteger.ONE;
+            return;
+        }
+
+        long p0 = 1;
+        long q0 = 0;
+        long p1 = a0;
+        long q1 = 1;
+
+        long p2 = 0;
+        long q2 = 1;
+
+        int n = 0;
+        boolean stop = false;
+        do {
+            ++n;
+             double r1 = 1.0 / (r0 - a0);
+             long a1 = (long) FastMath.floor(r1);
+            p2 = (a1 * p1) + p0;
+            q2 = (a1 * q1) + q0;
+            if ((p2 > overflow) || (q2 > overflow)) {
+                // in maxDenominator mode, if the last fraction was very close to the actual value
+                // q2 may overflow in the next iteration; in this case return the last one.
+                if (epsilon == 0.0 && FastMath.abs(q1) < maxDenominator) {
+                    break;
+                }
+                //throw new  FractionConversionException(value, p2, q2);
+            }
+
+             double convergent = (double) p2 / (double) q2;
+            if ((n < maxIterations) &&
+                (FastMath.abs(convergent - value) > epsilon) &&
+                (q2 < maxDenominator)) {
+                p0 = p1;
+                p1 = p2;
+                q0 = q1;
+                q1 = q2;
+                a0 = a1;
+                r0 = r1;
+            } else {
+                stop = true;
+            }
+        } while (!stop);
+
+        //if (n >= maxIterations) {throw new  FractionConversionException(value, maxIterations);}
+
+        if (q2 < maxDenominator) {
+            numerator   = BigInteger.valueOf(p2);
+            denominator = BigInteger.valueOf(q2);
+        } else {
+            numerator   = BigInteger.valueOf(p1);
+            denominator = BigInteger.valueOf(q1);
+        }
+    }%>
+
+    none: BigFrac(me double: value,  me int32: maxDenominator) <- <%{
+        this(value, 0, maxDenominator, 100);
+    }%>
+
+    none: BigFrac(me int32: num) <- <%{
+        this(BigInteger.valueOf(num), BigInteger.ONE);
+    }%>
+
+    none: BigFrac(me int32: num,  me int32: den) <- <%{
+        this(BigInteger.valueOf(num), BigInteger.valueOf(den));
+    }%>
+
+    none: BigFrac(me int64: num) <- <%{
+        this(BigInteger.valueOf(num), BigInteger.ONE);
+    }%>
+
+    none: BigFrac(me int64: num, me int64: den) <- <%{
+        this(BigInteger.valueOf(num), BigInteger.valueOf(den));
+    }%>
+
+    none: BigFrac(me float: num) <- <%{
+        // TODO:
+        long bits     = Float.floatToIntBits(num);
+        long sign     = bits & 0x8000000000000000L;
+        long exponent = bits & 0x7ff0000000000000L;
+        long m        = bits & 0x000fffffffffffffL;
+        if (exponent != 0) {
+            // this was a normalized number, add the implicit most significant bit
+            m |= 0x0010000000000000L;
+        }
+        if (sign != 0) {
+            m = -m;
+        }
+        int k = ((int) (exponent >> 52)) - 1075;
+        while (((m & 0x001ffffffffffffeL) != 0) && ((m & 0x1) == 0)) {
+            m >>= 1;
+            ++k;
+        }
+
+        if (k < 0) {
+            numerator   = BigInteger.valueOf(m);
+            denominator = BigInteger.ZERO.flipBit(-k);
+        } else {
+            numerator   = BigInteger.valueOf(m).multiply(BigInteger.ZERO.flipBit(k));
+            denominator = BigInteger.ONE;
+        }
+    }%>
+
+    none: BigFrac(me string: num) <- <%{
+        // TODO:
+        double value = Double.parseDouble(num);
+        //if (Double.isNaN(value)) {throw new MathIllegalArgumentException(LocalizedFormats.NAN_VALUE_CONVERSION);}
+        //if (Double.isInfinite(value)) {throw new  MathIllegalArgumentException(LocalizedFormats.INFINITE_VALUE_CONVERSION);}
+
+        // compute m and k such that value = m * 2^k
+        long bits     = Double.doubleToLongBits(value);
+        long sign     = bits & 0x8000000000000000L;
+        long exponent = bits & 0x7ff0000000000000L;
+        long m              = bits & 0x000fffffffffffffL;
+        if (exponent != 0) {
+            // this was a normalized number, add the implicit most significant bit
+            m |= 0x0010000000000000L;
+        }
+        if (sign != 0) {
+            m = -m;
+        }
+        int k = ((int) (exponent >> 52)) - 1075;
+        while (((m & 0x001ffffffffffffeL) != 0) && ((m & 0x1) == 0)) {
+            m >>= 1;
+            ++k;
+        }
+
+        if (k < 0) {
+            numerator   = BigInteger.valueOf(m);
+            denominator = BigInteger.ZERO.flipBit(-k);
+        } else {
+            numerator   = BigInteger.valueOf(m).multiply(BigInteger.ZERO.flipBit(k));
+            denominator = BigInteger.ONE;
+        }
+    }%>
+
+    me BigFrac: getReducedFraction(me int32: numerator, me int32: denominator) <- <%{
+        if (numerator == 0) {
+            return ZERO; // normalize zero.
+        }
+
+        return new BigFrac(numerator, denominator);
+    }%>
+
+    me BigFrac:abs() <- <%{
+        return (BigInteger.ZERO.compareTo(numerator) <= 0) ? this : negate();
+    }%>
+
+    me BigFrac:add(me BigInt: bg) <- <%{
+        return new BigFrac(numerator.add(denominator.multiply(bg)), denominator);
+    }%>
+
+    me BigFrac:add(me int32: i) <- <%{
+        return add(BigInteger.valueOf(i));
+    }%>
+
+    me BigFrac:add(me int64: l) <- <%{
+        return add(BigInteger.valueOf(l));
+    }%>
+
+    me BigFrac:add(me BigFrac: fraction) <- <%{
+        //if (fraction == null) {throw new  NullArgumentException(LocalizedFormats.FRACTION);}
+        if (ZERO.equals(fraction)) {
+            return this;
+        }
+
+        BigInteger num = null;
+        BigInteger den = null;
+
+        if (denominator.equals(fraction.denominator)) {
+            num = numerator.add(fraction.numerator);
+            den = denominator;
+        } else {
+            num = (numerator.multiply(fraction.denominator)).add((fraction.numerator).multiply(denominator));
+            den = denominator.multiply(fraction.denominator);
+        }
+        return new BigFrac(num, den);
+
+    }%>
+
+    me BigFloat: bigDecimalValue() <- <%{
+        return new BigDecimal(numerator).divide(new BigDecimal(denominator));
+    }%>
+
+    me BigFloat: bigDecimalValue(me int32: roundingMode) <- <%{
+        return new BigDecimal(numerator).divide(new BigDecimal(denominator), roundingMode);
+    }%>
+
+    me BigFloat: bigDecimalValue(me int32: scale,  me int32: roundingMode) <- <%{
+        return new BigDecimal(numerator).divide(new BigDecimal(denominator), scale, roundingMode);
+    }%>
+
+    me int32: compareTo(me BigFrac: object) <- <%{
+        BigInteger nOd = numerator.multiply(object.denominator);
+        BigInteger dOn = denominator.multiply(object.numerator);
+        return nOd.compareTo(dOn);
+    }%>
+
+    me int32: compareTo(me int32: object) <- <%{
+        BigFrac intObj = new BigFrac(object);
+        BigInteger nOd = numerator.multiply(intObj.denominator);
+        BigInteger dOn = denominator.multiply(intObj.numerator);
+        return nOd.compareTo(dOn);
+    }%>
+
+    me BigFrac:divide(me BigInt: bg) <- <%{
+        //if (bg == null) {throw new  NullArgumentException(LocalizedFormats.FRACTION);}
+        //if (BigInteger.ZERO.equals(bg)) {throw new  MathArithmeticException(LocalizedFormats.ZERO_DENOMINATOR);}
+        return new BigFrac(numerator, denominator.multiply(bg));
+    }%>
+
+    me BigFrac: divide(me int32: i) <- <%{
+        return divide(BigInteger.valueOf(i));
+    }%>
+
+    me BigFrac: divide(me int64: l) <- <%{
+        return divide(BigInteger.valueOf(l));
+    }%>
+
+    me BigFrac: divide(me BigFrac: fraction) <- <%{
+        //if (fraction == null) {throw new  NullArgumentException(LocalizedFormats.FRACTION);}
+        //if (BigInteger.ZERO.equals(fraction.numerator)) {throw new  MathArithmeticException(LocalizedFormats.ZERO_DENOMINATOR);}
+
+        return multiply(fraction.reciprocal());
+    }%>
+
+    me double: doubleValue() <- <%{
+        double result = numerator.doubleValue() / denominator.doubleValue();
+        if (Double.isNaN(result)) {
+            // Numerator and/or denominator must be out of range:
+            // Calculate how far to shift them to put them in range.
+            int shift = FastMath.max(numerator.bitLength(),
+                                     denominator.bitLength()) - FastMath.getExponent(Double.MAX_VALUE);
+            result = numerator.shiftRight(shift).doubleValue() /
+                denominator.shiftRight(shift).doubleValue();
+        }
+        return result;
+    }%>
+
+    me bool: equals(me Object: other) <- <%{
+        boolean ret = false;
+
+        if (this == other) {
+            ret = true;
+        } else if (other instanceof BigFrac) {
+            BigFrac rhs = ((BigFrac) other).reduce();
+            BigFrac thisOne = this.reduce();
+            ret = thisOne.numerator.equals(rhs.numerator) && thisOne.denominator.equals(rhs.denominator);
+        }
+
+        return ret;
+    }%>
+
+    me float: floatValue() <- <%{
+        float result = numerator.floatValue() / denominator.floatValue();
+        if (Double.isNaN(result)) {
+            // Numerator and/or denominator must be out of range:
+            // Calculate how far to shift them to put them in range.
+            int shift = FastMath.max(numerator.bitLength(),
+                                     denominator.bitLength()) - FastMath.getExponent(Float.MAX_VALUE);
+            result = numerator.shiftRight(shift).floatValue() /
+                denominator.shiftRight(shift).floatValue();
+        }
+        return result;
+    }%>
+
+    me BigInt: getDenominator() <- <%{
+        return denominator;
+    }%>
+
+    me int32: getDenominatorAsInt() <- <%{
+        return denominator.intValue();
+    }%>
+
+    me int64: getDenominatorAsLong() <- <%{
+        return denominator.longValue();
+    }%>
+
+    me BigInt: getNumerator() <- <%{
+        return numerator;
+    }%>
+
+    me int32: getNumeratorAsInt() <- <%{
+        return numerator.intValue();
+    }%>
+
+    me int64: getNumeratorAsLong() <- <%{
+        return numerator.longValue();
+    }%>
+
+    me int32: hashCode() <- <%{
+        return 37 * (37 * 17 + numerator.hashCode()) + denominator.hashCode();
+    }%>
+
+    me int32: intValue() <- <%{
+        return numerator.divide(denominator).intValue();
+    }%>
+
+    me int64: longValue() <- <%{
+        return numerator.divide(denominator).longValue();
+    }%>
+
+    me BigFrac: multiply(me BigInt: bg) <- <%{
+        //if (bg == null) {throw new  NullArgumentException();}
+        return new BigFrac(bg.multiply(numerator), denominator);
+    }%>
+
+    me BigFrac: multiply(me int32: i) <- <%{
+        return multiply(BigInteger.valueOf(i));
+    }%>
+
+    me BigFrac: multiply(me int64: l) <- <%{
+        return multiply(BigInteger.valueOf(l));
+    }%>
+
+    me BigFrac: multiply(me BigFrac: fraction) <- <%{
+        //if (fraction == null) {throw new  NullArgumentException(LocalizedFormats.FRACTION);}
+        if (numerator.equals(BigInteger.ZERO) ||
+            fraction.numerator.equals(BigInteger.ZERO)) {
+            return ZERO;
+        }
+        return new BigFrac(numerator.multiply(fraction.numerator),
+                               denominator.multiply(fraction.denominator));
+    }%>
+
+    me BigFrac: negate() <- <%{
+        return new BigFrac(numerator.negate(), denominator);
+    }%>
+
+    me double: percentageValue() <- <%{
+        return multiply(ONE_HUNDRED).doubleValue();
+    }%>
+
+    me BigFrac: pow(me int32: exponent) <- <%{
+        if (exponent < 0) {
+            return new BigFrac(denominator.pow(-exponent), numerator.pow(-exponent));
+        }
+        return new BigFrac(numerator.pow(exponent), denominator.pow(exponent));
+    }%>
+
+    me BigFrac: pow(me int64: exponent) <- <%{
+        if (exponent < 0) {
+            return new BigFrac(ArithmeticUtils.pow(denominator, -exponent),
+                                   ArithmeticUtils.pow(numerator,   -exponent));
+        }
+        return new BigFrac(ArithmeticUtils.pow(numerator,   exponent),
+                               ArithmeticUtils.pow(denominator, exponent));
+    }%>
+
+    me BigFrac: pow(me BigInt: exponent) <- <%{
+        if (exponent.compareTo(BigInteger.ZERO) < 0) {
+             BigInteger eNeg = exponent.negate();
+            return new BigFrac(ArithmeticUtils.pow(denominator, eNeg),
+                                   ArithmeticUtils.pow(numerator,   eNeg));
+        }
+        return new BigFrac(ArithmeticUtils.pow(numerator,   exponent),
+                               ArithmeticUtils.pow(denominator, exponent));
+    }%>
+
+    me double: pow(me double: exponent) <- <%{
+        return FastMath.pow(numerator.doubleValue(),   exponent) /
+               FastMath.pow(denominator.doubleValue(), exponent);
+    }%>
+
+    me BigFrac: reciprocal() <- <%{
+        return new BigFrac(denominator, numerator);
+    }%>
+
+    me BigFrac: reduce() <- <%{
+         BigInteger gcd = numerator.gcd(denominator);
+        return new BigFrac(numerator.divide(gcd), denominator.divide(gcd));
+    }%>
+
+    me BigFrac: subtract(me BigInt: bg) <- <%{
+        //if (bg == null) {throw new  NullArgumentException();}
+        return new BigFrac(numerator.subtract(denominator.multiply(bg)), denominator);
+    }%>
+
+    me BigFrac: subtract(me int32: i) <- <%{
+        return subtract(BigInteger.valueOf(i));
+    }%>
+
+    me BigFrac: subtract(me int64: l) <- <%{
+        return subtract(BigInteger.valueOf(l));
+    }%>
+
+    me BigFrac: subtract(me BigFrac: fraction) <- <%{
+        //if (fraction == null) {throw new  NullArgumentException(LocalizedFormats.FRACTION);}
+        if (ZERO.equals(fraction)) {
+            return this;
+        }
+
+        BigInteger num = null;
+        BigInteger den = null;
+        if (denominator.equals(fraction.denominator)) {
+            num = numerator.subtract(fraction.numerator);
+            den = denominator;
+        } else {
+            num = (numerator.multiply(fraction.denominator)).subtract((fraction.numerator).multiply(denominator));
+            den = denominator.multiply(fraction.denominator);
+        }
+        return new BigFrac(num, den);
+
+    }%>
+
+    me string: toString() <- <%{
+        String str = null;
+        if (BigInteger.ONE.equals(denominator)) {
+            str = numerator.toString();
+        } else if (BigInteger.ZERO.equals(numerator)) {
+            str = "0";
+        } else {
+            str = numerator + " / " + denominator;
+        }
+        return str;
+    }%>
 }
 struct FlexNum{
-    me double: convertToFloat()  <- <%{}%>                      // TODO: for Proteus codeGen
+    me double: convertToFloat()  <- <%!%0.val.floatValue()%>
     void: normalize()            <- <%{}%>
     void: setNumerator(me string: numerator)     <- <%{}%>
     void: setDenominator(me string: denominator) <- <%{}%>
-    me BigInt: getNumerator()    <- <%{}%>
-    me BigInt: getDenominator()  <- <%{}%>
+    me BigInt: getNumerator()    <- <%{
+        BigInteger A = val.getNumerator();
+        return(A);
+    }%>
+    me BigInt: getDenominator()  <- <%{
+        BigInteger A = val.getDenominator();
+        return(A);
+    }%>
     // CONSTRUCTORS
     //none: FlexNum(me BigInt:num) <- <%{}%>
     none: FlexNum(me int64:num)  <- {val <- num}
-    none: FlexNum(me uint64:num) <- {val <- num}
 }
