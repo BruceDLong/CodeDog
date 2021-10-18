@@ -162,7 +162,7 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
             cdErr("Could not extract zip archive file: " + zipFileName)
 
 
-def FindOrFetchLibraries(buildName, packageData, platform):
+def FindOrFetchLibraries(buildName, packageData, platform, tools):
     #print("#############:buildName:", buildName, platform)
     packageDirectory = os.getcwd() + '/' + buildName
     [includeFolders, libFolders] = ["", ""]
@@ -204,19 +204,18 @@ def FindOrFetchLibraries(buildName, packageData, platform):
                 for folderKey,folderVal in importantFolders.items():
                     actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
                 #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
-                runCmdStreaming(actualBuildCmd, downloadedFolder)
 
-                # toolList = [actualBuildCmd.split(" ")[0], 'golang-go']
-                # for toolName in toolList:
-                #     if toolName=='golang-go': toolName='go'  #Check for Go language
-                #     if emgr.checkToolLinux(toolName):
-                #         runCmdStreaming(actualBuildCmd, downloadedFolder)
-                #     else:
-                #         packageManager = emgr.findPackageManager()
-                #         if not packageManager:
-                #             print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
-                #         else:
-                #             emgr.getPackageManagerCMD(toolName, packageManager)
+                toolList = tools
+                for toolName in toolList:
+                    if emgr.checkToolLinux('go' if toolName=='golang-go' else toolName):
+                        runCmdStreaming(actualBuildCmd, downloadedFolder)
+                    else:
+                        packageManager = emgr.findPackageManager()
+                        if not packageManager:
+                            print(f"Unable to find Package Manager.\nPlease install manually : {packageName}")
+                        else:
+                            emgr.getPackageManagerCMD(toolName, packageManager)
+                        runCmdStreaming(actualBuildCmd, downloadedFolder)
 
             if 'installFiles' in buildCmdMap:
                 installfileList = buildCmdMap['installFiles'][1]
@@ -253,13 +252,14 @@ def gitClone(cloneUrl, packageName, packageDirectory):
         makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
 
 
-def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
+def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     fileExtension = '.cpp'
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName+"/assets")
 
-    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
+
+    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
 
     packageDirectory = os.getcwd() + '/' + buildName
 
@@ -415,11 +415,11 @@ def BuildAndPrintResults(workingDirectory, buildStr, runStr):
             exit(2)
     else: cdlog(1, "SUCCESS!")
 
-def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
+def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
     progOrLib = progOrLib.lower()
     if platform == 'Linux':
-        [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData)
+        [workingDirectory, buildStr, runStr] = LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools)
     elif platform == 'Java' or  platform == 'Swing':
         [workingDirectory, buildStr, runStr] = SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Android':

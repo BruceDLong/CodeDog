@@ -28,7 +28,7 @@ def findPackageManager():
 
 def packageInstalled(packageManagar, packageName):
     cdlog(1, "Package Installing: "+packageName)
-    if subprocess.call(f'{packageManagar} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(f'{packageManagar} {packageName}'+" -y > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package installed Successfully")
         return True
     else:
