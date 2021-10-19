@@ -155,13 +155,10 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
         makeDirs(zipFileDirectory + "/INSTALL")
         emgr.downloadFile(packagePath, downloadUrl)
         try:
-
             cdlog(1, "Extracting zip file: " + zipFileName)
             shutil.unpack_archive(packagePath, zipFileDirectory)
         except:
             cdErr("Could not extract zip archive file: " + zipFileName)
-
-
 
 def FindOrFetchLibraries(buildName, packageData, platform, tools):
     #print("#############:buildName:", buildName, platform)
@@ -450,12 +447,20 @@ def iOSBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, plat
     return [projectDirectory, buildCmd, runCmd]
 
 def BuildAndPrintResults(workingDirectory, buildStr, runStr):
-    print("\n")
-    cdlog(1, "     NOTE: Build Command is: "+ buildStr)
-    cdlog(1, "     NOTE: Run Command is: "+ runStr)
-    cdlog(1, "     NOTE: Build Directory is: "+ workingDirectory)
-    runCMD(buildStr,workingDirectory)
-    cdlog(1, "SUCCESS!")
+    cdlog(1, "Compiling From: {}".format(workingDirectory))
+    print("     NOTE: Build Command is: ", buildStr, "\n")
+    print("     NOTE: Run Command is: ", runStr, "\n")
+    #print ("workingDirectory: ", workingDirectory)
+    pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = pipe.communicate()
+    if out: print("Result: \n"+out.decode('utf-8'))
+    if err:
+        decodedErr = err.decode('UTF-8')
+        if "error:" in decodedErr or "SyntaxError:" in decodedErr:
+            print("Error Messages:\n--------------------------\n", err.decode('UTF-8'))
+            print("--------------------------")
+            exit(2)
+    else: cdlog(1, "SUCCESS!")
 
 def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
