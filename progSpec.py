@@ -244,7 +244,7 @@ def addObjTags(objSpecs, className, stateType, objTags):
             cdlog(6, "{}\n failed dict lookup in codeFlagAndModeFields".format(e))
         if not inheritsMode:
             appendToAncestorList(objRef, className, 'inherits', parentClassList)
-            addDependancyToStruct(className, parentClassList)
+            addDependencyToStruct(className, parentClassList)
     if ('implements' in objRef['tags']):
         appendToAncestorList(objRef, className, 'implements', objRef['tags']['implements'])
     for tag in objRef['tags']:
@@ -287,17 +287,32 @@ def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReq
     packedField['fieldID']=fieldID
     return packedField
 
-def addDependancyToStruct(structName, nameOfDependancy):
-    #print("############ addDependancyToStruct:", structName, " --> ", nameOfDependancy)
+def addDependencyToStruct(structName, dependency):
+    #print("############ addDependencyToStruct:", structName, " --> ", dependency)
     global DependanciesMarked
     global DependanciesUnmarked
-    if structName == nameOfDependancy: return
-    if MarkItems: listToUpdate = DependanciesMarked
-    else: listToUpdate = DependanciesUnmarked
-    if not(structName in listToUpdate): listToUpdate[structName]=[nameOfDependancy]
+    fTypeKW = fieldTypeKeyword(dependency)
+    reqTagList = getReqTagList(dependency)
+    if reqTagList:
+        owner = dependency['owner']
+        addDependencyToStruct(structName, fTypeKW)
+        for reqTag in reqTagList:
+            argTypeKW = reqTag['tArgType']
+            argOwner  = reqTag['tArgOwner']
+            argOwner  = reqTag['tArgOwner']
+            if argOwner=='me' and not isBaseType(argTypeKW):
+                addDependencyToStruct(structName, argTypeKW)
     else:
-        if not (nameOfDependancy in listToUpdate[structName]):
-            listToUpdate[structName].append(nameOfDependancy)
+        dependency = fieldTypeKeyword(dependency)
+        if structName == dependency: return
+        if MarkItems: listToUpdate = DependanciesMarked
+        else: listToUpdate = DependanciesUnmarked
+        if dependency in listToUpdate and structName in listToUpdate[dependency]:
+            cdlog(1, "   NOTE: Possible circular dependency between "+structName+" and "+dependency)
+        if not(structName in listToUpdate): listToUpdate[structName]=[dependency]
+        else:
+            if not (dependency in listToUpdate[structName]):
+                listToUpdate[structName].append(dependency)
 
 def getClassesDependancies(className):
     global DependanciesMarked
@@ -312,10 +327,10 @@ def addField(objSpecs, className, stateType, packedField):
     global MarkedObjects
     global MarkedFields
     global ModifierCommands
-    thisName=packedField['fieldName']
-    fieldID = packedField['fieldID']
-    typeSpec = packedField['typeSpec']
-    fieldType = typeSpec['fieldType']
+    thisName  = packedField['fieldName']
+    fieldID   = packedField['fieldID']
+    typeSpec  = packedField['typeSpec']
+    fTypeKW   = fieldTypeKeyword(typeSpec)
 
     if stateType=='model': taggedClassName='%'+className
     elif stateType=='string': taggedClassName='$'+className
@@ -332,7 +347,7 @@ def addField(objSpecs, className, stateType, packedField):
             cdErr(fieldID+" is being contradictorily redefined.")
 
         # Don't override flags and modes in derived Classes
-        if fieldType=='flag' or fieldType=='mode':
+        if fTypeKW=='flag' or fTypeKW=='mode':
             if fieldIDAlreadyDeclaredInStruct(objSpecs, className, fieldID):
                 cdlog(2, "Note: The field '" + fieldID + "' already exists. Not overriding")
                 return
@@ -341,10 +356,10 @@ def addField(objSpecs, className, stateType, packedField):
     objSpecs[taggedClassName]["vFields"]=None
 
 
-    # if me or we and type is struct add unique dependancy
+    # if me or we and type is struct add unique dependency
     fieldOwner = typeSpec['owner']
     if (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const') and fieldsTypeCategory(typeSpec)=='struct':
-        addDependancyToStruct(className, fieldType[0])
+        addDependencyToStruct(className, typeSpec)
 
 
     if MarkItems:

@@ -1,0 +1,85 @@
+/////////// Add routines for C++
+requirements = [
+    [tagOneOf, LangVersion, [MSVC]]
+]
+
+interface={
+    provides = [CodeDog_langVersion_implementation]
+    libFiles = []
+    headers  = [signal.h, string, cstring, memory, cstdint, list, deque,
+                map, cstdarg, iostream, fstream, sys/stat.h, math.h,
+		algorithm, vector, chrono, direct.h]
+}
+
+LibDescription ={
+    useStatus   = dynamic
+    description = 'Built in routines for CPP'
+}
+
+initCode = ""
+deinitCode = ""
+embedVeryHigh = `
+// Thanks to Erik Aronesty via stackoverflow.com
+// Like printf but returns a string.
+// #include <memory>, #include <cstdarg>
+inline std::string strFmt(const std::string fmt_str, ...) {
+    int final_n, n = fmt_str.size() * 2; // reserve 2 times as much as the length of the fmt_str
+    std::string str;
+    std::unique_ptr<char[]> formatted;
+    va_list ap;
+    while(1) {
+        formatted.reset(new char[n]); // wrap the plain char array into the unique_ptr
+        strcpy_s(&formatted[0], n, fmt_str.c_str());
+        va_start(ap, fmt_str);
+        final_n = vsnprintf(&formatted[0], n, fmt_str.c_str(), ap);
+        va_end(ap);
+        if (final_n < 0 || final_n >= n)
+            n += abs(final_n - n + 1);
+        else
+            break;
+    }
+    return std::string(formatted.get());
+}
+string getFilesDirAsString(){
+    string fileDir = "./";
+    _mkdir(fileDir.data());
+    return (fileDir);
+}
+string getAssetsDir(){
+    string fileDir = "./assets";
+    _mkdir(fileDir.data());
+    return (fileDir);
+}
+`
+
+struct GLOBAL{
+    me int: sleep(me int: milliseconds) <- <%{
+       struct timespec req, rem;
+       if(milliseconds > 999) {
+            req.tv_sec = (int)(milliseconds / 1000);                            /* Must be Non-Negative */
+            req.tv_nsec = (milliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
+       }else{
+            req.tv_sec = 0;                         /* Must be Non-Negative */
+            req.tv_nsec = milliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
+       }
+        std::this_thread::sleep_for(std::chrono::milliseconds(req.tv_nsec));
+        return 0;
+   }%>
+
+    me string: execCmd(me string: command) <- <%{
+      FILE* pipe;
+      std::vector<char> buffer(128);
+      string result = "";
+      pipe = _popen(command.data(), "r");
+      if (pipe == NULL) {
+        cout<<"Cannot execute command:'" << command<<"'\n";
+        return "";
+      }
+      while(fgets(buffer.data(), 128, pipe) != NULL) {
+        result = result+buffer.data();
+      }
+      _pclose(pipe);
+      return result;
+    }%>
+}
+

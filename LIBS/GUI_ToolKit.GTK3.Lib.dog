@@ -90,31 +90,30 @@ struct GUI_eventDispatcher{
     me bool: dispatchPointerMotionEvent(their GdkEventMotion: event) <- <%{
         event->x = event->x / scaleFactor;
         event->y = event->y / scaleFactor;
-        topWidget->mouseMoved(event);
-        return false;
+        return topWidget->mouseMoved(event);
     } %>
     me bool: dispatchPointerClickEvent(their GdkEventButton: event) <- <%{
+        bool retVal = false;
         event->x = event->x / scaleFactor;
         event->y = event->y / scaleFactor;
         if(event->type==GDK_BUTTON_PRESS){
             if(event->button==1){
-                topWidget->primaryDn(event);
+                retVal = topWidget->primaryDn(event);
             } else if(event->button==3){
-                topWidget->secondaryClick(event);
+                retVal = topWidget->secondaryClick(event);
             }
         } else if(event->type==GDK_BUTTON_RELEASE){
             if(event->button==1){
                 topWidget->primaryUp(event);
-                topWidget->primaryClick(event);
+                retVal = topWidget->primaryClick(event);
             } else if(event->button==3){
-                topWidget->secondaryUp(event);
+                retVal = topWidget->secondaryUp(event);
             }
         }
-        return false;
+        return retVal;
     } %>
     me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- <%{
-        topWidget->keyTyped(event);
-        return(true);
+        return(topWidget->keyTyped(event));
     }%>
     //  me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
     // Also: timer, data and user events

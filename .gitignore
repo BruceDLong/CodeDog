@@ -74,6 +74,7 @@ LinuxBuild/
 AndroidBuild/
 MacBuild/
 LinuxTestBuild/
+WindowsBuild/
 
 # Testing
 xlatorTests/
