@@ -133,7 +133,6 @@ def downloadPackageFile(downloadUrl, packageName, packageDirectory):
 
 
 def downloadExtractZip(downloadUrl, packageName, packageDirectory):
-    import urllib3
     zipExtension = ""
     if downloadUrl.endswith(".zip"):
         zipExtension = ".zip"
@@ -205,8 +204,7 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
                     actualBuildCmd = actualBuildCmd.replace('$'+folderKey,folderVal)
                 #print("BUILDCOMMAND:", actualBuildCmd)#, "  INSTALL:", buildCmdsMap[platform][1])
 
-                toolList = tools
-                for toolName in toolList:
+                for toolName in tools:
                     if emgr.checkToolLinux('go' if toolName=='golang-go' else toolName):
                         runCmdStreaming(actualBuildCmd, downloadedFolder)
                     else:
