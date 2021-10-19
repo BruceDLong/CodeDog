@@ -1,6 +1,7 @@
 /////////// Add routines for C++
 requirements = [
-    [tagOneOf, Lang, [CPP]]
+    [tagOneOf, Lang, [CPP]],
+    [require, CodeDog_langVersion_implementation]
 ]
 
 interface={
@@ -17,6 +18,29 @@ LibDescription ={
 
 initCode = "signal(SIGSEGV, reportFault)"
 deinitCode = ""
+embedVeryHigh = `
+        bool doesFileExist(string filePath){
+            ifstream ifile(filename);
+            return (bool)ifile;
+        }
+
+        void copyAssetToWritableFolder(string fromPath, string toPath){
+            //TODO: finish func body if package C++
+        }
+
+        string joinCmdStrings(int count , char *argv[]) {
+            string acc="";
+            for(int i=1; i<count; ++i){
+                if(i>1) acc+=" ";
+                acc += argv[i];
+            }
+            return(acc);
+        }
+
+        constexpr unsigned int _strHash(const char* str, int h = 0){
+            return !str[h] ? 5381 : (_strHash(str, h+1)*33) ^ str[h];
+        }
+`
 
 struct FileStream{
     me fstream: FileStream
@@ -62,17 +86,6 @@ struct GLOBAL{
     me uint: shiftRight(me uint: bits, me uint: shft) <- <%!(%1 >> %2)%>
     me uint: AndBits(me uint: bits, me uint: shft)    <- <%!(%1 & %2)%>
     me uint: OrBits (me uint: bits, me uint: shft)    <- <%!(%1 | %2)%>
-    me int: sleep(me int: milliseconds) <- <%{
-       struct timespec req, rem;
-       if(milliseconds > 999) {
-            req.tv_sec = (int)(milliseconds / 1000);                            /* Must be Non-Negative */
-            req.tv_nsec = (milliseconds - ((long)req.tv_sec * 1000)) * 1000000; /* Must be in range of 0 to 999999999 */
-       }else{
-            req.tv_sec = 0;                         /* Must be Non-Negative */
-            req.tv_nsec = milliseconds * 1000000;    /* Must be in range of 0 to 999999999 */
-       }
-       return nanosleep(&req , &rem);
-   }%>
 
     me string: readAssetAsString(me string: filename) <- <%{
         string text = "";
@@ -81,21 +94,7 @@ struct GLOBAL{
         return text;
    }%>
 
-    me string: execCmd(me string: command) <- <%{
-      FILE* pipe;
-      std::array<char, 128> buffer;
-      string result = "";
-      pipe = popen(command.data(), "r");
-      if (pipe == NULL) {
-        cout<<"Cannot execute command:'" << command<<"'\n";
-        return "";
-      }
-      while(fgets(buffer.data(), 128, pipe) != NULL) {
-        result = result+buffer.data();
-      }
-      pclose(pipe);
-      return result;
-    }%>
+
 
     me string: wideCharToMultibyte(me int:ch) <- <%{
         char buf[32];
@@ -140,3 +139,4 @@ struct timeValue{me int64: timeValue}
 struct DateValue{me int64: DateValue}
 struct timeOfDay{me int64: timeOfDay}
 struct DateTime{me int64: DateTime}
+

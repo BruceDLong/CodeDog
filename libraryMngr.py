@@ -128,6 +128,7 @@ def processIncludedFiles(fileString, fileName):
 def loadTagsFromFile(fileName):
     codeDogStr = progSpec.stringFromFile(fileName)
     codeDogStr = processIncludedFiles(codeDogStr, fileName)
+    cdlog(2, "Parsing file: "+str(fileName))
     return codeDogParser.parseCodeDogLibTags(codeDogStr)
 
 def filterReqTags(ReqTags):
@@ -294,5 +295,5 @@ def ChooseLibs(classes, buildTags, tags):
     solutionOptions = constructANDListFromNeeds([tags, buildTags], initialNeeds2, [], "")
     reduceSolutionOptions(solutionOptions, '')
     for libPath in solutionOptions[1]:
-        cdlog(2, "USING LIBRARY:"+libPath)
+        cdlog(2, "USING LIBRARY:"+str(libPath))
     return solutionOptions[1]

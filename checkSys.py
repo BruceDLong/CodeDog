@@ -11,7 +11,7 @@ def AddSystemPath():
     if platform == "linux" or platform == "linux2":
         bashfile = os.path.join(os.path.expanduser('~'), '.bashrc')
         sytemflag = 0
-        systemPath = 'PATH="$PATH:$HOME/devl/CodeDog"\nexport GIT_PYTHON_REFRESH=quiet'
+        systemPath = 'PATH="$PATH:$HOME/devl/CodeDog"'
         with open(bashfile, 'r') as f:
             if systemPath in f.read():
                 sytemflag = 1

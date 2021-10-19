@@ -41,7 +41,6 @@ def runCMD(myCMD, myDir):
     #if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
     return string_escape(str(out)).strip
 
-
 def runCmdStreaming(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
     process = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True,)
@@ -59,7 +58,6 @@ def runCmdStreaming(myCMD, myDir):
         print(err.strip())
 
     return process.returncode
-
 
 def makeDirs(dirToGen):
     #print("dirToGen:", dirToGen)
@@ -148,6 +146,8 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
         pass
 
     zipFileDirectory = packageDirectory + '/' + packageName
+    innerPackageName = packageName     # TODO: get actual innerPackageName
+    innerPackageDir  = zipFileDirectory + '/' + innerPackageName
     packagePath = zipFileDirectory + '/' + packageName + zipExtension
     checkDirectory = os.path.isdir(zipFileDirectory)
     zipFileName = os.path.basename(downloadUrl)
@@ -155,10 +155,12 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
         makeDirs(zipFileDirectory + "/INSTALL")
         emgr.downloadFile(packagePath, downloadUrl)
         try:
+
             cdlog(1, "Extracting zip file: " + zipFileName)
             shutil.unpack_archive(packagePath, zipFileDirectory)
         except:
             cdErr("Could not extract zip archive file: " + zipFileName)
+
 
 
 def FindOrFetchLibraries(buildName, packageData, platform, tools):
@@ -250,6 +252,55 @@ def gitClone(cloneUrl, packageName, packageDirectory):
         makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
 
 
+def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension):
+    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
+    SconsFile = "import os\n\n"
+    SconsFile += "env = Environment(ENV=os.environ)\n"
+    #SconsFile += "env.MergeFlags('-g -fpermissive')\n"
+    if progOrLib=='program': SconsFileType = "Program"
+    elif progOrLib=='library': SconsFileType = "Library"
+    elif progOrLib=='staticlibrary': SconsFileType = "StaticLibrary"
+    elif progOrLib=='sharedlibrary': SconsFileType = "SharedLibrary"
+    else: SconsFileType = "Library"
+
+    SconsFileOut = 'env.'+SconsFileType+'(\n'
+    SconsFileOut += '    target='+'"'+fileName+'",\n'
+    SconsFileOut += '    source='+'"'+fileSpecs[0][0]+fileExtension+'",\n'
+
+    codeDogFolder = os.path.dirname(os.path.realpath(__file__))
+  #  SconsFileOut += '    env["LIBPATH"]=["'+codeDogFolder+'"],\n'
+    sconsConfigs = ""
+
+    sconsLibs     = 'env["LIBS"] = ['
+    sconsCppPaths = 'env["CPPPATH"]=[\n'+includeFolders+']\n'
+    sconsLibPaths = 'env["LIBPATH"]=[\n     r"'+codeDogFolder+'",\n'+libFolders+']\n'
+    libStr=""
+    firstTime = True
+    for libFile in libFiles:
+        if libFile.startswith('pkg-config'):
+            libStr += "`"+libFile+"` "
+            #sconsConfigs += 'env.ParseConfig("'+libFile+'")\n'
+        else:
+            if libFile =='pthread':
+                #sconsConfigs += 'env.MergeFlags("-pthread")\n'
+                sconsConfigs += ''
+            else:
+                libStr += "-l"+libFile
+                if not firstTime: sconsLibs += ', '
+                firstTime=False
+                sconsLibs += '"'+libFile+'"'
+    sconsLibs += ']\n'
+        #print "libStr: " + libStr
+    currentDirectory = os.getcwd()
+    #TODO check if above is typo
+    workingDirectory = currentDirectory + "\\" + buildName
+    buildStr = getBuildSting(fileName,libStr,platform,buildName)
+    runStr = "./" + fileName
+    SconsFileOut += '    )\n'
+    SconsFile += sconsCppPaths + sconsLibPaths + sconsLibs + sconsConfigs + SconsFileOut + '\n'
+    sconsFilename = fileName+".scons"
+    writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
+
 def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     fileExtension = '.cpp'
 
@@ -327,13 +378,14 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
     return [workingDirectory, buildStr, runStr]
 
-def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
+def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
     buildStr = ''
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
     libStr = "-I " + codeDogFolder + " "
     #minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
     #outputFileStr = '-o ' + fileName
+    buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension)
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName + os.sep + "assets")
@@ -346,7 +398,7 @@ def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, pla
     #TODO check if above is typo
     workingDirectory = currentDirectory + os.sep + buildName
     buildStr = getBuildSting(fileName,"",platform,buildName)
-    runStr = "python " + "..\CodeDog\\" + fileName
+    runStr = fileName + ".exe"
     return [workingDirectory, buildStr, runStr]
 
 def SwingBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs):
@@ -398,20 +450,12 @@ def iOSBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, plat
     return [projectDirectory, buildCmd, runCmd]
 
 def BuildAndPrintResults(workingDirectory, buildStr, runStr):
-    cdlog(1, "Compiling From: {}".format(workingDirectory))
-    print("     NOTE: Build Command is: ", buildStr, "\n")
-    print("     NOTE: Run Command is: ", runStr, "\n")
-    #print ("workingDirectory: ", workingDirectory)
-    pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = pipe.communicate()
-    if out: print("Result: \n"+out.decode('utf-8'))
-    if err:
-        decodedErr = err.decode('UTF-8')
-        if "error:" in decodedErr or "SyntaxError:" in decodedErr:
-            print("Error Messages:\n--------------------------\n", err.decode('UTF-8'))
-            print("--------------------------")
-            exit(2)
-    else: cdlog(1, "SUCCESS!")
+    print("\n")
+    cdlog(1, "     NOTE: Build Command is: "+ buildStr)
+    cdlog(1, "     NOTE: Run Command is: "+ runStr)
+    cdlog(1, "     NOTE: Build Directory is: "+ workingDirectory)
+    runCMD(buildStr,workingDirectory)
+    cdlog(1, "SUCCESS!")
 
 def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
@@ -425,7 +469,7 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     elif platform == 'Swift':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Windows':
-        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
+        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData)
     elif platform == 'MacOS':
         [workingDirectory, buildStr, runStr] = buildMac.macBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'IOS':
@@ -478,10 +522,8 @@ def getBuildSting (fileName, buildStr_libs, platform, buildName):
         fileExtension = '.swift'
         buildStr = "swiftc -suppress-warnings " + fileName + fileExtension
     elif platform == 'Windows':
-        langStr = 'cl /EHsc'
-        fileExtension = '.cpp'
-        fileStr  = fileName + fileExtension
-        buildStr = langStr + " " + fileStr
+        codeDogPath = os.path.dirname(os.path.realpath(__file__))
+        buildStr = f"python3 {codeDogPath}/Scons/scons.py -Q -f "+fileName+".scons"
     elif platform == 'MacOS':
         buildStr = "// swift build -Xswiftc -suppress-warnings \n"
         buildStr += "// swift run  -Xswiftc -suppress-warnings \n"
@@ -514,6 +556,6 @@ def buildWithScons(name, cmdLineArgs):
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
         otherSconsArgs = ' '.join(cmdLineArgs)
         sconsCMD = "python3 "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
-        result = runCmdStreaming(sconsCMD, basepath)
+        result = runCMD(sconsCMD, basepath)
         print(result)
         print("\nSUCCESS\n")

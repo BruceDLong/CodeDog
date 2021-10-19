@@ -1,0 +1,62 @@
+// CodeDog Unicode Library
+requirements = [
+    [tagOneOf, LangVersion, [MSVC]]
+]
+
+interface={
+    provides = [Unicode_langVersion_implementation]
+    packages = [
+        { packageName = 'icu'
+          fetchMethod = 'zip:https://github.com/unicode-org/icu/releases/download/release-69-1/icu4c-69_1-Win64-MSVC2019.zip'
+          buildCmds   = {
+              Windows = {installFiles = ['.']}
+            }
+        }
+    ]
+    libFiles = [icuuc, icuio, icuin]
+    headers=[unicode/locid.h, unicode/unistr.h, unicode/putil.h, unicode/ustream.h, unicode/normalizer2.h, unicode/calendar.h,
+             unicode/gregocal.h, unicode/smpdtfmt.h, unicode/utypes.h, codecvt, locale
+            ]
+}
+
+LibDescription  ={
+    useStatus   = 'dynamic'
+    description = 'Unicode for CPP'
+    features    = [Unicode]
+    platforms   = [Linux, OS-X_Devices, Windows]
+    bindings    = [C, CPP, perl, python]
+    Lang        = [CPP]
+}
+
+embedVeryHigh = `
+`
+embedHigh = `
+`
+
+struct GLOBAL{
+    me wstring: stringToWString(me string: str) <- <%{
+        std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+        return converter.from_bytes(str);
+    }%>
+}
+
+struct UnicodeMgr  {
+    me bool: isUnicodeWordContinue(me int32: ch) <-<%{
+        int32_t props = U_GET_GC_MASK(ch);
+        //props=UTRIE2_GET16(&propsTrie, ch);
+        if((props&
+            (U_GC_ND_MASK | U_GC_L_MASK |  // Number Digits or Letters
+            U_GC_MC_MASK|U_GC_MN_MASK)     // Character modifiers
+            )!=0) return(true);
+        else if(ch==0x005f || ch==0x002d || ch==0x0027){return(true);} // "_" or "-" or "'"
+        return(false);
+    }%>
+
+    void: UnicodeStrToUTF8_String(me UnicodeStr: s, their string: out) <- <%{
+        int32_t len=s.length() * 5;
+        std::vector<char> c(len);;
+        CheckedArrayByteSink sbs(c.data(),len);
+        s.toUTF8(sbs);
+        *out=string(c.data(), strlen(c.data()));
+    }%>
+}

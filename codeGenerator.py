@@ -75,7 +75,7 @@ class CodeGenerator(object):
         if not isinstance(fieldType, str):
             fieldType= fieldType[0]
         fieldType=progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fieldType)
-        if fieldType=="double" or fieldType=="float" or fieldType=="BigFloat" or fieldType=="FlexNum":
+        if fieldType=="double" or fieldType=="float" or fieldType=="BigFloat" or fieldType=="FlexNum" or fieldType=="BigFrac":
             return True
         return False
 
@@ -324,7 +324,6 @@ class CodeGenerator(object):
                     else:
                         REF=self.CheckClassStaticVars(self.currentObjName, itemName)
                         if(REF):
-                            progSpec.addDependancyToStruct(self.currentObjName, itemName)
                             return REF
 
                         elif(itemName in self.StaticMemberVars):
@@ -964,32 +963,43 @@ class CodeGenerator(object):
         [S, retTypeSpec]=self.xlator.codeFactor(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             for i in item[1]:
                 #print '               term:', i
-                if   (i[0] == '*'): S+=' * '
-                elif (i[0] == '/'): S+=' / '
-                elif (i[0] == '%'): S+=' % '
+                if   (i[0] == '*'): op = ' * '
+                elif (i[0] == '/'): op = ' / '
+                elif (i[0] == '%'): op = ' % '
                 else: print("ERROR: One of '*', '/' or '%' expected in code generator."); exit(2)
                 [S2, retType2] = self.xlator.codeFactor(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
-                S+=S2
+
+                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt' and fType1!='FlexNum'):
+                    [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
+                    S+= op + S2
+                else:
+                    fType2 = progSpec.fieldTypeKeyword(retType2)
+                    S = self.xlator.codeTermAsFunc(S, S2, fType1, fType2, op)
         return [S, retTypeSpec]
 
     def codePlus(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec]=self.codeTerm(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             if isDerefd:
                 keyType = progSpec.varTypeKeyWord(retTypeSpec)
                 retTypeSpec={'owner': 'me', 'fieldType': keyType}
             for  i in item[1]:
-                if   (i[0] == '+'): S+=' + '
-                elif (i[0] == '-'): S+=' - '
+                if   (i[0] == '+'): op = ' + '
+                elif (i[0] == '-'): op = ' - '
                 else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
                 [S2, retType2] = self.codeTerm(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
-                if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
-                S+=S2
+                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt' and fType1!='FlexNum'):
+                    if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
+                    S += op+S2
+                else:
+                    fType2 = progSpec.fieldTypeKeyword(retType2)
+                    S = self.xlator.codePlusAsFunc(S, S2, fType1, fType2, op)
         return [S, retTypeSpec]
 
     def codeComparison(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -1440,7 +1450,6 @@ class CodeGenerator(object):
             fieldName=field['fieldName']
             if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
             else: isTemplateVar = False
-
             cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, cvrtType))
             defaultVal=''
             if(fieldOwner != 'me'):
@@ -1461,9 +1470,9 @@ class CodeGenerator(object):
                             [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs)
             if defaultVal != '':
             #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
-                ctorArgs += self.xlator.codeConstructorArgText(fieldName, count, cvrtType, defaultVal)+ ","
+                if count>0: ctorArgs +=  ', '
+                ctorArgs += self.xlator.codeConstructorArgText(fieldName, count, cvrtType, defaultVal)
                 ctorInit += self.xlator.codeConstructorInit(fieldName, count, defaultVal)
-
                 count += 1
             copyCtorArgs += self.xlator.codeCopyConstructor(fieldName, cvrtType, isTemplateVar)
 
@@ -1476,13 +1485,9 @@ class CodeGenerator(object):
         if parentClasses:
             parentClass = progSpec.filterClassesToString(parentClasses[0])
             callSuper = self.xlator.codeSuperConstructorCall(parentClass)
-
-
         fieldID  = className+'::INIT'
         if(progSpec.doesClassDirectlyImlementThisField(self.classStore[0], className, fieldID)):
             funcBody += self.xlator.codeConstructorCall(className)
-        if(count>0):
-            ctorArgs=ctorArgs[0:-1]
         if ctorArgs and parentClass:
             ctorArgTypes       = self.getCtorArgTypes(className, genericArgs)
             parentCtorArgTypes = self.getCtorArgTypes(parentClass, genericArgs)
@@ -1490,6 +1495,7 @@ class CodeGenerator(object):
                 ctorOvrRide = 'override '
         if count>0 or funcBody != '':
             ctorCode += self.xlator.codeConstructors(flatClassName, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper)
+
         return ctorCode
 
     #### STRUCT FIELDS #####################################################
@@ -1741,6 +1747,9 @@ class CodeGenerator(object):
         classList=libNameList + progNameList
         # TODO: make list global then return early if global list the same size as classList
         classList=self.sortClassesForDependancies(classList)
+        if self.xlator.LanguageName=='Java':
+            classList.pop(classList.index('GLOBAL'))
+            classList.insert(0,'GLOBAL')
         return classList
 
     def codeOneStruct(self, tags, constFieldCode, className):
@@ -2012,41 +2021,43 @@ class CodeGenerator(object):
         headerTopStr = ''
         #cdlog(2, 'Integrating {}'.format(libID))
         # TODO: Choose static or dynamic linking based on defaults, license tags, availability, etc.
+        if libID in tagsFromLibFiles:
+            libFileTags = tagsFromLibFiles[libID]
+            if 'embedAboveIncludes'in libFileTags: self.libEmbedAboveIncludes+= libFileTags['embedAboveIncludes']
+            if 'embedVeryHigh'     in libFileTags: self.libEmbedVeryHigh     += libFileTags['embedVeryHigh']
+            if 'embedHigh'         in libFileTags: self.libEmbedCodeHigh     += libFileTags['embedHigh']
+            if 'embedLow'          in libFileTags: self.libEmbedCodeLow      += libFileTags['embedLow']
+            if 'initCode'          in libFileTags: self.libInitCodeAcc       += libFileTags['initCode']
+            if 'deinitCode'        in libFileTags: self.libDeinitCodeAcc      = libFileTags['deinitCode'] + self.libDeinitCodeAcc + "\n"
 
-        if 'embedAboveIncludes'in tagsFromLibFiles[libID]: self.libEmbedAboveIncludes+= tagsFromLibFiles[libID]['embedAboveIncludes']
-        if 'embedVeryHigh'     in tagsFromLibFiles[libID]: self.libEmbedVeryHigh     += tagsFromLibFiles[libID]['embedVeryHigh']
-        if 'embedHigh'         in tagsFromLibFiles[libID]: self.libEmbedCodeHigh     += tagsFromLibFiles[libID]['embedHigh']
-        if 'embedLow'          in tagsFromLibFiles[libID]: self.libEmbedCodeLow      += tagsFromLibFiles[libID]['embedLow']
-        if 'initCode'          in tagsFromLibFiles[libID]: self.libInitCodeAcc       += tagsFromLibFiles[libID]['initCode']
-        if 'deinitCode'        in tagsFromLibFiles[libID]: self.libDeinitCodeAcc      = tagsFromLibFiles[libID]['deinitCode'] + self.libDeinitCodeAcc + "\n"
+            if 'interface' in libFileTags:
+                if 'libFiles' in libFileTags['interface']:
+                    libFiles = libFileTags['interface']['libFiles']
 
-        if 'interface' in tagsFromLibFiles[libID]:
-            if 'libFiles' in tagsFromLibFiles[libID]['interface']:
-                libFiles = tagsFromLibFiles[libID]['interface']['libFiles']
+                    for libFile in libFiles:
+                        if libFile.startswith('pkg-config'):
+                            self.buildStr_libs += "`"
+                            self.buildStr_libs += libFile
+                            self.buildStr_libs += "` "
+                        else:
+                            if libFile =='pthread': self.buildStr_libs += '-pthread ';
+                            else: self.buildStr_libs += "-l"+libFile+ " "
 
-                for libFile in libFiles:
-                    if libFile.startswith('pkg-config'):
-                        self.buildStr_libs += "`"
-                        self.buildStr_libs += libFile
-                        self.buildStr_libs += "` "
-                    else:
-                        if libFile =='pthread': self.buildStr_libs += '-pthread ';
-                        else: self.buildStr_libs += "-l"+libFile+ " "
+                if 'headers' in libFileTags['interface']:
+                    libHeaders = libFileTags['interface']['headers']
+                    for libHdr in libHeaders:
+                        if libHdr == '"stdafx.h"':
+                            headerTopStr = self.xlator.includeDirective(libHdr)
+                        else:
+                            headerStr += self.xlator.includeDirective(libHdr)
 
-            if 'headers' in tagsFromLibFiles[libID]['interface']:
-                libHeaders = tagsFromLibFiles[libID]['interface']['headers']
-                for libHdr in libHeaders:
-                    if libHdr == '"stdafx.h"':
-                        headerTopStr = self.xlator.includeDirective(libHdr)
-                    else:
-                        headerStr += self.xlator.includeDirective(libHdr)
         return [headerStr, headerTopStr]
 
     def connectLibraries(self, tags, libsToUse):
         headerStr = ''
         tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
         for libFilename in libsToUse:
-            cdlog(1, 'ATTACHING LIBRARY: '+libFilename)
+            cdlog(1, 'ATTACHING LIBRARY: '+str(libFilename))
             [headerStrOut, headerTopStr] = self.integrateLibrary(tags, tagsFromLibFiles, libFilename)
             headerStr = headerTopStr + headerStr + headerStrOut
             macroDefs= {}
@@ -2054,8 +2065,7 @@ class CodeGenerator(object):
         return headerStr
 
     def convertTemplateClasses(self, tags):
-        structsToImplement = self.fetchListOfStructsToImplement(tags)
-        for className in structsToImplement:
+        for className in self.classStore[1]:
             for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
                 typeSpec =field['typeSpec']
                 fieldName =field['fieldName']
