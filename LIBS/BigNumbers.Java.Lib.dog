@@ -16,8 +16,8 @@ LibDescription ={
 
 struct GLOBAL{
     me string: toString(me BigInt: val) <- <%!%G%1.toString()%>
-    me string: toString(me BigFrac: val) <- <%!toString()%>
-    me string: toString(me BigFloat: val) <- <%!toString()%>
+    me string: toString(me BigFrac: val) <- <%!%G%1.toString()%>
+    me string: toString(me BigFloat: val) <- <%!%G%1.toString()%>
 }
 struct BigInt: wraps = BigInteger{
     //me int64: convertToIntVal()            <- <%!%>
@@ -549,8 +549,12 @@ struct BigFrac{
 struct FlexNum{
     me double: convertToFloat()  <- <%!%0.val.floatValue()%>
     void: normalize()            <- <%{}%>
-    void: setNumerator(me string: numerator)     <- <%{}%>
-    void: setDenominator(me string: denominator) <- <%{}%>
+    void: setNumerator(me string: numerator) <- <%{
+        val.numerator = new BigInteger(numerator);
+    }%>
+    void: setDenominator(me string: denominator) <- <%{
+        val.denominator = new BigInteger(denominator);
+    }%>
     me BigInt: getNumerator()    <- <%{
         BigInteger A = val.getNumerator();
         return(A);
@@ -560,6 +564,9 @@ struct FlexNum{
         return(A);
     }%>
     // CONSTRUCTORS
-    //none: FlexNum(me BigInt:num) <- <%{}%>
-    none: FlexNum(me int64:num)  <- {val <- num}
+    none: FlexNum(me BigInt:num) <- <%{
+        val = new BigFrac(num);
+    }%>
+    none: FlexNum(me int64:num)  <- <%{val = new BigFrac(num);}%>
+    none: FlexNum(me int32:num) <- <%{val = new BigFrac(num);}%>
 }

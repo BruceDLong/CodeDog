@@ -75,7 +75,7 @@ class CodeGenerator(object):
         if not isinstance(fieldType, str):
             fieldType= fieldType[0]
         fieldType=progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fieldType)
-        if fieldType=="double" or fieldType=="float" or fieldType=="BigFloat" or fieldType=="FlexNum":
+        if fieldType=="double" or fieldType=="float" or fieldType=="BigFloat" or fieldType=="FlexNum" or fieldType=="BigFrac":
             return True
         return False
 
@@ -972,7 +972,7 @@ class CodeGenerator(object):
                 else: print("ERROR: One of '*', '/' or '%' expected in code generator."); exit(2)
                 [S2, retType2] = self.xlator.codeFactor(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
 
-                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt'):
+                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt' and fType1!='FlexNum'):
                     [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
                     S+= op + S2
                 else:
@@ -994,7 +994,7 @@ class CodeGenerator(object):
                 else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
                 [S2, retType2] = self.codeTerm(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
-                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt'):
+                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt' and fType1!='FlexNum'):
                     if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
                     S += op+S2
                 else:
@@ -1450,7 +1450,6 @@ class CodeGenerator(object):
             fieldName=field['fieldName']
             if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
             else: isTemplateVar = False
-
             cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, cvrtType))
             defaultVal=''
             if(fieldOwner != 'me'):
@@ -1471,9 +1470,9 @@ class CodeGenerator(object):
                             [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs)
             if defaultVal != '':
             #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
-                ctorArgs += self.xlator.codeConstructorArgText(fieldName, count, cvrtType, defaultVal)+ ","
+                if count>0: ctorArgs +=  ', '
+                ctorArgs += self.xlator.codeConstructorArgText(fieldName, count, cvrtType, defaultVal)
                 ctorInit += self.xlator.codeConstructorInit(fieldName, count, defaultVal)
-
                 count += 1
             copyCtorArgs += self.xlator.codeCopyConstructor(fieldName, cvrtType, isTemplateVar)
 
@@ -1486,13 +1485,9 @@ class CodeGenerator(object):
         if parentClasses:
             parentClass = progSpec.filterClassesToString(parentClasses[0])
             callSuper = self.xlator.codeSuperConstructorCall(parentClass)
-
-
         fieldID  = className+'::INIT'
         if(progSpec.doesClassDirectlyImlementThisField(self.classStore[0], className, fieldID)):
             funcBody += self.xlator.codeConstructorCall(className)
-        if(count>0):
-            ctorArgs=ctorArgs[0:-1]
         if ctorArgs and parentClass:
             ctorArgTypes       = self.getCtorArgTypes(className, genericArgs)
             parentCtorArgTypes = self.getCtorArgTypes(parentClass, genericArgs)
@@ -1500,6 +1495,7 @@ class CodeGenerator(object):
                 ctorOvrRide = 'override '
         if count>0 or funcBody != '':
             ctorCode += self.xlator.codeConstructors(flatClassName, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper)
+
         return ctorCode
 
     #### STRUCT FIELDS #####################################################

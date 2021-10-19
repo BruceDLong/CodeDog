@@ -250,14 +250,24 @@ class Xlator_Java(Xlator):
         return S
 
     def codeTermAsFunc(self, S, S2, retType1, retType2, opIn):
-        if   opIn == ' * ': S += '.multiply('+S2+')'
-        elif opIn == ' / ': S += '.divide('+S2+')'
-        elif opIn == ' % ': S += '.mod('+S2+')'
+        if retType1=='FlexNum':
+            if   opIn == ' * ': S += '.__times('+S2+')'
+            elif opIn == ' / ': S += '.__divide('+S2+')'
+            elif opIn == ' % ': cdErr("TODO: write FlexNum::__mod() function.")
+        else:
+            if   opIn == ' * ': S += '.multiply('+S2+')'
+            elif opIn == ' / ': S += '.divide('+S2+')'
+            elif opIn == ' % ': S += '.mod('+S2+')'
+
         return S
 
     def codePlusAsFunc(self, S, S2, retType1, retType2, opIn):
-        if   opIn == ' + ': S += '.add('+S2+')'
-        elif opIn == ' - ': S += '.subtract('+S2+')'
+        if retType1=='FlexNum':
+            if   opIn == ' + ': S += '.__plus('+S2+')'
+            elif opIn == ' - ': S += '.__minus('+S2+')'
+        else:
+            if   opIn == ' + ': S += '.add('+S2+')'
+            elif opIn == ' - ': S += '.subtract('+S2+')'
         return S
 
     def codeIdentityCheck(self, S, S2, retType1, retType2, opIn):
@@ -271,7 +281,10 @@ class Xlator_Java(Xlator):
             elif opIn == '!=':  S = '('+S+'.compareTo('+S2+')) != 0'
             elif opIn == '!==': S = '('+S+'.compareTo('+S2+')) != 0'
             else: cdErr("ERROR: '==' or '!=' or '===' or '!==' expected.")
-
+        elif fType1=='FlexNum':
+            if opIn == '==':  S = '__isEqual('+S+','+S2+')'
+            elif opIn == '!=':  S = '__notEqual('+S+','+S2+')'
+            else: cdErr("ERROR: '==' or '!=' expected.")
         else:
             S2 = self.adjustQuotesForChar(retType1, retType2, S2)
             if opIn == '===':
@@ -298,6 +311,12 @@ class Xlator_Java(Xlator):
             elif (op == '>'):  S = '('+S+'.compareTo('+S2+') == 1)'
             elif (op == '<='): S = '(('+S+'.compareTo('+S2+') == -1) || ('+S+'.compareTo('+S2+') == 0))'
             elif (op == '>='): S = '(('+S+'.compareTo('+S2+') == 1) || ('+S+'.compareTo('+S2+') == 0))'
+            else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
+        elif fType1=='FlexNum':
+            if (op == '<'):    S = '__lessThan('+S+','+S2+')'
+            elif (op == '>'):  S = '__greaterThan('+S+','+S2+')'
+            elif (op == '<='): S = '__lessOrEq('+S+','+S2+')'
+            elif (op == '>='): S = '__greaterOrEq('+S+','+S2+')'
             else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
         else:
             S3 = ""
@@ -781,7 +800,7 @@ class Xlator_Java(Xlator):
                 constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
                 if fTypeKW=='BigDecimal' and progSpec.fieldTypeKeyword(rhsTypeSpec)=='BigFrac':
                     assignValue=' = ' + RHS +'.bigDecimalValue()'
-                elif (constructorExists and fTypeKW!='BigInteger'):
+                elif (constructorExists or fTypeKW=='FlexNum'):
                     assignValue=' = new ' + fTypeKW +'('+ RHS + ')'
                 else:
                     assignValue= ' = '+ RHS   #' = new ' + fTypeKW +'();\n'+ indent + varName+' = '+RHS
@@ -847,7 +866,7 @@ class Xlator_Java(Xlator):
         return fieldValueText
 
     def codeConstField_Str(self, convertedType, fieldName, fieldValueText, className, indent):
-        defn = indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+        defn = indent + 'static '+convertedType + ' ' + fieldName + fieldValueText +';\n';
         decl = ''
         return [defn, decl]
 
@@ -870,7 +889,7 @@ class Xlator_Java(Xlator):
         withArgConstructor = ''
         if ctorArgs != '':
             withArgConstructor = "    public " + className + "(" + ctorArgs+"){\n"+funcBody+ ctorInit+"    };\n"
-        copyConstructor = "    public " + className + "(final " + className + " fromVar" +"){\n        "+ className + " toVar = new "+ className + "();\n" +copyCtorArgs+"    };\n"
+        copyConstructor = "    public " + className + "(final " + className + " fromVar" +"){\n" +copyCtorArgs+"    };\n"
         noArgConstructor = "    public "  + className + "(){\n"+funcBody+'\n    };\n'
         # TODO: remove hardCoding
         if (className =="ourSubMenu" or className =="GUI"or className =="CanvasView"or className =="APP"or className =="GUI_ZStack"):
@@ -885,7 +904,7 @@ class Xlator_Java(Xlator):
 
     def codeCopyConstructor(self, fieldName, convertedType, isTemplateVar):
         if isTemplateVar: return ""
-        return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
+        return "        "+fieldName+" = fromVar."+fieldName+";\n"
 
     def codeConstructorCall(self, className):
         return '        INIT();\n'
