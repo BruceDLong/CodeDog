@@ -23,6 +23,7 @@ deinitCode = ""
 struct GLOBAL{
     we GLOBAL: static_Global
     me Random: javaRandomVar
+
     me string: readFileAsString(me string: filePath)<- <%{
         try {
             DataInputStream dis = new DataInputStream(new FileInputStream(filePath));
@@ -41,6 +42,17 @@ struct GLOBAL{
         }
     }%>
 
+    me string: wideCharToMultibyte(me int:ch) <- <%{
+        return ("");
+    }%>
+
+    void: trimLeftWS(their string: str)  <- <%{}%>
+    void: trimRightWS(their string: str) <- <%{}%>
+    me string: trimWS(their string: str) <- {
+        trimLeftWS(str);
+        trimRightWS(str)
+        return(str)
+    }
     me bool: doesFileExist(me string: filePath)<- <%{
         File f = new File(filePath);
         if(f.exists() && f.isFile()) {
@@ -59,41 +71,50 @@ struct GLOBAL{
         }
         catch (NumberFormatException ex){return false;}
     }%>
-
-    me int: randInt(me int: val) <- <%!javaRandomVar.nextInt((int)(%1))%>
-    me int: abs(me int: val) <- <%!%GMath.abs(%1)%>
-    me int: min(me int: a, me int: b) <- <%!%GMath.min(%1, %2)%>
-    me void: print(me string: s)<- <%!%GSystem.out(%1)%>
-    me void: exit(me int: val) <- <%!%GSystem.exit(%1)%>
-    me bool: isdigit(me char: ch) <- <%!%GCharacter.isDigit(%1)%>
-    me bool: isalpha(me char: ch) <- <%!%GCharacter.isLetter(%1)%>
-    me bool: isspace(me char: ch) <- <%!%GCharacter.isWhitespace(%1)%>
-    me bool: isalnum(me char: ch) <- <%!%GCharacter.isLetterOrDigit(%1)%>
-    me int64: stoi(me string: str) <- <%!%GInteger.parseInt(%1)%>
-    me bool: isprint(me char: ch) <- <%!%GCharacter.isISOControl(%1)%>
-    me long: getCurrentTimeStamp() <- <%!%Gnew Date().getTime()%>
+    me void: print(me string: s)                                <- <%!%GSystem.out(%1)%>
+    me void: exit(me int: val)                                  <- <%!%GSystem.exit(%1)%>
+    me long: getCurrentTimeStamp()                              <- <%!%Gnew Date().getTime()%>
+    me void: endFunc(me int: val)                               <- <%!%G %>
+    me int: uniqueObjectID(their any:obj)                       <- <%!%GSystem.identityHashCode(%1)%>
     me timeOutID: callPeriodically(me string: varClass, me string: funcToCall, me int:microSecs): COMMAND_addImplements="Runnable:ToClass:%1" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%2, 0, %3, TimeUnit.MILLISECONDS)%>
-    me string: toString(me double: val) <- <%!%GDouble.toString(%1)%>
-    me string: longToString(me long: val) <- <%!%GLong.toString(%1)%>
-    me string: toString(me int: val) <- <%!%GString.valueOf(%1)%>
-    me void: endFunc(me int: val) <- <%!%G %>
-    me int: uniqueObjectID(their any:obj)  <- <%!%GSystem.identityHashCode(%1)%>
-    me int: max(me int: val1, me int: val2) <- <%!%GMath.max(%1, %2)%>
-    me int: sin(me int: val) <- <%!%GMath.sin(%1)%>
-    me int: cos(me int: val) <- <%!%GMath.cos(%1)%>
-    me int: atan2(me int: val1, me int: val2) <- <%!%GMath.atan2(%1, %2)%>
-    me int: sqrt(me int: val) <- <%!%GMath.sqrt(%1)%>
-    me timeValue: convertToTimeVal()                        <- <%!%G (long)(%1)%>
-    me timeValue: double()                                  <- <%!%G(double)(%1)%>
-    me timeValue: convertToLongVal()                        <- <%!%G%1.longValue()%>
-    me timeValue: convertToL()                              <- <%!%G%1L%>
-    me int: convertToIntVal()                               <- <%!%G (int)(%1)%>
-    me float: convertToFloatVal()                           <- <%!%G (%1f)%>
-    me long: stol(me string: S)                             <- <%!%GLong.parseLong(%1)%>
-    me int: toInt(me string: val)                           <- <%!%G Integer.parseInt(%1)%>
-    me char: toUpper(me char: ch) <- {if(ch>="a" and ch<="z"){ch <-- 32} return(ch)}
-    me char: toLower(me char: ch) <- {if(ch>="A" and ch<="Z"){ch <+- 32} return(ch)}
 }
+struct GLOBAL{  /////////  STRING & CHAR CONVERTERS  ///////////////////
+    me int: findString(me string: toSearch, me string: toFind)  <- <%!%G%1.indexOf(%2)%>
+    me bool: isalpha(me char: ch)                               <- <%!%GCharacter.isLetter(%1)%>
+    me bool: isalnum(me char: ch)                               <- <%!%GCharacter.isLetterOrDigit(%1)%>
+    me bool: isdigit(me char: ch)                               <- <%!%GCharacter.isDigit(%1)%>
+    me bool: isprint(me char: ch)                               <- <%!%GCharacter.isISOControl(%1)%>
+    me bool: isspace(me char: ch)                               <- <%!%GCharacter.isWhitespace(%1)%>
+    me char: toLower(me char: ch)                               <- {if(ch>="A" and ch<="Z"){ch <+- 32} return(ch)}
+    me char: toUpper(me char: ch)                               <- {if(ch>="a" and ch<="z"){ch <-- 32} return(ch)}
+}
+struct GLOBAL{  /////////  MATH CONVERTERS  ////////////////////////////
+    me int: abs(me int: val)                                    <- <%!%GMath.abs(%1)%>
+    me int: atan2(me int: val1, me int: val2)                   <- <%!%GMath.atan2(%1, %2)%>
+    me int: cos(me int: val)                                    <- <%!%GMath.cos(%1)%>
+    me int: max(me int: val1, me int: val2)                     <- <%!%GMath.max(%1, %2)%>
+    me int: min(me int: a, me int: b)                           <- <%!%GMath.min(%1, %2)%>
+    me int: randInt(me int: val)                                <- <%!javaRandomVar.nextInt((int)(%1))%>
+    me int: sin(me int: val)                                    <- <%!%GMath.sin(%1)%>
+    me int: sqrt(me int: val)                                   <- <%!%GMath.sqrt(%1)%>
+}
+struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
+    me float: convertToFloatVal()                               <- <%!%G (%1f)%>
+    me int: convertToIntVal(me int: val)                        <- <%!%G (int)(%1)%>
+    me timeValue: convertToL()                                  <- <%!%G%1L%>
+    me timeValue: convertToLongVal()                            <- <%!%G%1.longValue()%>
+    me timeValue: convertToTimeVal()                            <- <%!%G (long)(%1)%>
+    me timeValue: double()                                      <- <%!%G(double)(%1)%>
+    me int64: stoi(me string: str)                              <- <%!%GInteger.parseInt(%1)%>
+    me long: stol(me string: S)                                 <- <%!%GLong.parseLong(%1)%>
+    me int: toInt(me string: val)                               <- <%!%G Integer.parseInt(%1)%>
+    me string: toString(me double: val)                         <- <%!%GDouble.toString(%1)%>
+    me string: toString(me long: val)                           <- <%!%GLong.toString(%1)%>
+    me string: toString(me int64: val)                          <- <%!%GString.valueOf(%1)%>
+    me string: toString(me uint: val)                           <- <%!%GString.valueOf(%1)%>
+    me string: toString(me int: val)                            <- <%!%GString.valueOf(%1)%>
+}
+
 struct timeValue{me long: timeValue}
 struct DateValue{me long: DateValue}
 struct timeOfDay{me long: timeOfDay}

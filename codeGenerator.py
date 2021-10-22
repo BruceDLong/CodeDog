@@ -1918,6 +1918,12 @@ class CodeGenerator(object):
         CodeDogAddendumsAcc=''
         # Set up flag and mode fields
         for className in structsToSetUp:
+            try:
+                if self.classStore[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
+                    enumVals = self.classStore[0][className]['tags']['inherits']['fieldType']['altModeList']
+                    self.inheritedEnums[className] = enumVals
+            except (TypeError, KeyError) as e:
+                cdlog(6, "{}\n failed dict lookup in codeOneStruct".format(e))
             self.currentObjName=className
             CodeDogAddendumsAcc=''
             [needsFlagsVar, strOut, CodeDogAddendums]=self.codeFlagAndModeFields(className, tags)

@@ -63,6 +63,7 @@ class Xlator_Java(Xlator):
                 elif fieldType=='int64':     langType = 'Long'
                 elif fieldType=='string':    langType = 'String'
                 elif fieldType=='uint':      langType = 'Integer'
+                elif fieldType=='numeric':   langType = 'Integer'
                 else:
                     langType = fieldType
             else:
@@ -282,8 +283,8 @@ class Xlator_Java(Xlator):
             elif opIn == '!==': S = '('+S+'.compareTo('+S2+')) != 0'
             else: cdErr("ERROR: '==' or '!=' or '===' or '!==' expected.")
         elif fType1=='FlexNum':
-            if opIn == '==':  S = '__isEqual('+S+','+S2+')'
-            elif opIn == '!=':  S = '__notEqual('+S+','+S2+')'
+            if opIn == '==':  S = self.GlobalVarPrefix+'__isEqual('+S+','+S2+')'
+            elif opIn == '!=':  S = self.GlobalVarPrefix+'__notEqual('+S+','+S2+')'
             else: cdErr("ERROR: '==' or '!=' expected.")
         else:
             S2 = self.adjustQuotesForChar(retType1, retType2, S2)
@@ -313,10 +314,10 @@ class Xlator_Java(Xlator):
             elif (op == '>='): S = '(('+S+'.compareTo('+S2+') == 1) || ('+S+'.compareTo('+S2+') == 0))'
             else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
         elif fType1=='FlexNum':
-            if (op == '<'):    S = '__lessThan('+S+','+S2+')'
-            elif (op == '>'):  S = '__greaterThan('+S+','+S2+')'
-            elif (op == '<='): S = '__lessOrEq('+S+','+S2+')'
-            elif (op == '>='): S = '__greaterOrEq('+S+','+S2+')'
+            if (op == '<'):    S = self.GlobalVarPrefix+'__lessThan('+S+','+S2+')'
+            elif (op == '>'):  S = self.GlobalVarPrefix+'__greaterThan('+S+','+S2+')'
+            elif (op == '<='): S = self.GlobalVarPrefix+'__lessOrEq('+S+','+S2+')'
+            elif (op == '>='): S = self.GlobalVarPrefix+'__greaterOrEq('+S+','+S2+')'
             else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
         else:
             S3 = ""
@@ -540,13 +541,9 @@ class Xlator_Java(Xlator):
                             retTypeSpec = 'Long'
                 tmp+="))"
                 retTypeKW = progSpec.fieldTypeKeyword(retTypeSpec)
-                if isinstance(exprTypeSpec,str):typeKeyword = exprTypeSpec
-                elif progSpec.isAContainer(returnType):
-                    reqType = progSpec.getContainerFirstElementType(returnType)
-                    typeKeyword = progSpec.fieldTypeKeyword(reqType)
-                    typeKeyword = self.adjustBaseTypes(typeKeyword, True)
-                else: typeKeyword = retTypeKW
-                S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
+                if isinstance(exprTypeSpec,str):fTypeKW = exprTypeSpec
+                else: fTypeKW = self.adjustBaseTypes(retTypeKW, True)
+                S+='new ArrayList<'+fTypeKW+'>'+tmp   # ToDo: make this handle things other than long.
             elif item0=='{':
                 cdErr("TODO: finish Java initialize new map")
             else:
