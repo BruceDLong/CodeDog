@@ -940,12 +940,18 @@ class CodeGenerator(object):
             count = 0
             for P in paramList:
                 if(count>0): S+=', '
-                [S2, argTypeSpec]=self.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs)
-                paramTypeList.append(argTypeSpec)
+                paramTypeSpec = None
                 if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
-                    paramTypeSpec  = modelParams[count]['typeSpec']
+                    paramTypeSpec = modelParams[count]['typeSpec']
+                [S2, argTypeSpec]=self.codeExpr(P[0], objsRefed, None, paramTypeSpec, 'PARAM', genericArgs)
+                paramTypeList.append(argTypeSpec)
+                if paramTypeSpec!=None:
+                    paramTypeKW   = progSpec.fieldTypeKeyword(paramTypeSpec)
+                    argTypeKW     = progSpec.fieldTypeKeyword(argTypeSpec)
+                    if self.xlator.implOperatorsAsFuncs(paramTypeKW):
+                        if argTypeKW=='numeric':
+                            S2 = 'new '+paramTypeKW+'('+S2+')'
                     if name == 'return' and S2 == 'nil':  # Swift return nil, provide context and make optional
-                        paramTypeKW = progSpec.fieldTypeKeyword(paramTypeSpec)
                         S2 = paramTypeKW +"?("+S2+")"
                     else:
                         [leftMod, rightMod] = self.xlator.chooseVirtualRValOwner(paramTypeSpec, argTypeSpec)
@@ -972,7 +978,7 @@ class CodeGenerator(object):
                 else: print("ERROR: One of '*', '/' or '%' expected in code generator."); exit(2)
                 [S2, retType2] = self.xlator.codeFactor(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
 
-                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt' and fType1!='FlexNum'):
+                if not self.xlator.implOperatorsAsFuncs(fType1):
                     [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
                     S+= op + S2
                 else:
@@ -989,17 +995,17 @@ class CodeGenerator(object):
                 keyType = progSpec.varTypeKeyWord(retTypeSpec)
                 retTypeSpec={'owner': 'me', 'fieldType': keyType}
             for  i in item[1]:
-                if   (i[0] == '+'): op = ' + '
-                elif (i[0] == '-'): op = ' - '
-                else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
                 [S2, retType2] = self.codeTerm(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
-                if self.xlator.implOperatorsAsFuncs or (fType1!='BigFrac' and fType1!='BigInt' and fType1!='FlexNum'):
+                if self.xlator.implOperatorsAsFuncs(fType1):
+                    fType2 = progSpec.fieldTypeKeyword(retType2)
+                    S = self.xlator.codePlusAsFunc(S, S2, fType1, i[0])
+                else:
+                    if   (i[0] == '+'): op = ' + '
+                    elif (i[0] == '-'): op = ' - '
+                    else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
                     if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
                     S += op+S2
-                else:
-                    fType2 = progSpec.fieldTypeKeyword(retType2)
-                    S = self.xlator.codePlusAsFunc(S, S2, fType1, fType2, op)
         return [S, retTypeSpec]
 
     def codeComparison(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -1248,6 +1254,7 @@ class CodeGenerator(object):
             RHS = RHS_leftMod+S2+RHS_rightMod
             cdlog(5, "Assignment: {} = {}".format(lhsTypeSpec, rhsTypeSpec))
             RHS = self.xlator.checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHS)
+            LHS_FieldType=progSpec.fieldTypeKeyword(lhsTypeSpec)
             if not isinstance (lhsTypeSpec, dict):
                 #TODO: make test case
                 print('Problem: lhsTypeSpec is', lhsTypeSpec, '\n');
@@ -1287,7 +1294,9 @@ class CodeGenerator(object):
                 if(assignTag=='deep'):
                     actionText = indent + LHS + " = " + RHS + ";\n"
                 elif(assignTag=='+'):
-                    actionText = indent + LHS + " += " + RHS + ";\n"
+                    if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
+                        actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
+                    else: actionText = indent + LHS + " += " + RHS + ";\n"
                 elif(assignTag=='-'):
                     actionText = indent + LHS + " -= " + RHS + ";\n"
                 elif(assignTag=='*'):

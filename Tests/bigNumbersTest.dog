@@ -94,7 +94,7 @@ struct GLOBAL{
         if(J==45678){print("TEST 6 PASS: " ,toString(J), "\n")}
         else{print("TEST 6 FAIL: " ,toString(J), "\n")}
     }
-    void: testFlexNum() <- {
+    me FlexNum: testFlexNum() <- {
         print("FLEX NUM TESTS\n")
         // TEST 1
         me FlexNum: A <- 100000000
@@ -129,6 +129,8 @@ struct GLOBAL{
         me FlexNum: J <- Ji
         if(toString(J)=="45678"){print("TEST 6 PASS: " ,toString(J), "\n")}
         else{print("TEST 6 FAIL: " ,toString(J), "\n")}
+        J <+- A
+        return(-J)
     }
 
 }

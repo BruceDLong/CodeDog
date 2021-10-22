@@ -76,6 +76,14 @@ struct GLOBAL{
     me long: getCurrentTimeStamp()                              <- <%!%Gnew Date().getTime()%>
     me void: endFunc(me int: val)                               <- <%!%G %>
     me int: uniqueObjectID(their any:obj)                       <- <%!%GSystem.identityHashCode(%1)%>
+    const int64: INT64_MAX                                     <- <%!%GLong.MAX_VALUE%>
+    //const int64: INT64_MIN                                    <- <%!%GLLONG_MIN%>
+    //const uint64: UINT64MAX                                   <- <%!%GLLONG_MAX%>
+    //const uint64: UINT64MIN                                   <- <%!%GLLONG_MIN%>
+    //const int32: INT_MAX                                      <- <%!%GLLONG_MAX%>
+    //const int32: INT_MIN                                      <- <%!%GLLONG_MIN%>
+    //const uint32: UINT_MAX                                    <- <%!%GLLONG_MAX%>
+    //const uint32: UINT_MIN                                    <- <%!%GLLONG_MIN%>
     me timeOutID: callPeriodically(me string: varClass, me string: funcToCall, me int:microSecs): COMMAND_addImplements="Runnable:ToClass:%1" <- <%!%GScheduledExecutorService timerID=Executors.newSingleThreadScheduledExecutor(); timerID.scheduleAtFixedRate(%2, 0, %3, TimeUnit.MILLISECONDS)%>
 }
 struct GLOBAL{  /////////  STRING & CHAR CONVERTERS  ///////////////////

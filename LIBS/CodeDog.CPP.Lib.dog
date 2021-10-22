@@ -107,6 +107,14 @@ struct GLOBAL{
     }
     me void: endFunc()                                         <- <%!return(0)%>
     me int: uniqueObjectID(their any:obj)                      <- <%!%G(intptr_t)%1%>
+    const int64: INT64_MAX                                     <- <%!%GLLONG_MAX%>
+    //const int64: INT64_MIN                                    <- <%!%GLLONG_MIN%>
+    //const uint64: UINT64MAX                                   <- <%!%GLLONG_MAX%>
+    //const uint64: UINT64MIN                                   <- <%!%GLLONG_MIN%>
+    //const int32: INT_MAX                                      <- <%!%GLLONG_MAX%>
+    //const int32: INT_MIN                                      <- <%!%GLLONG_MIN%>
+    //const uint32: UINT_MAX                                    <- <%!%GLLONG_MAX%>
+    //const uint32: UINT_MIN                                    <- <%!%GLLONG_MIN%>
 }
 struct GLOBAL{  /////////  STRING & CHAR CONVERTERS  ///////////////////
     me int: findString(me string: toSearch, me string: toFind)  <-  <%!%G%1.find(%2)%>
