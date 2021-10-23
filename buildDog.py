@@ -304,9 +304,14 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName+"/assets")
 
+<<<<<<< Updated upstream
 
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
 
+=======
+    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
+    '''
+>>>>>>> Stashed changes
     packageDirectory = os.getcwd() + '/' + buildName
 
     for package in packageData:
@@ -327,7 +332,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
             downloadExtractZip(fetchMethodUrl, packageName, packageDirectory)
         else:
             pass
-
+'''
     #building scons file
     SconsFile = "import os\n"
     SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -fpermissive  -fdiagnostics-color=always')\n"
