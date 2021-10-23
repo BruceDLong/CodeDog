@@ -82,10 +82,6 @@ struct GLOBAL{
         getline(*strm, S);
         return(S);
     }%>
-    me uint: shiftLeft (me uint: bits, me uint: shft) <- <%!(%1 << %2)%>
-    me uint: shiftRight(me uint: bits, me uint: shft) <- <%!(%1 >> %2)%>
-    me uint: AndBits(me uint: bits, me uint: shft)    <- <%!(%1 & %2)%>
-    me uint: OrBits (me uint: bits, me uint: shft)    <- <%!(%1 | %2)%>
 
     me string: readAssetAsString(me string: filename) <- <%{
         string text = "";
@@ -139,4 +135,3 @@ struct timeValue{me int64: timeValue}
 struct DateValue{me int64: DateValue}
 struct timeOfDay{me int64: timeOfDay}
 struct DateTime{me int64: DateTime}
-

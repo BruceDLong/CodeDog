@@ -38,7 +38,7 @@ def runCMD(myCMD, myDir):
             exit(1)
     #decodedOut = str(out.decode('unicode-escape')) # bytes.decode(out, 'latin1')
     #if decodedOut[-1]=='\n': decodedOut = decodedOut[:-1]
-    return string_escape(str(out)).strip
+    return string_escape(str(out)).strip()
 
 def runCmdStreaming(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")

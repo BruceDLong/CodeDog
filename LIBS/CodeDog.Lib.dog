@@ -107,6 +107,23 @@ struct GLOBAL{
         }
         return(strOut)
     }
+
+    me int: findLastSubString(me string: strToSearch, me string: strToFind) <- {
+        me int: toFindSize <- strToFind.size()
+        if(toFindSize==0){return(-1)}
+        me int: pos <- strToSearch.size()-strToFind.size()
+        me char: firstCH <- strToFind[0]
+        while(pos>=0){
+            me char: crntChar <- strToSearch[pos]
+            if(crntChar==firstCH){
+                if(strToSearch.subStr(pos, toFindSize)==strToFind){
+                    return(pos)
+                }
+            }
+            pos <-- 1
+        }
+        return(-1)
+    }
 }
 
 struct datum{
