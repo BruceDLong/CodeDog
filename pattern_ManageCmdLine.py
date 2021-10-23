@@ -3,8 +3,12 @@
 import progSpec
 import codeDogParser
 
+firstRun = True
 
 def apply(classes, tags):
+    global firstRun
+    if not firstRun: return
+    firstRun = False
     progSpec.addCodeToInit(tags, 'CommandLineManager.processCmdLine(prgArgs, false)')
 
     code = r"""

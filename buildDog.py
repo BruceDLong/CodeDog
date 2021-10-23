@@ -350,7 +350,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 
     sconsLibs     = 'env["LIBS"] = ['
     sconsCppPaths = 'env["CPPPATH"]=[\n'+includeFolders+']\n'
-    sconsLibPaths = 'env["LIBPATH"]=[\n     "'+codeDogFolder+'",\n'+libFolders+']\n'
+    sconsLibPaths = 'env["LIBPATH"]=[\n     r"'+codeDogFolder+'",\n'+libFolders+']\n'
     libStr=""
     firstTime = True
     for libFile in libFiles:
