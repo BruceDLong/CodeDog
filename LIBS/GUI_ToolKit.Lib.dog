@@ -228,7 +228,7 @@ struct GUI_canvas{}
 struct GUI{
     me GUI_item: newCanvas()
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height)
-    me void: setCallback() <- {}
+  //  me void: setCallback() <- {}
 }
 struct GUI_ctxt {
     //me void: fetchAreaToBeDrawn(me GUI_rect: area)
