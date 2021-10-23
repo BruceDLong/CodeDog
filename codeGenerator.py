@@ -75,7 +75,7 @@ class CodeGenerator(object):
         if not isinstance(fieldType, str):
             fieldType= fieldType[0]
         fieldType=progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fieldType)
-        if fieldType=="double" or fieldType=="float" or fieldType=="BigFloat" or fieldType=="FlexNum":
+        if fieldType=="double" or fieldType=="float" or fieldType=="BigFloat" or fieldType=="FlexNum" or fieldType=="BigFrac":
             return True
         return False
 
@@ -940,12 +940,18 @@ class CodeGenerator(object):
             count = 0
             for P in paramList:
                 if(count>0): S+=', '
-                [S2, argTypeSpec]=self.codeExpr(P[0], objsRefed, None, None, 'PARAM', genericArgs)
-                paramTypeList.append(argTypeSpec)
+                paramTypeSpec = None
                 if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
-                    paramTypeSpec  = modelParams[count]['typeSpec']
+                    paramTypeSpec = modelParams[count]['typeSpec']
+                [S2, argTypeSpec]=self.codeExpr(P[0], objsRefed, None, paramTypeSpec, 'PARAM', genericArgs)
+                paramTypeList.append(argTypeSpec)
+                if paramTypeSpec!=None:
+                    paramTypeKW   = progSpec.fieldTypeKeyword(paramTypeSpec)
+                    argTypeKW     = progSpec.fieldTypeKeyword(argTypeSpec)
+                    if self.xlator.implOperatorsAsFuncs(paramTypeKW):
+                        if argTypeKW=='numeric':
+                            S2 = 'new '+paramTypeKW+'('+S2+')'
                     if name == 'return' and S2 == 'nil':  # Swift return nil, provide context and make optional
-                        paramTypeKW = progSpec.fieldTypeKeyword(paramTypeSpec)
                         S2 = paramTypeKW +"?("+S2+")"
                     else:
                         [leftMod, rightMod] = self.xlator.chooseVirtualRValOwner(paramTypeSpec, argTypeSpec)
@@ -963,32 +969,43 @@ class CodeGenerator(object):
         [S, retTypeSpec]=self.xlator.codeFactor(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if (not(isinstance(item, str))) and (len(item) > 1) and len(item[1])>0:
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             for i in item[1]:
                 #print '               term:', i
-                if   (i[0] == '*'): S+=' * '
-                elif (i[0] == '/'): S+=' / '
-                elif (i[0] == '%'): S+=' % '
+                if   (i[0] == '*'): op = ' * '
+                elif (i[0] == '/'): op = ' / '
+                elif (i[0] == '%'): op = ' % '
                 else: print("ERROR: One of '*', '/' or '%' expected in code generator."); exit(2)
                 [S2, retType2] = self.xlator.codeFactor(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
-                S+=S2
+
+                if not self.xlator.implOperatorsAsFuncs(fType1):
+                    [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
+                    S+= op + S2
+                else:
+                    fType2 = progSpec.fieldTypeKeyword(retType2)
+                    S = self.xlator.codeTermAsFunc(S, S2, fType1, fType2, op)
         return [S, retTypeSpec]
 
     def codePlus(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         [S, retTypeSpec]=self.codeTerm(item[0], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
         if len(item) > 1 and len(item[1])>0:
             [S, isDerefd]=self.xlator.derefPtr(S, retTypeSpec)
+            fType1 = progSpec.fieldTypeKeyword(retTypeSpec)
             if isDerefd:
                 keyType = progSpec.varTypeKeyWord(retTypeSpec)
                 retTypeSpec={'owner': 'me', 'fieldType': keyType}
             for  i in item[1]:
-                if   (i[0] == '+'): S+=' + '
-                elif (i[0] == '-'): S+=' - '
-                else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
                 [S2, retType2] = self.codeTerm(i[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 [S2, isDerefd]=self.xlator.derefPtr(S2, retType2)
-                if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
-                S+=S2
+                if self.xlator.implOperatorsAsFuncs(fType1):
+                    fType2 = progSpec.fieldTypeKeyword(retType2)
+                    S = self.xlator.codePlusAsFunc(S, S2, fType1, i[0])
+                else:
+                    if   (i[0] == '+'): op = ' + '
+                    elif (i[0] == '-'): op = ' - '
+                    else: print("ERROR: '+' or '-' expected in code generator."); exit(2)
+                    if i[0]=='+' :S2 = self.xlator.checkForTypeCastNeed('string', retType2, S2)
+                    S += op+S2
         return [S, retTypeSpec]
 
     def codeComparison(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -1237,6 +1254,7 @@ class CodeGenerator(object):
             RHS = RHS_leftMod+S2+RHS_rightMod
             cdlog(5, "Assignment: {} = {}".format(lhsTypeSpec, rhsTypeSpec))
             RHS = self.xlator.checkForTypeCastNeed(lhsTypeSpec, rhsTypeSpec, RHS)
+            LHS_FieldType=progSpec.fieldTypeKeyword(lhsTypeSpec)
             if not isinstance (lhsTypeSpec, dict):
                 #TODO: make test case
                 print('Problem: lhsTypeSpec is', lhsTypeSpec, '\n');
@@ -1276,7 +1294,9 @@ class CodeGenerator(object):
                 if(assignTag=='deep'):
                     actionText = indent + LHS + " = " + RHS + ";\n"
                 elif(assignTag=='+'):
-                    actionText = indent + LHS + " += " + RHS + ";\n"
+                    if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
+                        actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
+                    else: actionText = indent + LHS + " += " + RHS + ";\n"
                 elif(assignTag=='-'):
                     actionText = indent + LHS + " -= " + RHS + ";\n"
                 elif(assignTag=='*'):
@@ -1439,7 +1459,6 @@ class CodeGenerator(object):
             fieldName=field['fieldName']
             if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
             else: isTemplateVar = False
-
             cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, cvrtType))
             defaultVal=''
             if(fieldOwner != 'me'):
@@ -1460,9 +1479,9 @@ class CodeGenerator(object):
                             [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], objsRefed, None, typeSpec, 'RVAL', genericArgs)
             if defaultVal != '':
             #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
-                ctorArgs += self.xlator.codeConstructorArgText(fieldName, count, cvrtType, defaultVal)+ ","
+                if count>0: ctorArgs +=  ', '
+                ctorArgs += self.xlator.codeConstructorArgText(fieldName, count, cvrtType, defaultVal)
                 ctorInit += self.xlator.codeConstructorInit(fieldName, count, defaultVal)
-
                 count += 1
             copyCtorArgs += self.xlator.codeCopyConstructor(fieldName, cvrtType, isTemplateVar)
 
@@ -1475,13 +1494,9 @@ class CodeGenerator(object):
         if parentClasses:
             parentClass = progSpec.filterClassesToString(parentClasses[0])
             callSuper = self.xlator.codeSuperConstructorCall(parentClass)
-
-
         fieldID  = className+'::INIT'
         if(progSpec.doesClassDirectlyImlementThisField(self.classStore[0], className, fieldID)):
             funcBody += self.xlator.codeConstructorCall(className)
-        if(count>0):
-            ctorArgs=ctorArgs[0:-1]
         if ctorArgs and parentClass:
             ctorArgTypes       = self.getCtorArgTypes(className, genericArgs)
             parentCtorArgTypes = self.getCtorArgTypes(parentClass, genericArgs)
@@ -1489,6 +1504,7 @@ class CodeGenerator(object):
                 ctorOvrRide = 'override '
         if count>0 or funcBody != '':
             ctorCode += self.xlator.codeConstructors(flatClassName, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper)
+
         return ctorCode
 
     #### STRUCT FIELDS #####################################################
@@ -1740,6 +1756,9 @@ class CodeGenerator(object):
         classList=libNameList + progNameList
         # TODO: make list global then return early if global list the same size as classList
         classList=self.sortClassesForDependancies(classList)
+        if self.xlator.LanguageName=='Java':
+            classList.pop(classList.index('GLOBAL'))
+            classList.insert(0,'GLOBAL')
         return classList
 
     def codeOneStruct(self, tags, constFieldCode, className):
@@ -1908,6 +1927,12 @@ class CodeGenerator(object):
         CodeDogAddendumsAcc=''
         # Set up flag and mode fields
         for className in structsToSetUp:
+            try:
+                if self.classStore[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
+                    enumVals = self.classStore[0][className]['tags']['inherits']['fieldType']['altModeList']
+                    self.inheritedEnums[className] = enumVals
+            except (TypeError, KeyError) as e:
+                cdlog(6, "{}\n failed dict lookup in codeOneStruct".format(e))
             self.currentObjName=className
             CodeDogAddendumsAcc=''
             [needsFlagsVar, strOut, CodeDogAddendums]=self.codeFlagAndModeFields(className, tags)

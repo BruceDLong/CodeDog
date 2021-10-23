@@ -35,6 +35,7 @@ constDefs=[]
 ruleSet={}      # Used to track duplicates
 globalFieldCount=0
 globalTempVarIdx=0
+startSymbol=''
 
 def genParserCode():
     global rules
@@ -51,19 +52,29 @@ def genParserCode():
         ConstList+='    const int: ' + C[0].replace('::','_') + ' <- ' + str(C[1]) + '\n'
 
     code= r"""
-struct EParser{
+struct EGrammar{
 #CONST_CODE_HERE
 
     void: populateGrammar() <- {
+        startProduction <- """+startSymbol+"""
         setQuickParse(false)
-        clearGrammar()
+        clear()
 #GRAMMAR_CODE_HERE
         preCalcNullability()
         preCalcStreamPoints()
     }
+
+    void: INIT() <- {populateGrammar()}
+}
+
+struct EParser{
+#CONST_CODE_HERE
+
+#EXTRA_PARSER_FUNCS_HERE
 }
     """
-    code=code.replace('#CONST_CODE_HERE', ConstList, 1)
+    code=code.replace('#EXTRA_PARSER_FUNCS_HERE', parserFunctionAccumulator, 1)
+    code=code.replace('#CONST_CODE_HERE', ConstList, 2)
     code=code.replace('#GRAMMAR_CODE_HERE', RuleList, 1)
     return code
 
@@ -73,7 +84,7 @@ def writePositionalFetch(classes, tags, field):
     S="""
     me fetchResult: fetch_%s() <- {
         if(%s_hasVal) {return (fetchOK)}
-        }
+    }
 """% (fname, fname)
     return S
 
@@ -324,13 +335,13 @@ def Write_ALT_Extracter(classes, parentStructName, fields, VarTagBase, VarTagSuf
     else:
         globalFieldCount+=1
         VarTag=VarTagBase+str(level)
-        RHS= 'getChildStateRec('+ VarTagBase + str(level-1)+')'+VarTagSuffix
+        RHS= 'getChildStateRec('+ VarTagBase + str(level-1)+', EP)'+VarTagSuffix
 
     indent2 = indent+'    '
     S+='\n'+indent+'{\n'
     S+='\n'+indent2+'our stateRec: '+VarTag+' <- '+RHS+'\n'   #   shared_ptr<stateRec > SRec1 = SRec0->child;
     loopVarName = "ruleIDX"+str(globalFieldCount)
-    S+=indent2+'me int: '+loopVarName+' <- getChildStateRec('+VarTag+').productionID\n'
+    S+=indent2+'me int: '+loopVarName+' <- getChildStateRec('+VarTag+', EP).productionID\n'
 
     #print "RULEIDX:", indent, parentStructName, VarName
     if VarName!='memStruct':
@@ -358,9 +369,9 @@ def Write_ALT_Extracter(classes, parentStructName, fields, VarTagBase, VarTagSuf
 
 
 def CodeRValExpr(toFieldType, VarTag, suffix):
-    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child.next'+suffix+')'+"\n"
-    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child.next'+suffix+')'+"\n"
-    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child.next'+suffix+')'+"\n"
+    if   toFieldType=='string':          CODE_RVAL='makeStr('+VarTag+'.child.next'+suffix+', EP)'+"\n"
+    elif toFieldType[0:4]=='uint':       CODE_RVAL='makeInt('+VarTag+'.child.next'+suffix+', EP)'+"\n"
+    elif toFieldType[0:3]=='int':        CODE_RVAL='makeInt('+VarTag+'.child.next'+suffix+', EP)'+"\n"
     elif toFieldType[0:6]=='double':     CODE_RVAL='makeDblFromStr('+VarTag+'.child.next'+suffix+')'+"\n"
     elif toFieldType[0:4]=='char':       CODE_RVAL="crntStr[0]"+"\n"
     elif toFieldType[0:4]=='bool':       CODE_RVAL='crntStr=="true"'+"\n"
@@ -377,8 +388,8 @@ def getPostParseFunctionName(classes, structName):
         postParseFunctionsByClassName[structName]='postParseProcessing'
         return 'postParseProcessing'
     elif progSpec.doesClassContainFunc(classes, structName, 'postParseProcessingEtc'):
-        postParseFunctionsByClassName[structName]='postParseProcessingEtc'
-        return 'postParseProcessingEtc'
+        postParseFunctionsByClassName[structName]='EP.postParseProcessingEtc'
+        return 'EP.postParseProcessingEtc'
     return None
 
 def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase, VarName, advancePtr, coFactualCode, indent, level, logLvl):
@@ -487,13 +498,13 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     #print humanIDType
 
     if advancePtr:
-        S+=indent+VarTag+' <- getNextStateRec('+VarTag+')\n'
+        S+=indent+VarTag+' <- getNextStateRec('+VarTag+', EP)\n'
         # UNCOMMENT FOR DEGUG: S+='    docPos('+str(level)+', '+VarTag+', "Get Next in SEQ for: '+humanIDType+'")\n'
 
 
     if fieldOwner=='const'and (toField == None):
         #print'CONSTFIELDVALUE("'+fieldValue+'")\n'
-        finalCodeStr += indent + 'tmpStr'+' <- makeStr('+VarTag+"<LVL_SUFFIX>"+'.child)\n'
+        finalCodeStr += indent + 'tmpStr'+' <- makeStr('+VarTag+"<LVL_SUFFIX>"+'.child, EP)\n'
 
     else:
         if not toIsBaseType:
@@ -503,18 +514,18 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 if  progSpec.typeIsInteger(objName):
                     strFieldType = progSpec.fieldTypeKeyword(fieldType)
                     if(strFieldType == "HexNum"):
-                        CODE_RVAL='makeHexInt('+VarTag+'.child.next'+')'
+                        CODE_RVAL='makeHexInt('+VarTag+'.child.next'+', EP)'
                     elif(strFieldType == "BinNum"):
-                        CODE_RVAL='makeBinInt('+VarTag+'.child.next'+')'
+                        CODE_RVAL='makeBinInt('+VarTag+'.child.next'+', EP)'
                     else:
-                        CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
+                        CODE_RVAL='makeStr('+VarTag+'.child.next'+', EP)'
                     toIsBaseType=True; # it is really a base type.
                 elif (objName=='quotedStr1' or objName=='quotedStr2' or objName=='CID' or objName=='UniID'
                       or objName=='printables' or objName=='toEOL' or objName=='alphaNumSeq'):
-                    CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
+                    CODE_RVAL='makeStr('+VarTag+'.child.next'+', EP)'
                     toIsBaseType=True; # it is really a base type.
                 elif (objName=='ws' or objName=='wsc'):
-                    CODE_RVAL='makeStr('+VarTag+'.child.next'+')'
+                    CODE_RVAL='makeStr('+VarTag+'.child.next'+', EP)'
                     optionalWhiteSpace = True
                     toIsBaseType=True; # it is really a base type.
                 else:
@@ -522,7 +533,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                     [toMemObj, toMemVersionName]=fetchMemVersion(classes, objName)
                     if toMemVersionName==None:
                         # make alternate finalCodeStr. Also, write the extractor that extracts toStruct fields to memVersion of this
-                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fTypeKW, memVersionName)+'(getChildStateRec('+VarTag+"<LVL_SUFFIX>"+'), memStruct)\n')
+                        finalCodeStr=(indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fTypeKW, memVersionName)+'(getChildStateRec('+VarTag+"<LVL_SUFFIX>"+', EP), memStruct, EP)\n')
                         objSpec = progSpec.findSpecOf(classes[0], objName, 'string')
                         ToFields=objSpec['fields']
                         FromStructName=objName
@@ -533,7 +544,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                         #print "FUNC:", getFunctionName(fromFieldTypeCID, toFieldTypeCID)
                         if fromFieldTypeCID != toFieldTypeCID:
                             Write_Extracter(classes, toFieldTypeCID, fromFieldTypeCID, logLvl+1)
-                        finalCodeStr=indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fromFieldTypeCID, toFieldTypeCID)+'(getChildStateRec('+VarTag+"<LVL_SUFFIX>"+'), '+CODE_LVAR_v2+')\n'
+                        finalCodeStr=indent + CodeLVAR_Alloc + '\n' +indent+'    '+getFunctionName(fromFieldTypeCID, toFieldTypeCID)+'(getChildStateRec('+VarTag+"<LVL_SUFFIX>"+', EP), '+CODE_LVAR_v2+', EP)\n'
             else: pass
 
         else:
@@ -549,7 +560,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
         globalFieldCount +=1
         childRecName='SRec' + str(globalFieldCount)
         gatherFieldCode+='\n'+indent+'\nour stateRec: '+childRecName+' <- '+VarTag+'.child'
-        gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and getNextStateRec('+childRecName+') !=NULL){\n'
+        gatherFieldCode+='\n'+indent+'while('+childRecName+' != NULL and getNextStateRec('+childRecName+', EP) !=NULL){\n'
         if fromIsALT:
             gatherFieldCode+=Write_ALT_Extracter(classes, fTypeKW, fields, childRecName, '', 'tmpVar', indent+'    ', level)
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
@@ -559,7 +570,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
                 gatherFieldCode+='\n'+indent+'Allocate('+CODE_RVAL+')'
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
             #print "##### FUNCT:", getFunctionName(fTypeKW, toFTypeKW)
-            gatherFieldCode+='\n'+indent+getFunctionName(fTypeKW, toFTypeKW)+'(getChildStateRec('+childRecName+') , tmpVar)\n'
+            gatherFieldCode+='\n'+indent+getFunctionName(fTypeKW, toFTypeKW)+'(getChildStateRec('+childRecName+', EP) , tmpVar, EP)\n'
             PP_FuncName = getPostParseFunctionName(classes, toFTypeKW)
             if PP_FuncName!=None:
                 gatherFieldCode+='\n'+indent+'if(!'+CODE_RVAL+'.postParseProcessed){'+PP_FuncName+'_'+toFTypeKW+'('+CODE_RVAL+')}'
@@ -567,7 +578,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, ".next")
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
 
-        gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+')\n'
+        gatherFieldCode+=indent+'    '+childRecName+' <- getNextStateRec('+childRecName+', EP)\n'
         # UNCOMMENT FOR DEGUG: S+= '    docPos('+str(level)+', '+VarTag+', "Get Next in LIST for: '+humanIDType+'")\n'
 
 
@@ -657,10 +668,12 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
     return S
 
 extracterFunctionAccumulator = ""
+parserFunctionAccumulator = ""
 alreadyWrittenFunctions={}
 
 def Write_structExtracter(classes, ToStructName, FromStructName, fields, nameForFunc, logLvl):
     global extracterFunctionAccumulator
+    global parserFunctionAccumulator
     memObjFields=[]
     progSpec.populateCallableStructFields(memObjFields, classes, ToStructName)
     if memObjFields==None: cdErr("struct {} is not defined".format(ToStructName.replace('str','mem')))
@@ -676,16 +689,14 @@ def Write_structExtracter(classes, ToStructName, FromStructName, fields, nameFor
             newStructtxt='\n struct '+ToStructName+'{flag: postParseProcessed}\n'
             codeDogParser.AddToObjectFromText(classes[0], classes[1], newStructtxt, 'Adding '+ToStructName+'{flag: postParseProcessed}')
             pppFunc="\n    void: "+postParseFuncName+"(their "+ToStructName+": item) <- {item.postParseProcessing();  item.postParseProcessed<-true}\n"
-            #print("postParseProcessing:",pppFunc)
             extracterFunctionAccumulator += pppFunc
         elif progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessingEtc'):
             postParseFuncName = "postParseProcessingEtc_"+ToStructName
-            S += "        "+postParseFuncName+"(memStruct)\n        memStruct.postParseProcessed<-true\n"
+            S += "        EP."+postParseFuncName+"(memStruct)\n        memStruct.postParseProcessed<-true\n"
             newStructtxt='\n struct '+ToStructName+'{flag: postParseProcessed}\n'
             codeDogParser.AddToObjectFromText(classes[0], classes[1], newStructtxt, 'Adding '+ToStructName+'{flag: postParseProcessed}')
             pppFunc="\n    void: "+postParseFuncName+"(their "+ToStructName+": item) <- {print(\"Override this function!\")}\n"
-            #print("postParseProcessingEtc:",pppFunc)
-            extracterFunctionAccumulator += pppFunc
+            parserFunctionAccumulator += pppFunc
     return S
 
 def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
@@ -708,23 +719,25 @@ def Write_Extracter(classes, ToStructName, FromStructName, logLvl):
     elif configType=='ALT':
         S+=Write_ALT_Extracter(classes, ToStructName, fields, 'SRec', '', 'tmpStr', '    ', -1, logLvl)
 
-    seqExtracter =  "\n    void: "+nameForFunc+"(our stateRec: SRec0, their "+ToStructName+": memStruct) <- {\n" + S + "    }\n"
+    seqExtracter =  "\n    void: "+nameForFunc+"(our stateRec: SRec0, their "+ToStructName+": memStruct, their EParser: EP) <- {\n" + S + "    }\n"
     extracterFunctionAccumulator += seqExtracter
     #print "########################## extracterFunctionAccumulator\n",extracterFunctionAccumulator,"\n#####################################\n"
 
 def writeParserWrapperFunction(classes, className):
     S='''
 struct EParser{
+    me uint64: sourceID
+
     our <CLASSNAME>: Parse_<CLASSNAME>(me string: textIn) <- {
         our <CLASSNAME>: result
-        initParseFromString("<CLASSNAME>", <CLASSNAME>_str, textIn)
+        initParseFromString("<CLASSNAME>", textIn)
         doParse()
         if (doesParseHaveError()) {
             print("Parse Error:" + errorMesg + "\\n")
         } else {
             our stateRec: topItem <- topDownResolve(lastTopLevelItem, "")
             Allocate(result)
-            Extract_<CLASSNAME>_to_<CLASSNAME>(topItem, result)
+            syntax.Extract_<CLASSNAME>_to_<CLASSNAME>(topItem, result, self)
         }
         return(result)
     }
@@ -742,12 +755,13 @@ struct <CLASSNAME>ExtracterThread: inherits=Threads{
     }
     void: run() <- {
         log("OPENING EXTRACT_THREAD")
-        ctrls.parser.Extract_<CLASSNAME>_to_<CLASSNAME>(parseTree, topItem)
+        ctrls.parser.syntax.Extract_<CLASSNAME>_to_<CLASSNAME>(parseTree, topItem, ctrls.parser)
         log("Finished_<CLASSNAME>:"+toString(topItem))
         log("CLOSING EXTRACT_THREAD")
-        //me SyncLock: lock<-{ctrls.chkExtractDone}
-        //ctrls.extractCompleted <- true
-        //lock.notify_one();
+        protect(ctrls.chkExtractDone){
+            ctrls.extractCompleted <- true
+            ctrls.extractDoneLock.notifyOne();
+        }
     }
 }
 
@@ -762,14 +776,18 @@ struct <CLASSNAME>ParserThread: inherits=Threads{
     void: run() <- {
         log("OPENING PARSE_THREAD")
         ctrls.parser.doParse()
-        log("CLOSING PARSE_THREAD")
         log("parser.lastTopLevelItem:"+ctrls.parser.lastTopLevelItem.mySymbol())
-        ctrls.parser.dumpGraph("ParseDone", 1)
         our <CLASSNAME>: crnt_<CLASSNAME>
         if(ctrls.parser.doesParseHaveError()){
             ctrls.parser.errorMesg <- "Proteus syntax error: " + ctrls.parser.errorMesg
             log(ctrls.parser.errorMesg)
             crnt_<CLASSNAME> <- NULL
+        }
+        log("CLOSING PARSE_THREAD")
+
+        protect(ctrls.chkParseDone){
+            ctrls.parseCompleted <- true;
+            ctrls.parseDoneLock.notifyOne();
         }
     }
 }
@@ -803,10 +821,10 @@ struct Threaded_<CLASSNAME>ParseAndExtractor{
     }
     void: start(their EParser: iParser, their strBuf: streamToParse, our <CLASSNAME>: topItem) <- {
         parser<-iParser
-        me int: startProduction <- parser.<CLASSNAME>_str
+        me int: startProduction <- parser.syntax.<CLASSNAME>_str
         parser.errorMesg <- ""
         parser.setStreamingMode(true)
-        leftParseNode <- parser.initParseFromStream(startProduction, streamToParse)
+        leftParseNode <- parser.initParseFromStream(streamToParse)
         extracterThread.init(self, leftParseNode, topItem)
         extracterThread.start()
         parserThread.init(self)
@@ -822,7 +840,7 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     #~ StructFieldStr = "mode [fetchOK, fetchNotReady, fetchSyntaxError, FetchIO_Error] : FetchResult"
     #~ progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ')
     #~ codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, StructFieldStr))
-
+    global startSymbol
     if len(newClasses)==0: return
     populateBaseRules()
 
@@ -842,6 +860,7 @@ def CreateStructsForStringModels(classes, newClasses, tags):
             configType= ObjectDef['configType']
             classTags = ObjectDef['tags']
             if 'StartSymbol' in classTags:
+                startSymbol=className+"_str"
                 writeParserWrapperFunction(classes, className)
             SeqOrAlt=''
             if configType=='SEQ': SeqOrAlt='parseSEQ'   # seq has {}
@@ -867,6 +886,6 @@ def CreateStructsForStringModels(classes, newClasses, tags):
     parserCode=genParserCode()
     codeDogParser.AddToObjectFromText(classes[0], classes[1], parserCode, 'Parser for '+className)
 
-    structsName='EParser'
+    structsName='EGrammar'
     progSpec.addObject(classes[0], classes[1], structsName, 'struct', 'SEQ')
     codeDogParser.AddToObjectFromText(classes[0], classes[1], progSpec.wrapFieldListInObjectDef(structsName, ExtracterCode), 'class '+structsName)

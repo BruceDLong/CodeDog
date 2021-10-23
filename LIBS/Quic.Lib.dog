@@ -73,7 +73,7 @@ struct QProtocol{
     mode[qOK, qError, qTerminated]: status
     me int: step
     me string: protocolIDPrefix
-    me bool: checkProtocolID(me string: protocol) <-{}
+    me bool: checkProtocolID(me string: protocol) <-{return(false)}
     me bool: doStep()
     their QuicStream: myStream
     //void: fork()

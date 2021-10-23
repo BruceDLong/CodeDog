@@ -34,6 +34,7 @@ interface={
         }
 
     ]
+    tools=[golang-go]
     libFiles=[pthread, lsquic, ssl, crypto, z, m]
     headers=[netinet/in.h, netinet/ip.h, arpa/inet.h, sys/types.h, sys/socket.h, netdb.h, openssl/pem.h, openssl/x509.h, openssl/ssl.h, ev.c, lsquic.h]
 }

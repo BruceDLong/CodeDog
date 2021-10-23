@@ -28,7 +28,7 @@ def findPackageManager():
 
 def packageInstalled(packageManagar, packageName):
     cdlog(1, "Package Installing: "+packageName)
-    if subprocess.call(f'{packageManagar} {packageName}'+" > /dev/null 2>&1", shell=True) == 0:
+    if subprocess.call(f'{packageManagar} {packageName}'+" -y > /dev/null 2>&1", shell=True) == 0:
         cdlog(1, "Package installed Successfully")
         return True
     else:
@@ -104,23 +104,21 @@ def downloadFile(fileName, downloadURL):
 
 def installPipPackage():
     from sys import platform
+    toolName = "pip3"
+    downloadUrl = "https://bootstrap.pypa.io/get-pip.py"
+    fileName = "get-pip.py"
+    
     if platform == "linux" or platform == "linux2":
-        toolName = "pip3"
         if not checkToolLinux(toolName):
             getPackageManagerCMD('python3-pip', findPackageManager()) # Install PIP3
 
     elif platform == "darwin":
-        toolName = "pip3"
         if not checkToolLinux(toolName):
-            downloadUrl = "https://bootstrap.pypa.io/get-pip.py"
-            fileName = "get-pip.py"
             downloadFile(fileName, downloadUrl)
             os.system('python get-pip.py') # Install PIP3
 
     elif platform == "win32" or platform == "win64":
-        toolName = "pip3"
         if not checkToolWindows(toolName):
-            downloadUrl = "https://bootstrap.pypa.io/get-pip.py"
-            fileName = "get-pip.py"
             downloadFile(fileName, downloadUrl)
             os.system('py get-pip.py') # Install PIP3
+            

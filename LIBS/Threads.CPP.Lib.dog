@@ -51,7 +51,7 @@ struct Threads{
     me uint: ID()           <- {return(5);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
     bool: isActive()        <- {return(true);}
     void: start()           <- <%{T = std::thread(&Threads::run, this);}%>
-    void: waitForExit()     <- <%{T.join();}%>
+    void: waitForExit()     <- <%{if(T.joinable()){T.join();}}%>
 
     me thread: T
 }

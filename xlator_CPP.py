@@ -27,6 +27,8 @@ class Xlator_CPP(Xlator):
     renameInitFuncs       = "False"
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
+    def implOperatorsAsFuncs(self, fTypeKW):
+        return False
     def getContainerType(self, typeSpec, actionOrField):
         idxType=''
         if progSpec.isAContainer(typeSpec):
@@ -871,6 +873,7 @@ class Xlator_CPP(Xlator):
             CPL=''
             if fieldDef['paramList'] != None:       # call constructor  # curly bracket param list
                 # Code the constructor's arguments
+                ### TODO: CHoose the best constructor and get modelParams to pass in instead of None.
                 [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, fieldDef['paramList'], None, objsRefed, genericArgs)
                 if len(paramTypeList)==1:
                     if not isinstance(paramTypeList[0], dict):
