@@ -27,6 +27,8 @@ class Xlator_CPP(Xlator):
     renameInitFuncs       = "False"
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
+    def implOperatorsAsFuncs(self, fTypeKW):
+        return False
     def getContainerType(self, typeSpec, actionOrField):
         idxType=''
         if progSpec.isAContainer(typeSpec):

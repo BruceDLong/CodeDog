@@ -1,7 +1,7 @@
 // bigNumbersTest.dog
 
-LinuxBuild: Platform='Linux' Lang='CPP';
-//JavaBuild: Platform='Swing' Lang='Java';
+//LinuxBuild: Platform='Linux' Lang='CPP' LangVersion='GNU';
+JavaBuild: Platform='Swing' Lang='Java';
 //SwiftBuild: Platform='Swift' Lang='Swift';
 
 Title = "BigNumbers Test"
@@ -15,11 +15,15 @@ featuresNeeded = [BigNumbers]
 LicenseText = `Public Domain`
 
 
-runCode=`runProg()`
+runCode=`
+testBigInt()
+testBigFrac()
+testFlexNum()
+`
 
 struct GLOBAL{
-    void: runProg() <- {
-        print("BIGNUMBERS TESTS\n")
+    void: testBigInt() <- {
+        print("BIG INTEGER TESTS\n")
         // TEST 1
         me BigInt: A <- 100000000
         me BigInt: B <- 555555555
@@ -53,6 +57,80 @@ struct GLOBAL{
         me BigInt: J <- Ji
         if(J==45678){print("TEST 6 PASS: " ,toString(J), "\n")}
         else{print("TEST 6 FAIL: " ,toString(J), "\n")}
-
     }
+    void: testBigFrac() <- {
+        print("BIG FRAC TESTS\n")
+        // TEST 1
+        me BigFrac: A <- 100000000
+        me BigFrac: B <- 555555555
+        me BigFrac: C <- A + B
+        if(toString(C)=="655555555"){print("TEST 1 PASS: " ,toString(C), "\n")}
+        else{print("TEST 1 FAIL: " ,toString(C), "\n")}
+
+        // TEST 2
+        me BigFrac: D <- C - B
+        if(D==A){print("TEST 2 PASS: " ,toString(D), "\n")}
+        else{print("TEST 2 FAIL: " ,toString(D), "\n")}
+
+        // TEST 3
+        me BigFrac: E <- A * B
+        if(toString(E)=="55555555500000000"){print("TEST 3 PASS: " ,toString(E), "\n")}
+        else{print("TEST 3 FAIL: " ,toString(E), "\n")}
+
+        // TEST 4
+        me BigFrac: F <- E / B
+        if(F==A){print("TEST 4 PASS: " ,toString(F), "\n")}
+        else{print("TEST 4 FAIL: " ,toString(F), "\n")}
+
+        // TEST 5
+        me int64: I64 <- 12345
+        me BigFrac: I <- I64
+        if(I==12345){print("TEST 5 PASS: " ,toString(I), "\n")}
+        else{print("TEST 5 FAIL: " ,toString(I), "\n")}
+
+        // TEST 6
+        me int:   Ji <- 45678
+        me BigFrac: J <- Ji
+        if(J==45678){print("TEST 6 PASS: " ,toString(J), "\n")}
+        else{print("TEST 6 FAIL: " ,toString(J), "\n")}
+    }
+    me FlexNum: testFlexNum() <- {
+        print("FLEX NUM TESTS\n")
+        // TEST 1
+        me FlexNum: A <- 100000000
+        me FlexNum: B <- 555555555
+        me FlexNum: C <- A + B
+        if(toString(C)=="655555555"){print("TEST 1 PASS: " ,toString(C), "\n")}
+        else{print("TEST 1 FAIL: " ,toString(C), "\n")}
+
+        // TEST 2
+        me FlexNum: D <- C - B
+        if(D==A){print("TEST 2 PASS: " ,toString(D), "\n")}
+        else{print("TEST 2 FAIL: " ,toString(D), "\n")}
+
+        // TEST 3
+        me FlexNum: E <- A * B
+        if(toString(E)=="55555555500000000"){print("TEST 3 PASS: " ,toString(E), "\n")}
+        else{print("TEST 3 FAIL: " ,toString(E), "\n")}
+
+        // TEST 4
+        me FlexNum: F <- E / B
+        if(F==A){print("TEST 4 PASS: " ,toString(F), "\n")}
+        else{print("TEST 4 FAIL: " ,toString(F), "\n")}
+
+        // TEST 5
+        me int64: I64 <- 12345
+        me FlexNum: I <- I64
+        if(toString(I)=="12345"){print("TEST 5 PASS: " ,toString(I), "\n")}
+        else{print("TEST 5 FAIL: " ,toString(I), "\n")}
+
+        // TEST 6
+        me int:   Ji <- 45678
+        me FlexNum: J <- Ji
+        if(toString(J)=="45678"){print("TEST 6 PASS: " ,toString(J), "\n")}
+        else{print("TEST 6 FAIL: " ,toString(J), "\n")}
+        J <+- A
+        return(-J)
+    }
+
 }

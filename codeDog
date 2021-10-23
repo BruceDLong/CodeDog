@@ -2,8 +2,10 @@
 # CodeDog Program Maker
 import sys;  sys.dont_write_bytecode = True
 import checkSys
+import environmentMngr as envmgr
 
-checkSys.CheckPipModules()
+envmgr.installPipPackage()
+checkSys.CheckPipModules({'pyparsing':'2.0'})
 
 import progSpec
 import codeDogParser
@@ -106,18 +108,20 @@ def GenerateSystem(classes, buildSpecs, tags, macroDefs):
         libFiles=[]
         tagsFromLibFiles = libraryMngr.getTagsFromLibFiles()
         packageData = []
+        tools = []
         for lib in libsToUse:
             if 'interface' in tagsFromLibFiles[lib] and 'libFiles' in tagsFromLibFiles[lib]['interface']:
                 tmpLibFiles = tagsFromLibFiles[lib]['interface']['libFiles']
                 libFiles+=tmpLibFiles
                 if 'packages' in tagsFromLibFiles[lib]['interface']:
-                    packageData.append(tagsFromLibFiles[lib]['interface']['packages'])
-
+                    packageData = tagsFromLibFiles[lib]['interface']['packages']
+                if 'tools' in tagsFromLibFiles[lib]['interface']:
+                    tools = tagsFromLibFiles[lib]['interface']['tools']
 
         #TODO: need debug mode and minimum version
         platform=progSpec.fetchTagValue([tags, buildTags], 'Platform')
         #cdlog(1, "\nWRITING {} FILE(S) AND COMPILING...".format(len(fileSpecs)))
-        buildDog.build("-g", '14',  fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, programOrLibrary, packageData)
+        buildDog.build("-g", '14',  fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, programOrLibrary, packageData, tools)
         print("Marker: Build Successful")
         progSpec.rollBack(classes, tags)
     # GenerateDocuments()

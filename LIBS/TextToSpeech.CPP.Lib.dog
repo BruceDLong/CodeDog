@@ -7,15 +7,41 @@ requirements = [
 interface={
     provides=[TextToSpeech_implementation]
     packages = [
-        { packageName = 'mimic1'
-          fetchMethod = 'git:https://github.com/MycroftAI/mimic1.git'
+        { packageName = 'flite'
+          fetchMethod = 'git:https://github.com/festvox/flite.git'
           updateWhen  = 'never'    // Updating isn't implemented
-          buildCmds   = { Linux = {buildCmd = './dependencies.sh --prefix="/usr/local" && ./autogen.sh && ./configure --prefix="/usr/local" && make'
-                                    }
+          buildCmds   = { Linux = {buildCmd = './configure && make'
+                                    installFiles = ['include', 'build/x86_64-linux-gnu/lib', 'main']
+                                  }
                         Windows = {buildCmd = 'cmake . && make'}
             }
         }
     ]
-    libFiles=[]
-    headers  = []
+    libFiles=[flite_cmu_us_kal, flite_cmu_time_awb, flite_cmu_us_kal16, flite_cmu_us_awb, flite_cmu_us_rms, flite_cmu_us_slt, flite_usenglish, flite_cmu_indic_lang, flite_cmu_grapheme_lang, flite_cmulex, flite_cmu_indic_lex, flite_cmu_grapheme_lex, flite, m, asound]
+    headers  = [flite.h]
+}
+
+embedVeryHigh = `
+extern "C"
+{
+    cst_voice* register_cmu_us_kal();
+}
+`
+
+
+struct TextToSpeechConvert{
+    their cst_voice: voice
+
+    void: init() <- <%{
+        flite_init();
+    }%>
+
+    void: analyze(me string: gettext) <- <%{
+        voice=register_cmu_us_kal();
+        flite_text_to_speech(gettext.c_str(), voice, "play");
+    }%>
+
+    void: deinit() <- {
+
+    }
 }

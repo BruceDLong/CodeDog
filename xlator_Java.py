@@ -27,6 +27,10 @@ class Xlator_Java(Xlator):
     renameInitFuncs       = "False"
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
+    def implOperatorsAsFuncs(self, fTypeKW):
+        if fTypeKW=='FlexNum' or fTypeKW=='BigFrac' or fTypeKW=='BigInt': return True
+        return False
+
     def getContainerType(self, typeSpec, actionOrField):
         idxType=''
         if progSpec.isNewContainerTempFunc(typeSpec):
@@ -62,6 +66,7 @@ class Xlator_Java(Xlator):
                 elif fieldType=='int64':     langType = 'Long'
                 elif fieldType=='string':    langType = 'String'
                 elif fieldType=='uint':      langType = 'Integer'
+                elif fieldType=='numeric':   langType = 'Integer'
                 else:
                     langType = fieldType
             else:
@@ -191,9 +196,11 @@ class Xlator_Java(Xlator):
                 else: return '(' + RHScodeStr + ' != 0)'
             if RHScodeStr == "0": return "false"
             if RHScodeStr == "1": return "true"
-        if LTypeKW != RTypeKW:
-            if LTypeKW == 'char' and RTypeKW == 'numeric':
-                RHScodeStr = '(char)('+ RHScodeStr +')'
+        if LTypeKW == 'char' and RTypeKW == 'numeric':
+            RHScodeStr = '(char)('+ RHScodeStr +')'
+        elif LTypeKW=='BigFrac' or LTypeKW=='FlexNum':
+            if LTypeKW!=RTypeKW:
+                RHScodeStr = 'new '+LTypeKW+' ('+RHScodeStr+')'
         return RHScodeStr
 
     def getTheDerefPtrMods(self, itemTypeSpec):
@@ -244,44 +251,6 @@ class Xlator_Java(Xlator):
 
     def getEnumStringifyFunc(self, className, enumList):
         S = 'String[] ' + className + 'Strings = {"' + '", "'.join(enumList) + '"};\n'
-        return S
-
-    def codeIdentityCheck(self, S, S2, retType1, retType2, opIn):
-        S2 = self.adjustQuotesForChar(retType1, retType2, S2)
-        if opIn == '===':
-            #print("TODO: finish codeIdentityCk")
-            return S + " == "+ S2
-        else:
-            lFType = progSpec.fieldTypeKeyword(retType1)
-            rFType = progSpec.fieldTypeKeyword(retType2)
-            if (lFType=='String' or lFType == "string") and opIn=="==" and (rFType == "String" or rFType == "string"):
-                return S+'.equals('+S2+')'
-            else:
-                if   (opIn == '=='): opOut=' == '
-                elif (opIn == '!='): opOut=' != '
-                elif (opIn == '!=='): opOut=' != '
-                else: cdErr("ERROR: '==' or '!=' or '===' or '!==' expected.")
-                return S+opOut+S2
-        return S
-
-    def codeComparisonStr(self, S, S2, retType1, retType2, op):
-        S3 = ""
-        if (op == '<'):
-            if self.isComparableType(retType1):
-                S+='.compareTo('
-                S3= ") < 0"
-            else: S+=' < '
-        elif (op == '>'):
-            if self.isComparableType(retType1):
-                S+='.compareTo('
-                S3= ") > 0"
-            else: S+=' > '
-        elif (op == '<='): S+=' <= '
-        elif (op == '>='): S+=' >= '
-        else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
-        S2 = self.adjustQuotesForChar(retType1, retType2, S2)
-        [S2, isDerefd]=self.derefPtr(S2, retType2)
-        S+=S2+S3
         return S
 
     ###################################################### CONTAINERS
@@ -446,6 +415,103 @@ class Xlator_Java(Xlator):
         else: S+='!' + S2
         return [S, retTypeSpec]
 
+    def codeNegate(self, S, tSpec):
+        fTypeKW   = progSpec.fieldTypeKeyword(tSpec)
+        if fTypeKW=='BigFrac' or  fTypeKW=='BigInt':
+            return S+'.negate()'
+        elif fTypeKW=='FlexNum':
+            return S+'.__negate()'
+        return '-'+S
+
+    def codeTermAsFunc(self, S, S2, retType1, retType2, opIn):
+        if retType1=='FlexNum':
+            if   opIn == ' * ': S += '.__times('+S2+')'
+            elif opIn == ' / ': S += '.__divide('+S2+')'
+            elif opIn == ' % ': cdErr("TODO: write FlexNum::__mod() function.")
+        else:
+            if   opIn == ' * ': S += '.multiply('+S2+')'
+            elif opIn == ' / ': S += '.divide('+S2+')'
+            elif opIn == ' % ': S += '.mod('+S2+')'
+
+        return S
+
+    def codePlusAsFunc(self, S, S2, fTypeKW, opIn):
+        if fTypeKW=='FlexNum':
+            if   opIn == '+': S += '.__plus('+S2+')'
+            elif opIn == '-': S += '.__minus('+S2+')'
+        else:
+            if   opIn == '+': S += '.add('+S2+')'
+            elif opIn == '-': S += '.subtract('+S2+')'
+        return S
+
+    def codeIdentityCheck(self, S, S2, retType1, retType2, opIn):
+        fType1 = progSpec.fieldTypeKeyword(retType1)
+        fType2 = progSpec.fieldTypeKeyword(retType2)
+        if fType1=='BigFrac' or fType1=='BigInt':
+            if fType2=='numeric' and fType1=='BigInt':
+                S2 = 'BigInteger.valueOf('+S2+')'
+            if   opIn == '===': S = '('+S+'.compareTo('+S2+')) == 0'
+            elif opIn == '==':  S = '('+S+'.compareTo('+S2+')) == 0'
+            elif opIn == '!=':  S = '('+S+'.compareTo('+S2+')) != 0'
+            elif opIn == '!==': S = '('+S+'.compareTo('+S2+')) != 0'
+            else: cdErr("ERROR: '==' or '!=' or '===' or '!==' expected.")
+        elif fType1=='FlexNum':
+            if opIn == '==':  S = self.GlobalVarPrefix+'__isEqual('+S+','+S2+')'
+            elif opIn == '!=':  S = self.GlobalVarPrefix+'__notEqual('+S+','+S2+')'
+            else: cdErr("ERROR: '==' or '!=' expected.")
+        else:
+            S2 = self.adjustQuotesForChar(retType1, retType2, S2)
+            if opIn == '===':
+                #print("TODO: finish codeIdentityCk")
+                return S + " == "+ S2
+            else:
+                lFType = progSpec.fieldTypeKeyword(retType1)
+                rFType = progSpec.fieldTypeKeyword(retType2)
+                if (lFType=='String' or lFType == "string") and opIn=="==" and (rFType == "String" or rFType == "string"):
+                    return S+'.equals('+S2+')'
+                else:
+                    if   (opIn == '=='): opOut=' == '
+                    elif (opIn == '!='): opOut=' != '
+                    elif (opIn == '!=='): opOut=' != '
+                    else: cdErr("ERROR: '==' or '!=' or '===' or '!==' expected.")
+                    return S+opOut+S2
+        return S
+
+    def codeComparisonStr(self, S, S2, retType1, retType2, op):
+        fType1 = progSpec.fieldTypeKeyword(retType1)
+        fType2 = progSpec.fieldTypeKeyword(retType2)
+        if fType1=='BigFrac' or fType1=='BigInt':
+            if (op == '<'):    S = '('+S+'.compareTo('+S2+') == -1)'
+            elif (op == '>'):  S = '('+S+'.compareTo('+S2+') == 1)'
+            elif (op == '<='): S = '(('+S+'.compareTo('+S2+') == -1) || ('+S+'.compareTo('+S2+') == 0))'
+            elif (op == '>='): S = '(('+S+'.compareTo('+S2+') == 1) || ('+S+'.compareTo('+S2+') == 0))'
+            else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
+        elif fType1=='FlexNum':
+            if (op == '<'):    S = self.GlobalVarPrefix+'__lessThan('+S+','+S2+')'
+            elif (op == '>'):  S = self.GlobalVarPrefix+'__greaterThan('+S+','+S2+')'
+            elif (op == '<='): S = self.GlobalVarPrefix+'__lessOrEq('+S+','+S2+')'
+            elif (op == '>='): S = self.GlobalVarPrefix+'__greaterOrEq('+S+','+S2+')'
+            else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
+        else:
+            S3 = ""
+            if (op == '<'):
+                if self.isComparableType(retType1):
+                    S+='.compareTo('
+                    S3= ") < 0"
+                else: S+=' < '
+            elif (op == '>'):
+                if self.isComparableType(retType1):
+                    S+='.compareTo('
+                    S3= ") > 0"
+                else: S+=' > '
+            elif (op == '<='): S+=' <= '
+            elif (op == '>='): S+=' >= '
+            else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
+            S2 = self.adjustQuotesForChar(retType1, retType2, S2)
+            [S2, isDerefd]=self.derefPtr(S2, retType2)
+            S+=S2+S3
+        return S
+
     def codeFactor(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         ####  ( value | ('(' + expr + ')') | ('!' + expr) | ('-' + expr) | varRef("varFunRef"))
         #print('                  factor: ', item)
@@ -462,7 +528,7 @@ class Xlator_Java(Xlator):
                 [S, retTypeSpec]  = self.codeNotOperator(S, S2,retTypeSpec)
             elif item0=='-':
                 [S2, retTypeSpec] = self.codeGen.codeExpr(item[1], objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
-                S+='-' + S2
+                S = self.codeNegate(S2, retTypeSpec)
             elif item0=='[':
                 count=0
                 tmp="(Arrays.asList("
@@ -482,13 +548,9 @@ class Xlator_Java(Xlator):
                             retTypeSpec = 'Long'
                 tmp+="))"
                 retTypeKW = progSpec.fieldTypeKeyword(retTypeSpec)
-                if isinstance(exprTypeSpec,str):typeKeyword = exprTypeSpec
-                elif progSpec.isAContainer(returnType):
-                    reqType = progSpec.getContainerFirstElementType(returnType)
-                    typeKeyword = progSpec.fieldTypeKeyword(reqType)
-                    typeKeyword = self.adjustBaseTypes(typeKeyword, True)
-                else: typeKeyword = retTypeKW
-                S+='new ArrayList<'+typeKeyword+'>'+tmp   # ToDo: make this handle things other than long.
+                if isinstance(exprTypeSpec,str):fTypeKW = exprTypeSpec
+                else: fTypeKW = self.adjustBaseTypes(retTypeKW, True)
+                S+='new ArrayList<'+fTypeKW+'>'+tmp   # ToDo: make this handle things other than long.
             elif item0=='{':
                 cdErr("TODO: finish Java initialize new map")
             else:
@@ -729,12 +791,20 @@ class Xlator_Java(Xlator):
             [S2, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], objsRefed, lhsTypeSpec, None, 'RVAL', genericArgs)
             S2=self.checkForTypeCastNeed(cvrtType, rhsTypeSpec, S2)
             RHS = S2
-            if self.varTypeIsValueType(fTypeKW):
+            if fTypeKW=='BigInteger':
+                RTypeKW = progSpec.fieldTypeKeyword(rhsTypeSpec)
+                if RTypeKW=='numeric' or RTypeKW=='int64' or RTypeKW=='int':
+                    assignValue=' = BigInteger.valueOf('+ RHS +')'
+                else:
+                    assignValue=' = '+ RHS
+            elif self.varTypeIsValueType(fTypeKW):
                 assignValue=' = '+ RHS
             else:
-            #TODO: make test case
+                #TODO: make test case
                 constructorExists=False  # TODO: Use some logic to know if there is a constructor, or create one.
-                if (constructorExists):
+                if fTypeKW=='BigDecimal' and progSpec.fieldTypeKeyword(rhsTypeSpec)=='BigFrac':
+                    assignValue=' = ' + RHS +'.bigDecimalValue()'
+                elif (constructorExists):
                     assignValue=' = new ' + fTypeKW +'('+ RHS + ')'
                 else:
                     assignValue= ' = '+ RHS   #' = new ' + fTypeKW +'();\n'+ indent + varName+' = '+RHS
@@ -773,9 +843,9 @@ class Xlator_Java(Xlator):
     def codeDecrement(self, varName):
         return "--" + varName
 
-    def varTypeIsValueType(self, convertedType):
-        if (convertedType=='int' or convertedType=='long' or convertedType=='byte' or convertedType=='boolean' or convertedType=='char'
-           or convertedType=='float' or convertedType=='double' or convertedType=='short'):
+    def varTypeIsValueType(self, fTypeKW):
+        if (fTypeKW=='int' or fTypeKW=='long' or fTypeKW=='byte' or fTypeKW=='boolean' or fTypeKW=='char'
+           or fTypeKW=='float' or fTypeKW=='double' or fTypeKW=='BigInteger' or fTypeKW=='short'):
             return True
         return False
 
@@ -793,11 +863,14 @@ class Xlator_Java(Xlator):
                 [CPL, paramTypeList] = self.codeGen.codeParameterList(fieldName, paramList, None, objsRefed, genericArgs)
                 fieldValueText=" = new " + cvrtType + CPL
             elif typeArgList == None:
-                fieldValueText=" = new " + cvrtType + "()"
+                if cvrtType=='BigInteger':
+                    fieldValueText=""
+                else:
+                    fieldValueText=" = new " + cvrtType + "()"
         return fieldValueText
 
     def codeConstField_Str(self, convertedType, fieldName, fieldValueText, className, indent):
-        defn = indent + convertedType + ' ' + fieldName + fieldValueText +';\n';
+        defn = indent + 'static '+convertedType + ' ' + fieldName + fieldValueText +';\n';
         decl = ''
         return [defn, decl]
 
@@ -820,7 +893,7 @@ class Xlator_Java(Xlator):
         withArgConstructor = ''
         if ctorArgs != '':
             withArgConstructor = "    public " + className + "(" + ctorArgs+"){\n"+funcBody+ ctorInit+"    };\n"
-        copyConstructor = "    public " + className + "(final " + className + " fromVar" +"){\n        "+ className + " toVar = new "+ className + "();\n" +copyCtorArgs+"    };\n"
+        copyConstructor = "    public " + className + "(final " + className + " fromVar" +"){\n" +copyCtorArgs+"    };\n"
         noArgConstructor = "    public "  + className + "(){\n"+funcBody+'\n    };\n'
         # TODO: remove hardCoding
         if (className =="ourSubMenu" or className =="GUI"or className =="CanvasView"or className =="APP"or className =="GUI_ZStack"):
@@ -835,7 +908,7 @@ class Xlator_Java(Xlator):
 
     def codeCopyConstructor(self, fieldName, convertedType, isTemplateVar):
         if isTemplateVar: return ""
-        return "        toVar."+fieldName+" = fromVar."+fieldName+";\n"
+        return "        "+fieldName+" = fromVar."+fieldName+";\n"
 
     def codeConstructorCall(self, className):
         return '        INIT();\n'

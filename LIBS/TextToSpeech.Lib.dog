@@ -14,5 +14,6 @@ featuresNeeded = [Logger]
 
 struct TextToSpeechConvert{
     void: init()
+    void: analyze(me string: gettext)
     void: deinit()
 }
