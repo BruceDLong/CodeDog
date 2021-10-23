@@ -195,10 +195,32 @@ struct appComponentGUI{
 }
 
 /////////////////////////////////  HANDLE EVENTS
-struct GUI_MotionEvent{}
-struct GUI_ButtonEvent{}
-struct GUI_PointerEvent{}
-struct GUI_KeyboardEvent{}
+struct GUI_MotionEvent{
+    me uint: type
+    me double: x
+    me double: y
+    me uint: state
+    me uint: button
+}
+struct GUI_ButtonEvent{
+    me uint: type
+    me double: x
+    me double: y
+    me uint: state
+    me uint: button
+}
+struct GUI_PointerEvent{
+    me uint: type
+    me double: x
+    me double: y
+    me uint: state
+    me uint: button
+}
+struct GUI_KeyboardEvent{
+    me uint: type
+    me uint: state
+    me uint: keyval
+}
 /////////////////////////////////  EVENT DISPATCHER
 struct GUI_eventDispatcher{}
 /////////////////////////////////  HANDLE GUI
@@ -206,7 +228,7 @@ struct GUI_canvas{}
 struct GUI{
     me GUI_item: newCanvas()
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height)
-    me void: setCallback()
+    me void: setCallback() <- {}
 }
 struct GUI_ctxt {
     //me void: fetchAreaToBeDrawn(me GUI_rect: area)
@@ -232,6 +254,46 @@ struct GUI_ctxt {
     me void: fillKeep()
     //me void: setFillPattern()
     me void: circle(me int: centerX, me int: centerY, me int: radius)
+}
+
+struct GLOBAL{
+
+    me void: roundedRectangle(their GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- {
+        cr.moveTo(x+r,y);                      //# Move to A
+        cr.lineTo(x+w-r,y);                    //# Straight line to B
+        cr.curveTo(x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
+        cr.lineTo(x+w,y+h-r);                  //# Move to D
+        cr.curveTo(x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cr.lineTo(x+r,y+h);                    //# Line to F
+        cr.curveTo(x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cr.lineTo(x,y+r);                      //# Line to H
+        cr.curveTo(x,y,x,y,x+r,y);             //# Curve to A;
+    }
+
+    me void: roundedTopRect(their GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- {
+        cr.moveTo(x+r,y);                        //# Move to A
+        cr.lineTo(x+w-r,y);                      //# Straight line to B
+        cr.curveTo(x+w,y,x+w,y,x+w,y+r);         //# Curve to C, Control points are both at Q
+        cr.lineTo(x+w,y+h);                      //# Move to D
+        //cr.curveTo(x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cr.lineTo(x,y+h);                        //# Line to F
+        //cr.curveTo(x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cr.lineTo(x,y+r);                        //# Line to H
+        cr.curveTo(x,y,x,y,x+r,y);               //# Curve to A;
+    }
+
+    me void: roundedBotmRect(their GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- {
+        cr.moveTo(x,y);                        //# Move to A
+        cr.lineTo(x+w,y);                      //# Straight line to B
+        //cr.curveTo(x+w,y,x+w,y,x+w,y+r);     //# Curve to C, Control points are both at Q
+        cr.lineTo(x+w,y+h-r);                  //# Move to D
+        cr.curveTo(x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
+        cr.lineTo(x+r,y+h);                    //# Line to F
+        cr.curveTo(x,y+h,x,y+h,x,y+h-r);       //# Curve to G
+        cr.lineTo(x,y);                        //# Line to H
+        //cr.curveTo(x,y,x,y,x+r,y);           //# Curve to A;
+    }
+
 }
 /////////////////////////////////  INTER-THREAD COMMUNICATION
 struct MessagePasser{}

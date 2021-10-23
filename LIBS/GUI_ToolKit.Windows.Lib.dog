@@ -6,8 +6,8 @@ requirements = [
 
 interface={
     provides=[GUI_ToolKit_implementation]
-    libFiles=[]
-    headers=["stdafx.h", windows.h, stdlib.h, string.h, tchar.h, direct.h, wingdi.h]
+    libFiles=[Gdi32, winuser]
+    headers=[windows.h, windowsx.h, stdlib.h, string.h, tchar.h, direct.h, winuser.h, wingdi.h]
 }
 
 LibDescription ={
@@ -161,22 +161,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY: {
         PostQuitMessage(0);
         break; }
+    case WM_KEYUP:{
+	GUI_KeyboardEvent event;
+        event.state;
+        event.keyval=LOWORD(wParam);
+        break; }
+    case WM_KEYDOWN:{
+        break; }
     case WM_LBUTTONDOWN: {
         POINT winEvent;
         GUI_ButtonEvent event;
-        GetCursorPos(&winEvent);
-        event.x = winEvent.x;
-        event.y = winEvent.y;
+        event.x = GET_X_LPARAM(lParam) / scaleFactor;
+        event.y = GET_Y_LPARAM(lParam) / scaleFactor;
         EventDispatcher.topWidget->primaryClick(&event);
         break; }
     case WM_RBUTTONDOWN: {
-        POINT winEvent;
         GUI_ButtonEvent event;
-        GetCursorPos(&winEvent);
-        event.x = winEvent.x;
-        event.y = winEvent.y;
+        event.x = GET_X_LPARAM(lParam) / scaleFactor;
+        event.y = GET_Y_LPARAM(lParam) / scaleFactor;
         EventDispatcher.topWidget->secondaryClick(&event);
         break; }
+
+    case WM_MOUSEMOVE:{
+	GUI_MotionEvent event;
+        event.x = GET_X_LPARAM(lParam) / scaleFactor;
+        event.y = GET_Y_LPARAM(lParam) / scaleFactor;
+        EventDispatcher.topWidget.mouseMoved(&event);
+	break; }
     case WM_CHAR:
         return 0L;
     default:
@@ -189,22 +200,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 `
 
 /////////////////////////////////  STRUCT CONVERTERS
-struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
+//struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
 struct GUI_offset{their GtkAdjustment:GUI_offset}
-struct GUI_item{their HWND: GUI_item}
-struct GUI_Frame{me HWND: GUI_Frame}
+//struct GUI_item{their HWND: GUI_item}
+//struct GUI_Frame{me HWND: GUI_Frame}
 struct GUI_menuBar{their HWND: GUI_menuBar}
 struct GUI_menu{their HWND: GUI_menu}
 struct GUI_menuItem{their HWND: GUI_menuItem}
-struct GUI_canvas{their HWND: GUI_canvas}
-struct GUI_container{their HWND:GUI_container}
+//struct GUI_canvas{their HWND: GUI_canvas}
+//struct GUI_container{their HWND:GUI_container}
 struct GUI_ScrollingWindow{their HWND: GUI_ScrollingWindow}
-struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
-struct GUI_callback{me GCallback: GUI_callback}
-struct GUI_Scalar{me int: GUI_Scalar}
+//struct INK_Image{their cairo_surface_t: INK_Image}      // How will the ink look?
+//struct GUI_callback{me GCallback: GUI_callback}
+//struct GUI_Scalar{me int: GUI_Scalar}
 //struct GUI_Label{their textView: GUI_Label}
 struct listWidget{their HWND: listWidget}
 
+
+/////////////////////////////////  STRUCT CONVERTERS
+struct GUI_rect{me double: x1 me double: y1 me double: x2 me double: y2}
+struct GUI_item:                wraps = HWND ownerMe = me{}
+struct GUI_Frame:               wraps = HWND ownerMe = me{}
+struct GUI_container:           wraps = HWND ownerMe = me{}
+struct INK_Image:               wraps = cairo_surface_t ownerMe = their{}      // How will the ink look?
+struct GUI_callback:            wraps = GCallback ownerMe = their{}
+struct GUI_Scalar:              wraps = int{}
+struct GUI_Text:                wraps = HWND ownerMe = me{}
+struct GUI_canvas:              wraps = HWND ownerMe = me{}
+struct GUI_ctxt:                wraps = HDC ownerMe = me{}
 /*
 /////////////////////////////////  WIDGETS
 struct GUI_storyBoard{
@@ -410,49 +433,24 @@ struct GLOBAL{
 */
 
 /////////////////////////////////  HANDLE EVENTS
-struct GUI_MotionEvent{their GdkEventMotion: GUI_MotionEvent}
 
-// struct GUI_ButtonEvent{me HWND: GUI_ButtonEvent}
-struct GUI_ButtonEvent{
-  me uint32: type
- // GdkWindow *window;
- // gint8 send_event;
- // guint32 time;
-  me double: x
-  me double: y
-  me uint32: state
-  me uint32: button
-}
-
-//struct GUI_PointerEvent{me HWND: GUI_PointerEvent}
-struct GUI_PointerEvent{
-  me uint32: type
- // GdkWindow *window;
- // gint8 send_event;
- // guint32 time;
-  me double: x
-  me double: y
-  me uint32: state
-  me uint32: button
-}
 
 /////////////////////////////////  EVENT DISPATCHER
-struct Windows_eventDispatcher{
+struct GUI_eventDispatcher{
+    // Windows events are dispatched via one giant switch stmt. So this is fairly simple.
     their widget: topWidget
-    me bool: dispatchPointerMotionEvent(me HWND: event) <- {return(false)}
-    // me bool: dispatchKeyboardEvent(their GdkEventKey: event) <- {print("KEY PRESSED\n"); return(false)}
-    // me bool: dispatchWindowEvent(their GdkEventConfigure: event) <- {print("Config\n")}
-    // Also: timer, data and user events
     me void: registerWidgetForEventDispatcher(me GUI_item: Widget, their widget: masterWidget) <- <%{topWidget = masterWidget;}%>
 }
 
 /////////////////////////////////   Event callbacks
 struct GLOBAL{
-    me Windows_eventDispatcher: EventDispatcher
+    me GUI_eventDispatcher: EventDispatcher
 }
 
 /////////////////////////////////  HANDLE GUI
-
+struct GUI_canvas{
+    me void: setParent(our DashboardWidget: wid) <- <%!%G%>
+}
 struct GUI{
     //their GtkApplication: app
 
@@ -478,6 +476,8 @@ struct GUI{
     //me void: showWidget(me GUI_item: widget) <- <%!gtk_widget_show(%1)%>
     me GUI_item: newCanvas() <- <%!%Ggtk_drawing_area_new()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!%Ggtk_widget_set_size_request(%1, %2, %3)%>
+    me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
+    me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
     me GUI_item: newScrollingWindow() <- <%!%Ggtk_scrolled_window_new(0, 0)%>
     //me void: addToContainer(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_container_add(GTK_CONTAINER(%1), %2)%>
     //me void: addToContainerAndExpand(me GUI_container: container, me GUI_item: widget) <-<%!%Ggtk_box_pack_start(GTK_BOX(%1), %2, TRUE, TRUE, 0)%>
@@ -500,6 +500,8 @@ struct GUI_ctxt {
         hPen = CreatePen(PS_SOLID, penWidth, objectColor);
         SelectObject(cr, hPen);
     %>      // maybe separate out an updatePen function?
+    me void: setRoundLineCap() <- <%!pen.SetStartCap(LineCapRound); pen.SetEndCap(LineCapRound)%>
+    me void: setEdgedLineCap() <- <%!pen.SetStartCap(LineCapFlat); pen.SetEndCap(LineCapFlat)%>
     me void: moveTo(me double: x, me double: y) <- <%!MoveToEx(%0, %1, %2, NULL)%>          // (x, y, [speed])
     me void: lineTo(me double: x, me double: y) <- <%!LineTo(%0, %1, %2)%>          // (hdc, xEnd, yEnd) , uses current pen
     me void: moveRel(me double: dx, me double: dy) <- <%!
@@ -518,7 +520,7 @@ struct GUI_ctxt {
         GetClientRect(hWnd, &clientSize);
         backgroundBrush = CreateSolidBrush(RGB(122,122,0));
         FillRect(%0, &clientSize, backgroundBrush);%>
-    me void: strokePath() <- <%!
+    me void: strokeNow() <- <%!
         EndPath(%0);
         hPen = CreatePen(PS_SOLID, penWidth, objectColor);
         SelectObject(cr, hPen);
@@ -526,7 +528,7 @@ struct GUI_ctxt {
         DeleteObject(hPen);
         BeginPath(%0)
     %>
-    me void: fillPath() <- <%!
+    me void: fillNow() <- <%!
         EndPath(%0);
         hBrush = CreateSolidBrush(objectColor);
         SelectObject(cr, hBrush);
@@ -658,17 +660,20 @@ struct timeStringer{
 
 /////////////////////////////////  G L O B A L
 struct GLOBAL{
+    // TIME ROUTINES:
+    me int64: getCurrentTimeStamp() <- <%!_time64(NULL)%>
+
     // DRAWING ROUTINES:
-    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
+    me deltaSize: renderText(their GUI_ctxt: cr, me string: text, me fontSpec: font, me double: x, me double: y) <- <%{
         HFONT hFont;
 
-        std::wstring stemp = s2ws(fontName);
+        std::wstring stemp = s2ws(font.name);
         LPCWSTR fontNamePtr = stemp.c_str();
         std::wstring stemp2 = s2ws(text);
         LPCWSTR outputTextPtr = stemp2.c_str();
 
         BeginPath(cr);
-        hFont = CreateFont(fontSize, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
+        hFont = CreateFontW(font.size, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_TT_ONLY_PRECIS,
             CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY, VARIABLE_PITCH, fontNamePtr);
         SelectObject(cr, hFont);
 
@@ -676,81 +681,33 @@ struct GLOBAL{
         //SetTextColor(cr, RGB(0, 0, 0));
 
         EndPath(cr);
-        TextOut(cr, 50, 50, outputTextPtr, text.length());
+        TextOutW(cr, 50, 50, outputTextPtr, text.length());
         DeleteObject(hFont);
         return 0;
     } %>
-    /*
-    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
-        PangoLayout *layout=pango_cairo_create_layout(cr);
-        pango_layout_set_text(layout, text.data(), -1);
 
-        string fontDesc=fontName+' '+ std::to_string(fontSize);
-        PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
-        pango_layout_set_font_description(layout, desc);
-        pango_font_description_free(desc);
 
+    me deltaSize: getTextSize(me string: text, their fontSpec: font) <- <%{
+	SIZE sz;
+	int strsLen = text.size();
+	GetTextExtentPoint32(cr, text.data(), strsLen, sz);
         deltaSize size;
-        pango_layout_get_pixel_size(layout, &size.width, &size.height);
-        g_object_unref(layout);
+        size.width=sz.cx;
+	size.height=sz.cy;
         return(size);
-    } %> */
-}
+    } %>
 
+    me deltaSize: getTextSizeX1024(me string: text, their fontSpec: font) <- <%{
+	SIZE sz;
+	int strsLen = text.size();
+	GetTextExtentPoint32(cr, text.data(), strsLen, sz);
+        deltaSize size;
+        size.width=sz.cx;
+	size.height=sz.cy;
+        return(size);
+    } %>
 /*
-    // TIME ROUTINES:
-    me int64: getCurrentTimeStamp() <- <%!g_get_real_time()%>
 
-    // DRAWING ROUTINES:
-
-    me deltaSize: renderText(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize, me int: x, me int: y) <- <%{
-        cairo_move_to(cr,x,y);
-        PangoLayout *layout=pango_cairo_create_layout(cr);
-        pango_layout_set_text(layout, text.data(), -1);
-
-        string fontDesc=fontName+' '+ std::to_string(fontSize);
-        PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
-        pango_layout_set_font_description(layout, desc);
-        pango_font_description_free(desc);
-
-        cairo_set_line_width(cr, 0.5);
-        pango_cairo_update_layout(cr, layout);
-        pango_cairo_show_layout_line (cr, pango_layout_get_line (layout, 0));
-       // pango_cairo_layout_path(cr, layout);
-        deltaSize size;
-        pango_layout_get_pixel_size(layout, &size.width, &size.height);
-        g_object_unref(layout);
-        cairo_fill(cr);
-        return(size);
-    } %>
-
-
-    me deltaSize: getTextSize(me GUI_ctxt: cr, me string: text, me string: fontName, me int: fontSize) <- <%{
-        PangoLayout *layout=pango_cairo_create_layout(cr);
-        pango_layout_set_text(layout, text.data(), -1);
-
-        string fontDesc=fontName+' '+ std::to_string(fontSize);
-        PangoFontDescription *desc = pango_font_description_from_string(fontDesc.data());
-        pango_layout_set_font_description(layout, desc);
-        pango_font_description_free(desc);
-
-        deltaSize size;
-        pango_layout_get_pixel_size(layout, &size.width, &size.height);
-        g_object_unref(layout);
-        return(size);
-    } %>
-
-    me void: roundedRectangle(me GUI_ctxt: cr, me double: x, me double: y, me double: w, me double: h, me double: r) <- <%{
-        cairo_move_to(cr,x+r,y);                      //# Move to A
-        cairo_line_to(cr,x+w-r,y);                    //# Straight line to B
-        cairo_curve_to(cr,x+w,y,x+w,y,x+w,y+r);       //# Curve to C, Control points are both at Q
-        cairo_line_to(cr,x+w,y+h-r);                  //# Move to D
-        cairo_curve_to(cr,x+w,y+h,x+w,y+h,x+w-r,y+h); //# Curve to E
-        cairo_line_to(cr,x+r,y+h);                    //# Line to F
-        cairo_curve_to(cr,x,y+h,x,y+h,x,y+h-r);       //# Curve to G
-        cairo_line_to(cr,x,y+r);                      //# Line to H
-        cairo_curve_to(cr,x,y,x,y,x+r,y);             //# Curve to A;
-    } %>
 
     me void: displayImage(me GUI_ctxt: cr, me string: filename, me double: x, me double: y, me double: scale) <- <%{
         filename = "./assets/" + filename;
@@ -804,26 +761,136 @@ me GUI_menu: create_SubMenu(me GUI_menu: ParentMenu, me string: label) <- <%{
 
   return SubMenu;
 } %>
+*/
+}
+
+//~ me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
+//~ me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
+
+//~ me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(%1)%>
+//~ me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
+//~ me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
+//~ me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
+//~ me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
+//~ me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
+
+struct GLOBAL{ // Constants
+    const int: KEY_HOME         <- <%!VK_HOME%>
+    const int: KEY_END          <- <%!VK_END%>
+    const int: KEY_ESCAPE       <- <%!VK_ESCAPE%>
+    const int: KEY_TAB          <- <%!VK_TAB%>
+    const int: KEY_INSERT       <- <%!VK_INSERT%>
+    const int: KEY_DELETE       <- <%!VK_DELETE%>
+    const int: KEY_PAGEUP       <- <%!VK_PRIOR%>
+    const int: KEY_PAGEDOWN     <- <%!VK_NEXT%>
+    const int: KEY_PAUSE        <- <%!VK_PAUSE%>
+    const int: KEY_RETURN       <- <%!VK_RETURN%>
+    const int: KEY_UP           <- <%!VK_UP%>
+    const int: KEY_DOWN         <- <%!VK_DOWN%>
+    const int: KEY_LEFT         <- <%!VK_LEFT%>
+    const int: KEY_RIGHT        <- <%!VK_RIGHT%>
+    const int: KEY_BACKSPACE    <- <%!VK_BACK%>
+    const int: KEY_F1           <- <%!VK_F1%>
+    const int: KEY_F2           <- <%!VK_F2%>
+    const int: KEY_F3           <- <%!VK_F3%>
+    const int: KEY_F4           <- <%!VK_F4%>
+    const int: KEY_F5           <- <%!VK_F5%>
+    const int: KEY_F6           <- <%!VK_F6%>
+    const int: KEY_F7           <- <%!VK_F7%>
+    const int: KEY_F8           <- <%!VK_F8%>
+    const int: KEY_F9           <- <%!VK_F9%>
+    const int: KEY_F10          <- <%!VK_F10%>
+    const int: KEY_F11          <- <%!VK_F11%>
+    const int: KEY_F12          <- <%!VK_F12%>
+    const int: KP_0             <- <%!VK_NUMPAD0%>
+    const int: KP_1             <- <%!VK_NUMPAD1%>
+    const int: KP_2             <- <%!VK_NUMPAD2%>
+    const int: KP_3             <- <%!VK_NUMPAD3%>
+    const int: KP_4             <- <%!VK_NUMPAD4%>
+    const int: KP_5             <- <%!VK_NUMPAD5%>
+    const int: KP_6             <- <%!VK_NUMPAD6%>
+    const int: KP_7             <- <%!VK_NUMPAD7%>
+    const int: KP_8             <- <%!VK_NUMPAD8%>
+    const int: KP_9             <- <%!VK_NUMPAD9%>
+    const int: KP_PLUS          <- <%!VK_ADD%>
+    const int: KP_MINUS         <- <%!VK_SUBTRACT%>
+    const int: KP_MULTIPLY      <- <%!VK_MULTIPLY%>
+    const int: KP_DIVIDE        <- <%!VK_DIVIDE%>
+    const int: KP_PERIOD        <- <%!VK_DECIMAL%>
+    //~ const int: KP_ENTER         <- <%!GDK_KEY_KP_Enter%>
+    //~ const int: KP_DELETE        <- <%!GDK_KEY_KP_Delete%>
+    //~ const int: KP_UP            <- <%!GDK_KEY_KP_Up%>
+    //~ const int: KP_DOWN          <- <%!GDK_KEY_KP_Down%>
+    //~ const int: KP_LEFT          <- <%!GDK_KEY_KP_Left%>
+    //~ const int: KP_RIGHT         <- <%!GDK_KEY_KP_Right%>
+    //~ const int: KP_HOME          <- <%!GDK_KEY_KP_Home%>
+    //~ const int: KP_END           <- <%!GDK_KEY_KP_End%>
+    //~ const int: KP_PAGEUP        <- <%!GDK_KEY_KP_Page_Up%>
+    //~ const int: KP_PAGEDOWN      <- <%!GDK_KEY_KP_Page_Down%>
+
+    // Use these to match lowercase OR CTRL via keyTyped.state
+    const int: KEY_a            <- <%!GDK_KEY_a%>
+    const int: KEY_b            <- <%!GDK_KEY_b%>
+    const int: KEY_c            <- <%!GDK_KEY_c%>
+    const int: KEY_d            <- <%!GDK_KEY_d%>
+    const int: KEY_e            <- <%!GDK_KEY_e%>
+    const int: KEY_f            <- <%!GDK_KEY_f%>
+    const int: KEY_g            <- <%!GDK_KEY_g%>
+    const int: KEY_h            <- <%!GDK_KEY_h%>
+    const int: KEY_i            <- <%!GDK_KEY_i%>
+    const int: KEY_j            <- <%!GDK_KEY_j%>
+    const int: KEY_k            <- <%!GDK_KEY_k%>
+    const int: KEY_l            <- <%!GDK_KEY_l%>
+    const int: KEY_m            <- <%!GDK_KEY_m%>
+    const int: KEY_n            <- <%!GDK_KEY_n%>
+    const int: KEY_o            <- <%!GDK_KEY_o%>
+    const int: KEY_p            <- <%!GDK_KEY_p%>
+    const int: KEY_q            <- <%!GDK_KEY_q%>
+    const int: KEY_r            <- <%!GDK_KEY_r%>
+    const int: KEY_s            <- <%!GDK_KEY_s%>
+    const int: KEY_t            <- <%!GDK_KEY_t%>
+    const int: KEY_u            <- <%!GDK_KEY_u%>
+    const int: KEY_v            <- <%!GDK_KEY_v%>
+    const int: KEY_w            <- <%!GDK_KEY_w%>
+    const int: KEY_x            <- <%!GDK_KEY_x%>
+    const int: KEY_y            <- <%!GDK_KEY_y%>
+    const int: KEY_z            <- <%!GDK_KEY_z%>
+
+    const int: KEY_A            <- <%!0x41%>
+    const int: KEY_B            <- <%!0x42%>
+    const int: KEY_C            <- <%!0x43%>
+    const int: KEY_D            <- <%!0x44%>
+    const int: KEY_E            <- <%!0x45%>
+    const int: KEY_F            <- <%!0x46%>
+    const int: KEY_G            <- <%!0x47%>
+    const int: KEY_H            <- <%!0x48%>
+    const int: KEY_I            <- <%!0x49%>
+    const int: KEY_J            <- <%!0x4A%>
+    const int: KEY_K            <- <%!0x4B%>
+    const int: KEY_L            <- <%!0x4C%>
+    const int: KEY_M            <- <%!0x4D%>
+    const int: KEY_N            <- <%!0x4E%>
+    const int: KEY_O            <- <%!0x4F%>
+    const int: KEY_P            <- <%!0x50%>
+    const int: KEY_Q            <- <%!0x51%>
+    const int: KEY_R            <- <%!0x52%>
+    const int: KEY_S            <- <%!0x53%>
+    const int: KEY_T            <- <%!0x54%>
+    const int: KEY_U            <- <%!0x55%>
+    const int: KEY_V            <- <%!0x56%>
+    const int: KEY_W            <- <%!0x57%>
+    const int: KEY_X            <- <%!0x58%>
+    const int: KEY_Y            <- <%!0x59%>
+    const int: KEY_Z            <- <%!0x5A%>
 
 
-me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
-me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
-
-me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(%1)%>
-me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
-me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
-me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
-me void: addToContainer(me GUI_container: container, me GUI_item: widget) <- <%!gtk_container_add(GTK_CONTAINER (%1), %2)%>
-me int64: ticksPerSec() <- <%!%GG_USEC_PER_SEC%>
-
-
-
+    /// MASKS for event.state
+    const int: SHIFT_MASK       <- <%!GDK_SHIFT_MASK%>
+    const int: CONTROL_MASK     <- <%!GDK_CONTROL_MASK%>
+}
 /////////// Application areas
 
-their HWND: window
-void: setMasterWidget(their widget: masterWidget) <- {EventDispatcher.topWidget<-masterWidget}
-*/
-
 struct GLOBAL {
+    //their HWND: window
     me void: activate(me HWND: frame) <- <%{thisApp.createAppArea(frame);}%>
 }

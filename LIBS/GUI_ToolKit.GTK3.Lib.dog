@@ -48,41 +48,7 @@ struct GLOBAL{
     me string: toString(me GUI_Scalar: arg) <- {return(to_string(arg))}
 }
 /////////////////////////////////  HANDLE EVENTS
-struct GUI_MotionEvent{
-    me uint: type
-    // GdkWindow *window;
-    // gint8 send_event;
-    // guint32 time;
-    me double: x
-    me double: y
-    me uint: state
-    me uint: button
-}
-struct GUI_ButtonEvent{
-    me uint: type
-    // GdkWindow *window;
-    // gint8 send_event;
-    // guint32 time;
-    me double: x
-    me double: y
-    me uint: state
-    me uint: button
-}
-struct GUI_PointerEvent{
-    me uint: type
-    // GdkWindow *window;
-    // gint8 send_event;
-    // guint32 time;
-    me double: x
-    me double: y
-    me uint: state
-    me uint: button
-}
-struct GUI_KeyboardEvent{
-    me uint: type
-    me uint: state
-    me uint: keyval
-}
+
 /////////////////////////////////  EVENT DISPATCHER
 struct GUI_eventDispatcher{
     their widget: topWidget
@@ -418,7 +384,6 @@ struct GLOBAL{
     me void: showWidget(me GUI_item: widget) <-  <%!gtk_widget_show(GTK_WIDGET(%1))%>
     me void: hideWidget(their GUI_item: widget) <- <%!gtk_widget_hide(GTK_WIDGET(%1))%>
     me void: markDirtyArea(me GUI_item: widget, me int32: x, me int32: y, me int32: width, me int32: height) <- <%!gtk_widget_queue_draw_area(%1, %2, %3, %4, %5)%>
-    //me GUI_item: newCanvas() <- <%!gtk_drawing_area_new()%>
     me void: setWidgetSize(me GUI_item: widget, me uint32: width, me uint32: height) <- <%!gtk_widget_set_size_request(%1, %2, %3)%>
     me int: widgetHeight() <- <%!gtk_widget_get_allocated_height(%1)%>
     me int: widgetWidth() <- <%!gtk_widget_get_allocated_width(%1)%>
