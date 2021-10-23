@@ -1,7 +1,7 @@
 // HelloWorld.dog
 
-LinuxBuild:         Platform='Linux'       Lang='CPP';
-//WindowsBuild: Platform='Windows' Lang='CPP';
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
+//WindowsBuild: Platform='Windows' CPU='amd64' Lang='CPP' LangVersion='MSVC' optimize='speed';
 //JavaBuild:        Platform='Java'        Lang='Java';
 //MacBuild:         Platform='MacOS'    Lang='Swift';
 

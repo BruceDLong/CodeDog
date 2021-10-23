@@ -53,8 +53,10 @@ def runCmdStreaming(myCMD, myDir):
             print(output.strip())
 
     err = process.stderr.readline()
-    if err:
+    if err and (err.find("ERROR")) >= 0 or err.find("error")>=0:
         print("ERRORS:---------------\n")
+        print(string_escape(str(err))[2:-1])
+        print("----------------------\n")
         print(err.strip())
 
     return process.returncode
@@ -196,7 +198,7 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
             buildCommand = buildCmdsMap[platform]
             buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
             downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
-
+            '''
             if 'buildCmd' in buildCmdMap:
                 actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
                 for folderKey,folderVal in importantFolders.items():
@@ -213,7 +215,7 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
                         else:
                             emgr.getPackageManagerCMD(toolName, packageManager)
                         runCmdStreaming(actualBuildCmd, downloadedFolder)
-
+'''
             if 'installFiles' in buildCmdMap:
                 installfileList = buildCmdMap['installFiles'][1]
                 # ~ installFiles = progSpec.extractListFromTagList(installfileList)
@@ -304,14 +306,10 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName+"/assets")
 
-<<<<<<< Updated upstream
 
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
 
-=======
-    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
     '''
->>>>>>> Stashed changes
     packageDirectory = os.getcwd() + '/' + buildName
 
     for package in packageData:
@@ -453,19 +451,15 @@ def iOSBuilder(debugMode, minLangVersion, projectName, libFiles, buildName, plat
 
 def BuildAndPrintResults(workingDirectory, buildStr, runStr):
     cdlog(1, "Compiling From: {}".format(workingDirectory))
-    print("     NOTE: Build Command is: ", buildStr, "\n")
+    print("\n     NOTE: Build Command is: ", buildStr)
+    print("     NOTE: Working Dir is: ", workingDirectory)
     print("     NOTE: Run Command is: ", runStr, "\n")
-    #print ("workingDirectory: ", workingDirectory)
-    pipe = subprocess.Popen(buildStr, cwd=workingDirectory, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = pipe.communicate()
-    if out: print("Result: \n"+out.decode('utf-8'))
-    if err:
-        decodedErr = err.decode('UTF-8')
-        if "error:" in decodedErr or "SyntaxError:" in decodedErr:
-            print("Error Messages:\n--------------------------\n", err.decode('UTF-8'))
-            print("--------------------------")
-            exit(2)
-    else: cdlog(1, "SUCCESS!")
+
+    result = runCmdStreaming(buildStr, workingDirectory)
+    if result==0:
+        print("\nSUCCESS\n")
+    else:
+        print("\nBuild failed\n")
 
 def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
@@ -566,6 +560,8 @@ def buildWithScons(name, cmdLineArgs):
         codeDogPath = os.path.dirname(os.path.realpath(__file__))
         otherSconsArgs = ' '.join(cmdLineArgs)
         sconsCMD = "python3 "+codeDogPath+"/Scons/scons.py -Q -f "+sconsFile + ' '+ otherSconsArgs
-        result = runCMD(sconsCMD, basepath)
-        print(result)
-        print("\nSUCCESS\n")
+        result = runCmdStreaming(sconsCMD, basepath)
+        if result==0:
+            print("\nSUCCESS\n")
+        else:
+            print("\nBuild failed\n")
