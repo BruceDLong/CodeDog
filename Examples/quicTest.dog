@@ -1,5 +1,5 @@
 // Quic test
-LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' optimize='speed';
+LinuxBuild: Platform='Linux' CPU='amd64' Lang='CPP' LangVersion='GNU' optimize='speed';
 
 Title = "Quic Protocol"
 FileName = "Quic"
@@ -15,9 +15,22 @@ LicenseText = `All rights reserved.`
 
 runCode = `
     logMgr.init(OFile)
+    CommandLineManager.defineOption("QTest", "mode",    "-m", "--mode",    "client or server", "_REQIRED")
+    CommandLineManager.defineOption("QTest", "inFile",  "-i", "--inFile",  "Input file",       "quicIn.txt")
+    CommandLineManager.defineOption("QTest", "outFile", "-o", "--outFile", "Output file",      "quicOut.log")
+    CommandLineManager.defineOption("QTest", "IPAddr",  "-a", "--IPAddr",  "IP address",       "::1")
+    CommandLineManager.defineOption("QTest", "port",    "-p", "--port",    "Port number",      "12345")
+    me string: clientOrServerMode <- CommandLineManager.getOption("QTest", "mode")
+    me string: inFile  <- CommandLineManager.getOption("QTest", "inFile")
+    me string: outFile <- CommandLineManager.getOption("QTest", "outFile")
+    me string: IPAddr  <- CommandLineManager.getOption("QTest", "IPAddr")
+    me string: port    <- CommandLineManager.getOption("QTest", "port")
     me ClientAndServer: clientAndServer;
-    clientAndServer.runTest()
+    clientAndServer.runTest(clientOrServerMode, inFile, outFile, IPAddr, port)
 `
+
+do ManageCmdLine(cmd)
+
 struct PingProtocol: inherits=QProtocol {
     me bool: doStep() <- {return(true)}
     our QProtocol: createClone() <- {
@@ -47,6 +60,8 @@ struct CloneProtocol: inherits=QProtocol {
         retval <deep- self
         return(retval)
     }
+    me bool: clientStep() <- {}
+    me bool: serverStep() <- {}
     void: INIT() <- {
         protocolIDPrefix <- "slip/clone"
     }
@@ -54,21 +69,23 @@ struct CloneProtocol: inherits=QProtocol {
 
 
 struct ClientAndServer{
-    void: runTest() <- {
+    void: runTest(me string: clientOrServer, me string: inFile, me string: outFile, me string:IPAddr, me string: portNum) <- {
         our PingProtocol::  pingProtocol
         our IDProtocol::    idProtocol
         our CloneProtocol:: cloneProtocol
 
-        //~ me QuicEngine_Server: server
-        //~ server.init("SFile", true, false)
-        //~ server.addProtocol(pingProtocol)
-        //~ server.addProtocol(idProtocol)
-        //~ server.addProtocol(cloneProtocol)
-        //~ server.run()
-
-        me QuicEngine_Client: client
-        client.init("CFile", false, "::1", 12345)
-        client.run()
-        //BRUCE: REmember to lsquic_engine_destroy(quicMgr.engine);
+        if(clientOrServer=="server"){
+            //~ me QuicEngine_Server: server
+            //~ server.init("SFile", true, false)
+            //~ server.addProtocol(pingProtocol)
+            //~ server.addProtocol(idProtocol)
+            //~ server.addProtocol(cloneProtocol)
+            //~ server.run()
+        } else if(clientOrServer=="client"){
+            me QuicEngine_Client: client
+            client.init("CFile", false, IPAddr, portNum)
+            client.run()
+        } else {logFatalError("Invalid running mode:"+clientOrServer)}
+    //BRUCE: REmember to lsquic_engine_destroy(quicMgr.engine);
     }
 }

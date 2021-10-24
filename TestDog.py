@@ -102,8 +102,8 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
 
         void: RUN_SELECTED_TESTS() <- {
             // Construct list of tests to run. // All Tests | -t <testSPec List> | -f = run failed tests
-            CommandLineManager.defineOption("TestDog", "ListOfTests", "-t", "--tests", "Specification of which tests to run.")
-            CommandLineManager.defineOption("TestDog", "verbose", "-v", "--verbose", "Provide more detail about running tests")
+            CommandLineManager.defineOption("TestDog", "ListOfTests", "-t", "--tests", "Specification of which tests to run.", "")
+            CommandLineManager.defineOption("TestDog", "verbose", "-v", "--verbose", "V0: Verbose output off. V1: Verbose on.", "0")
             me string: testListSpec <- CommandLineManager.getOption("TestDog", "ListOfTests")
             me string: verboseMode  <- CommandLineManager.getOption("TestDog", "verbose")
             //print("TEST LIST SPECIFICATION:'", testListSpec, "'\n")

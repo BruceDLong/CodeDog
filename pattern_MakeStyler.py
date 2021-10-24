@@ -249,12 +249,12 @@ struct Styler{
 
     me Map<me string, me int>: userIntegers
     void: setCustomInteger(me string: key, me string: value) <- {
-        userIntegers.insert(key, toInt(value))
+      //  userIntegers.insert(key, (value))
     }
 
     me Map<me string, me int>: userDoubles
     void: setCustomDouble(me string: key, me string: value) <- {
-        userIntegers.insert(key, toInt(value))
+      //  userIntegers.insert(key, (value))
     }
 
     void: INIT()<-{

@@ -43,23 +43,29 @@ def runCMD(myCMD, myDir):
 
 def runCmdStreaming(myCMD, myDir):
     print("\nCOMMAND: ", myCMD, "\n")
+    errText=''
     process = subprocess.Popen(myCMD, cwd=myDir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines = True,)
-
-    returnCode = process.poll()
 
     while process.poll() is None:
         output = process.stdout.readline()
         if output:
             print(output.strip())
 
-    err = process.stderr.readline()
-    if err and (err.find("ERROR")) >= 0 or err.find("error")>=0:
-        print("ERRORS:---------------\n")
-        print(string_escape(str(err))[2:-1])
-        print("----------------------\n")
-        print(err.strip())
+        err = process.stderr.readline()
+        while err!='':
+            errText += err
+            err = process.stderr.readline()
 
-    return process.returncode
+    returnCode = process.returncode
+
+    if returnCode!=0 or (errText and (errText.find("ERROR")) >= 0 or errText.find("error")>=0):
+        print("ERRORS:---------------\n")
+        #print(string_escape(str(errText))[2:-1])
+        print(errText)
+        print("----------------------\n")
+
+
+    return returnCode
 
 def makeDirs(dirToGen):
     #print("dirToGen:", dirToGen)
@@ -198,7 +204,7 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
             buildCommand = buildCmdsMap[platform]
             buildCmdMap = progSpec.extractMapFromTagMap(buildCommand)
             downloadedFolder = packageDirectory+"/"+packageName+"/"+packageName
-            '''
+
             if 'buildCmd' in buildCmdMap:
                 actualBuildCmd = buildCmdMap['buildCmd'][1:-1]
                 for folderKey,folderVal in importantFolders.items():
@@ -215,7 +221,7 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
                         else:
                             emgr.getPackageManagerCMD(toolName, packageManager)
                         runCmdStreaming(actualBuildCmd, downloadedFolder)
-'''
+
             if 'installFiles' in buildCmdMap:
                 installfileList = buildCmdMap['installFiles'][1]
                 # ~ installFiles = progSpec.extractListFromTagList(installfileList)
@@ -309,7 +315,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
 
     (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
 
-    '''
+
     packageDirectory = os.getcwd() + '/' + buildName
 
     for package in packageData:
@@ -330,7 +336,7 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
             downloadExtractZip(fetchMethodUrl, packageName, packageDirectory)
         else:
             pass
-'''
+
     #building scons file
     SconsFile = "import os\n"
     SconsFile += "\nenv = Environment(ENV=os.environ)\nenv.MergeFlags('-g -fpermissive  -fdiagnostics-color=always')\n"
@@ -460,6 +466,7 @@ def BuildAndPrintResults(workingDirectory, buildStr, runStr):
         print("\nSUCCESS\n")
     else:
         print("\nBuild failed\n")
+        exit(-1)
 
 def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     cdlog(0,"\n##############   B U I L D I N G    S Y S T E M...   ({})".format(buildName))
@@ -565,3 +572,4 @@ def buildWithScons(name, cmdLineArgs):
             print("\nSUCCESS\n")
         else:
             print("\nBuild failed\n")
+            exit(-1)

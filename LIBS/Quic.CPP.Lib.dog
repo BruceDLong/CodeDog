@@ -691,7 +691,7 @@ cout<<"IPAddr:"<<ipAddr<<" port:"<<portNum<<"\n";
 
     // Create the engine
     quicMgr->engine = lsquic_engine_new(asServer ? LSENG_SERVER : 0, &eapi);
-    if(!quicMgr->engine){LOGX("cannot create engine"); exit(EXIT_FAILURE);}
+    if(!quicMgr->engine){LOGX("Cannot create quic engine"); exit(EXIT_FAILURE);}
 }
 
 void runEngine(QuicEngine* quicEngine){

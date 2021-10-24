@@ -22,15 +22,16 @@ def apply(classes, tags):
         me string: shortName
         me string: longName
         me string: helpText
+        me string: defaultVal   // "_REQIRED" = required
     }
 
     struct CmdLineArgsMngr {
         me string: cmdLineText
         me List<our optionRecord>: options
 
-        void: defineOption(me string: groupID, me string: optionID, me string: shortName, me string: longName, me string: helpText) <- {
+        void: defineOption(me string: groupID, me string: optionID, me string: shortName, me string: longName, me string: helpText, me string: defaultTxt) <- {
             our optionRecord: rec
-            Allocate(rec, groupID, optionID, shortName, longName, helpText)
+            Allocate(rec, groupID, optionID, shortName, longName, helpText, defaultTxt)
             options.append(rec)
         }
 
@@ -38,6 +39,10 @@ def apply(classes, tags):
             me stringScanner: scanner
             me string: argToReturn <- ""
             scanner.initialize(cmdLineText)
+            if(cmdLineText=="-h" or cmdLineText=="--help"){
+                print(helpText())
+                exit(1)
+            }
             // Find optionRecord
             me int: recIdx <- -1
             withEach optRec in options{
@@ -49,6 +54,7 @@ def apply(classes, tags):
             if(recIdx==-1){return("")}
             me string: shortName <- options[recIdx].shortName
             me string: longName  <- options[recIdx].longName
+            me string: defaultTxt   <- options[recIdx].defaultVal
             me int: scanPos  <- scanner.pos
             me int: foundPos <- scanner.skipPast(shortName)
             me int: startPos <- scanner.skipWS()
@@ -65,11 +71,27 @@ def apply(classes, tags):
                     argToReturn <- cmdLineText.subStr(startPos, endPos-startPos)
                 }
             }
+            if(argToReturn==""){
+                if(defaultTxt=="_REQIRED"){
+                    print("\nOption '", optionID, "' is required.\n")
+                    print(helpText())
+                    exit(1)
+                } else {
+                    argToReturn <- defaultTxt
+                }
+            }
             return(argToReturn)
         }
 
         me string: helpText() <- {
-            return("This is the help text")
+            me string: helpTxt <- "\nOPTIONS:\n"
+            withEach optRec in options{
+                me string: defaultVal <- "(default: "+optRec.defaultVal+")"
+                if(optRec.defaultVal=="_REQIRED"){defaultVal <- "REQUIRED"}
+                helpTxt <+- "    "+optRec.shortName+" \t"+alignLeft(optRec.longName, 12)+" "+alignLeft(optRec.helpText, 25)+" \t"+defaultVal+"\n"
+            }
+            helpTxt <+- "    -h \t"+alignLeft("--help", 12)+" "+alignLeft("Print this help text", 25)+"\n"
+            return(helpTxt+"\n")
         }
 
         void: processCmdLine(me string:prgArgs, me bool: exitOnInvalid) <- {
