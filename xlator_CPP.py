@@ -959,7 +959,7 @@ class Xlator_CPP(Xlator):
 
     def codeConstructors(self, className, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper):
         S = ''
-        if ctorArgs != '':
+        if ctorArgs != '' or funcBody!='':
             S += self.codeConstructor(className, ctorArgs, callSuper, ctorInit, funcBody)
       #  S += self.codeConstructor(className, '', callSuper, '', funcBody)
         return S

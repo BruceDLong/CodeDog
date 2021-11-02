@@ -41,6 +41,23 @@ struct PingProtocol: inherits=QProtocol {
     void: INIT() <- {
         protocolIDPrefix <- "slip/ping"
     }
+    bool: onServerRead(their QuicStream: h) <- {}
+    bool: onServerWrite(their QuicStream: h) <- {}
+    bool: onClientRead(their QuicStream: h) <- {
+        switch(step){
+            case 0:{}
+            case 1:{}
+        }
+        return(false)
+    }
+    bool: onClientWrite(their QuicStream: h) <- {
+        switch(step){
+            case 0:{h.write(protocolIDPrefix+"\n")}
+            case 1:{}
+        }
+        //h.requestRead()
+        return(false)
+    }
 }
 struct IDProtocol: inherits=QProtocol {
     me bool: doStep() <- {return(true)}
@@ -52,6 +69,10 @@ struct IDProtocol: inherits=QProtocol {
     void: INIT() <- {
         protocolIDPrefix <- "slip/ID"
     }
+    bool: onServerRead(their QuicStream: h) <- {}
+    bool: onServerWrite(their QuicStream: h) <- {}
+    bool: onClientRead(their QuicStream: h) <- {}
+    bool: onClientWrite(their QuicStream: h) <- {}
 }
 struct CloneProtocol: inherits=QProtocol {
     me bool: doStep() <- {return(true)}
@@ -65,6 +86,10 @@ struct CloneProtocol: inherits=QProtocol {
     void: INIT() <- {
         protocolIDPrefix <- "slip/clone"
     }
+    bool: onServerRead(their QuicStream: h) <- {}
+    bool: onServerWrite(their QuicStream: h) <- {}
+    bool: onClientRead(their QuicStream: h) <- {}
+    bool: onClientWrite(their QuicStream: h) <- {}
 }
 
 
@@ -75,15 +100,16 @@ struct ClientAndServer{
         our CloneProtocol:: cloneProtocol
 
         if(clientOrServer=="server"){
-            //~ me QuicEngine_Server: server
-            //~ server.init("SFile", true, false)
-            //~ server.addProtocol(pingProtocol)
-            //~ server.addProtocol(idProtocol)
-            //~ server.addProtocol(cloneProtocol)
-            //~ server.run()
+            me QuicEngine_Server: server
+            server.init("SFile", true, IPAddr, stoi(portNum))
+            server.addProtocol(pingProtocol)
+            server.addProtocol(idProtocol)
+            server.addProtocol(cloneProtocol)
+            server.run()
         } else if(clientOrServer=="client"){
             me QuicEngine_Client: client
-            client.init("CFile", false, IPAddr, portNum)
+            client.init("CFile", false, IPAddr, stoi(portNum))
+            client.addProtocol(pingProtocol)
             client.run()
         } else {logFatalError("Invalid running mode:"+clientOrServer)}
     //BRUCE: REmember to lsquic_engine_destroy(quicMgr.engine);

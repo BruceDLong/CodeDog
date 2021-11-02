@@ -35,7 +35,7 @@ interface={
 
     ]
     tools=[golang-go]
-    libFiles=[pthread, lsquic, ssl, crypto, z, m]
+    libFiles=[pthread, ssl, lsquic, crypto, z, m]
     headers=[netinet/in.h, netinet/ip.h, arpa/inet.h, sys/types.h, sys/socket.h, netdb.h, openssl/pem.h, openssl/x509.h, openssl/ssl.h, ev.c, lsquic.h]
 }
 
@@ -580,6 +580,7 @@ static void QUIC_client_on_hsk_done (lsquic_conn_t *conn, enum lsquic_hsk_status
 
     switch (status){
     case LSQ_HSK_OK:
+        lsquic_conn_make_stream(conn);
     case LSQ_HSK_RESUMED_OK:
         LOGX("handshake successful, start stdin watcher");
         ev_io_start(quicEngine->quicMgr.loop, &quicEngine->quicMgr.u.c.stdin_w);
@@ -614,11 +615,10 @@ static lsquic_stream_ctx_t* QUIC_on_new_stream(void *stream_if_ctx, lsquic_strea
 static void QUIC_on_read( lsquic_stream *stream, lsquic_stream_ctx_t *h){
     QuicStream *const quicStream = (QuicStream*)h;
     quicStream->onRead_CB(0);
-    LOGX("QUIC: onRead");
 }
 static void QUIC_on_write(lsquic_stream *stream, lsquic_stream_ctx_t *h){
     QuicStream *const quicStream = (QuicStream*)h;
-    quicStream->onWrite_CB(0);
+    quicStream->onWrite_CB((QuicStream*)h);
 }
 static void QUIC_on_close(lsquic_stream *stream, lsquic_stream_ctx_t *h){
     //server_stream_ctx *const tssc = (server_stream_ctx*) h;
@@ -632,7 +632,7 @@ void lsQuicSetupSocketsAndCallbacks(QuicEngine* quicEngine, bool asServer, strin
     char errbuf[0x100];
     if(asServer){
         if (0 != load_cert(quicEngine->cert_file.data(), quicEngine->key_file.data())) { LOGX("Cannot load certificate file:%s",quicEngine->cert_file); exit(EXIT_FAILURE);}
-        quicMgr->flags <- quicMgr->flags | quicMgr->IS_SERVER;
+        quicEngine->serverMode = true;
     }
     // Set Settings
     quicMgr->loop = EV_DEFAULT;
@@ -699,17 +699,17 @@ void runEngine(QuicEngine* quicEngine){
     Addr* addr = &quicEngine->addr;
     quicMgr->timer.data  = quicMgr;
     quicMgr->sock_w.data = quicMgr;
-    if (!(quicMgr->flags & quicMgr->IS_SERVER)){
-        if (0 != set_nonblocking(STDIN_FILENO)){ perror("fcntl(stdin)"); exit(EXIT_FAILURE);}
-        ev_io_init(&quicMgr->u.c.stdin_w, read_stdin, STDIN_FILENO, EV_READ);
-        quicMgr->u.c.stdin_w.data = quicMgr;
+    if(quicEngine->protocols.size()==0){logMgr.FatalError.LogEntry("FATAL ERROR: ", "No protocls given for Quic."); exit(1);}
+    if (!quicEngine->serverMode){
         quicMgr->u.c.conn = lsquic_engine_connect(
-            quicMgr->engine, N_LSQVER,
+            // TODO change this to version LSQVER_I001
+            quicMgr->engine, LSQVER_ID29,
             (struct sockaddr *) &quicMgr->local_sas, &addr->sa,
             (void *) (uintptr_t) quicMgr->sock_fd,
             NULL, NULL, 0, NULL, 0, NULL, 0
         );
         if (!quicMgr->u.c.conn){LOGX("cannot create connection");  exit(EXIT_FAILURE);}
+        quicEngine->protocols[0]->step = 0;
         process_conns(quicMgr);
     }
     ev_run(quicMgr->loop, 0);
@@ -736,7 +736,7 @@ struct QuicEngine{
 
         if (0 != lsquic_logger_lopt("event=warn")){fprintf(stderr, "invalid log option\n");exit(EXIT_FAILURE);}
         key_log_dir <- filenameTag+"KeyLogDir"
-       // lsquic_set_log_level("warn") // debug, info, notice, warning, error, alert, emerg, crit
+        lsquic_set_log_level("warn") // debug, info, notice, warning, error, alert, emerg, crit
         s_verbose <- 1             // 0=less logging
         lsQuicSetupSocketsAndCallbacks(self, serverMode, ipAddr, portNum)
     }
@@ -762,8 +762,8 @@ struct QuicStream{
     void: flushStream()         <- <%{lsquic_stream_flush(theStream);}%>
     void: shutdown(me int: how) <- <%{lsquic_stream_shutdown(theStream, how);}%>
     void: close()               <- <%{lsquic_stream_close(theStream);}%>
-    me int: read(their char:buf, me int: len)   <- <%{return(lsquic_stream_read(theStream, buf, len));}%>
-    me int: write(their char:buf, me int: len)  <- <%{return(lsquic_stream_write(theStream, buf, len));}%>
+    me int: read(me string:buf)   <- <%{return(lsquic_stream_read(theStream, buf.data(), buf.size()));}%>
+    me int: write(me string:buf)  <- <%{return(lsquic_stream_write(theStream, buf.data(), buf.size()));}%>
     their QuicConnection: getConnection()       <- <%{return((QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(theStream)));}%>
     their lsquic_stream: theStream
 }

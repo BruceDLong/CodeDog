@@ -891,7 +891,7 @@ class Xlator_Java(Xlator):
         if callSuper:
             funcBody = '        super();\n' + funcBody
         withArgConstructor = ''
-        if ctorArgs != '':
+        if ctorArgs != '' or funcBody!='':
             withArgConstructor = "    public " + className + "(" + ctorArgs+"){\n"+funcBody+ ctorInit+"    };\n"
         copyConstructor = "    public " + className + "(final " + className + " fromVar" +"){\n" +copyCtorArgs+"    };\n"
         noArgConstructor = "    public "  + className + "(){\n"+funcBody+'\n    };\n'
