@@ -502,9 +502,9 @@ static QuicConnection * QUIC_on_new_conn (void *stream_if_ctx, struct lsquic_con
 static void QUIC_client_on_hsk_done (lsquic_conn_t *conn, enum lsquic_hsk_status status);
 static void QUIC_on_conn_closed (lsquic_conn_t *conn);
 static lsquic_stream_ctx_t * QUIC_on_new_stream(void *stream_if_ctx, struct lsquic_stream *stream);
-static void QUIC_on_read(struct lsquic_stream *stream, lsquic_stream_ctx_t *h);
-static void QUIC_on_write(struct lsquic_stream *stream, lsquic_stream_ctx_t *h);
-static void QUIC_on_close(struct lsquic_stream *stream, lsquic_stream_ctx_t *h);
+static void QUIC_on_read(struct lsquic_stream *stream, lsquic_stream_ctx_t *qStream_ctx);
+static void QUIC_on_write(struct lsquic_stream *stream, lsquic_stream_ctx_t *qStream_ctx);
+static void QUIC_on_close(struct lsquic_stream *stream, lsquic_stream_ctx_t *qStream_ctx);
 
 static lsquic_stream_if quic_callbacks;
 
@@ -612,16 +612,15 @@ static lsquic_stream_ctx_t* QUIC_on_new_stream(void *stream_if_ctx, lsquic_strea
     connection->onNewStream_CB(streamCtx);
     return (lsquic_stream_ctx_t*)streamCtx;
 }
-static void QUIC_on_read( lsquic_stream *stream, lsquic_stream_ctx_t *h){
-    QuicStream *const quicStream = (QuicStream*)h;
-    quicStream->onRead_CB(0);
+static void QUIC_on_read( lsquic_stream *stream, lsquic_stream_ctx_t *qStream_ctx){
+    QuicStream *const quicStream = (QuicStream*)qStream_ctx;
+    quicStream->onRead_CB((QuicStream*)qStream_ctx);
 }
-static void QUIC_on_write(lsquic_stream *stream, lsquic_stream_ctx_t *h){
-    QuicStream *const quicStream = (QuicStream*)h;
-    quicStream->onWrite_CB((QuicStream*)h);
+static void QUIC_on_write(lsquic_stream *stream, lsquic_stream_ctx_t *qStream_ctx){
+    QuicStream *const quicStream = (QuicStream*)qStream_ctx;
+    quicStream->onWrite_CB((QuicStream*)qStream_ctx);
 }
-static void QUIC_on_close(lsquic_stream *stream, lsquic_stream_ctx_t *h){
-    //server_stream_ctx *const tssc = (server_stream_ctx*) h;
+static void QUIC_on_close(lsquic_stream *stream, lsquic_stream_ctx_t *qStream_ctx){
     // call CB
    // free(tssc);
     LOGX("stream closed");
