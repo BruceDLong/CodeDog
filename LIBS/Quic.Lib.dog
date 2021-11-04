@@ -148,12 +148,12 @@ struct QuicStream_Server: inherits=QuicStream{
         //lsquic_reader reader <- { tssc_read, tssc_size, tssc, };
         //const size_t left <- tssc->tssc_sz;
 
-        me int: nw //<- lsquic_stream_writef(theStream, &reader);
-        if (nw > 0 ){ //and tssc->tssc_off == tssc->tssc_sz){
+        me int: bytesWritten //<- lsquic_stream_writef(theStream, &reader);
+        if (bytesWritten > 0 ){ //and tssc->tssc_off == tssc->tssc_sz){
             //LOGX("wrote all %zd bytes to stream, close stream", left);
             close()
-        }else if (nw < 0){
-            //LOGX("stream_write() returned %ld, abort connection", (long) nw);
+        }else if (bytesWritten < 0){
+            //LOGX("stream_write() returned %ld, abort connection", (long) bytesWritten);
             getConnection().abort();
         }
     }
@@ -190,11 +190,16 @@ struct QuicStream_Client: inherits=QuicStream{
     their strBuf: readBuffer
     void: onRead_CB(their QuicStream: qStream) <- {
         printf("R.")
-        if(!qStream.protocol.onClientRead(qStream)){qStream.shutdown(0)}
+        if(!qStream.protocol.onClientRead(qStream)){
+            qStream.shutdown(0)
+        }
     }
     void: onWrite_CB(their QuicStream: qStream) <- {
         printf("W.")
-        if(!qStream.protocol.onClientWrite(qStream)){qStream.shutdown(0)}
+        if(!qStream.protocol.onClientWrite(qStream)){
+            qStream.shutdown(1)
+            qStream.requestRead()
+        }
     }
     void: onClose_CB(their QuicStream: qStream) <- {log("SLIP:C6 stream closed");}
 }
