@@ -59,57 +59,52 @@ struct PingProtocol: inherits=QProtocol {
         return(false)
     }
 }
-struct IDProtocol: inherits=QProtocol {
+struct FetchFile: inherits=QProtocol {
+    me string: fileName
+
     me bool: doStep() <- {return(true)}
     our QProtocol: createClone() <- {
-        our IDProtocol:: retval
+        our FetchFile:: retval
         retval <deep- self
         return(retval)
     }
     void: INIT() <- {
-        protocolIDPrefix <- "slip/ID"
+        protocolIDPrefix <- "FetchFile"
     }
-    bool: onServerRead(their QuicStream: h) <- {}
-    bool: onServerWrite(their QuicStream: h) <- {}
-    bool: onClientRead(their QuicStream: h) <- {}
-    bool: onClientWrite(their QuicStream: h) <- {}
-}
-struct CloneProtocol: inherits=QProtocol {
-    me bool: doStep() <- {return(true)}
-    our QProtocol: createClone() <- {
-        our CloneProtocol:: retval
-        retval <deep- self
-        return(retval)
+    bool: onServerRead(their QuicStream: h) <- {
+        // gets file name, opens file,  reads into a buffer
     }
-    me bool: clientStep() <- {}
-    me bool: serverStep() <- {}
-    void: INIT() <- {
-        protocolIDPrefix <- "slip/clone"
+    bool: onServerWrite(their QuicStream: h) <- {
+        //sends back bytes read
     }
-    bool: onServerRead(their QuicStream: h) <- {}
-    bool: onServerWrite(their QuicStream: h) <- {}
-    bool: onClientRead(their QuicStream: h) <- {}
-    bool: onClientWrite(their QuicStream: h) <- {}
+    bool: onClientRead(their QuicStream: h) <- {
+        // receives bytes read, if not EOF, want write
+    }
+    bool: onClientWrite(their QuicStream: h) <- {
+        // sends fileName to server
+        print("\nonClientWrite FILE:", fileName)
+        //qStream.requestRead()
+        return(false)
+    }
 }
 
 
 struct ClientAndServer{
     void: runTest(me string: clientOrServer, me string: inFile, me string: outFile, me string:IPAddr, me string: portNum) <- {
         our PingProtocol::  pingProtocol
-        our IDProtocol::    idProtocol
-        our CloneProtocol:: cloneProtocol
+        our FetchFile::    fetchFile
 
         if(clientOrServer=="server"){
             me QuicEngine_Server: server
             server.init("SFile", true, IPAddr, stoi(portNum))
             server.addProtocol(pingProtocol)
-            server.addProtocol(idProtocol)
-            server.addProtocol(cloneProtocol)
+            server.addProtocol(fetchFile)
             server.run()
         } else if(clientOrServer=="client"){
             me QuicEngine_Client: client
+            fetchFile.fileName <- inFile
             client.init("CFile", false, IPAddr, stoi(portNum))
-            client.addProtocol(pingProtocol)
+            client.addProtocol(fetchFile)
             client.run()
         } else {logFatalError("Invalid running mode:"+clientOrServer)}
     //BRUCE: REmember to lsquic_engine_destroy(quicMgr.engine);

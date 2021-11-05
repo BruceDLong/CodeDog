@@ -18,6 +18,9 @@ deinitCode = `
 `
 featuresNeeded = [Logger,IOBuffer]
 
+struct GLOBAL{
+    const int: bufSize <- 1024
+}
 struct QuicConnectionID{}
 
 struct QuicEngine{
@@ -54,6 +57,7 @@ struct QuicConnection{
 struct QuicStream{
     their QuicConnection: myConnection
     our QProtocol: protocol
+    me string: buff     // TODO: add buffer class to CodeDog
 
     void: onRead_CB (their QuicStream: qStream) <- {}
     void: onWrite_CB(their QuicStream: qStream) <- {}
@@ -68,6 +72,25 @@ struct QuicStream{
     void: flushStream()
     void: shutdown(me int: direction) // 0=stop reading, 1=stop writing, 2=stop both
     their QuicConnection: getConnection()
+    me string: readLine()<- {
+        me bool: newLineFound <- false
+        while(!newLineFound){
+            me string: crntBuff <- ""
+            me int: bytesRead   <- read(crntBuff)
+            if(bytesRead>0){
+                withEach idx in RANGE(0..bytesRead){
+                    if(crntBuff[idx]=="\n"){
+                        me string: retBuff <- buff + crntBuff.subStr(0, idx)
+                        buff <- crntBuff.subStr(idx+1, bytesRead-(idx+1))
+                    }
+                }
+            }
+        }
+        return("")
+    }
+    void: INIT() <- {
+        withEach n in RANGE(0..16){buff <+- "1234567890123456789012345678901234567890123456789012345678901234"}
+    }
 }
 /////////////////////////////
 // Engine sub-classes for Client and Server mode + Generic protocols
@@ -112,9 +135,6 @@ struct QuicConnection_Server: inherits=QuicConnection{
     void: onConnectionClosed_CB() <- {log("server closed connection")}
 
     void: onNewStream_CB(their QuicStream: stream) <- {
-        //their server_stream_ctx:: tssc
-        //tssc.tssc_sz <- 0
-        //tssc.tssc_off <- 0
         stream.requestRead()
         log("created new echo stream -- want to read")
     }
@@ -126,7 +146,7 @@ struct QuicStream_Server: inherits=QuicStream{
     void: onRead_CB (their QuicStream: qStream) <- {
         printf("R.")
         if(crntProtocol==NULL){
-            me string: protocolID <- "slip/ping" //readLine()
+            me string: protocolID <- qStream.readLine()
             their QuicEngine_Server: QEng <- myConnection.myEngine
             crntProtocol <- QEng.chooseProtocol(protocolID)
             if(crntProtocol==NULL){
@@ -158,8 +178,6 @@ struct QuicStream_Server: inherits=QuicStream{
         }
     }
     void: onClose_CB(their QuicStream: qStream) <- <%{
-        struct server_stream_ctx *const tssc = (server_stream_ctx*) qStream;
-        free(tssc);
         LOGX("stream closed");
     }%>
 }
