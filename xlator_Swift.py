@@ -351,10 +351,11 @@ class Xlator_Swift(Xlator):
         return(name, typeSpecOut, paramList, convertedIdxType)
 
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
-        if (containerType == 'string'):
+        fTypeKW = progSpec.fieldTypeKeyword(containerType)
+        if (fTypeKW == 'string'):
             S= '[index: '+idx+']'
         else:
-            fieldDefAt = self.codeGen.CheckObjectVars(containerType, "at", "")
+            fieldDefAt = self.codeGen.CheckObjectVars(fTypeKW, "at", "")
             if fieldDefAt: S= '.at(' + idx +')'
             else: S= '[' + idx +']'
         return S

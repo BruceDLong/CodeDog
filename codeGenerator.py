@@ -664,7 +664,7 @@ class CodeGenerator(object):
             typeSpecOut={'owner':valOwner, 'fieldType': valFieldType}
             if(name[0]=='['):
                 [S2, idxTypeSpec] = self.codeExpr(name[1], objsRefed, None, None, LorRorP_Val, genericArgs)
-                S += self.xlator.codeArrayIndex(S2, containerType, LorR_Val, previousSegName, idxTypeSpec)
+                S += self.xlator.codeArrayIndex(S2, typeSpecIn, LorR_Val, previousSegName, idxTypeSpec)
                 return [S, typeSpecOut, S2,'']
             progSpec.isOldContainerTempFuncErr(typeSpecOut, 'codeNameSeg2' +self.currentObjName+' '+str(name), self.xlator.renderGenerics)
             [name, tmpTypeSpec, paramList, convertedIdxType]= self.xlator.getContainerTypeInfo(containerType, name, idxTypeSpec, typeSpecOut, paramList, genericArgs)
@@ -956,6 +956,7 @@ class CodeGenerator(object):
                     else:
                         [leftMod, rightMod] = self.xlator.chooseVirtualRValOwner(paramTypeSpec, argTypeSpec)
                         S2 = leftMod+S2+rightMod
+                        S2 = self.xlator.checkForTypeCastNeed(paramTypeSpec,argTypeSpec,S2)
                     S += S2
                 else:
                     self.listOfFuncsWithUnknownArgTypes[(name+'()')]=1

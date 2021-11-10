@@ -163,7 +163,7 @@ class Xlator_Java(Xlator):
         if name == "size":
             name = "length"
         elif name == "subStr":
-            typeSpec['codeConverter']='%0.substring(%1, %1+%2)'
+            typeSpec['codeConverter']='%0.substring(%1, %1+(int)%2)'
             typeSpec['fieldType']='String'
         elif name == "append":
             typeSpec['codeConverter']='%0 += %1'
@@ -201,6 +201,8 @@ class Xlator_Java(Xlator):
         elif LTypeKW=='BigFrac' or LTypeKW=='FlexNum':
             if LTypeKW!=RTypeKW:
                 RHScodeStr = 'new '+LTypeKW+' ('+RHScodeStr+')'
+        elif(LTypeKW=='string' or LTypeKW=='String') and RTypeKW=='char':
+            RHScodeStr = 'Character.toString('+RHScodeStr+')'
         return RHScodeStr
 
     def getTheDerefPtrMods(self, itemTypeSpec):
@@ -256,18 +258,13 @@ class Xlator_Java(Xlator):
     ###################################################### CONTAINERS
     def getContaineCategory(self, containerSpec):
         fromImpl=progSpec.getFromImpl(containerSpec)
-        if fromImpl and 'implements' in fromImpl:
-            return fromImpl['implements']
+        if fromImpl and 'implements' in fromImpl: return fromImpl['implements']
         fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
+        if fTypeKW=='string': return 'string'
+        if fTypeKW=='Java_ArrayList' or fTypeKW=='List': return 'List' # TODO: un-hardcode this
+        if fTypeKW=='TreeMap': return 'Map'         # TODO: un-hardcode this
+        if fTypeKW=='PovList': return 'PovList'     # TODO: un-hardcode this
         print("WARNING: Container Category not recorded for:",fTypeKW)
-        if fTypeKW=='PovList':
-            return 'PovList'
-        elif fTypeKW=='TreeMap' or fTypeKW=='Java_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
-            return 'Map'
-        elif fTypeKW=='list' or fTypeKW=='Java_ArrayList' or "__List_" in fTypeKW or "__CDList" in fTypeKW:
-            return 'List'
-        elif 'Multimap' in fTypeKW:
-            return 'Multimap'
         return None
 
     def getContainerTypeInfo(self, containerType, name, idxType, typeSpecIn, paramList, genericArgs):
@@ -277,6 +274,9 @@ class Xlator_Java(Xlator):
         return(name, typeSpecOut, paramList, convertedIdxType)
 
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
+        containerCat = self.getContaineCategory(containerType)
+        ctnrTypeKW   = progSpec.fieldTypeKeyword(containerType)
+        idxTypeKW    = progSpec.fieldTypeKeyword(idxTypeSpec)
         if LorR_Val=='RVAL':
             #Next line may be cause of bug with printing modes.  remove 'not'?
             modeStateNames = self.codeGen.getModeStateNames()
@@ -284,31 +284,38 @@ class Xlator_Java(Xlator):
                 modeStruct = modeStateNames[previousSegName]
                 if modeStruct=='modeStrings': S = '[(int)' + idx + '.ordinal()]'
                 else: S= '.get((int)' + idx + ')'
-            elif (containerType== 'string'):
-                fTypeKW = progSpec.fieldTypeKeyword(idxTypeSpec)
-                mod = ''
-                if fTypeKW!='numeric' and fTypeKW!='int':
-                    jType = self.adjustBaseTypes(fTypeKW, False)
-                    mod = '(int)'
-                S= '.charAt(' + mod + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
+            elif (ctnrTypeKW== 'string'):
+                if idxTypeKW!='numeric' and idxTypeKW!='int': S= '.charAt((int)(' + idx + '))'
+                else: S= '.charAt(' + idx + ')'    # '.substring(' + idx + ', '+ idx + '+1' +')'
             else:
-                fieldDefAt = self.codeGen.CheckObjectVars(containerType, "at", "")
+                fieldDefAt = self.codeGen.CheckObjectVars(ctnrTypeKW, "at", "")
                 if fieldDefAt:
                     if 'typeSpec' in fieldDefAt and 'codeConverter' in fieldDefAt['typeSpec']:
                         S = fieldDefAt['typeSpec']['codeConverter']
+                        if idxTypeKW!='numeric' and idxTypeKW!='int':idx= '(int)'+idx
                         S = S.replace('%1', idx)
                     else: S= '.at(' + idx +')'
                 else: S= '[' + idx +']'
         else:
-            if containerType== 'ArrayList' or containerType== 'Java_Map' or containerType== 'Java_ArrayList': S = '.get('+idx+')'
-            else: S= '[' + idx +']'
+            if containerCat=='Map' or containerCat=='List':
+                fieldDefAt = self.codeGen.CheckObjectVars(ctnrTypeKW, "at", "")
+                if fieldDefAt and 'typeSpec' in fieldDefAt:
+                    if 'codeConverter' in fieldDefAt['typeSpec']:
+                        S = fieldDefAt['typeSpec']['codeConverter']
+                        S = S.replace('%1', idx)
+                    else: S = '.at('+idx+')'
+                else: S = '.get('+idx+')'
+            elif containerCat=='string': S = '[' + idx +']'
+            else:
+                print('WARNING:unknown container category in codeArrayIndex():',containerCat)
+                S= '[' + idx +']'
         return S
     ###################################################### CONTAINER REPETITIONS
     def codeRangeSpec(self, traversalMode, ctrType, repName, S_low, S_hi, indent):
         if(traversalMode=='Forward' or traversalMode==None):
-            S = indent + "for("+ctrType+" " + repName+'='+ S_low + "; " + repName + "!=" + S_hi +"; "+ self.codeIncrement(repName) + "){\n"
+            S = indent + "for("+ctrType+" " + repName+'= (int)'+ S_low + "; " + repName + "!=" + S_hi +"; "+ self.codeIncrement(repName) + "){\n"
         elif(traversalMode=='Backward'):
-            S = indent + "for("+ctrType+" " + repName+'='+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
+            S = indent + "for("+ctrType+" " + repName+'= (int)'+ S_hi + "-1; " + repName + ">=" + S_low +"; --"+ repName + "){\n"
         return (S)
 
     def iterateRangeFromTo(self, classes,localVarsAlloc,StartKey,EndKey,ctnrTSpec,repName,ctnrName,indent):
@@ -419,8 +426,14 @@ class Xlator_Java(Xlator):
         fTypeKW   = progSpec.fieldTypeKeyword(tSpec)
         if fTypeKW=='BigFrac' or  fTypeKW=='BigInt':
             return S+'.negate()'
-        elif fTypeKW=='FlexNum':
+        if fTypeKW=='FlexNum':
             return S+'.__negate()'
+        if fTypeKW=='bool':
+            if 'true'  in S:
+                S = S.replace('true', '0', 1)
+            elif 'false' in S: S = S.replace('false', '1', 1)
+            else: cdErr('Unknown boolean type in:',S)
+            return S
         return '-'+S
 
     def codeTermAsFunc(self, S, S2, retType1, retType2, opIn):
@@ -443,6 +456,9 @@ class Xlator_Java(Xlator):
             if   opIn == '+': S += '.add('+S2+')'
             elif opIn == '-': S += '.subtract('+S2+')'
         return S
+    def isGlobalEnum(self, tSpec):
+        if 'isGlobalEnum' in tSpec and tSpec['isGlobalEnum']: return True
+        return False
 
     def codeIdentityCheck(self, S, S2, retType1, retType2, opIn):
         fType1 = progSpec.fieldTypeKeyword(retType1)
@@ -459,6 +475,12 @@ class Xlator_Java(Xlator):
             if opIn == '==':  S = self.GlobalVarPrefix+'__isEqual('+S+','+S2+')'
             elif opIn == '!=':  S = self.GlobalVarPrefix+'__notEqual('+S+','+S2+')'
             else: cdErr("ERROR: '==' or '!=' expected.")
+        elif fType1=='int' and self.isGlobalEnum(retType2): return S+' '+opIn+' '+S2+'.ordinal()'
+        elif fType1=='flag' and fType2=='bool':
+            if opIn == '===': opIn = '=='
+            if S2=='true': S2 = '1'
+            if S2=='false': S2 = '0'
+            return S+opIn+S2
         else:
             S2 = self.adjustQuotesForChar(retType1, retType2, S2)
             if opIn == '===':
@@ -480,6 +502,7 @@ class Xlator_Java(Xlator):
     def codeComparisonStr(self, S, S2, retType1, retType2, op):
         fType1 = progSpec.fieldTypeKeyword(retType1)
         fType2 = progSpec.fieldTypeKeyword(retType2)
+        doCompStr = self.isComparableType(retType1)
         if fType1=='BigFrac' or fType1=='BigInt':
             if (op == '<'):    S = '('+S+'.compareTo('+S2+') == -1)'
             elif (op == '>'):  S = '('+S+'.compareTo('+S2+') == 1)'
@@ -492,24 +515,14 @@ class Xlator_Java(Xlator):
             elif (op == '<='): S = self.GlobalVarPrefix+'__lessOrEq('+S+','+S2+')'
             elif (op == '>='): S = self.GlobalVarPrefix+'__greaterOrEq('+S+','+S2+')'
             else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
-        else:
-            S3 = ""
-            if (op == '<'):
-                if self.isComparableType(retType1):
-                    S+='.compareTo('
-                    S3= ") < 0"
-                else: S+=' < '
-            elif (op == '>'):
-                if self.isComparableType(retType1):
-                    S+='.compareTo('
-                    S3= ") > 0"
-                else: S+=' > '
-            elif (op == '<='): S+=' <= '
-            elif (op == '>='): S+=' >= '
-            else: cdErr("ERROR: One of <, >, <= or >= expected in code generator.")
+        elif doCompStr:
             S2 = self.adjustQuotesForChar(retType1, retType2, S2)
             [S2, isDerefd]=self.derefPtr(S2, retType2)
-            S+=S2+S3
+            S+= '.compareTo('+S2+') ' + op + ' 0'
+        else:
+            S2 = self.adjustQuotesForChar(retType1, retType2, S2)
+            [S2, isDerefd]=self.derefPtr(S2, retType2)
+            S+= ' '+op+' '+S2
         return S
 
     def codeFactor(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
@@ -852,8 +865,7 @@ class Xlator_Java(Xlator):
     def codeVarFieldRHS_Str(self, fieldName, cvrtType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs):
         fieldValueText=""
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
-        if fieldOwner=='we':
-            cvrtType = cvrtType.replace('static ', '', 1)
+        if fieldOwner=='we': cvrtType = cvrtType.replace('static ', '', 1)
         if (not self.varTypeIsValueType(cvrtType) and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const')):
             if fieldOwner =="const": cvrtType = innerType
             if paramList!=None:
