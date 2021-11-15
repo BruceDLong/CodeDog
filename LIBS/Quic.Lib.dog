@@ -59,34 +59,46 @@ struct QuicStream{
     our QProtocol: protocol
     me string: buff     // TODO: add buffer class to CodeDog
 
-    void: onRead_CB (their QuicStream: qStream) <- {}
+    /// onRead_CB() is used to read incoming data. Take data from the string: data. Return the number of bytes you used.
+    /// As long as you keep using the entire buffer, onRead_CB() will keep getting called as new data comes in.
+    /// If you do not use all of them (and return a number < data.size()) it will stop looping. onRead_CB() still may be called again
+    /// if you have requestRead on. So if you are done reading, unSet readRequest until you are ready for more.
+    /// If 'finished' is true it means this is the last buffer due to end-of-stream.
+    /// If you use all the bytes and finished is true the input stream will be stopped.
+    uint64: onRead_CB (their QuicStream: qStream, their string: data, me bool: finished) <- {return(0)}
     void: onWrite_CB(their QuicStream: qStream) <- {}
     void: onClose_CB(their QuicStream: qStream) <- {}
 
-    void: requestRead()
-    void: requestWrite()
+    void: nextOpIsRead()
+    void: nextOpIsWrite()
     void: close()
     me int: read(me string: buf)
     me int: write(me string: buf)
     void: setPriority(me 1..256: priority)  // Lower value  = higher priority
     void: flushStream()
-    void: shutdown(me int: direction) // 0=stop reading, 1=stop writing, 2=stop both
+    void: stopReading()
+    void: stopWriting()
     their QuicConnection: getConnection()
-    me string: readLine()<- {
-        me bool: newLineFound <- false
-        while(!newLineFound){
-            me string: crntBuff <- ""
-            me int: bytesRead   <- read(crntBuff)
-            if(bytesRead>0){
-                withEach idx in RANGE(0..bytesRead){
-                    if(crntBuff[idx]=="\n"){
-                        me string: retBuff <- buff + crntBuff.subStr(0, idx)
-                        buff <- crntBuff.subStr(idx+1, bytesRead-(idx+1))
-                    }
-                }
-            }
+
+    me bool: readNotDone
+    our QProtocol: crntProtocol
+    me string: readBuffer
+
+    me int64: readLine(me string:dataIn) <- { // Returns the number of bytes used.
+        me int64: bytesUsed <- 0
+        if(!readNotDone){
+            readNotDone <- true
+            readBuffer  <- ""
         }
-        return("")
+        bytesUsed <- dataIn.find("\n")
+        if(bytesUsed<0){
+            readBuffer <+- dataIn
+            bytesUsed <- dataIn.size()
+        } else {
+            readNotDone <- false
+            readBuffer <+- dataIn.subStr(0, bytesUsed)
+        }
+        return(bytesUsed)
     }
     void: INIT() <- {
         withEach n in RANGE(0..16){buff <+- "1234567890123456789012345678901234567890123456789012345678901234"}
@@ -103,7 +115,6 @@ struct QProtocol{
     me bool: checkProtocolID(me string: protocol) <-{return(false)}
     me bool: doStep()
     their QuicStream: myStream
-    //void: fork()
     void: init() <- {}
     void: terminateStream() <- {}
     our QProtocol: createClone()
@@ -135,31 +146,35 @@ struct QuicConnection_Server: inherits=QuicConnection{
     void: onConnectionClosed_CB() <- {log("server closed connection")}
 
     void: onNewStream_CB(their QuicStream: stream) <- {
-        stream.requestRead()
-        log("created new echo stream -- want to read")
+        stream.nextOpIsRead()
+        log("QuicConnection_Server::onNewStream_CB()")
     }
 
     their QuicStream: allocNewStream() <- {their QuicStream_Server:: retval; return(retval);}
 }
 struct QuicStream_Server: inherits=QuicStream{
-    our QProtocol: crntProtocol
-    void: onRead_CB (their QuicStream: qStream) <- {
-        printf("R.")
+    uint64: onRead_CB(their QuicStream: qStream, their string: data, me int: finished) <- {
+        me int64: bytesUsed <- 0
         if(crntProtocol==NULL){
-            me string: protocolID <- qStream.readLine()
+            bytesUsed <- qStream.readLine(data); if(readNotDone){return(bytesUsed)}
+            me string: protocolID <- readBuffer
+            log("protocolID:'"+ protocolID+"'")
             their QuicEngine_Server: QEng <- myConnection.myEngine
             crntProtocol <- QEng.chooseProtocol(protocolID)
             if(crntProtocol==NULL){
                 log("Protocol not found:'"+protocolID+"'")
-             //   terminate stream
-                return()
+                their QuicConnection: qConn <- getConnection()
+                qConn.abort()
+                return(0) // Signal to stop sending read events for now.
             }else{
-                qStream.shutdown(0);
-                //step <+- 1
                 crntProtocol.init()
+                crntProtocol.step <+- 1
+                return(bytesUsed)
             }
+        } else {
+            crntProtocol.onServerRead(qStream)
         }
-        //crntProtocol.doStep(step)
+        return(bytesUsed)
     }
     void: onWrite_CB(their QuicStream: qStream) <- {
         printf("W.")
@@ -186,38 +201,38 @@ struct QuicStream_Server: inherits=QuicStream{
 struct QuicEngine_Client: inherits=QuicEngine{
     their strBuf: inputBuf
     void: onNewConnection_CB(their QuicConnection: conn) <- {
-        log("SLIP:C1 created client connection")
+        LOGX("SLIP:C1 created client connection")
     }
     their QuicConnection: allocNewConn() <- {their QuicConnection_Client:: retval; return(retval);}
 }
 struct QuicConnection_Client: inherits=QuicConnection{
     void: onConnectionClosed_CB() <- {
-        log("SLIP:C3 client connection closed");
+        LOGX("SLIP:C3 client connection closed");
     }
     void: onNewStream_CB(their QuicStream: qStream) <- {
         their QuicStream_Client: qStreamClient  <- qStream
         their QuicEngine_Client: qcEngine <- myEngine
         qStreamClient.readBuffer <- qcEngine.inputBuf
-        qStreamClient.requestWrite()
+        qStreamClient.nextOpIsWrite()
         qStreamClient.protocol <- qcEngine.protocols[0]
-        log("SLIP:C2 created client STREAM")
+        LOGX("SLIP:C2 created client STREAM")
     }
     their QuicStream: allocNewStream() <- {their QuicStream_Client: retval; Allocate(retval); return(retval);}
 }
 struct QuicStream_Client: inherits=QuicStream{
     their strBuf: readBuffer
-    void: onRead_CB(their QuicStream: qStream) <- {
+    uint64: onRead_CB(their QuicStream: qStream, their string: data, me int: finished) <- {
         printf("R.")
         if(!qStream.protocol.onClientRead(qStream)){
-            qStream.shutdown(0)
+            qStream.stopReading()
         }
     }
     void: onWrite_CB(their QuicStream: qStream) <- {
         printf("W.")
         if(!qStream.protocol.onClientWrite(qStream)){
-            qStream.shutdown(1)
-            qStream.requestRead()
+            qStream.stopWriting()
+            qStream.nextOpIsRead()
         }
     }
-    void: onClose_CB(their QuicStream: qStream) <- {log("SLIP:C6 stream closed");}
+    void: onClose_CB(their QuicStream: qStream) <- {LOGX("SLIP:C6 stream closed");}
 }

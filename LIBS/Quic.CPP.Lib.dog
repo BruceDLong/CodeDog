@@ -105,6 +105,7 @@ static int load_cert(string cert_file, string key_file){
     SSL_CTX_set_default_verify_paths(s_ssl_ctx);
     if (1 != SSL_CTX_use_certificate_chain_file(s_ssl_ctx, cert_file.data())){
         LOGX("SSL_CTX_use_certificate_chain_file failed");
+        LOGX(cert_file.data());
         goto end;
     }
     if (1 != SSL_CTX_use_PrivateKey_file(s_ssl_ctx, key_file.data(), SSL_FILETYPE_PEM)){
@@ -496,16 +497,12 @@ union Addr{
 `
 embedLow = `
 static void QUIC_client_on_hsk_done (lsquic_conn_t *conn, enum lsquic_hsk_status status){
-    QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(conn);
-    QuicEngine* quicEngine = connection->myEngine;
-
     switch (status){
     case LSQ_HSK_OK:
-        lsquic_conn_make_stream(conn);
+        LOGX("handshake succeeded");
+        break;
     case LSQ_HSK_RESUMED_OK:
-        LOGX("handshake successful, start stdin watcher");
-        ev_io_start(quicEngine->quicMgr.loop, &quicEngine->quicMgr.stdin_w);
-        LOGX("IO_STARTED");
+        LOGX("handshake RESUME successful");
         break;
     default:
         LOGX("handshake failed");
@@ -548,12 +545,14 @@ struct GLOBAL{
         QuicConnection* connection = quicEngine->allocNewConn();
         connection->lsConn = conn;
         connection->myEngine = quicEngine;
+        if(quicEngine->serverMode==false){ // If engine is a client, create a stream
+            lsquic_conn_make_stream(conn);
+        }
     cout<<"NEW_CONN; engine:"<<quicEngine<<"   conn:"<<conn<<"  slipConn:"<<connection<<"\n";
         quicEngine->onNewConnection_CB(connection);
         return connection;
     }%>
 
-    //void: QUIC_client_on_hsk_done44 (their lsquic_conn_t: conn, enum lsquic_hsk_status: status) <- <%{}%>
 
     void: QUIC_on_conn_closed (their lsquic_conn_t: conn) <- <%{
         LOGX("closed connection");
@@ -566,8 +565,7 @@ struct GLOBAL{
     }%>
 
     their lsquic_stream_ctx_t: QUIC_on_new_stream(their void: stream_if_ctx, their lsquic_stream: stream) <- <%{
-        server_stream_ctx *tssc;
-        LOGX("created new Stream");
+        LOGX("QUIC_on_new_stream");
         QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
         lsquic_conn_t* conn = lsquic_stream_conn(stream);
         QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(conn);
@@ -578,14 +576,39 @@ struct GLOBAL{
         return (lsquic_stream_ctx_t*)streamCtx;
     }%>
 
-    void: QUIC_on_read(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
+    me uint64: QUIC_on_read_proxy(their void: qStream_ctx, their char: data, me uint64: len, me int: finished) <- <%{
+        LOGX("QUIC_on_READ_PROXY: %i", len);
+        LOGX(data);
+        uint64_t bytesUsed = 0;
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
-        quicStream->onRead_CB((QuicStream*)qStream_ctx);
+        if(len>0){
+            string s(data, len);
+            cout<<"READ:" << s<< "\n";
+            bytesUsed = quicStream->onRead_CB((QuicStream*)qStream_ctx, &s, finished);
+        }
+        if(bytesUsed < len or (finished and bytesUsed == len)){
+            LOGX("Reached end-of-stream; shutting stream down");
+            lsquic_stream_shutdown(quicStream->theStream, 0);
+        }
+        return bytesUsed;
+    }%>
+
+    void: QUIC_on_read(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
+        LOGX("QUIC_on_READ");
+        QuicStream *const quicStream = (QuicStream*)qStream_ctx;
+        ssize_t nread = lsquic_stream_readf(stream, QUIC_on_read_proxy, qStream_ctx);
+        if(nread < 0){
+            LOGX("error reading from stream (%s) -- exit loop");
+            QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(quicStream->theStream));
+            QuicEngine* quicEngine = connection->myEngine;
+            ev_break(quicEngine->quicMgr.loop, EVBREAK_ONE);
+        }
     }%>
 
     void: QUIC_on_write(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
+        LOGX("QUIC_on_write");
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
-        quicStream->onWrite_CB((QuicStream*)qStream_ctx);
+        quicStream->onWrite_CB(quicStream);
     }%>
 
     void: QUIC_on_close(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
@@ -598,7 +621,7 @@ struct GLOBAL{
         lsQuicMgr* quicMgr = &quicEngine->quicMgr;
         char errbuf[0x100];
         if(asServer){
-            if (0 != load_cert(quicEngine->cert_file.data(), quicEngine->key_file.data())) { LOGX("Cannot load certificate file:%s",quicEngine->cert_file); exit(EXIT_FAILURE);}
+            if (0 != load_cert(quicEngine->cert_file.data(), quicEngine->key_file.data())) { cout<<"Cannot Load Certificate File:"<<quicEngine->cert_file<<"\n"; exit(EXIT_FAILURE);}
             quicEngine->serverMode = true;
         }
         // Set Settings
@@ -722,10 +745,11 @@ struct QuicConnection{
 
 struct QuicStream{
     void: setPriority(me 1..256: priority) <- <%{lsquic_stream_set_priority(theStream, priority);}%>
-    void: requestRead()                    <- <%{lsquic_stream_wantread(theStream, 1);}%>
-    void: requestWrite()                   <- <%{lsquic_stream_wantwrite(theStream, 1);}%>
+    void: nextOpIsRead()                   <- <%{lsquic_stream_wantread(theStream, 1);}%>
+    void: nextOpIsWrite()                  <- <%{lsquic_stream_wantwrite(theStream, 1);}%>
     void: flushStream()                    <- <%{lsquic_stream_flush(theStream);}%>
-    void: shutdown(me int: how)            <- <%{lsquic_stream_shutdown(theStream, how);}%>
+    void: stopReading()                    <- <%{lsquic_stream_shutdown(theStream, 0);}%>
+    void: stopWriting()                    <- <%{lsquic_stream_shutdown(theStream, 1);}%>
     void: close()                          <- <%{lsquic_stream_close(theStream);}%>
     me int: read(me string:buf)            <- <%{return(lsquic_stream_read(theStream, buf.data(), buf.size()));}%>
     me int: write(me string:buf)           <- <%{return(lsquic_stream_write(theStream, buf.data(), buf.size()));}%>

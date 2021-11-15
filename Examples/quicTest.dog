@@ -33,29 +33,30 @@ do ManageCmdLine(cmd)
 
 struct PingProtocol: inherits=QProtocol {
     me bool: doStep() <- {return(true)}
+    void: init() <- {myStream.nextOpIsWrite()}
     our QProtocol: createClone() <- {
         our PingProtocol:: retval
         retval <deep- self
         return(retval)
     }
     void: INIT() <- {
-        protocolIDPrefix <- "slip/ping"
+        protocolIDPrefix <- "codeDog/ping"
     }
-    bool: onServerRead(their QuicStream: h) <- {}
-    bool: onServerWrite(their QuicStream: h) <- {}
-    bool: onClientRead(their QuicStream: h) <- {
+    bool: onServerRead(their QuicStream: qStream) <- {}
+    bool: onServerWrite(their QuicStream: qStream) <- {}
+    bool: onClientRead(their QuicStream: qStream) <- {
         switch(step){
             case 0:{}
             case 1:{}
         }
         return(false)
     }
-    bool: onClientWrite(their QuicStream: h) <- {
+    bool: onClientWrite(their QuicStream: qStream) <- {
         switch(step){
-            case 0:{h.write(protocolIDPrefix+"\n")}
+            case 0:{qStream.write(protocolIDPrefix+"\n")}
             case 1:{}
         }
-        //h.requestRead()
+        //qStream.requestRead()
         return(false)
     }
 }
@@ -63,26 +64,37 @@ struct FetchFile: inherits=QProtocol {
     me string: fileName
 
     me bool: doStep() <- {return(true)}
+    void: init() <- {myStream.nextOpIsRead()}
     our QProtocol: createClone() <- {
         our FetchFile:: retval
         retval <deep- self
         return(retval)
     }
     void: INIT() <- {
+        print("\nFetchProtocol:INIT:\n")
         protocolIDPrefix <- "FetchFile"
     }
-    bool: onServerRead(their QuicStream: h) <- {
+    bool: onServerRead(their QuicStream: qStream) <- {
         // gets file name, opens file,  reads into a buffer
     }
-    bool: onServerWrite(their QuicStream: h) <- {
+    bool: onServerWrite(their QuicStream: qStream) <- {
         //sends back bytes read
     }
-    bool: onClientRead(their QuicStream: h) <- {
+    bool: onClientRead(their QuicStream: qStream) <- {
+        print("\nFetchProtocol:onClientREAd:\n")
         // receives bytes read, if not EOF, want write
     }
-    bool: onClientWrite(their QuicStream: h) <- {
-        // sends fileName to server
-        print("\nonClientWrite FILE:", fileName)
+    bool: onClientWrite(their QuicStream: qStream) <- {
+        print("\nFetchProtocol:onClientWrite:\n")
+        switch(step){
+            case 0:{
+        print("\nFetchProtocol:onClientWrite: CASE-0:"+protocolIDPrefix+"\n")
+        qStream.write(protocolIDPrefix+"\n")
+        }
+            case 1:{
+
+            }
+        }
         //qStream.requestRead()
         return(false)
     }
