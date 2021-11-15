@@ -105,7 +105,7 @@ class Xlator(object):
     def codeNotOperator(self, S, S2,retTypeSpec):
         cdErr("In base class Xlator::codeNotOperator.")
 
-    def codeFactor(self, item, objsRefed, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
+    def codeFactor(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):
         cdErr("In base class Xlator::codeFactor.")
 
     def adjustQuotesForChar(self, typeSpec1, typeSpec2, S):
@@ -114,13 +114,13 @@ class Xlator(object):
     def adjustConditional(self, S, conditionType):
         cdErr("In base class Xlator::adjustConditional.")
 
-    def codeSpecialReference(sself, egSpec, objsRefed, genericArgs):
+    def codeSpecialReference(sself, egSpec, genericArgs):
         cdErr("In base class Xlator::codeSpecialReference.")
 
     def checkIfSpecialAssignmentFormIsNeeded(self, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
         cdErr("In base class Xlator::checkIfSpecialAssignmentFormIsNeeded.")
 
-    def codeMain(self, classes, tags, objsRefed):
+    def codeMain(self, classes, tags):
         cdErr("In base class Xlator::codeMain.")
 
     def codeArgText(self, argFieldName, argType, argOwner, typeSpec, makeConst, typeArgList):
@@ -141,7 +141,7 @@ class Xlator(object):
     def variableDefaultValueString(self, fieldType, isTypeArg, owner):
         cdErr("In base class Xlator::variableDefaultValueString.")
 
-    def codeNewVarStr(self, classes, tags, lhsTypeSpec, varName, fieldDef, indent, objsRefed, actionOrField, genericArgs, localVarsAllocated):
+    def codeNewVarStr(self, classes, tags, lhsTypeSpec, varName, fieldDef, indent, actionOrField, genericArgs, localVarsAllocated):
         cdErr("In base class Xlator::codeNewVarStr.")
 
     def codeIncrement(self, varName):
@@ -153,7 +153,7 @@ class Xlator(object):
     def isNumericType(self, convertedType):
         cdErr("In base class Xlator::isNumericType.")
 
-    def codeVarFieldRHS_Str(self, fieldName, cvrtType, innerType, typeSpec, paramList, objsRefed, isAllocated, typeArgList, genericArgs):
+    def codeVarFieldRHS_Str(self, fieldName, cvrtType, innerType, typeSpec, paramList, isAllocated, typeArgList, genericArgs):
         cdErr("In base class Xlator::codeVarFieldRHS_Str.")
 
     def codeConstField_Str(self, convertedType, fieldName, fieldValueText, className, indent):
