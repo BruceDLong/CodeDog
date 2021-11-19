@@ -82,6 +82,8 @@ static int s_verbose;
 static void LOGX (const char *fmt, ...){
     if (s_verbose){
         va_list ap;
+        string printFmt =string("    LOG:")+fmt+"\n";
+        printf(printFmt.data(),ap);
         fprintf(logFileHandle, "LOG: ");
         va_start(ap, fmt);
         (void) vfprintf(logFileHandle, fmt, ap);
@@ -516,7 +518,8 @@ struct GLOBAL{
     void: initQuicSystem() <- <%{
         // Initialize logging
         // logFileHandle <- stderr;
-        logFileHandle = fopen("quic.log", "ab");
+        string logFileName = logFileName+"_"+CommandLineManager.getOption("QTest", "mode")+".log";
+        logFileHandle = fopen(logFileName.data(), "ab");
         if (!logFileHandle) {perror("cannot open log file for writing");exit(EXIT_FAILURE);}
         setvbuf(logFileHandle, nullptr, _IOLBF, 0);
         lsquic_logger_init(&logger_if, logFileHandle, LLTS_HHMMSSUS);
@@ -539,13 +542,12 @@ struct GLOBAL{
         lsquic_global_cleanup();
     }%>
     their QuicConnection: QUIC_on_new_conn (their void: stream_if_ctx, their lsquic_conn: conn) <- <%{
-        LOGX("created new connection");
         QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
         quicEngine->quicMgr.conn = conn;
         QuicConnection* connection = quicEngine->allocNewConn();
         connection->lsConn = conn;
         connection->myEngine = quicEngine;
-        if(quicEngine->serverMode==false){ // If engine is a client, create a stream
+        if(quicEngine->isServer==false){ // If engine is a client, create a stream
             lsquic_conn_make_stream(conn);
         }
     cout<<"NEW_CONN; engine:"<<quicEngine<<"   conn:"<<conn<<"  slipConn:"<<connection<<"\n";
@@ -559,34 +561,31 @@ struct GLOBAL{
         QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(conn);
         QuicEngine* quicEngine = connection->myEngine;
         connection->onConnectionClosed_CB();
-        if(!quicEngine->serverMode){ // if engine is in client mode, stop engine.
+        if(!quicEngine->isServer){ // if engine is in client mode, stop engine.
             ev_io_stop(quicEngine->quicMgr.loop, &quicEngine->quicMgr.sock_w);
         }
     }%>
 
     their lsquic_stream_ctx_t: QUIC_on_new_stream(their void: stream_if_ctx, their lsquic_stream: stream) <- <%{
-        LOGX("QUIC_on_new_stream");
         QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
         lsquic_conn_t* conn = lsquic_stream_conn(stream);
         QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(conn);
-        QuicStream* streamCtx = connection->allocNewStream();
-        streamCtx->myConnection = connection;
-        streamCtx->theStream = stream;
-        connection->onNewStream_CB(streamCtx);
-        return (lsquic_stream_ctx_t*)streamCtx;
+        QuicStream* quicStream = connection->allocNewStream();
+        quicStream->myConnection = connection;
+        quicStream->theStream = stream;
+        connection->onNewStream_CB(quicStream);
+        return (lsquic_stream_ctx_t*)quicStream;
     }%>
 
-    me uint64: QUIC_on_read_proxy(their void: qStream_ctx, their char: data, me uint64: len, me int: finished) <- <%{
-        LOGX("QUIC_on_READ_PROXY: %i", len);
-        LOGX(data);
+    me uint64: QUIC_on_read_proxy(their lsquic_stream_ctx_t: qStream_ctx, their char: data, me uint64: len, me int: finished) <- <%{
         uint64_t bytesUsed = 0;
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
         if(len>0){
             string s(data, len);
-            cout<<"READ:" << s<< "\n";
             bytesUsed = quicStream->onRead_CB((QuicStream*)qStream_ctx, &s, finished);
+            cout<<"LEN:"<<len<<" BYTESUSED:"<<bytesUsed<<"\n";
         }
-        if(bytesUsed < len or (finished and bytesUsed == len)){
+        if(finished and bytesUsed == len){
             LOGX("Reached end-of-stream; shutting stream down");
             lsquic_stream_shutdown(quicStream->theStream, 0);
         }
@@ -594,11 +593,10 @@ struct GLOBAL{
     }%>
 
     void: QUIC_on_read(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
-        LOGX("QUIC_on_READ");
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
         ssize_t nread = lsquic_stream_readf(stream, QUIC_on_read_proxy, qStream_ctx);
         if(nread < 0){
-            LOGX("error reading from stream (%s) -- exit loop");
+            LOGX("error reading from stream (%s) -- exit loop\n");
             QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(quicStream->theStream));
             QuicEngine* quicEngine = connection->myEngine;
             ev_break(quicEngine->quicMgr.loop, EVBREAK_ONE);
@@ -606,7 +604,6 @@ struct GLOBAL{
     }%>
 
     void: QUIC_on_write(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
-        LOGX("QUIC_on_write");
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
         quicStream->onWrite_CB(quicStream);
     }%>
@@ -622,7 +619,7 @@ struct GLOBAL{
         char errbuf[0x100];
         if(asServer){
             if (0 != load_cert(quicEngine->cert_file.data(), quicEngine->key_file.data())) { cout<<"Cannot Load Certificate File:"<<quicEngine->cert_file<<"\n"; exit(EXIT_FAILURE);}
-            quicEngine->serverMode = true;
+            quicEngine->isServer = true;
         }
         // Set Settings
         quicMgr->loop = EV_DEFAULT;
@@ -690,7 +687,7 @@ struct GLOBAL{
         quicMgr->timer.data  = quicMgr;
         quicMgr->sock_w.data = quicMgr;
         if(quicEngine->protocols.size()==0){logMgr.FatalError.LogEntry("FATAL ERROR: ", "No protocls given for Quic."); exit(1);}
-        if (!quicEngine->serverMode){
+        if (!quicEngine->isServer){
             quicMgr->conn = lsquic_engine_connect(
                 // TODO change this to version LSQVER_I001
                 quicMgr->engine, LSQVER_ID29,
@@ -713,11 +710,11 @@ struct QuicEngine{
     me string: cert_file
     me string: key_file
     me string: key_log_dir
-    me bool: serverMode
+    me bool: isServer
     me bool: doHTTP
 
     void: init(me string: filenameTag, me bool: ServerMode, me string: ipAddr, me int:portNum) <- {
-        serverMode<-ServerMode
+        isServer  <- ServerMode
         doHTTP    <- false
         cert_file <- "certFile.pem"
         key_file  <- "keyFile.pem"
@@ -726,7 +723,7 @@ struct QuicEngine{
         key_log_dir <- filenameTag+"KeyLogDir"
         lsquic_set_log_level("warn") // debug, info, notice, warning, error, alert, emerg, crit
         s_verbose <- 1             // 0=less logging
-        lsQuicSetupSocketsAndCallbacks(self, serverMode, ipAddr, portNum)
+        lsQuicSetupSocketsAndCallbacks(self, isServer, ipAddr, portNum)
     }
 
     void: run() <- {
@@ -744,6 +741,8 @@ struct QuicConnection{
 }
 
 struct QuicStream{
+    their lsquic_stream: theStream
+
     void: setPriority(me 1..256: priority) <- <%{lsquic_stream_set_priority(theStream, priority);}%>
     void: nextOpIsRead()                   <- <%{lsquic_stream_wantread(theStream, 1);}%>
     void: nextOpIsWrite()                  <- <%{lsquic_stream_wantwrite(theStream, 1);}%>
@@ -754,5 +753,4 @@ struct QuicStream{
     me int: read(me string:buf)            <- <%{return(lsquic_stream_read(theStream, buf.data(), buf.size()));}%>
     me int: write(me string:buf)           <- <%{return(lsquic_stream_write(theStream, buf.data(), buf.size()));}%>
     their QuicConnection: getConnection()  <- <%{return((QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(theStream)));}%>
-    their lsquic_stream: theStream
 }

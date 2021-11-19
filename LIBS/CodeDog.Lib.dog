@@ -219,6 +219,7 @@ struct FileStream{
     me void: close()
     me int:  getChar()
     me string: getLine()
+    me string: read(me string: S)
     me void: write(me string: S)
     me bool: EOF()
     me bool: failure()

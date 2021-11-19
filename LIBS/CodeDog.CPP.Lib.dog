@@ -54,6 +54,7 @@ struct FileStream{
     me bool: EOF() <- <%!eof()%>
     me bool: failure() <- <%!fail()%>
     me bool: flush() <- <%!flush()%>
+    me int64: read(their string: S) <- <%!_strm_read(&%0, &%1)%>
 }
 struct sessionFile{
     me FileStream: session
@@ -75,6 +76,11 @@ struct GLOBAL{
         string S;
         getline(*strm, S);
         return(S);
+    }%>
+
+    me int64: _strm_read(their istream: stream, their string: S) <- <%{
+        stream->read(S->data(), S->size());
+        return(stream->gcount());
     }%>
 
     me string: readAssetAsString(me string: filename) <- <%{

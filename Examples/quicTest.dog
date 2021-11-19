@@ -15,11 +15,6 @@ LicenseText = `All rights reserved.`
 
 runCode = `
     logMgr.init(OFile)
-    CommandLineManager.defineOption("QTest", "mode",    "-m", "--mode",    "client or server", "_REQIRED")
-    CommandLineManager.defineOption("QTest", "inFile",  "-i", "--inFile",  "Input file",       "quicIn.txt")
-    CommandLineManager.defineOption("QTest", "outFile", "-o", "--outFile", "Output file",      "quicOut.log")
-    CommandLineManager.defineOption("QTest", "IPAddr",  "-a", "--IPAddr",  "IP address",       "::1")
-    CommandLineManager.defineOption("QTest", "port",    "-p", "--port",    "Port number",      "12345")
     me string: clientOrServerMode <- CommandLineManager.getOption("QTest", "mode")
     me string: inFile  <- CommandLineManager.getOption("QTest", "inFile")
     me string: outFile <- CommandLineManager.getOption("QTest", "outFile")
@@ -42,9 +37,9 @@ struct PingProtocol: inherits=QProtocol {
     void: INIT() <- {
         protocolIDPrefix <- "codeDog/ping"
     }
-    bool: onServerRead(their QuicStream: qStream) <- {}
+    uint64: onServerRead(their QuicStream: qStream, their string: data, me bool: finished) <- {}
     bool: onServerWrite(their QuicStream: qStream) <- {}
-    bool: onClientRead(their QuicStream: qStream) <- {
+    uint64: onClientRead(their QuicStream: qStream, their string: data, me bool: finished) <- {
         switch(step){
             case 0:{}
             case 1:{}
@@ -71,31 +66,69 @@ struct FetchFile: inherits=QProtocol {
         return(retval)
     }
     void: INIT() <- {
-        print("\nFetchProtocol:INIT:\n")
         protocolIDPrefix <- "FetchFile"
     }
-    bool: onServerRead(their QuicStream: qStream) <- {
-        // gets file name, opens file,  reads into a buffer
-    }
-    bool: onServerWrite(their QuicStream: qStream) <- {
-        //sends back bytes read
-    }
-    bool: onClientRead(their QuicStream: qStream) <- {
-        print("\nFetchProtocol:onClientREAd:\n")
-        // receives bytes read, if not EOF, want write
-    }
-    bool: onClientWrite(their QuicStream: qStream) <- {
-        print("\nFetchProtocol:onClientWrite:\n")
+    uint64: onServerRead(their QuicStream: qStream, their string: data, me bool: finished) <- {
+        print("\nFETCH SERVER READ:",step,"\n")
+        me uint64: bytesUsed
         switch(step){
-            case 0:{
-        print("\nFetchProtocol:onClientWrite: CASE-0:"+protocolIDPrefix+"\n")
-        qStream.write(protocolIDPrefix+"\n")
-        }
-            case 1:{
-
+        case 1:{
+            bytesUsed <- qStream.readLine(data)
+            if(qStream.readNotDone){return(bytesUsed)}
+            qStream.nextOpIsWrite()
+            fileName <- qStream.readBuffer
+            step <+- 1
             }
         }
-        //qStream.requestRead()
+        return(bytesUsed)
+    }
+    bool: onServerWrite(their QuicStream: qStream) <- {
+        print("\nFETCH SERVER WRITE STEP:",step,"\n")
+        switch(step){
+        case 2:{
+            me FileStream: fileStream
+            fileStream.open(fileName)
+            while(!fileStream.EOF()){ //read from file then write to stream
+                me uint64: bytesUsed <- fileStream.read(qStream.buff)
+                //if(fileStream.failure()){print("ERROR: reading buff, fileName:'",fileName,"'\n")}
+                qStream.write(qStream.buff.subStr(0, bytesUsed))
+            }
+            fileStream.close()
+            qStream.close()
+            step <+- 1
+            return(false)
+            }
+        }
+    }
+    uint64: onClientRead(their QuicStream: qStream, their string: data, me bool: finished)<- {
+        print("\nFETCH CLIENT READ STEP:",step,"\n")
+        me uint64: bytesUsed
+        switch(step){
+        case 2:{
+            qStream.readBuff <+- data
+            bytesUsed <- data.size()
+            step <+- 1
+            //if(finished){print("READ BUFF:\n",qStream.readBuff)}
+            }
+        }
+        return(bytesUsed)
+    }
+    bool: onClientWrite(their QuicStream: qStream) <- {
+        print("\nFETCH CLIENT WRITE STEP:",step,"\n")
+        switch(step){
+        case 0:{
+            qStream.write(protocolIDPrefix+"\n")
+            qStream.nextOpIsWrite()
+            step <+- 1
+            return(true)
+            }
+        case 1:{
+            qStream.write("test.txt\n")
+            qStream.nextOpIsRead()
+            step <+- 1
+            return(false)
+            }
+        }
         return(false)
     }
 }
@@ -120,5 +153,15 @@ struct ClientAndServer{
             client.run()
         } else {logFatalError("Invalid running mode:"+clientOrServer)}
     //BRUCE: REmember to lsquic_engine_destroy(quicMgr.engine);
+    }
+}
+
+struct GLOBAL{
+    void: initCmdMgr() <- {
+        CommandLineManager.defineOption("QTest", "mode",    "-m", "--mode",    "client or server", "_REQIRED")
+        CommandLineManager.defineOption("QTest", "inFile",  "-i", "--inFile",  "Input file",       "quicIn.txt")
+        CommandLineManager.defineOption("QTest", "outFile", "-o", "--outFile", "Output file",      "quicOut.log")
+        CommandLineManager.defineOption("QTest", "IPAddr",  "-a", "--IPAddr",  "IP address",       "::1")
+        CommandLineManager.defineOption("QTest", "port",    "-p", "--port",    "Port number",      "12345")
     }
 }
