@@ -15,6 +15,7 @@ LicenseText = `All rights reserved.`
 
 runCode = `
     logMgr.init(OFile)
+    initCmdMgr()
     me string: clientOrServerMode <- CommandLineManager.getOption("QTest", "mode")
     me string: inFile  <- CommandLineManager.getOption("QTest", "inFile")
     me string: outFile <- CommandLineManager.getOption("QTest", "outFile")

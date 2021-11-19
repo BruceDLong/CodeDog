@@ -10,7 +10,7 @@ LibDescription ={
 }
 
 initCode = `
-    initCmdMgr()
+
     initQuicSystem()
 `
 
