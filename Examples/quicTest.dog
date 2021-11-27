@@ -28,7 +28,6 @@ runCode = `
 do ManageCmdLine(cmd)
 
 struct PingProtocol: inherits=QProtocol {
-    me bool: doStep() <- {return(true)}
     void: init() <- {myStream.nextOpIsWrite()}
     our QProtocol: createClone() <- {
         our PingProtocol:: retval
@@ -42,14 +41,21 @@ struct PingProtocol: inherits=QProtocol {
     bool: onServerWrite(their QuicStream: qStream) <- {}
     uint64: onClientRead(their QuicStream: qStream, their string: data, me bool: finished) <- {
         switch(step){
-            case 0:{}
+            case 0:{
+                step <- 1
+                myStream.nextOpIsWrite()
+            }
             case 1:{}
         }
         return(false)
     }
     bool: onClientWrite(their QuicStream: qStream) <- {
         switch(step){
-            case 0:{qStream.write(protocolIDPrefix+"\n")}
+            case 0:{
+                qStream.write(protocolIDPrefix+"\n")
+                step <- 1
+                myStream.nextOpIsRead()
+            }
             case 1:{}
         }
         //qStream.requestRead()
@@ -59,8 +65,7 @@ struct PingProtocol: inherits=QProtocol {
 struct FetchFile: inherits=QProtocol {
     me string: fileName
 
-    me bool: doStep() <- {return(true)}
-    void: init() <- {myStream.nextOpIsRead()}
+    void: init() <- {}
     our QProtocol: createClone() <- {
         our FetchFile:: retval
         retval <deep- self
@@ -71,8 +76,12 @@ struct FetchFile: inherits=QProtocol {
     }
     uint64: onServerRead(their QuicStream: qStream, their string: data, me bool: finished) <- {
         print("\nFETCH SERVER READ:",step,"\n")
-        me uint64: bytesUsed
+        me uint64: bytesUsed <- 0
         switch(step){
+        case 0:{
+            step <- 1
+            myStream.nextOpIsRead()
+            }
         case 1:{
             bytesUsed <- qStream.readLine(data)
             if(qStream.readNotDone){return(bytesUsed)}
@@ -88,11 +97,13 @@ struct FetchFile: inherits=QProtocol {
         switch(step){
         case 2:{
             me FileStream: fileStream
+            print("fileName:", fileName, "\n")
             fileStream.open(fileName)
             while(!fileStream.EOF()){ //read from file then write to stream
                 me uint64: bytesUsed <- fileStream.read(qStream.buff)
-                //if(fileStream.failure()){print("ERROR: reading buff, fileName:'",fileName,"'\n")}
+                if(fileStream.failure()){print("ERROR: reading buff, fileName:'",fileName,"'\n")}
                 qStream.write(qStream.buff.subStr(0, bytesUsed))
+                print(qStream.buff.subStr(0, bytesUsed))
             }
             fileStream.close()
             qStream.close()
@@ -108,8 +119,7 @@ struct FetchFile: inherits=QProtocol {
         case 2:{
             qStream.readBuff <+- data
             bytesUsed <- data.size()
-            step <+- 1
-            //if(finished){print("READ BUFF:\n",qStream.readBuff)}
+            if(finished and bytesUsed == data.size()){step <+- 1}
             }
         }
         return(bytesUsed)
@@ -146,12 +156,15 @@ struct ClientAndServer{
             server.addProtocol(pingProtocol)
             server.addProtocol(fetchFile)
             server.run()
+            eventLoopThread.waitForExit()
         } else if(clientOrServer=="client"){
             me QuicEngine_Client: client
             fetchFile.fileName <- inFile
             client.init("CFile", false, IPAddr, stoi(portNum))
             client.addProtocol(fetchFile)
             client.run()
+            eventLoopThread.waitForExit()
+            print("CLIENT_RAN\n")
         } else {logFatalError("Invalid running mode:"+clientOrServer)}
     //BRUCE: REmember to lsquic_engine_destroy(quicMgr.engine);
     }

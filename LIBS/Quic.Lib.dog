@@ -115,7 +115,6 @@ struct QProtocol{
     me int: step
     me string: protocolIDPrefix
     me bool: checkProtocolID(me string: protocol) <-{return(false)}
-    me bool: doStep()
     their QuicStream: myStream
     void: init() <- {}
     void: terminateStream() <- {}
@@ -124,6 +123,7 @@ struct QProtocol{
     bool: onServerWrite(their QuicStream: qStream)
     uint64: onClientRead(their QuicStream: qStream, their string: data, me bool: finished)
     bool: onClientWrite(their QuicStream: qStream)
+    void: onNewStream_CB(their QuicStream: stream)
 }
 
 
@@ -148,7 +148,7 @@ struct QuicConnection_Server: inherits=QuicConnection{
 
     void: onNewStream_CB(their QuicStream: stream) <- {
         stream.nextOpIsRead()
-        log("QuicConnection_Server::onNewStream_CB()")
+        print("QuicConnection_Server::onNewStream_CB()\n")
     }
 
     their QuicStream: allocNewStream() <- {their QuicStream_Server:: retval; return(retval);}
@@ -169,12 +169,10 @@ struct QuicStream_Server: inherits=QuicStream{
             }else{
                 crntProtocol.myStream <- qStream
                 crntProtocol.init()
-                crntProtocol.step <+- 1
-                return(bytesUsed)
+                crntProtocol.step <- 0
             }
-        } else {
-            bytesUsed <- crntProtocol.onServerRead(qStream, data, finished)
         }
+        bytesUsed <+- crntProtocol.onServerRead(qStream, data, finished)
         return(bytesUsed)
     }
     void: onWrite_CB(their QuicStream: qStream) <- {
@@ -190,7 +188,6 @@ struct QuicStream_Server: inherits=QuicStream{
 
 // CLIENT
 struct QuicEngine_Client: inherits=QuicEngine{
-    their strBuf: inputBuf
     void: onNewConnection_CB(their QuicConnection: conn) <- {
     }
     their QuicConnection: allocNewConn() <- {their QuicConnection_Client:: retval; return(retval);}
@@ -200,11 +197,18 @@ struct QuicConnection_Client: inherits=QuicConnection{
         LOGX("SLIP:C3 client connection closed");
     }
     void: onNewStream_CB(their QuicStream: qStream) <- {
+        me uint64: streamID <- qStream.getStreamID()
+        print("QuicConnection_CLIENT::onNewStream_CB():", streamID, "\n")
         their QuicStream_Client: qStreamClient  <- qStream
         their QuicEngine_Client: qcEngine <- myEngine
-        qStreamClient.readBuffer <- qcEngine.inputBuf
-        qStreamClient.nextOpIsWrite()
-        qStreamClient.crntProtocol <- qcEngine.protocols[0]
+        if(streamID==0){
+            //qStreamClient.readBuffer <- qcEngine.inputBuf
+            qStreamClient.nextOpIsWrite()
+            qStreamClient.crntProtocol <- qcEngine.protocols[0]
+            qStreamClient.crntProtocol.myStream <- qStream
+            qStreamClient.crntProtocol.init()
+        }
+        qStreamClient.crntProtocol.onNewStream_CB(qStream)
     }
     their QuicStream: allocNewStream() <- {
         their QuicStream_Client:: retval;
