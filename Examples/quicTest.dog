@@ -37,8 +37,8 @@ struct PingProtocol: inherits=QProtocol {
     void: INIT() <- {
         protocolIDPrefix <- "codeDog/ping"
     }
-    uint64: onServerRead(their QuicStream: qStream, their string: data, me bool: finished) <- {}
-    bool: onServerWrite(their QuicStream: qStream) <- {}
+    uint64: onServerRead(their QuicStream: qStream, their string: data, me bool: finished) <- {return(0)}
+    bool: onServerWrite(their QuicStream: qStream) <- {return(false)}
     uint64: onClientRead(their QuicStream: qStream, their string: data, me bool: finished) <- {
         switch(step){
             case 0:{
@@ -111,13 +111,15 @@ struct FetchFile: inherits=QProtocol {
             return(false)
             }
         }
+        return(false)
     }
     uint64: onClientRead(their QuicStream: qStream, their string: data, me bool: finished)<- {
         print("\nFETCH CLIENT READ STEP:",step,"\n")
         me uint64: bytesUsed
         switch(step){
         case 2:{
-            qStream.readBuff <+- data
+            print(data)
+            qStream.readBuffer <+- data
             bytesUsed <- data.size()
             if(finished and bytesUsed == data.size()){step <+- 1}
             }
@@ -155,14 +157,14 @@ struct ClientAndServer{
             server.init("SFile", true, IPAddr, stoi(portNum))
             server.addProtocol(pingProtocol)
             server.addProtocol(fetchFile)
-            server.run()
+            server.start()
             eventLoopThread.waitForExit()
         } else if(clientOrServer=="client"){
             me QuicEngine_Client: client
             fetchFile.fileName <- inFile
             client.init("CFile", false, IPAddr, stoi(portNum))
             client.addProtocol(fetchFile)
-            client.run()
+            client.start()
             eventLoopThread.waitForExit()
             print("CLIENT_RAN\n")
         } else {logFatalError("Invalid running mode:"+clientOrServer)}

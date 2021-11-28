@@ -122,7 +122,7 @@ static int load_cert(string cert_file, string key_file){
     }
     return rv;
 }
-static SSL_CTX *get_ssl_ctx (void *peer_ctx){
+static SSL_CTX *get_ssl_ctx (void *peer_ctx, const sockaddr* sa){
     return s_ssl_ctx;
 }
 enum ctl_what{
@@ -512,7 +512,7 @@ struct GLOBAL{
         if (0 != lsquic_global_init(LSQUIC_GLOBAL_SERVER | LSQUIC_GLOBAL_CLIENT)) {fprintf(stderr, "global initialization failed\n"); exit(EXIT_FAILURE);}
     }%>
 
-    void: async_cb (their ev_async: watcher, int: revents) <- {} // just used for the event loop side effects
+    void: async_cb (their ev_loop: loop, their ev_async: watcher, int: revents) <- {} // just used for the event loop side effects
     void: deinitQuicSystem() <- <%{
         lsquic_global_cleanup();
     }%>
@@ -583,92 +583,6 @@ struct GLOBAL{
         LOGX("stream closed");
     }%>
 
-    void: lsQuicSetupSocketsAndCallbacks(their QuicEngine: quicEngine, me bool: asServer, me string: ipAddr, me int: portNum) <- <%{
-        lsQuicMgr* quicMgr = &quicEngine->quicMgr;
-        char errbuf[0x100];
-        if(asServer){
-            if (0 != load_cert(quicEngine->cert_file.data(), quicEngine->key_file.data())) { cout<<"Cannot Load Certificate File:"<<quicEngine->cert_file<<"\n"; exit(EXIT_FAILURE);}
-            quicEngine->isServer = true;
-        }
-        // Set Settings
-        lsquic_engine_settings* settings = new lsquic_engine_settings;
-        settings->es_cc_algo = 3;
-        settings->es_ecn = 1;
-        lsquic_engine_init_settings(settings, asServer ? LSENG_SERVER : 0);
-        settings->es_ql_bits = 0;  // Currently using the loss bits extension causes decryption failures in Wireshark.  For now we override the default.
-        // Check settings
-        if (0 != lsquic_engine_check_settings(settings, asServer ? LSENG_SERVER : 0, errbuf, sizeof(errbuf))) {LOGX("invalid settings: %s", errbuf); exit(EXIT_FAILURE);}
-
-        // Set up socket addr
-        Addr* addr = &quicEngine->addr;
-    cout<<"IPAddr:"<<ipAddr<<" port:"<<portNum<<"\n";
-        if (inet_pton(AF_INET, ipAddr.data(), &addr->addr4.sin_addr)){
-            addr->addr4.sin_family = AF_INET;
-            addr->addr4.sin_port   = htons(portNum);
-        }
-        else if (memset(&addr->addr6, 0, sizeof(addr->addr6)),  inet_pton(AF_INET6, ipAddr.data(), &addr->addr6.sin6_addr)){
-            addr->addr6.sin6_family = AF_INET6;
-            addr->addr6.sin6_port   = htons(portNum);
-        }
-        else {LOGX((string("'")+ipAddr+"' is not a valid IP address").data()); exit(EXIT_FAILURE);}
-
-        // Set up socket
-        quicMgr->sock_fd = socket(addr->sa.sa_family, SOCK_DGRAM, 0);
-        if (quicMgr->sock_fd < 0){perror("socket error");            exit(EXIT_FAILURE);}
-        if (0 != set_nonblocking(quicMgr->sock_fd)){ perror("fcntl");exit(EXIT_FAILURE);}
-        if (0 != set_ecn(quicMgr->sock_fd, &addr->sa))               exit(EXIT_FAILURE);
-        if (asServer){
-            if (0 != set_origdst(quicMgr->sock_fd, &addr->sa))       exit(EXIT_FAILURE);
-        }
-        if (asServer){
-            int socklen = sizeof(Addr);
-            if (0 != bind(quicMgr->sock_fd, &addr->sa, socklen)){ perror("bind");exit(EXIT_FAILURE);}
-            memcpy(&quicMgr->local_sas, addr, sizeof(Addr));
-        } else {
-            quicMgr->local_sas.ss_family = addr->sa.sa_family;
-            int socklen = sizeof(quicMgr->local_sas);
-            if (0 != bind(quicMgr->sock_fd, (struct sockaddr *) &quicMgr->local_sas, socklen)){ perror("bind"); exit(EXIT_FAILURE);}
-            ev_init(&timer, timer_expired);
-        }
-        ev_io_init(&quicMgr->sock_w, read_socket, quicMgr->sock_fd, EV_READ);
-        ev_io_start(eventLoop, &quicMgr->sock_w);
-
-        // Initialize callbacks
-        lsquic_engine_api eapi;
-        memset(&eapi, 0, sizeof(eapi));
-        eapi.ea_packets_out     = packets_out_v1;
-        eapi.ea_packets_out_ctx = quicMgr;
-        eapi.ea_stream_if       = &quic_callbacks;
-        eapi.ea_stream_if_ctx   = quicEngine;
-        eapi.ea_get_ssl_ctx     = get_ssl_ctx;
-        //~ As needed, set up key logging. See latest lsQuic tutorial
-        eapi.ea_settings = settings;
-
-        // Create the engine
-        quicMgr->engine = lsquic_engine_new(asServer ? LSENG_SERVER : 0, &eapi);
-        if(!quicMgr->engine){LOGX("Cannot create quic engine"); exit(EXIT_FAILURE);}
-    }%>
-
-    void: runEngine(their QuicEngine: quicEngine) <- <%{
-        lsQuicMgr* quicMgr = &quicEngine->quicMgr;
-        Addr* addr = &quicEngine->addr;
-        timer.data  = quicMgr;
-        quicMgr->sock_w.data = quicMgr;
-        if(quicEngine->protocols.size()==0){logMgr.FatalError.LogEntry("FATAL ERROR: ", "No protocls given for Quic."); exit(1);}
-        if (!quicEngine->isServer){
-            quicMgr->conn = lsquic_engine_connect(
-                // TODO change this to version LSQVER_I001
-                quicMgr->engine, LSQVER_ID29,
-                (struct sockaddr *) &quicMgr->local_sas, &addr->sa,
-                (void *) (uintptr_t) quicMgr->sock_fd,
-                NULL, NULL, 0, NULL, 0, NULL, 0
-            );
-            if (!quicMgr->conn){LOGX("cannot create connection");  exit(EXIT_FAILURE);}
-            quicEngine->protocols[0]->step = 0;
-            process_conns(quicMgr);
-        }
-        ev_async_send(EV_DEFAULT_ eventLoopThread.async_w);  // Wake up the event loop
-    }%>
 }
 struct QuicConnectionID:wraps=lsquic_cid_t{}
 
@@ -681,6 +595,71 @@ struct QuicEngine{
     me bool: isServer
     me bool: doHTTP
 
+    void: setupSockets(me string: ipAddr, me int: portNum) <- <%{
+        // Set up socket addr
+        cout<<"IPAddr:"<<ipAddr<<" port:"<<portNum<<"\n";
+        if (inet_pton(AF_INET, ipAddr.data(), &addr.addr4.sin_addr)){
+            addr.addr4.sin_family = AF_INET;
+            addr.addr4.sin_port   = htons(portNum);
+        }
+        else if (memset(&addr.addr6, 0, sizeof(addr.addr6)),  inet_pton(AF_INET6, ipAddr.data(), &addr.addr6.sin6_addr)){
+            addr.addr6.sin6_family = AF_INET6;
+            addr.addr6.sin6_port   = htons(portNum);
+        }
+        else {LOGX((string("'")+ipAddr+"' is not a valid IP address").data()); exit(EXIT_FAILURE);}
+
+        // Set up socket
+        quicMgr.sock_fd = socket(addr.sa.sa_family, SOCK_DGRAM, 0);
+        if (quicMgr.sock_fd < 0){perror("socket error");            exit(EXIT_FAILURE);}
+        if (0 != set_nonblocking(quicMgr.sock_fd)){ perror("fcntl");exit(EXIT_FAILURE);}
+        if (0 != set_ecn(quicMgr.sock_fd, &addr.sa))               exit(EXIT_FAILURE);
+        if (isServer){
+            if (0 != set_origdst(quicMgr.sock_fd, &addr.sa))       exit(EXIT_FAILURE);
+        }
+        if (isServer){
+            int socklen = sizeof(Addr);
+            if (0 != bind(quicMgr.sock_fd, &addr.sa, socklen)){ perror("bind");exit(EXIT_FAILURE);}
+            memcpy(&quicMgr.local_sas, &addr, sizeof(Addr));
+        } else {
+            quicMgr.local_sas.ss_family = addr.sa.sa_family;
+            int socklen = sizeof(quicMgr.local_sas);
+            if (0 != bind(quicMgr.sock_fd, (struct sockaddr *) &quicMgr.local_sas, socklen)){ perror("bind"); exit(EXIT_FAILURE);}
+            ev_init(&timer, timer_expired);
+        }
+        ev_io_init(&quicMgr.sock_w, read_socket, quicMgr.sock_fd, EV_READ);
+        ev_io_start(eventLoop, &quicMgr.sock_w);
+    }%>
+
+    void: setEngineSettings() <- <%{
+        char errbuf[0x100];
+        if(isServer){
+            if(0 != load_cert(cert_file.data(), key_file.data())){cout<<"Cannot Load Certificate File:"<<cert_file<<"\n"; exit(EXIT_FAILURE);}
+        }
+        // Set Settings
+        lsquic_engine_settings* settings = new lsquic_engine_settings;
+        settings->es_cc_algo = 3;
+        settings->es_ecn = 1;
+        lsquic_engine_init_settings(settings, isServer ? LSENG_SERVER : 0);
+        settings->es_ql_bits = 0;  // Currently using the loss bits extension causes decryption failures in Wireshark.  For now we override the default.
+        // Check settings
+        if (0 != lsquic_engine_check_settings(settings, isServer ? LSENG_SERVER : 0, errbuf, sizeof(errbuf))) {LOGX("invalid settings: %s", errbuf); exit(EXIT_FAILURE);}
+
+        // Initialize callbacks
+        lsquic_engine_api eapi;
+        memset(&eapi, 0, sizeof(eapi));
+        eapi.ea_packets_out     = packets_out_v1;
+        eapi.ea_packets_out_ctx = &quicMgr;
+        eapi.ea_stream_if       = &quic_callbacks;
+        eapi.ea_stream_if_ctx   = this;
+        eapi.ea_get_ssl_ctx     = get_ssl_ctx;
+        //~ As needed, set up key logging. See latest lsQuic tutorial
+        eapi.ea_settings = settings;
+
+        // Create the engine
+        quicMgr.engine = lsquic_engine_new(isServer ? LSENG_SERVER : 0, &eapi);
+        if(!quicMgr.engine){LOGX("Cannot create quic engine"); exit(EXIT_FAILURE);}
+    }%>
+
     void: init(me string: filenameTag, me bool: ServerMode, me string: ipAddr, me int:portNum) <- {
         isServer  <- ServerMode
         doHTTP    <- false
@@ -691,24 +670,40 @@ struct QuicEngine{
         key_log_dir <- filenameTag+"KeyLogDir"
         lsquic_set_log_level("debug") // debug, info, notice, warning, error, alert, emerg, crit
         s_verbose <- 1             // 0=less logging
-        lsQuicSetupSocketsAndCallbacks(self, isServer, ipAddr, portNum)
+        setEngineSettings()
+        setupSockets(ipAddr, portNum)
     }
 
-    void: run() <- {
-        runEngine(self)
-    }
+    void: start() <- <%{
+        timer.data  = &quicMgr;
+        quicMgr.sock_w.data = &quicMgr;
+        if(protocols.size()==0){logMgr.FatalError.LogEntry("FATAL ERROR: ", "No protocls given for Quic."); exit(1);}
+        if (!isServer){
+            quicMgr.conn = lsquic_engine_connect(
+                // TODO change this to version LSQVER_I001
+                quicMgr.engine, LSQVER_ID29,
+                (struct sockaddr *) &quicMgr.local_sas, &addr.sa,
+                (void *) (uintptr_t) quicMgr.sock_fd,
+                NULL, NULL, 0, NULL, 0, NULL, 0
+            );
+            if (!quicMgr.conn){LOGX("cannot create connection");  exit(EXIT_FAILURE);}
+            protocols[0]->step = 0;
+            process_conns(&quicMgr);
+        }
+        ev_async_send(EV_DEFAULT_ eventLoopThread.async_w);  // Wake up the event loop
+    }%>
 }
 
 struct QuicConnection{
     their lsquic_conn: lsConn
-    their QuicConnectionID: getConnectionID() <- <%!(lsquic_cid_t*)lsquic_conn_id(%0.lsConn)}%>
-    void: createNewStream()                   <-  <%{lsquic_conn_make_stream(lsConn);}%>
+    their QuicConnectionID: getConnectionID() <- <%!(lsquic_cid_t*)lsquic_conn_id(%0.lsConn)%>
+    void: createNewStream()                   <- <%{lsquic_conn_make_stream(lsConn);}%>
     void: abort()                             <- <%{lsquic_conn_abort(lsConn);}%>
 }
 
 struct QuicStream{
     their lsquic_stream: theStream
-    me uint64: getStreamID()                <- <%{return(lsquic_stream_id(theStream));}%>
+    me uint64: getStreamID()               <- <%{return(lsquic_stream_id(theStream));}%>
     void: setPriority(me 1..256: priority) <- <%{lsquic_stream_set_priority(theStream, priority);}%>
     void: nextOpIsRead()                   <- <%{lsquic_stream_wantread(theStream, 1);}%>
     void: nextOpIsWrite()                  <- <%{lsquic_stream_wantwrite(theStream, 1);}%>
@@ -716,7 +711,7 @@ struct QuicStream{
     void: stopReading()                    <- <%{lsquic_stream_shutdown(theStream, 0);}%>
     void: stopWriting()                    <- <%{lsquic_stream_shutdown(theStream, 1);}%>
     void: close()                          <- <%{lsquic_stream_close(theStream);}%>
-    me int: read(me string:buf)            <- <%{return(lsquic_stream_read(theStream, buf.data(), buf.size()));}%>
+    me int: read(me string:buf)            <- <%{return(lsquic_stream_read(theStream, (void*)buf.data(), buf.size()));}%>
     me int: write(me string:buf)           <- <%{return(lsquic_stream_write(theStream, buf.data(), buf.size()));}%>
     their QuicConnection: getConnection()  <- <%{return((QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(theStream)));}%>
 }

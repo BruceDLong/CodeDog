@@ -28,7 +28,7 @@ struct QuicEngine{
     me List<our QProtocol>: protocols
 
     void: init(me string: filenameTag, me bool: ServerMode, me string: ipAddr, me int:portNum)
-    void: run()
+    void: start()
 
     void: onNewConnection_CB(their QuicConnection: conn) <- {print("BASE::onNewConnection_CB!!!!!!!!!!!!!!!!!\n")}
     their QuicConnection: allocNewConn() // Just allocate and return your descendent of QuicConnection
@@ -45,7 +45,7 @@ struct QuicConnection{
     void: onNewStream_CB(their QuicStream: stream) <- {print("BASE::onNewStream_CB!!!!!!!!!!!!!!!!!\n")}
     void: onConnectionClosed_CB()                  <- {print("BASE::onConnectionClosed_CB!!!!!!!!!!!!!!!!!\n")}
     their QuicConnectionID: getConnectionID()
-    their QuicStream: allocNewStream()             <- {print("BASE::allocNewStream!!!!!!!!!!!!!!!!!\n")} // Just allocate and return your descendent of QuicStream
+    their QuicStream: allocNewStream()             <- {print("BASE::allocNewStream!!!!!!!!!!!!!!!!!\n"); return(0)} // Just allocate and return your descendent of QuicStream
     void: abort()
     //void: ping()
 
@@ -58,7 +58,7 @@ struct QuicConnection{
 struct QuicStream{
     their QuicConnection: myConnection
     me string: buff     // TODO: add buffer class to CodeDog
-    me string: readBuff     // TODO: add buffer class to CodeDog
+    me string: readBuffer     // TODO: add buffer class to CodeDog
 
     /// onRead_CB() is used to read incoming data. Take data from the string: data. Return the number of bytes you used.
     /// As long as you keep using the entire buffer, onRead_CB() will keep getting called as new data comes in.
@@ -83,7 +83,6 @@ struct QuicStream{
 
     me bool: readNotDone
     our QProtocol: crntProtocol
-    me string: readBuffer
 
     me uint64: readLine(me string:dataIn) <- { // Returns the number of bytes used.
         me uint64: bytesUsed <- 0
@@ -123,7 +122,7 @@ struct QProtocol{
     bool: onServerWrite(their QuicStream: qStream)
     uint64: onClientRead(their QuicStream: qStream, their string: data, me bool: finished)
     bool: onClientWrite(their QuicStream: qStream)
-    void: onNewStream_CB(their QuicStream: stream)
+    void: onNewStream_CB(their QuicStream: stream) <- {print("BASE::onNewStream_CB!!!!!!!!!!!!!!!!!\n")}
 }
 
 
