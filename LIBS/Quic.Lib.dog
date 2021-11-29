@@ -194,15 +194,16 @@ struct QuicEngine_Client: inherits=QuicEngine{
     their QuicConnection_Client: makeClientConnection(me string: ipAddr, me string:portNum) <- <%{
         setupSockets(ipAddr, stoi(portNum));
         QuicConnection_Client* qConn = new QuicConnection_Client();
-        qConn->lsConn = lsquic_engine_connect(
+        quicMgr.conn = lsquic_engine_connect(
             // TODO change this to version LSQVER_I001
             quicMgr.engine, LSQVER_ID29,
             (struct sockaddr *) &quicMgr.local_sas, &addr.sa,
             (void *) (uintptr_t) quicMgr.sock_fd,
-            NULL, NULL, 0, NULL, 0, NULL, 0
+            (lsquic_conn_ctx_t*)qConn, NULL, 0, NULL, 0, NULL, 0
         );
+        qConn->lsConn = quicMgr.conn;
         if (!qConn->lsConn){LOGX("cannot create connection");  exit(EXIT_FAILURE);}
-
+        process_conns(&quicMgr);
         return(qConn);
     }%>
 }
@@ -223,10 +224,9 @@ struct QuicConnection_Client: inherits=QuicConnection{
         their QuicStream_Client: qStreamClient  <- qStream
 their QuicEngine_Client: qcEngine <- myEngine
         if(streamID==0){
-            //if(clientProtocols.size()==0){printf("No protocls given for Quic.\n"); exit(1);}
+            if(clientProtocols.size()==0){printf("ERROR: No protocls given for Quic.\n"); exit(1);}
             qStreamClient.nextOpIsWrite()
-            //qStreamClient.crntProtocol <- clientProtocols[0]
-qStreamClient.crntProtocol <- qcEngine.protocols[0]
+            qStreamClient.crntProtocol <- clientProtocols[0]
             qStreamClient.crntProtocol.myStream <- qStream
             qStreamClient.crntProtocol.init()
             //clientProtocols.popFirst()

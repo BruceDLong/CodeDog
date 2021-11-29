@@ -518,15 +518,14 @@ struct GLOBAL{
     their QuicConnection: QUIC_on_new_conn (their void: stream_if_ctx, their lsquic_conn: lsConn) <- <%{
         QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
         quicEngine->quicMgr.conn = lsConn;
-        QuicConnection* connection = quicEngine->allocNewConn();
-        connection->lsConn = lsConn;
-        connection->myEngine = quicEngine;
-        if(quicEngine->isServer==false){ // If engine is a client, create a stream
-            lsquic_conn_make_stream(lsConn);
-        }
-    cout<<"NEW_CONN; engine:"<<quicEngine<<"   lsConn:"<<lsConn<<"  slipConn:"<<connection<<"\n";
-        quicEngine->onNewConnection_CB(connection);
-        return connection;
+        QuicConnection* qConn = (QuicConnection*)lsquic_conn_get_ctx(lsConn);
+        if(qConn==nullptr){qConn = quicEngine->allocNewConn();}
+        qConn->lsConn = lsConn;
+        qConn->myEngine = quicEngine;
+        if(quicEngine->isServer==false){lsquic_conn_make_stream(lsConn);}
+    cout<<"NEW_CONN; engine:"<<quicEngine<<"   lsConn:"<<lsConn<<"  slipConn:"<<qConn<<"\n";
+        quicEngine->onNewConnection_CB(qConn);
+        return qConn;
     }%>
     void: QUIC_on_conn_closed (their lsquic_conn_t: lsConn) <- <%{
         LOGX("closed connection");
@@ -670,25 +669,13 @@ struct QuicEngine{
         lsquic_set_log_level("debug") // debug, info, notice, warning, error, alert, emerg, crit
         s_verbose <- 1             // 0=less logging
         setEngineSettings()
-        setupSockets(ipAddr, portNum)
+        if(isServer){setupSockets(ipAddr, portNum)}
     }
 
     void: start() <- <%{
         timer.data  = &quicMgr;
         quicMgr.sock_w.data = &quicMgr;
-        if(protocols.size()==0){logMgr.FatalError.LogEntry("FATAL ERROR: ", "No protocls given for Quic."); exit(1);}
-        if (!isServer){
-            quicMgr.conn = lsquic_engine_connect(
-                // TODO change this to version LSQVER_I001
-                quicMgr.engine, LSQVER_ID29,
-                (struct sockaddr *) &quicMgr.local_sas, &addr.sa,
-                (void *) (uintptr_t) quicMgr.sock_fd,
-                NULL, NULL, 0, NULL, 0, NULL, 0
-            );
-            if (!quicMgr.conn){LOGX("cannot create connection");  exit(EXIT_FAILURE);}
-            protocols[0]->step = 0;
-            process_conns(&quicMgr);
-        }
+        if(isServer && protocols.size()==0){logMgr.FatalError.LogEntry("FATAL ERROR: ", "No protocls given for Quic."); exit(1);}
         ev_async_send(EV_DEFAULT_ eventLoopThread.async_w);  // Wake up the event loop
     }%>
 }

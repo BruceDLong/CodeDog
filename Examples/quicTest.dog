@@ -165,11 +165,10 @@ our FetchFile::    fetchFile
             //our FetchFile::    fetchFile
             fetchFile.fileName <- inFile
             client.init("CFile", false, IPAddr, stoi(portNum))
-            //their QuicConnection_Client: qConn <- client.makeClientConnection(IPAddr, portNum)
-            //qConn.addProtocol(fetchFile)
-client.addProtocol(fetchFile)
+            their QuicConnection_Client: qConn <- client.makeClientConnection(IPAddr, portNum)
+            qConn.addProtocol(fetchFile)
             client.start()
-            //qConn.createNewStream()
+            qConn.createNewStream()
             eventLoopThread.waitForExit()
             print("CLIENT_RAN\n")
         } else {logFatalError("Invalid running mode:"+clientOrServer)}
