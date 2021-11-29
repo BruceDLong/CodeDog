@@ -150,10 +150,11 @@ struct FetchFile: inherits=QProtocol {
 struct ClientAndServer{
     void: runTest(me string: clientOrServer, me string: inFile, me string: outFile, me string:IPAddr, me string: portNum) <- {
         our PingProtocol::  pingProtocol
-        our FetchFile::    fetchFile
+our FetchFile::    fetchFile
 
         if(clientOrServer=="server"){
             me QuicEngine_Server: server
+            //our FetchFile::    fetchFile
             server.init("SFile", true, IPAddr, stoi(portNum))
             server.addProtocol(pingProtocol)
             server.addProtocol(fetchFile)
@@ -161,10 +162,14 @@ struct ClientAndServer{
             eventLoopThread.waitForExit()
         } else if(clientOrServer=="client"){
             me QuicEngine_Client: client
+            //our FetchFile::    fetchFile
             fetchFile.fileName <- inFile
             client.init("CFile", false, IPAddr, stoi(portNum))
-            client.addProtocol(fetchFile)
+            //their QuicConnection_Client: qConn <- client.makeClientConnection(IPAddr, portNum)
+            //qConn.addProtocol(fetchFile)
+client.addProtocol(fetchFile)
             client.start()
+            //qConn.createNewStream()
             eventLoopThread.waitForExit()
             print("CLIENT_RAN\n")
         } else {logFatalError("Invalid running mode:"+clientOrServer)}

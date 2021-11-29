@@ -438,7 +438,7 @@ static void read_socket (EV_P_ ev_io *w, int revents){
 
 //////// Quic callbacks and utilities
 
-static void QUIC_client_on_hsk_done (lsquic_conn_t *conn, enum lsquic_hsk_status status);
+static void QUIC_client_on_hsk_done (lsquic_conn_t *lsConn, enum lsquic_hsk_status status);
 
 static lsquic_stream_if quic_callbacks;
 
@@ -450,7 +450,7 @@ union Addr{
 
 `
 embedLow = `
-static void QUIC_client_on_hsk_done (lsquic_conn_t *conn, enum lsquic_hsk_status status){
+static void QUIC_client_on_hsk_done (lsquic_conn_t *lsConn, enum lsquic_hsk_status status){
     switch (status){
     case LSQ_HSK_OK:
         LOGX("handshake succeeded");
@@ -481,7 +481,6 @@ struct ThreadedEventLoop: inherits=Threads {
     }
 }
 struct GLOBAL{
-  //  me ev_timer: timer
     their ev_loop: eventLoop
     me ThreadedEventLoop: eventLoopThread
 
@@ -516,24 +515,24 @@ struct GLOBAL{
     void: deinitQuicSystem() <- <%{
         lsquic_global_cleanup();
     }%>
-    their QuicConnection: QUIC_on_new_conn (their void: stream_if_ctx, their lsquic_conn: conn) <- <%{
+    their QuicConnection: QUIC_on_new_conn (their void: stream_if_ctx, their lsquic_conn: lsConn) <- <%{
         QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
-        quicEngine->quicMgr.conn = conn;
+        quicEngine->quicMgr.conn = lsConn;
         QuicConnection* connection = quicEngine->allocNewConn();
-        connection->lsConn = conn;
+        connection->lsConn = lsConn;
         connection->myEngine = quicEngine;
         if(quicEngine->isServer==false){ // If engine is a client, create a stream
-            lsquic_conn_make_stream(conn);
+            lsquic_conn_make_stream(lsConn);
         }
-    cout<<"NEW_CONN; engine:"<<quicEngine<<"   conn:"<<conn<<"  slipConn:"<<connection<<"\n";
+    cout<<"NEW_CONN; engine:"<<quicEngine<<"   lsConn:"<<lsConn<<"  slipConn:"<<connection<<"\n";
         quicEngine->onNewConnection_CB(connection);
         return connection;
     }%>
-    void: QUIC_on_conn_closed (their lsquic_conn_t: conn) <- <%{
+    void: QUIC_on_conn_closed (their lsquic_conn_t: lsConn) <- <%{
         LOGX("closed connection");
-        QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(conn);
-        QuicEngine* quicEngine = connection->myEngine;
-        connection->onConnectionClosed_CB();
+        QuicConnection* qConn = (QuicConnection*)lsquic_conn_get_ctx(lsConn);
+        QuicEngine* quicEngine = qConn->myEngine;
+        qConn->onConnectionClosed_CB();
         if(!quicEngine->isServer){ // if engine is in client mode, stop engine.
             ev_io_stop(eventLoop, &quicEngine->quicMgr.sock_w);
             ev_break(eventLoop, EVBREAK_ONE);
@@ -541,12 +540,12 @@ struct GLOBAL{
     }%>
     their lsquic_stream_ctx_t: QUIC_on_new_stream(their void: stream_if_ctx, their lsquic_stream: stream) <- <%{
         QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
-        lsquic_conn_t* conn = lsquic_stream_conn(stream);
-        QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(conn);
-        QuicStream* quicStream = connection->allocNewStream();
-        quicStream->myConnection = connection;
+        lsquic_conn_t* lsConn = lsquic_stream_conn(stream);
+        QuicConnection* qConn = (QuicConnection*)lsquic_conn_get_ctx(lsConn);
+        QuicStream* quicStream = qConn->allocNewStream();
+        quicStream->myConnection = qConn;
         quicStream->theStream = stream;
-        connection->onNewStream_CB(quicStream);
+        qConn->onNewStream_CB(quicStream);
         return (lsquic_stream_ctx_t*)quicStream;
     }%>
     me uint64: QUIC_on_read_proxy(their lsquic_stream_ctx_t: qStream_ctx, their char: data, me uint64: len, me int: finished) <- <%{
@@ -592,7 +591,7 @@ struct QuicEngine{
     me string: cert_file
     me string: key_file
     me string: key_log_dir
-    me bool: isServer
+
     me bool: doHTTP
 
     void: setupSockets(me string: ipAddr, me int: portNum) <- <%{
