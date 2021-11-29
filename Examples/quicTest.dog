@@ -19,10 +19,10 @@ runCode = `
     me string: clientOrServerMode <- CommandLineManager.getOption("QTest", "mode")
     me string: inFile  <- CommandLineManager.getOption("QTest", "inFile")
     me string: outFile <- CommandLineManager.getOption("QTest", "outFile")
-    me string: IPAddr  <- CommandLineManager.getOption("QTest", "IPAddr")
+    me string: ipAddr  <- CommandLineManager.getOption("QTest", "IPAddr")
     me string: port    <- CommandLineManager.getOption("QTest", "port")
     me ClientAndServer: clientAndServer;
-    clientAndServer.runTest(clientOrServerMode, inFile, outFile, IPAddr, port)
+    clientAndServer.runTest(clientOrServerMode, inFile, outFile, ipAddr, port)
 `
 
 do ManageCmdLine(cmd)
@@ -58,10 +58,10 @@ struct PingProtocol: inherits=QProtocol {
             }
             case 1:{}
         }
-        //qStream.requestRead()
         return(false)
     }
 }
+
 struct FetchFile: inherits=QProtocol {
     me string: fileName
 
@@ -146,32 +146,30 @@ struct FetchFile: inherits=QProtocol {
     }
 }
 
-
 struct ClientAndServer{
-    void: runTest(me string: clientOrServer, me string: inFile, me string: outFile, me string:IPAddr, me string: portNum) <- {
+    void: runTest(me string: clientOrServer, me string: inFile, me string: outFile, me string:ipAddr, me string: portNum) <- {
         our PingProtocol::  pingProtocol
-our FetchFile::    fetchFile
 
         if(clientOrServer=="server"){
             me QuicEngine_Server: server
-            //our FetchFile::    fetchFile
-            server.init("SFile", true, IPAddr, stoi(portNum))
+            our FetchFile::    fetchFile
+            server.init("SFile", true, ipAddr, stoi(portNum))
             server.addProtocol(pingProtocol)
             server.addProtocol(fetchFile)
             server.start()
             eventLoopThread.waitForExit()
-        } else if(clientOrServer=="client"){
+        }else if(clientOrServer=="client"){
             me QuicEngine_Client: client
-            //our FetchFile::    fetchFile
+            our FetchFile::    fetchFile
             fetchFile.fileName <- inFile
-            client.init("CFile", false, IPAddr, stoi(portNum))
-            their QuicConnection_Client: qConn <- client.makeClientConnection(IPAddr, portNum)
+            client.init("CFile", false, ipAddr, stoi(portNum))
+            their QuicConnection_Client: qConn <- client.makeClientConnection(ipAddr, portNum)
             qConn.addProtocol(fetchFile)
             client.start()
             qConn.createNewStream()
             eventLoopThread.waitForExit()
             print("CLIENT_RAN\n")
-        } else {logFatalError("Invalid running mode:"+clientOrServer)}
+        }else{logFatalError("Invalid running mode:"+clientOrServer)}
     //BRUCE: REmember to lsquic_engine_destroy(quicMgr.engine);
     }
 }

@@ -78,7 +78,7 @@ static const struct lsquic_logger_if logger_if = { log_buf, };
 static FILE *logFileHandle;
 static int s_verbose;
 static void LOGX (const char *fmt, ...){
-    if (s_verbose){
+    if(s_verbose){
         va_list ap;
         string printFmt =string("    LOG:")+fmt+"\n";
         printf(printFmt.data(),ap);
@@ -96,28 +96,27 @@ static int load_cert(string cert_file, string key_file){
     int rv = -1;
 
     s_ssl_ctx = SSL_CTX_new(TLS_method());
-    if (!s_ssl_ctx){
+    if(!s_ssl_ctx){
         LOGX("SSL_CTX_new failed");
         goto end;
     }
     SSL_CTX_set_min_proto_version(s_ssl_ctx, TLS1_3_VERSION);
     SSL_CTX_set_max_proto_version(s_ssl_ctx, TLS1_3_VERSION);
     SSL_CTX_set_default_verify_paths(s_ssl_ctx);
-    if (1 != SSL_CTX_use_certificate_chain_file(s_ssl_ctx, cert_file.data())){
+    if(1 != SSL_CTX_use_certificate_chain_file(s_ssl_ctx, cert_file.data())){
         LOGX("SSL_CTX_use_certificate_chain_file failed");
         LOGX(cert_file.data());
         goto end;
     }
-    if (1 != SSL_CTX_use_PrivateKey_file(s_ssl_ctx, key_file.data(), SSL_FILETYPE_PEM)){
+    if(1 != SSL_CTX_use_PrivateKey_file(s_ssl_ctx, key_file.data(), SSL_FILETYPE_PEM)){
         LOGX("SSL_CTX_use_PrivateKey_file failed");
         goto end;
     }
     rv = 0;
 
   end:
-    if (rv != 0){
-        if (s_ssl_ctx)
-            SSL_CTX_free(s_ssl_ctx);
+    if(rv != 0){
+        if(s_ssl_ctx){SSL_CTX_free(s_ssl_ctx);}
         s_ssl_ctx = NULL;
     }
     return rv;
@@ -150,12 +149,9 @@ static void setup_control_msg (struct msghdr *msg, enum ctl_what cw, const struc
 
     ctl_len = 0;
     int CW = (int)cw;
-    for (cmsg = CMSG_FIRSTHDR(msg); CW && cmsg; cmsg = CMSG_NXTHDR(msg, cmsg))
-    {
-        if (CW & CW_SENDADDR)
-        {
-            if (AF_INET == spec->dest_sa->sa_family)
-            {
+    for (cmsg = CMSG_FIRSTHDR(msg); CW && cmsg; cmsg = CMSG_NXTHDR(msg, cmsg)){
+        if(CW & CW_SENDADDR){
+            if(AF_INET == spec->dest_sa->sa_family){
                 local_sa = (struct sockaddr_in *) spec->local_sa;
                 memset(&info, 0, sizeof(info));
                 info.ipi_spec_dst = local_sa->sin_addr;
@@ -164,9 +160,7 @@ static void setup_control_msg (struct msghdr *msg, enum ctl_what cw, const struc
                 cmsg->cmsg_len      = CMSG_LEN(sizeof(info));
                 ctl_len += CMSG_SPACE(sizeof(info));
                 memcpy(CMSG_DATA(cmsg), &info, sizeof(info));
-            }
-            else
-            {
+            }else{
                 local_sa6 = (struct sockaddr_in6 *) spec->local_sa;
                 memset(&info6, 0, sizeof(info6));
                 info6.ipi6_addr = local_sa6->sin6_addr;
@@ -177,20 +171,15 @@ static void setup_control_msg (struct msghdr *msg, enum ctl_what cw, const struc
                 ctl_len += CMSG_SPACE(sizeof(info6));
             }
             CW &= ~CW_SENDADDR;
-        }
-        else if (CW & CW_ECN)
-        {
-            if (AF_INET == spec->dest_sa->sa_family)
-            {
+        }else if(CW & CW_ECN){
+            if(AF_INET == spec->dest_sa->sa_family){
                 const int tos = spec->ecn;
                 cmsg->cmsg_level = IPPROTO_IP;
                 cmsg->cmsg_type  = IP_TOS;
                 cmsg->cmsg_len   = CMSG_LEN(sizeof(tos));
                 memcpy(CMSG_DATA(cmsg), &tos, sizeof(tos));
                 ctl_len += CMSG_SPACE(sizeof(tos));
-            }
-            else
-            {
+            }else{
                 const int tos = spec->ecn;
                 cmsg->cmsg_level = IPPROTO_IPV6;
                 cmsg->cmsg_type  = IPV6_TCLASS;
@@ -200,8 +189,7 @@ static void setup_control_msg (struct msghdr *msg, enum ctl_what cw, const struc
             }
             CW &= ~CW_ECN;
         }
-        else
-            assert(0);
+        else{assert(0);}
     }
 
     msg->msg_controllen = ctl_len;
@@ -214,7 +202,7 @@ static int packets_out_v1 (void *packets_out_ctx, const struct lsquic_out_spec *
     int fd, s = 0;
     struct msghdr msg;
     int cw;
-    union {
+    union{
         /* cmsg(3) recommends union for proper alignment */
         unsigned char buf[
             CMSG_SPACE(MAX(sizeof(struct in_pktinfo),
@@ -223,13 +211,11 @@ static int packets_out_v1 (void *packets_out_ctx, const struct lsquic_out_spec *
         struct cmsghdr cmsg;
     } ancil;
 
-    if (0 == count)
-        return 0;
+    if(0 == count){return 0;}
 
     n = 0;
     msg.msg_flags = 0;
-    do
-    {
+    do{
         fd                 = (int) (uint64_t) specs[n].peer_ctx;
         msg.msg_name       = (void *) specs[n].dest_sa;
         msg.msg_namelen    = (AF_INET == specs[n].dest_sa->sa_family ?
@@ -239,24 +225,14 @@ static int packets_out_v1 (void *packets_out_ctx, const struct lsquic_out_spec *
         msg.msg_iovlen     = specs[n].iovlen;
 
         /* Set up ancillary message */
-        if (quicMgr->flags & quicMgr->IS_SERVER)
-            cw = CW_SENDADDR;
-        else
-            cw = 0;
-        if (specs[n].ecn)
-            cw |= CW_ECN;
-        if (cw)
-            setup_control_msg(&msg, (enum ctl_what)cw, &specs[n], ancil.buf,
-                                                    sizeof(ancil.buf));
-        else
-        {
-            msg.msg_control    = NULL;
-            msg.msg_controllen = 0;
-        }
+        if(quicMgr->flags & quicMgr->IS_SERVER){cw = CW_SENDADDR;}
+        else{cw = 0;}
+        if(specs[n].ecn){cw |= CW_ECN;}
+        if(cw){setup_control_msg(&msg,(enum ctl_what)cw, &specs[n], ancil.buf, sizeof(ancil.buf));}
+        else{msg.msg_control    = NULL; msg.msg_controllen = 0;}
 
         s = sendmsg(fd, &msg, 0);
-        if (s < 0)
-        {
+        if(s < 0){
             LOGX("sendmsg failed: %s", strerror(errno));
             break;
         }
@@ -264,9 +240,9 @@ static int packets_out_v1 (void *packets_out_ctx, const struct lsquic_out_spec *
     }
     while (n < count);
 
-    if (n < count) LOGX("could not send all of them");
+    if(n < count) LOGX("could not send all of them");
 
-    if (n > 0) return n;
+    if(n > 0) return n;
     else{
         assert(s < 0);
         return -1;
@@ -275,35 +251,26 @@ static int packets_out_v1 (void *packets_out_ctx, const struct lsquic_out_spec *
 
 static int set_nonblocking (int fd){
     int flags;
-
     flags = fcntl(fd, F_GETFL);
-    if (-1 == flags)
-        return -1;
+    if(-1 == flags){return -1;}
     flags |= O_NONBLOCK;
-    if (0 != fcntl(fd, F_SETFL, flags))
-        return -1;
-
+    if(0 != fcntl(fd, F_SETFL, flags)){return -1;}
     return 0;
 }
 static int set_ecn (int fd, const struct sockaddr *sa){
     // ToS is used to get ECN value
     int on, s;
-
     on = 1;
-    if (AF_INET == sa->sa_family)
-        s = setsockopt(fd, IPPROTO_IP, IP_RECVTOS, &on, sizeof(on));
-    else
-        s = setsockopt(fd, IPPROTO_IPV6, IPV6_RECVTCLASS, &on, sizeof(on));
-    if (s != 0)
-        perror("setsockopt(ecn)");
-
+    if(AF_INET == sa->sa_family){s = setsockopt(fd, IPPROTO_IP, IP_RECVTOS, &on, sizeof(on));}
+    else{s = setsockopt(fd, IPPROTO_IPV6, IPV6_RECVTCLASS, &on, sizeof(on));}
+    if(s != 0){perror("setsockopt(ecn)");}
     return s;
 }
 static int set_origdst (int fd, const struct sockaddr *sa){
 // Set up the socket to return original destination address in ancillary data
     int on, s;
     on = 1;
-    if (AF_INET == sa->sa_family)
+    if(AF_INET == sa->sa_family)
         s = setsockopt(fd, IPPROTO_IP,
 #if defined(IP_RECVORIGDSTADDR)
                                        IP_RECVORIGDSTADDR,
@@ -311,11 +278,9 @@ static int set_origdst (int fd, const struct sockaddr *sa){
                                        IP_PKTINFO,
 #endif
                                                            &on, sizeof(on));
-    else
-        s = setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on));
+    else{s = setsockopt(fd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on));}
 
-    if (s != 0)
-        perror("setsockopt");
+    if(s != 0){perror("setsockopt");}
 
     return s;
 }
@@ -329,11 +294,11 @@ static void process_conns (struct lsQuicMgr *quicMgr){
     ev_timer_stop(ev_default_loop(0), &timer);
     lsquic_engine_process_conns(quicMgr->engine);
 
-    if (lsquic_engine_earliest_adv_tick(quicMgr->engine, &diff)){
-        if (diff >= LSQUIC_DF_CLOCK_GRANULARITY)
+    if(lsquic_engine_earliest_adv_tick(quicMgr->engine, &diff)){
+        if(diff >= LSQUIC_DF_CLOCK_GRANULARITY)
             /* Expected case: convert to seconds */
             timeout = (ev_tstamp) diff / 1000000;
-        else if (diff <= 0)
+        else if(diff <= 0)
             /* It should not happen often that the next tick is in the past
              * as we just processed connections.  Avoid a busy loop by
              * scheduling an event:
@@ -348,14 +313,12 @@ static void process_conns (struct lsQuicMgr *quicMgr){
     }
 }
 
-
 static void proc_ancillary (struct msghdr *msg, struct sockaddr_storage *storage, int *ecn){
     const struct in6_pktinfo *in6_pkt;
     struct cmsghdr *cmsg;
 
-    for (cmsg = CMSG_FIRSTHDR(msg); cmsg; cmsg = CMSG_NXTHDR(msg, cmsg))
-    {
-        if (cmsg->cmsg_level == IPPROTO_IP &&
+    for(cmsg = CMSG_FIRSTHDR(msg); cmsg; cmsg = CMSG_NXTHDR(msg, cmsg)){
+        if(cmsg->cmsg_level == IPPROTO_IP &&
             cmsg->cmsg_type  ==
 #if defined(IP_RECVORIGDSTADDR)
                                 IP_ORIGDSTADDR
@@ -371,22 +334,15 @@ static void proc_ancillary (struct msghdr *msg, struct sockaddr_storage *storage
             in_pkt = (in_pktinfo*) CMSG_DATA(cmsg);
             ((struct sockaddr_in *) storage)->sin_addr = in_pkt->ipi_addr;
 #endif
-        }
-        else if (cmsg->cmsg_level == IPPROTO_IPV6 &&
-                 cmsg->cmsg_type  == IPV6_PKTINFO)
-        {
+        }else if(cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type  == IPV6_PKTINFO){
             in6_pkt = (in6_pktinfo*)CMSG_DATA(cmsg);
             ((struct sockaddr_in6 *) storage)->sin6_addr = in6_pkt->ipi6_addr;
-        }
-        else if ((cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_TOS)
-                 || (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_TCLASS))
-        {
+        }else if((cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_TOS) || (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_TCLASS)){
             memcpy(ecn, CMSG_DATA(cmsg), sizeof(*ecn));
             *ecn &= IPTOS_ECN_MASK;
         }
     }
 }
-
 
 #if defined(IP_RECVORIGDSTADDR)
 #   define DST_MSG_SZ sizeof(struct sockaddr_in)
@@ -398,7 +354,6 @@ static void proc_ancillary (struct msghdr *msg, struct sockaddr_storage *storage
 
 // Amount of space required for incoming ancillary data
 #define CTL_SZ (CMSG_SPACE(MAX(DST_MSG_SZ, sizeof(struct in6_pktinfo))) + ECN_SZ)
-
 
 static void read_socket (EV_P_ ev_io *w, int revents){
     lsQuicMgr* const quicMgr = (lsQuicMgr*)w->data;
@@ -418,9 +373,8 @@ static void read_socket (EV_P_ ev_io *w, int revents){
         .msg_controllen = sizeof(ctl_buf),
     };
     bytesRead = recvmsg(w->fd, &msg, 0);
-    if (-1 == bytesRead) {
-        if (!(EAGAIN == errno || EWOULDBLOCK == errno))
-            LOGX("recvmsg: %s", strerror(errno));
+    if(-1 == bytesRead){
+        if(!(EAGAIN == errno || EWOULDBLOCK == errno)){LOGX("recvmsg: %s", strerror(errno));}
         return;
     }
 
@@ -428,10 +382,7 @@ static void read_socket (EV_P_ ev_io *w, int revents){
     ecn = 0;
     proc_ancillary(&msg, &local_sas, &ecn);
 
-    (void) lsquic_engine_packet_in(quicMgr->engine, buf, bytesRead,
-        (struct sockaddr *) &local_sas,
-        (struct sockaddr *) &peer_sas,
-        (void *) (uintptr_t) w->fd, ecn);
+    (void) lsquic_engine_packet_in(quicMgr->engine, buf, bytesRead, (struct sockaddr *) &local_sas, (struct sockaddr *) &peer_sas, (void *) (uintptr_t) w->fd, ecn);
 
     process_conns(quicMgr);
 }
@@ -485,15 +436,15 @@ struct GLOBAL{
     me ThreadedEventLoop: eventLoopThread
 
     void: initQuicSystem() <- <%{
-        // Initialize logging
-        // logFileHandle <- stderr;
-
+        // init threaded event loop
         eventLoop = ev_default_loop(0);
         eventLoopThread.start();
 
+        // Initialize logging
+        // logFileHandle <- stderr;
         string logFileName = "prefix" "_" ".log";
         logFileHandle = fopen(logFileName.data(), "ab");
-        if (!logFileHandle) {perror("cannot open log file for writing");exit(EXIT_FAILURE);}
+        if(!logFileHandle){perror("cannot open log file for writing");exit(EXIT_FAILURE);}
         setvbuf(logFileHandle, nullptr, _IOLBF, 0);
         lsquic_logger_init(&logger_if, logFileHandle, LLTS_HHMMSSUS);
 
@@ -508,13 +459,12 @@ struct GLOBAL{
         quic_callbacks.on_hsk_done        = QUIC_client_on_hsk_done;
 
         // Initialize quic global engine
-        if (0 != lsquic_global_init(LSQUIC_GLOBAL_SERVER | LSQUIC_GLOBAL_CLIENT)) {fprintf(stderr, "global initialization failed\n"); exit(EXIT_FAILURE);}
+        if(0 != lsquic_global_init(LSQUIC_GLOBAL_SERVER | LSQUIC_GLOBAL_CLIENT)){fprintf(stderr, "global initialization failed\n"); exit(EXIT_FAILURE);}
     }%>
 
     void: async_cb (their ev_loop: loop, their ev_async: watcher, int: revents) <- {} // just used for the event loop side effects
-    void: deinitQuicSystem() <- <%{
-        lsquic_global_cleanup();
-    }%>
+    void: deinitQuicSystem() <- <%{lsquic_global_cleanup();}%>
+
     their QuicConnection: QUIC_on_new_conn (their void: stream_if_ctx, their lsquic_conn: lsConn) <- <%{
         QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
         quicEngine->quicMgr.conn = lsConn;
@@ -596,32 +546,32 @@ struct QuicEngine{
     void: setupSockets(me string: ipAddr, me int: portNum) <- <%{
         // Set up socket addr
         cout<<"IPAddr:"<<ipAddr<<" port:"<<portNum<<"\n";
-        if (inet_pton(AF_INET, ipAddr.data(), &addr.addr4.sin_addr)){
+        if(inet_pton(AF_INET, ipAddr.data(), &addr.addr4.sin_addr)){
             addr.addr4.sin_family = AF_INET;
             addr.addr4.sin_port   = htons(portNum);
         }
-        else if (memset(&addr.addr6, 0, sizeof(addr.addr6)),  inet_pton(AF_INET6, ipAddr.data(), &addr.addr6.sin6_addr)){
+        else if(memset(&addr.addr6, 0, sizeof(addr.addr6)),  inet_pton(AF_INET6, ipAddr.data(), &addr.addr6.sin6_addr)){
             addr.addr6.sin6_family = AF_INET6;
             addr.addr6.sin6_port   = htons(portNum);
         }
-        else {LOGX((string("'")+ipAddr+"' is not a valid IP address").data()); exit(EXIT_FAILURE);}
+        else{LOGX((string("'")+ipAddr+"' is not a valid IP address").data()); exit(EXIT_FAILURE);}
 
         // Set up socket
         quicMgr.sock_fd = socket(addr.sa.sa_family, SOCK_DGRAM, 0);
-        if (quicMgr.sock_fd < 0){perror("socket error");            exit(EXIT_FAILURE);}
-        if (0 != set_nonblocking(quicMgr.sock_fd)){ perror("fcntl");exit(EXIT_FAILURE);}
-        if (0 != set_ecn(quicMgr.sock_fd, &addr.sa))               exit(EXIT_FAILURE);
-        if (isServer){
-            if (0 != set_origdst(quicMgr.sock_fd, &addr.sa))       exit(EXIT_FAILURE);
+        if(quicMgr.sock_fd < 0){perror("socket error");            exit(EXIT_FAILURE);}
+        if(0 != set_nonblocking(quicMgr.sock_fd)){ perror("fcntl");exit(EXIT_FAILURE);}
+        if(0 != set_ecn(quicMgr.sock_fd, &addr.sa))               exit(EXIT_FAILURE);
+        if(isServer){
+            if(0 != set_origdst(quicMgr.sock_fd, &addr.sa))       exit(EXIT_FAILURE);
         }
-        if (isServer){
+        if(isServer){
             int socklen = sizeof(Addr);
-            if (0 != bind(quicMgr.sock_fd, &addr.sa, socklen)){ perror("bind");exit(EXIT_FAILURE);}
+            if(0 != bind(quicMgr.sock_fd, &addr.sa, socklen)){ perror("bind");exit(EXIT_FAILURE);}
             memcpy(&quicMgr.local_sas, &addr, sizeof(Addr));
-        } else {
+        }else{
             quicMgr.local_sas.ss_family = addr.sa.sa_family;
             int socklen = sizeof(quicMgr.local_sas);
-            if (0 != bind(quicMgr.sock_fd, (struct sockaddr *) &quicMgr.local_sas, socklen)){ perror("bind"); exit(EXIT_FAILURE);}
+            if(0 != bind(quicMgr.sock_fd, (struct sockaddr *) &quicMgr.local_sas, socklen)){ perror("bind"); exit(EXIT_FAILURE);}
             ev_init(&timer, timer_expired);
         }
         ev_io_init(&quicMgr.sock_w, read_socket, quicMgr.sock_fd, EV_READ);
@@ -640,21 +590,21 @@ struct QuicEngine{
         lsquic_engine_init_settings(settings, isServer ? LSENG_SERVER : 0);
         settings->es_ql_bits = 0;  // Currently using the loss bits extension causes decryption failures in Wireshark.  For now we override the default.
         // Check settings
-        if (0 != lsquic_engine_check_settings(settings, isServer ? LSENG_SERVER : 0, errbuf, sizeof(errbuf))) {LOGX("invalid settings: %s", errbuf); exit(EXIT_FAILURE);}
+        if(0 != lsquic_engine_check_settings(settings, isServer ? LSENG_SERVER : 0, errbuf, sizeof(errbuf))){LOGX("invalid settings: %s", errbuf); exit(EXIT_FAILURE);}
 
         // Initialize callbacks
-        lsquic_engine_api eapi;
-        memset(&eapi, 0, sizeof(eapi));
-        eapi.ea_packets_out     = packets_out_v1;
-        eapi.ea_packets_out_ctx = &quicMgr;
-        eapi.ea_stream_if       = &quic_callbacks;
-        eapi.ea_stream_if_ctx   = this;
-        eapi.ea_get_ssl_ctx     = get_ssl_ctx;
+        lsquic_engine_api lsqSettings;
+        memset(&lsqSettings, 0, sizeof(lsqSettings));
+        lsqSettings.ea_packets_out     = packets_out_v1;
+        lsqSettings.ea_packets_out_ctx = &quicMgr;
+        lsqSettings.ea_stream_if       = &quic_callbacks;
+        lsqSettings.ea_stream_if_ctx   = this;
+        lsqSettings.ea_get_ssl_ctx     = get_ssl_ctx;
         //~ As needed, set up key logging. See latest lsQuic tutorial
-        eapi.ea_settings = settings;
+        lsqSettings.ea_settings = settings;
 
         // Create the engine
-        quicMgr.engine = lsquic_engine_new(isServer ? LSENG_SERVER : 0, &eapi);
+        quicMgr.engine = lsquic_engine_new(isServer ? LSENG_SERVER : 0, &lsqSettings);
         if(!quicMgr.engine){LOGX("Cannot create quic engine"); exit(EXIT_FAILURE);}
     }%>
 
@@ -664,7 +614,7 @@ struct QuicEngine{
         cert_file <- "certFile.pem"
         key_file  <- "keyFile.pem"
 
-        if (0 != lsquic_logger_lopt("event=warn")){fprintf(stderr, "invalid log option\n");exit(EXIT_FAILURE);}
+        if(0 != lsquic_logger_lopt("event=warn")){fprintf(stderr, "invalid log option\n");exit(EXIT_FAILURE);}
         key_log_dir <- filenameTag+"KeyLogDir"
         lsquic_set_log_level("debug") // debug, info, notice, warning, error, alert, emerg, crit
         s_verbose <- 1             // 0=less logging
@@ -700,4 +650,21 @@ struct QuicStream{
     me int: read(me string:buf)            <- <%{return(lsquic_stream_read(theStream, (void*)buf.data(), buf.size()));}%>
     me int: write(me string:buf)           <- <%{return(lsquic_stream_write(theStream, buf.data(), buf.size()));}%>
     their QuicConnection: getConnection()  <- <%{return((QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(theStream)));}%>
+}
+
+struct QuicEngine_Client{
+    their QuicConnection_Client: makeClientConnection(me string: ipAddr, me string:portNum) <- <%{
+        setupSockets(ipAddr, stoi(portNum));
+        QuicConnection_Client* qConn = new QuicConnection_Client();
+        quicMgr.conn = lsquic_engine_connect(
+            quicMgr.engine, LSQVER_I001,
+            (struct sockaddr *) &quicMgr.local_sas, &addr.sa,
+            (void *) (uintptr_t) quicMgr.sock_fd,
+            (lsquic_conn_ctx_t*)qConn, NULL, 0, NULL, 0, NULL, 0
+        );
+        qConn->lsConn = quicMgr.conn;
+        if(!qConn->lsConn){LOGX("cannot create connection");  exit(EXIT_FAILURE);}
+        process_conns(&quicMgr);
+        return(qConn);
+    }%>
 }
