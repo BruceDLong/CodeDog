@@ -17,18 +17,23 @@ runCode = `
     logMgr.init(OFile)
     initCmdMgr()
     me string: clientOrServerMode <- CommandLineManager.getOption("QTest", "mode")
-    me string: inFile  <- CommandLineManager.getOption("QTest", "inFile")
     me string: outFile <- CommandLineManager.getOption("QTest", "outFile")
     me string: ipAddr  <- CommandLineManager.getOption("QTest", "IPAddr")
     me string: port    <- CommandLineManager.getOption("QTest", "port")
     me ClientAndServer: clientAndServer;
-    clientAndServer.runTest(clientOrServerMode, inFile, outFile, ipAddr, port)
+    clientAndServer.runTest(clientOrServerMode, outFile, ipAddr, port)
 `
 
 do ManageCmdLine(cmd)
 
 struct PingProtocol: inherits=QProtocol {
     void: init() <- {myStream.nextOpIsWrite()}
+    me string: serverInit(me string: argsStr, their QuicStream: stream) <- {
+        print("INIT SERVER: ",argsStr)
+    }
+    void: clientInit(me string: argsStr) <- {
+        print("INIT SERVER: ",argsStr)
+    }
     our QProtocol: createClone() <- {
         our PingProtocol:: retval
         retval <deep- self
@@ -64,90 +69,127 @@ struct PingProtocol: inherits=QProtocol {
 
 struct FetchFile: inherits=QProtocol {
     me string: fileName
+    me FileStream: fileStream
 
     void: init() <- {}
     our QProtocol: createClone() <- {
         our FetchFile:: retval
-        retval <deep- self
+        //retval <deep- self
         return(retval)
     }
     void: INIT() <- {
         protocolIDPrefix <- "FetchFile"
     }
     uint64: onServerRead(their QuicStream: qStream, their string: data, me bool: finished) <- {
-        print("\nFETCH SERVER READ:",step,"\n")
+        me uint64: streamID <- qStream.getStreamID()
+        print("\nFETCH SERVER READ STEP:",step,"  STREAM_ID:",streamID,"\n")
+        print("    DATA:",data,"\n")
         me uint64: bytesUsed <- 0
         switch(step){
         case 0:{
             step <- 1
-            myStream.nextOpIsRead()
+            qStream.nextOpIsRead()
             }
         case 1:{
             bytesUsed <- qStream.readLine(data)
             if(qStream.readNotDone){return(bytesUsed)}
             qStream.nextOpIsWrite()
-            fileName <- qStream.readBuffer
+            qStream.doneReading()
             step <+- 1
             }
         }
         return(bytesUsed)
     }
     bool: onServerWrite(their QuicStream: qStream) <- {
-        print("\nFETCH SERVER WRITE STEP:",step,"\n")
-        switch(step){
-        case 2:{
-            me FileStream: fileStream
-            print("fileName:", fileName, "\n")
-            fileStream.open(fileName)
-            while(!fileStream.EOF()){ //read from file then write to stream
+        me uint64: streamID <- qStream.getStreamID()
+        print("\nFETCH SERVER WRITE STEP:",step," fileName:", fileName,"  STREAM_ID:",streamID,"\n")
+        if(streamID==0){
+            switch(step){
+            case 2:{
                 me uint64: bytesUsed <- fileStream.read(qStream.buff)
                 if(fileStream.failure()){print("ERROR: reading buff, fileName:'",fileName,"'\n")}
                 qStream.write(qStream.buff.subStr(0, bytesUsed))
                 print(qStream.buff.subStr(0, bytesUsed))
+                return(false)
+                }
             }
-            fileStream.close()
-            qStream.close()
-            step <+- 1
+        }
+        else{
+            me uint64: bytesUsed <- fileStream.read(qStream.buff)
+            if(fileStream.failure()){print("ERROR: reading buff, file:'",fileName,"'\n")}
+            qStream.write(qStream.buff.subStr(0, bytesUsed))
+            print(qStream.buff.subStr(0, bytesUsed))
+            if(fileStream.EOF()){
+                fileStream.close()
+                qStream.close()
+                step <+- 1
+            }
             return(false)
-            }
         }
         return(false)
     }
     uint64: onClientRead(their QuicStream: qStream, their string: data, me bool: finished)<- {
-        print("\nFETCH CLIENT READ STEP:",step,"\n")
+        me uint64: streamID <- qStream.getStreamID()
         me uint64: bytesUsed
-        switch(step){
-        case 2:{
+        print("\nFETCH CLIENT READ STEP:",step,"  STREAM_ID:",streamID,"\n")
+        if(streamID==0){
+            switch(step){
+            case 1:{
+                print(data)
+                qStream.readBuffer <+- data
+                bytesUsed <- data.size()
+                if(finished and bytesUsed == data.size()){step <+- 1}
+                }
+            }
+        }
+        else{
             print(data)
             qStream.readBuffer <+- data
             bytesUsed <- data.size()
             if(finished and bytesUsed == data.size()){step <+- 1}
-            }
         }
         return(bytesUsed)
     }
     bool: onClientWrite(their QuicStream: qStream) <- {
-        print("\nFETCH CLIENT WRITE STEP:",step,"\n")
+        me uint64: streamID <- qStream.getStreamID()
+        print("\nFETCH CLIENT WRITE STEP:",step,"  STREAM_ID:",streamID,"\n")
         switch(step){
         case 0:{
-            qStream.write(protocolIDPrefix+"\n")
+            print("SENDING TASK:",taskDescription,"\n")
+            qStream.write(taskDescription)
             qStream.nextOpIsWrite()
             step <+- 1
             return(true)
             }
-        case 1:{
-            qStream.write("test.txt\n")
-            qStream.nextOpIsRead()
-            step <+- 1
-            return(false)
-            }
         }
         return(false)
+    }
+    void: onNewStream_CB(their QuicStream: qStream) <- {
+        me uint64: streamID <- qStream.getStreamID()
+        print("\n!!!!!!!!!!!!!!!!FetchFile::onNewStream_CB STREAM_ID:",streamID,"\n")
+        // needs to call protocol.client.start which calls want read
+    }
+    me string: serverInit(me string: argsStr, their QuicStream: qStream) <- {
+        print("INIT SERVER: ",argsStr,"\n")
+        fileName <- argsStr
+        fileStream.open(fileName)
+        if(fileStream.failure()){
+            print("ERROR: opening file:'",fileName,"'\n")
+            return("ERR:"+taskID+":ERROR opening file:'",fileName)
+        }
+        qStream.myConnection.createNewStream()
+        return("OK:"+taskID)
+    }
+    void: clientInit(me string: argsStr) <- {
+        protocolArgs <- argsStr
+        taskID       <- protocolIDPrefix+toString(lastTaskID)
+        lastTaskID   <+- 1
+        taskDescription <- protocolIDPrefix+":"+taskID+":"+protocolArgs
     }
 }
 
 struct ClientAndServer{
-    void: runTest(me string: clientOrServer, me string: inFile, me string: outFile, me string:ipAddr, me string: portNum) <- {
+    void: runTest(me string: clientOrServer, me string: outFile, me string:ipAddr, me string: portNum) <- {
         our PingProtocol::  pingProtocol
 
         if(clientOrServer=="server"){
@@ -160,13 +202,20 @@ struct ClientAndServer{
             eventLoopThread.waitForExit()
         }else if(clientOrServer=="client"){
             me QuicEngine_Client: client
-            our FetchFile::    fetchFile
-            fetchFile.fileName <- inFile
             client.init("CFile", false, ipAddr, stoi(portNum))
             their QuicConnection_Client: qConn <- client.makeClientConnection(ipAddr, portNum)
+            qConn.createNewStream()
+
+            our FetchFile::    fetchFile
+            fetchFile.clientInit("test.txt")
             qConn.addProtocol(fetchFile)
             client.start()
-            qConn.createNewStream()
+
+            our FetchFile::    fetchFile2
+            fetchFile2.clientInit("test2.txt")
+            qConn.addProtocol(fetchFile2)
+            client.start()
+
             eventLoopThread.waitForExit()
             print("CLIENT_RAN\n")
         }else{logFatalError("Invalid running mode:"+clientOrServer)}
@@ -177,7 +226,6 @@ struct ClientAndServer{
 struct GLOBAL{
     void: initCmdMgr() <- {
         CommandLineManager.defineOption("QTest", "mode",    "-m", "--mode",    "client or server", "_REQIRED")
-        CommandLineManager.defineOption("QTest", "inFile",  "-i", "--inFile",  "Input file",       "quicIn.txt")
         CommandLineManager.defineOption("QTest", "outFile", "-o", "--outFile", "Output file",      "quicOut.log")
         CommandLineManager.defineOption("QTest", "IPAddr",  "-a", "--IPAddr",  "IP address",       "::1")
         CommandLineManager.defineOption("QTest", "port",    "-p", "--port",    "Port number",      "12345")

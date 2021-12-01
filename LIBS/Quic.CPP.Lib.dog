@@ -472,7 +472,7 @@ struct GLOBAL{
         if(qConn==nullptr){qConn = quicEngine->allocNewConn();}
         qConn->lsConn = lsConn;
         qConn->myEngine = quicEngine;
-        if(quicEngine->isServer==false){lsquic_conn_make_stream(lsConn);}
+        //if(quicEngine->isServer==false){lsquic_conn_make_stream(lsConn);}
     cout<<"NEW_CONN; engine:"<<quicEngine<<"   lsConn:"<<lsConn<<"  slipConn:"<<qConn<<"\n";
         quicEngine->onNewConnection_CB(qConn);
         return qConn;
@@ -643,6 +643,8 @@ struct QuicStream{
     void: setPriority(me 1..256: priority) <- <%{lsquic_stream_set_priority(theStream, priority);}%>
     void: nextOpIsRead()                   <- <%{lsquic_stream_wantread(theStream, 1);}%>
     void: nextOpIsWrite()                  <- <%{lsquic_stream_wantwrite(theStream, 1);}%>
+    void: doneReading()                    <- <%{lsquic_stream_wantread(theStream, 0);}%>
+    void: doneWriting()                    <- <%{lsquic_stream_wantwrite(theStream, 0);}%>
     void: flushStream()                    <- <%{lsquic_stream_flush(theStream);}%>
     void: stopReading()                    <- <%{lsquic_stream_shutdown(theStream, 0);}%>
     void: stopWriting()                    <- <%{lsquic_stream_shutdown(theStream, 1);}%>
