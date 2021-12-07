@@ -272,19 +272,20 @@ class Xlator_CPP(Xlator):
         if progSpec.typeIsPointer(LVAL) and RightOwner=='const':return ['(*',')', '','']
         return ['','',  '','']
 
-    def getCodeAllocStr(self, varTypeStr, owner):
-        if(owner=='our'): S="make_shared<"+varTypeStr+">"
-        elif(owner=='my'): S="make_unique<"+varTypeStr+">"
-        elif(owner=='their'): S="new "+varTypeStr
-        elif(owner=='me'): cdErr("Cannot allocate a 'me' variable. (" + varTypeStr + ')')
+    def codeSpecialParamList(self, tSpec, CPL):
+        return CPL
+
+    def codeXlatorAllocater(self, tSpec, genericArgs):
+        S     = ''
+        owner = progSpec.getTypeSpecOwner(tSpec)
+        [cvrtType, innerType]  = self.codeGen.convertType(tSpec, 'alloc', '', genericArgs)
+        if(owner=='our'): S="make_shared<"+cvrtType+">"
+        elif(owner=='my'): S="make_unique<"+cvrtType+">"
+        elif(owner=='their'): S="new "+cvrtType
+        elif(owner=='me'): cdErr("Cannot allocate a 'me' variable. (" + cvrtType + ')')
         elif(owner=='we'): cdErr("Cannot allocate a 'we' variable. (" + varTypeStr + ')')
         elif(owner=='const'): cdErr("Cannot allocate a 'const' variable.")
         else: cdErr("Cannot allocate variable because owner is " + owner+".")
-        return S
-
-    def getCodeAllocSetStr(self, varTypeStr, owner, value):
-        S=self.getCodeAllocStr(varTypeStr, owner)
-        S+='('+value+')'
         return S
 
     def getConstIntFieldStr(self, fieldName, fieldValue, intSize):
@@ -688,11 +689,11 @@ class Xlator_CPP(Xlator):
             elif(funcName=='AllocateOrClear'):
                 [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'PARAM', genericArgs)
                 if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
-                S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+"();}"
+                S+='if('+varName+'){'+varName+'->clear();} else {'+varName+" = "+self.codeXlatorAllocater(varTypeSpec, genericArgs)+"();}"
             elif(funcName=='Allocate'):
                 [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'LVAL', genericArgs)
                 if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
-                S+=varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+'('
+                S+=varName+" = "+self.codeXlatorAllocater(varTypeSpec, genericArgs)+'('
                 count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
                 for P in paramList[1:]:
                     if(count>0): S+=', '
@@ -865,7 +866,8 @@ class Xlator_CPP(Xlator):
         if(fieldDef['value']):
             [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], lhsTypeSpec, None, 'RVAL', genericArgs)
             [LHS_leftMod, LHS_rightMod,  RHS_leftMod, RHS_rightMod] = self.determinePtrConfigForAssignments(lhsTypeSpec, rhsTypeSpec, "" , RHS)
-            if(isAllocated and not progSpec.typeIsPointer(rhsTypeSpec)): RHS = self.getCodeAllocSetStr(innerType, owner, RHS)
+            if(isAllocated and not progSpec.typeIsPointer(rhsTypeSpec)):
+                RHS = self.codeGen.codeAllocater(lhsTypeSpec, RHS, genericArgs)
             else: RHS = RHS_leftMod+RHS+RHS_rightMod
             if(isAllocated or useCtor==False): assignValue = " = " + RHS
             else: assignValue = RHS
@@ -887,14 +889,14 @@ class Xlator_CPP(Xlator):
                         [leftMod, rightMod] = self.determinePtrConfigForNewVars(lhsTypeSpec, rhsTypeSpec, useCtor)
                         if(not useCtor): assignValue += " = "    # Use a copy constructor
                         if(isAllocated):
-                            assignValue += self.getCodeAllocStr(innerType, owner)
+                            assignValue += self.codeXlatorAllocater(lhsTypeSpec, genericArgs)
                         assignValue += "(" + leftMod + CPL[1:-1] + rightMod + ")"
                 if(assignValue==''):
-                    if(owner == 'their' or owner == 'our' or owner == 'my'): assignValue = ' = '+self.getCodeAllocStr(innerType, owner)+CPL
+                    if(owner == 'their' or owner == 'our' or owner == 'my'): assignValue = ' = '+self.codeXlatorAllocater(lhsTypeSpec, genericArgs)+CPL
                     else: assignValue = CPL # add "(x, y, z...) to make this into a constructor call.
             elif(progSpec.typeIsPointer(lhsTypeSpec)):
                 if(isAllocated):
-                    assignValue = " = " + self.getCodeAllocSetStr(innerType, owner, "")
+                    assignValue = " = " + self.codeGen.codeAllocater(lhsTypeSpec, fieldDef['paramList'] , genericArgs)
                 else:
                     assignValue = '= NULL'
             elif(progSpec.isAContainer(lhsTypeSpec)):
@@ -925,7 +927,7 @@ class Xlator_CPP(Xlator):
             [CPL, paramTypeList] = self.codeGen.codeParameterList(fieldName, paramList, None, genericArgs)
             fieldValueText += CPL
         if isAllocated == True:
-            fieldValueText = " = " + self.getCodeAllocSetStr(innerType, fieldOwner, "")
+            fieldValueText = " = " + self.codeGen.codeAllocater(typeSpec, paramList, genericArgs)
         return fieldValueText
 
     def codeConstField_Str(self, convertedType, fieldName, fieldValueText, className, indent):
