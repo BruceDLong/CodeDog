@@ -260,8 +260,8 @@ class Xlator_Java(Xlator):
         fromImpl=progSpec.getFromImpl(containerSpec)
         if fromImpl and 'implements' in fromImpl: return fromImpl['implements']
         fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
-        if fTypeKW=='string': return 'string'
-        if fTypeKW=='Java_ArrayList' or fTypeKW=='List': return 'List' # TODO: un-hardcode this
+        if fTypeKW=='string':  return 'string'
+        if fTypeKW=='List':    return 'List'        # TODO: un-hardcode this
         if fTypeKW=='TreeMap': return 'Map'         # TODO: un-hardcode this
         if fTypeKW=='PovList': return 'PovList'     # TODO: un-hardcode this
         print("WARNING: Container Category not recorded for:",fTypeKW)
@@ -403,6 +403,11 @@ class Xlator_Java(Xlator):
             else:
                 actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + ctnrName+'.size(); ' + loopVarName+' += 1){\n'
                             + indent + indent + iteratorTypeStr+' '+repName+" = "+ctnrName+".get("+loopVarName+");\n")
+        elif containerCat=='string':
+            keyVarSpec   = {'owner':'me', 'fieldType':'char'}
+            firstTSpec   = {'owner':'me', 'fieldType':'char'}
+            actionText += indent + "for(int i = 0; i < "+ ctnrName + ".length(); i++){\n"
+            actionText += indent + "    char "  + repName + " = " + ctnrName + ".charAt(i);\n"
         else: cdErr("iterateContainerStr() datastructID = " + datastructID)
         localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope

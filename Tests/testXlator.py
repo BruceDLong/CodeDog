@@ -516,38 +516,28 @@ struct testClass{
 
     # TEST WITHEACH STRING
 
-    'action/withEachStrchars':   ['struct testClass{  me void: runTest()<-{ me string: testStr <- "Hello" withEach ch in testStr{ print(ch)}}}', 'PGBR:H\ne\nl\nl\no'],
-    'action/withEachStrInts':    ['struct testClass{  me void: runTest()<-{ me string: testStr <- "12345" withEach ch in testStr{ print(ch)}}}', 'PGBR:1\n2\n3\n4\n5'],
-    'action/withEachStrSpaces':  ['struct testClass{  me void: runTest()<-{ me string: testStr <- "     " withEach ch in testStr{ print(ch)}}}', 'PGBR: \n \n \n \n '],
-    'action/withEachStrNone':    ['struct testClass{  me void: runTest()<-{ me string: testStr <- ""      withEach ch in testStr{ print(ch)}}}', 'PGBR:'],
+    'action/withEachStrchars':   ['struct testClass{  me void: runTest()<-{ me string: testStr <- "Hello" withEach ch in testStr{ print(ch, " ")}}}', 'PGBR:H e l l o '],
+    'action/withEachStrInts':    ['struct testClass{  me void: runTest()<-{ me string: testStr <- "12345" withEach ch in testStr{ print(ch, " ")}}}', 'PGBR:1 2 3 4 5 '],
+    'action/withEachStrSpaces':  ['struct testClass{  me void: runTest()<-{ me string: testStr <- "     " withEach ch in testStr{ print(ch, " ")}}}', 'PGBR:          '],
+    'action/withEachStrNone':    ['struct testClass{  me void: runTest()<-{ me string: testStr <- ""      withEach ch in testStr{ print(ch, " ")} print("*")}}', 'PGBR:*'],
     'action/withEachStr': ['''
 
 struct testClass{
-
     me void: runTest()<-{
-
         me string: testStr <- "Hello"
-        withEach ch in testStr{
-        print(ch)
-        }
+        withEach chA in testStr{print(chA, " ")}
 
-        me string: testStr <- "12345"
-        withEach ch in testStr{
-        print(ch)
-        }
+        testStr <- "12345"
+        withEach chB in testStr{print(chB, " ")}
 
-        me string: testStr <- "     "
-        withEach ch in testStr{
-        print(ch)
-        }
+        testStr <- "   "
+        withEach chC in testStr{print(chC, " ")}
 
-        me string: testStr <- ""
-        withEach ch in testStr{
-        print(ch)
-        }
+        testStr <- ""
+        withEach chD in testStr{print(chD, " ")}
     }
 }
-''', 'PGBR:H\ne\nl\nl\no1\n2\n3\n4\n5 \n \n \n \n ', ['action/withEachStrchars','action/withEachStrInts','action/withEachStrSpaces','action/withEachStrNone']],
+''', 'PGBR:H e l l o 1 2 3 4 5       ', ['action/withEachStrchars','action/withEachStrInts','action/withEachStrSpaces','action/withEachStrNone']],
 #####################################################################################################
      'mode/global':       ['struct GlobalMode: inherits=<mode[globalA, globalB, globalC]>{}\nstruct testClass{\n    me GlobalMode: globalMode <- globalC\n    me void: runTest()<-{\n        print(globalMode) print(GlobalModeStrings[globalMode])\n    }}', 'PGBR:2globalC'],
      'mode/struct':       ['struct testClass{mode[sModeA, sModeB, sModeC]: sMode\nme void: runTest()<-{\n    sMode <- sModeA\n    print(sMode)\n    print(sModeStrings[sMode])}}',    'PGBR:0sModeA'],
@@ -707,6 +697,7 @@ def runDeps(testKey):
     for dep in depsList:
         testResult = ExecCodeDogTest(copy.copy(testDefinitions[dep]), buildSpec,dep,True)
         depsReportText +=  "        " + dep + " : "+testResult+  "\n"
+        print(f'    {dep: <30} : {testResult}')
         if(testResult != "Success"):
             writePrepend("xlatorTests/failedTests.txt",dep)
     return depsReportText
@@ -715,17 +706,15 @@ def runListedTests(testsToRun):
     global buildSpec
     global testDefinitions
     clearErrorFile()
-    print('________________________________\n'+xlatorLabel)
-    reportText = '________________________________\n'+xlatorLabel
+    print('________________________________________\n'+xlatorLabel)
+    reportText = '________________________________________\n'+xlatorLabel
     for testKey in testsToRun:
-        #print(("Running test: ", testKey))
         testResult = ExecCodeDogTest(copy.copy(testDefinitions[testKey]), buildSpec, testKey,False)
-        print(testKey, ":\t\t", testResult)
+        print(f'{testKey: <30} : {testResult}')
         reportText+= testKey + ": "+testResult+  "\n"
         if(testResult!="Success"):
             depsReportText = runDeps(testKey)
             reportText+= depsReportText
-            print(depsReportText)
     return reportText
 
 def gatherListOfTestsToRun(keywordList):

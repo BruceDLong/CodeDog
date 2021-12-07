@@ -332,16 +332,13 @@ class Xlator_Swift(Xlator):
     ###################################################### CONTAINERS
     def getContaineCategory(self, containerSpec):
         fromImpl=progSpec.getFromImpl(containerSpec)
-        if fromImpl and 'implements' in fromImpl:
-            return fromImpl['implements']
+        if fromImpl and 'implements' in fromImpl: return fromImpl['implements']
         fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
+        if fTypeKW=='string':  return 'string'
+        if fTypeKW=='List':    return 'List'        # TODO: un-hardcode this
+        if fTypeKW=='TreeMap': return 'Map'         # TODO: un-hardcode this
+        if fTypeKW=='PovList': return 'PovList'     # TODO: un-hardcode this
         print("WARNING: Container Category not recorded for:",fTypeKW)
-        if fTypeKW=='PovList':
-            return 'PovList'
-        elif fTypeKW=='multimap' or fTypeKW=='map' or fTypeKW=='Swift_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
-            return 'map'
-        elif fTypeKW=='list' or fTypeKW=='Swift_Array' or "__List_" in fTypeKW:
-            return 'list'
         return None
 
     def getContainerTypeInfo(self, containerType, name, idxType, typeSpecIn, paramList, genericArgs):
@@ -459,6 +456,10 @@ class Xlator_Swift(Xlator):
                     actionText += (indent + "for " + repName+' in ('+ ctnrName +".count - 1).stride(through: 0, by: -1) {\n")
                 else:
                     actionText += (indent + "for " + repName+' in '+ ctnrName + " {\n")
+        elif containerCat=='string':
+            keyVarSpec   = {'owner':'me', 'fieldType':'char'}
+            firstTSpec   = {'owner':'me', 'fieldType':'char'}
+            actionText += indent + "for "+ repName + " in " + ctnrName + "{\n"
         else: cdErr("iterateContainerStr() datastructID = " + datastructID)
         localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope

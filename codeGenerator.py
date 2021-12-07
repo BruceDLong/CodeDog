@@ -1151,10 +1151,8 @@ class CodeGenerator(object):
             isNewCtnr = progSpec.isAContainer(containerTSpec)
             isContainer = isOldCtnr or isNewCtnr
             if containerTSpec==None or not isContainer: cdErr("'"+ctnrName+"' is not a container so cannot be iterated over."+str(containerTSpec))
-            if(traversalMode=='Forward' or traversalMode==None):
-                isBackward=False
-            elif(traversalMode=='Backward'):
-                isBackward=True
+            isBackward = False
+            if(traversalMode=='Backward'): isBackward=True
             [actionTextOut, loopCounterName, itrIncStr] = self.xlator.iterateContainerStr(self.classStore,self.localVarsAllocated,containerTSpec,repName,ctnrName, isBackward, indent, genericArgs)
             actionText += actionTextOut
         if action['whereExpr']:

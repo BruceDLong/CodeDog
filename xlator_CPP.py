@@ -344,17 +344,15 @@ class Xlator_CPP(Xlator):
 
     ###################################################### CONTAINERS
     def getContaineCategory(self, containerSpec):
+        fromImpl=progSpec.getFromImpl(containerSpec)
+        if fromImpl and 'implements' in fromImpl: return fromImpl['implements']
         fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
-        if fTypeKW=='PovList':
-            return 'PovList'
-        elif fTypeKW=='multimap' or fTypeKW=='map' or fTypeKW=='CPP_Map' or fTypeKW=='RBTreeMap':
-            return 'MAP'
-        elif fTypeKW=='list':
-            return 'LIST'
-        elif fTypeKW=='deque' or fTypeKW=='CPP_Deque':
-            return 'DEQUE'
-        elif 'Multimap' in fTypeKW:
-            return 'MULTIMAP'
+        if fTypeKW=='string':     return 'string'
+        if fTypeKW=='PovList':    return 'PovList'
+        if fTypeKW=='CPP_Map':    return 'Map'
+        if fTypeKW=='list':       return 'List'
+        if fTypeKW=='CPP_Deque':  return 'List'
+        if 'Multimap' in fTypeKW: return 'Multimap'
         return None
 
     def getContainerTypeInfo(self, containerType, name, idxType, typeSpecIn, paramList, genericArgs):
@@ -473,7 +471,7 @@ class Xlator_CPP(Xlator):
         containerCat = self.getContaineCategory(ctnrTSpec)
         if progSpec.ownerIsPointer(ctnrOwner): connector="->"
         else: connector = "."
-        if containerCat=="MAP" or containerCat=="MULTIMAP":
+        if containerCat=="Map" or containerCat=="Multimap":
             if(reqTagList != None):
                 firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
                 firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
@@ -484,8 +482,8 @@ class Xlator_CPP(Xlator):
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
             actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+connector+'lower_bound('+StartKey+')' + "; " + itrName + " !=" + ctnrName+connector+'upper_bound('+EndKey+')' +"; ++"+ repName + "Itr ){\n"
                         + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
-        elif datastructID=='list' or (datastructID=='deque' and not willBeModifiedDuringTraversal): pass;
-        elif datastructID=='deque' and willBeModifiedDuringTraversal: pass;
+        elif datastructID=='List' and not willBeModifiedDuringTraversal: pass;
+        elif datastructID=='List' and willBeModifiedDuringTraversal: pass;
         else:
             print("DSID iterateRangeFromTo:",datastructID,containerCat)
             exit(2)
@@ -518,7 +516,7 @@ class Xlator_CPP(Xlator):
                         + indent+"    "+"shared_ptr<infon> "+repName+" = "+itrName+"->pItem;\n")
             cdErr("iterateContainerStr() found PovList: "+repName+"   "+ctnrName)
             return [actionText, loopCntrName, itrIncStr]
-        if containerCat=='MAP'     or containerCat=="MULTIMAP":
+        if containerCat=='Map'     or containerCat=="Multimap":
             if(reqTagList != None):
                 firstTSpec['owner']     = progSpec.getOwnerFromTemplateArg(reqTagList[1])
                 firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
@@ -530,7 +528,7 @@ class Xlator_CPP(Xlator):
             frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
             actionText += (indent + "for( auto " + itrName+' ='+frontItr + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
                         + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
-        elif containerCat=='LIST' or (datastructID=='deque' and not willBeModifiedDuringTraversal):
+        elif containerCat=='List' and not willBeModifiedDuringTraversal:
             keyVarSpec = {'owner':firstOwner, 'fieldType':firstType}
             localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
@@ -539,7 +537,7 @@ class Xlator_CPP(Xlator):
             else:
                 actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'begin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+ itrName + " ){\n")
             actionText += indent+"    "+"auto "+repName+" = *"+itrName+";\n"
-        elif(containerCat=='DEQUE' or datastructID=='deque' or datastructID=='CPP_Deque') and willBeModifiedDuringTraversal:
+        elif containerCat=='List' and willBeModifiedDuringTraversal:
             keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
             lvName=repName+"Idx"
             idxVarSpec = {'owner':'itr', 'fieldType':firstType}
@@ -551,6 +549,9 @@ class Xlator_CPP(Xlator):
             else:
                 actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  ctnrName+RDeclP+'size();' +" ++"+lvName+" ){\n")
             actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
+        elif containerCat=='string':
+            loopCntrName = ''
+            actionText += indent + "for(char const &" + repName +": " + ctnrName + " ){\n"
         else: cdErr("iterateContainerStr() datastructID = " + datastructID)
         return [actionText, loopCntrName, itrIncStr]
 
