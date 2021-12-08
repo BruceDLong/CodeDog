@@ -670,7 +670,7 @@ class Xlator_Java(Xlator):
                 fieldType='string'
             elif(funcName=='AllocateOrClear'):
                 [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'PARAM', genericArgs)
-                S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = ("+self.codeGen.codeAllocater(varTypeSpec, paramList[1:], genericArgs)+";}"
+                S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+self.codeGen.codeAllocater(varTypeSpec, None, genericArgs)+";}"
             elif(funcName=='Allocate'):
                 [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'PARAM', genericArgs)
                 S = varName+" = "+self.codeGen.codeAllocater(varTypeSpec, paramList[1:], genericArgs)
@@ -838,8 +838,7 @@ class Xlator_Java(Xlator):
                         if self.isJavaPrimativeType(fTypeKW): assignValue  = " =  " + CPL
                         else: assignValue  = " = new " + fTypeKW + CPL
                 if(assignValue==''):
-                    assignValue = ' = '+self.codeGen.codeAllocater(lhsTypeSpec, fieldDef['paramList'], genericArgs, CPL)
-                    if 'new POV(i, nextNode, position)' in assignValue: print('@@@@ ', assignValue); exit(2)
+                    assignValue = ' = '+self.codeGen.codeAllocater(lhsTypeSpec, fieldDef['paramList'], genericArgs)
             elif self.varTypeIsValueType(fTypeKW):
                 if fTypeKW == 'long' or fTypeKW == 'int' or fTypeKW == 'float'or fTypeKW == 'double': assignValue=' = 0'
                 elif fTypeKW == 'string':  assignValue=' = ""'

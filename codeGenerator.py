@@ -594,7 +594,12 @@ class CodeGenerator(object):
         CPL = '()'
         if paramList!=None:
             if isinstance(paramList, str): CPL = '('+paramList+')'
-            else: [CPL, paramTypeList]  = self.codeParameterList('Allocate', paramList, None, genericArgs)
+            elif len(paramList)>0:
+                fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
+                objectDef    = self.classStore[0][fTypeKW]
+                genericArgs  = progSpec.getGenericArgs(objectDef)
+                modelParams  = self.getCtorModelParams(fTypeKW)
+                [CPL, paramTypeList]  = self.codeParameterList('Allocate', paramList, None, genericArgs)
         CPL = self.xlator.codeSpecialParamList(tSpec, CPL)
         S = self.xlator.codeXlatorAllocater(tSpec, genericArgs) + CPL
         return S
@@ -1412,64 +1417,69 @@ class CodeGenerator(object):
         return actSeqText
 
     #### CONSTRUCTORS ######################################################
+    def getCtorModelParams(self, className):
+        modelParams  = []
+        for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
+            tSpec       = field['typeSpec']
+            fType       = progSpec.fieldTypeKeyword(tSpec)
+            fOwner      = progSpec.getOwnerFromTypeSpec(tSpec)
+            isOldCtnr   = progSpec.isOldContainerTempFuncErr(tSpec, 'getCtorModelParams '+self.currentObjName, self.xlator.renderGenerics)
+            isNewCtnr   = progSpec.isAContainer(tSpec)
+            isContainer = isOldCtnr or isNewCtnr
+            if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner=='we' or (tSpec['argList'] or tSpec['argList']!=None) or (isContainer and not progSpec.typeIsPointer(tSpec)):
+                continue
+            if(fOwner!='me' and fOwner!='my') or (isinstance(fType, str) and ((self.isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
+                modelParams.append(field)
+        return modelParams
+
     def getCtorArgTypes(self, className, genericArgs):
         ctorArgTypes = []
-        count=0
-        for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
-            tSpec     = field['typeSpec']
-            fType     = progSpec.fieldTypeKeyword(tSpec)
-            fOwner    = progSpec.getOwnerFromTypeSpec(tSpec)
-            isOldCtnr = progSpec.isOldContainerTempFuncErr(tSpec, 'getCtorArgTypes '+self.currentObjName, self.xlator.renderGenerics)
-            isNewCtnr = progSpec.isAContainer(tSpec)
-            isContainer = isOldCtnr or isNewCtnr
-            if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner == 'we' or (tSpec['argList'] or tSpec['argList']!=None) or (isContainer and not progSpec.typeIsPointer(tSpec)):
-                continue
-            if(fOwner != 'me' and fOwner != 'my') or (isinstance(fType, str) and ((self.isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
-                [cvrtType, innerType] = self.convertType(tSpec, 'var', 'constructor', genericArgs)
-                ctorArgTypes.append(cvrtType)
+        modelParams  = self.getCtorModelParams(className)
+        for field in modelParams:
+            [cvrtType, innerType] = self.convertType(field['typeSpec'], 'var', 'constructor', genericArgs)
+            ctorArgTypes.append(cvrtType)
         return ctorArgTypes
 
-    def getStructFieldsForCtor(self, className, typeArgList):
-        ObjectDef = self.classStore[0][className]
+    def getFieldDefaultVal(self, field, genericArgs):
+        defaultVal  = ''
+        tSpec       = field['typeSpec']
+        fType       = progSpec.fieldTypeKeyword(tSpec)
+        fOwner      = progSpec.getOwnerFromTypeSpec(tSpec)
+        fieldName   = field['fieldName']
+        [cvrtType, innerType] = self.convertType(tSpec, 'var', 'constructor', genericArgs)
+        if(fOwner != 'me'):
+            if(fOwner != 'my'):
+                defaultVal = "NULL"
+        elif (isinstance(fType, str)):
+            if 'value' in field and field['value']!=None:
+                [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, tSpec, 'RVAL', genericArgs)
+            else:
+                if(self.typeIsInteger(fType)):    defaultVal = "0"
+                elif(self.typeIsRational(fType)): defaultVal = "0.0"
+                elif(fType=="string"):            defaultVal = '""'
+                else: # handle structs if needed
+                    if 'value' in field and field['value']!=None:
+                        [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, tSpec, 'RVAL', genericArgs)
+        return defaultVal
 
-        genericArgs =  progSpec.getGenericArgs(ObjectDef)
-        ctorInit=""
-        ctorArgs=""
-        copyCtorArgs=""
-        count=0
-        for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
-            typeSpec =field['typeSpec']
-            fieldType=progSpec.fieldTypeKeyword(typeSpec)
-            if(fieldType=='flag' or fieldType=='mode'): continue
-            if(typeSpec['argList'] or typeSpec['argList']!=None): continue
-            isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, 'codeConstructor '+self.currentObjName, self.xlator.renderGenerics)
-            isNewCtnr = progSpec.isAContainer(typeSpec)
-            isContainer = isOldCtnr or isNewCtnr
-            if isContainer and not progSpec.typeIsPointer(typeSpec): continue
-            fieldOwner=progSpec.getOwnerFromTypeSpec(typeSpec)
-            if(fieldOwner=='const' or fieldOwner == 'we'): continue
-            [cvrtType, innerType] = self.convertType(typeSpec, 'var', 'constructor', genericArgs)
-            fieldName=field['fieldName']
-            if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
+    def getStructFieldsForCtor(self, className, typeArgList):
+        ObjectDef    = self.classStore[0][className]
+        genericArgs  = progSpec.getGenericArgs(ObjectDef)
+        ctorInit     = ""
+        ctorArgs     = ""
+        copyCtorArgs = ""
+        count        = 0
+        modelParams  = self.getCtorModelParams(className)
+        for field in modelParams:
+            tSpec       = field['typeSpec']
+            fType       = progSpec.fieldTypeKeyword(tSpec)
+            fOwner      = progSpec.getOwnerFromTypeSpec(tSpec)
+            fieldName   = field['fieldName']
+            [cvrtType, innerType] = self.convertType(tSpec, 'var', 'constructor', genericArgs)
+            cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fType, cvrtType))
+            if(typeArgList != None and fType in typeArgList):isTemplateVar = True
             else: isTemplateVar = False
-            cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, cvrtType))
-            defaultVal=''
-            if(fieldOwner != 'me'):
-                if(fieldOwner != 'my'):
-                    defaultVal = "NULL"
-            elif (isinstance(fieldType, str)):
-                if 'value' in field and field['value']!=None:
-                    [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, typeSpec, 'RVAL', genericArgs)
-                else:
-                    if(self.typeIsInteger(fieldType)):
-                        defaultVal = "0"
-                    elif(self.typeIsRational(fieldType)):
-                        defaultVal = "0.0"
-                    elif(fieldType=="string"):
-                        defaultVal = '""'
-                    else: # handle structs if needed
-                        if 'value' in field and field['value']!=None:
-                            [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, typeSpec, 'RVAL', genericArgs)
+            defaultVal  = self.getFieldDefaultVal(field, genericArgs)
             if defaultVal != '':
             #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
                 if count>0: ctorArgs +=  ', '
@@ -1501,11 +1511,9 @@ class CodeGenerator(object):
         if ctorArgs and parentClass:
             ctorArgTypes       = self.getCtorArgTypes(className, genericArgs)
             parentCtorArgTypes = self.getCtorArgTypes(parentClass, genericArgs)
-            if ctorArgTypes == parentCtorArgTypes:
-                ctorOvrRide = 'override '
+            if ctorArgTypes == parentCtorArgTypes: ctorOvrRide = 'override '
         if count>0 or funcBody != '':
             ctorCode += self.xlator.codeConstructors(flatClassName, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper)
-        if className=='stateRec': print(ctorArgs)
         return ctorCode
 
     #### STRUCT FIELDS #####################################################
