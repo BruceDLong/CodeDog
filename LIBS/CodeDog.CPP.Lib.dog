@@ -79,7 +79,7 @@ struct GLOBAL{
     }%>
 
     me int64: _strm_read(their istream: stream, their string: S) <- <%{
-        stream->read(S->data(), S->size());
+        stream->read((char*)S->data(), S->size());
         return(stream->gcount());
     }%>
 

@@ -58,9 +58,6 @@ struct lsQuicMgr{
     ev_io                       sock_w;     /* socket watcher */
     lsquic_engine_t            *engine;
     struct sockaddr_storage     local_sas;
-    struct lsquic_conn *conn;
-    size_t              sz;         /* Size of bytes read is stored here */
-    char                buf[0x100]; /* Read up to this many bytes */
     lsQuicMgr(){memset(this, 0, sizeof(lsQuicMgr));};
 };
 
@@ -467,13 +464,12 @@ struct GLOBAL{
 
     their QuicConnection: QUIC_on_new_conn (their void: stream_if_ctx, their lsquic_conn: lsConn) <- <%{
         QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
-        quicEngine->quicMgr.conn = lsConn;
         QuicConnection* qConn = (QuicConnection*)lsquic_conn_get_ctx(lsConn);
         if(qConn==nullptr){qConn = quicEngine->allocNewConn();}
         qConn->lsConn = lsConn;
         qConn->myEngine = quicEngine;
         //if(quicEngine->isServer==false){lsquic_conn_make_stream(lsConn);}
-    cout<<"NEW_CONN; engine:"<<quicEngine<<"   lsConn:"<<lsConn<<"  slipConn:"<<qConn<<"\n";
+        //cout<<"NEW_CONN; engine:"<<quicEngine<<"   lsConn:"<<lsConn<<"  slipConn:"<<qConn<<"\n";
         quicEngine->onNewConnection_CB(qConn);
         return qConn;
     }%>
@@ -502,11 +498,11 @@ struct GLOBAL{
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
         if(len>0){
             string s(data, len);
-            bytesUsed = quicStream->onRead_CB((QuicStream*)qStream_ctx, &s, finished);
-            cout<<"LEN:"<<len<<" BYTESUSED:"<<bytesUsed<<"\n";
+            bytesUsed = quicStream->onRead_CB(&s, finished);
+            cout<<"############# LEN:"<<len<<" BYTESUSED:"<<bytesUsed<<"::'"<<s.substr(0,bytesUsed)<<"'\n";
         }
         if(finished and bytesUsed == len){
-            LOGX("Reached end-of-stream; shutting stream down");
+            string mesg="Reached end-of-stream; shutting stream down stream# "; mesg+=to_string(lsquic_stream_id(quicStream->theStream))+"\n"; LOGX(mesg.data());
             lsquic_stream_shutdown(quicStream->theStream, 0);
         }
         return bytesUsed;
@@ -515,7 +511,7 @@ struct GLOBAL{
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
         ssize_t nread = lsquic_stream_readf(stream, QUIC_on_read_proxy, qStream_ctx);
         if(nread < 0){
-            LOGX("error reading from stream (%s) -- exit loop\n");
+            LOGX("error reading from stream -- exit loop\n");
             QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(quicStream->theStream));
             QuicEngine* quicEngine = connection->myEngine;
             ev_break(eventLoop, EVBREAK_ONE);
@@ -523,11 +519,11 @@ struct GLOBAL{
     }%>
     void: QUIC_on_write(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
-        quicStream->onWrite_CB(quicStream);
+        quicStream->onWrite_CB();
     }%>
     void: QUIC_on_close(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
-        // call CB
-        // free(tssc);
+        QuicStream *const quicStream = (QuicStream*)qStream_ctx;
+        quicStream->onClose_CB();
         LOGX("stream closed");
     }%>
 
@@ -574,6 +570,8 @@ struct QuicEngine{
             if(0 != bind(quicMgr.sock_fd, (struct sockaddr *) &quicMgr.local_sas, socklen)){ perror("bind"); exit(EXIT_FAILURE);}
             ev_init(&timer, timer_expired);
         }
+        timer.data  = &quicMgr;
+        quicMgr.sock_w.data = &quicMgr;
         ev_io_init(&quicMgr.sock_w, read_socket, quicMgr.sock_fd, EV_READ);
         ev_io_start(eventLoop, &quicMgr.sock_w);
     }%>
@@ -623,10 +621,21 @@ struct QuicEngine{
     }
 
     void: start() <- <%{
-        timer.data  = &quicMgr;
-        quicMgr.sock_w.data = &quicMgr;
         if(isServer && protocols.size()==0){logMgr.FatalError.LogEntry("FATAL ERROR: ", "No protocls given for Quic."); exit(1);}
         ev_async_send(EV_DEFAULT_ eventLoopThread.async_w);  // Wake up the event loop
+    }%>
+
+    me bool: setupClientConnection(their QuicConnection: qConn, me string: ipAddr, me string:portNum) <- <%{
+        setupSockets(ipAddr, stoi(portNum));
+        qConn->lsConn = lsquic_engine_connect(
+            quicMgr.engine, LSQVER_I001,
+            (struct sockaddr *) &quicMgr.local_sas, &addr.sa,
+            (void *) (uintptr_t) quicMgr.sock_fd,
+            (lsquic_conn_ctx_t*)qConn, NULL, 0, NULL, 0, NULL, 0
+        );
+        if(!qConn->lsConn){LOGX("cannot create connection");  return(false);}
+        process_conns(&quicMgr);
+        return(true);
     }%>
 }
 
@@ -652,21 +661,4 @@ struct QuicStream{
     me int: read(me string:buf)            <- <%{return(lsquic_stream_read(theStream, (void*)buf.data(), buf.size()));}%>
     me int: write(me string:buf)           <- <%{return(lsquic_stream_write(theStream, buf.data(), buf.size()));}%>
     their QuicConnection: getConnection()  <- <%{return((QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(theStream)));}%>
-}
-
-struct QuicEngine_Client{
-    their QuicConnection_Client: makeClientConnection(me string: ipAddr, me string:portNum) <- <%{
-        setupSockets(ipAddr, stoi(portNum));
-        QuicConnection_Client* qConn = new QuicConnection_Client();
-        quicMgr.conn = lsquic_engine_connect(
-            quicMgr.engine, LSQVER_I001,
-            (struct sockaddr *) &quicMgr.local_sas, &addr.sa,
-            (void *) (uintptr_t) quicMgr.sock_fd,
-            (lsquic_conn_ctx_t*)qConn, NULL, 0, NULL, 0, NULL, 0
-        );
-        qConn->lsConn = quicMgr.conn;
-        if(!qConn->lsConn){LOGX("cannot create connection");  exit(EXIT_FAILURE);}
-        process_conns(&quicMgr);
-        return(qConn);
-    }%>
 }

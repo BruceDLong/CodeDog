@@ -1,5 +1,17 @@
 #!/usr/bin/python3
 
+
+# COLOR KEY:
+# Gray:           Nothng yet
+# White:          Failed
+# Dark Gray Blue: Has child, nothing else
+# Purple:         Resolved
+# Red:            Next waiting
+# Bright Red:     Child waiting
+# Yellow:         Next released
+# Green:          Both released (green = yellow + blue)
+# Blue:           Child released
+
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -963,4 +975,3 @@ animator.loadParseLog(filename)
 
 
 gtk.main()
-
