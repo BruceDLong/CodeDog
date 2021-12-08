@@ -60,11 +60,11 @@ class Xlator(object):
     def determinePtrConfigForAssignments(self, LVAL, RVAL, assignTag, codeStr):
         cdErr("In base class Xlator::determinePtrConfigForAssignments.")
 
-    def getCodeAllocStr(self, varTypeStr, owner):
-        cdErr("In base class Xlator::getCodeAllocStr.")
+    def codeSpecialParamList(self, tSpec, CPL):
+        cdErr("In base class Xlator::codeSpecialParamList.")
 
-    def getCodeAllocSetStr(self, varTypeStr, owner, value):
-        cdErr("In base class Xlator::getCodeAllocSetStr.")
+    def codeXlatorAllocater(self, tSpec, genericArgs):
+        cdErr("In base class Xlator::codeXlatorAllocater.")
 
     def getConstIntFieldStr(self, fieldName, fieldValue, intSize):
         cdErr("In base class Xlator::getConstIntFieldStr.")

@@ -274,18 +274,17 @@ class Xlator_Swift(Xlator):
         if progSpec.typeIsPointer(LVAL) and RightOwner=='literal':return ['','!',  '', '']
         return ['','',  '','']
 
-    def getCodeAllocStr(self, varTypeStr, owner):
-        if(owner=='our'): S=varTypeStr
-        elif(owner=='my'): S=varTypeStr
-        elif(owner=='their'): S=varTypeStr
-        elif(owner=='me'): print("ERROR: Cannot allocate a 'me' variable."); exit(1);
-        elif(owner=='const'): print("ERROR: Cannot allocate a 'const' variable."); exit(1);
-        else: print("ERROR: Cannot allocate variable because owner is", owner+"."); exit(1);
-        return S
+    def codeSpecialParamList(self, tSpec, CPL):
+        return CPL
 
-    def getCodeAllocSetStr(self, varTypeStr, owner, value):
-        S=self.getCodeAllocStr(varTypeStr, owner)
-        S+='('+value+')'
+    def codeXlatorAllocater(self, tSpec, genericArgs):
+        owner = progSpec.getTypeSpecOwner(tSpec)
+        if(owner=='our'):     S=varTypeStr
+        elif(owner=='my'):    S=varTypeStr
+        elif(owner=='their'): S=varTypeStr
+        elif(owner=='me'):    cdErr("ERROR: Cannot allocate a 'me' variable.")
+        elif(owner=='const'): cdErr("ERROR: Cannot allocate a 'const' variable.")
+        else: cdErr("ERROR: Cannot allocate variable because owner is", owner+".")
         return S
 
     def getConstIntFieldStr(self, fieldName, fieldValue, intSize):
@@ -332,16 +331,13 @@ class Xlator_Swift(Xlator):
     ###################################################### CONTAINERS
     def getContaineCategory(self, containerSpec):
         fromImpl=progSpec.getFromImpl(containerSpec)
-        if fromImpl and 'implements' in fromImpl:
-            return fromImpl['implements']
+        if fromImpl and 'implements' in fromImpl: return fromImpl['implements']
         fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
+        if fTypeKW=='string':  return 'string'
+        if fTypeKW=='List':    return 'List'        # TODO: un-hardcode this
+        if fTypeKW=='TreeMap': return 'Map'         # TODO: un-hardcode this
+        if fTypeKW=='PovList': return 'PovList'     # TODO: un-hardcode this
         print("WARNING: Container Category not recorded for:",fTypeKW)
-        if fTypeKW=='PovList':
-            return 'PovList'
-        elif fTypeKW=='multimap' or fTypeKW=='map' or fTypeKW=='Swift_Map' or 'RBTreeMap' in fTypeKW or "__Map_" in fTypeKW:
-            return 'map'
-        elif fTypeKW=='list' or fTypeKW=='Swift_Array' or "__List_" in fTypeKW:
-            return 'list'
         return None
 
     def getContainerTypeInfo(self, containerType, name, idxType, typeSpecIn, paramList, genericArgs):
@@ -459,6 +455,10 @@ class Xlator_Swift(Xlator):
                     actionText += (indent + "for " + repName+' in ('+ ctnrName +".count - 1).stride(through: 0, by: -1) {\n")
                 else:
                     actionText += (indent + "for " + repName+' in '+ ctnrName + " {\n")
+        elif containerCat=='string':
+            keyVarSpec   = {'owner':'me', 'fieldType':'char'}
+            firstTSpec   = {'owner':'me', 'fieldType':'char'}
+            actionText += indent + "for "+ repName + " in " + ctnrName + "{\n"
         else: cdErr("iterateContainerStr() datastructID = " + datastructID)
         localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
@@ -589,11 +589,11 @@ class Xlator_Swift(Xlator):
                 if(varTypeSpec==0): cdErr("Name is undefined: " + varName)
                 if(varName[-1]=='!'): varNameUnRefed=varName[:-1]  # Remove a reference. It would be better to do this in self.codeGen.codeExpr but may take some work.
                 else: varNameUnRefed=varName
-                S+='if('+varNameUnRefed+' != nil){'+varName+'.clear();} else {'+varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+"();}"
+                S+='if('+varNameUnRefed+' != nil){'+varName+'.clear();} else {'+varName+" = "+self.codeXlatorAllocater(varTypeSpec, genericArgs)+"();}"
             elif(funcName=='Allocate'):
                 [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'LVAL', genericArgs)
                 if(varTypeSpec==0): cdErr("Name is Undefined: " + varName)
-                S+=varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+'('
+                S+=varName+" = "+self.codeXlatorAllocater(varTypeSpec, genericArgs)+'('
                 count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
                 for P in paramList[1:]:
                     if(count>0): S+=', '

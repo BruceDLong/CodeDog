@@ -223,14 +223,17 @@ class Xlator_Java(Xlator):
     def determinePtrConfigForAssignments(self, LVAL, RVAL, assignTag, codeStr):
         return ['','',  '','']
 
-    def getCodeAllocStr(self, varTypeStr, owner):
-        if(owner!='const'): S="new "+varTypeStr
-        else: cdErr("ERROR: Cannot allocate a 'const' variable.")
-        return S
+    def codeSpecialParamList(self, tSpec, CPL):
+        # TODO: un-hardcode this
+        fTypeKW = progSpec.fieldTypeKeyword(tSpec)
+        if fTypeKW=='workerMsgThread': return '("workerMsgThread")'
+        return CPL
 
-    def getCodeAllocSetStr(self, varTypeStr, owner, value):
-        S=self.getCodeAllocStr(varTypeStr, owner)
-        S+='('+value+')'
+    def codeXlatorAllocater(self, tSpec, genericArgs):
+        owner = progSpec.getTypeSpecOwner(tSpec)
+        [cvrtType, innerType]  = self.codeGen.convertType(tSpec, 'alloc', '', genericArgs)
+        if(owner!='const'): S="new "+cvrtType
+        else: cdErr("ERROR: Cannot allocate a 'const' variable.")
         return S
 
     def getConstIntFieldStr(self, fieldName, fieldValue, intSize):
@@ -260,10 +263,11 @@ class Xlator_Java(Xlator):
         fromImpl=progSpec.getFromImpl(containerSpec)
         if fromImpl and 'implements' in fromImpl: return fromImpl['implements']
         fTypeKW = progSpec.fieldTypeKeyword(containerSpec)
-        if fTypeKW=='string': return 'string'
-        if fTypeKW=='Java_ArrayList' or fTypeKW=='List': return 'List' # TODO: un-hardcode this
+        if fTypeKW=='string':  return 'string'
+        if fTypeKW=='List':    return 'List'        # TODO: un-hardcode this
         if fTypeKW=='TreeMap': return 'Map'         # TODO: un-hardcode this
         if fTypeKW=='PovList': return 'PovList'     # TODO: un-hardcode this
+        if fTypeKW=='Java_ArrayList': return 'List'     # TODO: un-hardcode this
         print("WARNING: Container Category not recorded for:",fTypeKW)
         return None
 
@@ -403,6 +407,11 @@ class Xlator_Java(Xlator):
             else:
                 actionText += (indent + "for(int "+loopVarName+"=0; " + loopVarName +' != ' + ctnrName+'.size(); ' + loopVarName+' += 1){\n'
                             + indent + indent + iteratorTypeStr+' '+repName+" = "+ctnrName+".get("+loopVarName+");\n")
+        elif containerCat=='string':
+            keyVarSpec   = {'owner':'me', 'fieldType':'char'}
+            firstTSpec   = {'owner':'me', 'fieldType':'char'}
+            actionText += indent + "for(int i = 0; i < "+ ctnrName + ".length(); i++){\n"
+            actionText += indent + "    char "  + repName + " = " + ctnrName + ".charAt(i);\n"
         else: cdErr("iterateContainerStr() datastructID = " + datastructID)
         localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
         localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
@@ -661,22 +670,10 @@ class Xlator_Java(Xlator):
                 fieldType='string'
             elif(funcName=='AllocateOrClear'):
                 [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'PARAM', genericArgs)
-                S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+"();}"
+                S+='if('+varName+' != null){'+varName+'.clear();} else {'+varName+" = ("+self.codeGen.codeAllocater(varTypeSpec, paramList[1:], genericArgs)+";}"
             elif(funcName=='Allocate'):
                 [varName,  varTypeSpec]=self.codeGen.codeExpr(paramList[0][0], None, None, 'PARAM', genericArgs)
-                fieldType = progSpec.fieldTypeKeyword(varTypeSpec)
-                S+=varName+" = "+self.codeGen.codeAllocater(varTypeSpec, genericArgs)+'('
-                count=0   # TODO: As needed, make this call CodeParameterList() with modelParams of the constructor.
-                if fieldType=='workerMsgThread':
-                    S += '"workerMsgThread"'
-                else:
-                    for P in paramList[1:]:
-                        if(count>0): S+=', '
-                        [S2, argTypeSpec]=self.codeGen.codeExpr(P[0], None, None, 'PARAM', genericArgs)
-                        S+=S2
-                        count=count+1
-                S+=")"
-                if 'new stateRec' in S: print('@@@@ ALLOCATE', S)
+                S = varName+" = "+self.codeGen.codeAllocater(varTypeSpec, paramList[1:], genericArgs)
             elif(funcName=='break'):
                 if len(paramList)==0: S='break'
             elif(funcName=='return'):
@@ -840,7 +837,9 @@ class Xlator_Java(Xlator):
                     else:
                         if self.isJavaPrimativeType(fTypeKW): assignValue  = " =  " + CPL
                         else: assignValue  = " = new " + fTypeKW + CPL
-                if(assignValue==''): assignValue = ' = '+self.getCodeAllocStr(fTypeKW, owner)+CPL
+                if(assignValue==''):
+                    assignValue = ' = '+self.codeGen.codeAllocater(lhsTypeSpec, fieldDef['paramList'], genericArgs, CPL)
+                    if 'new POV(i, nextNode, position)' in assignValue: print('@@@@ ', assignValue); exit(2)
             elif self.varTypeIsValueType(fTypeKW):
                 if fTypeKW == 'long' or fTypeKW == 'int' or fTypeKW == 'float'or fTypeKW == 'double': assignValue=' = 0'
                 elif fTypeKW == 'string':  assignValue=' = ""'

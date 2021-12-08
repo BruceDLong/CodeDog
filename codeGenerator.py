@@ -47,14 +47,14 @@ class CodeGenerator(object):
             return 1 + self.bitsNeeded((n + 1) // 2)
     ###### Routines to track types of identifiers and to look up type based on identifier.
 
-    classStore     = []
-    tagStore       = None
-    localVarsAllocated   = []   # Format: [varName, typeSpec]
-    localArgsAllocated   = []   # Format: [varName, typeSpec]
-    currentObjName       = ''
-    inheritedEnums       = {}
-    constFieldAccs       = {}
-    modeStringsAcc = ''
+    classStore         = []
+    tagStore           = None
+    localVarsAllocated = []   # Format: [varName, typeSpec]
+    localArgsAllocated = []   # Format: [varName, typeSpec]
+    currentObjName     = ''
+    inheritedEnums     = {}
+    constFieldAccs     = {}
+    modeStringsAcc     = ''
     genericStructsGenerated = [ {}, [] ]
 
     def typeIsInteger(self, fieldType):
@@ -589,12 +589,14 @@ class CodeGenerator(object):
         retVal   = self.xlator.xlateLangType(self.classStore, typeSpec, ownerOut, unwrappedKW, varMode, actionOrField)
         return retVal
 
-    def codeAllocater(self, typeSpec, genericArgs):
-        S     = ''
-        owner = progSpec.getTypeSpecOwner(typeSpec)
-        fieldType = progSpec.fieldTypeKeyword(typeSpec)
-        [cvrtType, innerType]  = self.convertType(typeSpec, 'alloc', '', genericArgs)
-        S= self.xlator.getCodeAllocStr(cvrtType, owner);
+    def codeAllocater(self, tSpec, paramList, genericArgs):
+        # TODO: call CodeParameterList() with modelParams of the constructor.
+        CPL = '()'
+        if paramList!=None:
+            if isinstance(paramList, str): CPL = '('+paramList+')'
+            else: [CPL, paramTypeList]  = self.codeParameterList('Allocate', paramList, None, genericArgs)
+        CPL = self.xlator.codeSpecialParamList(tSpec, CPL)
+        S = self.xlator.codeXlatorAllocater(tSpec, genericArgs) + CPL
         return S
 
     def convertNameSeg(self, typeSpecOut, name, paramList, genericArgs):
@@ -688,9 +690,7 @@ class CodeGenerator(object):
         else:
             if isNewCtnr == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
             else: fType=progSpec.fieldTypeKeyword(fTypeKW)
-            if(name=='allocate'):
-                S_alt=' = '+self.codeAllocater(typeSpecIn, genericArgs)
-                typeSpecOut={'owner':'me', 'fieldType': 'void'}
+            if(name=='allocate'): cdErr("Deprecated use of allocate()")
             elif(name=='resetFlagsAndModes'):
                 typeSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
                 # TODO: if flags or modes have a non-zero default this should account for that.
@@ -1147,14 +1147,13 @@ class CodeGenerator(object):
             actionText += actionTextOut
         else: # interate over a container
             [ctnrName, containerTSpec] = self.codeExpr(action['repList'][0], None, None, 'RVAL', genericArgs)
-            isOldCtnr = progSpec.isOldContainerTempFuncErr(containerTSpec, 'codeRepetition2 '+self.currentObjName+' '+ctnrName, self.xlator.renderGenerics)
-            isNewCtnr = progSpec.isAContainer(containerTSpec)
-            isContainer = isOldCtnr or isNewCtnr
+            fTypeKW     = progSpec.fieldTypeKeyword(containerTSpec)
+            isOldCtnr   = progSpec.isOldContainerTempFuncErr(containerTSpec, 'codeRepetition2 '+self.currentObjName+' '+ctnrName, self.xlator.renderGenerics)
+            isNewCtnr   = progSpec.isAContainer(containerTSpec)
+            isContainer = isOldCtnr or isNewCtnr or fTypeKW=='string'
             if containerTSpec==None or not isContainer: cdErr("'"+ctnrName+"' is not a container so cannot be iterated over."+str(containerTSpec))
-            if(traversalMode=='Forward' or traversalMode==None):
-                isBackward=False
-            elif(traversalMode=='Backward'):
-                isBackward=True
+            isBackward = False
+            if(traversalMode=='Backward'): isBackward=True
             [actionTextOut, loopCounterName, itrIncStr] = self.xlator.iterateContainerStr(self.classStore,self.localVarsAllocated,containerTSpec,repName,ctnrName, isBackward, indent, genericArgs)
             actionText += actionTextOut
         if action['whereExpr']:
