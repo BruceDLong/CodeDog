@@ -997,7 +997,7 @@ struct EParser{
     me int64: scrapeQuotedStr(me int64: pos) <- {
         me string: ch <- ""
         ch <+- getCharAt(pos)
-        if(ch != "\'" and ch != "\""){return(-1)}
+        if(ch != "'" and ch != "\""){return(-1)}
         else{pos <+- 1}
         me int64: sLen <- escapedScrapeUntil(pos, ch)
         if(sLen<0){return(-1)}

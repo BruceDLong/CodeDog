@@ -59,8 +59,7 @@ def setUtilityCode(TestArrayText, SwitchCaseText):
             log("TESTING "+testName+" _________________")
             // clear failFlag and mesg_buff; setTimer
             <TEST-CASES-HERE>
-            //else {Tstat <- "?"}
-            //else {Tstat <- "?"}
+
             // readTimer()
             // fetch and return results
             if(verboseMode=="1"){
@@ -152,14 +151,15 @@ def generateTestCode(classes, buildTags, tags, macroDefs):
     #     TestArrayText += '"'+T+'"'
     #     SwitchCaseText += 'if(testName=="'+T+'"){' + T.replace('/', '_') +'(testName)}\n'
 
-    SwitchCaseText = "switch(testName){\n"
+    SwitchCaseText = 'switch(testName){\n'
     for T in TestList:
         if count>0:
-            TestArrayText+=", "
+            TestArrayText+=', '
         count+=1
         TestArrayText += '"'+T+'"'
         SwitchCaseText += '    case "'+T+'":{\n'+ T.replace('/', '_') +'(testName);\n    }\n'
-    SwitchCaseText += "}\n"
+    SwitchCaseText += '    default:{Tstat <- "?"}\n'
+    SwitchCaseText += '}\n'
     testBedUtilities = setUtilityCode(TestArrayText, SwitchCaseText)
 
    # print "TEST TEXT:", testBedUtilities
