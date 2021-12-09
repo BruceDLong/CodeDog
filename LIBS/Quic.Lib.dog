@@ -252,17 +252,19 @@ struct QuicStream_Server: inherits=QuicStream{
 struct QuicClient_Engine: inherits=QuicEngine{
     me Map<me string, their QuicClient_Connection>: currentConnections
 
-    their QuicClient_Connection: getClientConnection(their QuicClient_Connection: qConn, me string: ipAddr, me string:portNum) <- {
+    their QuicClient_Connection: getClientConnection(me string: ipAddr, me string:portNum) <- {
         me string: connID <- ipAddr+"@"+portNum
         their QuicClient_Connection: retVal <- NULL
         itr Map<me string, their QuicClient_Connection>: connItr <- currentConnections.find(connID)
         if(connItr != currentConnections.end()){
             retVal <- connItr.val
         } else {
-            their QuicClient_Connection:: qConn
+            their QuicClient_Connection: qConn
+            Allocate(qConn)
             if(setupClientConnection(qConn, ipAddr, portNum)){
                 qConn.createNewStream()
                 currentConnections[connID] <- qConn
+                retVal <- qConn
             }
         }
         return(retVal)

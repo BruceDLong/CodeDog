@@ -1428,16 +1428,19 @@ class CodeGenerator(object):
             isContainer = isOldCtnr or isNewCtnr
             if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner=='we' or (tSpec['argList'] or tSpec['argList']!=None) or (isContainer and not progSpec.typeIsPointer(tSpec)):
                 continue
-            if(fOwner!='me' and fOwner!='my') or (isinstance(fType, str) and ((self.isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
-                modelParams.append(field)
+            modelParams.append(field)
         return modelParams
 
     def getCtorArgTypes(self, className, genericArgs):
         ctorArgTypes = []
         modelParams  = self.getCtorModelParams(className)
         for field in modelParams:
-            [cvrtType, innerType] = self.convertType(field['typeSpec'], 'var', 'constructor', genericArgs)
-            ctorArgTypes.append(cvrtType)
+            tSpec     = field['typeSpec']
+            fType     = progSpec.fieldTypeKeyword(tSpec)
+            fOwner    = progSpec.getOwnerFromTypeSpec(tSpec)
+            if(fOwner != 'me' and fOwner != 'my') or (isinstance(fType, str) and ((self.isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
+                [cvrtType, innerType] = self.convertType(tSpec, 'var', 'constructor', genericArgs)
+                ctorArgTypes.append(cvrtType)
         return ctorArgTypes
 
     def getFieldDefaultVal(self, field, genericArgs):
