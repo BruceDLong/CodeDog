@@ -944,22 +944,16 @@ def getContainerValueOwnerAndType(typeSpec):
 
 def fieldTypeKeyword(fieldType):
     # fieldType can be fieldType or typeSpec
-    if fieldType==None: return None
-    if 'dummyType' in fieldType: return None
-    if 'owner' in fieldType and fieldType['owner']=='PTR':
-        return None
-    if 'fieldType' in fieldType:    # if var fieldType is typeSpec
-        fieldType = fieldType['fieldType']
-    if isinstance(fieldType, str):
-        return fieldType
-    if len(fieldType) > 1 and fieldType[1] == '..':
-        return 'int'
-    if('varType' in fieldType[0]):
-        fieldType = fieldType[0]['varType']
-    if isinstance(fieldType[0], str):
-        return fieldType[0]
-    if isinstance(fieldType[0][0], str):
-        return fieldType[0][0]
+    if fieldType==None:                         return None
+    if 'dummyType' in fieldType:                return None
+    if 'typeSpec' in fieldType:                 fieldType = fieldType['typeSpec']   # if var fieldType is fieldDef
+    if 'fieldType' in fieldType:                fieldType = fieldType['fieldType']  # if var fieldType is typeSpec
+    if 'owner' in fieldType and fieldType['owner']=='PTR': return None
+    if isinstance(fieldType, str):              return fieldType
+    if len(fieldType)>1 and fieldType[1]=='..': return 'int'
+    if('varType' in fieldType[0]):              fieldType = fieldType[0]['varType']
+    if isinstance(fieldType[0], str):           return fieldType[0]
+    if isinstance(fieldType[0][0], str):        return fieldType[0][0]
     cdErr("?Invalid fieldTypeKeyword?")
 
 def getFieldType(typeSpec):

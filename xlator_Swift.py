@@ -16,16 +16,16 @@ class Xlator_Swift(Xlator):
     ObjConnector          = "."                      # Name segment connector for classes.
     NameSegConnector      = "."
     NameSegFuncConnector  = "()."
-    doesLangHaveGlobals   = "True"
+    doesLangHaveGlobals   = True
     funcBodyIndent        = "    "
-    funcsDefInClass       = "True"
+    funcsDefInClass       = True
     MakeConstructors      = True
-    funcsDefInClass       = "True"
     blockPrefix           = "do"
-    usePrefixOnStatics    = "True"
-    iteratorsUseOperators = "False"
+    usePrefixOnStatics    = True
+    iteratorsUseOperators = False
     renderGenerics        = "True"
-    renameInitFuncs       = "True"
+    renameInitFuncs       = True
+    useAllCtorArgs        = False
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
     def implOperatorsAsFuncs(self, fTypeKW):
@@ -279,9 +279,10 @@ class Xlator_Swift(Xlator):
 
     def codeXlatorAllocater(self, tSpec, genericArgs):
         owner = progSpec.getTypeSpecOwner(tSpec)
-        if(owner=='our'):     S=varTypeStr
-        elif(owner=='my'):    S=varTypeStr
-        elif(owner=='their'): S=varTypeStr
+        [cvrtType, innerType]  = self.codeGen.convertType(tSpec, 'alloc', '', genericArgs)
+        if(owner=='our'):     S=cvrtType
+        elif(owner=='my'):    S=cvrtType
+        elif(owner=='their'): S=cvrtType
         elif(owner=='me'):    cdErr("ERROR: Cannot allocate a 'me' variable.")
         elif(owner=='const'): cdErr("ERROR: Cannot allocate a 'const' variable.")
         else: cdErr("ERROR: Cannot allocate variable because owner is", owner+".")

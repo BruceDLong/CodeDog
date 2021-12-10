@@ -16,15 +16,16 @@ class Xlator_Java(Xlator):
     ObjConnector          = "."                      # Name segment connector for classes.
     NameSegConnector      = "."
     NameSegFuncConnector  = "."
-    doesLangHaveGlobals   = "False"
+    doesLangHaveGlobals   = False
     funcBodyIndent        = "    "
-    funcsDefInClass       = "True"
-    MakeConstructors      = "True"
+    funcsDefInClass       = True
+    MakeConstructors      = True
     blockPrefix           = ""
-    usePrefixOnStatics    = "False"
-    iteratorsUseOperators = "False"
+    usePrefixOnStatics    = False
+    iteratorsUseOperators = False
     renderGenerics        = "True"
-    renameInitFuncs       = "False"
+    renameInitFuncs       = False
+    useAllCtorArgs        = True
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
     def implOperatorsAsFuncs(self, fTypeKW):
