@@ -26,6 +26,7 @@ class Xlator_CPP(Xlator):
     renderGenerics        = "False"
     renameInitFuncs       = False
     useAllCtorArgs        = False
+    nullValue             = "nullptr"
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
     def implOperatorsAsFuncs(self, fTypeKW):

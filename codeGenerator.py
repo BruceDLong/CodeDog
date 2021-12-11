@@ -335,8 +335,7 @@ class CodeGenerator(object):
                         if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None}, "CONST"]
                         cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                         return [None, "LIB"]      # TODO: Return correct type
-        return [REF['typeSpec'], RefType]
-        # Example: [{typeSpec}, 'OBJVAR']
+        return [REF['typeSpec'], RefType]   # Example: [{typeSpec}, 'OBJVAR']
 
     ###### End of type tracking code
     modeStateNames={}
@@ -421,7 +420,6 @@ class CodeGenerator(object):
                 #print("IMPLEMENTS:", ctnrCat, '->', hiScoreName)
                 return(hiScoreName,fromImpl)
         return(None, None)
-        #    choose highest score and mark the typedef
 
     def applyStructImplemetation(self, typeSpec,currentObjName,fieldName):
         self.checkForReservedWord(fieldName, currentObjName)
@@ -617,8 +615,7 @@ class CodeGenerator(object):
                             defaultVal = self.getFieldDefaultVal(modParam, genericArgs)
                             CPL2 += defaultVal
                         count += 1
-                    if CPL2!="":
-                        CPL= CPL2+')'
+                    if CPL2!="": CPL= CPL2+')'
         CPL = self.xlator.codeSpecialParamList(tSpec, CPL)
         S = self.xlator.codeXlatorAllocater(tSpec, genericArgs) + CPL
         return S
@@ -1302,12 +1299,10 @@ class CodeGenerator(object):
                     setBits = self.xlator.codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsTypeSpec)
                     actionText=indent + setBits
                 else:
-                    if AltIDXFormat!=None:
-                        # Handle special forms of assignment such as LVal(idx, RVal)
+                    if AltIDXFormat!=None: # Handle special forms of assignment such as LVal(idx, RVal)
                         actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
                         if actionText != '': actionText = indent+actionText
-                    if actionText=="":
-                        # Handle the normal assignment case
+                    if actionText=="":     # Handle the normal assignment case
                         if RHS=='nil' and LHS[-1]=='!': LHS=LHS[:-1]  #TODO: Move this code to swift self.xlator
                         actionText = indent + LHS + " = " + RHS + ";\n"
             else:
@@ -1318,26 +1313,16 @@ class CodeGenerator(object):
                     if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
                         actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
                     else: actionText = indent + LHS + " += " + RHS + ";\n"
-                elif(assignTag=='-'):
-                    actionText = indent + LHS + " -= " + RHS + ";\n"
-                elif(assignTag=='*'):
-                    actionText = indent + LHS + " *= " + RHS + ";\n"
-                elif(assignTag=='/'):
-                    actionText = indent + LHS + " /= " + RHS + ";\n"
-                elif(assignTag=='%'):
-                    actionText = indent + LHS + " %= " + RHS + ";\n"
-                elif(assignTag=='<<'):
-                    actionText = indent + LHS + " <<= " + RHS + ";\n"
-                elif(assignTag=='>>'):
-                    actionText = indent + LHS + " >>= " + RHS + ";\n"
-                elif(assignTag=='&'):
-                    actionText = indent + LHS + " &= " + RHS + ";\n"
-                elif(assignTag=='^'):
-                    actionText = indent + LHS + " ^= " + RHS + ";\n"
-                elif(assignTag=='|'):
-                    actionText = indent + LHS + " |= " + RHS + ";\n"
-                else:
-                    actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
+                elif(assignTag=='-'):  actionText = indent + LHS + " -= " + RHS + ";\n"
+                elif(assignTag=='*'):  actionText = indent + LHS + " *= " + RHS + ";\n"
+                elif(assignTag=='/'):  actionText = indent + LHS + " /= " + RHS + ";\n"
+                elif(assignTag=='%'):  actionText = indent + LHS + " %= " + RHS + ";\n"
+                elif(assignTag=='<<'): actionText = indent + LHS + " <<= " + RHS + ";\n"
+                elif(assignTag=='>>'): actionText = indent + LHS + " >>= " + RHS + ";\n"
+                elif(assignTag=='&'):  actionText = indent + LHS + " &= " + RHS + ";\n"
+                elif(assignTag=='^'):  actionText = indent + LHS + " ^= " + RHS + ";\n"
+                elif(assignTag=='|'):  actionText = indent + LHS + " |= " + RHS + ";\n"
+                else: actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
         elif (typeOfAction =='swap'):
             LHS = action['LHS']
             RHS =  action['RHS']
@@ -1471,7 +1456,7 @@ class CodeGenerator(object):
         [cvrtType, innerType] = self.convertType(tSpec, 'var', 'constructor', genericArgs)
         if(fOwner != 'me'):
             if(fOwner != 'my'):
-                defaultVal = "NULL"
+                defaultVal = self.xlator.nullValue
         elif (isinstance(fType, str)):
             if 'value' in field and field['value']!=None:
                 [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, tSpec, 'RVAL', genericArgs)
@@ -1543,8 +1528,6 @@ class CodeGenerator(object):
         cdlog(3, "Coding fields for {}...".format(className))
         ####################################################################
         funcBodyIndent   = self.xlator.funcBodyIndent
-        funcsDefInClass  = self.xlator.funcsDefInClass
-        makeCtors = self.xlator.MakeConstructors
         globalFuncsAcc=""
         funcDefCodeAcc=""
         structCodeAcc=""
@@ -1637,10 +1620,8 @@ class CodeGenerator(object):
                 argListText  = ""
                 argListCount = 0
                 argList=field['typeSpec']['argList']
-                if len(argList)==0:
-                    argListText='' #'void'
-                elif argList[0]=='<%':                                          # Verbatim.arguments
-                    argListText=argList[1][0]
+                if len(argList)==0: argListText='' #'void'
+                elif argList[0]=='<%': argListText=argList[1][0]        # Verbatim.arguments
                 else:
                     for arg in argList:
                         if(argListCount>0): argListText+=", "
@@ -1711,7 +1692,7 @@ class CodeGenerator(object):
                     else:
                         cdErr("ERROR: In codeFields: no funcText or funcTextVerbatim found")
 
-                if funcsDefInClass:
+                if self.xlator.funcsDefInClass:
                     structCode += funcText
 
                 elif(className=='GLOBAL'):
@@ -1729,7 +1710,7 @@ class CodeGenerator(object):
             topFuncDefCodeAcc += topFuncDefCode
 
         # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
-        if makeCtors and (className!='GLOBAL')  and (className!='widget'):
+        if self.xlator.MakeConstructors and (className!='GLOBAL')  and (className!='widget'):
             ctorCode=self.codeConstructor(className, tags, typeArgList, genericArgs)
             structCodeAcc+= "\n"+ctorCode
         funcDefCodeAcc = topFuncDefCodeAcc + funcDefCodeAcc
@@ -1807,7 +1788,7 @@ class CodeGenerator(object):
                 cdlog(1, "   Class that inherits mode: " + className)
                 forwardDeclsOut = ""
                 enumVals = self.classStore[0][className]['tags']['inherits']['fieldType']['altModeList']
-                if self.xlator.doesLangHaveGlobals==True:
+                if self.xlator.doesLangHaveGlobals:
                     structCodeOut = "\n" + self.xlator.getEnumStr(className, enumVals).lstrip()
                     funcCode = self.xlator.getEnumStringifyFunc(className, enumVals)
                     self.modeStateNames[className+'Strings']    = "GLOBAL"
@@ -2165,7 +2146,7 @@ class CodeGenerator(object):
             structsToImplement = self.fetchListOfStructsToImplement(tags)
             for className in structsToImplement:
                 typeArgList = progSpec.getTypeArgList(className)
-                if(self.xlator.doesLangHaveGlobals=='False' or className != 'GLOBAL') and (self.xlator.renderGenerics=='False' or typeArgList == None):
+                if(not self.xlator.doesLangHaveGlobals or className != 'GLOBAL') and (self.xlator.renderGenerics=='False' or typeArgList == None):
                         classRecord    = classRecords[className]
                         constsEnums   += classRecord[0]
                         forwardDecls  += classRecord[1]

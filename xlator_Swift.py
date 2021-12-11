@@ -26,6 +26,7 @@ class Xlator_Swift(Xlator):
     renderGenerics        = "True"
     renameInitFuncs       = True
     useAllCtorArgs        = False
+    nullValue             = "nil"
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
     def implOperatorsAsFuncs(self, fTypeKW):
@@ -901,7 +902,7 @@ class Xlator_Swift(Xlator):
         return "        self." + fieldName +" = arg_"+fieldName+";\n"
 
     def codeConstructorArgText(self, argFieldName, count, argType, defaultVal):
-        if defaultVal == "NULL": defaultVal = ""
+        if defaultVal == "nil": defaultVal = ""
         if defaultVal: argType = argType + '=' + defaultVal
         return "_ arg_" + argFieldName  + ': ' +argType
 
