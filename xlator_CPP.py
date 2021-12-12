@@ -16,15 +16,17 @@ class Xlator_CPP(Xlator):
     ObjConnector          = "::"                      # Name segment connector for Classes.
     NameSegConnector      = "."
     NameSegFuncConnector  = "."
-    doesLangHaveGlobals   = "True"
+    doesLangHaveGlobals   = True
     funcBodyIndent        = ""
-    funcsDefInClass       = "False"
-    MakeConstructors      = "True"
+    funcsDefInClass       = False
+    MakeConstructors      = True
     blockPrefix           = ""
-    usePrefixOnStatics    = "False"
-    iteratorsUseOperators = "True"
+    usePrefixOnStatics    = False
+    iteratorsUseOperators = True
     renderGenerics        = "False"
-    renameInitFuncs       = "False"
+    renameInitFuncs       = False
+    useAllCtorArgs        = False
+    nullValue             = "nullptr"
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
     def implOperatorsAsFuncs(self, fTypeKW):

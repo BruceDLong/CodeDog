@@ -335,8 +335,7 @@ class CodeGenerator(object):
                         if itemName=='NULL': return [{'owner':'their', 'fieldType':"pointer", 'arraySpec':None}, "CONST"]
                         cdlog(logLvl(), "Variable {} could not be found.".format(itemName))
                         return [None, "LIB"]      # TODO: Return correct type
-        return [REF['typeSpec'], RefType]
-        # Example: [{typeSpec}, 'OBJVAR']
+        return [REF['typeSpec'], RefType]   # Example: [{typeSpec}, 'OBJVAR']
 
     ###### End of type tracking code
     modeStateNames={}
@@ -421,7 +420,6 @@ class CodeGenerator(object):
                 #print("IMPLEMENTS:", ctnrCat, '->', hiScoreName)
                 return(hiScoreName,fromImpl)
         return(None, None)
-        #    choose highest score and mark the typedef
 
     def applyStructImplemetation(self, typeSpec,currentObjName,fieldName):
         self.checkForReservedWord(fieldName, currentObjName)
@@ -590,11 +588,34 @@ class CodeGenerator(object):
         return retVal
 
     def codeAllocater(self, tSpec, paramList, genericArgs):
-        # TODO: call CodeParameterList() with modelParams of the constructor.
         CPL = '()'
         if paramList!=None:
             if isinstance(paramList, str): CPL = '('+paramList+')'
-            else: [CPL, paramTypeList]  = self.codeParameterList('Allocate', paramList, None, genericArgs)
+            elif len(paramList)>0:
+                fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
+                objectDef    = self.classStore[0][fTypeKW]
+                genericArgs  = progSpec.getGenericArgs(objectDef)
+                modelParams  = self.getCtorModelParams(fTypeKW)
+                if len(paramList)>len(modelParams): modelParams  = []
+                [CPL, paramTypeList]  = self.codeParameterList('Allocate', paramList, modelParams, genericArgs)
+                if self.xlator.useAllCtorArgs and len(paramList)<len(modelParams):
+                    CPL2 = '('
+                    count = 0
+                    for modParam in modelParams:
+                        modTypeKW = progSpec.fieldTypeKeyword(modParam)
+                        if count>0: CPL2+=', '
+                        if len(paramTypeList)>count:
+                            paramTypeKW = progSpec.fieldTypeKeyword(paramTypeList[count])
+                            if modTypeKW!=paramTypeKW and paramTypeKW!=None:
+                                CPL2 = ''
+                                break
+                            [S2, argTSpec]=self.codeExpr(paramList[count][0], None, modParam, 'PARAM', genericArgs)
+                            CPL2 += S2
+                        else:
+                            defaultVal = self.getFieldDefaultVal(modParam, genericArgs)
+                            CPL2 += defaultVal
+                        count += 1
+                    if CPL2!="": CPL= CPL2+')'
         CPL = self.xlator.codeSpecialParamList(tSpec, CPL)
         S = self.xlator.codeXlatorAllocater(tSpec, genericArgs) + CPL
         return S
@@ -682,7 +703,7 @@ class CodeGenerator(object):
             else:
                 [typeSpecOut, SRC]=self.fetchItemsTypeSpec(segSpec, genericArgs) # Possibly adds a codeConversion to typeSpecOut
                 if typeSpecOut: typeSpecOut = self.getGenericTypeSpec(genericArgs, typeSpecOut)
-                if self.xlator.doesLangHaveGlobals=='False':
+                if not self.xlator.doesLangHaveGlobals:
                     if typeSpecOut and 'isGlobalEnum' in typeSpecOut and typeSpecOut['isGlobalEnum']:namePrefix = progSpec.fieldTypeKeyword(typeSpecOut)+ '.'
                     elif(SRC=="GLOBAL"): namePrefix = self.xlator.GlobalVarPrefix
                     elif name in self.modeStateNames and self.modeStateNames[name]=='modeStrings': namePrefix = self.xlator.GlobalVarPrefix+self.modeStateNames[name]+'.'
@@ -760,7 +781,7 @@ class CodeGenerator(object):
             modelParams=None
             if typeSpecOut and ('argList' in typeSpecOut): modelParams=typeSpecOut['argList'];
             [CPL, paramTypeList] = self.codeParameterList(name, paramList, modelParams, genericArgs)
-            if self.xlator.renameInitFuncs=='True' and name=='init':
+            if self.xlator.renameInitFuncs and name=='init':
                 if not 'dummyType' in typeSpecIn:
                     fTypeKW=progSpec.fieldTypeKeyword(typeSpecIn)
                 else: fTypeKW=self.currentObjName
@@ -937,23 +958,23 @@ class CodeGenerator(object):
             count = 0
             for P in paramList:
                 if(count>0): S+=', '
-                paramTypeSpec = None
+                modelTSpec = None
                 if modelParams and (len(modelParams)>count) and ('typeSpec' in modelParams[count]):
-                    paramTypeSpec = modelParams[count]['typeSpec']
-                [S2, argTypeSpec]=self.codeExpr(P[0], None, paramTypeSpec, 'PARAM', genericArgs)
-                paramTypeList.append(argTypeSpec)
-                if paramTypeSpec!=None:
-                    paramTypeKW   = progSpec.fieldTypeKeyword(paramTypeSpec)
-                    argTypeKW     = progSpec.fieldTypeKeyword(argTypeSpec)
+                    modelTSpec = modelParams[count]['typeSpec']
+                [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'PARAM', genericArgs)
+                paramTypeList.append(argTSpec)
+                if modelTSpec!=None:
+                    paramTypeKW   = progSpec.fieldTypeKeyword(modelTSpec)
+                    argTypeKW     = progSpec.fieldTypeKeyword(argTSpec)
                     if self.xlator.implOperatorsAsFuncs(paramTypeKW):
                         if argTypeKW=='numeric':
                             S2 = 'new '+paramTypeKW+'('+S2+')'
                     if name == 'return' and S2 == 'nil':  # Swift return nil, provide context and make optional
                         S2 = paramTypeKW +"?("+S2+")"
                     else:
-                        [leftMod, rightMod] = self.xlator.chooseVirtualRValOwner(paramTypeSpec, argTypeSpec)
+                        [leftMod, rightMod] = self.xlator.chooseVirtualRValOwner(modelTSpec, argTSpec)
                         S2 = leftMod+S2+rightMod
-                        S2 = self.xlator.checkForTypeCastNeed(paramTypeSpec,argTypeSpec,S2)
+                        S2 = self.xlator.checkForTypeCastNeed(modelTSpec,argTSpec,S2)
                     S += S2
                 else:
                     self.listOfFuncsWithUnknownArgTypes[(name+'()')]=1
@@ -1278,12 +1299,10 @@ class CodeGenerator(object):
                     setBits = self.xlator.codeSetBits(LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsTypeSpec)
                     actionText=indent + setBits
                 else:
-                    if AltIDXFormat!=None:
-                        # Handle special forms of assignment such as LVal(idx, RVal)
+                    if AltIDXFormat!=None: # Handle special forms of assignment such as LVal(idx, RVal)
                         actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
                         if actionText != '': actionText = indent+actionText
-                    if actionText=="":
-                        # Handle the normal assignment case
+                    if actionText=="":     # Handle the normal assignment case
                         if RHS=='nil' and LHS[-1]=='!': LHS=LHS[:-1]  #TODO: Move this code to swift self.xlator
                         actionText = indent + LHS + " = " + RHS + ";\n"
             else:
@@ -1294,26 +1313,16 @@ class CodeGenerator(object):
                     if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
                         actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
                     else: actionText = indent + LHS + " += " + RHS + ";\n"
-                elif(assignTag=='-'):
-                    actionText = indent + LHS + " -= " + RHS + ";\n"
-                elif(assignTag=='*'):
-                    actionText = indent + LHS + " *= " + RHS + ";\n"
-                elif(assignTag=='/'):
-                    actionText = indent + LHS + " /= " + RHS + ";\n"
-                elif(assignTag=='%'):
-                    actionText = indent + LHS + " %= " + RHS + ";\n"
-                elif(assignTag=='<<'):
-                    actionText = indent + LHS + " <<= " + RHS + ";\n"
-                elif(assignTag=='>>'):
-                    actionText = indent + LHS + " >>= " + RHS + ";\n"
-                elif(assignTag=='&'):
-                    actionText = indent + LHS + " &= " + RHS + ";\n"
-                elif(assignTag=='^'):
-                    actionText = indent + LHS + " ^= " + RHS + ";\n"
-                elif(assignTag=='|'):
-                    actionText = indent + LHS + " |= " + RHS + ";\n"
-                else:
-                    actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
+                elif(assignTag=='-'):  actionText = indent + LHS + " -= " + RHS + ";\n"
+                elif(assignTag=='*'):  actionText = indent + LHS + " *= " + RHS + ";\n"
+                elif(assignTag=='/'):  actionText = indent + LHS + " /= " + RHS + ";\n"
+                elif(assignTag=='%'):  actionText = indent + LHS + " %= " + RHS + ";\n"
+                elif(assignTag=='<<'): actionText = indent + LHS + " <<= " + RHS + ";\n"
+                elif(assignTag=='>>'): actionText = indent + LHS + " >>= " + RHS + ";\n"
+                elif(assignTag=='&'):  actionText = indent + LHS + " &= " + RHS + ";\n"
+                elif(assignTag=='^'):  actionText = indent + LHS + " ^= " + RHS + ";\n"
+                elif(assignTag=='|'):  actionText = indent + LHS + " |= " + RHS + ";\n"
+                else: actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
         elif (typeOfAction =='swap'):
             LHS = action['LHS']
             RHS =  action['RHS']
@@ -1412,64 +1421,72 @@ class CodeGenerator(object):
         return actSeqText
 
     #### CONSTRUCTORS ######################################################
+    def getCtorModelParams(self, className):
+        modelParams  = []
+        for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
+            tSpec       = field['typeSpec']
+            fType       = progSpec.fieldTypeKeyword(tSpec)
+            fOwner      = progSpec.getOwnerFromTypeSpec(tSpec)
+            isOldCtnr   = progSpec.isOldContainerTempFuncErr(tSpec, 'getCtorModelParams '+self.currentObjName, self.xlator.renderGenerics)
+            isNewCtnr   = progSpec.isAContainer(tSpec)
+            isContainer = isOldCtnr or isNewCtnr
+            if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner=='we' or (tSpec['argList'] or tSpec['argList']!=None) or (isContainer and not progSpec.typeIsPointer(tSpec)):
+                continue
+            modelParams.append(field)
+        return modelParams
+
     def getCtorArgTypes(self, className, genericArgs):
         ctorArgTypes = []
-        count=0
-        for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
+        modelParams  = self.getCtorModelParams(className)
+        for field in modelParams:
             tSpec     = field['typeSpec']
             fType     = progSpec.fieldTypeKeyword(tSpec)
             fOwner    = progSpec.getOwnerFromTypeSpec(tSpec)
-            isOldCtnr = progSpec.isOldContainerTempFuncErr(tSpec, 'getCtorArgTypes '+self.currentObjName, self.xlator.renderGenerics)
-            isNewCtnr = progSpec.isAContainer(tSpec)
-            isContainer = isOldCtnr or isNewCtnr
-            if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner == 'we' or (tSpec['argList'] or tSpec['argList']!=None) or (isContainer and not progSpec.typeIsPointer(tSpec)):
-                continue
             if(fOwner != 'me' and fOwner != 'my') or (isinstance(fType, str) and ((self.isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
                 [cvrtType, innerType] = self.convertType(tSpec, 'var', 'constructor', genericArgs)
                 ctorArgTypes.append(cvrtType)
         return ctorArgTypes
 
-    def getStructFieldsForCtor(self, className, typeArgList):
-        ObjectDef = self.classStore[0][className]
+    def getFieldDefaultVal(self, field, genericArgs):
+        defaultVal  = ''
+        tSpec       = field['typeSpec']
+        fType       = progSpec.fieldTypeKeyword(tSpec)
+        fOwner      = progSpec.getOwnerFromTypeSpec(tSpec)
+        fieldName   = field['fieldName']
+        [cvrtType, innerType] = self.convertType(tSpec, 'var', 'constructor', genericArgs)
+        if(fOwner != 'me'):
+            if(fOwner != 'my'):
+                defaultVal = self.xlator.nullValue
+        elif (isinstance(fType, str)):
+            if 'value' in field and field['value']!=None:
+                [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, tSpec, 'RVAL', genericArgs)
+            else:
+                if(self.typeIsInteger(fType)):    defaultVal = "0"
+                elif(self.typeIsRational(fType)): defaultVal = "0.0"
+                elif(fType=="string"):            defaultVal = '""'
+                else: # handle structs if needed
+                    if 'value' in field and field['value']!=None:
+                        [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, tSpec, 'RVAL', genericArgs)
+        return defaultVal
 
-        genericArgs =  progSpec.getGenericArgs(ObjectDef)
-        ctorInit=""
-        ctorArgs=""
-        copyCtorArgs=""
-        count=0
-        for field in progSpec.generateListOfFieldsToImplement(self.classStore, className):
-            typeSpec =field['typeSpec']
-            fieldType=progSpec.fieldTypeKeyword(typeSpec)
-            if(fieldType=='flag' or fieldType=='mode'): continue
-            if(typeSpec['argList'] or typeSpec['argList']!=None): continue
-            isOldCtnr = progSpec.isOldContainerTempFuncErr(typeSpec, 'codeConstructor '+self.currentObjName, self.xlator.renderGenerics)
-            isNewCtnr = progSpec.isAContainer(typeSpec)
-            isContainer = isOldCtnr or isNewCtnr
-            if isContainer and not progSpec.typeIsPointer(typeSpec): continue
-            fieldOwner=progSpec.getOwnerFromTypeSpec(typeSpec)
-            if(fieldOwner=='const' or fieldOwner == 'we'): continue
-            [cvrtType, innerType] = self.convertType(typeSpec, 'var', 'constructor', genericArgs)
-            fieldName=field['fieldName']
-            if(typeArgList != None and fieldType in typeArgList):isTemplateVar = True
+    def getStructFieldsForCtor(self, className, typeArgList):
+        ObjectDef    = self.classStore[0][className]
+        genericArgs  = progSpec.getGenericArgs(ObjectDef)
+        ctorInit     = ""
+        ctorArgs     = ""
+        copyCtorArgs = ""
+        count        = 0
+        modelParams  = self.getCtorModelParams(className)
+        for field in modelParams:
+            tSpec       = field['typeSpec']
+            fType       = progSpec.fieldTypeKeyword(tSpec)
+            fOwner      = progSpec.getOwnerFromTypeSpec(tSpec)
+            fieldName   = field['fieldName']
+            [cvrtType, innerType] = self.convertType(tSpec, 'var', 'constructor', genericArgs)
+            cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fType, cvrtType))
+            if(typeArgList != None and fType in typeArgList):isTemplateVar = True
             else: isTemplateVar = False
-            cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fieldType, cvrtType))
-            defaultVal=''
-            if(fieldOwner != 'me'):
-                if(fieldOwner != 'my'):
-                    defaultVal = "NULL"
-            elif (isinstance(fieldType, str)):
-                if 'value' in field and field['value']!=None:
-                    [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, typeSpec, 'RVAL', genericArgs)
-                else:
-                    if(self.typeIsInteger(fieldType)):
-                        defaultVal = "0"
-                    elif(self.typeIsRational(fieldType)):
-                        defaultVal = "0.0"
-                    elif(fieldType=="string"):
-                        defaultVal = '""'
-                    else: # handle structs if needed
-                        if 'value' in field and field['value']!=None:
-                            [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, typeSpec, 'RVAL', genericArgs)
+            defaultVal  = self.getFieldDefaultVal(field, genericArgs)
             if defaultVal != '':
             #    if count == 0: defaultVal = ''  # uncomment this line to NOT generate a default value for the first constructor argument.
                 if count>0: ctorArgs +=  ', '
@@ -1501,11 +1518,9 @@ class CodeGenerator(object):
         if ctorArgs and parentClass:
             ctorArgTypes       = self.getCtorArgTypes(className, genericArgs)
             parentCtorArgTypes = self.getCtorArgTypes(parentClass, genericArgs)
-            if ctorArgTypes == parentCtorArgTypes:
-                ctorOvrRide = 'override '
+            if ctorArgTypes == parentCtorArgTypes: ctorOvrRide = 'override '
         if count>0 or funcBody != '':
             ctorCode += self.xlator.codeConstructors(flatClassName, ctorArgs, ctorOvrRide, ctorInit, copyCtorArgs, funcBody, callSuper)
-        if className=='stateRec': print(ctorArgs)
         return ctorCode
 
     #### STRUCT FIELDS #####################################################
@@ -1513,8 +1528,6 @@ class CodeGenerator(object):
         cdlog(3, "Coding fields for {}...".format(className))
         ####################################################################
         funcBodyIndent   = self.xlator.funcBodyIndent
-        funcsDefInClass  = self.xlator.funcsDefInClass
-        makeCtors = self.xlator.MakeConstructors
         globalFuncsAcc=""
         funcDefCodeAcc=""
         structCodeAcc=""
@@ -1600,17 +1613,15 @@ class CodeGenerator(object):
             ###### ArgList exists so this is a FUNCTION###########
             else:
                 overRideOper = False
-                if fieldName[0:2] == "__" and self.xlator.iteratorsUseOperators == "True":
+                if fieldName[0:2] == "__" and self.xlator.iteratorsUseOperators:
                     fieldName = self.xlator.specialFunction(fieldName)
                     overRideOper = True
                 #### ARGLIST
                 argListText  = ""
                 argListCount = 0
                 argList=field['typeSpec']['argList']
-                if len(argList)==0:
-                    argListText='' #'void'
-                elif argList[0]=='<%':                                          # Verbatim.arguments
-                    argListText=argList[1][0]
+                if len(argList)==0: argListText='' #'void'
+                elif argList[0]=='<%': argListText=argList[1][0]        # Verbatim.arguments
                 else:
                     for arg in argList:
                         if(argListCount>0): argListText+=", "
@@ -1681,7 +1692,7 @@ class CodeGenerator(object):
                     else:
                         cdErr("ERROR: In codeFields: no funcText or funcTextVerbatim found")
 
-                if(funcsDefInClass=='True' ):
+                if self.xlator.funcsDefInClass:
                     structCode += funcText
 
                 elif(className=='GLOBAL'):
@@ -1699,7 +1710,7 @@ class CodeGenerator(object):
             topFuncDefCodeAcc += topFuncDefCode
 
         # TODO: Remove this Hard Coded widget. It should apply to any abstract class.
-        if makeCtors=='True' and (className!='GLOBAL')  and (className!='widget'):
+        if self.xlator.MakeConstructors and (className!='GLOBAL')  and (className!='widget'):
             ctorCode=self.codeConstructor(className, tags, typeArgList, genericArgs)
             structCodeAcc+= "\n"+ctorCode
         funcDefCodeAcc = topFuncDefCodeAcc + funcDefCodeAcc
@@ -1766,7 +1777,7 @@ class CodeGenerator(object):
         dependancies   = []
         self.currentObjName = className
         funcCode       = ''
-        if((self.xlator.doesLangHaveGlobals=='False') or className != 'GLOBAL'): # and ('enumList' not in self.classStore[0][className]['typeSpec'])):
+        if((not self.xlator.doesLangHaveGlobals) or className != 'GLOBAL'): # and ('enumList' not in self.classStore[0][className]['typeSpec'])):
             inheritsMode = False
             try:
                 if self.classStore[0][className]['tags']['inherits']['fieldType']['altModeIndicator']:
@@ -1777,7 +1788,7 @@ class CodeGenerator(object):
                 cdlog(1, "   Class that inherits mode: " + className)
                 forwardDeclsOut = ""
                 enumVals = self.classStore[0][className]['tags']['inherits']['fieldType']['altModeList']
-                if self.xlator.doesLangHaveGlobals=='True':
+                if self.xlator.doesLangHaveGlobals:
                     structCodeOut = "\n" + self.xlator.getEnumStr(className, enumVals).lstrip()
                     funcCode = self.xlator.getEnumStringifyFunc(className, enumVals)
                     self.modeStateNames[className+'Strings']    = "GLOBAL"
@@ -1818,7 +1829,7 @@ class CodeGenerator(object):
                 progSpec.populateCallableStructFields(callableStructFields, self.classStore, className)
                 [structCode, funcCode, globalCode]=self.codeStructFields(className, tags, '    ')
                 structCode+= constFieldCode
-                if className=='GLOBAL' and self.xlator.doesLangHaveGlobals=='False': structCode += '\n    _ModeStrings modeStrings = new _ModeStrings();\n'
+                if className=='GLOBAL' and not self.xlator.doesLangHaveGlobals: structCode += '\n    _ModeStrings modeStrings = new _ModeStrings();\n'
 
                 attrList = classDef['attrList']
                 if classAttrs!='': attrList.append(classAttrs)  # TODO: should append all items from classAttrs
@@ -2135,7 +2146,7 @@ class CodeGenerator(object):
             structsToImplement = self.fetchListOfStructsToImplement(tags)
             for className in structsToImplement:
                 typeArgList = progSpec.getTypeArgList(className)
-                if(self.xlator.doesLangHaveGlobals=='False' or className != 'GLOBAL') and (self.xlator.renderGenerics=='False' or typeArgList == None):
+                if(not self.xlator.doesLangHaveGlobals or className != 'GLOBAL') and (self.xlator.renderGenerics=='False' or typeArgList == None):
                         classRecord    = classRecords[className]
                         constsEnums   += classRecord[0]
                         forwardDecls  += classRecord[1]
@@ -2144,7 +2155,7 @@ class CodeGenerator(object):
 
             forwardDecls += self.funcDeclAcc
             funcCodeAcc  += self.funcDefnAcc
-            if self.xlator.doesLangHaveGlobals=='False': structCodeAcc += self.codeModeStringsStruct()
+            if not self.xlator.doesLangHaveGlobals: structCodeAcc += self.codeModeStringsStruct()
 
             outputStr = header + constsEnums + forwardDecls + self.libEmbedVeryHigh + structCodeAcc + self.ForwardDeclsForGlobalFuncs + self.libEmbedCodeHigh + MainTopBottom[0] + funcCodeAcc + self.libEmbedCodeLow + MainTopBottom[1]
             filename = progSpec.fetchTagValue(tags, "FileName")
