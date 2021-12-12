@@ -756,7 +756,7 @@ struct <CLASSNAME>ExtracterThread: inherits=Threads{
     void: run() <- {
         log("OPENING EXTRACT_THREAD")
         ctrls.parser.syntax.Extract_<CLASSNAME>_to_<CLASSNAME>(parseTree, topItem, ctrls.parser)
-        log("Finished_<CLASSNAME>:"+toString(topItem))
+        log("Extracted_<CLASSNAME>:"+toString(topItem))
         log("CLOSING EXTRACT_THREAD")
         protect(ctrls.chkExtractDone){
             ctrls.extractCompleted <- true

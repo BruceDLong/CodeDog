@@ -38,7 +38,7 @@ struct GLOBAL{
 struct PingProtocol: inherits=QProtocol {
     void: init() <- {myStream.nextOpIsWrite()}
     me string: serverInit() <- {
-        print("INIT SERVER: ",protocolArgs)
+        print("INIT PING SERVER: ",protocolArgs)
         return("ERR:")
     }
     void: clientInit() <- {
@@ -68,6 +68,7 @@ struct PingProtocol: inherits=QProtocol {
         switch(step){
             case 0:{
                 qStream.write(protocolIDPrefix+"\n")
+                qStream.flushStream()
                 step <- 1
                 myStream.nextOpIsRead()
             }
@@ -90,100 +91,58 @@ struct FetchFile: inherits=QProtocol {
     void: INIT() <- {
         protocolIDPrefix <- "FetchFile"
     }
+
+    void: onNewStream_CB(their QuicStream: qStream) <- {}
+
+    me string: serverInit() <- {
+        print("               INIT SERVER: ", protocolArgs,"\n")
+        fileName <- protocolArgs
+        fileStream.open(fileName)
+        if(fileStream.failure()){
+            print("              ERROR: opening file:'",fileName,"'\n")
+            return("ERR:"+taskID+":ERROR opening file:'"+fileName+"\n")
+        }
+        return("OK:"+taskID+"\n")
+    }
     uint64: onServerRead(their QuicStream: qStream, their string: data, me bool: finished) <- {
         me uint64: streamID <- qStream.getStreamID()
-        print("\nFETCH SERVER READ STEP:",step,"  STREAM_ID:",streamID,"\n")
+        print("\n              !!!! FETCH SERVER READ STEP:",step,"  STREAM_ID:",streamID,"\n")
         print("    DATA:",data,"\n")
         me uint64: bytesUsed <- 0
-     /*   switch(step){
-        case 0:{
-            step <- 1
-            qStream.nextOpIsRead()
-            }
-        case 1:{
-            bytesUsed <- qStream.readLine(data)
-            if(qStream.readNotDone){return(bytesUsed)}
-            qStream.nextOpIsWrite()
-            qStream.doneReading()
-            step <+- 1
-            }
-        }*/
         return(bytesUsed)
     }
     bool: onServerWrite(their QuicStream: qStream) <- {
         me uint64: streamID <- qStream.getStreamID()
-        print("\nFETCH SERVER WRITE STEP:",step," fileName:", fileName,"  STREAM_ID:",streamID,"\n")
-        if(streamID==0){
-            //~ switch(step){
-            //~ case 2:{
-                //~ me uint64: bytesUsed <- fileStream.read(qStream.buff)
-                //~ if(fileStream.failure()){print("ERROR: reading buff, fileName:'",fileName,"'\n")}
-                //~ qStream.write(qStream.buff.subStr(0, bytesUsed))
-                //~ print(qStream.buff.subStr(0, bytesUsed))
-                //~ return(false)
-                //~ }
-            //~ }
-        }else{
-            me uint64: bytesUsed <- fileStream.read(qStream.buff)
-            if(fileStream.failure()){print("ERROR: reading buff, file:'",fileName,"'\n")}
-            qStream.write(qStream.buff.subStr(0, bytesUsed))
-            print(qStream.buff.subStr(0, bytesUsed))
-            if(fileStream.EOF()){
-                fileStream.close()
-                qStream.close()
-                step <+- 1
-            }
+        print("\n              !!!! FETCH SERVER WRITE STEP:",step," fileName:", fileName,"  STREAM_ID:",streamID,"\n")
+        me uint64: bytesUsed <- fileStream.read(qStream.buff)
+        if(fileStream.failure()){print("              !!!! ERROR: reading buff, file:'",fileName,"'\n")}
+        qStream.write(qStream.buff.subStr(0, bytesUsed))
+        print(qStream.buff.subStr(0, bytesUsed))
+        if(fileStream.EOF()){
+            fileStream.close()
+            qStream.close()
+            step <+- 1
             return(false)
         }
-        return(false)
+        return(true)
     }
+
+
+    void: clientInit() <- {}
     uint64: onClientRead(their QuicStream: qStream, their string: data, me bool: finished)<- {
         me uint64: streamID <- qStream.getStreamID()
         me uint64: bytesUsed
-        print("\nFETCH CLIENT READ STEP:",step,"  STREAM_ID:",streamID,"\n")
-        if(streamID==0){}
-        else{
-            print(data)
-            qStream.readBuffer <- data
-            bytesUsed <- data.size()
-            if(finished and bytesUsed == data.size()){
-                qStream.close()
-            }
+        print("\n              !!!! FETCH CLIENT READ STEP:",step,"  STREAM_ID:",streamID,"\n")
+        print(data)
+        qStream.readBuffer <- data
+        bytesUsed <- data.size()
+        if(finished and bytesUsed == data.size()){
+            qStream.close()
         }
         return(bytesUsed)
     }
     bool: onClientWrite(their QuicStream: qStream) <- {
-      /*  me uint64: streamID <- qStream.getStreamID()
-        print("\nFETCH CLIENT WRITE STEP:",step,"  STREAM_ID:",streamID,"\n")
-        switch(step){
-        case 0:{
-            print("SENDING TASK:",requestSpec,"\n")
-            qStream.write(requestSpec)
-            qStream.nextOpIsWrite()
-            step <+- 1
-            return(true)
-            }
-        }*/
         return(false)
-    }
-    void: onNewStream_CB(their QuicStream: qStream) <- {
-        me uint64: streamID <- qStream.getStreamID()
-        print("\n!!!!!!!!!!!!!!!!FetchFile::onNewStream_CB STREAM_ID:",streamID,"\n")
-        // needs to call protocol.client.start which calls want read
-    }
-    me string: serverInit() <- {
-        print("INIT SERVER: ", protocolArgs,"\n")
-        fileName <- protocolArgs
-        fileStream.open(fileName)
-        if(fileStream.failure()){
-            print("ERROR: opening file:'",fileName,"'\n")
-            return("ERR:"+taskID+":ERROR opening file:'"+fileName+"\n")
-        }
-        //myStream.myConnection.createNewStream()
-        return("OK:"+taskID+"\n")
-    }
-    void: clientInit() <- {
-
     }
 }
 
@@ -199,6 +158,7 @@ struct ClientAndServer{
             server.addProtocol(fetchFile)
             server.start()
             eventLoopThread.waitForExit()
+            server.destroy()
         }else if(clientOrServer=="client"){
             me QuicClient_Engine: client
             client.init("CFile", false, ipAddr, stoi(portNum))
@@ -209,16 +169,16 @@ struct ClientAndServer{
 
             our FetchFile:: fetchFile
             fetchFile.setArgs("test.txt")
-            qConn.addProtocol(fetchFile)
+            qConn.enQSession(fetchFile)
             client.start()
 
             //~ our FetchFile:: fetchFile2{"test2.txt"}
-            //~ qConn.addProtocol(fetchFile2)
+            //~ qConn.enQSession(fetchFile2)
             //~ client.start()
 
             eventLoopThread.waitForExit()
             print("CLIENT_RAN\n")
+            client.destroy()
         }else{logFatalError("Invalid running mode:"+clientOrServer)}
-    //BRUCE: REmember to lsquic_engine_destroy(quicMgr.engine);
     }
 }

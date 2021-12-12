@@ -151,18 +151,15 @@ struct QuicEngine_Server: inherits=QuicEngine{
         }
         return(NULL)
     }
-    void: onNewConnection_CB(their QuicConnection: qConn) <- {
-        log("created new connection");
-    }
+    void: onNewConnection_CB(their QuicConnection: qConn) <- {}
     their QuicConnection: allocNewConn() <- {their QuicConnection_Server:: retval; return(retval);}
 }
 struct QuicConnection_Server: inherits=QuicConnection{
     me List<our QProtocol>: pendingProtocols
-    void: onConnectionClosed_CB() <- {log("server closed connection")}
+    void: onConnectionClosed_CB() <- {}
 
     void: onNewStream_CB(their QuicStream: qStream) <- {
         me uint64: streamID <- qStream.getStreamID()
-        print("QuicConnection_Server::onNewStream_CB() STREAM_ID: ",streamID,"\n")
         if(streamID==0){
             qStream.nextOpIsRead()
         }
@@ -178,26 +175,23 @@ struct QuicStream_Server: inherits=QuicStream{
     me string: serverInitStr
     uint64: onRead_CB(their string: data, me bool: finished) <- {
         me uint64: streamID <- getStreamID()
-        print("\nSERVER::onRead_CB:","  STREAM_ID:", streamID,"\n")
+       // print("\nSERVER::onRead_CB:","  STREAM_ID:", streamID,"\n")
         me uint64: bytesUsed <- 0
         our QProtocol: newProtocol
         if(streamID==0){
             bytesUsed <- readLine(data); if(readNotDone){readNotDone <- false; return(bytesUsed)}
             me string: requestSpecIn <- readBuffer.subStr(0,bytesUsed)
-            print("ON_READ: REQ:", requestSpecIn, "\n")
+            print("                ON_READ: REQ:", requestSpecIn, "\n")
             me int: colPos           <- requestSpecIn.find(":")
             me string: protocolIDIn  <- requestSpecIn.subStr(0, colPos)
             requestSpecIn            <- requestSpecIn.subStr(colPos+1, requestSpecIn.size())
-            me string: taskIDIn      <- requestSpecIn.subStr(0, colPos+1)
             colPos <- requestSpecIn.find(":")
+            me string: taskIDIn      <- requestSpecIn.subStr(0, colPos)
             me string: protocolArgsIn     <- requestSpecIn.subStr(colPos+1, requestSpecIn.size())
             their QuicEngine_Server: QEng <- myConnection.myEngine
             newProtocol <- QEng.chooseProtocol(protocolIDIn)
             if(newProtocol==NULL){
                 print("Protocol not found:'" + protocolIDIn,"'\n")
-                their QuicConnection: qConn <- getConnection()
-                stopReading()
-                qConn.abort()
                 return(0) // Signal to stop sending read events for now.
             }else{
                 newProtocol.myStream         <- self
@@ -207,14 +201,14 @@ struct QuicStream_Server: inherits=QuicStream{
                 newProtocol.protocolArgs     <- protocolArgsIn
                 newProtocol.step             <- 0
                 serverInitStr <- newProtocol.serverInit()
-                print("2222233333 serverInitStr:'",serverInitStr,"'\n")
+                print("                ServerInitStr:'",serverInitStr,"'\n")
                 // Does the result string start with 'ERR' or 'OK:'?
                 colPos <- serverInitStr.find(":")
                 me string: status <- serverInitStr.subStr(0,colPos)
                 if(status=="ERR"){
-                    print("ERR_STATUS:",status,"\n")
+                    print("                ERR_STATUS:",status,"\n")
                 } else if(status=="OK"){
-                    print("STATUS:",status,"\n")
+                    print("                STATUS:",status,"\n")
                     their QuicConnection_Server: qConn <- getConnection()
                     qConn.pendingProtocols.append(newProtocol)
                     qConn.createNewStream()
@@ -230,29 +224,31 @@ struct QuicStream_Server: inherits=QuicStream{
     void: onWrite_CB() <- {
         me uint64: streamID <- getStreamID()
         if(streamID==0){
+             print("                STREAM_",streamID," WRITE:'",serverInitStr,"'\n")
             write(serverInitStr)
-            stopWriting()
+            flushStream()
+            doneWriting()
         } else {
             if(myProtocol==NULL){
                 their QuicConnection_Server: qConn <- getConnection()
                 myProtocol <- qConn.pendingProtocols.popFirst()
-             print("4444444444 onWrite_CB:'",streamID,"'\n")
+                //print("                STREAM_",streamID," WRITE:'",myProtocol.taskID,"'\n")
                 write(myProtocol.taskID+"\n")
+                flushStream()
             //    myProtocol.step <+- 1
             } else if(!myProtocol.onServerWrite(self)){
                 stopWriting()
-                nextOpIsRead()
             }
         }
     }
-    void: onClose_CB() <- {LOGX("SLIP:S6 server stream closed");}
+    void: onClose_CB() <- {}//LOGX("SLIP:S6 server stream closed");}
 }
 
 // CLIENT
 struct QuicClient_Engine: inherits=QuicEngine{
     me Map<me string, their QuicClient_Connection>: currentConnections
 
-    their QuicClient_Connection: getClientConnection(their QuicClient_Connection: qConn, me string: ipAddr, me string:portNum) <- {
+    their QuicClient_Connection: getClientConnection(me string: ipAddr, me string:portNum) <- {
         me string: connID <- ipAddr+"@"+portNum
         their QuicClient_Connection: retVal <- NULL
         itr Map<me string, their QuicClient_Connection>: connItr <- currentConnections.find(connID)
@@ -263,6 +259,7 @@ struct QuicClient_Engine: inherits=QuicEngine{
             if(setupClientConnection(qConn, ipAddr, portNum)){
                 qConn.createNewStream()
                 currentConnections[connID] <- qConn
+                retVal <- qConn
             }
         }
         return(retVal)
@@ -277,17 +274,15 @@ struct QuicClient_Connection: inherits=QuicConnection{
     me List<our QProtocol>: pendingSessions
     me Map<me string, our QProtocol>: activeSessions
 
-    void: addProtocol(our QProtocol: QP) <- {
+    void: enQSession(our QProtocol: QP) <- {
         QP.step <- 0
         pendingSessions.pushLast(QP)
-        print("ADD CLIENT PROTOCOL: ", QP.protocolArgs, "\n")
+        if(masterStream){masterStream.nextOpIsWrite()}
+        print("        Enque CLIENT Session: ", QP.protocolArgs, "\n")
     }
-    void: onConnectionClosed_CB() <- {
-        LOGX("SLIP:C3 client connection closed");
-    }
+    void: onConnectionClosed_CB() <- {}
     void: onNewStream_CB(their QuicStream: qStream) <- {
         me uint64: streamID <- qStream.getStreamID()
-        print("QuicClient_Connection::onNewStream_CB() STREAM_ID:", streamID, "\n")
         their QuicClient_Stream: qStreamClient  <- qStream
         their QuicClient_Engine: qcEngine <- myEngine
         if(streamID==0){
@@ -296,7 +291,6 @@ struct QuicClient_Connection: inherits=QuicConnection{
             else{masterStream.nextOpIsWrite()}
         } else {
             if(qStream.taskID==""){
-                print("INCOMING_TASK_ID_STREAM:",qStream.taskID, "\n" )
                 qStream.nextOpIsRead()
             }
         }
@@ -309,33 +303,29 @@ struct QuicClient_Connection: inherits=QuicConnection{
 struct QuicClient_Stream: inherits=QuicStream{
     uint64: onRead_CB(their string: data, me bool: finished) <- {
         me uint64: streamID <- getStreamID()
-            print("4444444444 onRead_CB:'", streamID, "'\n")
         their QuicClient_Connection: qConn <- getConnection()
         me uint64: bytesUsed <- 0
         if(streamID==0){
             bytesUsed <- readLine(data); if(readNotDone){readNotDone <- false; return(bytesUsed)}
             me string: taskStatus <- readBuffer.subStr(0,bytesUsed)
             qConn.numActiveSessions <-- 1
-            print("4444444444 TASK_STATUS:'", taskStatus, "'   qConn.numActiveSessions:",qConn.numActiveSessions, "\n")
-            if(qConn.numActiveSessions==0){stopReading()}
+            print("                TASK_STATUS:'", taskStatus, "'   qConn.numActiveSessions:",qConn.numActiveSessions, "\n")
+            if(qConn.numActiveSessions==0){doneReading()}
 
         } else if(taskID==""){
             bytesUsed <- readLine(data); if(readNotDone){readNotDone <- false; return(bytesUsed)}
             taskID <- readBuffer.subStr(0,bytesUsed)
-            print("INCOMING_TASK_ID:'",taskID, "'\n" )
+            //print("                INCOMING_TASK_ID:'",taskID, "'\n" )
             myProtocol <- qConn.activeSessions[taskID]
             nextOpIsRead()
         } else {
-            print("TASK_ID:'",taskID, "'\n" )
+            //print("                TASK_ID:'",taskID, "'\n" )
             bytesUsed <- myProtocol.onClientRead(self, data, finished)
-            print("CLIENT_PROTOCOL:'", bytesUsed, "'\n")
-            if(finished and bytesUsed==data.size()){stopReading()}
         }
         return(bytesUsed)
     }
     void: onWrite_CB() <- {
         me uint64: streamID <- getStreamID()
-        print("QuicClient_Stream_ON_WRITE_CB() STREAM_ID:", streamID, "\n")
         their QuicClient_Connection: qConn <- getConnection()
         their QuicClient_Engine: qcEngine <- qConn.myEngine
         if(streamID==0){
@@ -346,12 +336,12 @@ struct QuicClient_Stream: inherits=QuicStream{
                 taskID <- protocol.taskID
                 qConn.activeSessions[taskID] <- protocol
                 protocol.clientInit()
-                print("1111111111 ON_WRITE: protocol.requestSpec:'", protocol.requestSpec, "'\n")
-                write(protocol.requestSpec+"\n")
+                print("                ON_WRITE: protocol.requestSpec:'", protocol.requestSpec, "'\n")
+                write(protocol.requestSpec+"\n"); flushStream()
                 nextOpIsRead()
             }
             if(qConn.pendingSessions.isEmpty()){
-                stopWriting()
+                doneWriting()
             }
         } else if(!myProtocol.onClientWrite(self)){
                 stopWriting()
@@ -360,7 +350,6 @@ struct QuicClient_Stream: inherits=QuicStream{
     }
     void: onClose_CB() <- {
         me uint64: streamID <- getStreamID()
-        print("SLIP:C6 client stream ", streamID, " closed\n");
         if(streamID!=0){
             their QuicClient_Connection: qConn <- getConnection()
             qConn.activeSessions.erase(taskID)

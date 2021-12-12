@@ -462,34 +462,34 @@ struct GLOBAL{
     void: async_cb (their ev_loop: loop, their ev_async: watcher, int: revents) <- {} // just used for the event loop side effects
     void: deinitQuicSystem() <- <%{lsquic_global_cleanup();}%>
 
-    their QuicConnection: QUIC_on_new_conn (their void: stream_if_ctx, their lsquic_conn: lsConn) <- <%{
-        QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
+    their QuicConnection: QUIC_on_new_conn (their void: qEngine, their lsquic_conn: lsConn) <- <%{
+        QuicEngine *const quicEngine = (QuicEngine*)qEngine;
         QuicConnection* qConn = (QuicConnection*)lsquic_conn_get_ctx(lsConn);
         if(qConn==nullptr){qConn = quicEngine->allocNewConn();}
         qConn->lsConn = lsConn;
         qConn->myEngine = quicEngine;
-        //if(quicEngine->isServer==false){lsquic_conn_make_stream(lsConn);}
-        //cout<<"NEW_CONN; engine:"<<quicEngine<<"   lsConn:"<<lsConn<<"  slipConn:"<<qConn<<"\n";
+        cout<<"    NEW_CONN; engine:"<<quicEngine<<"   lsConn:"<<lsConn<<"  slipConn:"<<qConn<<"\n";
         quicEngine->onNewConnection_CB(qConn);
         return qConn;
     }%>
     void: QUIC_on_conn_closed (their lsquic_conn_t: lsConn) <- <%{
-        LOGX("closed connection");
         QuicConnection* qConn = (QuicConnection*)lsquic_conn_get_ctx(lsConn);
         QuicEngine* quicEngine = qConn->myEngine;
+        cout<<"    CLOSED_CONN:"<<"   lsConn:"<<lsConn<<"  slipConn:"<<qConn<<"\n";
         qConn->onConnectionClosed_CB();
-        if(!quicEngine->isServer){ // if engine is in client mode, stop engine.
-            ev_io_stop(eventLoop, &quicEngine->quicMgr.sock_w);
-            ev_break(eventLoop, EVBREAK_ONE);
-        }
+        //~ if(!quicEngine->isServer){ // if engine is in client mode, stop engine.
+            //~ ev_io_stop(eventLoop, &quicEngine->quicMgr.sock_w);
+            //~ ev_break(eventLoop, EVBREAK_ONE);
+        //~ }
     }%>
-    their lsquic_stream_ctx_t: QUIC_on_new_stream(their void: stream_if_ctx, their lsquic_stream: stream) <- <%{
-        QuicEngine *const quicEngine = (QuicEngine*)stream_if_ctx;
+    their lsquic_stream_ctx_t: QUIC_on_new_stream(their void: qEngine, their lsquic_stream: stream) <- <%{
+        QuicEngine *const quicEngine = (QuicEngine*)qEngine;
         lsquic_conn_t* lsConn = lsquic_stream_conn(stream);
         QuicConnection* qConn = (QuicConnection*)lsquic_conn_get_ctx(lsConn);
         QuicStream* quicStream = qConn->allocNewStream();
         quicStream->myConnection = qConn;
         quicStream->theStream = stream;
+        cout<<"        NEW_STREAM: STREAM_"<<quicStream->getStreamID()<<"\n";
         qConn->onNewStream_CB(quicStream);
         return (lsquic_stream_ctx_t*)quicStream;
     }%>
@@ -499,11 +499,12 @@ struct GLOBAL{
         if(len>0){
             string s(data, len);
             bytesUsed = quicStream->onRead_CB(&s, finished);
-            cout<<"############# LEN:"<<len<<" BYTESUSED:"<<bytesUsed<<"::'"<<s.substr(0,bytesUsed)<<"'\n";
+            cout<<"            READ "<<bytesUsed<<" of "<<len<<" bytes from STREAM_"<<quicStream->getStreamID()<<"\n";
         }
-        if(finished and bytesUsed == len){
+        if((finished and bytesUsed == len) or (!finished and bytesUsed < len)){
             string mesg="Reached end-of-stream; shutting stream down stream# "; mesg+=to_string(lsquic_stream_id(quicStream->theStream))+"\n"; LOGX(mesg.data());
-            lsquic_stream_shutdown(quicStream->theStream, 0);
+            //lsquic_stream_shutdown(quicStream->theStream, 0);
+            lsquic_stream_wantread(quicStream->theStream, 0);
         }
         return bytesUsed;
     }%>
@@ -511,7 +512,7 @@ struct GLOBAL{
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
         ssize_t nread = lsquic_stream_readf(stream, QUIC_on_read_proxy, qStream_ctx);
         if(nread < 0){
-            LOGX("error reading from stream -- exit loop\n");
+            cout<<"            Error reading from stream -- exit loop\n";
             QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(quicStream->theStream));
             QuicEngine* quicEngine = connection->myEngine;
             ev_break(eventLoop, EVBREAK_ONE);
@@ -519,12 +520,13 @@ struct GLOBAL{
     }%>
     void: QUIC_on_write(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
+        cout<<"            WRITING to STREAM_"<<quicStream->getStreamID()<<"\n";
         quicStream->onWrite_CB();
     }%>
     void: QUIC_on_close(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
         quicStream->onClose_CB();
-        LOGX("stream closed");
+        cout<<"        CLOSED_STREAM:"<<quicStream->getStreamID()<<"\n";
     }%>
 
 }
@@ -623,6 +625,12 @@ struct QuicEngine{
     void: start() <- <%{
         if(isServer && protocols.size()==0){logMgr.FatalError.LogEntry("FATAL ERROR: ", "No protocls given for Quic."); exit(1);}
         ev_async_send(EV_DEFAULT_ eventLoopThread.async_w);  // Wake up the event loop
+        process_conns(&quicMgr);
+    }%>
+
+    void: stopEngineAndEventLoop() <- <%{
+        ev_io_stop(eventLoop, &quicMgr.sock_w);
+        ev_break(eventLoop, EVBREAK_ONE);
     }%>
 
     me bool: setupClientConnection(their QuicConnection: qConn, me string: ipAddr, me string:portNum) <- <%{
@@ -637,6 +645,8 @@ struct QuicEngine{
         process_conns(&quicMgr);
         return(true);
     }%>
+
+    void: destroy() <- <%{lsquic_engine_destroy(quicMgr.engine);}%>
 }
 
 struct QuicConnection{
