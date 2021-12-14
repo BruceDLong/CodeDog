@@ -754,10 +754,11 @@ struct <CLASSNAME>ExtracterThread: inherits=Threads{
         ctrls.extractCompleted <- false
     }
     void: run() <- {
-        log("OPENING EXTRACT_THREAD")
+        me string: streamID <- ctrls.streamName()
+        log("OPENING EXTRACT_THREAD:" + streamID)
         ctrls.parser.syntax.Extract_<CLASSNAME>_to_<CLASSNAME>(parseTree, topItem, ctrls.parser)
         log("Extracted_<CLASSNAME>:"+toString(topItem))
-        log("CLOSING EXTRACT_THREAD")
+        log("CLOSING EXTRACT_THREAD:" + streamID)
         protect(ctrls.chkExtractDone){
             ctrls.extractCompleted <- true
             ctrls.extractDoneLock.notifyOne();
@@ -767,23 +768,22 @@ struct <CLASSNAME>ExtracterThread: inherits=Threads{
 
 struct <CLASSNAME>ParserThread: inherits=Threads{
     their Threaded_<CLASSNAME>ParseAndExtractor: ctrls
-    our strBuf: userStream
 
     void: init(their Threaded_<CLASSNAME>ParseAndExtractor: Ctrls) <- {
         ctrls <- Ctrls
         ctrls.parseCompleted <- false
     }
     void: run() <- {
-        log("OPENING PARSE_THREAD")
+        me string: streamID <- ctrls.streamName()
+        log("OPENING PARSE_THREAD:" + streamID)
         ctrls.parser.doParse()
         log("parser.lastTopLevelItem:"+ctrls.parser.lastTopLevelItem.mySymbol())
         our <CLASSNAME>: crnt_<CLASSNAME>
         if(ctrls.parser.doesParseHaveError()){
-            ctrls.parser.errorMesg <- "Proteus syntax error: " + ctrls.parser.errorMesg
-            log(ctrls.parser.errorMesg)
+            ctrls.handleSyntaxError(ctrls.parser.errorMesg)
             crnt_<CLASSNAME> <- NULL
         }
-        log("CLOSING PARSE_THREAD")
+        log("CLOSING PARSE_THREAD:" + streamID)
 
         protect(ctrls.chkParseDone){
             ctrls.parseCompleted <- true;
@@ -803,6 +803,10 @@ struct Threaded_<CLASSNAME>ParseAndExtractor{
     me <CLASSNAME>ParserThread: parserThread
     me <CLASSNAME>ExtracterThread: extracterThread
 
+    void: handleSyntaxError(me string: mesg) <- { // Override as needed.
+        log("Syntax Error:"+mesg)
+    }
+    me string: streamName() <- {return("")} // Override as needed.
     void: waitForParseCompletion()<-{
         me MutexMngr: MtxMgr{chkParseDone}
         while(!parseCompleted){

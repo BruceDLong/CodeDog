@@ -49,6 +49,9 @@ embedAboveIncludes = `
 
 embedVeryHigh = `
 
+using QuicConn_CB  = lsquic_conn_ctx_t* (*)(void*, lsquic_conn_t*);
+using QuicProxy_CB = size_t (*)(void*, const unsigned char*, size_t, int);
+
 struct lsQuicMgr{
     // Common elements needed by both client and server:
     enum {
@@ -446,7 +449,7 @@ struct GLOBAL{
         lsquic_logger_init(&logger_if, logFileHandle, LLTS_HHMMSSUS);
 
         // Initialize constant structs
-        quic_callbacks.on_new_conn        = QUIC_on_new_conn;
+        quic_callbacks.on_new_conn        = (QuicConn_CB)QUIC_on_new_conn;
         quic_callbacks.on_goaway_received = NULL;
         quic_callbacks.on_conn_closed     = QUIC_on_conn_closed;
         quic_callbacks.on_new_stream      = QUIC_on_new_stream;
@@ -510,7 +513,7 @@ struct GLOBAL{
     }%>
     void: QUIC_on_read(their lsquic_stream: stream, their lsquic_stream_ctx_t: qStream_ctx) <- <%{
         QuicStream *const quicStream = (QuicStream*)qStream_ctx;
-        ssize_t nread = lsquic_stream_readf(stream, QUIC_on_read_proxy, qStream_ctx);
+        ssize_t nread = lsquic_stream_readf(stream, (QuicProxy_CB)QUIC_on_read_proxy, qStream_ctx);
         if(nread < 0){
             cout<<"            Error reading from stream -- exit loop\n";
             QuicConnection* connection = (QuicConnection*)lsquic_conn_get_ctx(lsquic_stream_conn(quicStream->theStream));

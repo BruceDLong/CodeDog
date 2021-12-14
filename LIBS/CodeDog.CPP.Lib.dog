@@ -56,6 +56,15 @@ struct FileStream{
     me bool: flush() <- <%!flush()%>
     me int64: read(their string: S) <- <%!_strm_read(&%0, &%1)%>
 }
+struct IStream:wraps=istream{
+    me int:  getChar()   <- <%!get()%>
+    me string: getLine() <- <%!_strm_getLine(&%0)%>
+    me void: write(me string: S) <- <%!write(%1.data(), %1.size())%>
+    me bool: EOF() <- <%!eof()%>
+    me bool: failure() <- <%!fail()%>
+    me bool: flush() <- <%!flush()%>
+    me int64: read(their string: S) <- <%!_strm_read(&%0, &%1)%>
+}
 struct sessionFile{
     me FileStream: session
     me void: openSession(me string: filename) <-{session.openAppend(filename)}
