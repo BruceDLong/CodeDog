@@ -302,7 +302,7 @@ struct EGrammar{
                 withEach p in prod.items{
                     if(calcStreamPointsFromProd(p, prod2TimesUsed, level+1)){return(true)}
                 }
-            } else {logFatalError("Unexpected productionType:"+toString(prod.prodType))}
+            } else {logFatalError("Unexpected productionType:"+prodTypeStrings[prod.prodType])}
         }
         return(false)
     }
@@ -538,7 +538,7 @@ struct EGrammar{
                       if(constructParseMap(prod2TimesUsed, parsePos, level+1)){parsePos.popLast(); return(true)}
                     parsePos.popLast()
                 }
-            } else {logFatalError("Unexpected productionType:"+toString(prod.prodType))}
+            } else {logFatalError("Unexpected productionType:"+prodTypeStrings[prod.prodType])}
         }
         return(false)
     }
@@ -699,7 +699,7 @@ struct EParser{
     }
 
     void: dumpResolvePath(our stateRec: SRec) <- {
-        me int: curPos <- SRec.crntPos
+        me int64: curPos <- SRec.crntPos
         me string: sRecSym <- SRec.mySymbol()
         me string: ch <- streamToParse.atSafe(curPos)
         addSRecToGrapher(SRec)
@@ -774,7 +774,7 @@ struct EParser{
         }
         return(-1)
     }
-    me int64: escapedScrapeUntil(me int:pos, me string:endChar) <- {
+    me int64: escapedScrapeUntil(me int64:pos, me string:endChar) <- {
         me string: prevCharStr <- " "
         me char: prevChar <- prevCharStr[0]
         me char: ender <- endChar[0]
@@ -923,7 +923,7 @@ struct EParser{
         our strBufItr: txtItr <- getItrAt(pos)
         while(txtItr != NULL and txtItr.status==bfOK){
             me int32: ch
-            me int: bytesUsed <- scrapeUTF8Char(pos, ch)
+            me int64: bytesUsed <- scrapeUTF8Char(pos, ch)
             if(charsUsed==0 and bytesUsed<=0){return(-1)}
             if (!(unicodeMgr.isUnicodeWordContinue(ch))){
                 if(charsUsed==0){return(-1)}
@@ -950,7 +950,7 @@ struct EParser{
         }
         return(charsUsed)
     }
-    me int64: scrapeCComment(me int:pos) <- {
+    me int64: scrapeCComment(me int64: pos) <- {
         me char: ch <- getCharAt(pos)
         if(ch=="/"){
             me char: nextCh <- getCharAt(pos+1)
@@ -1024,7 +1024,7 @@ struct EParser{
     }
     me int64: scrapeUniID(me int64: pos) <- {
         me int32: ch
-        me int: bytesUsed <- scrapeUTF8Char(pos, ch)
+        me int64: bytesUsed <- scrapeUTF8Char(pos, ch)
         if(bytesUsed<=0){return(-1)}
         me int: tmpCh <- ch
      //    log("UNICODESTR:'"+toString(bytesUsed) +"  val:"+toString(tmpCh))
@@ -1406,16 +1406,16 @@ struct EParser{
                 failed.failed <- true
                 notifyFailure(cause, indent+"T   ")
             } else {
-                me int: ProdType <- prod.prodType
-                if(ProdType==parseSEQ){
+                me int: ProdType2 <- prod.prodType
+                if(ProdType2==parseSEQ){
                     notifyFailure(cause, indent+"S   ")
-                }else if(ProdType==parseALT) {
+                }else if(ProdType2==parseALT) {
                     failed.altCount <+- 1
                     if(failed.altCount >= prod.items.size()){
                         failed.failed <- true
                         notifyFailure(cause, indent+"A   ")
                     }
-                }else if(ProdType==parseREP) {
+                }else if(ProdType2==parseREP) {
                     notifyFailure(cause, indent+"R   ")
                 }
             }

@@ -18,10 +18,10 @@ struct GLOBAL{
     me string: toString(me BigFrac: val) <- <%!%1.get_str(10)%>
 }
 struct BigInt: wraps = mpz_class{
-    me int64: convertToIntVal() <- <%!%0.get_ui()%>
-    me int: hexNumToBigInt(me string: val) <- <%!%0.set_str(%1, 16)%>
-    me int: binNumToBigInt(me string: val) <- <%!%0.set_str(%1, 2)%>
-    me int: decNumToBigInt(me string: val) <- <%!%0.set_str(%1, 10)%>
+    me int64: convertToIntVal()               <- <%!%0.get_ui()%>
+    me BigInt: hexNumToBigInt(me string: val) <- <%!%0.set_str(%1, 16)%>
+    me BigInt: binNumToBigInt(me string: val) <- <%!%0.set_str(%1, 2)%>
+    me BigInt: decNumToBigInt(me string: val) <- <%!%0.set_str(%1, 10)%>
 }
 struct BigFloat: wraps = mpf_class{
     me double: convertToFloat() <- <%!%0.get_d()%>

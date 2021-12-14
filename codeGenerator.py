@@ -964,13 +964,13 @@ class CodeGenerator(object):
                 [S2, argTSpec]=self.codeExpr(P[0], None, modelTSpec, 'PARAM', genericArgs)
                 paramTypeList.append(argTSpec)
                 if modelTSpec!=None:
-                    paramTypeKW   = progSpec.fieldTypeKeyword(modelTSpec)
+                    modelTypeKW   = progSpec.fieldTypeKeyword(modelTSpec)
                     argTypeKW     = progSpec.fieldTypeKeyword(argTSpec)
-                    if self.xlator.implOperatorsAsFuncs(paramTypeKW):
+                    if self.xlator.implOperatorsAsFuncs(modelTypeKW):
                         if argTypeKW=='numeric':
-                            S2 = 'new '+paramTypeKW+'('+S2+')'
+                            S2 = 'new '+modelTypeKW+'('+S2+')'
                     if name == 'return' and S2 == 'nil':  # Swift return nil, provide context and make optional
-                        S2 = paramTypeKW +"?("+S2+")"
+                        S2 = modelTypeKW +"?("+S2+")"
                     else:
                         [leftMod, rightMod] = self.xlator.chooseVirtualRValOwner(modelTSpec, argTSpec)
                         S2 = leftMod+S2+rightMod
@@ -1587,28 +1587,24 @@ class CodeGenerator(object):
                 if className == "GLOBAL" and isAllocated==True: # Allocation for GLOBAL handled in appendGLOBALInitCode()
                     isAllocated = False
                     paramList = None
-                fieldValueText=self.xlator.codeVarFieldRHS_Str(fieldName, cvrtType, innerType, typeSpec, paramList, isAllocated, typeArgList, genericArgs)
-                #print ("    RHS none: ", fieldValueText)
+                RHS=self.xlator.codeVarFieldRHS_Str(fieldName, cvrtType, innerType, typeSpec, paramList, isAllocated, typeArgList, genericArgs)
+                # print("    RHS none: ", RHS)
             elif(fieldOwner=='const'):
-                if isinstance(fieldValue, str):
-                    fieldValueText = ' = "'+ fieldValue + '"'
-                    #TODO:  make test case
-                else:
-                    fieldValueText = " = "+ self.codeExpr(fieldValue[0], typeSpec, typeSpec, 'RVAL', genericArgs)[0]
-                #print ("    RHS const: ", fieldValueText)
+                if isinstance(fieldValue, str): RHS = ' = "'+ fieldValue + '"'       #TODO:  make test case
+                else: RHS = " = "+ self.codeExpr(fieldValue[0], typeSpec, typeSpec, 'RVAL', genericArgs)[0]
+                #print("    RHS const: ", RHS)
             elif(fieldArglist==None):
-                fieldValueText = " = " + self.codeExpr(fieldValue[0], typeSpec, typeSpec, 'RVAL', genericArgs)[0]
-                #print ("    RHS var: ", fieldValueText)
+                RHS = " = " + self.codeExpr(fieldValue[0], typeSpec, typeSpec, 'RVAL', genericArgs)[0]
+                #print("    RHS var: ", RHS)
             else:
-                fieldValueText = " = "+ str(fieldValue)
-                #print ("    RHS func or array")
-
+                RHS = " = "+ str(fieldValue)
+                #print("    RHS func or array")
 
             ############ CODE MEMBER VARIABLE ##########################################################
             if(fieldOwner=='const'):
-                [structCode, topFuncDefCode] = self.xlator.codeConstField_Str(cvrtType, fieldName, fieldValueText, className, indent)
+                [structCode, topFuncDefCode] = self.xlator.codeConstField_Str(cvrtType, fieldName, RHS, className, indent)
             elif(fieldArglist==None):
-                [structCode, funcDefCode] = self.xlator.codeVarField_Str(cvrtType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent)
+                [structCode, funcDefCode] = self.xlator.codeVarField_Str(cvrtType, typeSpec, fieldName, RHS, className, tags, typeArgList, indent)
 
             ###### ArgList exists so this is a FUNCTION###########
             else:
@@ -1701,7 +1697,6 @@ class CodeGenerator(object):
                     else:
                         globalFuncs += funcText
                 else: funcDefCode += funcText
-
 
             ## Accumulate field code
             structCodeAcc     += structCode
