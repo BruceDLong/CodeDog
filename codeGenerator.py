@@ -663,7 +663,9 @@ class CodeGenerator(object):
 
         if (fTypeKW!=None and not isContainer):
             if fTypeKW=="string":
-                [name, tmpTypeSpec] = self.xlator.recodeStringFunctions(name, typeSpecOut)
+                lenParams = 0
+                if paramList: lenParams = len(paramList)
+                [name, tmpTypeSpec] = self.xlator.recodeStringFunctions(name, typeSpecOut, lenParams)
                 typeSpecOut = copy.copy(tmpTypeSpec)
 
         if owner=='itr':
@@ -709,36 +711,34 @@ class CodeGenerator(object):
                     elif name in self.modeStateNames and self.modeStateNames[name]=='modeStrings': namePrefix = self.xlator.GlobalVarPrefix+self.modeStateNames[name]+'.'
             if(SRC[:6]=='STATIC'): namePrefix = SRC[7:];
         else:
-            if isNewCtnr == True: fType = progSpec.fieldTypeKeyword(typeSpecIn['fieldType'][0])
-            else: fType=progSpec.fieldTypeKeyword(fTypeKW)
             if(name=='allocate'): cdErr("Deprecated use of allocate()")
             elif(name=='resetFlagsAndModes'):
                 typeSpecOut={'owner':'me', 'fieldType': 'void', 'codeConverter':'flags=0'}
                 # TODO: if flags or modes have a non-zero default this should account for that.
-            elif(name[0]=='[' and fType=='string'):
+            elif(name[0]=='[' and fTypeKW=='string'):
                 typeSpecOut={'owner':owner, 'fieldType': 'char'}
                 [S2, idxTypeSpec] = self.codeExpr(name[1], None, None, 'RVAL', genericArgs)
                 S += self.xlator.codeArrayIndex(S2, 'string', LorR_Val, previousSegName, idxTypeSpec)
                 return [S, typeSpecOut, S2, '']  # Here we return S2 for use in code forms other than [idx]. e.g. f(idx)
-            elif(name[0]=='[' and (fType=='uint' or fType=='int')):
+            elif(name[0]=='[' and (fTypeKW=='uint' or fTypeKW=='int')):
                 print("Error: integers can't be indexed: ", previousSegName,  ":", name)
                 exit(2)
             else:
-                if fType!='string':
+                if fTypeKW!="string":
                     [argListStr, fieldIDArgList] = self.getFieldIDArgList(segSpec, genericArgs)
-                    typeSpecOut = self.CheckObjectVars(fType, name, fieldIDArgList)
+                    typeSpecOut = self.CheckObjectVars(fTypeKW, name, fieldIDArgList)
                     if typeSpecOut!=0:
                         typeSpecOut = self.copyTypeSpec(self.getGenericTypeSpec(genericArgs, typeSpecOut['typeSpec']))
                         if isNewCtnr == True:
                             segTypeKeyWord = progSpec.fieldTypeKeyword(typeSpecOut)
                             segTypeOwner   = progSpec.getOwnerFromTypeSpec(typeSpecOut)
-                            [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(self.classStore, fType, "__getAt", segTypeKeyWord, typeSpecIn)
+                            [innerTypeOwner, innerTypeKeyWord] = progSpec.queryTagFunction(self.classStore, fTypeKW, "__getAt", segTypeKeyWord, typeSpecIn)
                             if(innerTypeOwner and segTypeOwner != 'itr'):
                                 typeSpecOut['owner'] = innerTypeOwner
                             if(innerTypeKeyWord):
                                 typeSpecOut['fieldType'][0] = innerTypeKeyWord
                         typeSpecOut = self.copyTypeSpec(typeSpecOut)
-                    else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fType:",fType)
+                    else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fTypeKW:",fTypeKW)
 
         if typeSpecOut and 'codeConverter' in typeSpecOut:
             [convertedName, paramList]=self.convertNameSeg(typeSpecOut, name, paramList, genericArgs)
@@ -1059,6 +1059,7 @@ class CodeGenerator(object):
                 [S2, retType2] = self.codeIsEQ(i[1], returnType, expectedTypeSpec, LorRorP_Val, genericArgs)
                 S2 = self.xlator.convertToInt(S2, retType2)
                 S+= ' & '+S2
+            retTypeSpec = {'owner': 'me', 'fieldType': 'int', 'arraySpec': None, 'reqTagList': None, 'argList': None}
         return [S, retTypeSpec]
 
     def codeBitwiseXOR(self, item, returnType, expectedTypeSpec, LorRorP_Val, genericArgs):

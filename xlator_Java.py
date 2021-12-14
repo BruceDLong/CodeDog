@@ -161,15 +161,14 @@ class Xlator_Java(Xlator):
         elif itrCommand=='val':   result='%0.node.value'
         return result
 
-    def recodeStringFunctions(self, name, typeSpec):
+    def recodeStringFunctions(self, name, typeSpec, lenParams):
         if name == "size":
             name = "length"
+            typeSpec['fieldType'] = 'int'
         elif name == "subStr":
-            typeSpec['codeConverter']='%0.substring(%1, %1+(int)%2)'
-            typeSpec['fieldType']='String'
-        elif name == "append":
-            typeSpec['codeConverter']='%0 += %1'
-
+            if lenParams==1: typeSpec['codeConverter']='%0.substring(%1, %0.length())'
+            else: typeSpec['codeConverter']='%0.substring(%1, %1+(int)%2)'
+        elif name == "append": typeSpec['codeConverter']='%0 += %1'
         return [name, typeSpec]
 
     def langStringFormatterCommand(self, fmtStr, argStr):
@@ -187,30 +186,30 @@ class Xlator_Java(Xlator):
         if fTypeKW == 'char': S = 'Character.getNumericValue('+S+')'
         return S
 
-    def checkForTypeCastNeed(self, lhsTypeSpec, rhsTypeSpec, RHScodeStr):
-        LTypeKW = progSpec.fieldTypeKeyword(lhsTypeSpec)
-        RTypeKW = progSpec.fieldTypeKeyword(rhsTypeSpec)
+    def checkForTypeCastNeed(self, lhsTSpec, rhsTSpec, RHS):
+        LTypeKW = progSpec.fieldTypeKeyword(lhsTSpec)
+        RTypeKW = progSpec.fieldTypeKeyword(rhsTSpec)
         if LTypeKW == 'bool'or LTypeKW == 'boolean':
-            if progSpec.typeIsPointer(rhsTypeSpec):
-                return '(' + RHScodeStr + ' == null)'
+            if progSpec.typeIsPointer(rhsTSpec):
+                return '(' + RHS + ' == null)'
             if (RTypeKW=='int' or RTypeKW=='flag'):
-                if RHScodeStr[0]=='!': return '(' + RHScodeStr[1:] + ' == 0)'
-                else: return '(' + RHScodeStr + ' != 0)'
-            if RHScodeStr == "0": return "false"
-            if RHScodeStr == "1": return "true"
-        if LTypeKW == 'char' and RTypeKW == 'numeric':
-            RHScodeStr = '(char)('+ RHScodeStr +')'
+                if RHS[0]=='!': return '(' + RHS[1:] + ' == 0)'
+                else: return '(' + RHS + ' != 0)'
+            if RHS == "0": return "false"
+            if RHS == "1": return "true"
+        if LTypeKW == 'char' and (RTypeKW == 'numeric' or RTypeKW == 'int'):
+            RHS = '(char)('+ RHS +')'
         elif LTypeKW=='BigFrac' or LTypeKW=='FlexNum':
             if LTypeKW!=RTypeKW:
-                RHScodeStr = 'new '+LTypeKW+' ('+RHScodeStr+')'
+                RHS = 'new '+LTypeKW+' ('+RHS+')'
         elif(LTypeKW=='string' or LTypeKW=='String') and RTypeKW=='char':
-            RHScodeStr = 'Character.toString('+RHScodeStr+')'
+            RHS = 'Character.toString('+RHS+')'
         elif LTypeKW=='long' or LTypeKW=='int64':
             if RTypeKW=='FlexNum':
-                print("Warning: converting type from FlexNum to int64: ",RHScodeStr)
-                RHScodeStr = 'Long.parseLong(' + RHScodeStr + '.stringify())'
+                print("Warning: Information may be lost when converting type from FlexNum to int64: ",RHS)
+                RHS = 'Long.parseLong(' + RHS + '.stringify())'
             #elif RTypeKW!='numeric' and RTypeKW!='int64' and RTypeKW!='long': print("@@@@ LTypeKW:",LTypeKW," != RTypeKW:",RTypeKW)
-        return RHScodeStr
+        return RHS
 
     def getTheDerefPtrMods(self, itemTypeSpec):
         return ['', '', False]
