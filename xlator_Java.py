@@ -161,15 +161,14 @@ class Xlator_Java(Xlator):
         elif itrCommand=='val':   result='%0.node.value'
         return result
 
-    def recodeStringFunctions(self, name, typeSpec):
+    def recodeStringFunctions(self, name, typeSpec, lenParams):
         if name == "size":
             name = "length"
+            typeSpec['fieldType'] = 'int'
         elif name == "subStr":
-            typeSpec['codeConverter']='%0.substring(%1, %1+(int)%2)'
-            typeSpec['fieldType']='String'
-        elif name == "append":
-            typeSpec['codeConverter']='%0 += %1'
-
+            if lenParams==1: typeSpec['codeConverter']='%0.substring(%1, %0.length())'
+            else: typeSpec['codeConverter']='%0.substring(%1, %1+(int)%2)'
+        elif name == "append": typeSpec['codeConverter']='%0 += %1'
         return [name, typeSpec]
 
     def langStringFormatterCommand(self, fmtStr, argStr):
@@ -187,25 +186,30 @@ class Xlator_Java(Xlator):
         if fTypeKW == 'char': S = 'Character.getNumericValue('+S+')'
         return S
 
-    def checkForTypeCastNeed(self, lhsTypeSpec, rhsTypeSpec, RHScodeStr):
-        LTypeKW = progSpec.fieldTypeKeyword(lhsTypeSpec)
-        RTypeKW = progSpec.fieldTypeKeyword(rhsTypeSpec)
+    def checkForTypeCastNeed(self, lhsTSpec, rhsTSpec, RHS):
+        LTypeKW = progSpec.fieldTypeKeyword(lhsTSpec)
+        RTypeKW = progSpec.fieldTypeKeyword(rhsTSpec)
         if LTypeKW == 'bool'or LTypeKW == 'boolean':
-            if progSpec.typeIsPointer(rhsTypeSpec):
-                return '(' + RHScodeStr + ' == null)'
+            if progSpec.typeIsPointer(rhsTSpec):
+                return '(' + RHS + ' == null)'
             if (RTypeKW=='int' or RTypeKW=='flag'):
-                if RHScodeStr[0]=='!': return '(' + RHScodeStr[1:] + ' == 0)'
-                else: return '(' + RHScodeStr + ' != 0)'
-            if RHScodeStr == "0": return "false"
-            if RHScodeStr == "1": return "true"
-        if LTypeKW == 'char' and RTypeKW == 'numeric':
-            RHScodeStr = '(char)('+ RHScodeStr +')'
+                if RHS[0]=='!': return '(' + RHS[1:] + ' == 0)'
+                else: return '(' + RHS + ' != 0)'
+            if RHS == "0": return "false"
+            if RHS == "1": return "true"
+        if LTypeKW == 'char' and (RTypeKW == 'numeric' or RTypeKW == 'int'):
+            RHS = '(char)('+ RHS +')'
         elif LTypeKW=='BigFrac' or LTypeKW=='FlexNum':
             if LTypeKW!=RTypeKW:
-                RHScodeStr = 'new '+LTypeKW+' ('+RHScodeStr+')'
+                RHS = 'new '+LTypeKW+' ('+RHS+')'
         elif(LTypeKW=='string' or LTypeKW=='String') and RTypeKW=='char':
-            RHScodeStr = 'Character.toString('+RHScodeStr+')'
-        return RHScodeStr
+            RHS = 'Character.toString('+RHS+')'
+        elif LTypeKW=='long' or LTypeKW=='int64':
+            if RTypeKW=='FlexNum':
+                print("Warning: Information may be lost when converting type from FlexNum to int64: ",RHS)
+                RHS = 'Long.parseLong(' + RHS + '.stringify())'
+            #elif RTypeKW!='numeric' and RTypeKW!='int64' and RTypeKW!='long': print("@@@@ LTypeKW:",LTypeKW," != RTypeKW:",RTypeKW)
+        return RHS
 
     def getTheDerefPtrMods(self, itemTypeSpec):
         return ['', '', False]
@@ -801,9 +805,8 @@ class Xlator_Java(Xlator):
                 #TODO: make test case
             else: assignValue=''
         elif(fieldDef['value']):
-            [S2, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], lhsTypeSpec, None, 'RVAL', genericArgs)
-            S2=self.checkForTypeCastNeed(cvrtType, rhsTypeSpec, S2)
-            RHS = S2
+            [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], lhsTypeSpec, None, 'RVAL', genericArgs)
+            RHS = self.checkForTypeCastNeed(cvrtType, rhsTypeSpec, RHS)
             if fTypeKW=='BigInteger':
                 RTypeKW = progSpec.fieldTypeKeyword(rhsTypeSpec)
                 if RTypeKW=='numeric' or RTypeKW=='int64' or RTypeKW=='int':
@@ -864,7 +867,7 @@ class Xlator_Java(Xlator):
         return False
 
     def codeVarFieldRHS_Str(self, fieldName, cvrtType, innerType, typeSpec, paramList, isAllocated, typeArgList, genericArgs):
-        fieldValueText=""
+        RHS=""
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
         if fieldOwner=='we': cvrtType = cvrtType.replace('static ', '', 1)
         if (not self.varTypeIsValueType(cvrtType) and (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const')):
@@ -874,20 +877,18 @@ class Xlator_Java(Xlator):
                 if paramList[-1] == "^&useCtor//8":
                     del paramList[-1]
                 [CPL, paramTypeList] = self.codeGen.codeParameterList(fieldName, paramList, None, genericArgs)
-                fieldValueText=" = new " + cvrtType + CPL
+                RHS=" = new " + cvrtType + CPL
             elif typeArgList == None:
-                if cvrtType=='BigInteger':
-                    fieldValueText=""
-                else:
-                    fieldValueText=" = new " + cvrtType + "()"
-        return fieldValueText
+                if cvrtType=='BigInteger' or cvrtType=='Locale': RHS=""
+                else: RHS=" = new " + cvrtType + "()"
+        return RHS
 
-    def codeConstField_Str(self, convertedType, fieldName, fieldValueText, className, indent):
-        defn = indent + 'static '+convertedType + ' ' + fieldName + fieldValueText +';\n';
+    def codeConstField_Str(self, convertedType, fieldName, RHS, className, indent):
+        defn = indent + 'static '+convertedType + ' ' + fieldName + RHS +';\n';
         decl = ''
         return [defn, decl]
 
-    def codeVarField_Str(self, convertedType, typeSpec, fieldName, fieldValueText, className, tags, typeArgList, indent):
+    def codeVarField_Str(self, convertedType, typeSpec, fieldName, RHS, className, tags, typeArgList, indent):
         # TODO: make test case
         S=""
         fieldOwner=progSpec.getTypeSpecOwner(typeSpec)
@@ -896,7 +897,7 @@ class Xlator_Java(Xlator):
         if(Platform == 'Android' and (convertedType == "TextView" or convertedType == "ViewGroup" or convertedType == "CanvasView" or convertedType == "FragmentTransaction" or convertedType == "FragmentManager" or convertedType == "Menu" or convertedType == "static GLOBAL" or convertedType == "Toolbar" or convertedType == "NestedScrollView" or convertedType == "SubMenu" or convertedType == "APP" or convertedType == "AssetManager" or convertedType == "ScrollView" or convertedType == "LinearLayout" or convertedType == "GUI"or convertedType == "CheckBox" or convertedType == "HorizontalScrollView"or convertedType == "GUI_ZStack"or convertedType == "widget"or convertedType == "GLOBAL")):
             S += indent + "public " + convertedType + ' ' + fieldName +';\n';
         else:
-            S += indent + "public " + convertedType + ' ' + fieldName + fieldValueText +';\n';
+            S += indent + "public " + convertedType + ' ' + fieldName + RHS +';\n';
         return [S, '']
 
     ###################################################### CONSTRUCTORS

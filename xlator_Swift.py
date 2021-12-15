@@ -153,14 +153,12 @@ class Xlator_Swift(Xlator):
         elif itrCommand=='val':   result='%0.getValue()'
         return result
 
-    def recodeStringFunctions(self, name, typeSpec):
+    def recodeStringFunctions(self, name, typeSpec, lenParams):
         if name == "size":
             typeSpec['codeConverter']='%0.count'
             typeSpec['fieldType']='int'
         elif name == "subStr":
             typeSpec['codeConverter']='substring(from:%1, to:%2)'
-        #elif name == "append": name='append'
-
         return [name, typeSpec]
 
     def langStringFormatterCommand(self, fmtStr, argStr):
@@ -177,27 +175,27 @@ class Xlator_Swift(Xlator):
     def convertToInt(self, S, typeSpec):
         return S
 
-    def checkForTypeCastNeed(self, lhsTypeSpec, rhsTypeSpec, RHScodeStr):
-        LTypeKW = progSpec.fieldTypeKeyword(lhsTypeSpec)
-        RTypeKW = progSpec.fieldTypeKeyword(rhsTypeSpec)
+    def checkForTypeCastNeed(self, lhsTSpec, rhsTSpec, RHS):
+        LTypeKW = progSpec.fieldTypeKeyword(lhsTSpec)
+        RTypeKW = progSpec.fieldTypeKeyword(rhsTSpec)
         if LTypeKW == 'bool'or LTypeKW == 'boolean':
-            if progSpec.typeIsPointer(rhsTypeSpec):
-                return '(' + RHScodeStr + ' == nil)'
+            if progSpec.typeIsPointer(rhsTSpec):
+                return '(' + RHS + ' == nil)'
             if (RTypeKW=='int' or RTypeKW=='flag'):
-                if RHScodeStr[0]=='!': return '(' + codeStr[1:] + ' == 0)'
-                else: return '(' + RHScodeStr + ' != 0)'
-            if RHScodeStr == "0": return "false"
-            if RHScodeStr == "1": return "true"
+                if RHS[0]=='!': return '(' + codeStr[1:] + ' == 0)'
+                else: return '(' + RHS + ' != 0)'
+            if RHS == "0": return "false"
+            if RHS == "1": return "true"
         elif LTypeKW == 'uint64' and RTypeKW=='int':
-            RHScodeStr = 'UInt64('+RHScodeStr+')'
+            RHS = 'UInt64('+RHS+')'
         elif LTypeKW == 'double' and RTypeKW=='int':
-            RHScodeStr = 'Double('+RHScodeStr+')'
+            RHS = 'Double('+RHS+')'
         elif LTypeKW == 'int' and RTypeKW=='char':
-            RHScodeStr = RHScodeStr+'.asciiValue'
+            RHS = RHS+'.asciiValue'
         elif LTypeKW == 'string' and RTypeKW=='char':
-            RHScodeStr = "String(" + RHScodeStr+ ")"
+            RHS = "String(" + RHS+ ")"
         #elif LTypeKW != RTypeKW and LTypeKW != "mode" and LTypeKW != "flag" and RTypeKW != "ERROR" and LTypeKW != "struct" and LTypeKW != "bool":
-        return RHScodeStr
+        return RHS
 
     def getTheDerefPtrMods(self, itemTypeSpec):
         if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:

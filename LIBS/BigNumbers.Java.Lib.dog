@@ -20,10 +20,10 @@ struct GLOBAL{
     me string: toString(me BigFloat: val) <- <%!%G%1.toString()%>
 }
 struct BigInt: wraps = BigInteger{
-    //me int64: convertToIntVal()            <- <%!%>
-    me int: hexNumToBigInt(me string: val) <- <%{}%>            // TODO: for Proteus codeGen
-    me int: binNumToBigInt(me string: val) <- <%{}%>            // TODO: for Proteus codeGen
-    //me int: decNumToBigInt(me string: val) <- <%!%>
+    me int64: convertToIntVal()               <- <%!%0.intValueExact()%>
+    me BigInt: hexNumToBigInt(me string: val) <- <%!%0 = new BigInteger(%1, 16)%>
+    me BigInt: binNumToBigInt(me string: val) <- <%!%0 = new BigInteger(%1, 2)%>
+    me BigInt: decNumToBigInt(me string: val) <- <%!%0 = new BigInteger(%1, 10)%>
 }
 struct BigFloat: wraps = BigDecimal{
     //me double: convertToFloat()              <- <%!%>

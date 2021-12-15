@@ -16,13 +16,20 @@ LibDescription ={
 }
 
 struct GLOBAL{
-
+    me string: readAssetAsString(me string: filename) <- <%{
+        return "";
+    }%>
+    me string: getFilesDirAsString()<- <%{
+        return "";
+    }%>
+    me string: getAssetsDir()<- <%{
+        return "assets";
+    }%>
 }
 
 struct FileStream{
     me RandomAccessFile: RAFileStream <- NULL
     me bool: failureFlag <- false
-    void: copyFile(me InputStream: inStream, me OutputStream: outStream) <- {}
     me void: open(me string: filename) <- {}
     me void: openNew(me string: filename) <- {}
     me void: openAppend(me string: filename) <- {}
@@ -32,6 +39,8 @@ struct FileStream{
     me void: write(me string: S) <- {}
     me bool: EOF()  <- {return(false)}
     me bool: failure() <- {return(false)}
+    me bool: flush() <- {return(false)}
+    me int64: read(their string: S) <- {return(0)}
 }
 
 struct sessionFile{

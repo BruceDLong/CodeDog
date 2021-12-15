@@ -175,7 +175,7 @@ class Xlator_CPP(Xlator):
             elif itrCommand=='val':   result='%0->second'
         return result
 
-    def recodeStringFunctions(self, name, typeSpec):
+    def recodeStringFunctions(self, name, typeSpec, lenParams):
         if name == "size": name = "length"
         elif name == "subStr": name = "substr"
 
@@ -191,8 +191,8 @@ class Xlator_CPP(Xlator):
     def convertToInt(self, S, typeSpec):
         return S
 
-    def checkForTypeCastNeed(self, lhsTypeSpec, rhsTypeSpec, RHScodeStr):
-        return RHScodeStr
+    def checkForTypeCastNeed(self, lhsTSpec, rhsTSpec, RHS):
+        return RHS
 
     def getTheDerefPtrMods(self, itemTypeSpec):
         if itemTypeSpec!=None and isinstance(itemTypeSpec, dict) and 'owner' in itemTypeSpec:
