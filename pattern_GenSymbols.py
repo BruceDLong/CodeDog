@@ -17,25 +17,33 @@ def apply(classes, tags, classesToTrack):
         we uint: symbolCount
         we Map<me int, me uint>: ptrToUint
         we string: classTag <- "<CLASSNAME>"
+        we Mutex: chkMySymbol
 
     me string: mySymbol() <- {  // find or generate symbol
         their <CLASSNAME>: obj <- self
         if(obj==NULL){return("NULL")}
-        me int: objID <- uniqueObjectID(obj)
-        if(! ptrToUint.containsKey(objID)){
-            symbolCount <- symbolCount+1
-            ptrToUint[objID] <- symbolCount
-            return(classTag + toString(symbolCount))
-        }
-        else {
-            me int: item <- ptrToUint.at(objID)
-            me int: symbol <- item
-            return(classTag + toString(symbol))
+        protect(chkMySymbol){
+            me int: objID <- uniqueObjectID(obj)
+            if(! ptrToUint.containsKey(objID)){
+                symbolCount <- symbolCount+1
+                ptrToUint[objID] <- symbolCount
+                return(classTag + toString(symbolCount))
+            }
+            else {
+                me int: item <- ptrToUint.at(objID)
+                me int: symbol <- item
+                return(classTag + toString(symbol))
+            }
         }
     }
 
     // their <CLASSNAME>: classPtrFromSymbol(me string: symbol) <- {}  // what about our, my, me, ...?
-     void: clearSymbol(their <CLASSNAME>: obj) <- {ptrToUint.erase(uniqueObjectID(obj))}
+     void: clearSymbol(their <CLASSNAME>: obj) <- {
+        protect(chkMySymbol){
+            me int: objID <- uniqueObjectID(obj)
+            ptrToUint.erase(objID)
+        }
+    }
 
         '''.replace("<CLASSNAME>", className)
 
