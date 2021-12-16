@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [Multimap_implementation]
     libFiles = []
-    headers  = [map]
+    headers  = []
 }
 
 LibDescription ={
