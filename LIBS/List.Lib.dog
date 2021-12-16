@@ -324,14 +324,14 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
     }
     //itr valueType: lower_bound(keyType: key) <- {}
     me uint:  size() <- {return(mapSize)}
-    //valueType: __index(keyType: searchKey) <- {
-        //me RBTreeItr<keyType, valueType>: retItr <- find(searchKey)
-        //if(retItr.node == edge){
-            //me valueType: newVal
-            //retItr.node <- insert(searchKey, newVal)
-        //}
-        //return(retItr.node.value)
-    //}
+    valueType: __index(keyType: searchKey) <- {
+        me RBTreeItr<keyType, valueType>: retItr <- find(searchKey)
+        if(retItr.node == edge){
+            me valueType: newVal
+            retItr.node <- insert(searchKey, newVal)
+        }
+        return(retItr.node.value)
+    }
     ////////////////////////////////////////////////////////////////////
     me bool: isLeftChild(their RBNode<keyType, valueType>: node) <- {
         if(node.parent != NULL and node === node.parent.left){return(true)}

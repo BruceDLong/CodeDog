@@ -6,7 +6,7 @@ requirements = [
 interface={
     provides = [List_implementation]
     libFiles = []
-    headers  = [list, deque, map]
+    headers  = []
 }
 
 
