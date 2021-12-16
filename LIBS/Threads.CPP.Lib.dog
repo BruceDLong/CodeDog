@@ -48,10 +48,12 @@ private:
 `
 struct Threads{
     me bool: notDone <- true
-    me uint: ID()           <- {return(5);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
-    bool: isActive()        <- {return(true);}
-    void: start()           <- <%{T = std::thread(&Threads::run, this);}%>
-    void: waitForExit()     <- <%{if(T.joinable()){T.join();}}%>
+    me string: name // The threads name if it was set; max 15 chars
+    void: setName(me string: N)  <- <%{name=N.substr(0,15); pthread_setname_np(T.native_handle(), name.data());}%>
+    bool: isActive()             <- {return(true);}     // TODO: Finish Thread::ID(), Thread::isActive() and make active threads automatically join() in destructor.
+    void: start()                <- <%{T = std::thread(&Threads::run, this);}%>
+    void: start(me string: Name) <- <%{T = std::thread(&Threads::run, this); setName(Name);}%>
+    void: waitForExit()          <- <%{if(T.joinable()){T.join();}}%>
 
     me thread: T
 }

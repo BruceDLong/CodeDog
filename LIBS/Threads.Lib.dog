@@ -20,7 +20,7 @@ LibDescription  ={
 struct Threads{
     me bool: notDone <- true
     void: run()
-    me uint: ID()
+    void: setName(me string: Name)
     bool: isActive()
     void: start()
     void: waitForExit()

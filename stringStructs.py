@@ -792,6 +792,7 @@ struct <CLASSNAME>ParserThread: inherits=Threads{
     }
 }
 struct Threaded_<CLASSNAME>ParseAndExtractor{
+    me string: name
     their EParser: parser
     our stateRec: leftParseNode
     me bool: parseCompleted
@@ -823,16 +824,17 @@ struct Threaded_<CLASSNAME>ParseAndExtractor{
         parserThread.waitForExit()
         extracterThread.waitForExit()
     }
-    void: start(their EParser: iParser, their strBuf: streamToParse, our <CLASSNAME>: topItem) <- {
+    void: start(their EParser: iParser, their strBuf: streamToParse, our <CLASSNAME>: topItem, me string:Name) <- {
+        name <- Name
         parser<-iParser
         me int: startProduction <- parser.syntax.<CLASSNAME>_str
         parser.errorMesg <- ""
         parser.setStreamingMode(true)
         leftParseNode <- parser.initParseFromStream(streamToParse)
         extracterThread.init(self, leftParseNode, topItem)
-        extracterThread.start()
+        extracterThread.start(name+"_X")
         parserThread.init(self)
-        parserThread.start()
+        parserThread.start(name+"_P")
     }
 }
 '''.replace('<CLASSNAME>', className)

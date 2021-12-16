@@ -438,7 +438,7 @@ struct GLOBAL{
     void: initQuicSystem() <- <%{
         // init threaded event loop
         eventLoop = ev_default_loop(0);
-        eventLoopThread.start();
+        eventLoopThread.start("eventloop");
 
         // Initialize logging
         // logFileHandle <- stderr;
