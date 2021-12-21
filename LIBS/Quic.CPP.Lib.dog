@@ -421,14 +421,14 @@ struct ThreadedEventLoop: inherits=Threads {
     their ev_async: async_w
     me bool: running <- false
     void: run()<-{
-        print("RUNNING_EVENT_LOOP\n")
+        log("RUNNING_EVENT_LOOP\n")
         Allocate(async_w)
         ev_async_init(async_w, async_cb);
         ev_async_start(eventLoop, async_w);
         running <- true
         ev_run(eventLoop, 0)
         running <- false
-        print("EXITING_EVENT_LOOP\n")
+        log("EXITING_EVENT_LOOP\n")
     }
 }
 struct GLOBAL{

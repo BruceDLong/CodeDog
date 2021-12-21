@@ -5,6 +5,10 @@ requirements = [
 ]
 featuresNeeded = [List, Threads]
 
+initCode = `
+    logMgr.init(OFile)
+`
+
 struct logger{
     me string: logStr
     me bool: isVisible
@@ -60,7 +64,7 @@ struct GLOBAL{
         logMgr.Mesg.logStr <+- logTxt
     }
     void: logSegClear() <- {logMgr.Mesg.logStr <+- ""}
-    //void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
-    void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
+    void: logFlush() <- {me MutexMngr: MtxMgr{logMgr.Mesg.loggerMutex}; logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
+    //void: logFlush() <- {logMgr.writeToLog("MESG: "+logMgr.Mesg.logStr); logMgr.Mesg.logStr <- ""}
     //me void: assert(me string: condition) <- {}
 }

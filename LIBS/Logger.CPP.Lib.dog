@@ -26,7 +26,7 @@ struct logManager{
         if (useConsole){cout<<txt<<"\n";}
         if (useLogFile){
             if (logfile.is_open()){logfile << txt <<"\n"<<flush;}
-            else cout << "Unable to open file\n";
+            else cout << "Unable to write to log file:"<< txt<<"\n";
         }
     }%>
 }
