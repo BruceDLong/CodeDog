@@ -34,7 +34,7 @@ struct charX {
 }
 
 struct lineX{
-    me charX[list]: chars
+    me List<me charX>: chars
     me string: printable
     me bool: dirty            // True if this line needs redisplay.
     me uint: startAttrs       // Attributes inherited from the previous line.
@@ -49,7 +49,7 @@ struct lineX{
 }
 
 struct EntryX {
-    their lineX[list]: lines
+    me List<their lineX>: lines
     me uint: attrs
 }
 
@@ -225,7 +225,12 @@ struct linesMngr {
     void: backTab()     <- {}
     void: doTab()       <- {}
     void: clearAll()    <- {}
-    void: clearToEOL()  <- {crntLine().erase(crntLine().front()+charsToCur, crntLine().end()); entries[currentLine.entriesIdx].lines[currentLine.linesIdx].dirty <- true}
+    void: clearToEOL()  <- {
+        itr List<me charX>: first <- crntLine().front()+charsToCur
+        itr List<me charX>: last  <- crntLine().end()
+        crntLine().eraseInterval(first, last)
+        entries[currentLine.entriesIdx].lines[currentLine.linesIdx].dirty <- true
+    }
     void: occludeHist() <- {} // Toggle
     void: prevHist()    <- {}
     void: nextHist()    <- {}
@@ -236,7 +241,8 @@ struct linesMngr {
     void: insertChar(their charX: chX) <- {
         their lineX: line <- entries[currentLine.entriesIdx].lines[currentLine.linesIdx]
         if (insertMode){
-            line.chars.insert(line.chars.front()+charsToCur, chX)
+            me charX: tmp <- chX
+            line.chars.insertIdx(charsToCur, tmp)
             charsToCur <- charsToCur+1
             widthToCur <- widthToCur+chX.chWidth
         } else {} // TODO: Overwrite mode
@@ -271,10 +277,10 @@ struct linesMngr {
             withEach chr in linesChars(nxtLine){
                 crntLine().pushLast(chr)
             }
-            entries[nxtLine.entriesIdx].lines.erase(entries[nxtLine.entriesIdx].lines.front() + nxtLine.linesIdx)
+            entries[nxtLine.entriesIdx].lines.deleteNth(nxtLine.linesIdx)
             linesDeleted <- linesDeleted + 1
             totalLines <- totalLines - 1
-        } else{ crntLine().erase(crntLine().front()+charsToCur);}
+        } else {crntLine().deleteNth(charsToCur)}
         widthToCur <- calcWidthToCursor(crntLine(), charsToCur);
         curMax <- widthToCur
         allDirty <- true

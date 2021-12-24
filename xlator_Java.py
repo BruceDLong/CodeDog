@@ -308,12 +308,12 @@ class Xlator_Java(Xlator):
                 else: S= '[' + idx +']'
         else:
             if containerCat=='Map' or containerCat=='List':
-                fieldDefAt = self.codeGen.CheckObjectVars(ctnrTypeKW, "at", "")
-                if fieldDefAt and 'typeSpec' in fieldDefAt:
-                    if 'codeConverter' in fieldDefAt['typeSpec']:
-                        S = fieldDefAt['typeSpec']['codeConverter']
+                fieldDefIdx = self.codeGen.CheckObjectVars(ctnrTypeKW, "__index", "")
+                if fieldDefIdx and 'typeSpec' in fieldDefIdx:
+                    if 'codeConverter' in fieldDefIdx['typeSpec']:
+                        S = fieldDefIdx['typeSpec']['codeConverter']
                         S = S.replace('%1', idx)
-                    else: S = '.at('+idx+')'
+                    else: S = '.__index('+idx+')'
                 else: S = '.get('+idx+')'
             elif containerCat=='string': S = '[' + idx +']'
             else:
