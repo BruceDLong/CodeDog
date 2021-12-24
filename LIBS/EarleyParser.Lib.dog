@@ -367,7 +367,7 @@ struct EGrammar{
             }///xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED;")
         }///xlog("STATE: "+SRec.mySymbol() + ": CHILD_State=RELEASED; child:"+SRec.child.mySymbol())
       //  if(SRec.child){if(SRec.next==NULL and !SRec.child.isREP)){return(NULL)}}
-        //if(SRec.child){log("GetSR_CHILD:"+SRec.stringify(self)+"  "+SRec.mySymbol()  +  "  .CHILD:"+SRec.child.stringify(self)+"  "+SRec.child.mySymbol());}else{log("GetSR_CHILD: NULL")}
+        //if(SRec.child){log("GetSR_CHILD:"+SRec.stringify(EP)+"  "+SRec.mySymbol()  +  "  .CHILD:"+SRec.child.stringify(EP)+"  "+SRec.child.mySymbol());}else{log("GetSR_CHILD: NULL")}
         return(SRec.child)
     }
 
@@ -375,14 +375,14 @@ struct EGrammar{
         if(EP.streamingMode){
             me MutexMngr: MtxMgr{EP.streamingSRecNextMutex}
             while(((SRec.next==NULL and !SRec.nullIsOK) or !SRec.nextIsFinal) and !EP.parseTreeFinished){
-                //log("WAIT(GetNExtStateRec) for:"+SRec.stringify(self) + " SYM:" + SRec.mySymbol())
+                //log("WAIT(GetNExtStateRec) for:"+SRec.stringify(EP) + " SYM:" + SRec.mySymbol())
                 ///xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=WAITING;")
                 EP.streamingSRecNextLock.wait(MtxMgr)
                 //log("DONE_WAITING?(GetNExtStateRec)")
             }///xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED;")
             //log("DONE_WAITING_NEXT for:"+SRec.stringify(self) + " SYM:" + SRec.mySymbol()+"  next:" + SRec.next.mySymbol() + "  nIsFilled:"+toString(SRec.nullIsOK))
         }///xlog("STATE: "+SRec.mySymbol() + ": NEXT_State=RELEASED; next:"+SRec.next.mySymbol())
-        //if(SRec.next){log("GetSR_NEXT:"+SRec.stringify(self)+"  "+SRec.mySymbol()  +  "  .NEXT:"+SRec.next.stringify(self)+"  "+SRec.next.mySymbol());}else{log("GetSR_NEXT: NULL")}
+        //if(SRec.next){log("GetSR_NEXT:"+SRec.stringify(EP)+"  "+SRec.mySymbol()  +  "  .NEXT:"+SRec.next.stringify(EP)+"  "+SRec.next.mySymbol());}else{log("GetSR_NEXT: NULL")}
         return(SRec.next)
     }
 
@@ -1606,7 +1606,6 @@ struct EParser{
                 }
             }
         }
-        //sleep(100) // test with this, extractionComplete, tell Bruce if it breaks
         SRec.resolved <- true
         return(NULL)
     }
@@ -1649,7 +1648,6 @@ struct EParser{
                 crntRec <- ped.pred
             }
         }
-   //     sleep(100)  //TODO: Test streaming mode with this uncommented
         SRec.resolved <- true
 */        return(crntRec)
     }
