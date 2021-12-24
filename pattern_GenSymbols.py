@@ -14,8 +14,8 @@ def apply(classes, tags, classesToTrack):
         else: classesTracked[className] = True
         C= '''
     struct <CLASSNAME> {
-        we uint: symbolCount
-        we Map<me int, me uint>: ptrToUint
+        we uint: symbolCount <- 0
+        we Map<me uint, me uint>: ptrToUint
         we string: classTag <- "<CLASSNAME>"
         we Mutex: chkMySymbol
 
@@ -23,15 +23,14 @@ def apply(classes, tags, classesToTrack):
         their <CLASSNAME>: obj <- self
         if(obj==NULL){return("NULL")}
         protect(chkMySymbol){
-            me int: objID <- uniqueObjectID(obj)
+            me uint: objID <- uniqueObjectID(obj)
             if(! ptrToUint.containsKey(objID)){
-                symbolCount <- symbolCount+1
+                symbolCount <+- 1
                 ptrToUint[objID] <- symbolCount
                 return(classTag + toString(symbolCount))
-            }
-            else {
-                me int: item <- ptrToUint.at(objID)
-                me int: symbol <- item
+            } else {
+                me uint: item <- ptrToUint.at(objID)
+                me uint: symbol <- item
                 return(classTag + toString(symbol))
             }
         }
@@ -40,7 +39,7 @@ def apply(classes, tags, classesToTrack):
     // their <CLASSNAME>: classPtrFromSymbol(me string: symbol) <- {}  // what about our, my, me, ...?
      void: clearSymbol(their <CLASSNAME>: obj) <- {
         protect(chkMySymbol){
-            me int: objID <- uniqueObjectID(obj)
+            me uint: objID <- uniqueObjectID(obj)
             ptrToUint.erase(objID)
         }
     }
