@@ -383,6 +383,10 @@ class CodeGenerator(object):
         if fieldDefFind:
             itrTypeSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefFind['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
             retVal['itrTypeSpec'] = itrTypeSpec
+        fieldDefIdx = self.CheckObjectVars(className, "__index", "")
+        if fieldDefIdx:
+            getIdxTSpec = {"owner":progSpec.getOwnerFromTypeSpec(fieldDefIdx['typeSpec']), "fieldType":progSpec.fieldTypeKeyword(fieldDefIdx['typeSpec'])}
+            retVal['getIdxTSpec'] = getIdxTSpec
         return retVal
 
     def chooseStructImplementationToUse(self, typeSpec,className,fieldName):
@@ -1197,9 +1201,7 @@ class CodeGenerator(object):
         return actionText
 
     def codeFuncCall(self, funcCallSpec, returnType, genericArgs):
-        S=''
-        [codeStr, typeSpec, LHSParentType, AltIDXFormat]=self.codeItemRef(funcCallSpec, 'RVAL', returnType, 'RVAL', genericArgs)
-        S+=codeStr
+        [S, typeSpec, LHSParentType, AltIDXFormat]=self.codeItemRef(funcCallSpec, 'RVAL', returnType, 'RVAL', genericArgs)
         return S
 
     def startPointOfNamesLastSegment(self, name):
@@ -1301,29 +1303,31 @@ class CodeGenerator(object):
                     actionText=indent + setBits
                 else:
                     if AltIDXFormat!=None: # Handle special forms of assignment such as LVal(idx, RVal)
-                        actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
-                        if actionText != '': actionText = indent+actionText
+                        actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(action, indent, AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
                     if actionText=="":     # Handle the normal assignment case
                         if RHS=='nil' and LHS[-1]=='!': LHS=LHS[:-1]  #TODO: Move this code to swift self.xlator
                         actionText = indent + LHS + " = " + RHS + ";\n"
             else:
-                assignTag = assignTag[0]
-                if(assignTag=='deep'):
-                    actionText = indent + LHS + " = " + RHS + ";\n"
-                elif(assignTag=='+'):
-                    if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
-                        actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
-                    else: actionText = indent + LHS + " += " + RHS + ";\n"
-                elif(assignTag=='-'):  actionText = indent + LHS + " -= " + RHS + ";\n"
-                elif(assignTag=='*'):  actionText = indent + LHS + " *= " + RHS + ";\n"
-                elif(assignTag=='/'):  actionText = indent + LHS + " /= " + RHS + ";\n"
-                elif(assignTag=='%'):  actionText = indent + LHS + " %= " + RHS + ";\n"
-                elif(assignTag=='<<'): actionText = indent + LHS + " <<= " + RHS + ";\n"
-                elif(assignTag=='>>'): actionText = indent + LHS + " >>= " + RHS + ";\n"
-                elif(assignTag=='&'):  actionText = indent + LHS + " &= " + RHS + ";\n"
-                elif(assignTag=='^'):  actionText = indent + LHS + " ^= " + RHS + ";\n"
-                elif(assignTag=='|'):  actionText = indent + LHS + " |= " + RHS + ";\n"
-                else: actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
+                if AltIDXFormat!=None: # Handle special forms of assignment such as LVal(idx, RVal)
+                    actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(action, indent, AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
+                if actionText=='':     # Handle the normal assignment case
+                    assignTag = assignTag[0]
+                    if(assignTag=='deep'):
+                        actionText = indent + LHS + " = " + RHS + ";\n"
+                    elif(assignTag=='+'):
+                        if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
+                            actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
+                        else: actionText = indent + LHS + " += " + RHS + ";\n"
+                    elif(assignTag=='-'):  actionText = indent + LHS + " -= " + RHS + ";\n"
+                    elif(assignTag=='*'):  actionText = indent + LHS + " *= " + RHS + ";\n"
+                    elif(assignTag=='/'):  actionText = indent + LHS + " /= " + RHS + ";\n"
+                    elif(assignTag=='%'):  actionText = indent + LHS + " %= " + RHS + ";\n"
+                    elif(assignTag=='<<'): actionText = indent + LHS + " <<= " + RHS + ";\n"
+                    elif(assignTag=='>>'): actionText = indent + LHS + " >>= " + RHS + ";\n"
+                    elif(assignTag=='&'):  actionText = indent + LHS + " &= " + RHS + ";\n"
+                    elif(assignTag=='^'):  actionText = indent + LHS + " ^= " + RHS + ";\n"
+                    elif(assignTag=='|'):  actionText = indent + LHS + " |= " + RHS + ";\n"
+                    else: actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
         elif (typeOfAction =='swap'):
             LHS = action['LHS']
             RHS =  action['RHS']
@@ -1434,6 +1438,14 @@ class CodeGenerator(object):
             if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner=='we' or (tSpec['argList'] or tSpec['argList']!=None) or (isContainer and not progSpec.typeIsPointer(tSpec)):
                 continue
             modelParams.append(field)
+        return modelParams
+
+    def chooseCtorModelParams(self, tSpec, paramList,genericArgs):
+        fTypeKW      = progSpec.fieldTypeKeyword(tSpec)
+        [argListStr, fieldIDArgList] = self.getFieldIDArgList(fTypeKW, genericArgs)
+        REF = self.CheckObjectVars(fTypeKW, fTypeKW, "")
+        if REF: modelParams = REF['typeSpec']['argList']
+        else: modelParams  = self.getCtorModelParams(fTypeKW)
         return modelParams
 
     def getCtorArgTypes(self, className, genericArgs):
@@ -2035,7 +2047,6 @@ class CodeGenerator(object):
 
     [libInitCodeAcc,  libDeinitCodeAcc] = ['', '']
     [libEmbedAboveIncludes, libEmbedVeryHigh, libEmbedCodeHigh, libEmbedCodeLow] = ['', '', '', '']
-
     def integrateLibrary(self, tags, tagsFromLibFiles, libID):
         headerStr = ''
         headerTopStr = ''
@@ -2238,7 +2249,6 @@ class CodeGenerator(object):
                 progSpec.setFeatureNeeded(TopLevelTags, 'BigNumbers', progSpec.storeOfBaseTypesUsed[typeName])
 
     patternsToApply = []
-
     def applyPatterns(self, classes, tags):
         for patternSpec in self.patternsToApply:
             pattName   =patternSpec['patternName']
@@ -2263,7 +2273,6 @@ class CodeGenerator(object):
             elif pattName=='makeStyler':         pattern_MakeStyler.apply(classes, patternTags, patternArgs[0])
             else: cdErr("\nPattern {} not recognized.\n\n".format(pattName))
         self.patternsToApply.clear()
-
 
     def ScanAndEnquePatterns(self, classes, topTags, newTags):
         #if len(self.classStore[1])>0: cdlog(1, "Enqueing Patterns...")

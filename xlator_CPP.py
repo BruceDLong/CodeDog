@@ -531,27 +531,24 @@ class Xlator_CPP(Xlator):
             frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
             actionText += (indent + "for( auto " + itrName+' ='+frontItr + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
                         + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
-        elif containerCat=='List' and not willBeModifiedDuringTraversal:
-            keyVarSpec = {'owner':firstOwner, 'fieldType':firstType}
-            localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-            localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
-            if isBackward:
-                actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'rbegin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'rend()' +"; ++"+ itrName + " ){\n")
+        elif containerCat=='List' or datastructID=='deque':
+            if willBeModifiedDuringTraversal:
+                keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
+                lvName=repName+"Idx"
+                idxVarSpec = {'owner':'itr', 'fieldType':firstType}
+                localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
+                localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+                localVarsAlloc.append([lvName, idxVarSpec]) # Tracking local vars for scope
+                if isBackward: actionText += (indent + "for( int64_t " + lvName+' = '+ctnrName+RDeclP+'size()-1; ' + lvName+" >= 0; "+" --"+lvName+" ){\n")
+                else: actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  ctnrName+RDeclP+'size();' +" ++"+lvName+" ){\n")
+                actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
             else:
-                actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'begin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+ itrName + " ){\n")
-            actionText += indent+"    "+"auto "+repName+" = *"+itrName+";\n"
-        elif containerCat=='List' and willBeModifiedDuringTraversal:
-            keyVarSpec = {'owner':'me', 'fieldType':'uint64_t'}
-            lvName=repName+"Idx"
-            idxVarSpec = {'owner':'itr', 'fieldType':firstType}
-            localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
-            localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
-            localVarsAlloc.append([lvName, idxVarSpec]) # Tracking local vars for scope
-            if isBackward:
-                actionText += (indent + "for( int64_t " + lvName+' = '+ctnrName+RDeclP+'size()-1; ' + lvName+" >= 0; "+" --"+lvName+" ){\n")
-            else:
-                actionText += (indent + "for( uint64_t " + lvName+' = 0; ' + lvName+" < " +  ctnrName+RDeclP+'size();' +" ++"+lvName+" ){\n")
-            actionText += indent+"    "+"auto &"+repName+" = "+LDeclA+ctnrName+RDeclA+"["+lvName+"];\n"
+                keyVarSpec = {'owner':firstOwner, 'fieldType':firstType}
+                localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
+                localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+                if isBackward: actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'rbegin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'rend()' +"; ++"+ itrName + " ){\n")
+                else: actionText += (indent + "for( auto " + itrName+' ='+ ctnrName+RDeclP+'begin()' + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+ itrName + " ){\n")
+                actionText += indent+"    "+"auto "+repName+" = *"+itrName+";\n"
         elif containerCat=='string':
             loopCntrName = ''
             actionText += indent + "for(char const &" + repName +": " + ctnrName + " ){\n"
@@ -746,12 +743,16 @@ class Xlator_CPP(Xlator):
 
         return [S, retOwner, fieldType]
 
-    def checkIfSpecialAssignmentFormIsNeeded(self, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
+    def checkIfSpecialAssignmentFormIsNeeded(self, action, indent, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
         # Check for string A[x] = B;  If so, render A.insert(B,x)
         S = ''
+        assignTag = action['assignTag']
         [containerType, idxType, owner]=self.getContainerType(AltIDXFormat[1], "")
-        if containerType == 'RBTreeMap':
-            S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
+        if assignTag == '':
+            [containerType, idxType, owner]=self.getContainerType(AltIDXFormat[1], "")
+            if containerType == 'RBTreeMap':
+                S = indent+AltIDXFormat[0]+'.insert('+AltIDXFormat[2]+', '+RHS+');\n'
+        #else: assignTag = assignTag[0]
         return S
 
     ############################################
@@ -860,7 +861,9 @@ class Xlator_CPP(Xlator):
         isAllocated   = fieldDef['isAllocated']
         owner         = progSpec.getTypeSpecOwner(lhsTypeSpec)
         useCtor       = False
-        if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
+        paramList     = None
+        if fieldDef['paramList']: paramList = fieldDef['paramList']
+        if paramList and fieldDef['paramList'][-1] == "^&useCtor//8":
             del fieldDef['paramList'][-1]
             useCtor = True
         [cvrtType, innerType] = self.codeGen.convertType(lhsTypeSpec, 'var', actionOrField, genericArgs)
@@ -873,13 +876,13 @@ class Xlator_CPP(Xlator):
             else: RHS = RHS_leftMod+RHS+RHS_rightMod
             if(isAllocated or useCtor==False): assignValue = " = " + RHS
             else: assignValue = RHS
-
         else: # If no value was given:
             CPL=''
-            if fieldDef['paramList'] != None:       # call constructor  # curly bracket param list
+            if paramList!= None:       # call constructor  # curly bracket param list
                 # Code the constructor's arguments
                 ### TODO: CHoose the best constructor and get modelParams to pass in instead of None.
-                [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, fieldDef['paramList'], None, genericArgs)
+                modelParams  = self.codeGen.chooseCtorModelParams(lhsTypeSpec, paramList, genericArgs)
+                [CPL, paramTypeList] = self.codeGen.codeParameterList(varName, paramList, modelParams, genericArgs)
                 if len(paramTypeList)==1:
                     if not isinstance(paramTypeList[0], dict):
                         print("\nPROBLEM: The return type of the parameter '", CPL, "' of "+varName+"(...) cannot be found and is needed. Try to define it.\n",   paramTypeList)
@@ -898,7 +901,7 @@ class Xlator_CPP(Xlator):
                     else: assignValue = CPL # add "(x, y, z...) to make this into a constructor call.
             elif(progSpec.typeIsPointer(lhsTypeSpec)):
                 if(isAllocated):
-                    assignValue = " = " + self.codeGen.codeAllocater(lhsTypeSpec, fieldDef['paramList'] , genericArgs)
+                    assignValue = " = " + self.codeGen.codeAllocater(lhsTypeSpec, paramList, genericArgs)
                 else:
                     assignValue = '= NULL'
             elif(progSpec.isAContainer(lhsTypeSpec)):

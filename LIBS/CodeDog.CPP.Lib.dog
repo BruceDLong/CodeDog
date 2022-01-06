@@ -126,6 +126,10 @@ struct GLOBAL{
     //const int32: INT_MIN                                      <- <%!%GLLONG_MIN%>
     //const uint32: UINT_MAX                                    <- <%!%GLLONG_MAX%>
     //const uint32: UINT_MIN                                    <- <%!%GLLONG_MIN%>
+    me uint: shiftLeft (me uint: bits, me uint: shft) <- <%!(%1 << %2)%>
+    me uint: shiftRight(me uint: bits, me uint: shft) <- <%!(%1 >> %2)%>
+    me uint: AndBits(me uint: bits, me uint: shft)    <- <%!(%1 & %2)%>
+    me uint: OrBits (me uint: bits, me uint: shft)    <- <%!(%1 | %2)%>
 }
 struct GLOBAL{  /////////  STRING & CHAR CONVERTERS  ///////////////////
     me int: findString(me string: toSearch, me string: toFind)  <-  <%!%G%1.find(%2)%>

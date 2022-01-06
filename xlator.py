@@ -117,7 +117,7 @@ class Xlator(object):
     def codeSpecialReference(sself, egSpec, genericArgs):
         cdErr("In base class Xlator::codeSpecialReference.")
 
-    def checkIfSpecialAssignmentFormIsNeeded(self, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
+    def checkIfSpecialAssignmentFormIsNeeded(self, action, indent, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
         cdErr("In base class Xlator::checkIfSpecialAssignmentFormIsNeeded.")
 
     def codeMain(self, classes, tags):
