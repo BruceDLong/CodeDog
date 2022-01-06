@@ -188,7 +188,7 @@ struct QuicStream_Server: inherits=QuicStream{
             colPos <- requestSpecIn.find(":")
             me string: taskIDIn      <- requestSpecIn.subStr(0, colPos)
             me string: protocolArgsIn     <- requestSpecIn.subStr(colPos+1, requestSpecIn.size())
-            their QuicEngine_Server: QEng <- myConnection.myEngine
+            their QuicEngine_Server: QEng <- asClass(QuicEngine_Server, myConnection.myEngine)
             newProtocol <- QEng.chooseProtocol(protocolIDIn)
             if(newProtocol==NULL){
                 print("Protocol not found:'" + protocolIDIn,"'\n")
@@ -209,7 +209,7 @@ struct QuicStream_Server: inherits=QuicStream{
                     print("                ERR_STATUS:",status,"\n")
                 } else if(status=="OK"){
                     print("                STATUS:",status,"\n")
-                    their QuicConnection_Server: qConn <- getConnection()
+                    their QuicConnection_Server: qConn <- asClass(QuicConnection_Server, getConnection())
                     qConn.pendingProtocols.append(newProtocol)
                     qConn.createNewStream()
                 } else { // if "DONE"
@@ -230,7 +230,7 @@ struct QuicStream_Server: inherits=QuicStream{
             doneWriting()
         } else {
             if(myProtocol==NULL){
-                their QuicConnection_Server: qConn <- getConnection()
+                their QuicConnection_Server: qConn <- asClass(QuicConnection_Server, getConnection())
                 myProtocol <- qConn.pendingProtocols.popFirst()
                 //print("                STREAM_",streamID," WRITE:'",myProtocol.taskID,"'\n")
                 write(myProtocol.taskID+"\n")
@@ -283,8 +283,8 @@ struct QuicClient_Connection: inherits=QuicConnection{
     void: onConnectionClosed_CB() <- {}
     void: onNewStream_CB(their QuicStream: qStream) <- {
         me uint64: streamID <- qStream.getStreamID()
-        their QuicClient_Stream: qStreamClient  <- qStream
-        their QuicClient_Engine: qcEngine <- myEngine
+        their QuicClient_Stream: qStreamClient  <- asClass(QuicClient_Stream, qStream)
+        their QuicClient_Engine: qcEngine <- asClass(QuicClient_Engine, myEngine)
         if(streamID==0){
             masterStream <- qStreamClient
             if(pendingSessions.size()==0){printf("No protocols given for Quic.\n")}
@@ -303,7 +303,7 @@ struct QuicClient_Connection: inherits=QuicConnection{
 struct QuicClient_Stream: inherits=QuicStream{
     uint64: onRead_CB(their string: data, me bool: finished) <- {
         me uint64: streamID <- getStreamID()
-        their QuicClient_Connection: qConn <- getConnection()
+        their QuicClient_Connection: qConn <- asClass(QuicClient_Connection, getConnection())
         me uint64: bytesUsed <- 0
         if(streamID==0){
             bytesUsed <- readLine(data); if(readNotDone){readNotDone <- false; return(bytesUsed)}
@@ -326,8 +326,8 @@ struct QuicClient_Stream: inherits=QuicStream{
     }
     void: onWrite_CB() <- {
         me uint64: streamID <- getStreamID()
-        their QuicClient_Connection: qConn <- getConnection()
-        their QuicClient_Engine: qcEngine <- qConn.myEngine
+        their QuicClient_Connection: qConn <- asClass(QuicClient_Connection, getConnection())
+        their QuicClient_Engine: qcEngine <- asClass(QuicClient_Engine, qConn.myEngine)
         if(streamID==0){
             if(!qConn.pendingSessions.isEmpty()){
                 qConn.numActiveSessions <+- 1
@@ -351,7 +351,7 @@ struct QuicClient_Stream: inherits=QuicStream{
     void: onClose_CB() <- {
         me uint64: streamID <- getStreamID()
         if(streamID!=0){
-            their QuicClient_Connection: qConn <- getConnection()
+            their QuicClient_Connection: qConn <- asClass(QuicClient_Connection, getConnection())
             qConn.activeSessions.erase(taskID)
         }
     }
