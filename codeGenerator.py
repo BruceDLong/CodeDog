@@ -1303,29 +1303,31 @@ class CodeGenerator(object):
                     actionText=indent + setBits
                 else:
                     if AltIDXFormat!=None: # Handle special forms of assignment such as LVal(idx, RVal)
-                        actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
-                        if actionText != '': actionText = indent+actionText
+                        actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(action, indent, AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
                     if actionText=="":     # Handle the normal assignment case
                         if RHS=='nil' and LHS[-1]=='!': LHS=LHS[:-1]  #TODO: Move this code to swift self.xlator
                         actionText = indent + LHS + " = " + RHS + ";\n"
             else:
-                assignTag = assignTag[0]
-                if(assignTag=='deep'):
-                    actionText = indent + LHS + " = " + RHS + ";\n"
-                elif(assignTag=='+'):
-                    if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
-                        actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
-                    else: actionText = indent + LHS + " += " + RHS + ";\n"
-                elif(assignTag=='-'):  actionText = indent + LHS + " -= " + RHS + ";\n"
-                elif(assignTag=='*'):  actionText = indent + LHS + " *= " + RHS + ";\n"
-                elif(assignTag=='/'):  actionText = indent + LHS + " /= " + RHS + ";\n"
-                elif(assignTag=='%'):  actionText = indent + LHS + " %= " + RHS + ";\n"
-                elif(assignTag=='<<'): actionText = indent + LHS + " <<= " + RHS + ";\n"
-                elif(assignTag=='>>'): actionText = indent + LHS + " >>= " + RHS + ";\n"
-                elif(assignTag=='&'):  actionText = indent + LHS + " &= " + RHS + ";\n"
-                elif(assignTag=='^'):  actionText = indent + LHS + " ^= " + RHS + ";\n"
-                elif(assignTag=='|'):  actionText = indent + LHS + " |= " + RHS + ";\n"
-                else: actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
+                if AltIDXFormat!=None: # Handle special forms of assignment such as LVal(idx, RVal)
+                    actionText = self.xlator.checkIfSpecialAssignmentFormIsNeeded(action, indent, AltIDXFormat, RHS, rhsTypeSpec, LHS, LHSParentType, LHS_FieldType)
+                if actionText=='':     # Handle the normal assignment case
+                    assignTag = assignTag[0]
+                    if(assignTag=='deep'):
+                        actionText = indent + LHS + " = " + RHS + ";\n"
+                    elif(assignTag=='+'):
+                        if self.xlator.implOperatorsAsFuncs(LHS_FieldType):
+                            actionText = self.xlator.codePlusAsFunc(LHS, RHS, LHS_FieldType, assignTag) + ";\n"
+                        else: actionText = indent + LHS + " += " + RHS + ";\n"
+                    elif(assignTag=='-'):  actionText = indent + LHS + " -= " + RHS + ";\n"
+                    elif(assignTag=='*'):  actionText = indent + LHS + " *= " + RHS + ";\n"
+                    elif(assignTag=='/'):  actionText = indent + LHS + " /= " + RHS + ";\n"
+                    elif(assignTag=='%'):  actionText = indent + LHS + " %= " + RHS + ";\n"
+                    elif(assignTag=='<<'): actionText = indent + LHS + " <<= " + RHS + ";\n"
+                    elif(assignTag=='>>'): actionText = indent + LHS + " >>= " + RHS + ";\n"
+                    elif(assignTag=='&'):  actionText = indent + LHS + " &= " + RHS + ";\n"
+                    elif(assignTag=='^'):  actionText = indent + LHS + " ^= " + RHS + ";\n"
+                    elif(assignTag=='|'):  actionText = indent + LHS + " |= " + RHS + ";\n"
+                    else: actionText = indent + "opAssign" + assignTag + '(' + LHS + ", " + RHS + ");\n"
         elif (typeOfAction =='swap'):
             LHS = action['LHS']
             RHS =  action['RHS']

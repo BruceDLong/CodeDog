@@ -743,12 +743,16 @@ class Xlator_CPP(Xlator):
 
         return [S, retOwner, fieldType]
 
-    def checkIfSpecialAssignmentFormIsNeeded(self, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
+    def checkIfSpecialAssignmentFormIsNeeded(self, action, indent, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
         # Check for string A[x] = B;  If so, render A.insert(B,x)
         S = ''
+        assignTag = action['assignTag']
         [containerType, idxType, owner]=self.getContainerType(AltIDXFormat[1], "")
-        if containerType == 'RBTreeMap':
-            S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
+        if assignTag == '':
+            [containerType, idxType, owner]=self.getContainerType(AltIDXFormat[1], "")
+            if containerType == 'RBTreeMap':
+                S = indent+AltIDXFormat[0]+'.insert('+AltIDXFormat[2]+', '+RHS+');\n'
+        #else: assignTag = assignTag[0]
         return S
 
     ############################################

@@ -323,6 +323,11 @@ struct RBTreeMap<keyType, valueType>: implements=Map native=codeDog specs={inser
         return(prevNode.value)
     }
     //itr valueType: lower_bound(keyType: key) <- {}
+    void: set(keyType: key, valueType: value) <- {
+        their RBNode<keyType, valueType>: node
+        node <- getNode(Root, key)
+        node.value <- value
+    }
     me uint:  size() <- {return(mapSize)}
     valueType: __index(keyType: searchKey) <- {
         me RBTreeItr<keyType, valueType>: retItr <- find(searchKey)

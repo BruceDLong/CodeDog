@@ -208,7 +208,6 @@ class Xlator_Java(Xlator):
             if RTypeKW=='FlexNum':
                 print("Warning: Information may be lost when converting type from FlexNum to int64: ",RHS)
                 RHS = 'Long.parseLong(' + RHS + '.stringify())'
-            #elif RTypeKW!='numeric' and RTypeKW!='int64' and RTypeKW!='long': print("@@@@ LTypeKW:",LTypeKW," != RTypeKW:",RTypeKW)
         return RHS
 
     def getTheDerefPtrMods(self, itemTypeSpec):
@@ -698,18 +697,32 @@ class Xlator_Java(Xlator):
 
         return [S, retOwner, fieldType]
 
-    def checkIfSpecialAssignmentFormIsNeeded(self, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
+    def checkIfSpecialAssignmentFormIsNeeded(self, action, indent, AltIDXFormat, RHS, rhsType, LHS, LHSParentType, LHS_FieldType):
         # Check for string A[x] = B;  If so, render A.put(B,x)
+        S = ''
+        assignTag = action['assignTag']
         [containerType, idxType, owner]=self.getContainerType(AltIDXFormat[1], "")
-        if LHSParentType == 'string' and LHS_FieldType == 'char':
-            S=AltIDXFormat[0] + '= replaceCharAt(' +AltIDXFormat[0]+', '+ AltIDXFormat[2] + ', ' + RHS + ');\n'
-        elif containerType == 'ArrayList':
-            S=AltIDXFormat[0] + '.add(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
-        elif containerType == 'TreeMap' or containerType == 'Java_Map':
-            S=AltIDXFormat[0] + '.put(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
-        elif containerType == 'RBTreeMap' or containerType[:2]=="__" and 'Map' in containerType:
-            S=AltIDXFormat[0] + '.insert(' + AltIDXFormat[2] + ', ' + RHS + ');\n'
-        else: cdErr("ERROR in checkIfSpecialAssignmentFormIsNeeded: containerType not found for "+ containerType)
+        if assignTag == '':
+            if LHSParentType == 'string' and LHS_FieldType == 'char':
+                S = indent+AltIDXFormat[0]+' = replaceCharAt(' +AltIDXFormat[0]+', '+ AltIDXFormat[2] + ', ' + RHS + ');\n'
+            else:
+                fieldDefInsert = self.codeGen.CheckObjectVars(containerType, 'insert', '')
+                if fieldDefInsert and 'typeSpec' in fieldDefInsert:
+                    if 'codeConverter' in fieldDefInsert['typeSpec']:
+                        S = indent+AltIDXFormat[0]+fieldDefIdx['typeSpec']['codeConverter']
+                        cdErr("TODO: handle checkIfSpecialAssignmentFormIsNeeded() for: "+S)
+                    else: S = indent+AltIDXFormat[0]+'.insert('+AltIDXFormat[2]+', '+RHS+');\n'
+                else: cdErr("TODO: handle checkIfSpecialAssignmentFormIsNeeded() for: "+containerType)
+        else:
+            assignTag = assignTag[0]
+            if(assignTag=='+'):
+                fieldDefSet = self.codeGen.CheckObjectVars(containerType, 'set', '')
+                if fieldDefSet and 'typeSpec' in fieldDefSet:
+                    if 'codeConverter' in fieldDefSet['typeSpec']:
+                        S = indent+AltIDXFormat[0]+fieldDefIdx['typeSpec']['codeConverter']
+                        cdErr("TODO: handle checkIfSpecialAssignmentFormIsNeeded() for: "+S)
+                    else: S = indent+AltIDXFormat[0]+'.set('+AltIDXFormat[2]+', '+RHS+');\n'
+            else: cdErr("TODO: handle adjustArrayIndex() for assignTag: "+assignTag)
         return S
 
     ############################################
