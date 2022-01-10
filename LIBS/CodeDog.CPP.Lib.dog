@@ -19,6 +19,9 @@ LibDescription ={
 initCode = "signal(SIGSEGV, reportFault)"
 deinitCode = ""
 embedVeryHigh = `
+
+        typedef CopyableAtomic<uint64_t> _atomic_uint64;
+
         bool doesFileExist(string filePath){
             ifstream ifile(filename);
             return (bool)ifile;

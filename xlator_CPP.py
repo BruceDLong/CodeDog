@@ -27,6 +27,7 @@ class Xlator_CPP(Xlator):
     renameInitFuncs       = False
     useAllCtorArgs        = False
     nullValue             = "nullptr"
+    hasMacros             = True
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
     def implOperatorsAsFuncs(self, fTypeKW):
@@ -825,8 +826,43 @@ class Xlator_CPP(Xlator):
         S += r'static void reportFault(int Signal){cout<<"\nSegmentation Fault.\n"; fflush(stdout); abort();}'+'\n\n'
 
         S += "string enumText(string* array, int enumVal, int enumOffset){return array[enumVal >> enumOffset];}\n";
-        S += "#define SetBits(item, mask, val) {(item) &= ~((uint64_t)mask); (item)|=((uint64_t)val);}\n"
+        S += "#define SetBitsMACRO(item, mask, val) {(item) &= ~((uint64_t)mask); (item)|=((uint64_t)val);}\n"
+        S += "#define SetFlagBit(item, mask, val) SetBits(item, mask, ((val)?mask:0))\n"
+        S += "#define SetModeBits(item, mask, val) SetBits(item, mask##Mask, ((uint64_t)val << mask##Offset))\n"
+        S += "#define getFlagBit(item, mask) (uint64_t)(item & (uint64_t)mask)\n"
+        S += "#define getModeBits(item, mask) (uint64_t)((item & (uint64_t)mask##Mask)>>(uint64_t)mask##Offset)\n"
 
+        S += '''
+template<class T> class CopyableAtomic : public std::atomic<T>{
+public:
+    //defaultinitializes value
+    CopyableAtomic() = default;
+
+    constexpr CopyableAtomic(T desired) :
+        std::atomic<T>(desired)
+    {}
+
+    constexpr CopyableAtomic(const CopyableAtomic<T>& other) :
+        CopyableAtomic(other.load(std::memory_order_relaxed))
+    {}
+
+    CopyableAtomic& operator=(const CopyableAtomic<T>& other) {
+        this->store(other.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        return *this;
+    }
+};
+
+void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
+    uint64_t original_value = target.load();
+    uint64_t new_value = original_value;
+    SetBitsMACRO(new_value, mask, value);
+    while(!target.compare_exchange_weak(original_value, new_value)){
+        new_value = original_value;
+        SetBitsMACRO(new_value, mask, value);
+    }
+}
+
+'''
         decl ="string readFileAsString(string filename)"
         defn="""{
             string S="";
@@ -1077,9 +1113,9 @@ class Xlator_CPP(Xlator):
 
     def codeSetBits(self, LHS_Left, LHS_FieldType, prefix, bitMask, RHS, rhsType):
         if (LHS_FieldType =='flag' ):
-            return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+", ("+ RHS +")?"+prefix+bitMask+":0" + ");\n"
+            return "SetFlagBit("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS + ");\n"
         elif (LHS_FieldType =='mode' ):
-            return "SetBits("+LHS_Left+"flags, "+prefix+bitMask+"Mask, "+ RHS+"<<" +prefix+bitMask+"Offset"+");\n"
+            return "SetModeBits("+LHS_Left+"flags, "+prefix+bitMask+", "+ RHS +");\n"
 
     def codeSwitchBreak(self, caseAction, indent):
         return indent+"    break;\n"
