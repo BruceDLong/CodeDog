@@ -1482,6 +1482,7 @@ class CodeGenerator(object):
             else:
                 if(self.typeIsInteger(fType)):    defaultVal = "0"
                 elif(self.typeIsRational(fType)): defaultVal = "0.0"
+                elif(fType=="_atomic_uint64"):    defaultVal = '0'
                 elif(fType=="string"):            defaultVal = '""'
                 elif(fType=="bool"):              defaultVal = 'false'
                 else: # handle structs if needed
