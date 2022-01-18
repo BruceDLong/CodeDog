@@ -744,7 +744,7 @@ class CodeGenerator(object):
                         typeSpecOut = self.copyTypeSpec(typeSpecOut)
                     else: print("typeSpecOut = 0 for: "+previousSegName+"."+name, " fTypeKW:",fTypeKW)
 
-        if typeSpecOut and 'codeConverter' in typeSpecOut:
+        if typeSpecOut and 'codeConverter' in typeSpecOut and typeSpecOut['codeConverter']!=None:
             [convertedName, paramList]=self.convertNameSeg(typeSpecOut, name, paramList, genericArgs)
             typeSpecOutKeyWord = progSpec.fieldTypeKeyword(typeSpecOut)
             reqTagList = progSpec.getReqTagList(typeSpecIn)

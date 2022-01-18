@@ -548,6 +548,7 @@ struct BigFrac{
 }
 struct FlexNum{
     me double: convertToFloat()  <- <%!%0.val.floatValue()%>
+    me double: convertToInt()    <- <%!%0.val.longValue()%>
     void: normalize()            <- <%{}%>
     void: setNumerator(me string: numerator) <- <%{
         val.numerator = new BigInteger(numerator);
