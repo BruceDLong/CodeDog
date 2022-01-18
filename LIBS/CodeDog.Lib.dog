@@ -126,6 +126,8 @@ struct GLOBAL{
     }
 }
 
+struct _atomic_uint64:wraps=_atomic_uint64{}
+
 struct datum{
     me double: value
     me double: confidenceInterval

@@ -573,7 +573,7 @@ def Write_fieldExtracter(classes, ToStructName, field, memObjFields, VarTagBase,
             gatherFieldCode+='\n'+indent+getFunctionName(fTypeKW, toFTypeKW)+'(getChildStateRec('+childRecName+', EP) , tmpVar, EP)\n'
             PP_FuncName = getPostParseFunctionName(classes, toFTypeKW)
             if PP_FuncName!=None:
-                gatherFieldCode+='\n'+indent+'if(!'+CODE_RVAL+'.postParseProcessed){'+PP_FuncName+'_'+toFTypeKW+'('+CODE_RVAL+')}'
+                gatherFieldCode+='\n'+indent+'if(!'+CODE_RVAL+'.postParseProcessed){'+PP_FuncName+'_'+toFTypeKW+'('+CODE_RVAL+', SRec0)}'
         else:
             CODE_RVAL = CodeRValExpr(toFieldType, childRecName, ".next")
             gatherFieldCode+='\n'+indent+CODE_LVAR+'.append('+CODE_RVAL+')'
@@ -685,17 +685,17 @@ def Write_structExtracter(classes, ToStructName, FromStructName, fields, nameFor
     if  ToStructName==FromStructName:
         if progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessing'):
             postParseFuncName = "postParseProcessing_"+ToStructName
-            S += "        "+postParseFuncName+"(memStruct)\n"
+            S += "        "+postParseFuncName+"(memStruct, SRec0)\n"
             newStructtxt='\n struct '+ToStructName+'{flag: postParseProcessed}\n'
             codeDogParser.AddToObjectFromText(classes[0], classes[1], newStructtxt, 'Adding '+ToStructName+'{flag: postParseProcessed}')
-            pppFunc="\n    void: "+postParseFuncName+"(their "+ToStructName+": item) <- {item.postParseProcessing();  item.postParseProcessed<-true}\n"
+            pppFunc="\n    void: "+postParseFuncName+"(their "+ToStructName+": item, our stateRec: SRec) <- {item.postParseProcessing();  item.postParseProcessed<-true}\n"
             extracterFunctionAccumulator += pppFunc
         elif progSpec.doesClassContainFunc(classes, ToStructName, 'postParseProcessingEtc'):
             postParseFuncName = "postParseProcessingEtc_"+ToStructName
-            S += "        EP."+postParseFuncName+"(memStruct)\n        memStruct.postParseProcessed<-true\n"
+            S += "        EP."+postParseFuncName+"(memStruct, SRec0)\n        memStruct.postParseProcessed<-true\n"
             newStructtxt='\n struct '+ToStructName+'{flag: postParseProcessed}\n'
             codeDogParser.AddToObjectFromText(classes[0], classes[1], newStructtxt, 'Adding '+ToStructName+'{flag: postParseProcessed}')
-            pppFunc="\n    void: "+postParseFuncName+"(their "+ToStructName+": item) <- {print(\"Override this function!\")}\n"
+            pppFunc="\n    void: "+postParseFuncName+"(their "+ToStructName+": item, our stateRec: SRec) <- {print(\"Override this function!\")}\n"
             parserFunctionAccumulator += pppFunc
     return S
 

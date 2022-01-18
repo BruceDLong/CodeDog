@@ -7,7 +7,7 @@ requirements = [
 interface={
     provides=[threads_implementation]
     libFiles=[pthread]
-    headers=[thread, mutex, condition_variable]
+    headers=[thread, mutex, condition_variable, atomic]
 }
 
 LibDescription  ={
@@ -18,6 +18,7 @@ LibDescription  ={
 }
 embedVeryHigh = `
 typedef  std::unique_lock<std::mutex> Unique_Lock_Mutex;
+typedef  std::unique_lock<std::mutex> Nested_Lock_Mutex;
 
 class __semaphore{
 public:
@@ -69,8 +70,13 @@ struct NestableMutex: wraps = recursive_mutex{
     bool: tryLock()     <- <%!try_lock()%>
 }
 
-
 struct MutexMngr: wraps = Unique_Lock_Mutex{
+    void: lock()        <- <%!lock()%>
+    void: unlock()      <- <%!unlock()%>
+    bool: tryLock()     <- <%!try_lock()%>
+}
+
+struct NestedMutexMngr: wraps = Nested_Lock_Mutex{
     void: lock()        <- <%!lock()%>
     void: unlock()      <- <%!unlock()%>
     bool: tryLock()     <- <%!try_lock()%>

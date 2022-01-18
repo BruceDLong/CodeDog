@@ -909,16 +909,22 @@ class CodeGenerator(object):
             if fieldType=='flag':
                 segName=segStr[len(connector):]
                 prefix = self.staticVarNamePrefix(segName, LHSParentType)
-                bitfieldMask=self.xlator.applyTypecast('uint64', prefix+segName)
-                flagReadCode = '('+S[0:prevLen] + connector + 'flags & ' + bitfieldMask+')'
-                S=self.xlator.applyTypecast('uint64', flagReadCode)
+                if self.xlator.hasMacros:
+                    S='getFlagBit('+S[0:prevLen]+connector+'flags' + ', ' + prefix+segName+')'
+                else:
+                    bitfieldMask=self.xlator.applyTypecast('uint64', prefix+segName)
+                    flagReadCode = '('+S[0:prevLen] + connector + 'flags & ' + bitfieldMask+')'
+                    S=self.xlator.applyTypecast('uint64', flagReadCode)
             elif fieldType=='mode':
                 segName=segStr[len(connector):]
                 prefix = self.staticVarNamePrefix(segName+"Mask", LHSParentType)
-                bitfieldMask  =self.xlator.applyTypecast('uint64', prefix+segName+"Mask")
-                bitfieldOffset=self.xlator.applyTypecast('uint64', prefix+segName+"Offset")
-                S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+')'
-                S=self.xlator.applyTypecast('uint64', S)
+                if self.xlator.hasMacros:
+                    S='getModeBits('+S[0:prevLen]+connector+'flags' + ', ' + prefix+segName+')'
+                else:
+                    bitfieldMask  =self.xlator.applyTypecast('uint64', prefix+segName+"Mask")
+                    bitfieldOffset=self.xlator.applyTypecast('uint64', prefix+segName+"Offset")
+                    S="((" + S[0:prevLen] + connector +  "flags&"+bitfieldMask+")"+">>"+bitfieldOffset+')'
+                    S=self.xlator.applyTypecast('uint64', S)
 
         return [S, segTypeSpec, LHSParentType, AltFormat]
 
@@ -1476,7 +1482,9 @@ class CodeGenerator(object):
             else:
                 if(self.typeIsInteger(fType)):    defaultVal = "0"
                 elif(self.typeIsRational(fType)): defaultVal = "0.0"
+                elif(fType=="_atomic_uint64"):    defaultVal = '0'
                 elif(fType=="string"):            defaultVal = '""'
+                elif(fType=="bool"):              defaultVal = 'false'
                 else: # handle structs if needed
                     if 'value' in field and field['value']!=None:
                         [defaultVal, defaultValueTypeSpec] = self.codeExpr(field['value'][0], None, tSpec, 'RVAL', genericArgs)
@@ -1958,7 +1966,7 @@ class CodeGenerator(object):
             self.constFieldAccs[objectNameBase]+=strOut
             CodeDogAddendumsAcc+=CodeDogAddendums
             if(needsFlagsVar):
-                CodeDogAddendumsAcc += 'me uint64: flags\n'
+                CodeDogAddendumsAcc += 'me _atomic_uint64: flags\n'
             if CodeDogAddendumsAcc!='':
                 codeDogParser.AddToObjectFromText(self.classStore[0], self.classStore[1], progSpec.wrapFieldListInObjectDef(className,  CodeDogAddendumsAcc ), 'Flags and Modes for class '+className)
             self.currentObjName=''
