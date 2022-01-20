@@ -829,7 +829,7 @@ class Xlator_CPP(Xlator):
         S += "#define SetBitsMACRO(item, mask, val) {(item) &= ~((uint64_t)mask); (item)|=((uint64_t)val);}\n"
         S += "#define SetFlagBit(item, mask, val) SetBits(item, mask, ((val)?mask:0))\n"
         S += "#define SetModeBits(item, mask, val) SetBits(item, mask##Mask, ((uint64_t)val << mask##Offset))\n"
-        S += "#define getFlagBit(item, mask) (uint64_t)(item & (uint64_t)mask)\n"
+        S += "#define getFlagBit(item, mask) (bool)(item & (uint64_t)mask)\n"
         S += "#define getModeBits(item, mask) (uint64_t)((item & (uint64_t)mask##Mask)>>(uint64_t)mask##Offset)\n"
 
         S += '''
