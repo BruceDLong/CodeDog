@@ -170,7 +170,7 @@ def downloadExtractZip(downloadUrl, packageName, packageDirectory):
 
 def FindOrFetchLibraries(buildName, packageData, platform, tools):
     #print("#############:buildName:", buildName, platform)
-    packageDirectory = os.getcwd() + '/' + buildName
+    packageDirectory = os.path.join(os.getcwd(), buildName)
     [includeFolders, libFolders] = ["", ""]
     for package in packageData:
         packageMap = progSpec.extractMapFromTagMap(package)
@@ -226,7 +226,7 @@ def FindOrFetchLibraries(buildName, packageData, platform, tools):
                 installfileList = buildCmdMap['installFiles'][1]
                 # ~ installFiles = progSpec.extractListFromTagList(installfileList)
                 # ~ print("    DATA:", str(installFiles)[:100])
-                LibsFolder = packageDirectory + '/' + packageName + "/INSTALL"
+                LibsFolder = os.path.join(packageDirectory, packageName, 'INSTALL').replace("\\","/")
                 makeDirs(LibsFolder)
                 importantFolders[packageName+'@Install'] = LibsFolder
                 importantFolders[packageName] = packageDirectory + '/' + packageName + '/' + packageName
@@ -257,8 +257,8 @@ def gitClone(cloneUrl, packageName, packageDirectory):
         makeDirs(packageDirectory + '/' + packageName + "/INSTALL")
 
 
-def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension):
-    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform)
+def buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools):
+    (includeFolders, libFolders) = FindOrFetchLibraries(buildName, packageData, platform, tools)
     SconsFile = "import os\n\n"
     SconsFile += "env = Environment(ENV=os.environ)\n"
     #SconsFile += "env.MergeFlags('-g -fpermissive')\n"
@@ -384,14 +384,14 @@ def LinuxBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platf
     writeFile(buildName, sconsFilename, [[[sconsFilename],SconsFile]], "")
     return [workingDirectory, buildStr, runStr]
 
-def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData):
+def WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools):
     buildStr = ''
     codeDogFolder = os.path.dirname(os.path.realpath(__file__))
     libStr = "-I " + codeDogFolder + " "
     #minLangStr = '-std=gnu++' + minLangVersion + ' '
     fileExtension = '.cpp'
     #outputFileStr = '-o ' + fileName
-    buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension)
+    buildSconsFile(fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, fileExtension, tools)
 
     writeFile(buildName, fileName, fileSpecs, fileExtension)
     copyRecursive("Resources", buildName + os.sep + "assets")
@@ -480,7 +480,7 @@ def build(debugMode, minLangVersion, fileName, labelName, launchIconName, libFil
     elif platform == 'Swift':
         [workingDirectory, buildStr, runStr] = SwiftBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'Windows':
-        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData)
+        [workingDirectory, buildStr, runStr] = WindowsBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs, progOrLib, packageData, tools)
     elif platform == 'MacOS':
         [workingDirectory, buildStr, runStr] = buildMac.macBuilder(debugMode, minLangVersion, fileName, libFiles, buildName, platform, fileSpecs)
     elif platform == 'IOS':

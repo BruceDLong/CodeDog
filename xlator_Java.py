@@ -27,6 +27,7 @@ class Xlator_Java(Xlator):
     renameInitFuncs       = False
     useAllCtorArgs        = True
     nullValue             = "null"
+    hasMacros             = False
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
     def implOperatorsAsFuncs(self, fTypeKW):
