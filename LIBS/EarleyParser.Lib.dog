@@ -149,6 +149,7 @@ struct stateRec{
     our stateRec: next
     our stateRec: child
     flag: resolved
+    flag: processed             // Used so prioritize during streamed parses.
 
     // The following flags are used in streaming mode:
     flag: nullIsOK       // Used when streaming
@@ -1440,49 +1441,56 @@ struct EParser{
         return(newItm)
     }
 
-    void: doParse() <- {
-        parseFound <- false
-        me int64: crntPos <- 0
-        streamToParse.at(crntPos) // Wait for buffer to fill
-        me stateSets: newSSet
-        while(crntPos<SSets.size()){
-            their stateSets: SSet <- SSets[crntPos]
-
-            //log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING SLOT: " + toString(crntPos)+ " '" + streamToParse.atSafe(crntPos)+"'")
-            resetCompletions(crntPos)
-            itemsToResolve.clear()
-            withEach SRec in SSet.stateRecs {
-                their production: prod <- grammar[SRec.productionID]
-                me int: ProdType       <- prod.prodType
-                me bool: isTerminal    <- prod.isTerm != 0
-                me int64: seqPos       <- SRec.SeqPosition
-                our stateRec: newItm
-                //log("PARSE:" + SRec.mySymbol()+": "+SRec.stringify(self))
-                if(ruleIsDone(SRec) and ProdType!=parseREP){ // COMPLETER for non-REPetitions
-                    complete(SRec, crntPos)
-                }else{
-                    if(isTerminal){ // SCANNER: Scanning means Testing for a Matching terminal
+    void: processStateSet(their stateSets: SSet, me bool: waitForChar) <- {itemsToResolve.clear()
+        withEach SRec in SSet.stateRecs {
+            if(SRec.processed){continue()}
+            their production: prod <- grammar[SRec.productionID]
+            me int: ProdType       <- prod.prodType
+            me bool: isTerminal    <- prod.isTerm != 0
+            our stateRec: newItm
+            //log("PARSE:" + SRec.mySymbol()+": "+SRec.stringify(self))
+            if(ruleIsDone(SRec) and ProdType!=parseREP){ // COMPLETER for non-REPetitions
+                SRec.processed <- true
+                complete(SRec, crntPos)
+            }else{
+                if(isTerminal){ // SCANNER: Scanning means Testing for a Matching terminal
+                    if(waitForChar){
                         me int64: len <- textMatches(SRec.productionID, crntPos)
                         if(len>=0){ // if match succeeded
                             newItm <- addProductionToStateSet(crntPos+len, SRec.productionID, 1, crntPos, SRec, NULL)
-                            //log("SCAN_TO_SLOT:"+toString(crntPos+len) + ": "+newItm.mySymbol())
+                            //log("SCAN_TO_SLOT:"+toString(crntPos+len) + ": "+newItm.mySymbol())  // Possible chars that can go here
                         } else {notifyFailure(SRec, ">")}
-                    }else{ // non-terminal
-                        if(ProdType == parseREP){
-                            newItm <- addRepItemToStateSet(SRec, crntPos, prod)
-                        } else if(ProdType==parseSEQ){ // Init a SEQ (PREDICTOR)
-                            me int: prodID <- prod.items[seqPos]
-                            newItm <- addProductionToStateSet(crntPos, prodID, 0, crntPos, NULL, SRec)
-                        } else if(ProdType==parseALT){ // Init an ALT (PREDICTOR)
-                            withEach AltProd in prod.items {
-                                newItm <- addProductionToStateSet(crntPos, AltProd, 0, crntPos, NULL, SRec)
-                                //log("ADDED_ALT:"+newItm.stringify(self)+":"+newItm.mySymbol())
-                            }
+                    }
+                }else{ // non-terminal
+                    SRec.processed <- true
+                    if(ProdType == parseREP){
+                        newItm <- addRepItemToStateSet(SRec, crntPos, prod)
+                    } else if(ProdType==parseSEQ){ // Init a SEQ (PREDICTOR)
+                        me int: prodID <- prod.items[SRec.SeqPosition]
+                        newItm <- addProductionToStateSet(crntPos, prodID, 0, crntPos, NULL, SRec)
+                    } else if(ProdType==parseALT){ // Init an ALT (PREDICTOR)
+                        withEach AltProd in prod.items {
+                            newItm <- addProductionToStateSet(crntPos, AltProd, 0, crntPos, NULL, SRec)
                         }
                     }
                 }
             }
-            withEach SRecToResolve in itemsToResolve{bottomUpResolve(SRecToResolve, grammar[SRecToResolve.productionID].lvlsToBackApprove, "C ")}
+        }
+        withEach SRecToResolve in itemsToResolve{bottomUpResolve(SRecToResolve, grammar[SRecToResolve.productionID].lvlsToBackApprove, "C ")}
+        itemsToResolve.clear()
+    }
+
+    void: doParse() <- {
+        parseFound <- false
+        me int64: crntPos <- 0
+        streamToParse.at(crntPos) // Wait for buffer to fill
+        while(crntPos<SSets.size()){
+            their stateSets: SSet <- SSets[crntPos]
+            resetCompletions(crntPos)
+            processStateSet(SSet, false)
+            me string: ch <- streamToParse.atSafe(crntPos)  // wait for the next char to arrive if needed.
+            //log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING CHAR: '"+ch+"'  slot: " + toString(crntPos))
+            processStateSet(SSet, true)
             //log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
             crntPos <+- 1
         }
