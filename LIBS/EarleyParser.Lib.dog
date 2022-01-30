@@ -1165,8 +1165,8 @@ struct EParser{
                          if(from.next!==next){from.nextIsFinal <- true}
                          else{} // this is a repeat so change nothing.
                      }
-                    else{from.nextIsFinal<-false}
-                } else {from.nextIsFinal<-false}
+                    else if(!from.nextIsStarted){from.nextIsFinal<-false}
+                } else if(!from.nextIsStarted){from.nextIsFinal<-false}
             }
             from.nextIsStarted<-true
         } else{from.nextIsFinal <- true}
@@ -1484,12 +1484,14 @@ struct EParser{
         parseFound <- false
         me int64: crntPos <- 0
         streamToParse.at(crntPos) // Wait for buffer to fill
+        me string: ch <- "X"
         while(crntPos<SSets.size()){
             their stateSets: SSet <- SSets[crntPos]
             resetCompletions(crntPos)
+      //      print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   Finishing: '"+ch+"'\n")
             processStateSet(SSet, false)
-            me string: ch <- streamToParse.atSafe(crntPos)  // wait for the next char to arrive if needed.
-            //log("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING CHAR: '"+ch+"'  slot: " + toString(crntPos))
+            ch <- streamToParse.atSafe(crntPos)  // wait for the next char to arrive if needed.
+      //      print("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   PROCESSING CHAR: '"+ch+"'  slot: " + toString(crntPos)+"\n")
             processStateSet(SSet, true)
             //log("GRAPHING after Slot:"+toString(crntPos)); dumpGraph("ProcessingSlot"+toString(crntPos), 1)
             crntPos <+- 1
