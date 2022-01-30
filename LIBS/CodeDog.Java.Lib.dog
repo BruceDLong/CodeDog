@@ -121,6 +121,7 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me string: toString(me int64: val)                          <- <%!%GString.valueOf(%1)%>
     me string: toString(me uint: val)                           <- <%!%GString.valueOf(%1)%>
     me string: toString(me int: val)                            <- <%!%GString.valueOf(%1)%>
+    me string: toString(me uint64: val)                         <- <%!%GString.valueOf(%1)%>
 }
 
 struct timeValue{me long: timeValue}

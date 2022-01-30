@@ -197,7 +197,7 @@ struct GLOBAL{
     }%>
 
     me void: addAndroidMenu(me Menu: androidMenu) <- <%{
-        int thisSubMenu_key=0;
+        int thisSubMenu_count=0;
         for(int thisSubMenuIdx=0; thisSubMenuIdx != GLOBAL.static_Global.thisApp.menubar.items.size(); thisSubMenuIdx += 1){
                 ourSubMenu thisSubMenu = GLOBAL.static_Global.thisApp.menubar.items.get(thisSubMenuIdx);
             if (thisSubMenu.items.size() == 0) {
@@ -205,14 +205,14 @@ struct GLOBAL{
             }
             else {
                 parentMenu = androidMenu.addSubMenu(thisSubMenu.name);      // working on getting this line to generate right code
-                int item_key=0;
+                int item_count=0;
                 for(int itemIdx=0; itemIdx != thisSubMenu.items.size(); itemIdx += 1){
                                 ourSubMenu item = thisSubMenu.items.get(itemIdx);
                     parentMenu.add(item.name);
-                    ++item_key;
+                    ++item_count;
                 }
             }
-            ++thisSubMenu_key;
+            ++thisSubMenu_count;
         }
      }%>
 

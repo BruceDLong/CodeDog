@@ -27,6 +27,7 @@ class Xlator_Java(Xlator):
     renameInitFuncs       = False
     useAllCtorArgs        = True
     nullValue             = "null"
+    hasMacros             = False
 
     ###### Routines to track types of identifiers and to look up type based on identifier.
     def implOperatorsAsFuncs(self, fTypeKW):
@@ -721,7 +722,7 @@ class Xlator_Java(Xlator):
                     if 'codeConverter' in fieldDefSet['typeSpec']:
                         S = indent+AltIDXFormat[0]+fieldDefIdx['typeSpec']['codeConverter']
                         cdErr("TODO: handle checkIfSpecialAssignmentFormIsNeeded() for: "+S)
-                    else: S = indent+AltIDXFormat[0]+'.set('+AltIDXFormat[2]+', '+RHS+');\n'
+                    else: S = indent+AltIDXFormat[0]+'.set('+AltIDXFormat[2]+', '+AltIDXFormat[0]+'.at('+AltIDXFormat[2]+')+'+RHS+');\n'
             else: cdErr("TODO: handle adjustArrayIndex() for assignTag: "+assignTag)
         return S
 
@@ -998,10 +999,11 @@ class Xlator_Java(Xlator):
         return "{"+item+" &= ~"+mask+"; "+item+" |= ("+val+");}\n"
 
     def codeSwitchBreak(self, caseAction, indent):
-        if not(len(caseAction) > 0 and caseAction[-1]['typeOfAction']=='funcCall' and caseAction[-1]['calledFunc'][0][0] == 'return'):
-            return indent+"    break;\n"
-        else:
-            return ''
+        if len(caseAction)>0 and caseAction[-1]['typeOfAction']=='funcCall':
+            calledFuncName = caseAction[-1]['calledFunc'][0][0]
+            if calledFuncName!='return' and calledFuncName!='continue':
+                return indent+"    break;\n"
+        return ''
 
     def applyTypecast(self, typeInCodeDog, itemToAlterType):
         return '((int)'+itemToAlterType+')'

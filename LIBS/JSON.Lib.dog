@@ -218,10 +218,10 @@ struct JSON {
     }
 
     me string: query(their JSONValue: JV, me string: key) <- {
-        me string: JV_key <- ""
+        me string: JVNameSeg <- ""
         me int: cc <- 0
         while(key[cc] != "." and cc < key.size()){
-            JV_key <- JV_key + key[cc]
+            JVNameSeg <- JVNameSeg + key[cc]
             cc <- cc + 1
         }
         me string: restOfKey
@@ -240,7 +240,7 @@ struct JSON {
             their Map<me string, their JSONValue>: JV_Map <- JV.getAsMap()
             me int: arraySize <- JV_Map.size()
             withEach count in RANGE(0..arraySize) {
-                if(toString(count) == JV_key) {
+                if(toString(count) == JVNameSeg) {
                     their JSONValue: node <- JV_Map.at(toString(count))
                     if(restOfKey != ""){return(query(node, restOfKey))
                     } else {return(JVtoString(node))}
@@ -252,7 +252,7 @@ struct JSON {
             me int: count <- 0
             withEach node in JV_Map {
                 count <- count +1
-                if(node_key == "\"" + JV_key + "\"") {
+                if(node_key == "\"" + JVNameSeg + "\"") {
                     if(restOfKey != ""){return(query(node, restOfKey))
                     } else {return(JVtoString(node))}
                 }
