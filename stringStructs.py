@@ -32,6 +32,7 @@ def codeDogTypeToString(classes, tags, field):
 
 rules=[]
 constDefs=[]
+EParserConsts=[]
 ruleSet={}      # Used to track duplicates
 globalFieldCount=0
 globalTempVarIdx=0
@@ -40,6 +41,7 @@ startSymbol=''
 def genParserCode():
     global rules
     global constDefs
+    global EParserConsts
     RuleList=''
     for rule in rules:
         if rule[1]=='term':
@@ -50,6 +52,10 @@ def genParserCode():
     ConstList=''
     for C in constDefs:
         ConstList+='    const int: ' + C[0].replace('::','_') + ' <- ' + str(C[1]) + '\n'
+
+    EParserConstList=''
+    for C in EParserConsts:
+        EParserConstList+='    const int: ' + C[0].replace('::','_') + ' <- ' + str(C[1]) + '\n'
 
     code= r"""
 struct EGrammar{
@@ -68,13 +74,14 @@ struct EGrammar{
 }
 
 struct EParser{
-#CONST_CODE_HERE
+#EP_CONST_CODE_HERE
 
 #EXTRA_PARSER_FUNCS_HERE
 }
     """
     code=code.replace('#EXTRA_PARSER_FUNCS_HERE', parserFunctionAccumulator, 1)
-    code=code.replace('#CONST_CODE_HERE', ConstList, 2)
+    code=code.replace('#CONST_CODE_HERE', ConstList, 1)
+    code=code.replace('#EP_CONST_CODE_HERE', EParserConstList, 1)
     code=code.replace('#GRAMMAR_CODE_HERE', RuleList, 1)
     return code
 
@@ -121,6 +128,7 @@ def writeContextualSet(field):
 def appendRule(ruleName, termOrNot, pFlags, prodData):
     global rules
     global constDefs
+    global EParserConsts
     global ruleSet
     # If rule already exists, return the name rather than recreate it
     # is there a rule with the same term, flags, and prodData? (Only care about term+parseSEQ+data)
@@ -131,6 +139,7 @@ def appendRule(ruleName, termOrNot, pFlags, prodData):
         if not isinstance(ruleName, str):
             ruleName="rule"+str(thisIDX)
         constDefs.append([ruleName, str(thisIDX)])
+        if pFlags=='parseAUTO': EParserConsts.append([ruleName, str(thisIDX)])
         #print "PRODDATA:", prodData
         if isinstance(prodData, list):
             prodData='['+(', '.join(map(str,prodData))) + ']'
