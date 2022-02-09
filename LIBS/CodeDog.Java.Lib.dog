@@ -124,6 +124,7 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me string: toString(me uint64: val)                         <- <%!%GString.valueOf(%1)%>
 }
 
+struct _atomic_uint64:wraps=uint64{}
 struct timeValue{me long: timeValue}
 struct DateValue{me long: DateValue}
 struct timeOfDay{me long: timeOfDay}

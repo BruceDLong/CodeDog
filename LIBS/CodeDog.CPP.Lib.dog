@@ -163,6 +163,7 @@ struct GLOBAL{  /////////  TYPE CONVERTERS  ////////////////////////////
     me string: toString(me number_type: val)                    <- <%!std::to_string(%1)%>
 }
 
+struct _atomic_uint64:wraps=_atomic_uint64{}
 struct timeValue{me int64: timeValue}
 struct DateValue{me int64: DateValue}
 struct timeOfDay{me int64: timeOfDay}

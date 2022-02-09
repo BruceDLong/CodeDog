@@ -158,10 +158,6 @@ struct txtOut{
     void: output() <- {
         print(" at:", val)
     }
-    none: txtOut(me bool: _isHidden, me int: _val) <- {
-        isHidden <- _isHidden
-        val      <- _val
-    }
 }
 struct testClass{
     me Map<me int, their txtOut>: txtsOut

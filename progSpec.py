@@ -299,7 +299,6 @@ def addDependencyToStruct(structName, dependency):
         for reqTag in reqTagList:
             argTypeKW = reqTag['tArgType']
             argOwner  = reqTag['tArgOwner']
-            argOwner  = reqTag['tArgOwner']
             if argOwner=='me' and not isBaseType(argTypeKW):
                 addDependencyToStruct(structName, argTypeKW)
     else:
@@ -803,9 +802,8 @@ def isOldContainerTempFunc(typeSpec):
 
 def isOldContainerTempFuncErr(typeSpec, source, renderGenerics):
     if'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
-        if renderGenerics =='True':
-            cdErr("Deprecated container type in " + source)
-        #else: print("Warning: Deprecated container type in  " + source)
+        #if renderGenerics =='True':
+        cdErr("Deprecated container type in " + source)
         return True
     return False
 
@@ -813,6 +811,7 @@ def isAContainer(typeSpec):
     if typeSpec==None:return(False)
     if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
     # TODO: remove check for Old Container
+    # needed for stringStructs
     return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
 
 def getContainerSpec(typeSpec):
