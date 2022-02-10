@@ -768,7 +768,7 @@ struct <CLASSNAME>ExtracterThread: inherits=Threads{
         me string: streamID <- ctrls.streamName()
         log("OPENING EXTRACT_THREAD:" + streamID)
         ctrls.parser.syntax.Extract_<CLASSNAME>_to_<CLASSNAME>(parseTree, topItem, ctrls.parser)
-        log("Extracted_<CLASSNAME>:"+toString(topItem).subStr(0,120))
+        log("Extracted_<CLASSNAME>:"+shortedStr(toString(topItem),120))
         log("CLOSING EXTRACT_THREAD:" + streamID)
         protect(ctrls.chkExtractDone){
             ctrls.extractCompleted <- true
