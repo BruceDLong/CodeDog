@@ -126,7 +126,7 @@ struct GLOBAL{
     }
 }
 
-struct _atomic_uint64:wraps=_atomic_uint64{}
+struct _atomic_uint64{}
 
 struct datum{
     me double: value

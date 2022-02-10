@@ -28,11 +28,19 @@ import errno
 
 
 class CodeGenerator(object):
-    buildStr_libs=''
-    funcDeclAcc=''
-    funcDefnAcc=''
-    ForwardDeclsForGlobalFuncs=''
-
+    buildStr_libs      = ''
+    funcDeclAcc        = ''
+    funcDefnAcc        = ''
+    classStore         = []
+    tagStore           = None
+    localVarsAllocated = []   # Format: [varName, typeSpec]
+    localArgsAllocated = []   # Format: [varName, typeSpec]
+    currentObjName     = ''
+    inheritedEnums     = {}
+    constFieldAccs     = {}
+    modeStringsAcc     = ''
+    genericStructsGenerated = [ {}, [] ]
+    ForwardDeclsForGlobalFuncs = ''
     listOfFuncsWithUnknownArgTypes = {}
 
     def appendGlobalFuncAcc(self, decl, defn):
@@ -46,17 +54,6 @@ class CodeGenerator(object):
         else:
             return 1 + self.bitsNeeded((n + 1) // 2)
     ###### Routines to track types of identifiers and to look up type based on identifier.
-
-    classStore         = []
-    tagStore           = None
-    localVarsAllocated = []   # Format: [varName, typeSpec]
-    localArgsAllocated = []   # Format: [varName, typeSpec]
-    currentObjName     = ''
-    inheritedEnums     = {}
-    constFieldAccs     = {}
-    modeStringsAcc     = ''
-    genericStructsGenerated = [ {}, [] ]
-
     def typeIsInteger(self, fieldType):
         # NOTE: If you need this to work for wrapped types as well use the version in CodeGenerator.py
         if fieldType == None: return False
@@ -422,6 +419,7 @@ class CodeGenerator(object):
                     fromImpl = self.makeFromImpl(hiScoreName, ctnrCat)
                 else: fromImpl = None
                 #print("IMPLEMENTS:", ctnrCat, '->', hiScoreName)
+                if hiScoreName!=None:progSpec.addDependencyToStruct(className,hiScoreName)
                 return(hiScoreName,fromImpl)
         return(None, None)
 
@@ -536,7 +534,9 @@ class CodeGenerator(object):
     def getGenericTypeSpec(self, genericArgs, typeSpec):
         fTypeKW = progSpec.fieldTypeKeyword(typeSpec)
         reqTagList = progSpec.getReqTagList(typeSpec)
-        if reqTagList and self.xlator.renderGenerics=='True' and not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
+        if reqTagList==None or progSpec.isWrappedType(self.classStore, fTypeKW) or progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
+            typeSpecOut = self.getGenericFieldsTypeSpec(genericArgs, typeSpec)
+        elif self.xlator.renderGenerics=='True':
             typeSpecOut = self.copyTypeSpec(typeSpec)
             cvrtType = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
             typeSpecOut['fieldType'] = [copy.copy(cvrtType)]
@@ -568,7 +568,7 @@ class CodeGenerator(object):
                 fromImplOut = self.makeFromImpl(fTypeKW, '')
                 typeSpecOut['fromImplemented'] = fromImplOut
             typeSpecOut['generic'] = True
-        else:
+        else: #renderGenerics=='False'
             typeSpecOut = self.getGenericFieldsTypeSpec(genericArgs, typeSpec)
         return typeSpecOut
 

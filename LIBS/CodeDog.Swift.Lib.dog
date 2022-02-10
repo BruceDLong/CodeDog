@@ -88,4 +88,5 @@ struct GLOBAL{
     me char: toLower(me char: ch) <- <%!%1.lowercased()%>
 }
 
+struct _atomic_uint64:wraps=uint64{}
 struct timeValue{me Double: timeValue}

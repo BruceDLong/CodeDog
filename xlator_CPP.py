@@ -529,6 +529,7 @@ class Xlator_CPP(Xlator):
             getNodeVal  = progSpec.getCodeConverterByFieldID(classes, itrTypeKW, 'val', repName,RNodeP)
             firstTSpec['codeConverter'] = (getNodeVal)
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
+            localVarsAlloc.append([itrName, itrTSpec]) # Tracking local vars for scope
             frontItr    = progSpec.getCodeConverterByFieldID(classes, datastructID, "front" , ctnrName , RDeclP)
             actionText += (indent + "for( auto " + itrName+' ='+frontItr + "; " + itrName + " !=" + ctnrName+RDeclP+'end()' +"; ++"+itrName  + " ){\n"
                         + indent+"    "+"auto "+repName+" = *"+itrName+";\n")
