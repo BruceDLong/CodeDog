@@ -161,6 +161,7 @@ struct stateRec{
     flag: isREP          // to avoid checking the hard way
     me int: altCount     // For ALTs, number of failed branches.
     me string: stringify(their EParser: EP) <- {
+        if(self==NULL){return("NULL")}
         me string: S <- ""
         their production: prod <- EP.grammar[productionID]
         S <+- prod.toStr(SeqPosition, originPos, crntPos, EP.syntax.ruleNames)
@@ -1273,7 +1274,7 @@ struct EParser{
  * The parser needs this function but it really belongs with your application.
  * If you need to resolve an ambiguous grammar write this function.
  * This is an example of making it resolve ambiguity by choosing the longest path.
- * If it parses the wat you want, this can just be an empty function.
+ * If it parses the way you want, this can just be an empty function.
  *
     void: filterAmbiguities(our stateRec: SRec, our List<our stateRec>:causeList) <- {
         // Modifiy this function externally to adjust for ambiguous grammars.
@@ -1305,13 +1306,13 @@ struct EParser{
         /* If this is called on a SEQ or ALT, a valid parse has been found. However it may not be fully completed because
          * there may be REPetitionss (including for OPTionals) that are not compelete. A REP seq could have 0 or more items.
          * We fill in all the next/child fields but do not mark them finished until we know. (Actually, it may be better to not fill them yet as they could be wrong and changed later.)
-         * Any item that is a tentative REP or has an tentative REP inside is tentative. Even completed REPs can be tentative because they could belong to a future or past SRec.
+         * Any item that is a tentative REP or has a tentative REP inside is tentative. Even completed REPs can be tentative because they could belong to a future or past SRec.
          * For example, in infons, A mostly-parsed ListInfo may actually be a ListItem. (Of course they shouldn't get linked in)
          * So when a REP stateRec is added, it won't be removed but it could be replaced. It could be the END-OF-LIST marker or it could become a full item.
          * Once a REP's child is filled in and completed it should mean that the REP is permanent and complete. We can percolate that completeness up the tree.
          * The problem case is when a REP node does not have a child how do we know if it is complete? It could have its child filled or it could be replaced.
          * We can sometimes tell by looking at the min and max number of REPs. Otherwise we can tell thusly: When we pass this charactar pos, if all advances from this char pos
-         * go through a REP than that REP is complete. (Though it may still be pypassed from earlier branches, but we won't extract past those until they are resolved.
+         * go through a REP than that REP is complete. (Though it may still be bypassed from earlier branches, but we won't extract past those until they are resolved.)
          */
         me int: productionID <- SRec.productionID
         me int64: originPos  <- SRec.originPos
@@ -1482,7 +1483,7 @@ struct EParser{
 
     void: doParse() <- {
         parseFound <- false
-        me int64: crntPos <- 0
+        crntPos <- 0
         streamToParse.at(crntPos) // Wait for buffer to fill
         me string: ch <- "X"
         while(crntPos<SSets.size()){
