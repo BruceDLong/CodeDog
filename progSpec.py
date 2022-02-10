@@ -97,10 +97,10 @@ def rollBack(classes, tags):
 
 #########################
 
-def getTypesBase(typeSpec):
-    if isinstance(typeSpec, str):
-       return typeSpec
-    else: return getTypesBase(typeSpec[1])
+def getTypesBase(tSpec):
+    if isinstance(tSpec, str):
+       return tSpec
+    else: return getTypesBase(tSpec[1])
 
 def registerBaseType(usedType, className):
     baseType=getTypesBase(usedType)
@@ -136,15 +136,14 @@ def fieldIdentifierString(className, packedField):
     fieldName = packedField['fieldName']
     if fieldName == None: fieldName =""
     fieldID=className+'::'+fieldName
-    if 'typeSpec' in packedField: typeSpec=packedField['typeSpec']
-    if 'argList' in typeSpec and typeSpec['argList'] :
-        argList = typeSpec['argList']
+    if 'typeSpec' in packedField: tSpec = getTypeSpec(packedField)
+    if 'argList' in tSpec and tSpec['argList'] :
+        argList = tSpec['argList']
         fieldID+='('
         count=0
         for arg in argList:
             if count>0: fieldID+=','
-            argKeyWord = fieldTypeKeyword(arg['typeSpec'])
-            fieldID += argKeyWord
+            fieldID += fieldTypeKeyword(arg)
             count+=1
         fieldID+=')'
     return fieldID
@@ -294,7 +293,7 @@ def addDependencyToStruct(structName, dependency):
     fTypeKW = fieldTypeKeyword(dependency)
     reqTagList = getReqTagList(dependency)
     if reqTagList:
-        owner = dependency['owner']
+        owner = getOwner(dependency)
         addDependencyToStruct(structName, fTypeKW)
         for reqTag in reqTagList:
             argTypeKW = reqTag['tArgType']
@@ -328,8 +327,8 @@ def addField(objSpecs, className, stateType, packedField):
     global ModifierCommands
     thisName  = packedField['fieldName']
     fieldID   = packedField['fieldID']
-    typeSpec  = packedField['typeSpec']
-    fTypeKW   = fieldTypeKeyword(typeSpec)
+    tSpec     = getTypeSpec(packedField)
+    fTypeKW   = fieldTypeKeyword(tSpec)
 
     if stateType=='model': taggedClassName='%'+className
     elif stateType=='string': taggedClassName='$'+className
@@ -354,12 +353,10 @@ def addField(objSpecs, className, stateType, packedField):
     objSpecs[taggedClassName]["fields"].append(packedField)
     objSpecs[taggedClassName]["vFields"]=None
 
-
     # if me or we and type is struct add unique dependency
-    fieldOwner = typeSpec['owner']
-    if (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const') and fieldsTypeCategory(typeSpec)=='struct':
-        addDependencyToStruct(className, typeSpec)
-
+    fieldOwner = getOwner(tSpec)
+    if (fieldOwner=='me' or fieldOwner=='we' or fieldOwner=='const') and fieldsTypeCategory(tSpec)=='struct':
+        addDependencyToStruct(className, tSpec)
 
     if MarkItems:
         if not (taggedClassName in MarkedObjects):
@@ -410,9 +407,9 @@ def searchATagStore(tagStore, tagToFind):
     #print item
     return [item]
 
-def doesClassHaveProperty(classes, fieldType, propToFind):
-    if isinstance(fieldType, str) or fieldType == None: return False
-    structName=fieldType[0]
+def doesClassHaveProperty(classes, fType, propToFind):
+    if isinstance(fType, str) or fType == None: return False
+    structName=fType[0]
     modelSpec = findSpecOf(classes[0], structName, 'struct')
     if modelSpec == None: return False
     classProperties=searchATagStore(modelSpec["tags"], 'properties')
@@ -502,11 +499,11 @@ def insertOrReplaceField(fieldListToUpdate, field):
 
 def updateCvt(classes, fieldListToUpdate, fieldsToConvert):
     for F in fieldsToConvert:
-        typeSpec=F['typeSpec']
-        baseType=TypeSpecsMinimumBaseType(classes, typeSpec)
-        G = F.copy()
+        tSpec    = getTypeSpec(F)
+        baseType = TypeSpecsMinimumBaseType(classes, tSpec)
+        G        = F.copy()
         if baseType!=None:
-            G['typeSpec']=typeSpec.copy()
+            G['typeSpec']=tSpec.copy()
             G['typeSpec']['fieldType'] = baseType
         insertOrReplaceField(fieldListToUpdate, G)
 
@@ -562,10 +559,10 @@ def fieldNameID(fieldID):
 def fieldDefIsInList(fieldList, fieldID):
     for field in fieldList:
         if 'fieldID' in field and fieldOnlyID(field['fieldID']) == fieldOnlyID(fieldID):
-            if 'typeSpec' in field and field['typeSpec']!=None: typeSpec=field['typeSpec']
-            else: typeSpec=None
+            if 'typeSpec' in field and field['typeSpec']!=None: tSpec=field['typeSpec']
+            else: tSpec=None
 
-            fieldIsAFunction = fieldIsFunction(typeSpec)
+            fieldIsAFunction = fieldIsFunction(tSpec)
             if not fieldIsAFunction: return True
             if fieldIsAFunction and 'value' in field and field['value']!=None:       # AND, the function is defined
                 return field
@@ -737,21 +734,21 @@ def scoreImplementation(optionSpecs, reqTags):
             returnScore += specScore
         return([returnScore, errorStr])
 
-def getImplementationOptionsFor(fieldType):
+def getImplementationOptionsFor(fType):
     global classImplementationOptions
-    if fieldType in classImplementationOptions:
-        return classImplementationOptions[fieldType]
+    if fType in classImplementationOptions:
+        return classImplementationOptions[fType]
     return None
 ###############  Various Dynamic Type-handling functions
 def getGenericArgs(ObjectDef):
     if('genericArgs' in ObjectDef): return(ObjectDef['genericArgs'])
     else: return(None)
 
-def getGenericArgsFromTypeSpec(typeSpec):
+def getGenericArgsFromTypeSpec(tSpec):
     genericArgs = {}
-    reqTagList = getReqTagList(typeSpec)
+    reqTagList = getReqTagList(tSpec)
     if reqTagList:
-        fromImpl = getFromImpl(typeSpec)
+        fromImpl = getFromImpl(tSpec)
         if fromImpl:
             tArgList = fromImpl['typeArgList']
             if tArgList:
@@ -763,79 +760,68 @@ def getGenericArgsFromTypeSpec(typeSpec):
     return None
 
 def getTypeArgList(className):
-    if not isinstance(className, str):
-        print("ERROR: in progSpec.getTypeArgList(): expected a string not: "+ str(className))
-    if(className in templatesDefined):
-        return(templatesDefined[className])
-    else:
-        return(None)
+    if not isinstance(className, str): print("ERROR: in progSpec.getTypeArgList(): expected a string not: "+ str(className))
+    if(className in templatesDefined): return(templatesDefined[className])
+    else: return(None)
 
-def getReqTagList(typeSpec):
-    if('reqTagList' in typeSpec):
-        return(typeSpec['reqTagList'])
-    if('fieldType' in typeSpec and 'reqTagList' in typeSpec['fieldType']):
-        return(typeSpec['fieldType']['reqTagList'])
+def getReqTagList(tSpec):
+    if('fieldType' in tSpec and 'reqTagList' in tSpec['fieldType']):
+        tSpec = tSpec['fieldType']
+    if('reqTagList' in tSpec):
+        return(tSpec['reqTagList'])
     return(None)
 
-def getReqTags(fieldType):
-    if('optionalTag' in fieldType[1]):
-        reqTags = fieldType[1][3]
-        return(reqTags)
-    else:
-        return None
+def getReqTags(fType):
+    if('optionalTag' in fType[1]): return(fType[1][3])
+    else: return None
 
-def isNewContainerTempFunc(typeSpec):
+def isOldContainerTempFuncErr(tSpec, msg):
+    if'arraySpec' in tSpec and tSpec['arraySpec']!=None:
+        cdErr("Deprecated container type in " + msg)
+
+def isNewContainerTempFunc(tSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
-    if not 'fieldType' in typeSpec: return(False)
-    fieldType = typeSpec['fieldType']
-    if isinstance(fieldType, str): return(False)
-    fieldTypeKW = fieldType[0]
+
+    if not 'fieldType' in tSpec: return(False)
+    fType = tSpec['fieldType']
+    if isinstance(fType, str): return(False)
+    fieldTypeKW = fType[0]
     if fieldTypeKW=='PovList': return(True)
-    reqTagList = getReqTagList(typeSpec)
+    reqTagList = getReqTagList(tSpec)
     if reqTagList: return(True)
     elif reqTagList == None: return(False)
     return(False)
 
-def isOldContainerTempFunc(typeSpec):
-    return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
-
-def isOldContainerTempFuncErr(typeSpec, source, renderGenerics):
-    if'arraySpec' in typeSpec and typeSpec['arraySpec']!=None:
-        #if renderGenerics =='True':
-        cdErr("Deprecated container type in " + source)
-        return True
-    return False
-
-def isAContainer(typeSpec):
-    if typeSpec==None:return(False)
-    if isNewContainerTempFunc(typeSpec): return True  # TODO: Remove this after Dynamix Types work.
+def isAContainer(tSpec):
+    if tSpec==None:return(False)
+    if isNewContainerTempFunc(tSpec): return True  # TODO: Remove this after Dynamix Types work.
     # TODO: remove check for Old Container
     # needed for stringStructs
-    return('arraySpec' in typeSpec and typeSpec['arraySpec']!=None)
+    return('arraySpec' in tSpec and tSpec['arraySpec']!=None)
 
-def getContainerSpec(typeSpec):
-    if isNewContainerTempFunc(typeSpec):
-        if 'fieldType' in typeSpec: fieldType = typeSpec['fieldType']
-        else: fieldType = None
-        containerType=fieldType[0]
-        return {'owner': typeSpec['owner'], 'datastructID':containerType}
-    return(typeSpec['arraySpec'])
+def getContainerSpec(tSpec):
+    if isNewContainerTempFunc(tSpec):
+        if 'fieldType' in tSpec: fType = tSpec['fieldType']
+        else: fType = None
+        containerType=fType[0]
+        return {'owner': tSpec['owner'], 'datastructID':containerType}
+    # TODO: remove check for Old Container. Needed for stringStructs
+    return(tSpec['arraySpec'])
 
-def getTemplateArg(typeSpec, argIdx):
-    return(typeSpec)
-
-def getDatastructID(typeSpec):
-    if isNewContainerTempFunc(typeSpec):
-        # if fieldType is parseResult w/ fieldType whose value is 'PovList'
+def getDatastructID(tSpec):
+    if isNewContainerTempFunc(tSpec):
+        # if fType is parseResult w/ fType whose value is 'PovList'
         return 'list'
-    if(isinstance(typeSpec['arraySpec']['datastructID'], str)):
-        return(typeSpec['arraySpec']['datastructID'])
+    # TODO: remove check for Old Container. Needed for stringStructs
+    if(isinstance(tSpec['arraySpec']['datastructID'], str)):
+        return(tSpec['arraySpec']['datastructID'])
     else:   #is a parseResult
-        return(typeSpec['arraySpec']['datastructID'][0])
+        return(tSpec['arraySpec']['datastructID'][0])
 
-def isContainerTemplateTempFunc(typeSpec):
-    fTypeKW = fieldTypeKeyword(typeSpec)
+def isContainerTemplateTempFunc(tSpec):
+    fTypeKW  = fieldTypeKeyword(tSpec)
+    fromImpl = getFromImpl(tSpec)
     if fTypeKW=='CPP_Deque' or fTypeKW=='Java_ArrayList' or fTypeKW=='Swift_Array':
         return True
     if fTypeKW=='CPP_Map' or fTypeKW=='Java_Map' or fTypeKW=='Swift_Map':
@@ -846,90 +832,88 @@ def isContainerTemplateTempFunc(typeSpec):
         print("Template class '"+fTypeKW+"' not found")
     return False
 
-def getNewContainerFirstElementTypeTempFunc2(typeSpec):
+def getNewContainerFirstElementTypeTempFunc2(tSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
-    if typeSpec == None: return(None)
-    if not 'fieldType' in typeSpec: return(None)
-    fieldType = typeSpec['fieldType']
-    if isinstance(fieldType, str): return(None)
-    fTypeKW = fieldType[0]
+    if tSpec == None: return(None)
+    if not 'fieldType' in tSpec: return(None)
+    fType = tSpec['fieldType']
+    if isinstance(fType, str): return(None)
+    fTypeKW = fType[0]
     if fTypeKW=='PovList': return(['infon'])
-    reqTagList = getReqTagList(typeSpec)
+    reqTagList = getReqTagList(tSpec)
     if reqTagList:
-        if isContainerTemplateTempFunc(typeSpec) or fTypeKW=='List': return(reqTagList[0]['tArgType'])
+        if isContainerTemplateTempFunc(tSpec) or fTypeKW=='List': return(reqTagList[0]['tArgType'])
     elif reqTagList == None: return(None)
     return(None)
 
-def getNewContainerFirstElementTypeTempFunc(typeSpec):
+def getNewContainerFirstElementTypeTempFunc(tSpec):
     # use only while transitioning to dynamic lists<> then delete
     # TODO: delete this function when dynamic types working
-    if typeSpec == None: return(None)
-    if not 'fieldType' in typeSpec: return(None)
-    fieldType = typeSpec['fieldType']
-    if isinstance(fieldType, str): return(None)
-    fTypeKW = fieldType[0]
+    if tSpec == None: return(None)
+    if not 'fieldType' in tSpec: return(None)
+    fType = tSpec['fieldType']
+    if isinstance(fType, str): return(None)
+    fTypeKW = fType[0]
     if fTypeKW=='PovList': return(['infon'])
-    reqTagList = getReqTagList(typeSpec)
+    reqTagList = getReqTagList(tSpec)
     if reqTagList:
-        if isContainerTemplateTempFunc(typeSpec): return(reqTagList[0]['tArgType'])
+        if isContainerTemplateTempFunc(tSpec): return(reqTagList[0]['tArgType'])
     elif reqTagList == None: return(None)
     return(None)
 
-def getNewContainerFirstElementOwnerTempFunc(typeSpec):
-    # use only while transitioning to dynamic lists<> then delete
-    # TODO: delete this function when dynamic types working
-    if typeSpec == None: return(None)
-    if not 'fieldType' in typeSpec: return(None)
-    fieldType = typeSpec['fieldType']
-    if isinstance(fieldType, str): return(None)
-    fTypeKW = fieldType[0]
+def getNewContainerFirstElementOwnerTempFunc(tSpec):
+    # TODO: delete this function when dynamic types working. Needed for stringStructs
+    if tSpec == None: return(None)
+    if not 'fieldType' in tSpec: return(None)
+    fType = tSpec['fieldType']
+    if isinstance(fType, str): return(None)
+    fTypeKW = fType[0]
     if fTypeKW=='PovList': return('our')
-    reqTagList = getReqTagList(typeSpec)
+    reqTagList = getReqTagList(tSpec)
     if reqTagList:
-        if isContainerTemplateTempFunc(typeSpec) or fTypeKW=='List': return(reqTagList[0]['tArgOwner'])
+        if isContainerTemplateTempFunc(tSpec) or fTypeKW=='List': return(reqTagList[0]['tArgOwner'])
     elif reqTagList == None: return(None)
     return(None)
 
-def getFromImpl(typeSpec):
-    if 'fromImplemented' in typeSpec:
-        return typeSpec['fromImplemented']
+def getFromImpl(tSpec):
+    if 'fromImplemented' in tSpec: return tSpec['fromImplemented']
     return None
 
-def getContainerKeyOwnerAndType(typeSpec):
-    owner     = getContainerFirstElementOwner(typeSpec)
-    fieldType = fieldTypeKeyword(typeSpec)
-    if not isNewContainerTempFunc(typeSpec): return[owner, fieldType]
-    reqTagList = getReqTagList(typeSpec)
-    fromImpl   = getFromImpl(typeSpec)
+def getContainerKeyOwnerAndType(tSpec):
+    owner     = getContainerFirstElementOwner(tSpec)
+    fType = fieldTypeKeyword(tSpec)
+    if not isNewContainerTempFunc(tSpec): return[owner, fType]
+    reqTagList = getReqTagList(tSpec)
+    fromImpl   = getFromImpl(tSpec)
     if fromImpl:
         if 'typeArgList' in fromImpl:
             typeArgList = fromImpl['typeArgList']
         if 'atKeyTypeSpec' in fromImpl:
             fieldDefAt = fromImpl['atKeyTypeSpec']
         if typeArgList and fieldDefAt:
-            atOwner  = fieldDefAt['owner']
+            atOwner  = getOwner(fieldDefAt)
             atTypeKW = fieldTypeKeyword(fieldDefAt)
             if atTypeKW in typeArgList:
                 idxAt = typeArgList.index(atTypeKW)
                 valType = reqTagList[idxAt]
                 return[valType['tArgOwner'], valType['tArgType']]
             else: return[atOwner, atTypeKW]
-    return[owner, fieldType]
+    return[owner, fType]
 
-def getContainerValueOwnerAndType(typeSpec):
-    owner      = getContainerFirstElementOwner(typeSpec)
-    fTypeKW    = fieldTypeKeyword(typeSpec)
-    if not isNewContainerTempFunc(typeSpec): return[owner, fTypeKW]
-    reqTagList = getReqTagList(typeSpec)
-    fromImpl   = getFromImpl(typeSpec)
+def getContainerValueOwnerAndType(tSpec):
+    owner      = getContainerFirstElementOwner(tSpec)
+    fTypeKW    = fieldTypeKeyword(tSpec)
+    if not isNewContainerTempFunc(tSpec): return[owner, fTypeKW]
+    reqTagList = getReqTagList(tSpec)
+    fromImpl   = getFromImpl(tSpec)
     if fromImpl:
         if 'typeArgList' in fromImpl: tArgList = fromImpl['typeArgList']
         else: tArgList = None; print("WARNING: no tARGs found in progSpec.getCtnrSecond")
         if 'atTypeSpec' in fromImpl: fDefAt = fromImpl['atTypeSpec']
         else: fDefAt = None; print("WARNING: no atTSpec found in progSpec.getCtnrSecond")
         if tArgList and fDefAt:
-            atOwner  = fDefAt['owner']
+            atOwner  = getOwner(fDefAt)
             atTypeKW = fieldTypeKeyword(fDefAt)
             if atTypeKW in tArgList:
                 idxAt   = tArgList.index(atTypeKW)
@@ -941,75 +925,51 @@ def getContainerValueOwnerAndType(typeSpec):
         fTypeKW   = reqTagList[0]['tArgType']
     return[owner, fTypeKW]
 
-def fieldTypeKeyword(fieldType):
-    # fieldType can be fieldType or typeSpec
-    if fieldType==None:                         return None
-    if 'dummyType' in fieldType:                return None
-    if 'typeSpec' in fieldType:                 fieldType = fieldType['typeSpec']   # if var fieldType is fieldDef
-    if 'fieldType' in fieldType:                fieldType = fieldType['fieldType']  # if var fieldType is typeSpec
-    if 'owner' in fieldType and fieldType['owner']=='PTR': return None
-    if isinstance(fieldType, str):              return fieldType
-    if len(fieldType)>1 and fieldType[1]=='..': return 'int'
-    if('varType' in fieldType[0]):              fieldType = fieldType[0]['varType']
-    if isinstance(fieldType[0], str):           return fieldType[0]
-    if isinstance(fieldType[0][0], str):        return fieldType[0][0]
+def fieldTypeKeyword(fType):
+    # fType can be fType or typeSpec
+    if fType==None:                         return None
+    if 'dummyType' in fType:                return None
+    if 'typeSpec' in fType:                 fType = fType['typeSpec']   # if var fType is fieldDef
+    if 'fieldType' in fType:                fType = fType['fieldType']  # if var fType is typeSpec
+    if 'owner' in fType and fType['owner']=='PTR': return None
+    if isinstance(fType, str):              return fType
+    if len(fType)>1 and fType[1]=='..': return 'int'
+    if('varType' in fType[0]):              fType = fType[0]['varType']
+    if isinstance(fType[0], str):           return fType[0]
+    if isinstance(fType[0][0], str):        return fType[0][0]
     cdErr("?Invalid fieldTypeKeyword?")
 
-def getFieldType(typeSpec):
-    retVal = getNewContainerFirstElementTypeTempFunc(typeSpec)
-    if retVal != None:
-        return retVal
-    if 'fieldType' in typeSpec: return(typeSpec['fieldType'])
+def getFieldType(tSpec):
+    retVal = getNewContainerFirstElementTypeTempFunc(tSpec)
+    if retVal != None: return retVal
+    if 'fieldType' in tSpec: return(tSpec['fieldType'])
     return None
 
-def getFieldTypeKeyWordOld(typeSpec):
-    # TODO: delete this function when dynamic types working
-    if(typeSpec==None):return None
-    fieldType = getFieldType(typeSpec)
-    if isinstance(fieldType, str): return fieldType
-    if isinstance(fieldType[0], str): return fieldType[0]
-    print("TODO: reduce field type to key word in progSpec.getFieldTypeKeyWord():",fieldType)
-    exit(2)
-
-def getContainerFirstElementType(typeSpec):
-    reqTagList=getReqTagList(typeSpec)
+def getContainerFirstElementType(tSpec):
+    reqTagList=getReqTagList(tSpec)
     if reqTagList:
         return(reqTagList[0]['tArgType'])
     return None
 
-def getContainerFirstElementOwner(typeSpec):
+def getContainerFirstElementOwner(tSpec):
     global currentCheckObjectVars
-    if (typeSpec == 0):
+    if (tSpec == 0):
         cdErr(currentCheckObjectVars)
-    if isAContainer(typeSpec):
-        if isNewContainerTempFunc(typeSpec):
-            if(typeSpec['fieldType'][0] == 'PovList'): return('our')
-            else: return (getOwnerFromTemplateArg(typeSpec['reqTagList'][0]))
-        else: return(typeSpec['owner'])
+    if isAContainer(tSpec):
+        if isNewContainerTempFunc(tSpec):
+            if(tSpec['fieldType'][0] == 'PovList'): return('our')
+            else: return (getOwnerFromTemplateArg(tSpec['reqTagList'][0]))
+        else: return(getOwner(tSpec))
     else:
         # TODO: This should throw error, no lists should reach this point.
-        return(typeSpec['owner'])
+        return(getOwner(tSpec))
 
-def getTypeSpecOwner(typeSpec):
-    # this is old way to get the owner, delete when transition complete
+def getOwner(tSpec):
     global currentCheckObjectVars
-    if (typeSpec == 0):
-        cdErr(currentCheckObjectVars)
-    if typeSpec==None or isinstance(typeSpec, str): return 'me'
-    if isAContainer(typeSpec):
-        if isNewContainerTempFunc(typeSpec): return typeSpec['owner']
-        if "owner" in typeSpec['arraySpec']:
-            owner = typeSpec['arraySpec']['owner']
-            return owner
-        else: return 'me'
-    return typeSpec['owner']
-
-def getOwnerFromTypeSpec(typeSpec):
-    global currentCheckObjectVars
-    if (typeSpec == 0):
-        cdErr(currentCheckObjectVars)
-    if(typeSpec==None):return None
-    return typeSpec['owner']
+    if (tSpec == 0): cdErr(currentCheckObjectVars)
+    if tSpec==None or isinstance(tSpec, str): return 'me'
+    if 'typeSpec' in tSpec: tSpec = tSpec['typeSpec']
+    return tSpec['owner']
 
 def getCodeConverterByFieldID(classes, structName, fieldName, prevNameSeg, connector):
     structSpec=findSpecOf(classes[0], structName, 'struct')
@@ -1026,23 +986,24 @@ def getCodeConverterByFieldID(classes, structName, fieldName, prevNameSeg, conne
     return prevNameSeg+connector+fieldName+"()"
 
 def getItrTypeOfDataStruct(containerType):
-    if 'fromImplemented' in containerType:
-        fromImplemented = containerType['fromImplemented']
-        if 'itrTypeSpec' in fromImplemented:
-            return fromImplemented['itrTypeSpec']
+    fromImpl = getFromImpl(containerType)
+    if fromImpl and 'itrTypeSpec' in fromImpl:
+        return fromImpl['itrTypeSpec']
     return None
+
+def getTypeSpec(fieldDef):
+    if 'typeSpec' in fieldDef: return fieldDef['typeSpec']
+    cdErr("TypeSpec not found in progSpec.getTypeSpec()")
 
 #### Packed Template Arg Handling Functions ####
 def getOwnerFromTemplateArg(tArg):
     global currentCheckObjectVars
-    if (tArg == 0):
-        cdErr(currentCheckObjectVars)
+    if (tArg == 0): cdErr(currentCheckObjectVars)
     return tArg['tArgOwner']
 
 def getTypeFromTemplateArg(tArg):
     global currentCheckObjectVars
-    if (tArg == 0):
-        cdErr(currentCheckObjectVars)
+    if (tArg == 0): cdErr(currentCheckObjectVars)
     return tArg['tArgType']
 
 ################################################
@@ -1056,15 +1017,15 @@ def ownerIsPointer(owner):
     else: isPointer=False
     return isPointer
 
-def typeIsPointer(typeSpec):
-    if isinstance(typeSpec,str): owner = typeSpec   # typeSpec is really Owner field
-    else: owner=getTypeSpecOwner(typeSpec)          # typeSpec is full typeSpec
+def typeIsPointer(tSpec):
+    if isinstance(tSpec,str): owner = tSpec   # tSpec is really Owner field
+    else: owner=getOwner(tSpec)   # tSpec is full typeSpec
     return ownerIsPointer(owner)
 
-def fieldIsFunction(typeSpec):
-    if typeSpec==None:
+def fieldIsFunction(tSpec):
+    if tSpec==None:
         return False
-    if 'argList' in typeSpec and typeSpec['argList']!=None:
+    if 'argList' in tSpec and tSpec['argList']!=None:
         return True
     return False
 
@@ -1099,13 +1060,12 @@ def isWrappedType(objMap, structname):
     if len(fieldListToSearch)>0:
         for field in fieldListToSearch:
             if field['fieldName']==structname and field['typeSpec']['argList']==None:
-                #print ("isWrappedType: ", field['typeSpec']['argList'], structname)
-                return field['typeSpec']
+                return getTypeSpec(field)
     return None
 
-def wrappedTypeIsPointer(classes, typeSpec, structName):
+def wrappedTypeIsPointer(classes, tSpec, structName):
     # like typeIsPointer() but also checks wrapped type
-    result = typeIsPointer(typeSpec)
+    result = typeIsPointer(tSpec)
     if result==True: return True
 
     baseType = isWrappedType(classes, structName)
@@ -1115,8 +1075,7 @@ def wrappedTypeIsPointer(classes, typeSpec, structName):
     return typeIsPointer(baseType)
 
 def createTypedefName(ItmType):
-    if(isinstance(ItmType, str)):
-        return ItmType
+    if(isinstance(ItmType, str)): return ItmType
     else:
         return 'BAD-TYPE-NAME'
         baseType=createTypedefName(ItmType[1])
@@ -1143,13 +1102,13 @@ def baseStructName(structName):
     if(colonIndex==-1): return structName
     return structName[0:colonIndex]
 
-def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
+def queryTagFunction(classes, className, funcName, matchName, tSpecIn):
     funcField = doesClassContainFunc(classes, className, funcName)
     if(funcField):
-        funcFieldKW = fieldTypeKeyword(funcField['typeSpec'])
+        funcFieldKW = fieldTypeKeyword(funcField)
         if(funcFieldKW == matchName):
             typeArgList = getTypeArgList(className)
-            reqTagList  = getReqTagList(typeSpecIn)
+            reqTagList  = getReqTagList(tSpecIn)
             count = 0
             for item in typeArgList:
                 if(item == matchName):
@@ -1159,8 +1118,8 @@ def queryTagFunction(classes, className, funcName, matchName, typeSpecIn):
                 count += 1
     return([None, None])
 
-def isStruct(fieldType):
-    if isinstance(fieldType, str): return False
+def isStruct(fType):
+    if isinstance(fType, str): return False
     return True
 
 def isBaseType(fType):
@@ -1169,9 +1128,9 @@ def isBaseType(fType):
         return True
     return False
 
-def isAltStruct(classes, fieldType):
-    if not isStruct(fieldType) or not(fieldType[0] in classes[0]): return [False, [] ]
-    fieldObj=classes[0][fieldType[0]]
+def isAltStruct(classes, fType):
+    if not isStruct(fType) or not(fType[0] in classes[0]): return [False, [] ]
+    fieldObj=classes[0][fType[0]]
     fieldObjConfig=fieldObj['configType']
     Objfields=fieldObj['fields']
     if (fieldObjConfig=='ALT'): return [True, Objfields]
@@ -1184,20 +1143,20 @@ def isAbstractStruct(classes, className):
         if classDef == None: return True
     return False
 
-def typeIsNumRange(fieldType):
-    if isinstance(fieldType, str): return False
-    if len(fieldType)==3:
-        if fieldType[1]=='..':
+def typeIsNumRange(fType):
+    if isinstance(fType, str): return False
+    if len(fType)==3:
+        if fType[1]=='..':
             return True
     return False
 
-def typeIsInteger(fieldType):
+def typeIsInteger(fType):
     # NOTE: If you need this to work for wrapped types as well use the version in CodeGenerator.py
-    if fieldType == None: return False
-    if typeIsNumRange(fieldType): return True
-    if not isinstance(fieldType, str):
-        fieldType= fieldType[0]
-    if fieldType=="int" or fieldType=="BigInt" or fieldType=="uint" or fieldType=="uint64" or fieldType=="uint32"or fieldType=="int64" or fieldType=="int32" or fieldType=="FlexNum":
+    if fType == None: return False
+    if typeIsNumRange(fType): return True
+    if not isinstance(fType, str):
+        fType= fType[0]
+    if fType=="int" or fType=="BigInt" or fType=="uint" or fType=="uint64" or fType=="uint32"or fType=="int64" or fType=="int32" or fType=="FlexNum":
         return True
     return False
 
@@ -1233,13 +1192,12 @@ def fetchFieldByName(fields, fieldName):
         if fname==fieldName: return field
     return None
 
-def TypeSpecsMinimumBaseType(classes, typeSpec):
-    owner=typeSpec['owner']
-    fieldType = typeSpec['fieldType']
-    #print("TYPESPEC:", typeSpec, "<", fieldType, ">\n")
-    if typeIsNumRange(fieldType):
-        minVal = int(fieldType[0])
-        maxVal = int(fieldType[2])
+def TypeSpecsMinimumBaseType(classes, tSpec):
+    owner     = getOwner(tSpec)
+    fType = tSpec['fieldType']
+    if typeIsNumRange(fType):
+        minVal = int(fType[0])
+        maxVal = int(fType[2])
         if minVal>=0:
             if (maxVal<=256):    return "uint8"
             if maxVal<=65536:    return "uint16"
@@ -1249,53 +1207,52 @@ def TypeSpecsMinimumBaseType(classes, typeSpec):
             else:  return "flexInt"
         else: # Handle signed values (int)
             return "int64"
-    elif isStruct(fieldType) and (fieldType[0] in classes[0]):
-        fieldObj=classes[0][fieldType[0]]
+    elif isStruct(fType) and (fType[0] in classes[0]):
+        fieldObj=classes[0][fType[0]]
         fieldObjConfig=fieldObj['configType']
         if(fieldObjConfig=='ALT'):
-            innerTypeSpec=fieldObj['fields'][0]['typeSpec']
-            retType = TypeSpecsMinimumBaseType(classes, innerTypeSpec)
+            innerTypeSpec = getTypeSpec(fieldObj['fields'][0])
+            retType       = TypeSpecsMinimumBaseType(classes, innerTypeSpec)
             return retType
-    return fieldType
+    return fType
 
-def innerTypeCategory(fieldType):
-    typeKey = fieldTypeKeyword(fieldType)
-    if typeKey=='flag' or typeKey=='mode' or typeKey=='timeValue' or typeKey=='void' or typeKey=='char' or typeKey=='double' or typeKey=='float' or typeKey=='string' or typeKey=='bool': return typeKey
-    if isStruct(fieldType): return 'struct'
-    if typeIsInteger(fieldType): return 'int'
+def innerTypeCategory(fType):
+    fTypeKW = fieldTypeKeyword(fType)
+    if fTypeKW=='flag' or fTypeKW=='mode' or fTypeKW=='timeValue' or fTypeKW=='void' or fTypeKW=='char' or fTypeKW=='double' or fTypeKW=='float' or fTypeKW=='string' or fTypeKW=='bool':
+        return fTypeKW
+    if isStruct(fType): return 'struct'
+    if typeIsInteger(fType): return 'int'
     return 'ERROR'
 
-def varsTypeCategory(typeSpec):
-    fieldType=''
-    if isinstance(typeSpec, str): fieldType=typeSpec
-    else:
-        fieldType=getFieldType(typeSpec)
-    return innerTypeCategory(fieldType)
+def varsTypeCategory(tSpec):
+    fType = ''
+    if isinstance(tSpec, str): fType=tSpec
+    else: fType = getFieldType(tSpec)
+    return innerTypeCategory(fType)
 
-def fieldsTypeCategory(typeSpec):
-    if 'argList' in typeSpec and typeSpec['argList']!=None: return 'func'
-    return varsTypeCategory(typeSpec)
+def fieldsTypeCategory(tSpec):
+    if 'argList' in tSpec and tSpec['argList']!=None: return 'func'
+    return varsTypeCategory(tSpec)
 
-def varTypeKeyWord(typeSpec):
-    if typeSpec == None: varType=None
-    elif isinstance(typeSpec, str): varType=typeSpec
-    elif typeSpec==None or typeSpec==0: varType='ERROR'
-    elif typeSpec['owner']=='PTR': varType='PTR'
+def varTypeKeyWord(tSpec):
+    if tSpec == None: varType=None
+    elif isinstance(tSpec, str): varType=tSpec
+    elif tSpec==None or tSpec==0: varType='ERROR'
+    elif tSpec['owner']=='PTR': varType='PTR'
     else:
-        #print"varTypeKeyWord: ", typeSpec
-        varType = varsTypeCategory(typeSpec)
+        varType = varsTypeCategory(tSpec)
         if varType =='int':
-            varType = fieldTypeKeyword(typeSpec)
+            varType = fieldTypeKeyword(tSpec)
     return varType
 
-def typeSpecsAreCompatible(typeSpec1, typeSpec2):
-    if getTypeSpecOwner(typeSpec1) != getTypeSpecOwner(typeSpec2): return False
-    if fieldTypeKeyword(typeSpec1) != fieldTypeKeyword(typeSpec2): return False
-    leftContainerNull  = not(isAContainer(typeSpec1))
-    rightContainerNull = not(isAContainer(typeSpec2))
+def typeSpecsAreCompatible(tSpec1, tSpec2):
+    if getOwner(tSpec1) != getOwner(tSpec2): return False
+    if fieldTypeKeyword(tSpec1) != fieldTypeKeyword(tSpec2): return False
+    leftContainerNull  = not(isAContainer(tSpec1))
+    rightContainerNull = not(isAContainer(tSpec2))
     if not leftContainerNull and rightContainerNull: return False
     if leftContainerNull and not rightContainerNull: return False
-    if not leftContainerNull and not rightContainerNull and getContainerSpec(typeSpec1) != getContainerSpec(typeSpec2): return False
+    if not leftContainerNull and not rightContainerNull and getContainerSpec(tSpec1) != getContainerSpec(tSpec2): return False
     return True
 
 def flattenObjectName(objName):
