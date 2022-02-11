@@ -683,7 +683,7 @@ class CodeGenerator(object):
                     if tSpecOut['owner']=='itr': tSpecOut['owner']='me'
                 tSpecOut['codeConverter'] = codeCvrtText
         elif isCtnr and name[0]=='[':
-            [ctnrType, idxTSpec, owner] = self.xlator.getContainerType(tSpecIn)
+            idxTSpec = self.xlator.getIdxType(tSpecIn)
             [valOwner, valFType]        = progSpec.getContainerValueOwnerAndType(tSpecIn)
             tSpecOut = {'owner':valOwner, 'fieldType': valFType}
             [S2, idxTSpec] = self.codeExpr(name[1], None, None, LorRorP_Val, genericArgs)
@@ -698,7 +698,6 @@ class CodeGenerator(object):
                 # TODO: if flags or modes have a non-zero default this should account for that.
             else:
                 [tSpecOut, SRC]=self.fetchItemsTypeSpec(segSpec, genericArgs) # Possibly adds a codeConversion to tSpecOut
-                if name=='MK_key':print("@@@@@",name,tSpecOut)
                 if tSpecOut: tSpecOut = self.getGenericTypeSpec(genericArgs, tSpecOut)
                 if not self.xlator.doesLangHaveGlobals:
                     if tSpecOut and 'isGlobalEnum' in tSpecOut and tSpecOut['isGlobalEnum']:namePrefix = progSpec.fieldTypeKeyword(tSpecOut)+ '.'
@@ -1163,7 +1162,6 @@ class CodeGenerator(object):
             progSpec.isOldContainerTempFuncErr(ctnrTSpec, 'codeRepetition1 '+self.currentObjName+' '+ctnrName)
             [StartKey, StartTypeSpec] = self.codeExpr(keyRange[2][0], None, None, 'RVAL', genericArgs)
             [EndKey,   EndTypeSpec] = self.codeExpr(keyRange[4][0], None, None, 'RVAL', genericArgs)
-            [datastructID, idxTypeKW, ctnrOwner]=self.xlator.getContainerType(ctnrTSpec)
             wrappedTypeSpec = progSpec.isWrappedType(self.classStore, progSpec.fieldTypeKeyword(ctnrTSpec)[0])
             if(wrappedTypeSpec != None):ctnrTSpec=wrappedTypeSpec
             [actionTextOut, loopCounterName] = self.xlator.iterateRangeFromTo(self.classStore,self.localVarsAllocated, StartKey, EndKey, ctnrTSpec,repName,ctnrName,indent)
@@ -1250,8 +1248,8 @@ class CodeGenerator(object):
         typeOfAction = action['typeOfAction']
 
         if (typeOfAction =='newVar'):
-            fieldDef = action['fieldDef']
-            tSpec  = progSpec.getTypeSpec(fieldDef)
+            fieldDef  = action['fieldDef']
+            tSpec     = progSpec.getTypeSpec(fieldDef)
             fieldName = fieldDef['fieldName']
             progSpec.isOldContainerTempFuncErr(tSpec, 'codeAction '+self.currentObjName+' '+fieldName)
             self.applyStructImplemetation(tSpec,self.currentObjName,fieldName)
@@ -1429,7 +1427,7 @@ class CodeGenerator(object):
             fType       = progSpec.fieldTypeKeyword(tSpec)
             fOwner      = progSpec.getOwner(tSpec)
             progSpec.isOldContainerTempFuncErr(tSpec, 'getCtorModelParams '+self.currentObjName)
-            isCtnr = progSpec.isAContainer(tSpec)
+            isCtnr = progSpec.isNewContainerTempFunc(tSpec)
             if fType=='flag' or fType=='mode' or fOwner=='const' or fOwner=='we' or (tSpec['argList'] or tSpec['argList']!=None) or (isCtnr and not progSpec.typeIsPointer(tSpec)):
                 continue
             modelParams.append(field)
@@ -1564,7 +1562,7 @@ class CodeGenerator(object):
                 tagToFind       = "classOptions."+progSpec.flattenObjectName(fieldID)
                 classOptionsTag = progSpec.fetchTagValue(tags, tagToFind)
                 if classOptionsTag != None and "useClass" in classOptionsTag:
-                    useClassTag     = classOptionsTag["useClass"]
+                    useClassTag = classOptionsTag["useClass"]
                     fType[0]    = useClassTag
             if(fType=='flag' or fType=='mode'): continue
             isAllocated = field['isAllocated']

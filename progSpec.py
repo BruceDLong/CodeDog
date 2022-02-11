@@ -819,6 +819,13 @@ def getDatastructID(tSpec):
     else:   #is a parseResult
         return(tSpec['arraySpec']['datastructID'][0])
 
+def getContainerType_Owner(tSpec):
+    isOldContainerTempFuncErr(tSpec,"progSpec.getContainerType_Owner()")
+    owner = getOwner(tSpec)
+    if isNewContainerTempFunc(tSpec): datastructID = fieldTypeKeyword(tSpec)
+    else: datastructID = 'None'
+    return [datastructID, owner]
+
 def isContainerTemplateTempFunc(tSpec):
     fTypeKW  = fieldTypeKeyword(tSpec)
     fromImpl = getFromImpl(tSpec)
@@ -1248,8 +1255,8 @@ def varTypeKeyWord(tSpec):
 def typeSpecsAreCompatible(tSpec1, tSpec2):
     if getOwner(tSpec1) != getOwner(tSpec2): return False
     if fieldTypeKeyword(tSpec1) != fieldTypeKeyword(tSpec2): return False
-    leftContainerNull  = not(isAContainer(tSpec1))
-    rightContainerNull = not(isAContainer(tSpec2))
+    leftContainerNull  = not(isNewContainerTempFunc(tSpec1))
+    rightContainerNull = not(isNewContainerTempFunc(tSpec2))
     if not leftContainerNull and rightContainerNull: return False
     if leftContainerNull and not rightContainerNull: return False
     if not leftContainerNull and not rightContainerNull and getContainerSpec(tSpec1) != getContainerSpec(tSpec2): return False
