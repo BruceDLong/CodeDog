@@ -643,10 +643,10 @@ class Xlator_CPP(Xlator):
             argTypeStr = "const "+argTypeStr+argMod
         return argTypeStr + " " +argFieldName
 
-    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
+    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, className, structCode, tags):
         if parentClass != "":
             parentClass = parentClass.replace('::', '_')
-            parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, structName)
+            parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, className)
             parentClass=': public '+parentClass+' '
             print("Warning: old style inheritance used: " , parentClass)
         if classInherits!=None:
@@ -657,14 +657,14 @@ class Xlator_CPP(Xlator):
                     parentClass+= ', '
                 parentClass+= progSpec.getUnwrappedClassFieldTypeKeyWord(classes, item)
                 count += 1
-        S= "\nstruct "+structName+parentClass+"{\n" + structCode + '};\n'
-        typeArgList = progSpec.getTypeArgList(structName)
+        S= "\nstruct "+className+parentClass+"{\n" + structCode + '};\n'
+        typeArgList = progSpec.getTypeArgList(className)
         templateHeader = ""
         if(typeArgList != None):
             forwardDecls = ""
-            templateHeader = self.codeTemplateHeader(structName, typeArgList)+" "
+            templateHeader = self.codeTemplateHeader(className, typeArgList)+" "
             S=templateHeader+S
-        forwardDecls=templateHeader+"struct " + structName + ";  \t// Forward declaration\n"
+        forwardDecls=templateHeader+"struct " + className + ";  \t// Forward declaration\n"
         return([S,forwardDecls])
 
     def produceTypeDefs(self, typeDefMap):
@@ -955,7 +955,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         typeArgsCode+=">"
         return(typeArgsCode)
 
-    def codeTemplateHeader(self, structName, typeArgList):
+    def codeTemplateHeader(self, className, typeArgList):
         templateHeader = "\ntemplate<"
         count = 0
         for typeArg in typeArgList:

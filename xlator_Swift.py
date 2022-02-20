@@ -648,14 +648,14 @@ class Xlator_Swift(Xlator):
         fieldTypeMod = self.makePtrOpt(tSpec)
         return "_ " + argFieldName + ": " + argType + fieldTypeMod
 
-    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
+    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, className, structCode, tags):
         classAttrs=''
         if len(attrList)>0:
             for attr in attrList:
                 if attr[0]=='@': classAttrs += attr+' '
         if parentClass != "":
             parentClass = ': '+parentClass+' '
-            parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(structName)
+            parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(className)
         if classInherits!=None:
             parentClass=': '
             count =0
@@ -664,11 +664,11 @@ class Xlator_Swift(Xlator):
                     parentClass+= ', '
                 parentClass+= progSpec.getUnwrappedClassFieldTypeKeyWord(classes, item)
                 count += 1
-        typeArgList = progSpec.getTypeArgList(structName)
+        typeArgList = progSpec.getTypeArgList(className)
         if(typeArgList != None):
-            templateHeader = codeTemplateHeader(structName, typeArgList)+" "
-            structName= structName+templateHeader
-        S= "\n"+classAttrs+"class "+structName+parentClass+"{\n" + structCode + '};\n'
+            templateHeader = codeTemplateHeader(className, typeArgList)+" "
+            className= className+templateHeader
+        S= "\n"+classAttrs+"class "+className+parentClass+"{\n" + structCode + '};\n'
         forwardDecls=""
         return([S,forwardDecls])
 
@@ -931,7 +931,7 @@ class Xlator_Swift(Xlator):
         field['value'] = '{fatalError("Must Override")}'
         return field['value']+'\n'
 
-    def codeTemplateHeader(self, structName, typeArgList):
+    def codeTemplateHeader(self, className, typeArgList):
         templateHeader = "<"
         count = 0
         for typeArg in typeArgList:

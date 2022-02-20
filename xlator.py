@@ -123,7 +123,7 @@ class Xlator(object):
     def codeArgText(self, argFieldName, argType, argOwner, tSpec, makeConst, typeArgList):
         cdErr("In base class Xlator::codeArgText.")
 
-    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
+    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, className, structCode, tags):
         cdErr("In base class Xlator::codeStructText.")
 
     def produceTypeDefs(self, typeDefMap):
@@ -186,7 +186,7 @@ class Xlator(object):
     def getVirtualFuncText(self, field):
         cdErr("In base class Xlator::getVirtualFuncText.")
 
-    def codeTemplateHeader(self, structName, typeArgList):
+    def codeTemplateHeader(self, className, typeArgList):
         cdErr("In base class Xlator::codeTemplateHeader.")
 
     def extraCodeForTopOfFuntion(self, argList):

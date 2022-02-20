@@ -718,7 +718,7 @@ class Xlator_Java(Xlator):
     def codeArgText(self, argFieldName, argType, argOwner, tSpec, makeConst, typeArgList):
         return argType + " " +argFieldName
 
-    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, structName, structCode, tags):
+    def codeStructText(self, classes, attrList, parentClass, classInherits, classImplements, className, structCode, tags):
         classAttrs=''
         Platform = progSpec.fetchTagValue(tags, 'Platform')
         if len(attrList)>0:
@@ -726,13 +726,13 @@ class Xlator_Java(Xlator):
                 if attr=='abstract': classAttrs += 'abstract '
         if parentClass != "":
             parentClass = parentClass.replace('::', '_')
-            parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, structName)
+            parentClass = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, className)
             parentClass=' extends ' +parentClass
         elif classInherits!=None:
             parentClass=' extends ' + progSpec.getUnwrappedClassFieldTypeKeyWord(classes, classInherits[0][0])
         if classImplements!=None:
             # TODO: verify if classImplements is used
-            #print(structName, "Implements: " , classImplements)
+            #print(className, "Implements: " , classImplements)
             parentClass+=' implements '
             count =0
             for item in classImplements[0]:
@@ -740,12 +740,12 @@ class Xlator_Java(Xlator):
                     parentClass+= ', '
                 parentClass+= item
                 count += 1
-        if structName =="GLOBAL" and Platform == 'Android':
+        if className =="GLOBAL" and Platform == 'Android':
             classAttrs = "public " + classAttrs
-        S= "\n"+classAttrs +"class "+structName+''+parentClass+" {\n" + structCode + '};\n'
-        typeArgList = progSpec.getTypeArgList(structName)
+        S= "\n"+classAttrs +"class "+className+''+parentClass+" {\n" + structCode + '};\n'
+        typeArgList = progSpec.getTypeArgList(className)
         if(typeArgList != None):
-            templateHeader = codeTemplateHeader(structName, typeArgList)
+            templateHeader = codeTemplateHeader(className, typeArgList)
             S=templateHeader+" {\n" + structCode + '};\n'
         return([S,""])
 
@@ -943,8 +943,8 @@ class Xlator_Java(Xlator):
     def codeTypeArgs(self, typeArgList):
         print("TODO: finish codeTypeArgs")
 
-    def codeTemplateHeader(self, structName, typeArgList):
-        templateHeader = "\nclass "+structName+"<"
+    def codeTemplateHeader(self, className, typeArgList):
+        templateHeader = "\nclass "+className+"<"
         count = 0
         for typeArg in typeArgList:
             if(count>0):templateHeader+=", "

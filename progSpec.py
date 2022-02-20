@@ -286,31 +286,31 @@ def packField(className, thisIsNext, thisOwner, thisType, thisArraySpec, thisReq
     packedField['fieldID']=fieldID
     return packedField
 
-def addDependencyToStruct(structName, dependency):
-    #print("############ addDependencyToStruct:", structName, " --> ", dependency)
+def addDependencyToStruct(className, dependency):
+    #print("############ addDependencyToStruct:", className, " --> ", dependency)
     global DependanciesMarked
     global DependanciesUnmarked
     fTypeKW = fieldTypeKeyword(dependency)
     reqTagList = getReqTagList(dependency)
     if reqTagList:
         owner = getOwner(dependency)
-        addDependencyToStruct(structName, fTypeKW)
+        addDependencyToStruct(className, fTypeKW)
         for reqTag in reqTagList:
             argTypeKW = reqTag['tArgType']
             argOwner  = reqTag['tArgOwner']
             if argOwner=='me' and not isBaseType(argTypeKW):
-                addDependencyToStruct(structName, argTypeKW)
+                addDependencyToStruct(className, argTypeKW)
     else:
         dependency = fieldTypeKeyword(dependency)
-        if structName == dependency: return
+        if className == dependency: return
         if MarkItems: listToUpdate = DependanciesMarked
         else: listToUpdate = DependanciesUnmarked
-        if dependency in listToUpdate and structName in listToUpdate[dependency]:
-            cdlog(1, "   NOTE: Possible circular dependency between "+structName+" and "+dependency)
-        if not(structName in listToUpdate): listToUpdate[structName]=[dependency]
+        if dependency in listToUpdate and className in listToUpdate[dependency]:
+            cdlog(1, "   NOTE: Possible circular dependency between "+className+" and "+dependency)
+        if not(className in listToUpdate): listToUpdate[className]=[dependency]
         else:
-            if not (dependency in listToUpdate[structName]):
-                listToUpdate[structName].append(dependency)
+            if not (dependency in listToUpdate[className]):
+                listToUpdate[className].append(dependency)
 
 def getClassesDependancies(className):
     global DependanciesMarked
@@ -409,8 +409,8 @@ def searchATagStore(tagStore, tagToFind):
 
 def doesClassHaveProperty(classes, fType, propToFind):
     if isinstance(fType, str) or fType == None: return False
-    structName=fType[0]
-    modelSpec = findSpecOf(classes[0], structName, 'struct')
+    className=fType[0]
+    modelSpec = findSpecOf(classes[0], className, 'struct')
     if modelSpec == None: return False
     classProperties=searchATagStore(modelSpec["tags"], 'properties')
     if classProperties != None and classProperties[0] != None :
@@ -511,10 +511,10 @@ def updateCpy(fieldListToUpdate, fieldsToCopy):
     for field in fieldsToCopy:
         insertOrReplaceField(fieldListToUpdate, field)
 
-def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type::subType::subType2'
-    #print("POPULATING-STRUCT:", structName)
+def populateCallableStructFields(fieldList, classes, className):  # e.g. 'type::subType::subType2'
+    #print("POPULATING-STRUCT:", className)
     # TODO: fix sometimes will populateCallableStructFields with sibling class fields
-    structSpec=findSpecOf(classes[0], structName, 'struct')
+    structSpec=findSpecOf(classes[0], className, 'struct')
     if structSpec==None: return
     if structSpec['vFields']!=None:
         fieldList.extend(structSpec['vFields'])
@@ -528,19 +528,19 @@ def populateCallableStructFields(fieldList, classes, structName):  # e.g. 'type:
         for classParent in classInherits:
             populateCallableStructFields(fieldList, classes, classParent)
 
-    modelSpec=findSpecOf(classes[0], structName, 'model')
+    modelSpec=findSpecOf(classes[0], className, 'model')
     if(modelSpec!=None): updateCvt(classes, fieldList, modelSpec["fields"])
-    modelSpec=findSpecOf(classes[0], structName, 'struct')
+    modelSpec=findSpecOf(classes[0], className, 'struct')
     updateCpy(fieldList, modelSpec["fields"])
     fieldListOut = copy.copy(fieldList)
     structSpec['vFields'] = fieldListOut
 
-def generateListOfFieldsToImplement(classes, structName):
+def generateListOfFieldsToImplement(classes, className):
     fieldList=[]
-    modelSpec=findSpecOf(classes[0], structName, 'model')
+    modelSpec=findSpecOf(classes[0], className, 'model')
     if(modelSpec!=None):
         updateCvt(classes, fieldList, modelSpec["fields"])
-    modelSpec=findSpecOf(classes[0], structName, 'struct')
+    modelSpec=findSpecOf(classes[0], className, 'struct')
     if(modelSpec!=None):
         updateCpy(fieldList, modelSpec["fields"])
     return fieldList
@@ -568,8 +568,8 @@ def fieldDefIsInList(fieldList, fieldID):
                 return field
     return False
 
-def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
-    structSpec=findSpecOf(classes, structName, 'struct')
+def fieldIDAlreadyDeclaredInStruct(classes, className, fieldID):
+    structSpec=findSpecOf(classes, className, 'struct')
     if structSpec==None:
         return False;
     if structSpec['vFields']!=None:
@@ -589,7 +589,7 @@ def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
             if fieldIDAlreadyDeclaredInStruct(classes, classParent, fieldID):
                 return True
 
-    modelSpec=findSpecOf(classes, structName, 'model')
+    modelSpec=findSpecOf(classes, className, 'model')
     if(modelSpec!=None):
         if fieldDefIsInList(modelSpec["fields"], fieldID):
             return True
@@ -599,9 +599,9 @@ def fieldIDAlreadyDeclaredInStruct(classes, structName, fieldID):
             return True
     return False
 
-def fieldNameInStructHierachy(classes, structName, fName):
-    #print('Searching for ', fName, ' in', structName)
-    structSpec=findSpecOf(classes, structName, 'struct')
+def fieldNameInStructHierachy(classes, className, fName):
+    #print('Searching for ', fName, ' in', className)
+    structSpec=findSpecOf(classes, className, 'struct')
     if structSpec==None:
         return False;
 
@@ -623,7 +623,7 @@ def fieldNameInStructHierachy(classes, structName, fName):
         for classParent in classImplements:
             if fieldNameInStructHierachy(classes, classParent, fName):
                 return True
-    modelSpec=findSpecOf(classes, structName, 'model')
+    modelSpec=findSpecOf(classes, className, 'model')
     if(modelSpec!=None):
         if fieldDefIsInList(modelSpec["fields"], fName):
             return True
@@ -648,14 +648,14 @@ def doesChildImplementParentClass(classes, parentClassName, childClassName):
                 return [False, parentFieldID]
     return [True, ""]
 
-def doesClassDirectlyImlementThisField(objSpecs, structName, fieldID):
-    #print '        ['+structName+']: ', fieldID
-    modelSpec=findSpecOf(objSpecs, structName, 'model')
+def doesClassDirectlyImlementThisField(objSpecs, className, fieldID):
+    #print '        ['+className+']: ', fieldID
+    modelSpec=findSpecOf(objSpecs, className, 'model')
     if(modelSpec!=None):
         fieldExists = fieldDefIsInList(modelSpec["fields"], fieldID)
         if fieldExists:
             return fieldExists
-    structSpec=findSpecOf(objSpecs, structName, 'struct')
+    structSpec=findSpecOf(objSpecs, className, 'struct')
     if(structSpec!=None):
         fieldExists = fieldDefIsInList(structSpec["fields"], fieldID)
         if fieldExists:
@@ -664,8 +664,8 @@ def doesClassDirectlyImlementThisField(objSpecs, structName, fieldID):
 
 def doesClassFromListDirectlyImplementThisField(classes, structNameList, fieldID):
     if structNameList==None or len(structNameList)==0: return False
-    for structName in structNameList:
-        if doesClassDirectlyImlementThisField(classes[0], structName, fieldID):
+    for className in structNameList:
+        if doesClassDirectlyImlementThisField(classes[0], className, fieldID):
             return True
     return False
 
@@ -690,23 +690,23 @@ def getChildClassList(classes, thisStructName):  # Checks 'inherits' but does no
             return listOfChildClasses
     return []
 
-def doesParentClassImplementFunc(classes, structName, fieldID):
+def doesParentClassImplementFunc(classes, className, fieldID):
     #print '     Parents:\n',
-    parentClasses=getParentClassList(classes, structName)
+    parentClasses=getParentClassList(classes, className)
     result = doesClassFromListDirectlyImplementThisField(classes, parentClasses, fieldID)
     #if len(parentClasses)>0: print '       P-Results:', result
     return result
 
-def doesChildClassImplementFunc(classes, structName, fieldID):
-    childClasses=getChildClassList(classes, structName)
+def doesChildClassImplementFunc(classes, className, fieldID):
+    childClasses=getChildClassList(classes, className)
     result = doesClassFromListDirectlyImplementThisField(classes, childClasses, fieldID)
     #if len(childClasses)>0: print '     Childs Result:', result
     return result
 
-def doesClassContainFunc(classes, structName, funcName):
+def doesClassContainFunc(classes, className, funcName):
     #TODO: make this take field ID instead of funcName
     callableStructFields=[]
-    populateCallableStructFields(callableStructFields, classes, structName)
+    populateCallableStructFields(callableStructFields, classes, className)
     for field in callableStructFields:
         fieldName=field['fieldName']
         if fieldName == funcName: return field
@@ -978,9 +978,9 @@ def getOwner(tSpec):
     if 'typeSpec' in tSpec: tSpec = tSpec['typeSpec']
     return tSpec['owner']
 
-def getCodeConverterByFieldID(classes, structName, fieldName, prevNameSeg, connector):
-    structSpec=findSpecOf(classes[0], structName, 'struct')
-    fieldID = structName+ "::" +fieldName
+def getCodeConverterByFieldID(classes, className, fieldName, prevNameSeg, connector):
+    structSpec=findSpecOf(classes[0], className, 'struct')
+    fieldID = className+ "::" +fieldName
     if structSpec==None: return None
     for field in structSpec["fields"]:
         if field['fieldID']==fieldID:
@@ -1070,12 +1070,12 @@ def isWrappedType(objMap, structname):
                 return getTypeSpec(field)
     return None
 
-def wrappedTypeIsPointer(classes, tSpec, structName):
+def wrappedTypeIsPointer(classes, tSpec, className):
     # like typeIsPointer() but also checks wrapped type
     result = typeIsPointer(tSpec)
     if result==True: return True
 
-    baseType = isWrappedType(classes, structName)
+    baseType = isWrappedType(classes, className)
     if(baseType==None): return result
 # TODO: FIX
     exit(2)
@@ -1093,21 +1093,21 @@ def createTypedefName(ItmType):
         elif(typeHead=='my'): suffix='UPtr'
         return baseType+suffix
 
-def findSpecOf(objMap, structName, stateTypeWanted):
-    if stateTypeWanted=='model': structName='%'+structName
-    elif stateTypeWanted=='string': structName='$'+structName
-    if not structName in objMap: return None
-    return objMap[structName]
+def findSpecOf(objMap, className, stateTypeWanted):
+    if stateTypeWanted=='model': className='%'+className
+    elif stateTypeWanted=='string': className='$'+className
+    if not className in objMap: return None
+    return objMap[className]
 
-def getUnwrappedClassFieldTypeKeyWord(classes, structName):
-    baseType = isWrappedType(classes, structName)
+def getUnwrappedClassFieldTypeKeyWord(classes, className):
+    baseType = isWrappedType(classes, className)
     if(baseType!=None): return fieldTypeKeyword(baseType)
-    else: return structName
+    else: return className
 
-def baseStructName(structName):
-    colonIndex=structName.find('::')
-    if(colonIndex==-1): return structName
-    return structName[0:colonIndex]
+def baseStructName(className):
+    colonIndex=className.find('::')
+    if(colonIndex==-1): return className
+    return className[0:colonIndex]
 
 def queryTagFunction(classes, className, funcName, matchName, tSpecIn):
     funcField = doesClassContainFunc(classes, className, funcName)
