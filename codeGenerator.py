@@ -367,16 +367,11 @@ class CodeGenerator(object):
         return fieldDefFind
 
     def makeFromImpl(self, className, implName):
-        retVal   = {}
-        retVal['implements'] = implName
+        fromImpl   = {}
+        fromImpl['implements'] = implName
         typeArgs = progSpec.getTypeArgList(className)
-        retVal["typeArgList"] = typeArgs
-        fieldDefAt  = self.CheckObjectVars(className, "at", "")
-        if fieldDefAt:
-            tSpecAt = progSpec.getTypeSpec(fieldDefAt)
-            atTypeSpec = {"owner":progSpec.getOwner(tSpecAt), "fieldType":progSpec.fieldTypeKeyword(tSpecAt)}
-            retVal["atTypeSpec"] = atTypeSpec
-        return retVal
+        fromImpl["typeArgList"] = typeArgs
+        return [fromImpl, typeArgs]
 
     def chooseStructImplementationToUse(self, tSpec,className,fieldName):
         fType = progSpec.getFieldType(tSpec)
@@ -408,8 +403,8 @@ class CodeGenerator(object):
                             hiScoreVal = implScore
                             hiScoreName = optionClassDef['name']
                 if hiScoreName != None:
-                    fromImpl = self.makeFromImpl(hiScoreName, ctnrCat)
-                else: fromImpl = None
+                    [fromImpl, implTArgs] = self.makeFromImpl(hiScoreName, ctnrCat)
+                else: fromImpl = None; implTArgs = None
                 #print("IMPLEMENTS:", ctnrCat, '->', hiScoreName)
                 if hiScoreName!=None:progSpec.addDependencyToStruct(className,hiScoreName)
                 return(hiScoreName,fromImpl)
@@ -537,25 +532,41 @@ class CodeGenerator(object):
                 if tArgList:
                     genericArgsOut = progSpec.getGenericArgsFromTypeSpec(tSpecOut)
                     fromImplIn['genericArgs'] = genericArgsOut
-                    for implName in fromImplIn:
-                        if implName == 'atTypeSpec' or implName=='atKeyTypeSpec':
-                            implSpec  = fromImplIn[implName]
-                            implTypeKW = progSpec.fieldTypeKeyword(implSpec)
-                            if implTypeKW in genericArgsOut:
-                                implSpec['owner']     = genericArgsOut[implTypeKW]['tArgOwner']
-                                implSpec['fieldType'] = genericArgsOut[implTypeKW]['tArgType']
                     fromImplOut = fromImplIn
                 else:
-                    fromImplOut = self.makeFromImpl(fTypeKW, fromImplIn['implements'])
+                    [fromImplOut, implTArgs] = self.makeFromImpl(fTypeKW, fromImplIn['implements'])
                     if fromImplOut['typeArgList']==None: fromImplOut['typeArgList'] = tArgList
                 tSpecOut['fromImplemented'] = fromImplOut
             else:
-                fromImplOut = self.makeFromImpl(fTypeKW, '')
+                [fromImplOut, implTArgs] = self.makeFromImpl(fTypeKW, '')
                 tSpecOut['fromImplemented'] = fromImplOut
             tSpecOut['generic'] = True
         else: #renderGenerics=='False'
             tSpecOut = self.getGenericFieldsTypeSpec(genericArgs, tSpec)
         return tSpecOut
+
+    def getContainerValueOwnerAndType(self, tSpec):
+        fTypeKW    = progSpec.fieldTypeKeyword(tSpec)
+        keyOwner   = progSpec.getContainerFirstElementOwner(tSpec)
+        keyTypeKW  = progSpec.getContainerFirstElementType(tSpec)
+        reqTagList = progSpec.getReqTagList(tSpec)
+        fromImpl   = progSpec.getFromImpl(tSpec)
+        if fromImpl:
+            if 'typeArgList' in fromImpl: tArgList = fromImpl['typeArgList']
+            else: tArgList = None; print("WARNING: no tARGs found in progSpec.getCtnrSecond")
+            fDefAt  = self.CheckObjectVars(fTypeKW, "at", "")
+            if tArgList and fDefAt:
+                atOwner  = progSpec.getOwner(fDefAt)
+                atTypeKW = progSpec.fieldTypeKeyword(fDefAt)
+                if atTypeKW in tArgList:
+                    idxAt   = tArgList.index(atTypeKW)
+                    valType = reqTagList[idxAt]
+                    return[valType['tArgOwner'], valType['tArgType']]
+                else: return[atOwner, atTypeKW]
+        if reqTagList:
+            keyOwner    = reqTagList[0]['tArgOwner']
+            keyTypeKW   = reqTagList[0]['tArgType']
+        return[keyOwner, keyTypeKW]
 
     ########################################################################
     def convertType(self, tSpec, varMode, actionOrField, genericArgs):
@@ -662,7 +673,7 @@ class CodeGenerator(object):
                     [valOwner, valFType] = progSpec.getContainerKeyOwnerAndType(tSpecIn)
                     tSpecOut={'owner':valOwner, 'fieldType': valFType}
                 elif name=='val':
-                    [valOwner, valFType] = progSpec.getContainerValueOwnerAndType(tSpecIn)
+                    [valOwner, valFType] = self.getContainerValueOwnerAndType(tSpecIn)
                     tSpecOut={'owner':valOwner, 'fieldType': valFType}
                 else:
                     tSpecOut = copy.copy(tSpecIn)
@@ -670,7 +681,7 @@ class CodeGenerator(object):
                 tSpecOut['codeConverter'] = codeCvrtText
         elif isCtnr and name[0]=='[':
             idxTSpec = self.xlator.getIdxType(tSpecIn)
-            [valOwner, valFType]        = progSpec.getContainerValueOwnerAndType(tSpecIn)
+            [valOwner, valFType] = self.getContainerValueOwnerAndType(tSpecIn)
             tSpecOut = {'owner':valOwner, 'fieldType': valFType}
             [S2, idxTSpec] = self.codeExpr(name[1], None, None, LorRorP_Val, genericArgs)
             S += self.xlator.codeArrayIndex(S2, tSpecIn, LorR_Val, previousSegName, idxTSpec)

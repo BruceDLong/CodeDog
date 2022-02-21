@@ -887,30 +887,6 @@ def getFromImpl(tSpec):
     if 'fromImplemented' in tSpec: return tSpec['fromImplemented']
     return None
 
-def getContainerValueOwnerAndType(tSpec):
-    owner      = getContainerFirstElementOwner(tSpec)
-    fTypeKW    = fieldTypeKeyword(tSpec)
-    if not isNewContainerTempFunc(tSpec): return[owner, fTypeKW]
-    reqTagList = getReqTagList(tSpec)
-    fromImpl   = getFromImpl(tSpec)
-    if fromImpl:
-        if 'typeArgList' in fromImpl: tArgList = fromImpl['typeArgList']
-        else: tArgList = None; print("WARNING: no tARGs found in progSpec.getCtnrSecond")
-        if 'atTypeSpec' in fromImpl: fDefAt = fromImpl['atTypeSpec']
-        else: fDefAt = None; print("WARNING: no atTSpec found in progSpec.getCtnrSecond")
-        if tArgList and fDefAt:
-            atOwner  = getOwner(fDefAt)
-            atTypeKW = fieldTypeKeyword(fDefAt)
-            if atTypeKW in tArgList:
-                idxAt   = tArgList.index(atTypeKW)
-                valType = reqTagList[idxAt]
-                return[valType['tArgOwner'], valType['tArgType']]
-            else: return[atOwner, atTypeKW]
-    if reqTagList:
-        owner     = reqTagList[0]['tArgOwner']
-        fTypeKW   = reqTagList[0]['tArgType']
-    return[owner, fTypeKW]
-
 def fieldTypeKeyword(fType):
     # fType can be fType or typeSpec
     if fType==None:                         return None
