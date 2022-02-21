@@ -360,6 +360,12 @@ class CodeGenerator(object):
                 cdErr("Reserved word '"+identifier+"' cannot be an identifier in "+ currentObjName)
 
     #### GENERIC TYPE HANDLING #############################################
+    def getDataStructItrTSpec(self, datastructID):
+        fieldDefFind = self.CheckObjectVars(datastructID, "find", "")
+        if fieldDefFind==0: fieldDefFind = None
+        elif 'typeSpec' in fieldDefFind: fieldDefFind = fieldDefFind['typeSpec']
+        return fieldDefFind
+
     def makeFromImpl(self, className, implName):
         retVal   = {}
         retVal['implements'] = implName
@@ -370,20 +376,6 @@ class CodeGenerator(object):
             tSpecAt = progSpec.getTypeSpec(fieldDefAt)
             atTypeSpec = {"owner":progSpec.getOwner(tSpecAt), "fieldType":progSpec.fieldTypeKeyword(tSpecAt)}
             retVal["atTypeSpec"] = atTypeSpec
-            # Now try to get the 'key' typeSpec
-            if 'argList' in tSpecAt and tSpecAt['argList']!=None:
-                firstParametersSpec = tSpecAt['argList'][0]
-                firstParametersTypeSpec = progSpec.getTypeSpec(firstParametersSpec)
-                keyTypeSpec = {"owner":progSpec.getOwner(firstParametersTypeSpec), "fieldType":progSpec.fieldTypeKeyword(firstParametersTypeSpec)}
-                retVal["atKeyTypeSpec"] = keyTypeSpec
-        fieldDefFind = self.CheckObjectVars(className, "find", "")
-        if fieldDefFind:
-            itrTypeSpec = {"owner":progSpec.getOwner(fieldDefFind), "fieldType":progSpec.fieldTypeKeyword(fieldDefFind['typeSpec'])}
-            retVal['itrTypeSpec'] = itrTypeSpec
-        fieldDefIdx = self.CheckObjectVars(className, "__index", "")
-        if fieldDefIdx:
-            getIdxTSpec = {"owner":progSpec.getOwner(fieldDefIdx), "fieldType":progSpec.fieldTypeKeyword(fieldDefIdx['typeSpec'])}
-            retVal['getIdxTSpec'] = getIdxTSpec
         return retVal
 
     def chooseStructImplementationToUse(self, tSpec,className,fieldName):
@@ -552,12 +544,6 @@ class CodeGenerator(object):
                             if implTypeKW in genericArgsOut:
                                 implSpec['owner']     = genericArgsOut[implTypeKW]['tArgOwner']
                                 implSpec['fieldType'] = genericArgsOut[implTypeKW]['tArgType']
-                        elif implName=='itrTypeSpec':
-                            implSpec  = fromImplIn[implName]
-                            if 'fromGeneric' not in implSpec:
-                                implTypeKW = progSpec.fieldTypeKeyword(implSpec)
-                                implSpec['fieldType'] = self.generateGenericStructName(implTypeKW, reqTagList, genericArgs)
-                                implSpec['fromGeneric'] = True
                     fromImplOut = fromImplIn
                 else:
                     fromImplOut = self.makeFromImpl(fTypeKW, fromImplIn['implements'])

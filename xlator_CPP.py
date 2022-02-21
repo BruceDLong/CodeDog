@@ -113,7 +113,7 @@ class Xlator_CPP(Xlator):
         firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        itrTSpec     = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
+        itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName + "Itr"

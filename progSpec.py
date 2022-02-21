@@ -887,27 +887,6 @@ def getFromImpl(tSpec):
     if 'fromImplemented' in tSpec: return tSpec['fromImplemented']
     return None
 
-def getContainerKeyOwnerAndType(tSpec):
-    owner     = getContainerFirstElementOwner(tSpec)
-    fType = fieldTypeKeyword(tSpec)
-    if not isNewContainerTempFunc(tSpec): return[owner, fType]
-    reqTagList = getReqTagList(tSpec)
-    fromImpl   = getFromImpl(tSpec)
-    if fromImpl:
-        if 'typeArgList' in fromImpl:
-            typeArgList = fromImpl['typeArgList']
-        if 'atKeyTypeSpec' in fromImpl:
-            fieldDefAt = fromImpl['atKeyTypeSpec']
-        if typeArgList and fieldDefAt:
-            atOwner  = getOwner(fieldDefAt)
-            atTypeKW = fieldTypeKeyword(fieldDefAt)
-            if atTypeKW in typeArgList:
-                idxAt = typeArgList.index(atTypeKW)
-                valType = reqTagList[idxAt]
-                return[valType['tArgOwner'], valType['tArgType']]
-            else: return[atOwner, atTypeKW]
-    return[owner, fType]
-
 def getContainerValueOwnerAndType(tSpec):
     owner      = getContainerFirstElementOwner(tSpec)
     fTypeKW    = fieldTypeKeyword(tSpec)
@@ -991,12 +970,6 @@ def getCodeConverterByFieldID(classes, className, fieldName, prevNameSeg, connec
                 return codeConverter
             return prevNameSeg+connector+fieldName+"()"
     return prevNameSeg+connector+fieldName+"()"
-
-def getItrTypeOfDataStruct(containerType):
-    fromImpl = getFromImpl(containerType)
-    if fromImpl and 'itrTypeSpec' in fromImpl:
-        return fromImpl['itrTypeSpec']
-    return None
 
 def getTypeSpec(fieldDef):
     if 'typeSpec' in fieldDef: return fieldDef['typeSpec']

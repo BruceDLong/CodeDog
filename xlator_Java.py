@@ -123,13 +123,14 @@ class Xlator_Java(Xlator):
                 valueFieldType = progSpec.getTypeFromTemplateArg(reqTagList[1])
             keyVarSpec = {'owner':ctnrTSpec['owner'], 'fieldType':firstType}
             loopCntrName = repName+'_key'
-            itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec))
+            itrTSpec  = self.codeGen.getDataStructItrTSpec(datastructID)
+            itrTypeKW = progSpec.fieldTypeKeyword(itrTSpec)
             idxTypeKW = self.adjustBaseTypes(idxTypeKW, True)
             valueFieldType = self.adjustBaseTypes(valueFieldType, True)
             localVarsAlloc.append([loopCntrName, keyVarSpec])  # Tracking local vars for scope
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
             if '__RB' in datastructID:
-                actionText += (indent + 'for('+itrType+' '+repName+'Entry = '+ctnrName+'.lower_bound('+StartKey+'); '+repName+'Entry.node !='+ctnrName+'.upper_bound('+EndKey+').node; '+repName+'Entry.__inc()){\n' +
+                actionText += (indent + 'for('+itrTypeKW+' '+repName+'Entry = '+ctnrName+'.lower_bound('+StartKey+'); '+repName+'Entry.node !='+ctnrName+'.upper_bound('+EndKey+').node; '+repName+'Entry.__inc()){\n' +
                            indent + '    '+valueFieldType+' '+ repName + ' = ' + repName+'Entry.node.value;\n' +
                            indent + '    ' +idxTypeKW +' '+ repName+'_rep = ' + repName+'Entry.node.key;\n'  )
             else:
@@ -152,7 +153,7 @@ class Xlator_Java(Xlator):
         firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        itrTSpec     = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
+        itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName
         containerCat = self.getContaineCategory(ctnrTSpec)
@@ -243,9 +244,11 @@ class Xlator_Java(Xlator):
         elif owner=='their':    langType = langType
         elif owner=='itr':
             reqTagList  = progSpec.getReqTagList(tSpec)
-            itrType     = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(tSpec))
+            fTypeKW     = progSpec.fieldTypeKeyword(tSpec)
+            itrTSpec    = self.codeGen.getDataStructItrTSpec(fTypeKW)
+            itrTypeKW   = progSpec.fieldTypeKeyword(itrTSpec)
             genericArgs = progSpec.getGenericArgsFromTypeSpec(tSpec)
-            langType    = self.codeGen.generateGenericStructName(itrType, reqTagList, genericArgs)
+            langType    = self.codeGen.generateGenericStructName(itrTypeKW, reqTagList, genericArgs)
         elif owner=='const':    langType = "final "+langType
         elif owner=='we':       langType = 'static '+langType
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")

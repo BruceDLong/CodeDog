@@ -86,8 +86,8 @@ class Xlator_Swift(Xlator):
         firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        itrTSpec     = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
-        itrType = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(ctnrTSpec)) + ' '
+        itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
+        itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec) + ' '
         itrName      = repName + "Itr"
         containerCat = self.getContaineCategory(ctnrTSpec)
         if containerCat=="Map" or containerCat=="Multimap":
@@ -101,10 +101,10 @@ class Xlator_Swift(Xlator):
             firstTSpec['codeConverter'] = (repName+'.value')
             localVarsAlloc.append([repName+'_key', keyVarSpec])  # Tracking local vars for scope
             localVarsAlloc.append([repName, firstTSpec]) # Tracking local vars for scope
-            itrDeclStr  = indent + 'var '+itrName+":"+itrType+' = '+ctnrName+'.lower_bound('+StartKey+')\n'
-            localVarsAlloc.append([itrName, itrType])
+            itrDeclStr  = indent + 'var '+itrName+":"+itrTypeKW+' = '+ctnrName+'.lower_bound('+StartKey+')\n'
+            localVarsAlloc.append([itrName, itrTypeKW])
             endItrName       = repName + "EndItr"
-            endItrStr   = indent + 'var ' + endItrName + ':'+itrType+' = '+ctnrName+'.upper_bound('+EndKey+')\n'
+            endItrStr   = indent + 'var ' + endItrName + ':'+itrTypeKW+' = '+ctnrName+'.upper_bound('+EndKey+')\n'
             itrIncStr   = indent + "    " + itrName + " = " + itrName + ".__inc()\n"
 
             actionText += itrDeclStr + endItrStr
@@ -127,8 +127,8 @@ class Xlator_Swift(Xlator):
         firstType    = progSpec.getContainerFirstElementType(ctnrTSpec)
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        itrTSpec     = progSpec.getItrTypeOfDataStruct(ctnrTSpec)
-        itrType    = progSpec.fieldTypeKeyword(itrTSpec)
+        itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
+        itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName + "Itr"
         containerCat = self.getContaineCategory(ctnrTSpec)
@@ -142,11 +142,11 @@ class Xlator_Swift(Xlator):
                 firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
             keyVarSpec  = {'owner':firstOwner, 'fieldType':firstType, 'codeConverter':(repName+'!.key')}
             firstTSpec['codeConverter'] = (repName+'!.value')
-            itrType    = self.codeGen.convertType(itrTSpec, 'var', 'action', genericArgs)+' '
-            itrDeclStr  = indent + 'var '+itrName+":"+itrType+' = '+ctnrName+'.front()\n'
-            localVarsAlloc.append([itrName, itrType])
+            itrTypeKW    = self.codeGen.convertType(itrTSpec, 'var', 'action', genericArgs)+' '
+            itrDeclStr  = indent + 'var '+itrName+":"+itrTypeKW+' = '+ctnrName+'.front()\n'
+            localVarsAlloc.append([itrName, itrTypeKW])
             endItrName       = repName + "EndItr"
-            endItrStr   = indent + 'var ' + endItrName + ':'+itrType+' = '+ctnrName+'.end()\n'
+            endItrStr   = indent + 'var ' + endItrName + ':'+itrTypeKW+' = '+ctnrName+'.end()\n'
             itrIncStr   = indent + "    " + itrName + " = " + itrName + ".__inc()\n"
             actionText += itrDeclStr + endItrStr
             actionText += (indent + 'while ' + itrName + '.node !== '+endItrName+'.node {\n')
@@ -213,9 +213,10 @@ class Xlator_Swift(Xlator):
         elif owner=='their':    langType = langType
         elif owner=='itr':
             reqTagList  = progSpec.getReqTagList(tSpec)
-            itrType     = progSpec.fieldTypeKeyword(progSpec.getItrTypeOfDataStruct(tSpec))
+            itrTSpec    = self.codeGen.getDataStructItrTSpec(fTypeKW)
+            itrTypeKW   = progSpec.fieldTypeKeyword(itrTSpec)
             genericArgs = progSpec.getGenericArgsFromTypeSpec(tSpec)
-            langType    = self.codeGen.generateGenericStructName(itrType, reqTagList, genericArgs)
+            langType    = self.codeGen.generateGenericStructName(itrTypeKW, reqTagList, genericArgs)
         elif owner=='const':    langType = langType
         elif owner=='we':       langType += 'public static'
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
