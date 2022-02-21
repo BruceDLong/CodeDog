@@ -748,14 +748,12 @@ def getGenericArgsFromTypeSpec(tSpec):
     genericArgs = {}
     reqTagList = getReqTagList(tSpec)
     if reqTagList:
-        fromImpl = getFromImpl(tSpec)
-        if fromImpl:
-            tArgList = fromImpl['typeArgList']
-            if tArgList:
-                count = 0
-                for reqTag in reqTagList:
-                    genericArgs[tArgList[count]]=reqTag
-                    count += 1
+        implTArgs = getImplementationTypeArgs(tSpec)
+        if implTArgs:
+            count = 0
+            for reqTag in reqTagList:
+                genericArgs[implTArgs[count]]=reqTag
+                count += 1
         return genericArgs
     return None
 
@@ -828,7 +826,6 @@ def getContainerType_Owner(tSpec):
 
 def isContainerTemplateTempFunc(tSpec):
     fTypeKW  = fieldTypeKeyword(tSpec)
-    fromImpl = getFromImpl(tSpec)
     if fTypeKW=='CPP_Deque' or fTypeKW=='Java_ArrayList' or fTypeKW=='Swift_Array':
         return True
     if fTypeKW=='CPP_Map' or fTypeKW=='Java_Map' or fTypeKW=='Swift_Map':
@@ -885,6 +882,10 @@ def getNewContainerFirstElementOwnerTempFunc(tSpec):
 
 def getFromImpl(tSpec):
     if 'fromImplemented' in tSpec: return tSpec['fromImplemented']
+    return None
+
+def getImplementationTypeArgs(tSpec):
+    if 'implTypeArgs' in tSpec: return tSpec['implTypeArgs']
     return None
 
 def fieldTypeKeyword(fType):

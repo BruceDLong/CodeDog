@@ -31,8 +31,8 @@ class Xlator_Swift(Xlator):
 
     ###################################################### CONTAINERS
     def getContaineCategory(self, ctnrTSpec):
-        fromImpl=progSpec.getFromImpl(ctnrTSpec)
-        if fromImpl and 'implements' in fromImpl: return fromImpl['implements']
+        fromImpl = progSpec.getFromImpl(ctnrTSpec)
+        if fromImpl: return fromImpl
         fTypeKW = progSpec.fieldTypeKeyword(ctnrTSpec)
         print("***** WARNING: in getContaineCategory()",fTypeKW)
         if fTypeKW=='string':     return 'string'
