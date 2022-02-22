@@ -403,13 +403,13 @@ class CodeGenerator(object):
                 return(hiScoreName,ctnrCat,implTArgs)
         return(None, None, None)
 
-    def applyStructImplemetation(self, tSpec,currentObjName,fieldName):
-        self.checkForReservedWord(fieldName, currentObjName)
-        [structToImplement, fromImpl, implTArgs] = self.chooseStructImplementationToUse(tSpec,currentObjName,fieldName)
+    def applyStructImplemetation(self, tSpec,className,fieldName):
+        self.checkForReservedWord(fieldName, className)
+        [structToImplement, fromImpl, implTArgs] = self.chooseStructImplementationToUse(tSpec,className,fieldName)
         if(structToImplement != None):
             tSpec['fieldType'][0] = structToImplement
-            if fromImpl != None: tSpec['fromImplemented'] = fromImpl
-            if implTArgs != None: tSpec['implTypeArgs'] = implTArgs
+            if fromImpl != None:tSpec['fromImplemented'] = fromImpl
+            if implTArgs != None:tSpec['implTypeArgs'] = implTArgs
         return tSpec
 
     def copyFieldType(self, fType):

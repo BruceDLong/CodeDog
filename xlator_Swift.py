@@ -30,18 +30,6 @@ class Xlator_Swift(Xlator):
     nullValue             = "nil"
 
     ###################################################### CONTAINERS
-    def getContaineCategory(self, ctnrTSpec):
-        fromImpl = progSpec.getFromImpl(ctnrTSpec)
-        if fromImpl: return fromImpl
-        fTypeKW = progSpec.fieldTypeKeyword(ctnrTSpec)
-        print("***** WARNING: in getContaineCategory()",fTypeKW)
-        if fTypeKW=='string':     return 'string'
-        if fTypeKW=='List':       return 'List'        # TODO: un-hardcode this
-        if fTypeKW=='TreeMap':    return 'Map'         # TODO: un-hardcode this
-        if fTypeKW=='PovList':    return 'PovList'     # TODO: un-hardcode this
-        print("WARNING: Container Category not recorded for:",fTypeKW)
-        return None
-
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
         fTypeKW = progSpec.fieldTypeKeyword(containerType)
         if (fTypeKW == 'string'):
@@ -89,7 +77,7 @@ class Xlator_Swift(Xlator):
         itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec) + ' '
         itrName      = repName + "Itr"
-        containerCat = self.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(ctnrTSpec)
         if containerCat=="Map" or containerCat=="Multimap":
             valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
             if(reqTagList != None):
@@ -131,7 +119,7 @@ class Xlator_Swift(Xlator):
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName + "Itr"
-        containerCat = self.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
         if containerCat=='PovList': cdErr("TODO: handle PovList")
@@ -329,7 +317,7 @@ class Xlator_Swift(Xlator):
                     if owner=='itr':
                         # OLD: ctnrCat = progSpec.getDatastructID(itemTypeSpec)
                         cdErr("####### TODO: needs to work with new container type #######")
-                        ctnrCat = self.getContaineCategory(itemTypeSpec) # NEW
+                        ctnrCat = progSpec.getContaineCategory(itemTypeSpec) # NEW
                         if ctnrCat =='map' or ctnrCat == 'multimap':
                             return ['', '', False]
                     # OPTIONALS

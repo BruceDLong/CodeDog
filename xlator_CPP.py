@@ -30,20 +30,6 @@ class Xlator_CPP(Xlator):
     nullValue             = "nullptr"
 
     ###################################################### CONTAINERS
-    def getContaineCategory(self, ctnrTSpec):
-        fromImpl = progSpec.getFromImpl(ctnrTSpec)
-        if fromImpl: return fromImpl
-        fTypeKW = progSpec.fieldTypeKeyword(ctnrTSpec)
-        print("********************* WARNING: in getContaineCategory()",fTypeKW)
-        if fTypeKW=='string':     return 'string'
-        if fTypeKW=='List':       return 'List'        # TODO: un-hardcode this
-        if fTypeKW=='CPP_Map':    return 'Map'         # TODO: un-hardcode this
-        if fTypeKW=='PovList':    return 'PovList'     # TODO: un-hardcode this
-        if fTypeKW=='CPP_Deque':  return 'List'        # TODO: un-hardcode this
-        if 'Multimap' in fTypeKW: return 'Multimap'    # TODO: un-hardcode this
-        print("WARNING: Container Category not recorded for:",fTypeKW)
-        return None
-
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
         if 'owner' in idxTypeSpec and (idxTypeSpec['owner']=='their' or idxTypeSpec['owner']=='our' or idxTypeSpec['owner']=='itr'):
             idx = "*"+idx
@@ -82,7 +68,7 @@ class Xlator_CPP(Xlator):
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         itrName      = repName + "Itr"
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        containerCat = self.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(ctnrTSpec)
         if progSpec.ownerIsPointer(ctnrOwner): connector="->"
         else: connector = "."
         if containerCat=="Map" or containerCat=="Multimap":
@@ -116,7 +102,7 @@ class Xlator_CPP(Xlator):
         itrTypeKW    = progSpec.fieldTypeKeyword(itrTSpec)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName + "Itr"
-        containerCat = self.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(ctnrOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
         if containerCat=='PovList':
@@ -281,7 +267,7 @@ class Xlator_CPP(Xlator):
                     if owner=='itr':
                         containerType = progSpec.getDatastructID(itemTypeSpec)
                         cdErr("####### TODO: needs to work with new container type #######")
-                        ctnrCat = self.getContaineCategory(itemTypeSpec)
+                        ctnrCat = progSpec.getContaineCategory(itemTypeSpec)
                         if containerType =='map' or containerType == 'multimap':
                             return ['', '->second', False]
                     return ['(*', ')', False]

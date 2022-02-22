@@ -25,6 +25,7 @@ testDefinitions = {
      'class/boolDecl':      ['struct testClass{ me void: runTest()<-{me bool: myBool <- true     \n if(myBool){print("p")}}}','PGBR:p'],
      'class/constDecl':     ['struct testClass{ me void: runTest()<-{const int: myInt <- 2       \n print(myInt)}}',    'PGBR:2'],
      'class/charDecl':      ['struct testClass{ me void: runTest()<-{me char: myChar<- "c"       \n print(myChar)}}',   'PGBR:c'],
+     'class/rangeDecl':     ['struct testClass{ me void: runTest()<-{me 2..10: age <- 8          \n print(age)}}',      'PGBR:8'],
      'class/baseDecls':     ['''
 struct testClass{
     me void: runTest()<-{
@@ -48,8 +49,10 @@ struct testClass{
         print(myConst)
         me char: myChar <-"c"
         print(myChar)
+        me 2..10: age <- 8
+        print(age)
     }
-}''', 'PGBR:2one3412.3467p8c',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
+}''', 'PGBR:2one3412.3467p8c8',['class/simple', 'class/intDecl', 'class/strDecl', 'class/int32Decl', 'class/int64Decl', 'class/doubleDecl', 'class/uint32Decl', 'class/uint64Decl', 'class/boolDecl', 'class/constDecl', 'class/charDecl']],
 #####################################################################################################
 #############################################################
      #'class/strListDecl':  ['struct testClass{me List<me string>: myStringList}', 'PGB:'],

@@ -30,21 +30,7 @@ class Xlator_Java(Xlator):
     nullValue             = "null"
 
     ###################################################### CONTAINERS
-    def getContaineCategory(self, ctnrTSpec):
-        fromImpl = progSpec.getFromImpl(ctnrTSpec)
-        if fromImpl: return fromImpl
-        fTypeKW = progSpec.fieldTypeKeyword(ctnrTSpec)
-        print("***** WARNING: in getContaineCategory()",fTypeKW)
-        if fTypeKW=='string':     return 'string'
-        if fTypeKW=='List':       return 'List'        # TODO: un-hardcode this
-        if fTypeKW=='TreeMap':    return 'Map'         # TODO: un-hardcode this
-        if fTypeKW=='PovList':    return 'PovList'     # TODO: un-hardcode this
-        if fTypeKW=='Java_ArrayList': return 'List'    # TODO: un-hardcode this
-        print("WARNING: Container Category not recorded for:",fTypeKW)
-        return None
-
     def codeArrayIndex(self, idx, containerType, LorR_Val, previousSegName, idxTypeSpec):
-        containerCat = self.getContaineCategory(containerType)
         ctnrTypeKW   = progSpec.fieldTypeKeyword(containerType)
         idxTypeKW    = progSpec.fieldTypeKeyword(idxTypeSpec)
         if LorR_Val=='RVAL':
@@ -67,6 +53,7 @@ class Xlator_Java(Xlator):
                     else: S= '.at(' + idx +')'
                 else: S= '[' + idx +']'
         else:
+            containerCat = progSpec.getContaineCategory(containerType)
             if containerCat=='Map' or containerCat=='List':
                 fieldDefIdx = self.codeGen.CheckObjectVars(ctnrTypeKW, "__index", "")
                 if fieldDefIdx and 'typeSpec' in fieldDefIdx:
@@ -113,7 +100,7 @@ class Xlator_Java(Xlator):
         firstType    = progSpec.getNewContainerFirstElementTypeTempFunc(ctnrTSpec)
         firstTSpec   = {'owner':firstOwner, 'fieldType':firstType}
         reqTagList   = progSpec.getReqTagList(ctnrTSpec)
-        containerCat = self.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(ctnrTSpec)
         if containerCat=="Map" or containerCat=="Multimap":
             valueFieldType = progSpec.fieldTypeKeyword(ctnrTSpec)
             if(reqTagList != None):
@@ -156,7 +143,7 @@ class Xlator_Java(Xlator):
         itrTSpec     = self.codeGen.getDataStructItrTSpec(datastructID)
         itrOwner     = progSpec.getOwner(itrTSpec)
         itrName      = repName
-        containerCat = self.getContaineCategory(ctnrTSpec)
+        containerCat = progSpec.getContaineCategory(ctnrTSpec)
         [LDeclP, RDeclP, LDeclA, RDeclA] = self.ChoosePtrDecorationForSimpleCase(firstOwner)
         [LNodeP, RNodeP, LNodeA, RNodeA] = self.ChoosePtrDecorationForSimpleCase(itrOwner)
         if containerCat=='PovList': cdErr("PovList: "+repName+"   "+ctnrName) # this should be called PovList

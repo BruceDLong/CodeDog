@@ -503,7 +503,7 @@ def updateCvt(classes, fieldListToUpdate, fieldsToConvert):
         baseType = TypeSpecsMinimumBaseType(classes, tSpec)
         G        = F.copy()
         if baseType!=None:
-            G['typeSpec']=tSpec.copy()
+            G['typeSpec']=tSpec
             G['typeSpec']['fieldType'] = baseType
         insertOrReplaceField(fieldListToUpdate, G)
 
@@ -816,6 +816,13 @@ def getDatastructID(tSpec):
         return(tSpec['arraySpec']['datastructID'])
     else:   #is a parseResult
         return(tSpec['arraySpec']['datastructID'][0])
+
+def getContaineCategory(ctnrTSpec):
+    fromImpl = getFromImpl(ctnrTSpec)
+    if fromImpl: return fromImpl
+    fTypeKW = fieldTypeKeyword(ctnrTSpec)
+    if fTypeKW=='string':     return 'string'
+    cdErr("Unknown type in progSpec.getContaineCategory() "+fTypeKW)
 
 def getContainerType_Owner(tSpec):
     isOldContainerTempFuncErr(tSpec,"progSpec.getContainerType_Owner()")
