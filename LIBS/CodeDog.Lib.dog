@@ -4,7 +4,7 @@ requirements = [
     [require, CodeDog_implementation]
 ]
 
-featuresNeeded = [List, Logger, Multimap]
+featuresNeeded = [List, Map, Logger, Multimap]
 
 struct GLOBAL{
     const double: pi <- 3.1415926535897
