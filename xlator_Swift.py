@@ -130,7 +130,7 @@ class Xlator_Swift(Xlator):
                 firstTSpec['fieldType'] = progSpec.getTypeFromTemplateArg(reqTagList[1])
             keyVarSpec  = {'owner':firstOwner, 'fieldType':firstType, 'codeConverter':(repName+'!.key')}
             firstTSpec['codeConverter'] = (repName+'!.value')
-            itrTypeKW    = self.codeGen.convertType(itrTSpec, 'var', 'action', genericArgs)+' '
+            itrTypeKW    = self.codeGen.convertType(itrTSpec, 'var', genericArgs)+' '
             itrDeclStr  = indent + 'var '+itrName+":"+itrTypeKW+' = '+ctnrName+'.front()\n'
             localVarsAlloc.append([itrName, itrTypeKW])
             endItrName       = repName + "EndItr"
@@ -199,12 +199,7 @@ class Xlator_Swift(Xlator):
         elif owner=='my':       langType = langType
         elif owner=='our':      langType = langType
         elif owner=='their':    langType = langType
-        elif owner=='itr':
-            reqTagList  = progSpec.getReqTagList(tSpec)
-            itrTSpec    = self.codeGen.getDataStructItrTSpec(fTypeKW)
-            itrTypeKW   = progSpec.fieldTypeKeyword(itrTSpec)
-            genericArgs = progSpec.getGenericArgsFromTypeSpec(tSpec)
-            langType    = self.codeGen.generateGenericStructName(itrTypeKW, reqTagList, genericArgs)
+        elif owner=='itr':      langType = langType
         elif owner=='const':    langType = langType
         elif owner=='we':       langType += 'public static'
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
@@ -215,12 +210,7 @@ class Xlator_Swift(Xlator):
         ownerOut = progSpec.getOwner(tSpec)
         baseType = progSpec.isWrappedType(classes, fType)
         if baseType!=None:  # TODO: When this is all tested and stable, un-hardcode and optimize this!!!!!
-            if 'ownerMe' in baseType:
-                if ownerOut=='their':
-                    if varMode=='arg': ownerOut='their'
-                    else: ownerOut = 'their'
-                elif ownerOut=='me':
-                    ownerOut = 'their'
+            if 'ownerMe' in baseType:ownerOut = 'their'
             else:
                 if varMode=='var':ownerOut= progSpec.getOwner(baseType)  # TODO: remove this condition: accomodates old list type generated in stringStructs
                 else: ownerOut = ownerIn
@@ -279,7 +269,7 @@ class Xlator_Swift(Xlator):
     def LanguageSpecificDecorations(self, S, tSpec, owner, LorRorP_Val):
         if tSpec!= 0 and progSpec.typeIsPointer(tSpec) and tSpec['owner']!='itr' and not 'codeConverter' in tSpec:
             if LorRorP_Val == "PARAM" and S=="nil":
-                cvrtType = self.codeGen.convertType(tSpec, 'arg', '', genericArgs)
+                cvrtType = self.codeGen.convertType(tSpec, 'arg', genericArgs)
                 S = 'Optional<'+cvrtType+'>.none'
         return S
 
@@ -391,7 +381,7 @@ class Xlator_Swift(Xlator):
 
     def codeXlatorAllocater(self, tSpec, genericArgs):
         owner = progSpec.getOwner(tSpec)
-        cvrtType  = self.codeGen.convertType(tSpec, 'alloc', '', genericArgs)
+        cvrtType  = self.codeGen.convertType(tSpec, 'alloc', genericArgs)
         if(owner=='our'):     S=cvrtType
         elif(owner=='my'):    S=cvrtType
         elif(owner=='their'): S=cvrtType
@@ -765,9 +755,9 @@ class Xlator_Swift(Xlator):
         if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
             del fieldDef['paramList'][-1]
             useCtor = True
-        cvrtType = self.codeGen.convertType(lhsTypeSpec, 'var', actionOrField, genericArgs)
+        cvrtType = self.codeGen.convertType(lhsTypeSpec, 'var', genericArgs)
         localVarsAlloc.append([varName, lhsTypeSpec])  # Tracking local vars for scope
-        allocFieldType = self.codeGen.convertType(lhsTypeSpec, 'alloc', '', genericArgs)
+        allocFieldType = self.codeGen.convertType(lhsTypeSpec, 'alloc', genericArgs)
         if(fieldDef['value']):
             [RHS, rhsTypeSpec]=self.codeGen.codeExpr(fieldDef['value'][0], None, None, 'RVAL', genericArgs)
             [leftMod, rightMod]=self.chooseVirtualRValOwner(lhsTypeSpec, rhsTypeSpec)

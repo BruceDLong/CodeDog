@@ -346,7 +346,7 @@ class Xlator_CPP(Xlator):
     def codeXlatorAllocater(self, tSpec, genericArgs):
         S     = ''
         owner = progSpec.getOwner(tSpec)
-        cvrtType  = self.codeGen.convertType(tSpec, 'alloc', '', genericArgs)
+        cvrtType  = self.codeGen.convertType(tSpec, 'alloc', genericArgs)
         if(owner=='our'): S="make_shared<"+cvrtType+">"
         elif(owner=='my'): S="make_unique<"+cvrtType+">"
         elif(owner=='their'): S="new "+cvrtType
@@ -743,7 +743,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         if paramList and fieldDef['paramList'][-1] == "^&useCtor//8":
             del fieldDef['paramList'][-1]
             useCtor = True
-        cvrtType = self.codeGen.convertType(LTSpec, 'var', actionOrField, genericArgs)
+        cvrtType = self.codeGen.convertType(LTSpec, 'var', genericArgs)
         localVarsAlloc.append([varName, LTSpec])  # Tracking local vars for scope
         if(fieldDef['value']):
             [RHS, RTSpec]=self.codeGen.codeExpr(fieldDef['value'][0], LTSpec, None, 'RVAL', genericArgs)

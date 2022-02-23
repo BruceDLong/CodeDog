@@ -555,14 +555,17 @@ class CodeGenerator(object):
         return[keyOwner, keyTypeKW]
 
     ########################################################################
-    def convertType(self, tSpec, varMode, actionOrField, genericArgs):
+    def convertType(self, tSpec, varMode, genericArgs):
         # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-        progSpec.isOldContainerTempFuncErr(tSpec, "convertType1")
-        tSpec  = self.getGenericFieldsTypeSpec(genericArgs, tSpec)
-        ownerIn   = progSpec.getOwner(tSpec)
-        fTypeKW   = progSpec.fieldTypeKeyword(tSpec)
+        progSpec.isOldContainerTempFuncErr(tSpec, "convertType")
+        tSpec    = self.getGenericFieldsTypeSpec(genericArgs, tSpec)
+        fTypeKW  = progSpec.fieldTypeKeyword(tSpec)
+        ownerIn  = progSpec.getOwner(tSpec)
+        ownerOut = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
-        ownerOut  = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
+        if ownerOut=='itr':
+            itrTSpec    = self.getDataStructItrTSpec(fTypeKW)
+            fTypeKW = progSpec.fieldTypeKeyword(itrTSpec)
         reqTagList = progSpec.getReqTagList(tSpec)
         if reqTagList and self.xlator.renderGenerics=='True':
             if not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
@@ -1309,7 +1312,7 @@ class CodeGenerator(object):
             LHS   = action['LHS']
             RHS   =  action['RHS']
             tSpec = self.fetchItemsTypeSpec(LHS, genericArgs)
-            LCvrtType = self.convertType(tSpec[0], 'var', 'action', genericArgs)
+            LCvrtType = self.convertType(tSpec[0], 'var', genericArgs)
             tSpec = self.fetchItemsTypeSpec(RHS, genericArgs)
             LHS   = LHS[0]
             RHS   = RHS[0]
@@ -1432,7 +1435,7 @@ class CodeGenerator(object):
             fType     = progSpec.fieldTypeKeyword(tSpec)
             fOwner    = progSpec.getOwner(tSpec)
             if(fOwner != 'me' and fOwner != 'my') or (isinstance(fType, str) and ((self.isArgNumeric(fType) or fType=="string") or ('value' in field and field['value']!=None))):
-                cvrtType = self.convertType(tSpec, 'var', 'constructor', genericArgs)
+                cvrtType = self.convertType(tSpec, 'var', genericArgs)
                 ctorArgTypes.append(cvrtType)
         return ctorArgTypes
 
@@ -1442,7 +1445,7 @@ class CodeGenerator(object):
         fType       = progSpec.fieldTypeKeyword(tSpec)
         fOwner      = progSpec.getOwner(tSpec)
         fieldName   = field['fieldName']
-        cvrtType = self.convertType(tSpec, 'var', 'constructor', genericArgs)
+        cvrtType = self.convertType(tSpec, 'var', genericArgs)
         if(fOwner != 'me'):
             if(fOwner != 'my'):
                 defaultVal = self.xlator.nullValue
@@ -1473,7 +1476,7 @@ class CodeGenerator(object):
             fType       = progSpec.fieldTypeKeyword(tSpec)
             fOwner      = progSpec.getOwner(tSpec)
             fieldName   = field['fieldName']
-            cvrtType = self.convertType(tSpec, 'var', 'constructor', genericArgs)
+            cvrtType = self.convertType(tSpec, 'var', genericArgs)
             cdlog(4, "Coding Constructor: {} {} {} {}".format(className, fieldName, fType, cvrtType))
             if(typeArgList != None and fType in typeArgList):isTemplateVar = True
             else: isTemplateVar = False
@@ -1553,7 +1556,7 @@ class CodeGenerator(object):
             fieldValue=field['value']
             fieldArglist = tSpec['argList']
             paramList = field['paramList']
-            cvrtType = self.convertType(tSpec, 'var', 'field', genericArgs)
+            cvrtType = self.convertType(tSpec, 'var', genericArgs)
             cvrtType = progSpec.flattenObjectName(cvrtType)
             tSpec = self.getGenericTypeSpec(genericArgs, tSpec)
             fieldOwner=progSpec.getOwner(tSpec)
@@ -1619,7 +1622,7 @@ class CodeGenerator(object):
                         argFieldType = progSpec.fieldTypeKeyword(argTSpec)
                         if progSpec.typeIsPointer(argTSpec): arg
                         self.applyStructImplemetation(argTSpec,className,argFieldName)
-                        argCvrtType = self.convertType(argTSpec, 'arg', 'field', genericArgs)
+                        argCvrtType = self.convertType(argTSpec, 'arg', genericArgs)
                         argListText += self.xlator.codeArgText(argFieldName, argCvrtType, argOwner, argTSpec, overRideOper, typeArgList)
                         self.localArgsAllocated.append([argFieldName, argTSpec])  # localArgsAllocated is a global variable that keeps track of nested function arguments and local vars.
                 #### RETURN TYPE ###########################################

@@ -160,7 +160,7 @@ class Xlator_Java(Xlator):
             else:
                 keyVarSpec = {'owner':firstOwner, 'fieldType':firstType, 'codeConverter':(repName+'.node.key')}
                 firstTSpec['codeConverter'] = (repName+'.node.value')
-                itrType    = self.codeGen.convertType(itrTSpec, 'var', 'action', genericArgs)+' '
+                itrType    = self.codeGen.convertType(itrTSpec, 'var', genericArgs)+' '
                 frontItr   = ctnrName+'.front()'
                 if not 'generic' in ctnrTSpec: itrType += reqTagStr
                 actionText += (indent + 'for('+itrType + itrName+' ='+frontItr + '; ' + itrName + '.node!='+ctnrName+'.end().node'+'; '+repName+'.goNext()){\n')
@@ -169,7 +169,7 @@ class Xlator_Java(Xlator):
         elif containerCat=="List":
             containedOwner = progSpec.getOwner(ctnrTSpec)
             keyVarSpec     = {'owner':containedOwner, 'fieldType':firstType}
-            iteratorTypeStr = self.codeGen.convertType(firstTSpec, 'var', 'action', genericArgs)
+            iteratorTypeStr = self.codeGen.convertType(firstTSpec, 'var', genericArgs)
             loopVarName=repName+"Idx";
             if(isBackward):
                 actionText += (indent + "for(int "+loopVarName+'='+ctnrName+'.size()-1; ' + loopVarName +' >=0; --' + loopVarName+'){\n'
@@ -229,13 +229,7 @@ class Xlator_Java(Xlator):
         elif owner=='my':       langType = langType
         elif owner=='our':      langType = langType
         elif owner=='their':    langType = langType
-        elif owner=='itr':
-            reqTagList  = progSpec.getReqTagList(tSpec)
-            fTypeKW     = progSpec.fieldTypeKeyword(tSpec)
-            itrTSpec    = self.codeGen.getDataStructItrTSpec(fTypeKW)
-            itrTypeKW   = progSpec.fieldTypeKeyword(itrTSpec)
-            genericArgs = progSpec.getGenericArgsFromTypeSpec(tSpec)
-            langType    = self.codeGen.generateGenericStructName(itrTypeKW, reqTagList, genericArgs)
+        elif owner=='itr':      langType = langType
         elif owner=='const':    langType = "final "+langType
         elif owner=='we':       langType = 'static '+langType
         else: cdErr("ERROR: Owner of type not valid '" + owner + "'")
@@ -366,7 +360,7 @@ class Xlator_Java(Xlator):
 
     def codeXlatorAllocater(self, tSpec, genericArgs):
         owner = progSpec.getOwner(tSpec)
-        cvrtType  = self.codeGen.convertType(tSpec, 'alloc', '', genericArgs)
+        cvrtType  = self.codeGen.convertType(tSpec, 'alloc', genericArgs)
         if(owner!='const'): S="new "+cvrtType
         else: cdErr("ERROR: Cannot allocate a 'const' variable.")
         return S
@@ -771,7 +765,7 @@ class Xlator_Java(Xlator):
         if fieldDef['paramList'] and fieldDef['paramList'][-1] == "^&useCtor//8":
             del fieldDef['paramList'][-1]
             useCtor = True
-        cvrtType = self.codeGen.convertType(lhsTypeSpec, 'var', actionOrField, genericArgs)
+        cvrtType = self.codeGen.convertType(lhsTypeSpec, 'var', genericArgs)
         localVarsAlloc.append([varName, lhsTypeSpec])  # Tracking local vars for scope
         ctnrTSpec = progSpec.getContainerSpec(lhsTypeSpec)
         isCtnr=progSpec.isNewContainerTempFunc(lhsTypeSpec)
