@@ -53,7 +53,7 @@ class Xlator_CPP(Xlator):
                 if 'IDXowner' in ctnrTSpec['indexType']:
                     idxOwner = ctnrTSpec['indexType']['IDXowner'][0]
                     idxType  = ctnrTSpec['indexType']['idxBaseType'][0][0]
-                    idxType  = self.applyOwner(tSpec, idxOwner, idxType)
+                    idxType  = self.applyOwner(idxOwner, idxType)
                 else: idxType=ctnrTSpec['indexType']['idxBaseType'][0][0]
             if idxType[0:4]=='uint': idxType+='_t'
         return idxType
@@ -166,7 +166,7 @@ class Xlator_CPP(Xlator):
     def implOperatorsAsFuncs(self, fTypeKW):
         return False
 
-    def adjustBaseTypes(self, fType):
+    def adjustBaseTypes(self, fType, isContainer):
         if(isinstance(fType, str)):
             if(fType=='uint8' or fType=='uint16'): fType='uint32'
             elif(fType=='int8' or fType=='int16'): fType='int32'
@@ -177,7 +177,7 @@ class Xlator_CPP(Xlator):
         else: langType=progSpec.flattenObjectName(fType[0])
         return langType
 
-    def applyOwner(self, tSpec, owner, langType):
+    def applyOwner(self, owner, langType):
         if owner=='me':         langType = langType
         elif owner=='my':       langType = "unique_ptr<"+langType + ' >'
         elif owner=='our':      langType = "shared_ptr<"+langType + ' >'
@@ -210,20 +210,18 @@ class Xlator_CPP(Xlator):
                 varTypeKW   = progSpec.getTypeFromTemplateArg(reqTag)
                 unwrappedOwner=self.getUnwrappedClassOwner(classes, tSpec, varTypeKW, 'alloc', reqOwnr)
                 unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(classes, varTypeKW)
-                unwrappedKW = self.adjustBaseTypes(unwrappedKW)
-                reqType     = self.applyOwner(tSpec, unwrappedOwner, unwrappedKW)
+                unwrappedKW = self.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
+                reqType     = self.applyOwner(unwrappedOwner, unwrappedKW)
                 if(count>0): reqTagStr += ", "
                 reqTagStr += reqType
                 count += 1
             reqTagStr += ">"
         return reqTagStr
 
-    def xlateLangType(self, classes, tSpec, owner, fTypeKW, varMode):
+    def xlateLangType(self, classes, tSpec, owner, langType, varMode):
         # varMode is 'var' or 'arg' or 'alloc'. Large items are passed as pointers
-        langType  = self.adjustBaseTypes(fTypeKW)
-        reqTagStr = self.getReqTagString(classes, tSpec)
-        langType += reqTagStr
-        if varMode != 'alloc': langType = self.applyOwner(tSpec, owner, langType)
+        langType += self.getReqTagString(classes, tSpec)
+        if varMode != 'alloc': langType = self.applyOwner(owner, langType)
         return langType
 
     def makePtrOpt(self, tSpec):
@@ -963,7 +961,7 @@ void SetBits(CopyableAtomic<uint64_t>& target, uint64_t mask, uint64_t value) {
         return indent+"    break;\n"
 
     def applyTypecast(self, typeInCodeDog, itemToAlterType):
-        platformType = self.adjustBaseTypes(typeInCodeDog)
+        platformType = self.adjustBaseTypes(typeInCodeDog, None)
         return '('+platformType+')'+itemToAlterType;
 
     #######################################################

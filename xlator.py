@@ -3,13 +3,10 @@
 from progSpec import cdErr
 
 class Xlator(object):
-    def getContainerType(self, tSpec):
-        cdErr("In base class Xlator::getContainerType.")
-
     def adjustBaseTypes(self, fType, isContainer):
         cdErr("In base class Xlator::adjustBaseTypes.")
 
-    def applyOwner(self, tSpec, owner, langType):
+    def applyOwner(self, owner, langType):
         cdErr("In base class Xlator::applyOwner.")
 
     def getUnwrappedClassOwner(self, classes, tSpec, fType, varMode, ownerIn):
@@ -18,7 +15,7 @@ class Xlator(object):
     def getReqTagString(self, classes, tSpec):
         cdErr("In base class Xlator::getReqTagString.")
 
-    def xlateLangType(self, classes, tSpec, owner, fTypeKW, varMode):
+    def xlateLangType(self, classes, tSpec, owner, langType, varMode):
         cdErr("In base class Xlator::xlateLangType.")
 
     def makePtrOpt(self, tSpec):
@@ -27,7 +24,7 @@ class Xlator(object):
     def codeIteratorOperation(self, itrCommand, fType):
         cdErr("In base class Xlator::codeIteratorOperation.")
 
-    def recodeStringFunctions(self, name, tSpec):
+    def recodeStringFunctions(self, name, tSpec, lenParams):
         cdErr("In base class Xlator::recodeStringFunctions.")
 
     def langStringFormatterCommand(self, fmtStr, argStr):
@@ -39,7 +36,7 @@ class Xlator(object):
     def convertToInt(self, S, tSpec):
         cdErr("In base class Xlator::convertToInt.")
 
-    def checkForTypeCastNeed(self, lhsTypeSpec, rhsTypeSpec, RHScodeStr):
+    def checkForTypeCastNeed(self, lhsTSpec, rhsTSpec, RHS):
         cdErr("In base class Xlator::checkForTypeCastNeed.")
 
     def getTheDerefPtrMods(self, itemTypeSpec):

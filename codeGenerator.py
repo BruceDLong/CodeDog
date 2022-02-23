@@ -563,17 +563,21 @@ class CodeGenerator(object):
         ownerIn  = progSpec.getOwner(tSpec)
         ownerOut = self.xlator.getUnwrappedClassOwner(self.classStore, tSpec, fTypeKW, varMode, ownerIn)
         unwrappedKW = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, fTypeKW)
+        reqTagList  = progSpec.getReqTagList(tSpec)
         if ownerOut=='itr':
             itrTSpec    = self.getDataStructItrTSpec(fTypeKW)
             fTypeKW = progSpec.fieldTypeKeyword(itrTSpec)
-        reqTagList = progSpec.getReqTagList(tSpec)
+            itrTagList = progSpec.getReqTagList(itrTSpec)
+            if itrTagList!=None:
+                unwrappedKW = fTypeKW
         if reqTagList and self.xlator.renderGenerics=='True':
             if not progSpec.isWrappedType(self.classStore, fTypeKW) and not progSpec.isAbstractStruct(self.classStore[0], fTypeKW):
                 unwrappedKW = self.generateGenericStructName(fTypeKW, reqTagList, genericArgs)
             else:
                 reqTagStr   = self.xlator.getReqTagString(self.classStore, tSpec)
                 unwrappedKW = unwrappedKW + reqTagStr
-        langType = self.xlator.xlateLangType(self.classStore, tSpec, ownerOut, unwrappedKW, varMode)
+        langType = self.xlator.adjustBaseTypes(unwrappedKW, progSpec.isNewContainerTempFunc(tSpec))
+        langType = self.xlator.xlateLangType(self.classStore, tSpec, ownerOut, langType, varMode)
         return langType
 
     def codeAllocater(self, tSpec, paramList, genericArgs):
@@ -734,18 +738,18 @@ class CodeGenerator(object):
                 if(reqTagList != None):
                     T0Type  = progSpec.getTypeFromTemplateArg(reqTagList[0])
                     T0Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, T0Type)
-                    T0Type  = self.xlator.adjustBaseTypes(T0Type)
+                    T0Type  = self.xlator.adjustBaseTypes(T0Type,True)
                     T0Owner = progSpec.getOwnerFromTemplateArg(reqTagList[0])
-                    T0Type  = self.xlator.applyOwner(tSpecOut, T0Owner, T0Type)
+                    T0Type  = self.xlator.applyOwner(T0Owner, T0Type)
                     convertedName = convertedName.replace("%T0Type",T0Type)
                 else: cdErr("ERROR: looking for T0Type in codeConverter but reqTagList found in TypeSpec.")
             if "%T1Type" in convertedName:
                 if(reqTagList != None):
                     T1Type  = progSpec.getTypeFromTemplateArg(reqTagList[1])
                     T1Type  = progSpec.getUnwrappedClassFieldTypeKeyWord(self.classStore, T1Type)
-                    T1Type  = self.xlator.adjustBaseTypes(T1Type)
+                    T1Type  = self.xlator.adjustBaseTypes(T1Type,True)
                     T1Owner = progSpec.getOwnerFromTemplateArg(reqTagList[1])
-                    T1Type  = self.xlator.applyOwner(tSpecOut, T1Owner, T1Type)
+                    T1Type  = self.xlator.applyOwner(T1Owner, T1Type)
                     convertedName = convertedName.replace("%T1Type",T1Type)
                 else: cdErr("ERROR: looking for T1Type in codeConverter but reqTagList found in TypeSpec.")
             #print("codeConverter ",name,"->",convertedName, tSpecOut)
